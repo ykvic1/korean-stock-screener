@@ -134,7 +134,7 @@ async function load(){
   const days=(Date.now()-new Date(d.date+'T18:30:00+09:00').getTime())/86400000;
   el('status').textContent=days>6?'분석 갱신 확인 필요':(!d.flow_confirmed_count?'가격 분석 완료 · 수급 미확인':'분석 완료 · 종목별 확보율 확인');
   el('status').className=days>6||!d.flow_confirmed_count?'status bad':'status';
-  el('updated').textContent=`기준일 ${d.date} · ${d.generated_kst} 생성 · ${d.examined_count}종목 정밀 조회 · 오류 ${d.error_count}건`;
+  el('updated').textContent=`기준일 ${d.date} · ${d.generated_kst} 생성 · ${d.examined_count}종목 정밀 조회 · 오류 ${d.error_count}건 · 이력 부족 제외 ${(d.history_exclusions||[]).length}종목`;
   el('date').textContent=d.date;
   el('count').textContent=fmt(d.candidate_count);
   el('flowCount').textContent=fmt(d.flow_confirmed_count);
