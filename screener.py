@@ -97,7 +97,7 @@ def optional_listings(rows):
                 if code not in rows:continue
                 if sect_col and not rows[code]['sector']:
                     s=str(t[sect_col]).strip()
-                    if s and s.lower() not in ('nan','none','-'):rows[code]['sector']=s
+                    if s and s.lower() not in ('nan','none','-') and not s.endswith('기업부'):rows[code]['sector']=s
                 if pbr_col and rows[code]['pbr'] is None:
                     p=finite(t[pbr_col])
                     if p is not None and 0<p<100:
@@ -284,7 +284,12 @@ def flows(code,day,cfg):
     f=f.tail(cfg['flow_days'])
     for key in ('외국인합계','기관합계'):
         if key not in f.columns:raise ValueError(f'{key} 데이터 누락')
-    x=f['외국인합계'].fillna(0).astype(float);y=f['기관합계'].fillna(0).astype(float)
+    x=f['외국인합계'].astype(float);y=f['기관합계'].astype(float)
+    if not np.isfinite(x.to_numpy()).all() or not np.isfinite(y.to_numpy()).all():
+        raise ValueError('기관·외국인 수급 결측/비정상 값: 미확인')
+    if len(f)<int(cfg['flow_days']):raise ValueError('요청 거래일 수급 자료 부족')
+    if (day.date()-f.index[-1].date()).days>cfg['max_data_age_days']:
+        raise ValueError('수급 데이터 최신성 부족')
     return {'foreign_net_shares':int(x.sum()),'inst_net_shares':int(y.sum()),
             'foreign_positive_days':int((x>0).sum()),'inst_positive_days':int((y>0).sum()),
             'flow_observations':len(f),'flows_confirmed':True,
@@ -292,52 +297,46 @@ def flows(code,day,cfg):
 
 
 
+def parse_naver_flow_table(html):
+    soup=BeautifulSoup(html,'html.parser');rows={}
+    for table in soup.find_all('table'):
+        headers=[th.get_text('',strip=True) for th in table.find_all('th')]
+        # New Npay table: use net investor shares, never foreign holdings.
+        if '외국인' not in headers or '기관' not in headers or '날짜' not in headers:continue
+        fi=headers.index('외국인');ii=headers.index('기관');di=headers.index('날짜')
+        for tr in table.find_all('tr'):
+            cells=tr.find_all('td',recursive=False)
+            if len(cells)!=len(headers):continue
+            raw=re.sub(r'\s+','',cells[di].get_text())
+            if not re.fullmatch(r'\d{4}\.\d{2}\.\d{2}\.?',raw):continue
+            date=raw.rstrip('.').replace('.','-')
+            def shares(cell):
+                value=re.sub(r'\s+','',cell.get_text()).replace(',','').replace('주','').replace('−','-')
+                if not re.fullmatch(r'[+-]?\d+',value):raise ValueError('수급 결측값')
+                return int(value)
+            try:rows[date]=(shares(cells[ii]),shares(cells[fi]))
+            except ValueError:continue
+    return rows
+
+
 def flows_naver(code, day, cfg):
-    """Best-effort independent fallback when pykrx is unavailable.
-    Parse displayed *institution/foreign net volume* table, not broker estimates.
-    Fail closed if the table structure or latest date is unexpected.
-    """
-    rows={}
-    need=max(12,int(cfg['flow_days']))
-    session=requests.Session()
-    session.headers.update({'User-Agent':'Mozilla/5.0 (compatible; StockResearch/2.0)',
-                            'Referer':'https://finance.naver.com/'})
-    for page in (1,2,3,4):
-        response=session.get('https://finance.naver.com/item/frgn.naver',
-                             params={'code':code,'page':page},timeout=16)
-        response.raise_for_status()
-        response.encoding=response.apparent_encoding or 'euc-kr'
-        soup=BeautifulSoup(response.text,'html.parser')
-        # Use ONLY rows from foreign/institution net trade tables with 9+ columns.
-        for table in soup.find_all('table'):
-            table_text=table.get_text(' ',strip=True)
-            if '기관' not in table_text or '외국인' not in table_text or '순매매' not in table_text:
-                continue
-            for tr in table.find_all('tr'):
-                cells=tr.find_all('td',recursive=False)
-                if len(cells)<8:continue
-                date_text=cells[0].get_text(' ',strip=True)
-                if not re.fullmatch(r'\d{4}\.\d{2}\.\d{2}',date_text):continue
-                date_str=date_text.replace('.','-')
-                try:
-                    inst=int(cells[5].get_text('',strip=True).replace(',','').replace('+',''))
-                    foreign=int(cells[6].get_text('',strip=True).replace(',','').replace('+',''))
-                except ValueError:continue
-                rows[date_str]=(inst,foreign)
-        if len(rows)>=need:break
+    # Legacy finance.naver.com now redirects to Npay; read the current public table.
+    url=f'https://stock.naver.com/domestic/stock/{code}/price'
+    response=requests.get(url,headers={'User-Agent':'Mozilla/5.0'},timeout=20)
+    response.raise_for_status();response.encoding='utf-8'
+    rows=parse_naver_flow_table(response.text)
     valid=sorted(((d,ins,forg) for d,(ins,forg) in rows.items()
                   if d<=day.strftime('%Y-%m-%d')),reverse=True)
-    if len(valid)<max(10,need//2):raise ValueError('네이버 기관/외국인 순매매 표 구조 변경 또는 값 부족')
+    need=int(cfg['flow_days'])
+    if len(valid)<need:raise ValueError(f'Npay 공개 수급 표 거래일 부족/서버 HTML 미제공: {len(valid)}/{need}')
     freshest=datetime.fromisoformat(valid[0][0]).date()
-    if (day.date()-freshest).days>6:raise ValueError('네이버 수급 데이터 최신성 부족')
-    selected=valid[:int(cfg['flow_days'])]
-    if len(selected)<int(cfg['flow_days'])-2:raise ValueError('최근 20거래일 수급 자료 부족')
-    foreign=[x[2] for x in selected];inst=[x[1] for x in selected]
+    if (day.date()-freshest).days>cfg['max_data_age_days']:raise ValueError('Npay 수급 최신성 부족')
+    selected=valid[:need];foreign=[x[2] for x in selected];inst=[x[1] for x in selected]
     return {'foreign_net_shares':sum(foreign),'inst_net_shares':sum(inst),
-            'foreign_positive_days':sum(x>0 for x in foreign),
-            'inst_positive_days':sum(x>0 for x in inst),
+            'foreign_positive_days':sum(x>0 for x in foreign),'inst_positive_days':sum(x>0 for x in inst),
             'flow_observations':len(selected),'flows_confirmed':True,
-            'flow_source':'네이버 금융 기관/외국인 순매매(표기값)'}
+            'flow_start_date':selected[-1][0],'flow_end_date':selected[0][0],
+            'flow_source':'Npay 증권 기관/외국인 순매매(공개 표)'}
 
 def score_one(r,cfg):
     """Add every dimension's observed score and coverage, without normalizing away missing factors."""
@@ -596,6 +595,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'flows_confirmed':bool(r.get('flows_confirmed')),
           'foreign_shares':r.get('foreign_net_shares'),
           'inst_shares':r.get('inst_net_shares'),'flow_source':r.get('flow_source'),
+          'flow_start_date':r.get('flow_start_date'),'flow_end_date':r.get('flow_end_date'),
           'pbr':r['pbr'],'patterns':r['patterns'],'signals':r['signals'],
           'stop_line':r['stop_line'],'stop_pct':r['stop_pct'],
           'reference_resistance':r['reference_resistance'],
@@ -628,8 +628,12 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
         if match and ref not in known:
             hist.append({'date':match.group(0),'file':ref});known.add(ref)
     hist.sort(key=lambda x:x['date'],reverse=True)
-    current.write_text(json.dumps(hist[:120],ensure_ascii=False,indent=2),encoding='utf-8')
-    (SITE/'data.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+    current.write_text(json.dumps(hist,ensure_ascii=False,indent=2),encoding='utf-8')
+    previous=SITE/'data.json'
+    if previous.exists():
+        archive=SITE/'archive';archive.mkdir(exist_ok=True)
+        shutil.copyfile(previous,archive/f"data_before_{datetime.now(ZoneInfo('Asia/Seoul')):%Y%m%d_%H%M%S}.json")
+    previous.write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
     return out
 
 
