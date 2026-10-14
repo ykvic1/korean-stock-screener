@@ -275,6 +275,8 @@ def load_indexes(day,cfg):
 
 
 def flows(code,day,cfg):
+    if not os.getenv('KRX_ID') or not os.getenv('KRX_PW'):
+        raise ValueError('KRX 로그인 정보 없음: 네이버 금융 대체 조회 사용')
     a=(day-timedelta(days=2*int(cfg['flow_days'])+12)).strftime('%Y%m%d')
     b=day.strftime('%Y%m%d')
     f=stock.get_market_trading_volume_by_date(a,b,code)
@@ -563,7 +565,7 @@ def make_report(rows,errors,analysis_day,cfg,meta):
         risks.append([r['name'],r['price_date'],r['phase'],int(r['price_latest']),
           r['stop_line'],r['stop_pct'],r['reference_target_pct'],r['reward_risk'],' / '.join(r['risk_flags'])])
     err=[['종목코드','수집 구간','사유']]+errors
-    filename=OUT/f'한국주식_다면스크리너_{d}.xlsx'
+    filename=OUT/f"한국주식_다면스크리너_{d}_{datetime.now(ZoneInfo('Asia/Seoul')):%H%M%S}.xlsx"
     _xml_xlsx([
        ('사용안내',guide,[31,100]),
        ('종목순위',table,[8,14,24,12,26,18]+[19]*39+[46,50,42,34,40]),
@@ -618,7 +620,13 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
     try:hist=json.loads(current.read_text(encoding='utf-8')) if current.exists() else []
     except (ValueError,OSError):hist=[]
     entry={'date':out['date'],'file':'reports/'+xlsx.name}
-    hist=[entry]+[x for x in hist if x.get('date')!=entry['date']]
+    hist=[entry]+[x for x in hist if x.get('file')!=entry['file']]
+    known={x.get('file') for x in hist}
+    for report in sorted(reportdir.glob('*.xlsx')):
+        match=re.search(r'\d{4}-\d{2}-\d{2}',report.name)
+        ref='reports/'+report.name
+        if match and ref not in known:
+            hist.append({'date':match.group(0),'file':ref});known.add(ref)
     hist.sort(key=lambda x:x['date'],reverse=True)
     current.write_text(json.dumps(hist[:120],ensure_ascii=False,indent=2),encoding='utf-8')
     (SITE/'data.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
