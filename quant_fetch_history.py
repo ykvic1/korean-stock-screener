@@ -43,7 +43,8 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
                 if not all(k in df for k in NEEDED):
                     raise ValueError("OHLCV 컬럼 누락")
                 df.index=pd.to_datetime(df.index)
-                df=df.sort_index().loc[:asof,NEEDED].dropna()
+                df=df.sort_index().loc[:asof,NEEDED]
+                if df.isna().any().any():raise ValueError('OHLCV 결측 — 날짜 제거로 기간 왜곡 금지')
                 if len(df)<650 or df.index[-1].strftime('%Y-%m-%d')!=asof:
                     raise ValueError(f"가격 기준일 불일치: {df.index[-1].date()} vs {asof}")
                 tmp=path.with_suffix('.tmp')

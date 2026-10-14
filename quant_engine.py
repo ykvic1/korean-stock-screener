@@ -196,7 +196,7 @@ def reference_cases(cache: dict[str,pd.DataFrame], market: dict[str,str],
             if not np.all(np.isfinite(vec)):
                 continue
             # Splits/price adjustment errors: skip any extremely large daily jump.
-            window = df["Close"].iloc[max(0,t-65):t+horizon+2]
+            window = df["Close"].iloc[max(0,t-65):t+1]
             if window.pct_change().abs().gt(.65).any():
                 continue
             label = label_future(df,t,horizon,target,stop,cost_pct)

@@ -30,7 +30,7 @@ def create(json_path:Path,out_path:Path):
             '상승빈도 신뢰구간 상단 %','목표 선도달 빈도 %','손절 선도달 빈도 %',
             '전략 수익+ 빈도 %','비용차감 전략 평균수익 %','비용차감 중앙수익 %','수익률 하위10% %',
             '최대상승폭 중앙 %','최대상승폭 75분위 %','최대상승폭 90분위 %',
-            '최대하락폭 75분위 %','종목별 구조적 손절폭 %','진입기간 참고','검증 제한']
+            '최대하락폭 75분위 %','종목별 구조적 손절폭 %','진입기간 참고','검증 제한','평균 보유말 수익 %','기준일 참고가격','연구 목표가','연구 손절가','홀드아웃 상태']
     result=[header]
     for s in d.get('stocks',[]):
         for key in PERIOD_ORDER:
@@ -54,7 +54,11 @@ def create(json_path:Path,out_path:Path):
                 p.get('max_adverse_p75_pct') if valid else None,
                 s.get('structural_stop_pct'),
                 s.get('period_suggestion',{}).get('period',s.get('period_suggestion',{}).get('decision')),
-                p.get('reason') if not valid else p.get('limitation')])
+                p.get('reason') if not valid else p.get('limitation'),
+                p.get('end_close_mean_pct') if valid else None,s.get('reference_price'),
+                round(s['reference_price']*(1+p['target_pct']/100)) if valid and s.get('reference_price') else None,
+                round(s['reference_price']*(1-p['stop_pct']/100)) if valid and s.get('reference_price') else None,
+                p.get('chronological_holdout',{}).get('status','미검증')])
     sources=[['원천','공식 URL','활용'],
       ['가격/거래량','https://github.com/FinanceData/FinanceDataReader','일봉 OHLCV'],
       ['금감원 OpenDART','https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020','후속 재무 공개일 연동'],
