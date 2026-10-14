@@ -1,37 +1,50 @@
-
-name: Korean Stock Screener
+name: Korean Stock Screener v2
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 9 * * 1-5'
+    - cron: '30 9 * * 1-5'  # 18:30 KST weekdays
 
 permissions:
   contents: write
+
+# Parallel runs caused push collisions in v1. Queue at most one pending run.
+concurrency:
+  group: korea-stock-screener-main
+  cancel-in-progress: false
 
 jobs:
   screen:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - name: Download source
+        uses: actions/checkout@v4
+      - name: Install Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install packages
-        run: pip install -r requirements.txt
-
-      - name: Run screener
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Analyze prices, flows and risk
+        env:
+          TZ: Asia/Seoul
         run: python screener.py
-
-      - name: Save reports
+      - name: Save results to GitHub Pages docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/data.json docs/history.json docs/reports/
           if ! git diff --cached --quiet; then
-            git commit -m "Daily screener report"
+            git commit -m "Daily v2 multi-factor screen"
             git push
           fi
+      - name: Keep Excel in Actions for 90 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: korea-screening-report
+          path: reports/*.xlsx
+          if-no-files-found: error
+          retention-days: 90
