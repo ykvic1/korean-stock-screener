@@ -44,6 +44,9 @@ def naver_rendered_table(url):
     return table.evaluate("element => element.outerHTML")
 
 
+class InsufficientHistory(ValueError):
+    pass
+
 ROOT = Path(__file__).resolve().parent
 SITE, OUT, LOG = ROOT / 'docs', ROOT / 'reports', ROOT / 'logs'
 DEFAULT = {
@@ -110,6 +113,7 @@ def optional_listings(rows):
     for name in ('KRX','KRX-DESC'):
         try:
             df=fdr.StockListing(name)
+            if df is not None and 'Symbol' in df.columns and 'Code' not in df.columns:df=df.rename(columns={'Symbol':'Code'})
             if df is None or df.empty or 'Code' not in df.columns:continue
             sect_col=next((c for c in ('Sector','Industry','업종','업종명') if c in df.columns),None)
             pbr_col=next((c for c in ('PBR','Pbr','pbr') if c in df.columns),None)
@@ -158,7 +162,7 @@ def last_series(series, code, cfg,day):
     df=fdr.DataReader(code,start,(day+timedelta(days=1)).strftime('%Y-%m-%d'))
     if df is None or df.empty:raise ValueError('가격 이력 없음')
     df=df.loc[df.index<=day.strftime('%Y-%m-%d')].sort_index()
-    if len(df)<cfg['min_history_bars']:raise ValueError(f'유효 일봉 부족: {len(df)}')
+    if len(df)<cfg['min_history_bars']:raise InsufficientHistory(f'유효 일봉 부족: {len(df)}/{cfg["min_history_bars"]}; 지표 계산 불가')
     cols=('Open','High','Low','Close','Volume')
     if any(c not in df for c in cols):raise ValueError('필수 OHLCV 누락')
     for c in cols:df[c]=df[c].astype(float)
@@ -314,6 +318,7 @@ def flows(code,day,cfg):
     return {'foreign_net_shares':int(x.sum()),'inst_net_shares':int(y.sum()),
             'foreign_positive_days':int((x>0).sum()),'inst_positive_days':int((y>0).sum()),
             'flow_observations':len(f),'flows_confirmed':True,
+            'flow_start_date':f.index[0].date().isoformat(),'flow_end_date':f.index[-1].date().isoformat(),
             'flow_source':'pykrx (KRX 투자자별 순매매)'}
 
 
@@ -441,7 +446,7 @@ def build_rows(day,cfg):
     selected,total=select_universe(universe,cfg,day)
     logging.info('조건 부합 %s종목 중 %s종목 분산 선별; 기업 보조 데이터=%s',total,len(selected),optional)
     idx=load_indexes(day,cfg)
-    valid=[];errors=[]
+    valid=[];errors=[];excluded=[]
     for i,r in enumerate(selected,1):
         try:
             v=analyze_history(r['code'],cfg,day);r.update(v)
@@ -452,7 +457,12 @@ def build_rows(day,cfg):
             else:r['relative20']=r['relative60']=None
             r['flows_confirmed']=False
             valid.append(r)
-        except Exception as e:errors.append([r['code'],'가격이력',str(e)[:240]])
+        except InsufficientHistory as e:
+            excluded.append([r['code'],r['name'],str(e)])
+            logging.info('이력부족 제외 %s: %s',r['code'],e)
+        except Exception as e:
+            errors.append([r['code'],'가격이력',str(e)[:240]])
+            logging.warning('가격이력 오류 %s: %s',r['code'],str(e)[:240])
         if i%30==0:logging.info('일봉 분석 %s/%s',i,len(selected))
         time.sleep(cfg['request_sleep_seconds'])
     if not valid:raise RuntimeError('모든 종목 가격조회 실패 — 결과 덮어쓰기 중단')
@@ -467,16 +477,32 @@ def build_rows(day,cfg):
               x['market_cap_eok']),reverse=True)[:cfg['top_candidates_for_flows']]
     for i,r in enumerate(attempts,1):
         try:
-            r.update(flows(r['code'],day,cfg))
+            if os.getenv('KRX_ID') and os.getenv('KRX_PW'):
+                r.update(flows(r['code'],day,cfg))
+            else:r.update(flows_naver(r['code'],day,cfg))
         except Exception as e:
             try:r.update(flows_naver(r['code'],day,cfg))
             except Exception as e2:errors.append([r['code'],'기관·외국인 수급',f'pykrx: {str(e)[:90]} / Naver: {str(e2)[:130]}'])
+        if r.get('flows_confirmed') and i<=int(cfg.get('flow_crosscheck_count',10)):
+            if os.getenv('KRX_ID') and os.getenv('KRX_PW'):
+                try:
+                    primary=flows(r['code'],day,cfg)
+                    alt=flows_naver(r['code'],day,cfg)
+                    keys=('foreign_net_shares','inst_net_shares','flow_start_date','flow_end_date','flow_observations')
+                    same=all(primary.get(k)==alt.get(k) for k in keys)
+                    r['flow_cross_validation']='KRX/Npay 기간·합계 일치' if same else '불일치 — 미확인 처리'
+                    if not same:
+                        r['flows_confirmed']=False
+                        for k in ('foreign_net_shares','inst_net_shares'):r[k]=None
+                        errors.append([r['code'],'수급 교차검증','KRX/Npay 기간 또는 합계 불일치'])
+                except Exception as e:r['flow_cross_validation']='교차검증 실패: '+str(e)[:100]
+            else:r['flow_cross_validation']='Npay 단일 소스 — KRX 인증 미등록, 독립 교차검증 미완료'
         if i%10==0:logging.info('수급 조회 %s/%s',i,len(attempts))
         time.sleep(cfg['request_sleep_seconds'])
     for r in valid:score_one(r,cfg)
     valid.sort(key=lambda x:(x['decision']=='정밀 검토 우선',x['decision']=='관찰',x['score'] or 0,x['coverage_pct'] or 0),reverse=True)
     return valid,errors,datetime.fromisoformat(freshest),{'eligible':total,'examined':len(selected),
-      'index_markets':list(idx),'optional_listings':optional}
+      'index_markets':list(idx),'optional_listings':optional,'excluded':excluded,'flow_attempted':len(attempts)}
 
 
 def _xml_xlsx(sheets, path):
@@ -587,13 +613,15 @@ def make_report(rows,errors,analysis_day,cfg,meta):
         risks.append([r['name'],r['price_date'],r['phase'],int(r['price_latest']),
           r['stop_line'],r['stop_pct'],r['reference_target_pct'],r['reward_risk'],' / '.join(r['risk_flags'])])
     err=[['종목코드','수집 구간','사유']]+errors
+    LOG.joinpath('collection_audit.json').write_text(json.dumps({'errors':errors,'excluded':meta.get('excluded',[])},ensure_ascii=False,indent=2),encoding='utf-8')
     filename=OUT/f"한국주식_다면스크리너_{d}_{datetime.now(ZoneInfo('Asia/Seoul')):%H%M%S}.xlsx"
     _xml_xlsx([
        ('사용안내',guide,[31,100]),
        ('종목순위',table,[8,14,24,12,26,18]+[19]*39+[46,50,42,34,40]),
        ('점수내역',breakdown,[15,24,27,16,14,24]),
        ('위험대응',risks,[24,18,28,16,22,16,20,18,90]),
-       ('수집오류',err,[16,28,110])],filename)
+       ('수집오류',err,[16,28,110]),
+       ('이력부족제외',[['종목코드','종목명','사유']]+meta.get('excluded',[]),[15,24,100])],filename)
     return filename
 
 
@@ -616,7 +644,8 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'ma120w_gap':r['ma120w_gap'],'high52_gap':r['high52_gap'],
           'relative20':r['relative20'],'relative60':r['relative60'],
           'flows_confirmed':bool(r.get('flows_confirmed')),
-          'foreign_shares':r.get('foreign_net_shares'),
+          'foreign_shares':r.get('foreign_net_shares'),'flow_observations':r.get('flow_observations'),
+          'flow_cross_validation':r.get('flow_cross_validation','독립 소스 미검증'),
           'inst_shares':r.get('inst_net_shares'),'flow_source':r.get('flow_source'),
           'flow_start_date':r.get('flow_start_date'),'flow_end_date':r.get('flow_end_date'),
           'pbr':r['pbr'],'patterns':r['patterns'],'signals':r['signals'],
@@ -631,7 +660,8 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
          'flow_confirmed_count':sum(x['flows_confirmed'] for x in view),
          'fundamental_count':sum(x['pbr'] is not None for x in view),
          'index_available':meta['index_markets'],
-         'error_count':len(errors),
+         'error_count':len(errors),'collection_errors':errors,'history_exclusions':meta.get('excluded',[]),
+         'flow_attempted_count':meta.get('flow_attempted'),
          'limitations':['실적/현금흐름 자동연결 미구현','기관·외국인 조회 실패 시 미확인',
            '차트패턴 근사후보: 주봉/일봉 이미지 검증 필요','상승확률/미래수익률 예측 아님',
            '업종 순환 자동판정 미구현'],
@@ -676,3 +706,4 @@ def main():
        info['date'],info['candidate_count'],info['flow_confirmed_count'],info['error_count'],path)
 
 if __name__=='__main__':main()
+
