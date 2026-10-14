@@ -1,0 +1,28 @@
+name: Verify live mobile Pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install browser test runtime
+        run: |
+          pip install 'playwright>=1.48,<2'
+          python -m playwright install --with-deps chromium
+      - name: Check deployed mobile site
+        run: python verify_mobile.py
+      - name: Save mobile verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-verification
+          path: verification/
+          if-no-files-found: warn
+          retention-days: 30
