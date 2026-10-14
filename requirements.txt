@@ -3,3 +3,4 @@ pykrx>=1.0.48
 numpy>=1.24
 requests>=2.31
 beautifulsoup4>=4.12
+playwright>=1.48,<2

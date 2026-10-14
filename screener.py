@@ -22,6 +22,27 @@ import FinanceDataReader as fdr
 from pykrx import stock
 import requests
 from bs4 import BeautifulSoup
+import atexit
+
+_NAVER_BROWSER = None
+
+def naver_rendered_table(url):
+    global _NAVER_BROWSER
+    if _NAVER_BROWSER is None:
+        from playwright.sync_api import sync_playwright
+        runtime=sync_playwright().start()
+        browser=runtime.chromium.launch(headless=True)
+        page=browser.new_page()
+        _NAVER_BROWSER=(runtime,browser,page)
+        def close_browser():
+            browser.close();runtime.stop()
+        atexit.register(close_browser)
+    page=_NAVER_BROWSER[2]
+    page.goto(url,wait_until="domcontentloaded",timeout=30000)
+    table=page.locator("table").filter(has_text="외국인 보유주수")
+    table.locator("tbody tr").nth(19).wait_for(state="attached",timeout=20000)
+    return table.evaluate("element => element.outerHTML")
+
 
 ROOT = Path(__file__).resolve().parent
 SITE, OUT, LOG = ROOT / 'docs', ROOT / 'reports', ROOT / 'logs'
@@ -325,6 +346,8 @@ def flows_naver(code, day, cfg):
     response=requests.get(url,headers={'User-Agent':'Mozilla/5.0'},timeout=20)
     response.raise_for_status();response.encoding='utf-8'
     rows=parse_naver_flow_table(response.text)
+    if len(rows)<int(cfg['flow_days']):
+        rows=parse_naver_flow_table(naver_rendered_table(url))
     valid=sorted(((d,ins,forg) for d,(ins,forg) in rows.items()
                   if d<=day.strftime('%Y-%m-%d')),reverse=True)
     need=int(cfg['flow_days'])
