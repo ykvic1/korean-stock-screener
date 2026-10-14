@@ -1,10 +1,16 @@
 {
   "min_market_cap_eok": 5000,
   "max_market_cap_eok": 50000,
-  "min_daily_trading_eok": 5,
-  "preselect_limit": 160,
+  "min_daily_trading_eok": 2,
+  "preselect_limit": 210,
+  "min_history_bars": 160,
+  "historical_days": 1100,
+  "request_sleep_seconds": 0.18,
   "top_candidates_for_flows": 35,
-  "max_watch_rows": 100,
-  "historical_days": 1000,
-  "request_sleep_seconds": 0.18
+  "flow_days": 20,
+  "max_watch_rows": 120,
+  "max_data_age_days": 6,
+  "preferred_pbr_max": 1.5,
+  "max_stop_distance_pct": 15,
+  "enable_optional_company_listing": true
 }
