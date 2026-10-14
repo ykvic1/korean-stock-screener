@@ -2,6 +2,9 @@ name: Korean Stock Screener v2
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['screener.py', 'config.json', '.github/workflows/daily.yml']
   schedule:
     - cron: '30 9 * * 1-5'  # 18:30 KST weekdays
 
@@ -32,6 +35,8 @@ jobs:
       - name: Analyze prices, flows and risk
         env:
           TZ: Asia/Seoul
+          KRX_ID: ${{ secrets.KRX_ID }}
+          KRX_PW: ${{ secrets.KRX_PW }}
         run: python screener.py
       - name: Save results to GitHub Pages docs
         run: |
@@ -40,12 +45,16 @@ jobs:
           git add docs/data.json docs/history.json docs/reports/ docs/archive/
           if ! git diff --cached --quiet; then
             git commit -m "Daily v2 multi-factor screen"
+            git pull --rebase origin main
             git push
           fi
       - name: Keep Excel in Actions for 90 days
         uses: actions/upload-artifact@v4
         with:
           name: korea-screening-report
-          path: reports/*.xlsx
+          path: |
+            reports/*.xlsx
+            logs/
           if-no-files-found: error
           retention-days: 90
+
