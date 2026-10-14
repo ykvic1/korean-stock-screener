@@ -19,6 +19,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
 </style></head><body>
 <header><div class="wrap"><div class="eyebrow">QUANT RESEARCH / KOREA</div><h1>한국주식 다면 스크리너 <small style="font-size:12px;color:#9fd5d4">v2.0</small></h1><p>거래량 · 일봉·주봉 구조 · 수급 · 시장강도 · 밸류 · 손실 통제</p></div></header>
 <main>
+<section class="panel"><h2>v2.1 과거 유사조건 분석</h2><p>기간별 관측 빈도·MFE·MAE·손절 위험을 확인하세요. 미래 상승 확률이 아닙니다.</p><a class="btn primary" href="quant.html">퀀트 분석 열기 →</a></section>
 <section class="panel">
   <div id="status" class="status bad">시장 분석 데이터 확인 중…</div><div id="updated" class="meta">-</div>
   <div class="stats" style="margin-top:12px">
@@ -162,3 +163,4 @@ el('refresh').addEventListener('click',()=>{load();loadHistory();});
 el('download').addEventListener('click',e=>{if(el('download').getAttribute('aria-disabled')==='true')e.preventDefault();});
 load();loadHistory();
 </script></body></html>
+
