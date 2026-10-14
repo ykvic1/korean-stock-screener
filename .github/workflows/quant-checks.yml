@@ -1,0 +1,29 @@
+name: Quant v2.1 correctness checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [upgrade-v21-quant]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py
+      - name: JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          for p in (Path('docs/index.html'),Path('docs/quant.html')):
+              js='\n'.join(re.findall(r'<script>(.*?)</script>',p.read_text(),flags=re.S))
+              temp=Path('/tmp/'+p.stem+'.js');temp.write_text(js)
+              subprocess.run(['node','--check',str(temp)],check=True)
+          PY

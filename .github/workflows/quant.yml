@@ -1,0 +1,110 @@
+name: Korean Stock Quant Study v2.1
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Korean Stock Screener v2
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korean-stock-quant-v21
+  cancel-in-progress: false
+
+jobs:
+  study:
+    # Never train/run from a failed source data update.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout data branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Unit tests and bias checks
+        run: python -m unittest discover -s tests -v
+
+      - name: Restore OHLCV history cache
+        uses: actions/cache/restore@v4
+        with:
+          path: cache/quant_history
+          key: quant-history-${{ github.run_id }}
+          restore-keys: |
+            quant-history-
+
+      - name: Read source date
+        id: source
+        shell: bash
+        run: |
+          echo "asof=$(python -c 'import json;print(json.load(open("docs/data.json"))["date"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch OHLCV history for research
+        run: |
+          python quant_fetch_history.py --asof "${{ steps.source.outputs.asof }}" --max-stocks 120
+
+      - name: Store OHLCV cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: cache/quant_history
+          key: quant-history-${{ github.run_id }}
+
+      - name: Compute forward-only historical outcomes
+        id: engine
+        continue-on-error: true
+        run: |
+          python quant_engine.py --asof "${{ steps.source.outputs.asof }}" --max-stocks 120
+
+      - name: Export quant and combined dated Excel, optional official data
+        if: always() && steps.engine.outcome != 'skipped'
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: python publish_quant.py
+
+      - name: Commit dashboard and study results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/
+          git diff --cached --stat
+          git add docs/reports/quant_*.xlsx 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish quant study ${{ steps.source.outputs.asof }}"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Upload audit and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quant-study-audit
+          path: |
+            docs/quant.json
+            docs/official.json
+            cache/quant_history/cache_status.json
+            reports/*.xlsx
+          retention-days: 90
+
+      - name: Report insufficient evidence as a failed research run
+        if: steps.engine.outcome != 'success'
+        run: |
+          echo "Insufficient or failed historical study. Please inspect docs/quant.json and logs." >&2
+          exit 1
