@@ -1,6 +1,6 @@
 # v2.2 data reliability checkpoint
 
-Status: IN_PROGRESS (2026-10-14 KST). Do not start v3.0.
+Status: WAITING_AUTH (2026-10-15 KST); official regular-session data evidence also required. Do not start v3.0.
 Baseline: main 53f49273b51bc30c9ad768f1c3f31be12f4af24d.
 Preserve all historical Excel files and existing working v2 functionality.
 
@@ -29,3 +29,20 @@ IAS weights and EA candidate thresholds recovered from prior conversation; exact
 normalization and some EA definitions still unspecified. Do not fabricate or rescale.
 Next: commit this change set, run branch Actions, verify session labels/Excel; obtain official
 regular-only volume and OHLC evidence before claiming v2.2 completion. No v3 implementation.
+
+## Final verified checkpoint, 2026-10-15
+Actions 38703776587 SUCCESS on source 21367f4924435fcfe63d592e0d76b67692d11996;
+report publication b2600dee9c939b73a93569f318ece8da1fde91e1. Unit tests25, mobile
+search/download, data-contract assertions and previous Excel hashes passed. Latest
+index partial-point display 04bf4a8ff0b1794d6d3d1ad3aaa296eff2584751 passed PR checks.
+Actual asof 2026-10-14: raw120, numeric contiguous104, segment recovery37/53, residual16,
+independent-match0, KRX-regular verified0, full-history recovery verified0.
+Raw earliest2017-09-18;108/120 raw histories span at least5years. Session unverified.
+DART_API_KEY and KRX_API_KEY were absent in the executed workflow. Need authorized
+keys in Secrets AND a documented regular-only volume feed; daily KRX total volume
+is insufficient. Missing IAS formulas/EA definitions are recorded in V22_ROADMAP.md.
+Release scope is audit/UI fail-closed labels, not completion of data trust or v3.
+Next action: verify official KRX regular OHLC and regular-only volume on known
+dates, reconcile discrepancies/adjustments and corporate actions, then recalculate.
+Current120-candidate collection remains legacy; full-universe incremental operation
+and new100-point model are design only. Do not claim operational completion.
