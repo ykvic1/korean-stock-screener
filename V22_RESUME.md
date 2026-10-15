@@ -65,3 +65,15 @@ Local29tests pass (25existing+4failure-path tests). Live rerun pending.
 Next: commit patch on v22-data-reliability, PR checks/merge and daily rerun;
 inspect exact supplier error and actual new-data availability. Official session
 validation/auth blockers above still apply; v3 remains blocked.
+
+## Supplier UI root cause confirmed, 2026-10-15
+PR #4 merged409f94f998e7d26c63976ff7ac9faefeb2b3274e; CI38746713866
+passed29tests. Daily rerun38746993312 started.
+Live Npay UI confirmed flow table is /tradingTrend, not /price; date now
+YY. MM. DD.;10 rows per page, and foreign-holdings label exists only as button
+aria-label (old has_text locator never matches). Exchange defaults to integrated.
+Follow-up patch explicitly selects trader-toolbar KRX, reads3pages, parses2/4digit
+calendar dates and signed net shares, ignores holdings percentage. It still marks
+regular_session_unverified: KRX exchange selection does not prove regular-only flow.
+Two parser regressions added;31localtests pass. Need CI and live rerun to verify
+end-to-end supply, not just code. No full-history recovery claim or v3 work.
