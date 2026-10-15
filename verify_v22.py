@@ -5,6 +5,11 @@ from playwright.sync_api import sync_playwright
 
 def main():
     Path('evidence').mkdir(exist_ok=True);a=json.load(open('docs/reliability.json'));q=json.load(open('docs/quant_v22.json'))
+    from baseline_cohort import load_cohort
+    baseline=a['baseline_cohort']
+    assert {s['code'] for s in baseline['stocks']} == {s['code'] for s in load_cohort()}
+    assert baseline['requested']==53
+    assert baseline['full_history_verified']==0
     assert len(a['stocks'])==a['requested'];assert len(q['stocks'])==a['requested'];assert q['v3_ready'] is False
     assert a['regular_session_verified']==0
     assert all(s.get('confirmed_score') is None for s in q['stocks'])

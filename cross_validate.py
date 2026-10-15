@@ -7,6 +7,7 @@ import numpy as np
 import requests
 from audit_prices import FIELDS, anomalies
 from quant_engine import read_ohlcv
+from baseline_cohort import load_cohort, cohort_summary
 
 
 def yahoo(code,market,asof,root):
@@ -82,9 +83,16 @@ def process(row,market,asof):
 
 def main():
     p=Path('docs/reliability.json');audit=json.loads(p.read_text());d=json.load(open('docs/data.json'));markets={s['code']:s.get('market') for s in d['stocks']}
-    with ThreadPoolExecutor(max_workers=3) as ex:rows=list(ex.map(lambda r:process(r,markets[r['code']],d['date']),audit['stocks']))
+    markets.update({s['code']:s['market'] for s in load_cohort()})
+    combined={r['code']:r for r in audit['stocks']}
+    combined.update({r['code']:r for r in audit['baseline_cohort']['stocks']})
+    with ThreadPoolExecutor(max_workers=3) as ex:all_rows=list(ex.map(lambda r:process(r,markets[r['code']],d['date']),combined.values()))
+    by_code={r['code']:r for r in all_rows}
+    rows=[by_code[r['code']] for r in audit['stocks']]
+    baseline_rows=[by_code[s['code']] for s in load_cohort()]
+    audit['baseline_cohort'].update(stocks=baseline_rows,**cohort_summary(baseline_rows))
     audit.update(stocks=rows,strict_valid=sum(r['strict_valid'] for r in rows),recovered=sum(r['recovered'] for r in rows),independently_matched=sum(r.get('independently_matched',False) for r in rows),original_strict_valid=sum(r.get('original_strict_valid',False) for r in rows))
-    audit['v3_ready']=False;audit['v3_blockers']=['survivorship/delistings unresolved','corporate action and suspension official history incomplete','point-in-time finance/industry incomplete','out-of-sample predictive validation incomplete']
+    audit['v3_ready']=False;audit['v3_blockers']=['survivorship/delistings unresolved','corporate action and suspension official history incomplete','point-in-time finance/industry incomplete','regular-session OHLCV evidence incomplete']
     p.write_text(json.dumps(audit,ensure_ascii=False,indent=2,allow_nan=False))
-    print({k:v for k,v in audit.items() if k!='stocks'})
+    print({k:v for k,v in audit.items() if k not in ('stocks','baseline_cohort')})
 if __name__=='__main__':main()

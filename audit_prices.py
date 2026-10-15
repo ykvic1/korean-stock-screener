@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from quant_engine import read_ohlcv
 from session_policy import unverified
+from baseline_cohort import load_cohort, union_stocks, cohort_summary
 
 FIELDS=['Open','High','Low','Close','Volume']
 ROOT=Path('cache/v22_raw')
@@ -55,16 +56,20 @@ def audit_one(s,asof,old_missing):
 
 def main():
     ROOT.mkdir(parents=True,exist_ok=True);Path('cache/quant_history_v22').mkdir(parents=True,exist_ok=True)
-    d=json.load(open('docs/data.json'));q=json.load(open('docs/archive/quant_2026-10-14_214356.json')) if Path('docs/archive/quant_2026-10-14_214356.json').exists() else json.load(open('docs/quant.json'))
-    # v2.1 missing list was capped at 50. Reconstruct all 53 from stock statuses.
-    old_missing={s['code'] for s in q['stocks'] if s.get('status')=='insufficient'}
+    d=json.load(open('docs/data.json'));cohort=load_cohort()
+    old_missing={s['code'] for s in cohort}
     snap=ROOT/'snapshot.json'
     if snap.exists() and json.loads(snap.read_text())['asof']!=d['date']:
         raise RuntimeError('raw cache snapshot date mismatch; use a fresh work directory')
     snap.write_text(json.dumps({'asof':d['date'],'source':'NAVER fchart'}))
     stocks=d['stocks'][:120]
-    with ThreadPoolExecutor(max_workers=3) as ex: rows=list(ex.map(lambda s:audit_one(s,d['date'],old_missing),stocks))
+    targets=union_stocks(stocks,cohort)
+    with ThreadPoolExecutor(max_workers=3) as ex: rows=list(ex.map(lambda s:audit_one(s,d['date'],old_missing),targets))
+    by_code={r['code']:r for r in rows}
+    baseline_rows=[by_code[s['code']] for s in cohort]
+    rows=[by_code[s['code']] for s in stocks]
     out={'asof':d['date'],'baseline_excluded_n':len(old_missing),'requested':len(stocks),'fetched':sum('rows' in r for r in rows),'strict_valid':sum(r['strict_valid'] for r in rows),'stocks':rows,'v3_ready':False,'regular_session_verified':0,'full_history_recovered':0}
+    out['baseline_cohort']={'baseline_date':'2026-10-14','stocks':baseline_rows,**cohort_summary(baseline_rows)}
     Path('docs/reliability.json').write_text(json.dumps(out,ensure_ascii=False,indent=2,allow_nan=False))
-    print(json.dumps({k:v for k,v in out.items() if k!='stocks'},ensure_ascii=False))
+    print(json.dumps({k:v for k,v in out.items() if k not in ('stocks','baseline_cohort')},ensure_ascii=False))
 if __name__=='__main__':main()
