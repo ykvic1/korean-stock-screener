@@ -1,0 +1,78 @@
+name: v2.2 Data Reliability Research
+on:
+  workflow_dispatch:
+  push:
+    branches: [v22-data-reliability]
+    paths: ['.github/workflows/reliability-v22.yml']
+  workflow_run:
+    workflows: [Korean Stock Quant Study v2.1]
+    types: [completed]
+permissions:
+  contents: write
+concurrency:
+  group: v22-reliability
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Unit and causal-feature tests
+        run: python -m unittest discover -s tests -v
+      - name: Freeze source inputs and previous report hashes
+        run: |
+          mkdir -p evidence
+          cp docs/data.json evidence/signals.json
+          cp docs/quant.json evidence/v21_baseline.json
+          python -c 'import pathlib,hashlib,json;json.dump({str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in pathlib.Path("docs/reports").glob("*.xlsx")},open("evidence/old_report_hashes.json","w"))'
+      - name: Raw OHLCV acquisition and unchanged v2.1 validation
+        run: python audit_prices.py
+      - name: Independent supplier comparison and strict contiguous segments
+        run: python cross_validate.py
+      - name: Run uncapped baseline and RSI-conditioned study
+        run: python quant_engine_v22.py --history-dir cache/quant_history_v22 --output docs/quant_v22.json
+      - name: Official source connection and preserved dated Excel
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: python publish_v22.py
+      - name: Validate data coverage, report preservation and mobile page
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+          python verify_v22.py
+      - name: Upload raw evidence, reports and mobile proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v22-reliability-evidence
+          path: |
+            evidence/
+            cache/v22_raw/
+            cache/quant_history_v22/
+            docs/reliability.json
+            docs/quant_v22.json
+            docs/official_v22.json
+            docs/reports/*v22*.xlsx
+          retention-days: 90
+      - name: Publish verified execution results (research gate remains separate)
+        if: success()
+        env:
+          TARGET_BRANCH: ${{ github.event_name == 'workflow_run' && 'main' || github.ref_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/reliability.json docs/quant_v22.json docs/official_v22.json docs/history.json docs/archive/ docs/reports/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish v2.2 evidence and research results'
+            git pull --rebase origin "$TARGET_BRANCH"
+            git push origin "HEAD:$TARGET_BRANCH"
+          fi
