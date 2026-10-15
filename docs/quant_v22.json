@@ -1086,7 +1086,33 @@
       "structural_stop_pct": -6.3,
       "reference_price": 16970,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:48.810848+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "000400",
@@ -2033,7 +2059,33 @@
       "structural_stop_pct": -25.4,
       "reference_price": 2665,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:48.875276+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "161000",
@@ -3016,7 +3068,33 @@
       "structural_stop_pct": -22.0,
       "reference_price": 12390,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:48.963792+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "284740",
@@ -3996,7 +4074,33 @@
       "structural_stop_pct": -4.8,
       "reference_price": 24100,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:50.334239+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "028670",
@@ -4942,7 +5046,33 @@
       "structural_stop_pct": -23.1,
       "reference_price": 7230,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:50.370253+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "005180",
@@ -5960,7 +6090,33 @@
       "structural_stop_pct": -7.0,
       "reference_price": 86600,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:50.419887+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "004490",
@@ -6941,7 +7097,33 @@
       "structural_stop_pct": -9.2,
       "reference_price": 63900,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:51.937775+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "192400",
@@ -7994,7 +8176,33 @@
       "structural_stop_pct": -5.0,
       "reference_price": 27050,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:51.912736+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "006120",
@@ -9012,7 +9220,33 @@
       "structural_stop_pct": -19.4,
       "reference_price": 67000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:51.892866+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "092870",
@@ -9480,7 +9714,33 @@
       "structural_stop_pct": -45.5,
       "reference_price": 50600,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:53.171912+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "452260",
@@ -10463,7 +10723,33 @@
       "structural_stop_pct": -14.7,
       "reference_price": 2790,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:53.141133+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "383220",
@@ -11445,7 +11731,33 @@
       "structural_stop_pct": -14.5,
       "reference_price": 74000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:53.226314+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "001530",
@@ -12463,7 +12775,33 @@
       "structural_stop_pct": -9.2,
       "reference_price": 27200,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:54.620726+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "003240",
@@ -13516,7 +13854,33 @@
       "structural_stop_pct": -3.6,
       "reference_price": 905000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:54.695835+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "018880",
@@ -14499,7 +14863,33 @@
       "structural_stop_pct": -19.8,
       "reference_price": 3945,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:54.683833+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "253590",
@@ -15372,7 +15762,33 @@
       "structural_stop_pct": -25.9,
       "reference_price": 14800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:56.014431+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "005690",
@@ -16425,7 +16841,33 @@
       "structural_stop_pct": -12.8,
       "reference_price": 11490,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:56.208852+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "181710",
@@ -17407,7 +17849,33 @@
       "structural_stop_pct": -5.9,
       "reference_price": 54700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:56.156907+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "083450",
@@ -18277,7 +18745,33 @@
       "structural_stop_pct": -15.6,
       "reference_price": 50800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:57.364152+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "192820",
@@ -19295,7 +19789,33 @@
       "structural_stop_pct": -8.7,
       "reference_price": 281500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:57.727002+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "002960",
@@ -20278,7 +20798,33 @@
       "structural_stop_pct": -8.7,
       "reference_price": 550000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:57.698827+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "017940",
@@ -21331,7 +21877,33 @@
       "structural_stop_pct": -6.0,
       "reference_price": 92100,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:58.708238+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "010170",
@@ -21952,7 +22524,33 @@
       "structural_stop_pct": -5.9,
       "reference_price": 14670,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:59.204731+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "033790",
@@ -21960,6 +22558,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:10:59.137244+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -22647,7 +23271,33 @@
       "structural_stop_pct": -35.3,
       "reference_price": 88400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:00.237116+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "451800",
@@ -23700,7 +24350,33 @@
       "structural_stop_pct": -4.5,
       "reference_price": 5350,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:00.328458+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "067310",
@@ -24647,7 +25323,33 @@
       "structural_stop_pct": -27.1,
       "reference_price": 44700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:00.670829+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "098460",
@@ -25523,7 +26225,33 @@
       "structural_stop_pct": -27.7,
       "reference_price": 36150,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:01.812289+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "020150",
@@ -26200,7 +26928,33 @@
       "structural_stop_pct": -33.0,
       "reference_price": 55900,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:01.791320+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "144960",
@@ -26919,7 +27673,33 @@
       "structural_stop_pct": -32.1,
       "reference_price": 12440,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:02.071520+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "425420",
@@ -27832,7 +28612,33 @@
       "structural_stop_pct": -11.8,
       "reference_price": 59100,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:03.005109+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "090460",
@@ -28885,7 +29691,33 @@
       "structural_stop_pct": -5.2,
       "reference_price": 18620,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:03.346697+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "071320",
@@ -29866,7 +30698,33 @@
       "structural_stop_pct": -5.9,
       "reference_price": 77900,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:03.627383+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "007810",
@@ -30535,7 +31393,33 @@
       "structural_stop_pct": -35.1,
       "reference_price": 74600,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:04.514748+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "030530",
@@ -30543,6 +31427,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:04.608157+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -31599,7 +32509,33 @@
       "structural_stop_pct": -5.5,
       "reference_price": 36550,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:05.000972+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "023590",
@@ -32652,7 +33588,33 @@
       "structural_stop_pct": -3.5,
       "reference_price": 35250,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:06.049475+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "195870",
@@ -33705,7 +34667,33 @@
       "structural_stop_pct": -16.9,
       "reference_price": 57300,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:05.982780+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "112610",
@@ -34758,7 +35746,33 @@
       "structural_stop_pct": -8.5,
       "reference_price": 53300,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:06.333699+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "000240",
@@ -35740,7 +36754,33 @@
       "structural_stop_pct": -13.3,
       "reference_price": 27500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:07.549131+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "327260",
@@ -36243,7 +37283,33 @@
       "structural_stop_pct": -12.5,
       "reference_price": 46400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:07.332986+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "103590",
@@ -37296,7 +38362,33 @@
       "structural_stop_pct": -10.0,
       "reference_price": 75200,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:07.772156+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "093370",
@@ -38314,7 +39406,33 @@
       "structural_stop_pct": -8.9,
       "reference_price": 14020,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:08.847156+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "080580",
@@ -38814,7 +39932,33 @@
       "structural_stop_pct": -28.6,
       "reference_price": 28000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:08.803212+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "437730",
@@ -38822,6 +39966,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:08.667559+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -39661,7 +40831,33 @@
       "structural_stop_pct": -22.8,
       "reference_price": 7930,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:09.850958+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "017900",
@@ -39669,6 +40865,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:10.112546+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -39680,6 +40902,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:10.318056+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -40398,7 +41646,33 @@
       "structural_stop_pct": -33.3,
       "reference_price": 16320,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:10.821343+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "161580",
@@ -41416,7 +42690,33 @@
       "structural_stop_pct": -19.1,
       "reference_price": 37450,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:11.510908+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "026960",
@@ -42469,7 +43769,33 @@
       "structural_stop_pct": -7.6,
       "reference_price": 26950,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:11.662126+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "131290",
@@ -42952,7 +44278,33 @@
       "structural_stop_pct": -28.1,
       "reference_price": 321500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:12.346228+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "218410",
@@ -43970,7 +45322,33 @@
       "structural_stop_pct": -15.1,
       "reference_price": 54800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:12.977067+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "252990",
@@ -44881,7 +46259,33 @@
       "structural_stop_pct": -18.1,
       "reference_price": 16500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:12.762900+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "330590",
@@ -45899,7 +47303,33 @@
       "structural_stop_pct": -9.0,
       "reference_price": 4130,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:13.497572+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "388210",
@@ -45907,6 +47337,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:13.559187+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -46963,7 +48419,33 @@
       "structural_stop_pct": -7.2,
       "reference_price": 43500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:14.318165+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "450080",
@@ -48016,7 +49498,33 @@
       "structural_stop_pct": -12.0,
       "reference_price": 35300,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:14.495434+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "007340",
@@ -48024,6 +49532,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:14.807837+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -49080,7 +50614,33 @@
       "structural_stop_pct": -3.2,
       "reference_price": 17770,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:15.656226+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "078600",
@@ -49950,7 +51510,33 @@
       "structural_stop_pct": -29.9,
       "reference_price": 116700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:15.849555+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "356860",
@@ -50673,7 +52259,33 @@
       "structural_stop_pct": -22.1,
       "reference_price": 45550,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:16.070748+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "097950",
@@ -51726,7 +53338,33 @@
       "structural_stop_pct": -4.5,
       "reference_price": 181700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:17.051473+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "268280",
@@ -52779,7 +54417,33 @@
       "structural_stop_pct": -4.5,
       "reference_price": 128000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:17.076070+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "045100",
@@ -53797,7 +55461,33 @@
       "structural_stop_pct": -5.4,
       "reference_price": 29900,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:17.432516+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "012630",
@@ -54850,7 +56540,33 @@
       "structural_stop_pct": -4.9,
       "reference_price": 21500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:18.478728+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "020560",
@@ -55903,7 +57619,33 @@
       "structural_stop_pct": -6.7,
       "reference_price": 8100,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:18.454259+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "001820",
@@ -56431,7 +58173,33 @@
       "structural_stop_pct": -20.9,
       "reference_price": 141600,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:19.000435+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "161890",
@@ -57449,7 +59217,33 @@
       "structural_stop_pct": -3.1,
       "reference_price": 122400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:19.819947+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "375500",
@@ -58464,7 +60258,33 @@
       "structural_stop_pct": -4.0,
       "reference_price": 62400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:19.566817+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "002840",
@@ -59445,7 +61265,33 @@
       "structural_stop_pct": -8.1,
       "reference_price": 139300,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:20.340388+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "030610",
@@ -60462,7 +62308,33 @@
       "structural_stop_pct": -3.1,
       "reference_price": 9160,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:20.821979+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "457190",
@@ -60470,6 +62342,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:20.807228+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -61526,7 +63424,33 @@
       "structural_stop_pct": -13.9,
       "reference_price": 49500,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:21.601229+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "119850",
@@ -62473,7 +64397,33 @@
       "structural_stop_pct": -8.8,
       "reference_price": 44400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:22.090429+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "281820",
@@ -62993,7 +64943,33 @@
       "structural_stop_pct": -41.9,
       "reference_price": 111800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:22.034768+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "006360",
@@ -64046,7 +66022,33 @@
       "structural_stop_pct": -4.7,
       "reference_price": 29800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:22.949207+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "347700",
@@ -64054,6 +66056,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:23.086706+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -64969,7 +66997,33 @@
       "structural_stop_pct": -16.7,
       "reference_price": 59800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:23.304302+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "053610",
@@ -65878,7 +67932,33 @@
       "structural_stop_pct": -21.8,
       "reference_price": 74700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:24.314415+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "031980",
@@ -66373,7 +68453,33 @@
       "structural_stop_pct": -31.2,
       "reference_price": 208000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:24.626365+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "003160",
@@ -67011,7 +69117,33 @@
       "structural_stop_pct": -30.1,
       "reference_price": 40900,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:24.565745+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "006110",
@@ -67629,7 +69761,33 @@
       "structural_stop_pct": -26.0,
       "reference_price": 72400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:25.647762+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "229640",
@@ -68354,7 +70512,33 @@
       "structural_stop_pct": -33.2,
       "reference_price": 70300,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:25.793736+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "078350",
@@ -68827,7 +71011,33 @@
       "structural_stop_pct": -54.7,
       "reference_price": 37600,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:25.907951+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "175330",
@@ -69880,7 +72090,33 @@
       "structural_stop_pct": -2.3,
       "reference_price": 26400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:27.106685+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "001040",
@@ -70933,7 +73169,33 @@
       "structural_stop_pct": -6.0,
       "reference_price": 124800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:27.244321+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "011780",
@@ -71986,7 +74248,33 @@
       "structural_stop_pct": -6.0,
       "reference_price": 116600,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:27.283777+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "171090",
@@ -72894,7 +75182,33 @@
       "structural_stop_pct": -20.1,
       "reference_price": 79800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:28.316264+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "293940",
@@ -72902,6 +75216,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:28.617572+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -73958,7 +76298,33 @@
       "structural_stop_pct": -3.5,
       "reference_price": 3110,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:28.495398+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "036540",
@@ -74639,7 +77005,33 @@
       "structural_stop_pct": -33.7,
       "reference_price": 10280,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:29.606316+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "084370",
@@ -75587,7 +77979,33 @@
       "structural_stop_pct": -16.7,
       "reference_price": 148700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:29.885293+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "005290",
@@ -76640,7 +79058,33 @@
       "structural_stop_pct": -14.7,
       "reference_price": 45550,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:29.953395+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "077360",
@@ -77588,7 +80032,33 @@
       "structural_stop_pct": -23.9,
       "reference_price": 12650,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:30.859568+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "014820",
@@ -78641,7 +81111,33 @@
       "structural_stop_pct": -8.1,
       "reference_price": 22100,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:31.226736+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "415640",
@@ -78649,6 +81145,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:30.785487+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -78660,6 +81182,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:32.036571+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -79681,7 +82229,33 @@
       "structural_stop_pct": -13.3,
       "reference_price": 42450,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:32.207046+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "322000",
@@ -80623,7 +83197,33 @@
       "structural_stop_pct": -16.1,
       "reference_price": 138100,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:32.403736+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "017800",
@@ -81676,7 +84276,33 @@
       "structural_stop_pct": -4.2,
       "reference_price": 70700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:33.381152+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "115180",
@@ -82729,7 +85355,33 @@
       "structural_stop_pct": -11.8,
       "reference_price": 21550,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:33.434896+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "022100",
@@ -83260,7 +85912,33 @@
       "structural_stop_pct": -9.0,
       "reference_price": 20700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:33.761267+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "294870",
@@ -84313,7 +86991,33 @@
       "structural_stop_pct": -3.0,
       "reference_price": 21800,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:34.579203+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "030190",
@@ -85331,7 +88035,33 @@
       "structural_stop_pct": -10.2,
       "reference_price": 16830,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:34.792358+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "462870",
@@ -85339,6 +88069,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:34.646743+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -86395,7 +89151,33 @@
       "structural_stop_pct": -13.8,
       "reference_price": 217000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:35.930080+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "232140",
@@ -87260,7 +90042,33 @@
       "structural_stop_pct": -31.3,
       "reference_price": 16020,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:35.964717+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "064290",
@@ -87773,7 +90581,33 @@
       "structural_stop_pct": -25.7,
       "reference_price": 58700,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:36.133787+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "282330",
@@ -88826,7 +91660,33 @@
       "structural_stop_pct": -4.0,
       "reference_price": 130000,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:37.169460+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "073240",
@@ -89809,7 +92669,33 @@
       "structural_stop_pct": -0.3,
       "reference_price": 6380,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:37.208432+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "041960",
@@ -90683,7 +93569,33 @@
       "structural_stop_pct": -19.0,
       "reference_price": 11340,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:37.523775+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "006280",
@@ -91736,7 +94648,33 @@
       "structural_stop_pct": -6.0,
       "reference_price": 128400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:38.515072+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "036810",
@@ -92754,7 +95692,33 @@
       "structural_stop_pct": -18.3,
       "reference_price": 30400,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:38.472669+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "489790",
@@ -92762,6 +95726,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:38.353578+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -93249,7 +96239,33 @@
       "structural_stop_pct": -46.8,
       "reference_price": 30050,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:39.597146+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "082740",
@@ -94302,7 +97318,33 @@
       "structural_stop_pct": -14.4,
       "reference_price": 40300,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:39.735245+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     },
     {
       "code": "319400",
@@ -94310,6 +97352,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:39.688285+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -94321,6 +97389,32 @@
       "status": "insufficient",
       "reason": "가격 이력/120주선 미확보",
       "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:40.401125+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified",
       "period_suggestion": {
         "decision": "관망/추가 검증",
         "reason": "공급원 교차 일치 미확인"
@@ -95341,7 +98435,33 @@
       "structural_stop_pct": -3.7,
       "reference_price": 173900,
       "reference_price_date": "2026-10-14",
-      "independently_matched": false
+      "independently_matched": false,
+      "session_validation": {
+        "asof": "2026-10-14",
+        "source": "NAVER fchart",
+        "received_at": "2026-10-15T08:11:41.082831+00:00",
+        "price_session": "UNVERIFIED",
+        "volume_session": "UNVERIFIED",
+        "official_close_status": "unverified",
+        "final": false,
+        "history_session_verified": false,
+        "official_source_sha256": null,
+        "policy_version": "krx-regular-1",
+        "required_session": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+        "confirmed_scoring_allowed": false,
+        "reasons": [
+          "price_session_unverified",
+          "volume_session_unverified",
+          "session_not_final",
+          "official_close_not_matched",
+          "official_evidence_missing",
+          "indicator_history_session_unverified"
+        ],
+        "prediction_validation_required": false
+      },
+      "confirmed_score": null,
+      "score_status": "unverified_session",
+      "technical_status": "exploratory_session_unverified"
     }
   ],
   "methodology": {
@@ -96307,10 +99427,11 @@
     "holdout": "chronological diagnostics only; no walk-forward predictive validation",
     "prediction_validated": false
   },
-  "report_file": "reports/한국주식_v22_통합검증_20261015_113448.xlsx",
+  "report_file": "reports/한국주식_v22_통합검증_20261015_171347.xlsx",
   "preserved_report_hashes": {
     "한국주식_다면스크리너_2026-10-14_213847.xlsx": "2c0a9f0017d8830200bf6c87a24160c9002ff8f58d9fb79dbaaee194d926e36f",
     "한국주식_다면스크리너_2026-10-14.xlsx": "8ab32dd2c5ae6ed577e45a1625b8ad2923a4c5f189f6f4beefb59a71ac3f98ae",
+    "한국주식_v22_통합검증_20261015_113448.xlsx": "e35f0c030b1946551c849516a641e19974e05cd6d4b81dee016c36ad25217aaa",
     "한국주식_다면스크리너_2026-10-14_163927.xlsx": "585cf5283e9bcc993ffd33f4af6baf836898e256f7ebe016b2a804c3b16edd86",
     "한국주식_v22_통합검증_20261015_112922.xlsx": "3691f23e1599fab00188ade6ab4a66e4a6075740cd81367a93274f833217ce56",
     "한국주식_스크리너_2026-10-14.xlsx": "9f446d4b2d99bc2a39798a29ee27ed624241e904bb94b581518703f864bd76d0",
