@@ -23,6 +23,7 @@ from pykrx import stock
 import requests
 from bs4 import BeautifulSoup
 import atexit
+from flow_collection import FlowCollector
 
 _NAVER_BROWSER = None
 
@@ -475,14 +476,16 @@ def build_rows(day,cfg):
     attempts=sorted(valid,key=lambda x:((x['components']['일봉 구조'] or 0)+
               (x['components']['주봉·추세'] or 0)+(x['components']['거래량·OBV'] or 0),
               x['market_cap_eok']),reverse=True)[:cfg['top_candidates_for_flows']]
+    collector=FlowCollector(
+        (lambda code: flows(code,day,cfg)) if os.getenv('KRX_ID') and os.getenv('KRX_PW') else None,
+        lambda code: flows_naver(code,day,cfg),
+        budget_seconds=int(cfg.get('flow_time_budget_seconds',1200)))
     for i,r in enumerate(attempts,1):
-        try:
-            if os.getenv('KRX_ID') and os.getenv('KRX_PW'):
-                r.update(flows(r['code'],day,cfg))
-            else:r.update(flows_naver(r['code'],day,cfg))
-        except Exception as e:
-            try:r.update(flows_naver(r['code'],day,cfg))
-            except Exception as e2:errors.append([r['code'],'기관·외국인 수급',f'pykrx: {str(e)[:90]} / Naver: {str(e2)[:130]}'])
+        result,error=collector.collect(r['code'])
+        if result is not None:r.update(result)
+        else:
+            errors.append([r['code'],'기관·외국인 수급',error])
+            logging.warning('수급 미확인 %s: %s',r['code'],error)
         if r.get('flows_confirmed') and i<=int(cfg.get('flow_crosscheck_count',10)):
             if os.getenv('KRX_ID') and os.getenv('KRX_PW'):
                 try:
@@ -502,7 +505,7 @@ def build_rows(day,cfg):
     for r in valid:score_one(r,cfg)
     valid.sort(key=lambda x:(x['decision']=='정밀 검토 우선',x['decision']=='관찰',x['score'] or 0,x['coverage_pct'] or 0),reverse=True)
     return valid,errors,datetime.fromisoformat(freshest),{'eligible':total,'examined':len(selected),
-      'index_markets':list(idx),'optional_listings':optional,'excluded':excluded,'flow_attempted':len(attempts)}
+      'index_markets':list(idx),'optional_listings':optional,'excluded':excluded,'flow_attempted':collector.attempted,'flow_planned':len(attempts)}
 
 
 def _xml_xlsx(sheets, path):
