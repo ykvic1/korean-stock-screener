@@ -82,7 +82,7 @@ function drawCard(r){
  if(r.pbr===null)tags.push(tag('밸류 미확인','warn'));
  if(r.risk_flags?.some(x=>x.includes('과대')||x.includes('급등')))tags.push(tag('위험 신호','risk'));
  const components=Object.entries(r.components||{}).map(([k,v])=>`<div><span>${esc(k)}</span><b>${typeof v==='number'?esc(String(v))+'점':'미확인'}</b></div>`).join('');
- return `<article class="stock"><div class="top"><div><div class="name">${esc(r.rank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">미확정<small>기존 연구점수 ${val(r.score)} (정규장 미검증)<br>확보율 ${val(r.coverage_pct,'%')}</small></div></div>
+ return `<article class="stock"><div class="top"><div><div class="name">${esc(r.rank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">미확정<small>부분 연구값 ${val(r.raw_score)} / ${val(r.available_max)} (미검증)<br>확보율 ${val(r.coverage_pct,'%')}</small></div></div>
  <div class="metrics">
   <div class="metric"><label>현재가</label><b>${val(r.price,'원')}</b></div>
   <div class="metric"><label>거래량 20일/이전40일</label><b>${val(r.volume_ratio,'배')}</b></div>
