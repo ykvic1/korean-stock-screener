@@ -46,3 +46,22 @@ Next action: verify official KRX regular OHLC and regular-only volume on known
 dates, reconcile discrepancies/adjustments and corporate actions, then recalculate.
 Current120-candidate collection remains legacy; full-universe incremental operation
 and new100-point model are design only. Do not claim operational completion.
+
+## 2026-10-15 resumed after deployment
+PR #3 MERGED at a77a77b734833dababe4e572b566dab2ca0144fc. Pages run
+38704599193 SUCCESS; live reliability.html displays 120/104/37/0, session
+unverified, Excel link and RSI table correctly. Published asof remains 2026-10-14.
+New production failure: daily run38716787585 stopped after60min; OHLC210 done,
+flow70/209 at19:53KST, save/report skipped, downstream v2.1/v2.2 skipped.
+Logs show about43sec/flow; code redundantly calls failed Npay fallback twice
+when KRX credentials absent. Actual supplier exception was not logged before
+termination, so its underlying cause is still unknown (do NOT assert login cause).
+Patch: flow_collection.py calls fallback once; logs each supplier exception;
+three consecutive timeout exceptions stop further supplier requests;20min flow
+budget defers remaining requests as missing, never fabricated zero observations.
+Stock-specific short-history errors do not open the timeout circuit. Attempted
+count now counts actual requests rather than all planned stocks.
+Local29tests pass (25existing+4failure-path tests). Live rerun pending.
+Next: commit patch on v22-data-reliability, PR checks/merge and daily rerun;
+inspect exact supplier error and actual new-data availability. Official session
+validation/auth blockers above still apply; v3 remains blocked.
