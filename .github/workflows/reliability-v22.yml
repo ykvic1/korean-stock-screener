@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [v22-data-reliability]
-    paths: ['.github/workflows/reliability-v22.yml']
+    paths: ['.github/workflows/reliability-v22.yml', '*v22.py', 'audit_prices.py', 'cross_validate.py', 'financial_metrics.py', 'tests/test_v22.py', 'docs/reliability.html']
   workflow_run:
     workflows: [Korean Stock Quant Study v2.1]
     types: [completed]
