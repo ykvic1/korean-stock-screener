@@ -96307,11 +96307,12 @@
     "holdout": "chronological diagnostics only; no walk-forward predictive validation",
     "prediction_validated": false
   },
-  "report_file": "reports/한국주식_v22_통합검증_20261015_112922.xlsx",
+  "report_file": "reports/한국주식_v22_통합검증_20261015_113448.xlsx",
   "preserved_report_hashes": {
     "한국주식_다면스크리너_2026-10-14_213847.xlsx": "2c0a9f0017d8830200bf6c87a24160c9002ff8f58d9fb79dbaaee194d926e36f",
     "한국주식_다면스크리너_2026-10-14.xlsx": "8ab32dd2c5ae6ed577e45a1625b8ad2923a4c5f189f6f4beefb59a71ac3f98ae",
     "한국주식_다면스크리너_2026-10-14_163927.xlsx": "585cf5283e9bcc993ffd33f4af6baf836898e256f7ebe016b2a804c3b16edd86",
+    "한국주식_v22_통합검증_20261015_112922.xlsx": "3691f23e1599fab00188ade6ab4a66e4a6075740cd81367a93274f833217ce56",
     "한국주식_스크리너_2026-10-14.xlsx": "9f446d4b2d99bc2a39798a29ee27ed624241e904bb94b581518703f864bd76d0",
     "한국주식_통합퀀트_2026-10-14_214356.xlsx": "072414a8034f54de411b7d0a8d43224a82d00a66f7e8da2979a495ad112229f2",
     "quant_2026-10-14_214356.xlsx": "8c9d804a849153eb6b07d1a84922e103d25b6ed516b65f7b2222e25225d7b044",

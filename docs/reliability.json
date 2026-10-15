@@ -65,7 +65,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3486a9ddbc692ca17b02a6b70f2950ca0eb94c5e568b910964991efb01f37fa7",
+      "raw_sha256": "ee523abbadcf3a39e7e08d56cf43d5331ec42f77c68ec996efb4bfa1f574eeb4",
       "original_strict_valid": false,
       "quarantined_rows": 766,
       "last_bad_date": "2021-09-10",
@@ -228,7 +228,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "80d8eb958e90867acf99bb225b3481ab0ef646d5a4b73793062980ab02721f95",
+      "yahoo_raw_sha256": "14028a270fbc34025d46b1478f3c2a8dab52c72274c1121ae5c27dd5b71ff4b5",
       "zero_volume_corroborated_sessions": 3,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -252,7 +252,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3bf554c778b9b49bd68dabe2334df21b8cfeec2be031a233229cb97118df642e",
+      "raw_sha256": "fcd125f9fa88aeb8bfaac3eb88a28bd44164e2cad46366a2f560da4c0899c8c1",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -374,7 +374,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "d59ce22e16de8b38a7dc59959c63416784cd6a055a49f31e6ab912e34dfa5b51",
+      "yahoo_raw_sha256": "607cf0bc9b58eed209674599dfbb0cebfcf7fdbaba9feeb27ba1024155a7e5e4",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -398,7 +398,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "1b689f728eb2aa425ce7b0d2ea0e83cea47c8171f000abfe504c5c1400b40b4c",
+      "raw_sha256": "25dbdd07f4b31c22dbc47dc2ff9e78830841a66341e881e6508597c9e1d9c7df",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -552,7 +552,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "58f1fb37c293c8fcd5c596076cc10d0c7189714d1d432fa5c7e591f3ee1a9b60",
+      "yahoo_raw_sha256": "470f795aea641d7434df1be09b05353d1e6d0803bcb0dc09023e7b3892b85bb6",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -601,7 +601,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "fb15f9c321ffd52ec8047dc607171140cbcb51cc9750c460a5f4aa4c453771ee",
+      "raw_sha256": "cfea81a2c89cdb64a4da874a08292a03879195cf45a5ed017a070f209ada0c93",
       "original_strict_valid": false,
       "quarantined_rows": 320,
       "last_bad_date": "2019-05-03",
@@ -762,7 +762,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "90ae2d9a1ca3bb5f49f6232bef5ec7bd1a9545b23d1bb5539c7891976e2cf642",
+      "yahoo_raw_sha256": "a5212cdba20a006fee2394724a12fcd6b6974bfb6f9c025469c2753026f98e7a",
       "zero_volume_corroborated_sessions": 3,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -786,7 +786,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3df6ad2d03e116141848725cbb2027f9872a2731fa81996dfcf2c96b27ddf2c0",
+      "raw_sha256": "d4ce53cc48c7ed140945617f9004900db2a97d557f41511aed910d13319d89e6",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -928,7 +928,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "415f71e50be0aa4e952877b2376320ccee0d113accaa92ef47a1e8008738a4b5",
+      "yahoo_raw_sha256": "a6716507759bad4624dcde42bf2a26fdcff473b621f7ae3839953992b5ab50cc",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -952,7 +952,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "c30898acf357863ea2a2069ba243074c6caae66879bbb4c77c416253213defbe",
+      "raw_sha256": "494c5a9dd64cb8a27998b433fbb2484d819cab5c2d261e3b088ab4fb48bb7c15",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -1106,7 +1106,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "85f5e89acd221816344c9f09cf92c2ca0f7e766150f6664561be44fe3931b263",
+      "yahoo_raw_sha256": "bfefce939ddb2446206d048c680fb780602288a0179ff407c692484058ba4394",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -1130,7 +1130,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "85b594b3031a71f6354baf19e90f07bc952a32596c6222fcac23eb54a66c1179",
+      "raw_sha256": "d939c4041be9fa8cd09d4bf1e330e1517050323cd937533d46eb6686f44d5397",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -1284,7 +1284,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "1dd182e5be7cee77e46f680e6676c75bbc299ade93e1a18adc37140160efdc86",
+      "yahoo_raw_sha256": "8beee33280722eb3ea617692714db2d05ec864003a87b6d287d16e763a457840",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -1373,7 +1373,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "146b07b927b110ab3d4a92e6db9c90c64f652561e1b1346c609ea8c4e19f1562",
+      "raw_sha256": "68c6810cf8bb173a637dd88299895750b6429cc37cf33487deb1983e75499c1d",
       "original_strict_valid": false,
       "quarantined_rows": 968,
       "last_bad_date": "2021-08-26",
@@ -1546,7 +1546,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "1a8e46fe1eef9234a7f5ee2fde79bae364f4751ed1007b31d42f44c5f5a7f9a4",
+      "yahoo_raw_sha256": "93ad7d0b56b072ef078c9d59bffa41cd73dc6916c6bd47d27aa5f64941c1e424",
       "zero_volume_corroborated_sessions": 30,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -1635,7 +1635,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3db87ff33ddd44c4ad8fd523ffd1dd722243560603a6955a7201216c34906ef9",
+      "raw_sha256": "81b782a817d4cf06b5aab8cb8f111057fd1b01b2a49580e821faf7fdd22b4e1c",
       "original_strict_valid": false,
       "quarantined_rows": 70,
       "last_bad_date": "2018-01-04",
@@ -1822,7 +1822,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "f1aef6dc4f9c884c259f093eaadbfbce0ed38827521dac1fc329a500a3b4575c",
+      "yahoo_raw_sha256": "8f6f39931196806e116c56600830d9853f9196a0005503dc1d1b00787a30411f",
       "zero_volume_corroborated_sessions": 23,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -1911,7 +1911,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "54864227af0712201f89d0b3bf71a6dca95ece273b777143a0fe931ccaa88b13",
+      "raw_sha256": "873f07bdc71c5fe4ee5c568ada24aaa8f682fb193a4aaa796a51f8f1698b5166",
       "original_strict_valid": false,
       "quarantined_rows": 1005,
       "last_bad_date": "2021-10-25",
@@ -2077,7 +2077,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "683f827a8a1863d995bf7948eea87fbf7dc5edc0528f868729e69e75786b0e30",
+      "yahoo_raw_sha256": "2e819df0eb443229707932d57c382cca74baef34c3f80aa6bd8a5f1cd5f64d34",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -2101,7 +2101,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "5d20d830f5fc419a509793add652c945361e165ea09c77f809e82794dee17100",
+      "raw_sha256": "5f680b6ff4ccebbfe020eecea96b7dc7908701b04a0a094954900daaf8834593",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 860,
@@ -2216,7 +2216,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "058b3e117fa58942c87e935cf2e055098a322876a5ca002bdddafd75ac79aa99",
+      "yahoo_raw_sha256": "16bf15bd3fdfef3a54750d5235d4d640d24a065d1b924129ce6ee97babe6d6f9",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -2273,7 +2273,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "f6ffd2e36f253d0818915a4c283d50017064466676b442fae3f99df7e93599d5",
+      "raw_sha256": "9496e8f00dd7603253b4ef82e3c30c76dfcb99a9d0b6051b7b287244d80a909b",
       "original_strict_valid": false,
       "quarantined_rows": 221,
       "last_bad_date": "2022-04-12",
@@ -2424,7 +2424,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "396d4e48440ff995f82992c49feef54afddbc8fd2f235ed48188c079c42a84db",
+      "yahoo_raw_sha256": "9245ae9ba92a63e9d16c1ebfe46777ec0c3ef1035409da8747b77d74c1c7eb01",
       "zero_volume_corroborated_sessions": 3,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -2448,7 +2448,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "2a8bad503ab771e62e8eb16988cce400b351af754aac82e3ae2b11797f5f3d45",
+      "raw_sha256": "f37d5054f576808e5d441b8e1b3b5ff81979b88e73ddb9635accb923b9660387",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -2660,7 +2660,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "aef03c4915c0a9403cad860d968c52b02f08dd70abcde0ae1f6e2225160901a1",
+      "yahoo_raw_sha256": "c0c4bdf467e8491369d34dc5361d7a7b4d7a1b4e9574dcd2e54a00507ed11bdb",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -2684,7 +2684,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "5e3eaf04ac9048fd94e424fcef412a74eae4ed11863ddbfd13bd20f2a552aa04",
+      "raw_sha256": "618bf3681eaa2ffc6d224d187f9998b707dd97d0ec09b58114fba62d4dd06c4d",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -2838,7 +2838,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "4573e6be6cc7679413d7e5bc1666f8254f1885af33a27698bf62f47c9f445ff8",
+      "yahoo_raw_sha256": "70e9bea2845a5ce1ecd13c9c110abf111b20b80eb30228929e2f37b8a9e3fb66",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -2862,7 +2862,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6cb3d8a45408b3140254bf5aac58c3994a1cf70dc72d0a5214854fe9c3335b1d",
+      "raw_sha256": "bbe389f520be6a57a1ba6467522550d44c98bf622b4bf7daaf96aeb5f578300a",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -3084,7 +3084,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "12af3d6e4c7c732eb9976884338efce41dafd5615badecd9ca98fcc4a1e41625",
+      "yahoo_raw_sha256": "f0ea5c4183f7bec297dd9f12510d9d8a6029c69890df6b3e0af703d408eb31ea",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -3173,7 +3173,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "1d59a0f6a4b12ca8dd108e439133ac33660f2f097e2473b6ca8c7cb816e96c9b",
+      "raw_sha256": "531ab44d6109b98fe7e6974732019528b8a9f2ce968236b8a03eb0f43f402c2c",
       "original_strict_valid": false,
       "quarantined_rows": 141,
       "last_bad_date": "2018-11-01",
@@ -3322,7 +3322,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "fbdb59fae65540bf302185276bc993f3aad74b75b79a4ee7c8c5528c2bbe5a7b",
+      "yahoo_raw_sha256": "895c3cf4bb61342c0ce7c19cd52203f97e09c8e517952d5278847d06842fd0ad",
       "zero_volume_corroborated_sessions": 41,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -3346,7 +3346,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "7c74602474e3f53baa0475b0a201b449d0d6f8c5fbb7fb84d49315145a9c5b29",
+      "raw_sha256": "15b7085d53316e8a9adff5894e5b39a04dcb0c1baa1d955c92ee1858b098973f",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -3472,7 +3472,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "5993ca060b3eadf612dabca4d32cab304839e19aac75888283af3d9e87862cf9",
+      "yahoo_raw_sha256": "f1dc4e617e9b6519237e43878ae312b782d4d113e2788e29ad4c444ac4865d80",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -3561,7 +3561,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6674a6f6748474cacaa5bee7e8578d21abc05172ecad90b9c6c65366a8651bfe",
+      "raw_sha256": "5ca24b5cd7b0dd7696bce7ea0dc2a6486ba8e1da3b70e093f2dd164df97f8894",
       "original_strict_valid": false,
       "quarantined_rows": 984,
       "last_bad_date": "2021-09-17",
@@ -3703,7 +3703,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "9c99bad4ea52d30952506c8cbf0f8616b5140b8aed5a78f7036cf1f5e1376f8d",
+      "yahoo_raw_sha256": "50396db49222f44555cf8dcf2ba8076ffdc6c09abd4744c70099304fe784d309",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -3727,7 +3727,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "1a900037c06afbd5d31a9da01d1e046378972ed91e056a64661e8325686cd9fa",
+      "raw_sha256": "b5036edaf5c096964b74ea2fc8c5244654ca45a9ad344aa0a05018363582ddbc",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -3885,7 +3885,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "cd5f8c64f5809421ce642b53d149c0fbb70c6263dabf15359177b2472ac3f8e6",
+      "yahoo_raw_sha256": "1e06e6ecb6708cec16861d089a93177cfe10c7a07d208b6a402fc8c6b998e5e5",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -3974,7 +3974,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "8c04f4d8975324fff057789b88062d51550e5c8ee321b5fd1fc7385b9dce55fa",
+      "raw_sha256": "907fe0f40512a9669c17ad438a74f1a41e90568cf8b674b2aec57e3514d3ebd0",
       "original_strict_valid": false,
       "quarantined_rows": 855,
       "last_bad_date": "2021-03-17",
@@ -4124,7 +4124,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "ed47948a64cc4c040fc2aa8470ee8867a67026e0f87b73dc92c9eea7c7b7ec2e",
+      "yahoo_raw_sha256": "d8705db75cd1c5c1bc806993f938966fb19a826ba670b147c3dbb39bc1a6c1b0",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -4148,7 +4148,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "dc87cb5a9b5cd138e55637e7537172a8177eeed23dde1295c442eca88fb1ada9",
+      "raw_sha256": "4a6c8d7696719f2e3d79f1090804914fa7d7b8880652a4f06f233ed068db5e5f",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -4314,7 +4314,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "cb5d03cecda628d8d11d412aef6ef9275a8b9224284f5e81dca360cf7059d422",
+      "yahoo_raw_sha256": "558e3b781211f82d7ea0c02633dd35330a0882d4940dc1b38a49b406c3ae8a61",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -4338,7 +4338,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "c53db7d53df92192cca518550f0fb783af6d97c7306cb72e8721ace70cac33b6",
+      "raw_sha256": "056d59f5a62e9ab900df7a444ec080aeaea74bf0885d647ac6386277534fc198",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -4508,7 +4508,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "48e0f6cb7027eb623fb6061df75d6902de12c0447c3e9a5d2a46d399910a9d1b",
+      "yahoo_raw_sha256": "7ce34f1f80354c71a2172c26b6d5ef9b72d84163a178303c28c2b285f4d395fc",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -4532,7 +4532,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6397605073718651db1afd3664a6721ef40832725196beea66e13fbde90191f8",
+      "raw_sha256": "dc96a67756148853b2a039cf863d3059655c1e227461940408537416a69e9aa2",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -4647,7 +4647,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "56a8b4edef98e44d115a27b7f7bd4516199304aa5d722cfc3eb1fb669d629dfe",
+      "yahoo_raw_sha256": "af68823ce7a5a38433777c9d7961c1db3445507b476b587ca402bc9ec9eae5dc",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -4737,7 +4737,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "edc2820d122510840b138dea0dae3e082dacf678eaf4de60c866fd705da734d2",
+      "raw_sha256": "163d0d22ef5cb6895f3789026118d3252e2c36975cadb6a7f3efa6a7b48d26cc",
       "original_strict_valid": false,
       "quarantined_rows": 1631,
       "last_bad_date": "2024-05-09",
@@ -4856,7 +4856,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "f2a9e8f1d276d6eeda266c06fa29b63847dfbc6154b5c77c3a08d2b04554e496",
+      "yahoo_raw_sha256": "ce1c288dc9124b32635c8efe0bda51c0647f55bc0b62ba1d37a982659a728693",
       "zero_volume_corroborated_sessions": 784,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -4880,7 +4880,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "d063dec5754ecff4117c7dee1d74e9d8385df8f33c1ba545fc968c358188e7ee",
+      "raw_sha256": "e6a5537219466472949f1da65aa29f1d4aebfd05df9e0facb40d0a39e8274e7c",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -5034,7 +5034,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "ba8e7a76307d5c671febc35cb2ab8cd03d7eccc60c1b66e0e68cb5a63561ae42",
+      "yahoo_raw_sha256": "773350828b22932c1b9791e426ac5da3575d8bb1b031bbb08709002862bf4dcf",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -5058,7 +5058,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9b01fb23c1b6937e01d78f61bdb8b3b9a25673ee0fe9edec7c5ccfb65cd2fe7b",
+      "raw_sha256": "b88dfe3ec240feb12623c314097b2bde2ab0209f755f7f9298e086fb57aec2d7",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 864,
@@ -5204,7 +5204,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "786ee9e7231e315d422b8c7d1ab15293461da9c4569938797c09af221140c611",
+      "yahoo_raw_sha256": "c90f703d804a9334cb571c26487a9bb90c069fb1e7bf7527c392f20c577e0fe9",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -5293,7 +5293,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6ff3b003ae50a26d2bed4f35fb9f9c22a368d8475010c50b2fc8939436db873f",
+      "raw_sha256": "765242725877a17d1ab7391cb81157f406928094ef26c2c0da21bdbda72cedce",
       "original_strict_valid": false,
       "quarantined_rows": 1269,
       "last_bad_date": "2022-11-17",
@@ -5453,7 +5453,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "6372757302492bba9f04c1b8c49e1becff8bb1686f9e247014f95c038bd851cb",
+      "yahoo_raw_sha256": "3c82cb569e5cd1406a90579e153bbe8bf2173a92721430f6e5da45d4b4c570ee",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -5518,7 +5518,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9c1f3440c203b636f398ee0055f220844ee883821f7a79fb801e2ed30d394ed1",
+      "raw_sha256": "d04106ce22328299426cf3ab35b8b12f06d77d0b13fd5d35fceac35ca82de898",
       "original_strict_valid": false,
       "quarantined_rows": 873,
       "last_bad_date": "2021-04-12",
@@ -5685,7 +5685,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "c0730b80053caea7a97c747ecd42b720a439f56d2cd112231a7091cdd6d0acf0",
+      "yahoo_raw_sha256": "eacf11475c08aaf0bc3016f1343f103a7acaac871590e69526944a78e5abd5dc",
       "zero_volume_corroborated_sessions": 3,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -5709,7 +5709,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "34363e576a5b561bdef3024bb1066040aa040320a7dd02cf82ca3f0da8bfdc4a",
+      "raw_sha256": "b8644947095a6bef2b991d6f0d39850c4aa90e4a74ca45e89a206b3a8e590e16",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -5851,7 +5851,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "485fe0aa7fcf47e596d1ff7a1666e1d10daeee52d2b1499c2da1a4cb8a97786a",
+      "yahoo_raw_sha256": "bb2d6393843c3e493aca8edbc25c8c2f2695673325ed179b97f7276d00db83a6",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -5940,7 +5940,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "bf41c7901423ad0e7a4bc1ca3775a84d9f1066eb6d9757a6d7c8e2295f742611",
+      "raw_sha256": "f95fdd3562484730e923e9395454463b494902a2012a34fec57827b667f97e57",
       "original_strict_valid": false,
       "quarantined_rows": 543,
       "last_bad_date": "2019-12-09",
@@ -6099,7 +6099,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "c5bc5b1adf2297ab718e885c19dfe9376b78ff8c07542c1379d62ca58397d53a",
+      "yahoo_raw_sha256": "6a04809286799dc7b2da32968cc31279a2786a9513ad167c674c29921177deb7",
       "zero_volume_corroborated_sessions": 11,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -6123,7 +6123,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "45938164ebc33726126900ad4e3fbefa2fea1c378b566e42e4f3be0a3fa03758",
+      "raw_sha256": "d2e3409ba294c78e469fda43c5d543a76cc2f1c788b911ed97856714f2cd65e7",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 952,
@@ -6238,7 +6238,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "9d49e3b0706bba7baabb9881561353d6b8825428077c09b96e84ccde3dec82a7",
+      "yahoo_raw_sha256": "26d208eb7747a1bdad33b327428a8d404a61f0950bb9616d70a4148ac2574200",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -6262,7 +6262,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "b36e6ab45e680f17f9808daba3e8ab9b90a67e71defb336c8a4ce071c2facb56",
+      "raw_sha256": "22fa7122a02f67fb3a888dc6df6a062c15522add75a741cfaf72751688fcab73",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -6404,7 +6404,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "eda5f9e94d269e4deefb2e5337ae54b4c659223fec72b0af8046432f7feaca93",
+      "yahoo_raw_sha256": "9f4bce5ea73488edca80ccfb8a5bed09c625a4f1049d28e690c872c0eb7966b6",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -6428,7 +6428,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "0b71339100a81a2a9f4ae082ce39f3c85f34d413a9534921f8adebb4590a8ea7",
+      "raw_sha256": "4daac28881bf324fd41acc3ed4a2fdbe3a0fc9ed18d09f1281751ffcee0b8ee0",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -6566,7 +6566,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "d81e472e12b88cf44290a80e9187880d10300127f32e7d9dd4c22ecf2840a249",
+      "yahoo_raw_sha256": "92d5225749b1b4c1b10854d23fc6f19ff10eaffc94473f41d098a033b77fc3a9",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -6590,7 +6590,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "88c57a07a176c9c60702e3d1b7bb9c3dd2d5384e8b4aa0166fa45ef89e4d1ba2",
+      "raw_sha256": "95918a3f09307dce4292132243dead71ef0470cb9b0710a71bf60f69c904d934",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -6712,7 +6712,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "afeed97d4be09b02c7c607b5345c87e716f1938ddf3d11624c73e1645c6f3fc8",
+      "yahoo_raw_sha256": "9b0f3bc76edd792442a059cb1cae7ac0e3db9b63ca51e2053ebc81ac0c0b4613",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -6746,7 +6746,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3ae680639292d5fcfb80f3231886266a4cba9cdd1b35ea05280b6d0fa0b394ee",
+      "raw_sha256": "642ce663fca39f487810784b9d1b16964410b9dae6b1b3929f382e3a1333e4e1",
       "original_strict_valid": false,
       "quarantined_rows": 1986,
       "last_bad_date": "2025-10-28",
@@ -6864,7 +6864,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "cf1d1876c88ef245a6e9585fdb2b908560b189fc9f5ec5a40f015be0252d98bd",
+      "yahoo_raw_sha256": "bc2afbddd8a15f1de1cd22f65638784b682edcfbaff28b0adc3b93005cf31127",
       "zero_volume_corroborated_sessions": 1,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -6888,7 +6888,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "fba909b8b973b4666920d0f9d86344aee8680d26f822b250254677403b9b340c",
+      "raw_sha256": "d8a391042a0eda5bc29fae274c0127553e797241f41db2d8046537d31f6392fd",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -7026,7 +7026,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "c3df7a565e95d1860a3890f3e70de14b453ca9f0b6b3ebd770ff66ea5583f500",
+      "yahoo_raw_sha256": "fad2c6b22936de60724a5781e96b05e57de325c7faacb2694e6c4ac31e5a9b92",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -7050,7 +7050,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "69927dd3f312af68be294c4fae6af0345383a15f9dff67e3d08e24cd473c1465",
+      "raw_sha256": "fc666fe3ac00bedb4a86b7b67598a2244db76e9aa70cbc2e4d5f4cff600d994c",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -7204,7 +7204,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "4a6afd9900f2c47f0bf59966e1de4f053a843788f65db0aada3c53ac09318393",
+      "yahoo_raw_sha256": "9193a208428f1550ccea30caf49928277aa62ce50a48ad75370f26561e2b49da",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -7228,7 +7228,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6857e39fbf3d18f527091a72920ceb9007a95ddfa135b63063a488d284270e01",
+      "raw_sha256": "4b1afaa8eb89f7ee892706ad8a6a8bb6612b56980178288339f4663c31d6b0d7",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -7382,7 +7382,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "72d9c87cb700665bff39f644e09a0d3a96fecc1a292ea8270fbfea5344ee1b34",
+      "yahoo_raw_sha256": "c5cab7c9d65bf1e0b084bc2343301dc7e9febcb6cf7a3e65b8dd85f10159cc64",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -7471,7 +7471,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3099b5d5dd8389de2346fc253c52ab4b1fc5982ef21b7f95b124ce19dec4a0e3",
+      "raw_sha256": "32cab9f48c113321facdc2c7b10971638618999170003987cb0aba103c65791f",
       "original_strict_valid": false,
       "quarantined_rows": 817,
       "last_bad_date": "2021-01-19",
@@ -7637,7 +7637,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "672bb36fe8cbfa313131ca5e62372ffb09964960ad5d0aacb551df5c8b8b3c75",
+      "yahoo_raw_sha256": "8ea2545ef32b227b197cc987d3ea556790336c4f41e4c9bbbd0a79c212571b87",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -7661,7 +7661,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3981f5f02b6fa18e4081d73109d7c00a4dacfb93120f1359af6ea2701efc2241",
+      "raw_sha256": "3282dce976dfeaaafaca56a38ffd0aaa2496c5236c7c3650382ee23447aa9567",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -7827,7 +7827,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "9c98840f058b575e340fe2192c0e0e90d409988358013c2bdc5f83697ba47c2d",
+      "yahoo_raw_sha256": "f5a3970ca100b9c113e9589712d035409eb1434a625709ee986235c01eb36f36",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -7851,7 +7851,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "4c5109a62d6aee1f295aa21ab73da53ecd4321ad45301a465c7a024f03fc681a",
+      "raw_sha256": "49f6ee5def6c5ceeb029f37c0830cfda3bea6943c518928abc9c275bfd6c5e92",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 1667,
@@ -7987,7 +7987,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "2eae12a57b0c3e9c47d09d74953d027e6ffb054dfbd8a98882b78ebbe898b5b6",
+      "yahoo_raw_sha256": "15ec3bc485e349e1dbb8d362f494cf7802a9318063aad85ba38539562274c98e",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -8011,7 +8011,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "14ec947ff0a018b24858f87a53773dc3abd43fd3ac34f0261d83d340b2d656c6",
+      "raw_sha256": "4e51bcf2ae95f5f6084422333803cced468d4f7f1d60ad94a0e2d165cd05fad4",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -8157,7 +8157,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "c73365d58185f24e13d32783f85fc484aaafbfa3cd5e803f91da6a5538f6179e",
+      "yahoo_raw_sha256": "10ce7d72401761b814963e22e37730db4afb1e4a9e6fa71a6ec8a7a04942af31",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -8181,7 +8181,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "14995d991990db103c9921930fb568b8ffea2b90468db290967e80d48c0eea70",
+      "raw_sha256": "40a60c1b17b81c9c9b88c89ca55add388354c10f3e416dc3410bc6bf36cab2ae",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -8311,7 +8311,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "5e1949c8818c746941896947e7fd2aed5de9274fdf3d345829fe364a0dcb4e2a",
+      "yahoo_raw_sha256": "1d43d17981016c73081888e3db194352d68ba7a3f838cab7e9d8c22e9e3e54c3",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -8400,7 +8400,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "86f9e95754540018276cb774075eaf81b40f0611230b2bebb157ac9cc3f1c1e6",
+      "raw_sha256": "b4b400db23463250e488097b458b2d00955b301f08e83781742b76f64063c6f9",
       "original_strict_valid": false,
       "quarantined_rows": 676,
       "last_bad_date": "2020-06-24",
@@ -8528,7 +8528,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "f19dc0c46101bb9181541af15e75a3da0ff28ab47c48e04f49d285101959a351",
+      "yahoo_raw_sha256": "e929dc5f8515f40ea38c545facd9e7ca2b70c5795925dbb551bab07391e01eb8",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -8553,7 +8553,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3c1aa70362e4a66e8e53fc4ce00e495eeea00eba03bb5d642d257bf0d8ec32d7",
+      "raw_sha256": "ea85c8a3d3064e4eb25598377856babeaf2e83a205002b83ac2e18bb73b2fe3c",
       "original_strict_valid": false,
       "quarantined_rows": 0,
       "usable_segment_rows": 622,
@@ -8689,7 +8689,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "a86abaac9a9bbe7a0dbfe0ecc19fb2afab7bf6f4efb7cb14e5e5986cd2c4eaf6",
+      "yahoo_raw_sha256": "66afe3ef6e678b6e4f7279c54f47aecf0365b35a7edbc6816068698e0d894f5f",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -8778,7 +8778,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a56cb6504cee8f0482cdde40fc908ff3af56433cc80674842e7944613619c399",
+      "raw_sha256": "3083f0c60ad3760aac37ca2d28eb0bd26d479279d337cba208aa0230c293e0f9",
       "original_strict_valid": false,
       "quarantined_rows": 345,
       "last_bad_date": "2020-07-31",
@@ -8936,7 +8936,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "0ed683b2d68d505c16b97cb435f4f154ccf75350e4a0f42de8976495e6441938",
+      "yahoo_raw_sha256": "ddc7d9a1337653955b5072023c86d0fd08d599392db44fa17809b455f5506ff9",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -8978,7 +8978,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9e4cb53a526d03d8debaef89beac52442cad305ba809aaba40e5e4428bda6e28",
+      "raw_sha256": "a5e6b5ffca2a6d3ec9d8e087ba02b2a4a95044e6c59af4eccbaa33647b477e15",
       "original_strict_valid": false,
       "quarantined_rows": 2099,
       "last_bad_date": "2026-04-14",
@@ -9131,7 +9131,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "fa628d4fe30ee6442f597c3783e8dc884d14ef946462838656b4971bbdb34639",
+      "yahoo_raw_sha256": "617471994fcb898cf8e589f6fa366f8fcb086d847fcde4d6d3ece66bb045a84b",
       "zero_volume_corroborated_sessions": 2,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -9221,7 +9221,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "19308279388859ab8f1f1311af40ed6b9bf2e470843021d57118a87399e6cdd7",
+      "raw_sha256": "0b3e9c39a720b4714de1dfe7e1ba84ff494394330781035c2d990f79aa1136c6",
       "original_strict_valid": false,
       "quarantined_rows": 1664,
       "last_bad_date": "2024-06-27",
@@ -9399,7 +9399,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "64d9eab651ac78b17d9c4bec4cec9b47b5809e15cb472ccd2b8486326fca0060",
+      "yahoo_raw_sha256": "d483ceae3fe5bb7e0ed7bf731ca4a7b77630da2dc178dc23beaf51d37c362b09",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -9423,7 +9423,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "0daeac36f6580a35ecbdfef4438aa04f7031659d2062dfa9399d53d26fb774c3",
+      "raw_sha256": "41f68f253808065b539c17f91aff1a92fa82ea0471594ec34019378ef35e1018",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 688,
@@ -9549,7 +9549,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "eda63df66cf323a5dd211adcd42cbcd0a42cc22549a1425fbd19f9c9a13dfa23",
+      "yahoo_raw_sha256": "96c89c85cb4ea8bf9df4a0c9e061c87d4d634420ab8a46a1a53e82afa7d1ca41",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -9582,7 +9582,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "edf6f129d2202370fe56db3dc53eac3caf722d19a8ee470eed3a27243f101252",
+      "raw_sha256": "3189238a87c76880759f8727d0c30d353198d7d929fc3fb8f521c85a63b6c679",
       "original_strict_valid": false,
       "quarantined_rows": 16,
       "last_bad_date": "2017-10-17",
@@ -9734,7 +9734,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "2410bd77ab23e6b377e9d625fdfadadfcc1e28bdc3f7351cf83ee25f041c5f81",
+      "yahoo_raw_sha256": "9150e7cebec49f145b52c8b06565c7747671c85cbffd04bd73accaf4d2190b1e",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -9758,7 +9758,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a962a26aa17a18c0c93e75b805fc8688d23f0a16eca5bab313d8cf3718447a54",
+      "raw_sha256": "98d7c8d0a872a2444f9c827109cbd3fa00ae0ecb3a98a3fb2da61785c5f5cbdb",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -9920,7 +9920,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "7c756b873a6823f0062a5ead3af0a399bceb6140083bd79804017f8581a8e399",
+      "yahoo_raw_sha256": "aefe3019350b790634018ca5096b1ebc5679b7aad990969912bf9726b7f225d0",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -9944,7 +9944,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "2279690b6264f0d1b1f13c11da064ced3628840c347dbd9d023484cbfc355074",
+      "raw_sha256": "df4cd0e978e539b5ee2f0142e24ab757b2a78cbae947945c5a3051c8df5fe246",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -10090,7 +10090,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "b3c89a84d951e0382a07e6a1288fc568083d1d3f88ba0107896283abad84515e",
+      "yahoo_raw_sha256": "281a843c68780b7820e956b034e63f0cbca17cf5b0597294b9c9935a68789c45",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -10179,7 +10179,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "419116d306cd6473e0c8ad61959f3a3506507b6c588549b039b26bd76a350a32",
+      "raw_sha256": "ec892cb59a31e4d8f60290d34dda26cbcf0e483f06e78e94f361771de79d8c33",
       "original_strict_valid": false,
       "quarantined_rows": 896,
       "last_bad_date": "2021-05-14",
@@ -10346,7 +10346,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "ad030b7ce992fd4376371441c8e19c4ac06f8783575ea05e002ca90998c387b6",
+      "yahoo_raw_sha256": "36799153771a412887f0c7cb8097e3742f8c2cef19a54061c5fdc826fbc4e02c",
       "zero_volume_corroborated_sessions": 14,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -10370,7 +10370,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "aaa646b9c113e425882dc707f787e27af82878ce2ce0bf3d0202af548e7d716e",
+      "raw_sha256": "3341b0f5b8a100cd0a7a40ae57192a94ff1d7bf220c066041c9e4fc3efe00e36",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 1322,
@@ -10485,7 +10485,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "b1abc642aac36d49ca00f94732d2c4e2b5991295d33b4f83ed596cf4a1fc13f3",
+      "yahoo_raw_sha256": "57776a6b0edc8df1026e9e02fab15be242aab4daf007fb0c2024da1f607c5953",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -10574,7 +10574,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "92c50484795c937aed2e0fd80035af717430bba6a4ade5416172540b14319375",
+      "raw_sha256": "2a3fbbb94e2b56c1f1374923aba36bc1da528a7162284741903b610085e8dd13",
       "original_strict_valid": false,
       "quarantined_rows": 642,
       "last_bad_date": "2022-06-03",
@@ -10752,7 +10752,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "fbc99325560c4b7ff0280cde3a9fe5490e355730dde9492467ba8f9d9ce5cd3b",
+      "yahoo_raw_sha256": "55329ecaceb996ea3095824ed6d5a81b9c542d6c923d1c1d55ea921aa93209d3",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -10777,7 +10777,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "f9d98f5d261321a7150eab2aec88d64e1cddcf2b8f4c9b16be34045f633dd0af",
+      "raw_sha256": "abcca2d23607ee50212a24f11481700f885e64af72f5ee99a6b19057395c6c3e",
       "original_strict_valid": false,
       "quarantined_rows": 0,
       "usable_segment_rows": 218,
@@ -10894,7 +10894,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "3f3b6822211450636c9c6aa8c159121121a09ed8dd6ddd8f34e578361fac5f10",
+      "yahoo_raw_sha256": "e160c5dbde16563cc9f4b9d5f99ec9b57feef50b17b6fd71755912fec07e7dcc",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -10918,7 +10918,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "0c85fbd785cff8784f856269f60d936d0420f44867be30162ff5c1a79337f2cb",
+      "raw_sha256": "8ec3116183c315114334f1563026056510ec31c190bd0328e328a09d46b71972",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -11072,7 +11072,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "24cfca52a69b2b4deb64f458bfff2d49f3a45f4466c9270201ff37c4a7159632",
+      "yahoo_raw_sha256": "a582d2ad2e0305b5ee3ae7f201f6e8322c271a93318650b0a16832c5208b1427",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -11096,7 +11096,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "0be9be42782a944c04ff0ec87f82777b3e125dd5c0212c2f344f78fbeea779ec",
+      "raw_sha256": "03577c94088f3be2b45a84c3486b80f9be4d9366b3de33a83415d3cb73ae82cc",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 705,
@@ -11211,7 +11211,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "dd898dc24e71a1e33d18a75dbf0d68e3168c3d0fce5470f34b985ab0283737f9",
+      "yahoo_raw_sha256": "840ea7561313292c1108a9cca5bf3ccabca50844534e3e224384c305c304e6be",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -11301,7 +11301,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "7e3b3c1d0f27eea35f372e5b87b038d92b83b7802e24774cadc350855b713a6a",
+      "raw_sha256": "74f4291039e240b763be639da5849bd20d27bf12bf5132034c3d7a317d7c8af1",
       "original_strict_valid": false,
       "quarantined_rows": 1730,
       "last_bad_date": "2024-10-07",
@@ -11498,7 +11498,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "25952bb71bedb75b1d0ae1c4ce33f7608b8e3c4905567247e0c17624449afc89",
+      "yahoo_raw_sha256": "3b346a3035f756084c7f401e2734fd7fedd46f1fb5a84b939e82183b78afc811",
       "zero_volume_corroborated_sessions": 29,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -11522,7 +11522,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9991419b997bcafce8d3384366322e0528fcdc040756e552024351da583f5c41",
+      "raw_sha256": "a84e9421f916d23046cf101708601002e936df210b2ab32c2a00572d23eb8e7e",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -11676,7 +11676,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "0214b5ac1b074c745999f4c5db7de721c60966d3b6deb492429f2f91fe1482f8",
+      "yahoo_raw_sha256": "8701abd8c52670b8bdfb0c7e6355fdf8bdc1ca3e121747314968d9bd4c6e9662",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -11700,7 +11700,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "871ad02971e8f45c155e5a5a9b1286f6dc93937f3df794a538bc28d50258b2aa",
+      "raw_sha256": "8c381ef70b90ba88614047e2d7a1f6636a78b2335547535d7375a53fa46999a1",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -11838,7 +11838,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "fe731df00e925270ed83f62a45921ba94284625dec13f3a1107e15cbf7c4b279",
+      "yahoo_raw_sha256": "5c8d5e3aaac88a7c7e5c8ae0f98cf1f3ee18a1c9193d48b0ef94bf5221a6e0a3",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -11862,7 +11862,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ef6a7069da327cdd91d6e76d587958b0434d4f1235e76f0aa1c76dfbb10b27cf",
+      "raw_sha256": "7b747759cbfde1860c2697f5a9a83d95de1931c3c2b83dbd10a67f6204fbf6ec",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 1427,
@@ -12022,7 +12022,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "0a74312f7f73ac5f5a914eacef2b6d597fed74e1078c71306017e7cfcd773222",
+      "yahoo_raw_sha256": "7ccec76c6a858ad6fd6c1fea4579ca6d0c15334f54a899a72a76066ebfcfcc8c",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -12046,7 +12046,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "af74c7c20596467f8016045857df864cc104b221d121944b10a687b94be67beb",
+      "raw_sha256": "3a38129f88284826ac87600f9f6f601458acf38313b146a3ee05e8195605e9cc",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -12256,7 +12256,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "10f4a80d9f77caf360dfa24213a70d3a11e65b6df62d0eb56aa632885f93ddc3",
+      "yahoo_raw_sha256": "4b2692f9f7125f04e779cb705047df37a50d0514f18109d555c05899d27b41bc",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -12466,7 +12466,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "bee4608a4a20445f624578b92890389a8eb97696a63fbfba6ff1d2a33d84d516",
+      "yahoo_raw_sha256": "43427237450c5401b892a18807ecbb6508477b39f01adf8ef856901b67bc1ba2",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -12490,7 +12490,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "2b6af1e65092660bb73e5082f0b0cc9bbb19c1c170c93271445a4fc8670a5270",
+      "raw_sha256": "879a994c37cd1293508e6f1b0dc5bca20b8d07e0a5db01ee14c253c2a4460ae7",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -12640,7 +12640,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "8fa7fb8cd126fe5472cf070cc0c0d341fc1bd5234989e8a41e5c2c0972782d27",
+      "yahoo_raw_sha256": "52104218e4a23ba8fe54a85b9cc7c8f2bc20574c1669749ce5ff6f54757962fb",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -12729,7 +12729,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "07634d00e926569470da03b71d9101d92b90e4ddf3f4b7cb0eef5a4c8fbcefad",
+      "raw_sha256": "9b10251851274d06f9e1458e94020288fe0ab2242fb79969179e7b2fabef8ee7",
       "original_strict_valid": false,
       "quarantined_rows": 175,
       "last_bad_date": "2018-06-11",
@@ -12894,7 +12894,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "600a4f193a3fbfb2209ba9afbcf888e0079d70e468c4f88d0ceca4d7d9775974",
+      "yahoo_raw_sha256": "30ecaff252be6539322ba62e3573b9539e9cf1643ebcf34b37feba9468652040",
       "zero_volume_corroborated_sessions": 28,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -12983,7 +12983,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ec3e58b5b8f64142dafda7e236414b13b799f9c6e7cacc5742582a8fabf9ffaf",
+      "raw_sha256": "b0bf6584c9fad4c781d74342fb632c7b423fb5a68ac0570206eae76aab58e839",
       "original_strict_valid": false,
       "quarantined_rows": 939,
       "last_bad_date": "2021-07-15",
@@ -13112,7 +13112,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "650f9ca5ca6bb90feb5cd35369f4731bcb2cc8192788936aa852e9f6e8a20502",
+      "yahoo_raw_sha256": "efe2f8da3463d44156c748e458068e059a863e552011d3e63c91707f263ff6cf",
       "zero_volume_corroborated_sessions": 51,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -13136,7 +13136,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "4db5c161361963a3259e2392d791c8565a7127ccc5d53abc6657eee115ef87e8",
+      "raw_sha256": "e60cd38e7e804de1e14cd688befe6030b1740eac2f0fa2dc149ea1ae82123a8f",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -13290,7 +13290,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "13a89e8aa347f005a4dd5a75a6754e3e16b467f9b742d2bb7f70ab0de1ac52fb",
+      "yahoo_raw_sha256": "fba4b5a16553166d8e24e57a7c3c561a59ccd36eccc9d501197f2a8ae706fed1",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -13314,7 +13314,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "dfea865af12e6b6685b3bf44bee1292e968558a12226bb6dfd1a5109e1d159e4",
+      "raw_sha256": "711169d5a85b789624a1612d0926e2d07555f28c42184e9b374117f0640d10d6",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -13468,7 +13468,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "b0e8f98358661d48422044013e0c103e81374c167abe4859de21950e006a55d6",
+      "yahoo_raw_sha256": "e6490fd5af9a335ba334664a878803264c0b2ca06d1e267dbe08a9a2b8bc6cd9",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -13557,7 +13557,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a123c4fde1b2ce85956a5058d16b165af1036496b5c9d8c83c193c6f56afa22e",
+      "raw_sha256": "283667419f8c6da416c14909fa4b879560c8c5fa79d48cc99cdd131736d11a5c",
       "original_strict_valid": false,
       "quarantined_rows": 275,
       "last_bad_date": "2022-03-07",
@@ -13707,7 +13707,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "0860382aa5a72cea3142f2ac0737cb09a46491ef038424efdaac6af09a2e33ed",
+      "yahoo_raw_sha256": "53129d521bf4acbe681211e8495741af2ccc7ac789708949279afac17f080e63",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -13796,7 +13796,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "44c289ce54217399589fb281fafb9061b137a37c0a491435a4b761fe00367df0",
+      "raw_sha256": "50c024b9a129c8271447e42420b4c14d8fb38a0588da6397347e8a73d641ee7b",
       "original_strict_valid": false,
       "quarantined_rows": 463,
       "last_bad_date": "2019-08-12",
@@ -14027,7 +14027,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "58318dd185db79701e7ef7bc6e3b4bc1bf05519b52f3ceabe493b4953e2db0c0",
+      "yahoo_raw_sha256": "81661e91a84c53b5383eea7091d99842fc41bfc3eb7f8bcbecf218f43ae50db9",
       "zero_volume_corroborated_sessions": 12,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -14051,7 +14051,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "87d678a79ba0cf73f2101e07d7282e44d77b4e0f2e23f853a8bbd68de42151f1",
+      "raw_sha256": "bca4de6cedda96fd822e08ea6de9d563e9c50ad2e362cf9cad6e21805a13b846",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -14205,7 +14205,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "06a2ae6d720b45b491874efc0c8cdc66165c14f651f36dfdd08a9ced969f3c87",
+      "yahoo_raw_sha256": "6a3ceb51e51716716b350c194f88043e66800e18f8a41aaca7f6a457912464ca",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -14295,7 +14295,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "8c860452906262db42aa591d110e3eb848b42ba814bca9775540ad2610988a36",
+      "raw_sha256": "3cf2ce22898dfe7e0d5d4cf29ea5adc36db8f6c075b20cbef230784b827954db",
       "original_strict_valid": false,
       "quarantined_rows": 226,
       "last_bad_date": "2024-04-30",
@@ -14424,7 +14424,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "988a05d6fb41fb3328396006af84fd0ce6623f693411f905aed338ce265bad56",
+      "yahoo_raw_sha256": "6dd3b7feba2540b988a425b7db7ddd77dc6846fbcdb93a7ad156cec624283669",
       "zero_volume_corroborated_sessions": 8,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -14513,7 +14513,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a00d2002a79308b0aa7594674e9ba6a1c3d06f9ba423d3e1c5976328c02ce243",
+      "raw_sha256": "16bb10cc96fa7be9fdfbd239bf5633111b261b423d66f5923c46d981d0ffdfcf",
       "original_strict_valid": false,
       "quarantined_rows": 1131,
       "last_bad_date": "2022-04-27",
@@ -14679,7 +14679,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "1efe1f00566137f515e75991dded1ce25dfb83bdedf2d37185627e30fbea03ee",
+      "yahoo_raw_sha256": "a4a705ecae7d91bb1fcabd21f039e4000a25b973bc11b7ae293fbb42d3647696",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -14720,7 +14720,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "bd717b9f10d1b364f4126cabde8568476d603a7e7c19a3891ecd9e1c46de787a",
+      "raw_sha256": "28f6df0430b1b0c0b30c9cca45516c3fa9b6acd966cb44091538964fc3d8df4d",
       "original_strict_valid": false,
       "quarantined_rows": 16,
       "last_bad_date": "2017-10-17",
@@ -14886,7 +14886,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "d510885bbd59a2739497b06a3dbecdd8c2e981dc7efad6fd822b40ec3aad5a35",
+      "yahoo_raw_sha256": "a623432438a04f7a227aba36b7d3e88e85d81e621a82517b61d7293913cb000a",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -14910,7 +14910,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "e2ff8b09d9fcccb579e58aac65dd3dba7d49d2af638a78a2515c8997e0765d12",
+      "raw_sha256": "2dfe77f07904dd60c70e0748de8cfca957ad664af89d492558c861147addc201",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2170,
@@ -15064,7 +15064,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "c237f61a652206dfb2706d859ad7c35407f24c2c62631b62b72a364bc66db58d",
+      "yahoo_raw_sha256": "e874514e27ee0c3efd3821a4282376eaf6900aaeb5682afe14b2002ea160e6af",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -15088,7 +15088,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "d8636b449444119b5f885f107d359634553d663402d41bdc1333beb91aedd8cd",
+      "raw_sha256": "be92923befd34df0670bcec7aa8efdc084a31c8e432f7ebf27d103d3ba55f21b",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -15238,7 +15238,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "7f8f7c09489fba17ab78e6ae044c873a954a4f50cf2e72f5b981e43dd986638a",
+      "yahoo_raw_sha256": "dfcc103ce27a07e6963bd2623fd37ea4f31cfb7be65a9820de35227d5a3c0479",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -15272,7 +15272,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "775a95d457f4dbf06f17359820e1a372c10dbe7a48299c76261539c659268f6e",
+      "raw_sha256": "6e2eb08367480846c3149dd3a15b6c56c6c00c144f6341bc26f89c24d33ed9ba",
       "original_strict_valid": false,
       "quarantined_rows": 1175,
       "last_bad_date": "2026-01-06",
@@ -15390,7 +15390,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "9e57ed5a9cfd6bd3f3ef867c219dee6b905d7de82387c6a788a9fd6870c4738f",
+      "yahoo_raw_sha256": "1379fb1e043ca700d68de48c18f896049e9f9410498f65d99ae713b015219fb2",
       "zero_volume_corroborated_sessions": 1,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -15414,7 +15414,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "64ce40310bc5fb6bac421b3b5dcb513c09fcfb590653943b2cbbf70de7c23bac",
+      "raw_sha256": "bc506009b194fc72e4430272207e1168020264a9bfa7ca7fbf938f799564a503",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -15584,7 +15584,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "361f69b2602d3046de2818e35f1afd0ce4d79f86eb30f5b5219dcbd862cdf5f3",
+      "yahoo_raw_sha256": "615ed2e0c67adf85c7c34f93c51ae0208bb016153f47ab49c686b07250c8e98d",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -15673,7 +15673,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a3eb7927f621dea9e09633deca00e0b86d2a3adf7fc662b20ebff2905ef8b549",
+      "raw_sha256": "5ed1c9025d3e28e6cc86eea89da8125118e02661dd5c69907dde22c85484dfc4",
       "original_strict_valid": false,
       "quarantined_rows": 1136,
       "last_bad_date": "2022-05-04",
@@ -15840,7 +15840,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "060ca93968dadd18ca97b3efb7316c70dec65be667052a4db7d82bc3526a0187",
+      "yahoo_raw_sha256": "8a22bad64d3e4aa17eff005e8530a1bfcab0343347af62fab3e639ea573ad34c",
       "zero_volume_corroborated_sessions": 20,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -15929,7 +15929,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "84ba7d9c6d50aa0e7b0c43e6c5c52350a1d971e3e633097c65cfa5d474f51ebe",
+      "raw_sha256": "52a703d6aca5176c9ca3ffcfd8cf44bb5be9cd15aef5c17eda2cce226a5181fd",
       "original_strict_valid": false,
       "quarantined_rows": 397,
       "last_bad_date": "2019-05-09",
@@ -16080,7 +16080,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "4183d7567faf64c44583c9f1f9bc13d1e5332aefaf5162c4cfdc2e5e3b647094",
+      "yahoo_raw_sha256": "e7505127b700a156531761e980f81c293cd30ee2f6b9c066f97339e6ce533ada",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -16104,7 +16104,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "4fdfc91d807ec48a52b63b1eb91a9773d5d362ba9ea0bb0fb25530f8236b27f5",
+      "raw_sha256": "e1bf67b5111bf60f9c389a463eb553a48429208c75a14d2979a14d13ee973d1a",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -16258,7 +16258,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "28c91cf89c2521a3e516a11e592b662b7d0d4c8ffe18234256a5e2faf42a37e9",
+      "yahoo_raw_sha256": "8d4bfd8f06034c53eb69bc56b65564394dc0320733cfaf12c7113dae3d4b8d92",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -16282,7 +16282,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "bf51c9407e7f2d3cac75da272e74c61648f324bc1fe11d8a9f604caca17a9a32",
+      "raw_sha256": "cdfc626489a174126247382f5b6c1261c12d27aab62dcf4243a32a86fa3c96e8",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -16436,7 +16436,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "f4281a3a4ca34321368a480fc64c3f81a139798450908acb45dddbb5af033e5f",
+      "yahoo_raw_sha256": "a7e0ea45b1aee89033bdd7333c565e0b2110062dc2b0a926d0bf5e7b57d39e4f",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -16460,7 +16460,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a331d400566937f1dcd8d493b99426173a5b7e77582600e9e8c44e648c4b46af",
+      "raw_sha256": "52b4ff3819838b1b1a36899e46b2ca10d952e11a157bf2fdf4ef85dbbcd0f520",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -16614,7 +16614,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "5377e0713f24bc09593858fabfd963c6b326782c4c94a06efc838e7e8233816c",
+      "yahoo_raw_sha256": "bfc0c2618bc20b693bfe9564ba4c81df6f55348a036baa7bc6f2d53117a78e3a",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -16638,7 +16638,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3c29fe6d18d7728342471130248f186361d0e80e30579b1d6189ba8f2f20e4cd",
+      "raw_sha256": "86d7529a85c4267d255a9cfb9abc7319e1bc1fed70d07a77c93e3d7ef7a0acac",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -16753,7 +16753,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "16d0e4bb6bff42f1060c0b443d3abe6e995066fc5b8b4c6f647d2dab6d6958ea",
+      "yahoo_raw_sha256": "c9bb20441bf1c5b316ea6fcd9abb02dc494759cf56013692527ec363ab54b904",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -16777,7 +16777,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "d6b5f5887af2c7cb8c24807e841f1329ee50eee26d23ba2b2db0e531e1499a06",
+      "raw_sha256": "44eeb4f75ccfb0bfdbbcb17a1e2e13c075a211ea9e412e4b8849c298055f2e9c",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -16971,7 +16971,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "96dcebd2255f7a2a7b55d781b14b57d73428189e763abfd1dd020ce47be9b398",
+      "yahoo_raw_sha256": "bca3d3c878b78a191232e651c53b7a1c1f69f59b8b4ed804ba5c5222e41bf61e",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -17060,7 +17060,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ac63c2444a8b82ba0c2177dd66c3454176992fa95770467945254dbb353d2a3e",
+      "raw_sha256": "f9f2298ed3ebf09940ff0e47b9e88e213cf8ba752a2255a61cac5392ac5d87f2",
       "original_strict_valid": false,
       "quarantined_rows": 307,
       "last_bad_date": "2018-12-21",
@@ -17226,7 +17226,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "d4736d9720a3271c9e344c5a0ee0644df0abb033d7a9f2539981ba0840afe245",
+      "yahoo_raw_sha256": "173711146d575ede11a93cc0b1a9f358fde5f0318d83076dab497d8d38956f38",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -17250,7 +17250,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "55e8e7f0302558109a1820b2ee79050744efde11cdef4cc1ec7c3ccc64f9b820",
+      "raw_sha256": "5a65a3a2fdf820254efefa1641168a628c4328beaf2b1d1fbc61f5cc95ebbb81",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -17404,7 +17404,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "8ac824212cd3cfece762428c55ceeb49dc23f05ea8bbae63513ded6c3d86fadd",
+      "yahoo_raw_sha256": "de7c34110029596f8d87d9ab04166ac2ff970e200072fad008d96e3e699e39af",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -17493,7 +17493,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "66df3e53f107dc063022ff11f4b78e4b100f3cdb44e18454b05605fe4101040d",
+      "raw_sha256": "272ff6fea1e38598b80d991a6cbd81f041717dc4dae972040c4ce4acc25c5770",
       "original_strict_valid": false,
       "quarantined_rows": 213,
       "last_bad_date": "2018-08-07",
@@ -17639,7 +17639,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "520e82f65ae32914bcec89cc9076f5e59e516beb17273aefbcfc14475612caef",
+      "yahoo_raw_sha256": "6467205a45ec99c99fd88d516851fcd0910101f86e204eeb7986b1202b7716d8",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -17729,7 +17729,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6691d6a5034b19cb2e6e69affee68bdc5b59825d270038239378b69b893c805b",
+      "raw_sha256": "884ca7ac3230e9ad3f418eed0ba86808de983aed40d649a4989b016b4ef4ead9",
       "original_strict_valid": false,
       "quarantined_rows": 1468,
       "last_bad_date": "2024-07-24",
@@ -17915,7 +17915,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "cce54d0612cdd4f32ae2e6dc8a4cad2bab90eccf892f4b52068b71eb008032c3",
+      "yahoo_raw_sha256": "202cb83558fc2ceca3c2d37dee727f8659a40cb91f0938dd58d9348d5c49573e",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -18004,7 +18004,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9fa141318f146ee33d88a25dba15b9191878c71d13f826a10d84a4589f409dae",
+      "raw_sha256": "20927aed3fb9cb4e7b952f02e9f13ccab0077e779ced65fae4f5fac67e4733ca",
       "original_strict_valid": false,
       "quarantined_rows": 333,
       "last_bad_date": "2022-04-29",
@@ -18170,7 +18170,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "146940501bf27dc59a01c0aba6fee284df9714177af5410978f0293119e3adbf",
+      "yahoo_raw_sha256": "d8cb7d7e4652414cfdc128613797696f24954c976db80edc2b3f19a508f15be7",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -18194,7 +18194,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6212a59be3ef85264df630726179b05b12b80274dd86b599cc032e7f4959804b",
+      "raw_sha256": "ad19c433001c6af3876ecdd93c6bb0a6c24ef38e21c95dae66e6fbdcee581f19",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -18309,7 +18309,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "bcdf7fc525076a16a327d4ed1b2a31eef248ae136dc9a2a3308f10a21fc1fea6",
+      "yahoo_raw_sha256": "7df497903f648fbb454fdc9b6a3cdd7bae9e860a7b2917f38dadc4b60511d747",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -18333,7 +18333,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "90d3268cdc5dd7f3edb2e9f4ae2bb816fcf4879764e429d4546861e3127ed87b",
+      "raw_sha256": "b0258a99bb883860689f2cedbc2d518678b291aab6d1a79fae616ed333760d99",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -18487,7 +18487,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "d5055ee4095f5b9b2bf44f09d23a359922300473fe1c38b7d1579ba75db390c3",
+      "yahoo_raw_sha256": "eb0f2934160fb017c51f76545e61f6787b9e235e6a72d0aba09c1ad311b771c1",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -18511,7 +18511,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "8d120c0dd2b81b68d94145a573f8dfe866392b1886868ed7d0ac31b37da618f2",
+      "raw_sha256": "64d4e6cd8a566fb52590e1f62e1ef479d3a0b3f15a15d519a1798e085659fc4f",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -18665,7 +18665,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "58418544758542cde8546d6c271be64e33d02cdca2035fd2dfacdd4c273537b0",
+      "yahoo_raw_sha256": "0b66dff217808758373f756e9328e442e207fc86fce57519ab0b93d764505a31",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -18714,7 +18714,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "b0cf04986ea5bb124f83807d82dbd8710dcea06017c7532dd99cee474692ff7a",
+      "raw_sha256": "9491c1c76fa4e14c43dc9c4db1fd229bb900a103be8d0ae686d0fcdbdd60dac6",
       "original_strict_valid": false,
       "quarantined_rows": 612,
       "last_bad_date": "2020-03-20",
@@ -18842,7 +18842,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "2ef918288a654b7e8fb668430cdbfd3a0030090dc26af7dd7af1fc58566338b7",
+      "yahoo_raw_sha256": "297ee7f0ab3f15bcc96853a2e9a63861e24aac6a574a0ae9035ca392eafc9a54",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -18866,7 +18866,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ffa6aee48a0b68dc2cd153179617960bcf49a17712d6302d187519345c33ef77",
+      "raw_sha256": "1531704b1970756f5a5d37418de2f73f8f62300bc6b6986c18c23855f23510a8",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -19036,7 +19036,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "2a7485d44d926fe6eeb76246c794f95564ff73c79c42a68bbfe605f67f24c4de",
+      "yahoo_raw_sha256": "f61ff3312ab53dcc1202eb9ed1aa9d9384137408b10a9daaa62eef0ad08dbba3",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -19061,7 +19061,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "565587ccc4318bdd08b7d9189b361bc9f092e808cb7b904460d9b0c191af31f1",
+      "raw_sha256": "f5b1579ca4447800e2dd773787c4b8f9cddd9a1f5ccea7ec3d8f6913d7b1d7f3",
       "original_strict_valid": false,
       "quarantined_rows": 0,
       "usable_segment_rows": 453,
@@ -19185,7 +19185,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "73c3dd27e1b9ddecfb4a7016db4d5a9f4a9f52c5237a02dd48b3e7ebd373e5b9",
+      "yahoo_raw_sha256": "c02294edcb619c31d465102930a1e9b929f3f53eb599bd9609275266e7570df0",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -19275,7 +19275,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "cbaf19d032d5d042997e98374a71c1b5dc97d38b7627ae57dde7bf74c45d182a",
+      "raw_sha256": "7ac1095ffed119a5e5a64c6328a3a557dce785425667cec931c5f47a95c13661",
       "original_strict_valid": false,
       "quarantined_rows": 1634,
       "last_bad_date": "2024-05-14",
@@ -19428,7 +19428,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "8aa8738133fc4b7a607c1949d236021c335c592d0a840d0619d44d2b6ae8a313",
+      "yahoo_raw_sha256": "ccf1da1bdb180d8a49796f379e05b4e181d3b1543730ef9f3eea0c9e0cdb9a56",
       "zero_volume_corroborated_sessions": 4,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -19452,7 +19452,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9ffa8bacb9f3b3741f4eca77e1698091e7ad2e64ac0557a3839ab66e68cbb0b1",
+      "raw_sha256": "0ba1140ef4bd8e2fb8bb6e5ff916cbe1fb79d579abe91185fda6ad125c16d1bc",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -19598,7 +19598,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "993703bbe99e11f6bcd9285fa1422e822b8ec15fbc5381a5520598b05e78c724",
+      "yahoo_raw_sha256": "467d6704794c6033d3db3292df79ceafaf9e78effe0670dde3941f44395d753f",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -19622,7 +19622,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "6662b55182397070e3ab5242cbadd40c5a7da4c19fb90fccce28a314c38b425a",
+      "raw_sha256": "5b0d814a7c5bc036c2c1f1bca862721fc8a283cae55b5488021b9a17cf381a4c",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 1692,
@@ -19748,7 +19748,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "8d1493da51111b9e6b81e633418f3e77464e7ae8a897e631b6a71e0e84a9de05",
+      "yahoo_raw_sha256": "0af20907b749495520fafab7d279e4fb51a47a251983de8058ce3b4dee599d68",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -19837,7 +19837,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "59764f8171825d3c49ea35791b571b9b7bdf061fb7b692befa1750d0e5710588",
+      "raw_sha256": "ed2fdec97144462ccb0f46a23614080be72f897419c1712b1b7ea2f0b99f83ce",
       "original_strict_valid": false,
       "quarantined_rows": 627,
       "last_bad_date": "2020-04-10",
@@ -20023,7 +20023,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "87923a3212e7e37de4954085ec4434e849ea83fdc0564994dd6b2018ef09bb6b",
+      "yahoo_raw_sha256": "88557fe99a2d380ef1c4cc3d6fa891e5427bd095c7d6017f080f1c22ba3792b2",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -20112,7 +20112,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "8658f3b10aa129ea352bc8fb72dd010ddaaee7680b8b1f890dbcd0fb1c8462af",
+      "raw_sha256": "2a6a9654ce523c45e27227f147c915f941cde36de3fca96cfaad0cd43e2e1e0a",
       "original_strict_valid": false,
       "quarantined_rows": 1240,
       "last_bad_date": "2022-10-06",
@@ -20241,7 +20241,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "0569ab72602b3238638ebd3cfbe9ae433ce757c749c56d9959b37f95453677e9",
+      "yahoo_raw_sha256": "f8b27e0ebf820c569a106b62adfa6cf3319952f5c6a01c1fbbd55df66852b4cd",
       "zero_volume_corroborated_sessions": 342,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -20265,7 +20265,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "990465f1b4616fb53399a50dcf23fadccab5ca41f031499b1afdf1cc9e51a2fa",
+      "raw_sha256": "73d73c9495bf102dfb1cc1c36fedfda22749e4be552609e824bafb4f4c201565",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -20423,7 +20423,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "7905a24fdf766bbed6ab85ef77f34144bfa0130932b140f009a4eaaceff8b5e4",
+      "yahoo_raw_sha256": "704d5787696eccb066c3dec547936ca78e8d01498c07b0e7b5b87335e40736ec",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -20504,7 +20504,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "747d1b1a7ed0d67b7274feaee36427e3d380a9ee9d394db3a4c1209c52c69c1d",
+      "raw_sha256": "ee8433cbc6757d6ec0e710cb9460da9d51a71bd84ad057a05db26325334f23cc",
       "original_strict_valid": false,
       "quarantined_rows": 359,
       "last_bad_date": "2019-11-26",
@@ -20658,7 +20658,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "90ed02687ac20f694427fa7ea0d885e135e15fa8ed1e7d50d59e98bb84ea5529",
+      "yahoo_raw_sha256": "75a4ef0ba541b0bfa110c663236132f6dcac43fd43104b7a04615d7b84546b86",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -20682,7 +20682,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "49e9f9f509cb43ee1e9ef68c2016ffb2b5cbb11802571a891d383ebbb4a7a2db",
+      "raw_sha256": "e49c85680f94b8e1f13c65b4a8861df04701eee418dc46d42434cbdf97916329",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -20836,7 +20836,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "b44a1b3a22963478eccf844ceb9747ac81dff66596998f7c79c46638944439a8",
+      "yahoo_raw_sha256": "002dce2ff89fac05f5066d943bf928ccb065cfd268ec8899852f7b5f118631ae",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -20861,7 +20861,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "49486115781304127317db716107a8e150288c9949a9fe76f313180314e32aa4",
+      "raw_sha256": "a95e7c2c25dd6f5ce42f9be5c7e1b23e153a4d5b70e79b82919c81e3cc94352c",
       "original_strict_valid": false,
       "quarantined_rows": 0,
       "usable_segment_rows": 547,
@@ -20978,7 +20978,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "77337e06bd8dd635bf5ce28d119077f3056332318b0883a2fc37a7221314401f",
+      "yahoo_raw_sha256": "dba67af4d086c837f554987888d0e650a6a5c5e0524275fd1ffd325d0a94d464",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -21067,7 +21067,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "da450e0c7c69b0a550267d8a61e2f261a3a5ae0729a4d5162acd201086ac039b",
+      "raw_sha256": "aa005d5222ca9849b9045ab7936627965aa1cb0a28364fd7871aab384a483653",
       "original_strict_valid": false,
       "quarantined_rows": 1399,
       "last_bad_date": "2023-05-26",
@@ -21232,7 +21232,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "955299ad554320eae1c58e0a69e77a5c77919b071274a78907540bccfb16850e",
+      "yahoo_raw_sha256": "6a9cd1ac6bbda5eed880a421e50c1fd5546975f96cfb8e374053f8c2ddf65e06",
       "zero_volume_corroborated_sessions": 20,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -21256,7 +21256,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "20b15fcbb7c2506462f9026db1b9a1cb97b30d2c9f439877c994ca404046f64c",
+      "raw_sha256": "fca320dfd9a010b6ca220f17390d03ba46eccb8eb8be6ea54db002f8f451a9ae",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -21371,7 +21371,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "c70134a0fd5a773d8c94763aacc008233ad29bb23a5da5969c2d09f93e305ab9",
+      "yahoo_raw_sha256": "6a5d5649f3b6baa4f78506e6768fe4b54eb829452a3728b5805a5f8ba885177c",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -21395,7 +21395,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ded4843b906d18de72ac08612b4c4d5ff6653c815b0fbc4224116e58b29f4e07",
+      "raw_sha256": "082f1ea11e21bb689419e4748b948850746405859297a340ac14705de8c9ff27",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -21525,7 +21525,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "ae4276cd979139d786bf9a699edabf5e4bd1e43023ebbcf06274ab167bb994b1",
+      "yahoo_raw_sha256": "1af522108f9f572aee2e213b353af2f92405a50d4aca2ef45df1d491bc5e3c32",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -21549,7 +21549,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "a91b0a71b3bc601c861d4d07f4bddd935e7e8ac5aa92b078df9f1febf7c3392b",
+      "raw_sha256": "5c932adeea88c5b9c13b642a7fe4f8ed4c58d670c1e343b6e8b32055042e2130",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2167,
@@ -21703,7 +21703,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "f0d50c3cf74b7790475cf21ce659eeae834c4e70a9cf6c47f41f43cf671d20c8",
+      "yahoo_raw_sha256": "cc738d849b403d55c013d75982fff3b3e61a869417d4599235d4e45db8a29819",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -21727,7 +21727,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "bbe2385678f4ff0d520f59516424d26f6bea18d2d4c3b7e6a183c1d29d43d6d3",
+      "raw_sha256": "b4483d7d69402872944eb34bda5ce930e44b9aca318c4cfe6676879a7966225e",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -21842,7 +21842,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "a54f0cdc1bb2ba54c7e39bfb4c71b4b93bc4d9b2b1650c5bf9a2ca662d3900af",
+      "yahoo_raw_sha256": "d57bdcce76933646f844575bca7dc7529e9a9902fddcc2847db4db4b79334d0c",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -21931,7 +21931,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "b0fa18cb4d039933f878cbf9554cbda12d947e85603dfc3c596ac7d27ae5cdbb",
+      "raw_sha256": "caef6a500bb2d75fed9d1d8629ed3bd640c9b2cd7bc1aac9be887a6358446b68",
       "original_strict_valid": false,
       "quarantined_rows": 365,
       "last_bad_date": "2019-03-22",
@@ -22071,7 +22071,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "ef7c9a9da97016d63abc5b4039350cd94cbdd9642db713e0fb9633ced0b3778b",
+      "yahoo_raw_sha256": "edc62de61011e8e624e20cc2a1472a4d7fe0f9efeeb96c84f4e9987fefb7d2e1",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -22095,7 +22095,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "52e697920f1a444c0a4393a07497d24691da480d4077f270d3a63a8f13116413",
+      "raw_sha256": "4a4cb63573c68881a0d27e4c5eda70eae7eaae64e6c74105370fddba8196ed3d",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -22249,7 +22249,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "a8e9427289857e42209c0585d08c7a3f5e5885f540f191e0f0355de167df33b3",
+      "yahoo_raw_sha256": "a75d67c80bbae05960d46fc072143975532640cb45e89f1c2b2dd9bb314788ad",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -22273,7 +22273,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ec8676667f74d387591ddaf22dd083c3c2dbe362f47eca879d78e62b8ffc731a",
+      "raw_sha256": "ed48146f7e04cc4c88b8489767fd87b9d7d9dc567149347acc9ccdc242ec6b98",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -22433,7 +22433,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "f53649997ff6aa5bbb583fb85fc17a7183b643a0b1e9532dd6a3c68a901384b4",
+      "yahoo_raw_sha256": "0e30e2d1a0db5ac4f60a3b90b65ca2d139f7629327bbecb73aa8f6f6823afee3",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -22458,7 +22458,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "bdc9856961fa04a159b8aa39480c5015ab38183129ef6a10305d5a9ffb3237c9",
+      "raw_sha256": "2ba22ddb9b85ae94401982d75ff5c0b2c896854663e019ba2efd7b04c1fd2623",
       "original_strict_valid": false,
       "quarantined_rows": 0,
       "usable_segment_rows": 495,
@@ -22575,7 +22575,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "f3c6d534f79c67c65913e4dee17af4270aba5b2c411efc4dc657f2195f016542",
+      "yahoo_raw_sha256": "94a7ae5d562f5d452156e048c18a89404649fce2b30fd5e2dd36973061c92a56",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -22599,7 +22599,7 @@
       "examples": [],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "7b629a847a2b61ea718c9b75af6bd56e4b52a5506b6d7abbb2d4ac1e7b26b934",
+      "raw_sha256": "b14da3c165d60835f49ffb828227fe3074ac20b506f9978ecc0cf98c887cf688",
       "original_strict_valid": true,
       "quarantined_rows": 0,
       "usable_segment_rows": 2220,
@@ -22714,7 +22714,7 @@
         ]
       },
       "yahoo_events": {},
-      "yahoo_raw_sha256": "c75b53ba6f08bd6b1e5d7d6fa079ecc0d86fb6180984d97c41706f9bc13e6d68",
+      "yahoo_raw_sha256": "75bdfb9536889742356c77b1008a29773061f07081a6607f18bbc258c30c0431",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -22803,7 +22803,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "e53c23692fcc1d0e568486c9c837d298b0366930984eac3a1ee8205438dc1f6f",
+      "raw_sha256": "7ba72bb725c27c9edd47533a59477ceb8626565df6a53db373a3be944a24ba92",
       "original_strict_valid": false,
       "quarantined_rows": 1201,
       "last_bad_date": "2022-08-08",
@@ -22932,7 +22932,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "4410a79e167cc3ef6e6e5dbee236074896a15073df67b63716e991386bfa96a3",
+      "yahoo_raw_sha256": "2fce98fdc6f28a43447ffc0a368e108cfd5fce63cbbfd3d45ffc25e86d207e2e",
       "zero_volume_corroborated_sessions": 10,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -23022,7 +23022,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "ab7d8579d81f537baace653e737efbbd01d35d96f6640b54d1a28750237a4d70",
+      "raw_sha256": "88a532dc2b43d5af94fb7db6119b3d167437d7e1b4ad9adf0a14f68a385721f6",
       "original_strict_valid": false,
       "quarantined_rows": 1650,
       "last_bad_date": "2026-01-22",
@@ -23165,7 +23165,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "8e11677242aaad91114349e4eabafb378d3261bdf5f751ad41868fb3d7212b21",
+      "yahoo_raw_sha256": "16cee000a29e6edcd9e6825af2fc3b4253ee1dcc97f727c51a5e2e452ec3b8e8",
       "zero_volume_corroborated_sessions": 73,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -23190,7 +23190,7 @@
       "strict_valid": false,
       "strict_error": "120주선/과거 관측을 위한 일봉 최소 650개 미확보",
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "9f6f2d613b0588a2058620d9e11a2e8aaa69d1c1d9c2a31c0a5c6f3ede9dcb64",
+      "raw_sha256": "c4d336af9ba2af9f22dde3f94a5ad6ae13949749a2dd9cca99659f48ec7a9e23",
       "original_strict_valid": false,
       "quarantined_rows": 0,
       "usable_segment_rows": 282,
@@ -23316,7 +23316,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "a4e3e0ac923e8df4f19a92809d244455f3b6f4c405e6ffb3aa14372d4f258d4e",
+      "yahoo_raw_sha256": "a902aaff7de588e6b41b145ec215b2d90c86851d2a24bcd376468ae884c873ae",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
@@ -23389,7 +23389,7 @@
       ],
       "strict_valid": true,
       "cause_status": "confirmed_numeric_pattern_only; corporate event not yet independently confirmed",
-      "raw_sha256": "3a27b06518f8774e23b93e5049627bb8cdfe7d43b45df0b5e80d8dc78dabaddc",
+      "raw_sha256": "93368d7832bb448dede9156a4d53b29a42d83f63b948e40551312f0318f9f699",
       "original_strict_valid": false,
       "quarantined_rows": 228,
       "last_bad_date": "2018-08-27",
@@ -23561,7 +23561,7 @@
           }
         }
       },
-      "yahoo_raw_sha256": "0603a0f87d3dd90e315f0d0eb2e4987de56f6e7ca0e42ea5f282a8480d70c673",
+      "yahoo_raw_sha256": "261ceaf218ef03c92f599992b5c2cecbe4d5415e262974a990e7915e7e0219c0",
       "zero_volume_corroborated_sessions": 0,
       "corporate_action_status": "provider event metadata available; merger/suspension official notices still unverified",
       "independently_matched": false
