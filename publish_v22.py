@@ -28,6 +28,9 @@ def save():
     def sheet(name,headers):
         if name in wb:del wb[name]
         ws=wb.create_sheet(name);ws.append(headers);ws.freeze_panes='C2';return ws
+    ws=sheet('v22_정규장검증',['코드','종목','기준일','공급원','수신시각','가격세션','거래량세션','공식종가','확정점수사용','미검증사유'])
+    for r in a['stocks']:
+        e=r.get('session_validation',{});ws.append([r['code'],r['name'],e.get('asof'),e.get('source'),e.get('received_at'),e.get('price_session'),e.get('volume_session'),e.get('official_close_status'),e.get('confirmed_scoring_allowed',False),', '.join(e.get('reasons',[]))])
     ws=sheet('v22_품질감사',['코드','종목','기존제외','원본봉수','정상연속봉수','격리봉수','가격검증','구간회복','독립대조','원인분류','남은오류','NAVER 원본 SHA256','YAHOO 원본 SHA256'])
     for r in a['stocks']:ws.append([r['code'],r['name'],r['v21_excluded'],r.get('rows'),r.get('usable_segment_rows'),r.get('quarantined_rows'),r['strict_valid'],r.get('recovered'),r.get('cross_validation',{}).get('status'),', '.join(r.get('cause_categories',[])),r.get('strict_error') or r.get('error'),r.get('raw_sha256'),r.get('yahoo_raw_sha256')])
     ws=sheet('v22_RSI比較',['코드','종목','기간','조건','상태','표본','종목수','분기수','손절선도달(%)','평균MAE(%)','평균순수익(%)','손익비','전략승률(%)','기간말상승빈도(%)','하락보합빈도(%)','목표선도달(%)','평균MFE(%)','평균유사거리','연도분포','500건평균(%)','무제한평균(%)'])

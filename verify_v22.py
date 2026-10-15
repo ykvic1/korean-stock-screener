@@ -6,6 +6,9 @@ from playwright.sync_api import sync_playwright
 def main():
     Path('evidence').mkdir(exist_ok=True);a=json.load(open('docs/reliability.json'));q=json.load(open('docs/quant_v22.json'))
     assert len(a['stocks'])==a['requested'];assert len(q['stocks'])==a['requested'];assert q['v3_ready'] is False
+    assert a['regular_session_verified']==0
+    assert all(s.get('confirmed_score') is None for s in q['stocks'])
+    assert all(not s.get('session_validation',{}).get('confirmed_scoring_allowed',False) for s in a['stocks'])
     assert sum(s.get('strict_valid',False) for s in a['stocks'])==q['available_symbols']
     for s in q['stocks']:
         for group in ['periods','rsi_periods']:
@@ -22,6 +25,7 @@ def main():
         browser=pw.chromium.launch();page=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,accept_downloads=True);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         page.goto(live or 'http://127.0.0.1:8765/docs/reliability.html');page.wait_for_function("document.querySelector('#stock').options.length>0")
         assert page.locator('#stock option').count()==a['requested']
+        assert 'KRX 정규장 OHLCV 확정 검증: 미완료' in page.locator('body').inner_text()
         s=next(s for s in q['stocks'] if s.get('periods'));page.locator('#search').fill(s['code']);assert page.locator('#stock option').count()==1
         assert page.locator('#periods tr').count()==14
         assert page.locator('#rsi').inner_text().find('일봉 RSI14')>=0

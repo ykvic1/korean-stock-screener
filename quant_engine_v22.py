@@ -440,6 +440,10 @@ def run(screener_json:Path,history_dir:Path,output:Path,
         for stock in result.get('stocks',[]):
             matched=quality.get(stock['code'],{}).get('independently_matched',False)
             stock['independently_matched']=matched
+            stock['session_validation']=quality.get(stock['code'],{}).get('session_validation',{})
+            stock['confirmed_score']=None
+            stock['score_status']='unverified_session'
+            stock['technical_status']='exploratory_session_unverified'
             if not matched:stock['period_suggestion']={'decision':'관망/추가 검증','reason':'공급원 교차 일치 미확인'}
     result["unlabelled_windows"]={c:df.attrs.get("unlabelled_windows",{}) for c,df in cache.items()}
     result['comparison_note']='동일 가격 이력·진입·비용·청산 규칙에서 RSI 조건 추가 전후의 기술통계. 개선 효과나 예측력 검증 아님. 500개 제한 제거, 제한 민감도 병기.'

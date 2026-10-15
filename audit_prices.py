@@ -8,6 +8,7 @@ import requests
 import pandas as pd
 import numpy as np
 from quant_engine import read_ohlcv
+from session_policy import unverified
 
 FIELDS=['Open','High','Low','Close','Volume']
 ROOT=Path('cache/v22_raw')
@@ -24,6 +25,7 @@ def fetch_naver(code,asof):
     path=ROOT/f'{code}_naver.xml'
     if not path.exists():
         r=requests.get('https://fchart.stock.naver.com/sise.nhn',params={'timeframe':'day','count':6000,'requestType':0,'symbol':code},timeout=30);r.raise_for_status();path.write_bytes(r.content)
+        (ROOT/f'{code}_receipt.json').write_text(json.dumps({'received_at':datetime.now(timezone.utc).isoformat(),'source':'NAVER fchart'}))
     rows=re.findall(r'<item data="(.*?)"\s*/>',path.read_bytes().decode('euc-kr',errors='replace'))
     df=pd.read_csv(StringIO('\n'.join(rows)),sep='|',names=['Date']+FIELDS,dtype={'Date':str})
     df['Date']=pd.to_datetime(df.Date,format='%Y%m%d');df=df.set_index('Date').sort_index()
@@ -34,6 +36,8 @@ def audit_one(s,asof,old_missing):
     code=s['code'];row={'code':code,'name':s.get('name'),'v21_excluded':code in old_missing,'recovered':False}
     try:
         df=fetch_naver(code,asof);df.to_csv(ROOT/f'{code}_naver.csv',index_label='Date')
+        receipt=ROOT/f'{code}_receipt.json'
+        row['session_validation']=unverified(asof,'NAVER fchart',json.loads(receipt.read_text()).get('received_at') if receipt.exists() else None)
         flags=anomalies(df);row.update(rows=len(df),start=str(df.index.min().date()),end=str(df.index.max().date()),counts={k:int(v.sum()) for k,v in flags.items()})
         bad=flags['nonpositive_price']|flags['range_error']|flags['negative_volume']|flags['missing']
         row['examples']=[{'date':str(i.date()),**{k:float(df.loc[i,k]) for k in FIELDS}} for i in df.index[bad][:8]]
@@ -60,7 +64,7 @@ def main():
     snap.write_text(json.dumps({'asof':d['date'],'source':'NAVER fchart'}))
     stocks=d['stocks'][:120]
     with ThreadPoolExecutor(max_workers=3) as ex: rows=list(ex.map(lambda s:audit_one(s,d['date'],old_missing),stocks))
-    out={'asof':d['date'],'baseline_excluded_n':len(old_missing),'requested':len(stocks),'fetched':sum('rows' in r for r in rows),'strict_valid':sum(r['strict_valid'] for r in rows),'stocks':rows,'v3_ready':False}
+    out={'asof':d['date'],'baseline_excluded_n':len(old_missing),'requested':len(stocks),'fetched':sum('rows' in r for r in rows),'strict_valid':sum(r['strict_valid'] for r in rows),'stocks':rows,'v3_ready':False,'regular_session_verified':0,'full_history_recovered':0}
     Path('docs/reliability.json').write_text(json.dumps(out,ensure_ascii=False,indent=2,allow_nan=False))
     print(json.dumps({k:v for k,v in out.items() if k!='stocks'},ensure_ascii=False))
 if __name__=='__main__':main()
