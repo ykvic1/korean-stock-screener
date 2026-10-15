@@ -23,11 +23,11 @@ from pykrx import stock
 import requests
 from bs4 import BeautifulSoup
 import atexit
-from flow_collection import FlowCollector
+from flow_collection import FlowCollector, parse_naver_flow_table
 
 _NAVER_BROWSER = None
 
-def naver_rendered_table(url):
+def naver_rendered_table(url, pages=3):
     global _NAVER_BROWSER
     if _NAVER_BROWSER is None:
         from playwright.sync_api import sync_playwright
@@ -40,9 +40,28 @@ def naver_rendered_table(url):
         atexit.register(close_browser)
     page=_NAVER_BROWSER[2]
     page.goto(url,wait_until="domcontentloaded",timeout=30000)
-    table=page.locator("table").filter(has_text="외국인 보유주수")
-    table.locator("tbody tr").nth(19).wait_for(state="attached",timeout=20000)
-    return table.evaluate("element => element.outerHTML")
+    # The investor table moved from /price to /tradingTrend. It is paged10rows.
+    from playwright.sync_api import expect
+    toggle=page.locator('[class*="TraderTrend_trader-trend-toolbar-exchange"]')
+    toggle.wait_for(state='visible',timeout=20000)
+    for _ in range(3):
+        if toggle.get_by_text('KRX',exact=True).count():break
+        toggle.click()
+    expect(toggle.get_by_text('KRX',exact=True)).to_be_visible()
+    table=page.locator('table').filter(has=page.get_by_role('columnheader',name='외국인',exact=True))
+    table.locator('tbody tr').first.wait_for(state='visible',timeout=20000)
+    chunks=[]
+    for number in range(1,pages+1):
+        if number>1:
+            previous=table.locator('tbody tr').first.inner_text()
+            button=page.get_by_role('button',name=str(number),exact=True)
+            if not button.count() or not button.is_enabled():break
+            button.click()
+            expect(table.locator('tbody tr').first).not_to_have_text(previous,timeout=20000)
+        expect(toggle.get_by_text('KRX',exact=True)).to_be_visible()
+        chunks.append(table.evaluate('element => element.outerHTML'))
+    return ''.join(chunks)
+
 
 
 class InsufficientHistory(ValueError):
@@ -324,36 +343,11 @@ def flows(code,day,cfg):
 
 
 
-def parse_naver_flow_table(html):
-    soup=BeautifulSoup(html,'html.parser');rows={}
-    for table in soup.find_all('table'):
-        headers=[th.get_text('',strip=True) for th in table.find_all('th')]
-        # New Npay table: use net investor shares, never foreign holdings.
-        if '외국인' not in headers or '기관' not in headers or '날짜' not in headers:continue
-        fi=headers.index('외국인');ii=headers.index('기관');di=headers.index('날짜')
-        for tr in table.find_all('tr'):
-            cells=tr.find_all('td',recursive=False)
-            if len(cells)!=len(headers):continue
-            raw=re.sub(r'\s+','',cells[di].get_text())
-            if not re.fullmatch(r'\d{4}\.\d{2}\.\d{2}\.?',raw):continue
-            date=raw.rstrip('.').replace('.','-')
-            def shares(cell):
-                value=re.sub(r'\s+','',cell.get_text()).replace(',','').replace('주','').replace('−','-')
-                if not re.fullmatch(r'[+-]?\d+',value):raise ValueError('수급 결측값')
-                return int(value)
-            try:rows[date]=(shares(cells[ii]),shares(cells[fi]))
-            except ValueError:continue
-    return rows
-
-
 def flows_naver(code, day, cfg):
     # Legacy finance.naver.com now redirects to Npay; read the current public table.
-    url=f'https://stock.naver.com/domestic/stock/{code}/price'
-    response=requests.get(url,headers={'User-Agent':'Mozilla/5.0'},timeout=20)
-    response.raise_for_status();response.encoding='utf-8'
-    rows=parse_naver_flow_table(response.text)
-    if len(rows)<int(cfg['flow_days']):
-        rows=parse_naver_flow_table(naver_rendered_table(url))
+    url=f'https://stock.naver.com/domestic/stock/{code}/tradingTrend'
+    # Server HTML cannot establish the table exchange selection: render explicitly.
+    rows=parse_naver_flow_table(naver_rendered_table(url))
     valid=sorted(((d,ins,forg) for d,(ins,forg) in rows.items()
                   if d<=day.strftime('%Y-%m-%d')),reverse=True)
     need=int(cfg['flow_days'])
@@ -365,7 +359,8 @@ def flows_naver(code, day, cfg):
             'foreign_positive_days':sum(x>0 for x in foreign),'inst_positive_days':sum(x>0 for x in inst),
             'flow_observations':len(selected),'flows_confirmed':True,
             'flow_start_date':selected[-1][0],'flow_end_date':selected[0][0],
-            'flow_source':'Npay 증권 기관/외국인 순매매(공개 표)'}
+            'flow_source':'Npay 증권 KRX 선택 기관/외국인 순매매(공개 표)',
+            'flow_session_status':'regular_session_unverified'}
 
 def score_one(r,cfg):
     """Add every dimension's observed score and coverage, without normalizing away missing factors."""
