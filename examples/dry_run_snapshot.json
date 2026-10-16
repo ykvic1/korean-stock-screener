@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-16",
+  "sample_only": true,
+  "warning": "Market/code fixture for CLI offline demonstration; NOT a historical OHLCV data source",
+  "stocks": [
+    {"code": "005930", "market": "KOSPI", "name": "삼성전자"},
+    {"code": "247540", "market": "KOSDAQ", "name": "에코프로비엠"}
+  ]
+}

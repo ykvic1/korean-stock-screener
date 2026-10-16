@@ -1,0 +1,99 @@
+name: Official KRX and OpenDART API Probe (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      asof:
+        description: 'Completed trade date YYYY-MM-DD; <= docs/data.json date'
+        required: true
+        type: string
+      mode:
+        description: 'dry_run before provider approval, live only after approval'
+        required: true
+        type: choice
+        default: dry_run
+        options: [dry_run, live]
+      provider:
+        description: 'KRX, DART or both (sample only)'
+        type: choice
+        default: both
+        options: [both, krx, dart]
+      symbols:
+        description: 'Optional: up to 10 six-digit symbols from docs/data.json, comma separated'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-api-probe
+  cancel-in-progress: false
+
+jobs:
+  provider-sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install minimum probe dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Run offline regression suite
+        run: python -m unittest discover -s tests -p 'test_official_probe.py' -v
+      - name: Probe only authorized and bounded providers
+        env:
+          ASOF: ${{ inputs.asof }}
+          MODE: ${{ inputs.mode }}
+          PROVIDER: ${{ inputs.provider }}
+          SYMBOLS: ${{ inputs.symbols }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--asof "$ASOF" --provider "$PROVIDER")
+          if [[ "$MODE" == live ]]; then args+=(--live); fi
+          if [[ -n "$SYMBOLS" ]]; then args+=(--symbols "$SYMBOLS"); fi
+          python -m official_probe "${args[@]}"
+      - name: Report clearly separated collection and validation status
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          outputs = sorted(Path('evidence/official_probe').glob('probe_*.json'))
+          if not outputs:
+              print('::warning::Official probe did not produce a result file.')
+              raise SystemExit(0)
+          r = json.loads(outputs[-1].read_text())
+          krx = r.get('krx',{}).get('status','unavailable')
+          dart = r.get('dart',{}).get('status','unavailable')
+          message = ('Official provider API connectivity: KRX='+krx+', DART='+dart+'. '
+                     'Regular-only volume/foreign-institution flows remain UNVERIFIED; '
+                     'no investment score is authorized.')
+          print('::notice::'+message)
+          import os
+          path = os.environ.get('GITHUB_STEP_SUMMARY')
+          if path:
+              with open(path,'a',encoding='utf-8') as f:
+                  f.write('### Official API connectivity smoke test\n\n'
+                          '- KRX status: **'+krx+'**\n'
+                          '- OpenDART status: **'+dart+'**\n'
+                          '- Regular-only KRX volume: **not verified**\n'
+                          '- Foreign/institutional flows: **not verified**\n'
+                          '- Investment scoring eligibility: **false**\n')
+          PY
+      - name: Keep report private; never publish to Pages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-api-probe-${{ github.run_id }}
+          path: evidence/official_probe/*.json
+          if-no-files-found: warn
+          retention-days: 7
