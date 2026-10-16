@@ -1,0 +1,12 @@
+{
+  "asof": "2026-10-15",
+  "dart": {
+    "status": "key_required",
+    "secret": "DART_API_KEY"
+  },
+  "krx": {
+    "status": "key_required",
+    "secret": "KRX_API_KEY"
+  },
+  "backtest_included": false
+}
