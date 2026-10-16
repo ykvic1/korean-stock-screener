@@ -3,14 +3,14 @@ on:
   workflow_dispatch:
   push:
     branches: [v22-data-reliability]
-    paths: ['.github/workflows/reliability-v22.yml', '*v22.py', 'audit_prices.py', 'cross_validate.py', 'financial_metrics.py', 'session_policy.py', 'tests/test_session_policy.py', 'tests/test_v22.py', 'docs/reliability.html']
+    paths: ['.github/workflows/reliability-v22.yml', '*v22.py', 'audit_prices.py', 'cross_validate.py', 'financial_metrics.py', 'session_policy.py', 'tests/test_session_policy.py', 'tests/test_v22.py', 'docs/reliability.html', 'baseline_cohort.py', 'config/v22_baseline_53.json', 'tests/test_baseline_cohort.py']
   workflow_run:
     workflows: [Korean Stock Quant Study v2.1]
     types: [completed]
 permissions:
   contents: write
 concurrency:
-  group: v22-reliability
+  group: korea-stock-screener-publication
   cancel-in-progress: false
 jobs:
   audit:
@@ -53,7 +53,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v22-reliability-evidence
+          name: v22-reliability-evidence-${{ github.run_id }}
           path: |
             evidence/
             cache/v22_raw/
@@ -62,6 +62,7 @@ jobs:
             docs/quant_v22.json
             docs/official_v22.json
             docs/reports/*v22*.xlsx
+          if-no-files-found: warn
           retention-days: 90
       - name: Publish verified execution results (research gate remains separate)
         if: success()

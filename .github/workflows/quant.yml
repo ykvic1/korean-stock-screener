@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: korean-stock-quant-v21
+  group: korea-stock-screener-publication
   cancel-in-progress: false
 
 jobs:
@@ -95,12 +95,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: quant-study-audit
+          name: quant-study-audit-${{ github.run_id }}
           path: |
             docs/quant.json
             docs/official.json
             cache/quant_history/cache_status.json
             reports/*.xlsx
+          if-no-files-found: warn
           retention-days: 90
 
       - name: Report insufficient evidence as a failed research run
