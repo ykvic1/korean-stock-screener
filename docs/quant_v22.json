@@ -1063,7 +1063,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:23.693120+00:00",
+        "received_at": "2026-10-16T08:11:54.817770+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -2107,7 +2107,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:23.616199+00:00",
+        "received_at": "2026-10-16T08:11:54.772075+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -3151,7 +3151,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:23.671015+00:00",
+        "received_at": "2026-10-16T08:11:54.838616+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -4124,7 +4124,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:25.318958+00:00",
+        "received_at": "2026-10-16T08:11:56.283165+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -5168,7 +5168,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:25.246431+00:00",
+        "received_at": "2026-10-16T08:11:56.163463+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -6247,7 +6247,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:25.349190+00:00",
+        "received_at": "2026-10-16T08:11:56.302239+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -7071,7 +7071,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:26.718240+00:00",
+        "received_at": "2026-10-16T08:11:57.760391+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -8115,7 +8115,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:26.866698+00:00",
+        "received_at": "2026-10-16T08:11:57.719843+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -9194,7 +9194,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:26.756989+00:00",
+        "received_at": "2026-10-16T08:11:57.642915+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -10238,7 +10238,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:27.907843+00:00",
+        "received_at": "2026-10-16T08:11:59.028482+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -11247,7 +11247,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:28.391633+00:00",
+        "received_at": "2026-10-16T08:11:59.113689+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -11815,7 +11815,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:28.413926+00:00",
+        "received_at": "2026-10-16T08:11:59.210352+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -12894,7 +12894,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:29.251833+00:00",
+        "received_at": "2026-10-16T08:12:00.300524+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -13412,7 +13412,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:29.959391+00:00",
+        "received_at": "2026-10-16T08:12:00.560366+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -14385,7 +14385,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:30.080369+00:00",
+        "received_at": "2026-10-16T08:12:00.669883+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -15429,7 +15429,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:30.818849+00:00",
+        "received_at": "2026-10-16T08:12:01.839129+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -16397,7 +16397,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:31.494585+00:00",
+        "received_at": "2026-10-16T08:12:01.906604+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -17476,7 +17476,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:31.390285+00:00",
+        "received_at": "2026-10-16T08:12:02.049520+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -18519,7 +18519,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:32.386271+00:00",
+        "received_at": "2026-10-16T08:12:03.417774+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -18556,13 +18556,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 5.0,
           "stop_pct": 4.0,
-          "sample_n": 3480,
-          "before_rsi_n": 3480,
-          "uncapped_n": 3480,
+          "sample_n": 3481,
+          "before_rsi_n": 3481,
+          "uncapped_n": 3481,
           "cap500_audit": {
-            "eligible_n": 3480,
+            "eligible_n": 3481,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.34,
+            "all_mean_return_pct": -0.341,
             "cap500_mean_return_pct": -0.35,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -18571,11 +18571,11 @@
             "2021": 429,
             "2022": 509,
             "2023": 537,
-            "2024": 588,
+            "2024": 589,
             "2025": 651,
             "2026": 496
           },
-          "symbol_max_share_pct": 2.16,
+          "symbol_max_share_pct": 2.15,
           "similarity_distance_p90": 0.974,
           "rsi_conditioned": false,
           "symbol_n": 73,
@@ -18586,7 +18586,7 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-05",
-            "train_n": 2772,
+            "train_n": 2773,
             "test_n": 708,
             "test_mean_net_return_pct": null
           },
@@ -18599,7 +18599,7 @@
             46.2
           ],
           "target_first_pct": 25.5,
-          "stop_first_pct": 31.8,
+          "stop_first_pct": 31.9,
           "mean_net_return_pct": -0.34,
           "mean_mfe_pct": 4.12,
           "mean_mae_pct": 3.53,
@@ -18627,13 +18627,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 7.0,
           "stop_pct": 5.5,
-          "sample_n": 3464,
-          "before_rsi_n": 3464,
-          "uncapped_n": 3464,
+          "sample_n": 3465,
+          "before_rsi_n": 3465,
+          "uncapped_n": 3465,
           "cap500_audit": {
-            "eligible_n": 3464,
+            "eligible_n": 3465,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.172,
+            "all_mean_return_pct": -0.173,
             "cap500_mean_return_pct": -0.133,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -18642,11 +18642,11 @@
             "2021": 429,
             "2022": 509,
             "2023": 537,
-            "2024": 588,
+            "2024": 589,
             "2025": 651,
             "2026": 480
           },
-          "symbol_max_share_pct": 2.17,
+          "symbol_max_share_pct": 2.16,
           "similarity_distance_p90": 0.974,
           "rsi_conditioned": false,
           "symbol_n": 73,
@@ -18657,13 +18657,13 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-01",
-            "train_n": 2753,
+            "train_n": 2754,
             "test_n": 711,
             "test_mean_net_return_pct": null
           },
           "up_pct": 46.9,
-          "strategy_win_pct": 46.2,
-          "end_close_mean_pct": 0.1,
+          "strategy_win_pct": 46.1,
+          "end_close_mean_pct": 0.09,
           "down_or_flat_pct": 53.1,
           "up_wilson_range_pct": [
             45.3,
@@ -18674,9 +18674,9 @@
           "mean_net_return_pct": -0.17,
           "mean_mfe_pct": 6.16,
           "mean_mae_pct": 5.02,
-          "payoff_ratio": 1.084,
+          "payoff_ratio": 1.083,
           "expected_net_pct": -0.17,
-          "median_net_return_pct": -0.76,
+          "median_net_return_pct": -0.77,
           "net_return_p10_pct": -5.9,
           "net_return_p90_pct": 6.6,
           "max_favorable_p50_pct": 4.14,
@@ -18698,14 +18698,14 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 10.0,
           "stop_pct": 7.0,
-          "sample_n": 3429,
-          "before_rsi_n": 3429,
-          "uncapped_n": 3429,
+          "sample_n": 3430,
+          "before_rsi_n": 3430,
+          "uncapped_n": 3430,
           "cap500_audit": {
-            "eligible_n": 3429,
+            "eligible_n": 3430,
             "cap500_n": 500,
-            "all_mean_return_pct": 0.187,
-            "cap500_mean_return_pct": 0.423,
+            "all_mean_return_pct": 0.184,
+            "cap500_mean_return_pct": 0.422,
             "status": "diagnostic_only; not predictive validation"
           },
           "year_distribution": {
@@ -18713,7 +18713,7 @@
             "2021": 429,
             "2022": 509,
             "2023": 537,
-            "2024": 588,
+            "2024": 589,
             "2025": 651,
             "2026": 445
           },
@@ -18728,7 +18728,7 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-08-20",
-            "train_n": 2735,
+            "train_n": 2736,
             "test_n": 694,
             "test_mean_net_return_pct": null
           },
@@ -18742,21 +18742,21 @@
           ],
           "target_first_pct": 29.0,
           "stop_first_pct": 36.7,
-          "mean_net_return_pct": 0.19,
-          "mean_mfe_pct": 9.56,
+          "mean_net_return_pct": 0.18,
+          "mean_mfe_pct": 9.55,
           "mean_mae_pct": 6.92,
           "payoff_ratio": 1.227,
-          "expected_net_pct": 0.19,
+          "expected_net_pct": 0.18,
           "median_net_return_pct": -0.97,
           "net_return_p10_pct": -7.4,
           "net_return_p90_pct": 9.6,
           "max_favorable_p50_pct": 6.2,
           "max_favorable_p75_pct": 12.27,
-          "max_favorable_p90_pct": 21.5,
+          "max_favorable_p90_pct": 21.49,
           "max_adverse_p75_pct": 9.62,
           "cost_sensitivity_mean_pct": {
-            "round_trip_0.2": 0.39,
-            "round_trip_0.8": -0.21
+            "round_trip_0.2": 0.38,
+            "round_trip_0.8": -0.22
           },
           "gap_through_stop_n": 117,
           "sample_start": "2020-05-06",
@@ -19055,7 +19055,7 @@
           "target_pct": 5.0,
           "stop_pct": 4.0,
           "sample_n": 1557,
-          "before_rsi_n": 3480,
+          "before_rsi_n": 3481,
           "uncapped_n": 1557,
           "cap500_audit": {
             "eligible_n": 1557,
@@ -19126,13 +19126,13 @@
           "target_pct": 7.0,
           "stop_pct": 5.5,
           "sample_n": 1546,
-          "before_rsi_n": 3464,
+          "before_rsi_n": 3465,
           "uncapped_n": 1546,
           "cap500_audit": {
             "eligible_n": 1546,
             "cap500_n": 500,
             "all_mean_return_pct": -0.195,
-            "cap500_mean_return_pct": -0.203,
+            "cap500_mean_return_pct": -0.213,
             "status": "diagnostic_only; not predictive validation"
           },
           "year_distribution": {
@@ -19145,7 +19145,7 @@
             "2026": 243
           },
           "symbol_max_share_pct": 2.65,
-          "similarity_distance_p90": 0.921,
+          "similarity_distance_p90": 0.92,
           "rsi_conditioned": true,
           "symbol_n": 72,
           "quarter_n": 26,
@@ -19197,7 +19197,7 @@
           "target_pct": 10.0,
           "stop_pct": 7.0,
           "sample_n": 1522,
-          "before_rsi_n": 3429,
+          "before_rsi_n": 3430,
           "uncapped_n": 1522,
           "cap500_audit": {
             "eligible_n": 1522,
@@ -19598,7 +19598,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:33.213268+00:00",
+        "received_at": "2026-10-16T08:12:03.259484+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -20642,7 +20642,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:33.189989+00:00",
+        "received_at": "2026-10-16T08:12:03.414202+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -21649,7 +21649,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:33.643284+00:00",
+        "received_at": "2026-10-16T08:12:04.568549+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -22728,7 +22728,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:34.508498+00:00",
+        "received_at": "2026-10-16T08:12:04.763282+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -23807,7 +23807,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:34.439229+00:00",
+        "received_at": "2026-10-16T08:12:04.460386+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -24886,7 +24886,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:35.219505+00:00",
+        "received_at": "2026-10-16T08:12:06.135419+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -25965,7 +25965,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:35.793735+00:00",
+        "received_at": "2026-10-16T08:12:05.941164+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -27007,7 +27007,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:35.965786+00:00",
+        "received_at": "2026-10-16T08:12:06.139948+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -28086,7 +28086,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:36.774910+00:00",
+        "received_at": "2026-10-16T08:12:07.298755+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -29165,7 +29165,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:37.138834+00:00",
+        "received_at": "2026-10-16T08:12:07.714217+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -30244,7 +30244,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:37.238388+00:00",
+        "received_at": "2026-10-16T08:12:07.610296+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -31288,7 +31288,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:38.350712+00:00",
+        "received_at": "2026-10-16T08:12:08.643664+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -32367,7 +32367,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:38.532342+00:00",
+        "received_at": "2026-10-16T08:12:09.151804+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -33351,7 +33351,7 @@
           "rsi_conditioned": true,
           "symbol_n": 46,
           "quarter_n": 19,
-          "distance_mean": 0.648,
+          "distance_mean": 0.649,
           "status": "exploratory",
           "limitation": "유사조건 과거 빈도이며 앞으로의 확률 보장 없음. 생존편향/시장동조성 잔존.",
           "chronological_holdout": {
@@ -33446,7 +33446,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:38.866292+00:00",
+        "received_at": "2026-10-16T08:12:09.070456+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -34489,7 +34489,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:39.863630+00:00",
+        "received_at": "2026-10-16T08:12:10.096806+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -35532,7 +35532,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:39.913702+00:00",
+        "received_at": "2026-10-16T08:12:10.323829+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -35569,13 +35569,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 5.0,
           "stop_pct": 4.0,
-          "sample_n": 3340,
-          "before_rsi_n": 3340,
-          "uncapped_n": 3340,
+          "sample_n": 3341,
+          "before_rsi_n": 3341,
+          "uncapped_n": 3341,
           "cap500_audit": {
-            "eligible_n": 3340,
+            "eligible_n": 3341,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.323,
+            "all_mean_return_pct": -0.322,
             "cap500_mean_return_pct": -0.289,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -35586,9 +35586,9 @@
             "2023": 554,
             "2024": 568,
             "2025": 617,
-            "2026": 438
+            "2026": 439
           },
-          "symbol_max_share_pct": 2.22,
+          "symbol_max_share_pct": 2.21,
           "similarity_distance_p90": 0.992,
           "rsi_conditioned": false,
           "symbol_n": 72,
@@ -35600,13 +35600,13 @@
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-11",
             "train_n": 2705,
-            "test_n": 635,
+            "test_n": 636,
             "test_mean_net_return_pct": null
           },
-          "up_pct": 44.3,
+          "up_pct": 44.4,
           "strategy_win_pct": 43.8,
           "end_close_mean_pct": -0.2,
-          "down_or_flat_pct": 55.7,
+          "down_or_flat_pct": 55.6,
           "up_wilson_range_pct": [
             42.7,
             46.0
@@ -35614,16 +35614,16 @@
           "target_first_pct": 24.9,
           "stop_first_pct": 30.9,
           "mean_net_return_pct": -0.32,
-          "mean_mfe_pct": 3.97,
+          "mean_mfe_pct": 3.98,
           "mean_mae_pct": 3.42,
-          "payoff_ratio": 1.051,
+          "payoff_ratio": 1.052,
           "expected_net_pct": -0.32,
           "median_net_return_pct": -0.67,
           "net_return_p10_pct": -4.4,
           "net_return_p90_pct": 4.6,
           "max_favorable_p50_pct": 2.68,
           "max_favorable_p75_pct": 5.33,
-          "max_favorable_p90_pct": 8.69,
+          "max_favorable_p90_pct": 8.7,
           "max_adverse_p75_pct": 4.78,
           "cost_sensitivity_mean_pct": {
             "round_trip_0.2": -0.12,
@@ -35640,13 +35640,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 7.0,
           "stop_pct": 5.5,
-          "sample_n": 3325,
-          "before_rsi_n": 3325,
-          "uncapped_n": 3325,
+          "sample_n": 3326,
+          "before_rsi_n": 3326,
+          "uncapped_n": 3326,
           "cap500_audit": {
-            "eligible_n": 3325,
+            "eligible_n": 3326,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.166,
+            "all_mean_return_pct": -0.164,
             "cap500_mean_return_pct": -0.22,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -35657,9 +35657,9 @@
             "2023": 554,
             "2024": 568,
             "2025": 617,
-            "2026": 423
+            "2026": 424
           },
-          "symbol_max_share_pct": 2.23,
+          "symbol_max_share_pct": 2.22,
           "similarity_distance_p90": 0.992,
           "rsi_conditioned": false,
           "symbol_n": 72,
@@ -35671,34 +35671,34 @@
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-04",
             "train_n": 2695,
-            "test_n": 630,
+            "test_n": 631,
             "test_mean_net_return_pct": null
           },
-          "up_pct": 46.9,
+          "up_pct": 47.0,
           "strategy_win_pct": 46.3,
           "end_close_mean_pct": 0.13,
-          "down_or_flat_pct": 53.1,
+          "down_or_flat_pct": 53.0,
           "up_wilson_range_pct": [
             45.3,
-            48.6
+            48.7
           ],
           "target_first_pct": 27.2,
           "stop_first_pct": 32.1,
-          "mean_net_return_pct": -0.17,
-          "mean_mfe_pct": 5.99,
+          "mean_net_return_pct": -0.16,
+          "mean_mfe_pct": 6.0,
           "mean_mae_pct": 4.85,
           "payoff_ratio": 1.081,
-          "expected_net_pct": -0.17,
+          "expected_net_pct": -0.16,
           "median_net_return_pct": -0.71,
           "net_return_p10_pct": -5.9,
           "net_return_p90_pct": 6.6,
           "max_favorable_p50_pct": 4.03,
-          "max_favorable_p75_pct": 7.85,
-          "max_favorable_p90_pct": 13.43,
+          "max_favorable_p75_pct": 7.86,
+          "max_favorable_p90_pct": 13.46,
           "max_adverse_p75_pct": 6.77,
           "cost_sensitivity_mean_pct": {
-            "round_trip_0.2": 0.03,
-            "round_trip_0.8": -0.57
+            "round_trip_0.2": 0.04,
+            "round_trip_0.8": -0.56
           },
           "gap_through_stop_n": 97,
           "sample_start": "2020-05-06",
@@ -35711,13 +35711,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 10.0,
           "stop_pct": 7.0,
-          "sample_n": 3296,
-          "before_rsi_n": 3296,
-          "uncapped_n": 3296,
+          "sample_n": 3297,
+          "before_rsi_n": 3297,
+          "uncapped_n": 3297,
           "cap500_audit": {
-            "eligible_n": 3296,
+            "eligible_n": 3297,
             "cap500_n": 500,
-            "all_mean_return_pct": 0.188,
+            "all_mean_return_pct": 0.191,
             "cap500_mean_return_pct": 0.255,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -35728,7 +35728,7 @@
             "2023": 554,
             "2024": 568,
             "2025": 617,
-            "2026": 394
+            "2026": 395
           },
           "symbol_max_share_pct": 2.21,
           "similarity_distance_p90": 0.989,
@@ -35742,30 +35742,30 @@
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-08-25",
             "train_n": 2670,
-            "test_n": 626,
+            "test_n": 627,
             "test_mean_net_return_pct": null
           },
-          "up_pct": 48.5,
+          "up_pct": 48.6,
           "strategy_win_pct": 46.4,
           "end_close_mean_pct": 0.96,
-          "down_or_flat_pct": 51.5,
+          "down_or_flat_pct": 51.4,
           "up_wilson_range_pct": [
-            46.8,
+            46.9,
             50.3
           ],
-          "target_first_pct": 28.7,
+          "target_first_pct": 28.8,
           "stop_first_pct": 36.2,
           "mean_net_return_pct": 0.19,
           "mean_mfe_pct": 9.37,
           "mean_mae_pct": 6.71,
-          "payoff_ratio": 1.224,
+          "payoff_ratio": 1.225,
           "expected_net_pct": 0.19,
-          "median_net_return_pct": -0.89,
+          "median_net_return_pct": -0.88,
           "net_return_p10_pct": -7.4,
           "net_return_p90_pct": 9.6,
-          "max_favorable_p50_pct": 6.05,
-          "max_favorable_p75_pct": 12.14,
-          "max_favorable_p90_pct": 21.01,
+          "max_favorable_p50_pct": 6.06,
+          "max_favorable_p75_pct": 12.15,
+          "max_favorable_p90_pct": 21.03,
           "max_adverse_p75_pct": 9.4,
           "cost_sensitivity_mean_pct": {
             "round_trip_0.2": 0.39,
@@ -35782,13 +35782,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 13.0,
           "stop_pct": 9.0,
-          "sample_n": 1738,
-          "before_rsi_n": 1738,
-          "uncapped_n": 1738,
+          "sample_n": 1739,
+          "before_rsi_n": 1739,
+          "uncapped_n": 1739,
           "cap500_audit": {
-            "eligible_n": 1738,
+            "eligible_n": 1739,
             "cap500_n": 500,
-            "all_mean_return_pct": 0.825,
+            "all_mean_return_pct": 0.819,
             "cap500_mean_return_pct": 0.92,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -35797,12 +35797,12 @@
             "2021": 214,
             "2022": 271,
             "2023": 295,
-            "2024": 300,
+            "2024": 301,
             "2025": 330,
             "2026": 187
           },
           "symbol_max_share_pct": 2.24,
-          "similarity_distance_p90": 1.0,
+          "similarity_distance_p90": 1.002,
           "rsi_conditioned": false,
           "symbol_n": 72,
           "quarter_n": 26,
@@ -35812,13 +35812,13 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-01",
-            "train_n": 1433,
+            "train_n": 1434,
             "test_n": 305,
             "test_mean_net_return_pct": null
           },
           "up_pct": 50.7,
           "strategy_win_pct": 48.0,
-          "end_close_mean_pct": 2.22,
+          "end_close_mean_pct": 2.21,
           "down_or_flat_pct": 49.3,
           "up_wilson_range_pct": [
             48.4,
@@ -35826,21 +35826,21 @@
           ],
           "target_first_pct": 34.3,
           "stop_first_pct": 39.0,
-          "mean_net_return_pct": 0.83,
-          "mean_mfe_pct": 14.59,
+          "mean_net_return_pct": 0.82,
+          "mean_mfe_pct": 14.58,
           "mean_mae_pct": 9.05,
           "payoff_ratio": 1.3,
-          "expected_net_pct": 0.83,
+          "expected_net_pct": 0.82,
           "median_net_return_pct": -1.27,
           "net_return_p10_pct": -9.4,
           "net_return_p90_pct": 12.6,
-          "max_favorable_p50_pct": 9.46,
-          "max_favorable_p75_pct": 18.92,
+          "max_favorable_p50_pct": 9.44,
+          "max_favorable_p75_pct": 18.91,
           "max_favorable_p90_pct": 33.12,
-          "max_adverse_p75_pct": 12.75,
+          "max_adverse_p75_pct": 12.76,
           "cost_sensitivity_mean_pct": {
-            "round_trip_0.2": 1.03,
-            "round_trip_0.8": 0.43
+            "round_trip_0.2": 1.02,
+            "round_trip_0.8": 0.42
           },
           "gap_through_stop_n": 58,
           "sample_start": "2020-05-06",
@@ -36068,7 +36068,7 @@
           "target_pct": 5.0,
           "stop_pct": 4.0,
           "sample_n": 877,
-          "before_rsi_n": 3340,
+          "before_rsi_n": 3341,
           "uncapped_n": 877,
           "cap500_audit": {
             "eligible_n": 877,
@@ -36139,7 +36139,7 @@
           "target_pct": 7.0,
           "stop_pct": 5.5,
           "sample_n": 874,
-          "before_rsi_n": 3325,
+          "before_rsi_n": 3326,
           "uncapped_n": 874,
           "cap500_audit": {
             "eligible_n": 874,
@@ -36158,7 +36158,7 @@
             "2026": 120
           },
           "symbol_max_share_pct": 3.43,
-          "similarity_distance_p90": 0.866,
+          "similarity_distance_p90": 0.867,
           "rsi_conditioned": true,
           "symbol_n": 72,
           "quarter_n": 26,
@@ -36210,7 +36210,7 @@
           "target_pct": 10.0,
           "stop_pct": 7.0,
           "sample_n": 865,
-          "before_rsi_n": 3296,
+          "before_rsi_n": 3297,
           "uncapped_n": 865,
           "cap500_audit": {
             "eligible_n": 865,
@@ -36281,7 +36281,7 @@
           "target_pct": 13.0,
           "stop_pct": 9.0,
           "sample_n": 449,
-          "before_rsi_n": 1738,
+          "before_rsi_n": 1739,
           "uncapped_n": 449,
           "cap500_audit": {
             "eligible_n": 449,
@@ -36611,7 +36611,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:40.232800+00:00",
+        "received_at": "2026-10-16T08:12:10.672313+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -37580,7 +37580,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:41.250051+00:00",
+        "received_at": "2026-10-16T08:12:11.459983+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -38659,7 +38659,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:41.186576+00:00",
+        "received_at": "2026-10-16T08:12:11.912313+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -39596,7 +39596,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:41.492895+00:00",
+        "received_at": "2026-10-16T08:12:12.133908+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -40247,7 +40247,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:42.711190+00:00",
+        "received_at": "2026-10-16T08:12:13.000469+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -41326,7 +41326,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:42.821665+00:00",
+        "received_at": "2026-10-16T08:12:13.304022+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -42370,7 +42370,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:42.900943+00:00",
+        "received_at": "2026-10-16T08:12:13.366216+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -43449,7 +43449,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:44.408091+00:00",
+        "received_at": "2026-10-16T08:12:14.342709+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -44528,7 +44528,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:44.404061+00:00",
+        "received_at": "2026-10-16T08:12:14.945733+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -45572,7 +45572,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:44.294103+00:00",
+        "received_at": "2026-10-16T08:12:14.905121+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -46651,7 +46651,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:45.379890+00:00",
+        "received_at": "2026-10-16T08:12:15.438365+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -46684,7 +46684,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:45.241277+00:00",
+        "received_at": "2026-10-16T08:12:15.686850+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -47732,7 +47732,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:45.858250+00:00",
+        "received_at": "2026-10-16T08:12:16.484961+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -48776,7 +48776,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:46.478812+00:00",
+        "received_at": "2026-10-16T08:12:16.655745+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -49855,7 +49855,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:46.465620+00:00",
+        "received_at": "2026-10-16T08:12:16.727187+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -50934,7 +50934,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:47.261894+00:00",
+        "received_at": "2026-10-16T08:12:17.879810+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -52013,7 +52013,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:48.158205+00:00",
+        "received_at": "2026-10-16T08:12:18.191166+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -53092,7 +53092,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:47.913504+00:00",
+        "received_at": "2026-10-16T08:12:18.012714+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -54171,7 +54171,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:48.710846+00:00",
+        "received_at": "2026-10-16T08:12:19.128529+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -55250,7 +55250,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:49.271058+00:00",
+        "received_at": "2026-10-16T08:12:19.669123+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -55940,7 +55940,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:49.412786+00:00",
+        "received_at": "2026-10-16T08:12:19.589335+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -56617,7 +56617,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:50.089432+00:00",
+        "received_at": "2026-10-16T08:12:20.680551+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -57516,7 +57516,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:50.830353+00:00",
+        "received_at": "2026-10-16T08:12:20.894048+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -58560,7 +58560,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:50.448599+00:00",
+        "received_at": "2026-10-16T08:12:20.661318+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -59532,7 +59532,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:51.484012+00:00",
+        "received_at": "2026-10-16T08:12:21.993548+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -60041,7 +60041,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:51.702893+00:00",
+        "received_at": "2026-10-16T08:12:21.971398+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -60978,7 +60978,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:52.048165+00:00",
+        "received_at": "2026-10-16T08:12:22.118634+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -62021,7 +62021,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:52.753804+00:00",
+        "received_at": "2026-10-16T08:12:23.324209+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -63100,7 +63100,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:53.011748+00:00",
+        "received_at": "2026-10-16T08:12:23.268590+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -64109,7 +64109,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:53.387507+00:00",
+        "received_at": "2026-10-16T08:12:23.456412+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -65188,7 +65188,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:54.334485+00:00",
+        "received_at": "2026-10-16T08:12:24.613718+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -66267,7 +66267,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:54.575931+00:00",
+        "received_at": "2026-10-16T08:12:24.665871+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -67311,7 +67311,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:54.787116+00:00",
+        "received_at": "2026-10-16T08:12:24.797696+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -67344,7 +67344,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:55.625240+00:00",
+        "received_at": "2026-10-16T08:12:25.879322+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -68086,7 +68086,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:55.857441+00:00",
+        "received_at": "2026-10-16T08:12:25.947746+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -69165,7 +69165,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:56.128886+00:00",
+        "received_at": "2026-10-16T08:12:26.136087+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -69202,13 +69202,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 5.0,
           "stop_pct": 4.0,
-          "sample_n": 2826,
-          "before_rsi_n": 2826,
-          "uncapped_n": 2826,
+          "sample_n": 2827,
+          "before_rsi_n": 2827,
+          "uncapped_n": 2827,
           "cap500_audit": {
-            "eligible_n": 2826,
+            "eligible_n": 2827,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.378,
+            "all_mean_return_pct": -0.379,
             "cap500_mean_return_pct": -0.474,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -69217,12 +69217,12 @@
             "2021": 420,
             "2022": 393,
             "2023": 379,
-            "2024": 477,
+            "2024": 478,
             "2025": 535,
             "2026": 446
           },
           "symbol_max_share_pct": 2.51,
-          "similarity_distance_p90": 1.096,
+          "similarity_distance_p90": 1.097,
           "rsi_conditioned": false,
           "symbol_n": 73,
           "quarter_n": 27,
@@ -69232,7 +69232,7 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-18",
-            "train_n": 2210,
+            "train_n": 2211,
             "test_n": 616,
             "test_mean_net_return_pct": null
           },
@@ -69241,7 +69241,7 @@
           "end_close_mean_pct": -0.27,
           "down_or_flat_pct": 56.1,
           "up_wilson_range_pct": [
-            42.1,
+            42.0,
             45.7
           ],
           "target_first_pct": 24.3,
@@ -69273,13 +69273,13 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 7.0,
           "stop_pct": 5.5,
-          "sample_n": 2810,
-          "before_rsi_n": 2810,
-          "uncapped_n": 2810,
+          "sample_n": 2811,
+          "before_rsi_n": 2811,
+          "uncapped_n": 2811,
           "cap500_audit": {
-            "eligible_n": 2810,
+            "eligible_n": 2811,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.211,
+            "all_mean_return_pct": -0.212,
             "cap500_mean_return_pct": -0.125,
             "status": "diagnostic_only; not predictive validation"
           },
@@ -69288,7 +69288,7 @@
             "2021": 420,
             "2022": 393,
             "2023": 379,
-            "2024": 477,
+            "2024": 478,
             "2025": 535,
             "2026": 430
           },
@@ -69303,7 +69303,7 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-12",
-            "train_n": 2195,
+            "train_n": 2196,
             "test_n": 615,
             "test_mean_net_return_pct": null
           },
@@ -69313,16 +69313,16 @@
           "down_or_flat_pct": 54.1,
           "up_wilson_range_pct": [
             44.1,
-            47.8
+            47.7
           ],
-          "target_first_pct": 26.7,
+          "target_first_pct": 26.6,
           "stop_first_pct": 32.1,
           "mean_net_return_pct": -0.21,
           "mean_mfe_pct": 5.95,
           "mean_mae_pct": 5.02,
           "payoff_ratio": 1.093,
           "expected_net_pct": -0.21,
-          "median_net_return_pct": -0.75,
+          "median_net_return_pct": -0.76,
           "net_return_p10_pct": -5.9,
           "net_return_p90_pct": 6.6,
           "max_favorable_p50_pct": 3.97,
@@ -69344,14 +69344,14 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 10.0,
           "stop_pct": 7.0,
-          "sample_n": 2782,
-          "before_rsi_n": 2782,
-          "uncapped_n": 2782,
+          "sample_n": 2783,
+          "before_rsi_n": 2783,
+          "uncapped_n": 2783,
           "cap500_audit": {
-            "eligible_n": 2782,
+            "eligible_n": 2783,
             "cap500_n": 500,
-            "all_mean_return_pct": 0.107,
-            "cap500_mean_return_pct": 0.213,
+            "all_mean_return_pct": 0.104,
+            "cap500_mean_return_pct": 0.185,
             "status": "diagnostic_only; not predictive validation"
           },
           "year_distribution": {
@@ -69359,12 +69359,12 @@
             "2021": 420,
             "2022": 393,
             "2023": 379,
-            "2024": 477,
+            "2024": 478,
             "2025": 535,
             "2026": 402
           },
           "symbol_max_share_pct": 2.52,
-          "similarity_distance_p90": 1.096,
+          "similarity_distance_p90": 1.097,
           "rsi_conditioned": false,
           "symbol_n": 73,
           "quarter_n": 26,
@@ -69374,7 +69374,7 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-08-29",
-            "train_n": 2167,
+            "train_n": 2168,
             "test_n": 615,
             "test_mean_net_return_pct": null
           },
@@ -69386,23 +69386,23 @@
             46.4,
             50.1
           ],
-          "target_first_pct": 27.9,
-          "stop_first_pct": 36.2,
-          "mean_net_return_pct": 0.11,
+          "target_first_pct": 27.8,
+          "stop_first_pct": 36.3,
+          "mean_net_return_pct": 0.1,
           "mean_mfe_pct": 9.36,
           "mean_mae_pct": 6.93,
           "payoff_ratio": 1.216,
-          "expected_net_pct": 0.11,
+          "expected_net_pct": 0.1,
           "median_net_return_pct": -1.05,
           "net_return_p10_pct": -7.4,
           "net_return_p90_pct": 9.6,
           "max_favorable_p50_pct": 5.94,
           "max_favorable_p75_pct": 11.91,
           "max_favorable_p90_pct": 20.82,
-          "max_adverse_p75_pct": 9.64,
+          "max_adverse_p75_pct": 9.63,
           "cost_sensitivity_mean_pct": {
-            "round_trip_0.2": 0.31,
-            "round_trip_0.8": -0.29
+            "round_trip_0.2": 0.3,
+            "round_trip_0.8": -0.3
           },
           "gap_through_stop_n": 98,
           "sample_start": "2020-05-14",
@@ -69701,7 +69701,7 @@
           "target_pct": 5.0,
           "stop_pct": 4.0,
           "sample_n": 614,
-          "before_rsi_n": 2826,
+          "before_rsi_n": 2827,
           "uncapped_n": 614,
           "cap500_audit": {
             "eligible_n": 614,
@@ -69772,7 +69772,7 @@
           "target_pct": 7.0,
           "stop_pct": 5.5,
           "sample_n": 609,
-          "before_rsi_n": 2810,
+          "before_rsi_n": 2811,
           "uncapped_n": 609,
           "cap500_audit": {
             "eligible_n": 609,
@@ -69843,7 +69843,7 @@
           "target_pct": 10.0,
           "stop_pct": 7.0,
           "sample_n": 605,
-          "before_rsi_n": 2782,
+          "before_rsi_n": 2783,
           "uncapped_n": 605,
           "cap500_audit": {
             "eligible_n": 605,
@@ -70244,7 +70244,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:57.034489+00:00",
+        "received_at": "2026-10-16T08:12:27.249309+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -71287,7 +71287,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:57.203808+00:00",
+        "received_at": "2026-10-16T08:12:27.218746+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -72331,7 +72331,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:57.322981+00:00",
+        "received_at": "2026-10-16T08:12:27.289849+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -73085,7 +73085,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:58.424266+00:00",
+        "received_at": "2026-10-16T08:12:28.582524+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -74128,7 +74128,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:58.739784+00:00",
+        "received_at": "2026-10-16T08:12:28.627266+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -75207,7 +75207,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:58.794052+00:00",
+        "received_at": "2026-10-16T08:12:28.643996+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -75240,7 +75240,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:09:59.297284+00:00",
+        "received_at": "2026-10-16T08:12:29.639022+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -76323,7 +76323,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:00.098882+00:00",
+        "received_at": "2026-10-16T08:12:30.167757+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -77402,7 +77402,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:00.035389+00:00",
+        "received_at": "2026-10-16T08:12:30.028305+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -78334,7 +78334,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:00.564224+00:00",
+        "received_at": "2026-10-16T08:12:30.883463+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -79102,11 +79102,11 @@
             "2026": 89
           },
           "symbol_max_share_pct": 2.71,
-          "similarity_distance_p90": 1.009,
+          "similarity_distance_p90": 1.008,
           "rsi_conditioned": true,
           "symbol_n": 71,
           "quarter_n": 26,
-          "distance_mean": 0.74,
+          "distance_mean": 0.739,
           "status": "exploratory",
           "limitation": "유사조건 과거 빈도이며 앞으로의 확률 보장 없음. 생존편향/시장동조성 잔존.",
           "chronological_holdout": {
@@ -79248,7 +79248,7 @@
           "rsi_conditioned": true,
           "symbol_n": 65,
           "quarter_n": 24,
-          "distance_mean": 0.732,
+          "distance_mean": 0.731,
           "status": "exploratory",
           "limitation": "유사조건 과거 빈도이며 앞으로의 확률 보장 없음. 생존편향/시장동조성 잔존.",
           "chronological_holdout": {
@@ -79413,7 +79413,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:01.364570+00:00",
+        "received_at": "2026-10-16T08:12:31.569990+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -80492,7 +80492,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:01.505047+00:00",
+        "received_at": "2026-10-16T08:12:31.584326+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -81536,7 +81536,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:01.799130+00:00",
+        "received_at": "2026-10-16T08:12:32.120435+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -82245,7 +82245,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:02.680069+00:00",
+        "received_at": "2026-10-16T08:12:32.857214+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -82278,7 +82278,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:02.535304+00:00",
+        "received_at": "2026-10-16T08:12:32.588851+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -83029,7 +83029,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:03.290152+00:00",
+        "received_at": "2026-10-16T08:12:33.439594+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -83694,7 +83694,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:03.713739+00:00",
+        "received_at": "2026-10-16T08:12:33.765534+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -84701,7 +84701,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:03.774026+00:00",
+        "received_at": "2026-10-16T08:12:33.916978+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -84734,7 +84734,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:04.200223+00:00",
+        "received_at": "2026-10-16T08:12:34.316224+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -85781,7 +85781,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:05.070249+00:00",
+        "received_at": "2026-10-16T08:12:35.091242+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -86860,7 +86860,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:05.109479+00:00",
+        "received_at": "2026-10-16T08:12:35.269447+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -87939,7 +87939,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:05.491569+00:00",
+        "received_at": "2026-10-16T08:12:35.562002+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -87976,20 +87976,20 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 5.0,
           "stop_pct": 4.0,
-          "sample_n": 2052,
-          "before_rsi_n": 2052,
-          "uncapped_n": 2052,
+          "sample_n": 2053,
+          "before_rsi_n": 2053,
+          "uncapped_n": 2053,
           "cap500_audit": {
-            "eligible_n": 2052,
+            "eligible_n": 2053,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.447,
+            "all_mean_return_pct": -0.446,
             "cap500_mean_return_pct": -0.331,
             "status": "diagnostic_only; not predictive validation"
           },
           "year_distribution": {
             "2020": 94,
             "2021": 331,
-            "2022": 315,
+            "2022": 316,
             "2023": 228,
             "2024": 354,
             "2025": 383,
@@ -88006,7 +88006,7 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-10-10",
-            "train_n": 1591,
+            "train_n": 1592,
             "test_n": 461,
             "test_mean_net_return_pct": null
           },
@@ -88047,20 +88047,20 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 7.0,
           "stop_pct": 5.5,
-          "sample_n": 2040,
-          "before_rsi_n": 2040,
-          "uncapped_n": 2040,
+          "sample_n": 2041,
+          "before_rsi_n": 2041,
+          "uncapped_n": 2041,
           "cap500_audit": {
-            "eligible_n": 2040,
+            "eligible_n": 2041,
             "cap500_n": 500,
-            "all_mean_return_pct": -0.3,
+            "all_mean_return_pct": -0.296,
             "cap500_mean_return_pct": -0.03,
             "status": "diagnostic_only; not predictive validation"
           },
           "year_distribution": {
             "2020": 94,
             "2021": 331,
-            "2022": 315,
+            "2022": 316,
             "2023": 228,
             "2024": 354,
             "2025": 383,
@@ -88077,32 +88077,32 @@
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-30",
-            "train_n": 1579,
+            "train_n": 1580,
             "test_n": 461,
             "test_mean_net_return_pct": null
           },
           "up_pct": 46.3,
           "strategy_win_pct": 45.3,
-          "end_close_mean_pct": -0.18,
+          "end_close_mean_pct": -0.17,
           "down_or_flat_pct": 53.7,
           "up_wilson_range_pct": [
             44.1,
-            48.4
+            48.5
           ],
-          "target_first_pct": 25.4,
+          "target_first_pct": 25.5,
           "stop_first_pct": 32.5,
           "mean_net_return_pct": -0.3,
           "mean_mfe_pct": 5.73,
           "mean_mae_pct": 5.08,
-          "payoff_ratio": 1.058,
+          "payoff_ratio": 1.059,
           "expected_net_pct": -0.3,
           "median_net_return_pct": -0.79,
           "net_return_p10_pct": -5.9,
           "net_return_p90_pct": 6.6,
           "max_favorable_p50_pct": 3.84,
-          "max_favorable_p75_pct": 7.54,
+          "max_favorable_p75_pct": 7.55,
           "max_favorable_p90_pct": 13.06,
-          "max_adverse_p75_pct": 6.86,
+          "max_adverse_p75_pct": 6.85,
           "cost_sensitivity_mean_pct": {
             "round_trip_0.2": -0.1,
             "round_trip_0.8": -0.7
@@ -88118,20 +88118,20 @@
           "round_trip_cost_pct": 0.4,
           "target_pct": 10.0,
           "stop_pct": 7.0,
-          "sample_n": 2024,
-          "before_rsi_n": 2024,
-          "uncapped_n": 2024,
+          "sample_n": 2025,
+          "before_rsi_n": 2025,
+          "uncapped_n": 2025,
           "cap500_audit": {
-            "eligible_n": 2024,
+            "eligible_n": 2025,
             "cap500_n": 500,
-            "all_mean_return_pct": 0.087,
+            "all_mean_return_pct": 0.091,
             "cap500_mean_return_pct": 0.282,
             "status": "diagnostic_only; not predictive validation"
           },
           "year_distribution": {
             "2020": 94,
             "2021": 331,
-            "2022": 315,
+            "2022": 316,
             "2023": 228,
             "2024": 354,
             "2025": 383,
@@ -88142,38 +88142,38 @@
           "rsi_conditioned": false,
           "symbol_n": 73,
           "quarter_n": 26,
-          "distance_mean": 0.95,
+          "distance_mean": 0.951,
           "status": "exploratory",
           "limitation": "유사조건 과거 빈도이며 앞으로의 확률 보장 없음. 생존편향/시장동조성 잔존.",
           "chronological_holdout": {
             "status": "미검증: 최근 홀드아웃 표본 부족",
             "split_date": "2025-09-19",
-            "train_n": 1566,
+            "train_n": 1567,
             "test_n": 458,
             "test_mean_net_return_pct": null
           },
           "up_pct": 48.9,
-          "strategy_win_pct": 46.0,
-          "end_close_mean_pct": 0.79,
+          "strategy_win_pct": 46.1,
+          "end_close_mean_pct": 0.8,
           "down_or_flat_pct": 51.1,
           "up_wilson_range_pct": [
-            46.7,
+            46.8,
             51.1
           ],
           "target_first_pct": 27.2,
           "stop_first_pct": 35.9,
           "mean_net_return_pct": 0.09,
-          "mean_mfe_pct": 9.03,
+          "mean_mfe_pct": 9.04,
           "mean_mae_pct": 7.0,
           "payoff_ratio": 1.204,
           "expected_net_pct": 0.09,
-          "median_net_return_pct": -1.04,
+          "median_net_return_pct": -1.03,
           "net_return_p10_pct": -7.4,
           "net_return_p90_pct": 9.6,
-          "max_favorable_p50_pct": 5.73,
-          "max_favorable_p75_pct": 11.64,
-          "max_favorable_p90_pct": 20.45,
-          "max_adverse_p75_pct": 9.58,
+          "max_favorable_p50_pct": 5.74,
+          "max_favorable_p75_pct": 11.66,
+          "max_favorable_p90_pct": 20.44,
+          "max_adverse_p75_pct": 9.57,
           "cost_sensitivity_mean_pct": {
             "round_trip_0.2": 0.29,
             "round_trip_0.8": -0.31
@@ -88475,7 +88475,7 @@
           "target_pct": 5.0,
           "stop_pct": 4.0,
           "sample_n": 755,
-          "before_rsi_n": 2052,
+          "before_rsi_n": 2053,
           "uncapped_n": 755,
           "cap500_audit": {
             "eligible_n": 755,
@@ -88546,7 +88546,7 @@
           "target_pct": 7.0,
           "stop_pct": 5.5,
           "sample_n": 750,
-          "before_rsi_n": 2040,
+          "before_rsi_n": 2041,
           "uncapped_n": 750,
           "cap500_audit": {
             "eligible_n": 750,
@@ -88565,7 +88565,7 @@
             "2026": 119
           },
           "symbol_max_share_pct": 3.47,
-          "similarity_distance_p90": 1.099,
+          "similarity_distance_p90": 1.098,
           "rsi_conditioned": true,
           "symbol_n": 71,
           "quarter_n": 26,
@@ -88617,7 +88617,7 @@
           "target_pct": 10.0,
           "stop_pct": 7.0,
           "sample_n": 747,
-          "before_rsi_n": 2024,
+          "before_rsi_n": 2025,
           "uncapped_n": 747,
           "cap500_audit": {
             "eligible_n": 747,
@@ -89018,7 +89018,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:06.454702+00:00",
+        "received_at": "2026-10-16T08:12:36.464947+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -90097,7 +90097,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:06.517482+00:00",
+        "received_at": "2026-10-16T08:12:36.641851+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -91176,7 +91176,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:06.831784+00:00",
+        "received_at": "2026-10-16T08:12:36.934903+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -92255,7 +92255,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:07.843344+00:00",
+        "received_at": "2026-10-16T08:12:37.805539+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -93334,7 +93334,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:07.913833+00:00",
+        "received_at": "2026-10-16T08:12:37.988835+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -94377,7 +94377,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:08.216572+00:00",
+        "received_at": "2026-10-16T08:12:38.275879+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -95456,7 +95456,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:09.104583+00:00",
+        "received_at": "2026-10-16T08:12:39.035968+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -96535,7 +96535,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:09.163245+00:00",
+        "received_at": "2026-10-16T08:12:39.215272+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -97614,7 +97614,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:09.579403+00:00",
+        "received_at": "2026-10-16T08:12:39.628304+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -98657,7 +98657,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:10.154132+00:00",
+        "received_at": "2026-10-16T08:12:40.070890+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -99326,7 +99326,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:10.497092+00:00",
+        "received_at": "2026-10-16T08:12:40.591581+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -99359,7 +99359,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:10.391667+00:00",
+        "received_at": "2026-10-16T08:12:40.440132+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -99396,7 +99396,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:11.028885+00:00",
+        "received_at": "2026-10-16T08:12:40.904820+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -100380,7 +100380,7 @@
             "2025": 13
           },
           "symbol_max_share_pct": 3.92,
-          "similarity_distance_p90": 0.929,
+          "similarity_distance_p90": 0.928,
           "rsi_conditioned": true,
           "symbol_n": 56,
           "quarter_n": 20,
@@ -100479,7 +100479,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:11.842272+00:00",
+        "received_at": "2026-10-16T08:12:41.750151+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -101558,7 +101558,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:11.893590+00:00",
+        "received_at": "2026-10-16T08:12:42.148164+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -101591,7 +101591,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:12.232085+00:00",
+        "received_at": "2026-10-16T08:12:42.143717+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -102674,7 +102674,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:13.301796+00:00",
+        "received_at": "2026-10-16T08:12:43.093224+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -103600,7 +103600,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:13.176635+00:00",
+        "received_at": "2026-10-16T08:12:43.438399+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -104532,7 +104532,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:13.612460+00:00",
+        "received_at": "2026-10-16T08:12:43.696547+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -105575,7 +105575,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:14.559933+00:00",
+        "received_at": "2026-10-16T08:12:44.459271+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -106654,7 +106654,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:14.708023+00:00",
+        "received_at": "2026-10-16T08:12:44.799415+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -107698,7 +107698,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:14.805563+00:00",
+        "received_at": "2026-10-16T08:12:44.929527+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -108664,7 +108664,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:15.875922+00:00",
+        "received_at": "2026-10-16T08:12:45.717838+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -109743,7 +109743,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:16.052370+00:00",
+        "received_at": "2026-10-16T08:12:46.261523+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -109776,7 +109776,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:15.456342+00:00",
+        "received_at": "2026-10-16T08:12:45.544440+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -110824,7 +110824,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:16.660458+00:00",
+        "received_at": "2026-10-16T08:12:46.738480+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -111866,7 +111866,7 @@
       "session_validation": {
         "asof": "2026-10-15",
         "source": "NAVER fchart",
-        "received_at": "2026-10-15T14:10:17.044928+00:00",
+        "received_at": "2026-10-16T08:12:46.884021+00:00",
         "price_session": "UNVERIFIED",
         "volume_session": "UNVERIFIED",
         "official_close_status": "unverified",
@@ -112917,7 +112917,7 @@
     "holdout": "chronological diagnostics only; no walk-forward predictive validation",
     "prediction_validated": false
   },
-  "report_file": "reports/한국주식_v22_통합검증_20261015_231230.xlsx",
+  "report_file": "reports/한국주식_v22_통합검증_20261016_171513.xlsx",
   "preserved_report_hashes": {
     "한국주식_다면스크리너_2026-10-14_213847.xlsx": "2c0a9f0017d8830200bf6c87a24160c9002ff8f58d9fb79dbaaee194d926e36f",
     "한국주식_다면스크리너_2026-10-14.xlsx": "8ab32dd2c5ae6ed577e45a1625b8ad2923a4c5f189f6f4beefb59a71ac3f98ae",
@@ -112931,6 +112931,7 @@
     "한국주식_통합퀀트_2026-10-14_214356.xlsx": "072414a8034f54de411b7d0a8d43224a82d00a66f7e8da2979a495ad112229f2",
     "quant_2026-10-14_214356.xlsx": "8c9d804a849153eb6b07d1a84922e103d25b6ed516b65f7b2222e25225d7b044",
     "한국주식_v22_통합검증_20261015_171347.xlsx": "01eb75ca49bd5117cb03855652575931f9edd715918a2877be418a5eb092ea36",
-    "한국주식_다면스크리너_2026-10-14_190502.xlsx": "8ca46444589f77836659fe35c2f0074fffef38752958d594d34a054f1e746904"
+    "한국주식_다면스크리너_2026-10-14_190502.xlsx": "8ca46444589f77836659fe35c2f0074fffef38752958d594d34a054f1e746904",
+    "한국주식_v22_통합검증_20261015_231230.xlsx": "152c7527cd5c1b86798ba5fe7526494de08a59b9865a72319a4608c71594f86f"
   }
 }
