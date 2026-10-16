@@ -13,7 +13,7 @@ permissions:
 
 # Parallel runs caused push collisions in v1. Queue at most one pending run.
 concurrency:
-  group: korea-stock-screener-main
+  group: korea-stock-screener-publication
   cancel-in-progress: false
 
 jobs:
@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Download source
         uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Install Python
         uses: actions/setup-python@v5
         with:
@@ -48,13 +50,14 @@ jobs:
             git pull --rebase origin main
             git push
           fi
-      - name: Keep Excel in Actions for 90 days
+      - name: Keep Excel and failure logs for 90 days
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: korea-screening-report
+          name: korea-screening-report-${{ github.run_id }}
           path: |
             reports/*.xlsx
             logs/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
 
