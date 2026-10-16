@@ -1,6 +1,6 @@
 # v2.2 data reliability checkpoint
 
-Status: LOCAL_VALIDATION_DONE_PUSH_APPROVAL_REQUIRED (2026-10-16 KST). Official regular-session evidence remains unavailable; v3.0 blocked. See latest checkpoint below.
+Status: VALIDATED_BRANCH_BLOCKED_BY_LIVE_MOBILE_GATE (2026-10-16 KST). PR #7 merged; PR #6 remains OPEN. See final checkpoint below; no v3.0 work.
 Baseline: main 53f49273b51bc30c9ad768f1c3f31be12f4af24d.
 Preserve all historical Excel files and existing working v2 functionality.
 
@@ -127,3 +127,20 @@ then inspect actual Npay toolbar/pagination variants and verify at least20 KRX-s
 observations on representative symbols before full210 rerun. Do not guess locators.
 Official regular-only OHLCV and corporate-action reconciliation still block v2.2 completion.
 IAS/EA, finance and100point model remain previous state/design; no v3 implementation.
+
+
+## 2026-10-16 17:20 KST: authorized v2.2 validation checkpoint
+
+- PR #7 merged main -> v22-data-reliability, merge SHA 3f0a2de85979f413dc3a77b1da45d74cd2ec2718. Main remains 3a8e59160ef4fafe21ec826973fb6bb33e4b852d.
+- Exact seven hotfix files match uploaded ZIP. No duplicate patch application. Original 53 unique codes/names and pinned Git blob SHA-1 verified. This patch pins a Git blob SHA-1, not SHA256. Independently computed source SHA256: 9ef4317e5a64910f16b3aa4013da9224746a6a23dd5a00275e530f299a3d844a.
+- Full local tests: 41 passed after restoring missing environment dependency beautifulsoup4. GitHub PR correctness run 38871794305 passed 41 tests.
+- Actual reliability run 38872040246 SUCCESS: 41 tests, raw acquisition, independent comparison, research calculation, JSON/Excel creation, preservation hashes, 390x844 mobile UI and Excel download, artifacts, git rebase and push all succeeded.
+- Publication ran while a separate existing HTML fix was uploaded; rebase and push succeeded. Final result commit b0b3dc0c39d1f367a5428778d047e20a71d4e022.
+- Existing display fix reused from local ad8b18d in c63c748: summary now reads baseline_cohort.numeric_segment_usable/53, instead of rotating subset recovered/53. No new feature.
+- All 16 pre-existing Excel files and existing archive objects unchanged; new report 한국주식_v22_통합검증_20261016_171513.xlsx added. No duplicate history file paths. No second full data acquisition run. Concurrent multi-workflow/repeated-run publication not fully exercised; shared lock regression tests passed.
+- Fixed53 asof2026-10-15: fetched53, usable numeric segments37, independently matched0, full-history verified0, regular-session verified0. Status unverified. Current120 fetched120, usable111, independent match0. KRX/DART keys still required.
+- Live deployed mobile run 38872626683 FAILED at verify_mobile.py line31: assert stocks.count()==data['flow_confirmed_count']>0. Current deployed flow_confirmed_count=0. This is a pre-existing live data/gate failure, not a hotfix unit-test failure. Did not weaken the assertion or develop a new collector. Later download/filter tests in that run did not execute.
+- Bot-created latest PR correctness run 38872521617 initially required maintainer approval; approved through GitHub UI and completed SUCCESS.
+- PR #6 deliberately remains OPEN under user instruction not to merge failed validation. New main merge and Pages deployment NOT performed. Existing deployed reliability page still shows old21/53; fixed37/53 exists only on development branch.
+- KRX09:00-15:30-only volume, independent prices, corporate actions/suspensions, full53 history, stable foreign/institutional flow collection remain unverified. No v3, IAS/EA engine, backfill or feature expansion.
+- Stop here. Resume only to resolve/review the live mobile/data gate within an explicitly approved scope, then conditionally merge PR6 and verify actual Pages. Do not redo full collection merely to regenerate evidence.
