@@ -174,6 +174,30 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertEqual(len(c.api_calls),1)
         self.assertFalse(c.xbrl_calls)
 
+    def test_dart_documented_response_omits_fs_div_without_proving_scope(self):
+        rows = api_rows()
+        for row in rows:
+            del row['fs_div']
+        c = FakeDART(rows=rows)
+        out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT, 'OFS')
+        self.assertEqual(out['status'], 'six_values_observed_equal_scope_unverified')
+        self.assertFalse(out['financial_api_fs_div_explicit_in_rows'])
+        self.assertFalse(out['xbrl_accounting_scope_verified'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+        self.assertFalse(out['investment_data_ready'])
+        self.assertEqual(c.xbrl_calls, [(RECEIPT, '11011')])
+
+    def test_explicit_wrong_fs_div_blocks_xbrl_download(self):
+        rows = api_rows()
+        for row in rows:
+            row['fs_div'] = 'CFS'
+        c = FakeDART(rows=rows)
+        out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT, 'OFS')
+        self.assertEqual(out['status'], 'financial_api_report_identity_mismatch')
+        self.assertTrue(out['financial_api_fs_div_explicit_in_rows'])
+        self.assertFalse(c.xbrl_calls)
+        self.assertFalse(out['confirmed_scoring_allowed'])
+
     def test_financial_api_receipt_mismatch_blocks_zip(self):
         changed='20260316001122'
         c = FakeDART(rows=api_rows(receipt=changed))
