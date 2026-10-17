@@ -20,6 +20,9 @@ jobs:
       - name: Kiwoom Windows PowerShell offline mock (no credentials or network)
         shell: pwsh
         run: ./scripts/kiwoom_readonly_probe.ps1 -OfflineSelfTest
+      - name: Kiwoom 3-page Windows PowerShell synthetic pagination (no network or keys)
+        shell: pwsh
+        run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: JavaScript syntax
         run: |
           python - <<'PY'
