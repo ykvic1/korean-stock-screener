@@ -64,7 +64,6 @@ class OCIAlwaysFreePreparationTests(unittest.TestCase):
         self.assertIn("ephemeral", self.guide.lower())
         self.assertIn("Reserved", self.guide)
         self.assertIn("회수", self.guide)
-        self.assertIn("3.65", self.guide) if "3.65" in self.guide else None
 
     def test_private_scoring_and_cross_feed_requirements_do_not_shift(self):
         self.assertIn("confirmed_scoring_allowed", self.collector)
