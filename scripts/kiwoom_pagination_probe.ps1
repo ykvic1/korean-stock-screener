@@ -175,6 +175,63 @@ if ($OfflineSelfTest) {
         $one=Audit-Pages 'FAKE_KEY' 'FAKE_SECRET' 'real' '252990' '20261016' 1 $mock
         if ($one.unique_ordered_date_records -ne 100 -or -not $one.more_pages_at_limit -or
             $one.observed_120_records) { throw 'bad_one_page_result' }
+        # Duplicate at the boundary between synthetic page 1 and 2 must fail.
+        $savedDay=$script:mockDays[100]
+        $script:mockDays[100]=$script:mockDays[99]
+        $script:mockPage=0
+        $duplicateRejected=$false
+        try {
+            $null=Audit-Pages 'FAKE_KEY' 'FAKE_SECRET' 'real' '252990' '20261016' 2 $mock
+        }
+        catch { $duplicateRejected=$true }
+        $script:mockDays[100]=$savedDay
+        if (-not $duplicateRejected) { throw 'duplicate_across_pages_accepted' }
+        # Missing continuation cursor cannot silently truncate 250-day evidence.
+        $missingCursor={
+            param($Uri,$Payload,$Headers)
+            if ($Uri -like '*/oauth2/token') {
+                return [pscustomobject]@{body=[pscustomobject]@{token='FAKE_TOKEN'};cont_yn='';next_key=''}
+            }
+            return [pscustomobject]@{
+                body=[pscustomobject]@{
+                    return_code=0
+                    stk_invsr_orgn=@([pscustomobject]@{
+                        dt='20261016';orgn='0';frgnr_invsr='1'
+                    })
+                }
+                cont_yn='Y'
+                next_key=''
+            }
+        }
+        $cursorRejected=$false
+        try {
+            $null=Audit-Pages 'FAKE_KEY' 'FAKE_SECRET' 'real' '252990' '20261016' 2 $missingCursor
+        }
+        catch { $cursorRejected=$true }
+        if (-not $cursorRejected) { throw 'missing_cursor_accepted' }
+        # Amount-like decimal strings are not allowed signed share quantities.
+        $badQuantity={
+            param($Uri,$Payload,$Headers)
+            if ($Uri -like '*/oauth2/token') {
+                return [pscustomobject]@{body=[pscustomobject]@{token='FAKE_TOKEN'};cont_yn='';next_key=''}
+            }
+            return [pscustomobject]@{
+                body=[pscustomobject]@{
+                    return_code=0
+                    stk_invsr_orgn=@([pscustomobject]@{
+                        dt='20261016';orgn='1.5';frgnr_invsr='0'
+                    })
+                }
+                cont_yn='N'
+                next_key=''
+            }
+        }
+        $decimalRejected=$false
+        try {
+            $null=Audit-Pages 'FAKE_KEY' 'FAKE_SECRET' 'real' '252990' '20261016' 1 $badQuantity
+        }
+        catch { $decimalRejected=$true }
+        if (-not $decimalRejected) { throw 'decimal_quantity_accepted' }
         Write-Output 'pagination_offline_self_test_passed'
         exit 0
     }
