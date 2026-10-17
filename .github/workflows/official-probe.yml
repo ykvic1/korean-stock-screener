@@ -88,6 +88,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_history_research.py' -v
           python -m unittest discover -s tests -p 'test_dart_revision_audit.py' -v
           python -m unittest discover -s tests -p 'test_dart_xbrl_compare.py' -v
+          python -m unittest discover -s tests -p 'test_dart_batch_discovery.py' -v
       - name: Probe only authorized and bounded providers
         env:
           ASOF: ${{ inputs.asof }}
