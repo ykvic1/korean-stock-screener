@@ -13,6 +13,7 @@ Not connected to v2.2 or v3 scoring and NEVER enables confirmed IAS.
 from __future__ import annotations
 
 import argparse
+import getpass
 from datetime import date
 import json
 import os
@@ -159,17 +160,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--code", default="252990",
                         help="Six-digit KRX code; no trading occurs")
     parser.add_argument("--asof", required=True, help="YYYYMMDD, past trading date")
+    parser.add_argument("--prompt-credentials", action="store_true",
+                        help="Read keys through hidden terminal prompts instead of shell history")
     parser.add_argument("--live", action="store_true",
                         help="Explicitly confirm execution on Kiwoom-registered public IP")
     args = parser.parse_args(argv)
     if not args.live:
         print("pilot_not_run: live_requires_explicit_opt_in_and_registered_ip")
         return 2
+    key = os.environ.get("KIWOOM_APP_KEY", "")
+    secret = os.environ.get("KIWOOM_APP_SECRET", "")
+    if args.prompt_credentials:
+        key = getpass.getpass("App Key (hidden): ")
+        secret = getpass.getpass("App Secret (hidden): ")
     try:
         summary = probe(
             code=args.code, asof=args.asof, mode=args.mode,
-            app_key=os.environ.get("KIWOOM_APP_KEY", ""),
-            app_secret=os.environ.get("KIWOOM_APP_SECRET", ""),
+            app_key=key, app_secret=secret,
         )
     except KiwoomPilotError as exc:
         print("pilot_failed: " + str(exc))
