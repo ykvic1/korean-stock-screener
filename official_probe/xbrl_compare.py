@@ -29,7 +29,10 @@ MAX_XML_DOCUMENTS = 30
 MAX_CONTEXTS = 20000
 MAX_FACTS = 150000
 XBRLDI = '{http://xbrl.org/2006/xbrldi}'
+XLINK = '{http://www.w3.org/1999/xlink}'
+LINK = '{http://www.xbrl.org/2003/linkbase}'
 MAX_RESEARCH_AXIS_SAMPLES = 16
+REVENUE_CONCEPTS = frozenset(('Revenue', 'RevenueFromContractsWithCustomers'))
 
 
 def _safe_qname_local(raw):
@@ -83,6 +86,38 @@ def _safe_xml(content: bytes):
         return None
 
 
+
+def _local_presentation_revenue_hints(root):
+    """Count bounded, embedded presentation arcs only; no DTS/role verification.
+
+    A presentation network can organise statements OR notes. Its presence or
+    absence is not proof of any primary-statement role or accounting basis.
+    """
+    if root.tag != LINK + 'linkbase':
+        return None
+    counts = {k: 0 for k in REVENUE_CONCEPTS}
+    links = root.findall(LINK + 'presentationLink')
+    if len(links) > MAX_FACTS:
+        raise ProbeError('Excessive local XBRL presentation links')
+    for link in links:
+        labels = {}
+        for loc in link.findall(LINK + 'loc'):
+            name = (loc.get(XLINK + 'href') or '').split('#')[-1]
+            if '_' not in name:
+                continue
+            tail = name.split('_', 1)[-1]
+            if tail in REVENUE_CONCEPTS:
+                label = loc.get(XLINK + 'label')
+                if isinstance(label, str) and len(label) <= 100:
+                    labels[label] = tail
+        for arc in link.findall(LINK + 'presentationArc'):
+            src, dst = arc.get(XLINK + 'from'), arc.get(XLINK + 'to')
+            for key in {labels.get(src), labels.get(dst)} & REVENUE_CONCEPTS:
+                counts[key] += 1
+    return {'embedded_presentation_links': len(links),
+            'revenue_presentation_arc_hints': counts}
+
+
 def _instance_from_zip(blob: bytes):
     if not 10 <= len(blob) <= MAX_ARCHIVE:
         raise ProbeError('XBRL response outside ZIP size limits')
@@ -111,13 +146,26 @@ def _instance_from_zip(blob: bytes):
             if len(xml_files) > MAX_XML_DOCUMENTS:
                 raise ProbeError('XBRL archive has too many XML files')
             found = []
+            embedded_presentation_files = 0
+            embedded_presentation_links = 0
+            revenue_arc_hints = {k: 0 for k in REVENUE_CONCEPTS}
             for e in xml_files:
                 # zip entry total size is already independently bounded.
                 raw = z.read(e)
                 root = _safe_xml(raw)
                 if root is not None and root.tag == IX + 'xbrl':
                     found.append((e.filename, root))
-            return {'zip_sha256': sha256(blob).hexdigest(),
+                if root is not None:
+                    hints = _local_presentation_revenue_hints(root)
+                    if hints is not None:
+                        embedded_presentation_files += 1
+                        embedded_presentation_links += hints['embedded_presentation_links']
+                        for k, v in hints['revenue_presentation_arc_hints'].items():
+                            revenue_arc_hints[k] += v
+            return {'embedded_presentation_files': embedded_presentation_files,
+                    'embedded_presentation_links': embedded_presentation_links,
+                    'revenue_presentation_arc_hints': revenue_arc_hints,
+                    'zip_sha256': sha256(blob).hexdigest(),
                     'archive_entries': len(entries),
                     'xml_entries': len(xml_files),
                     'instances': found}
@@ -407,6 +455,11 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     out['xbrl_archive_entries'] = package['archive_entries']
     out['xbrl_xml_entries'] = package['xml_entries']
     out['xbrl_instances_found'] = len(package['instances'])
+    out['embedded_presentation_files_observed'] = package['embedded_presentation_files']
+    out['embedded_presentation_links_observed'] = package['embedded_presentation_links']
+    out['revenue_embedded_presentation_arc_hints'] = package['revenue_presentation_arc_hints']
+    out['presentation_linkbase_complete_dts_verified'] = False
+    out['primary_statement_role_verified'] = False
     if len(package['instances']) != 1:
         out['status'] = 'xbrl_instance_missing_or_ambiguous'
         return out
