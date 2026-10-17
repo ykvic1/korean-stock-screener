@@ -53,7 +53,7 @@ def fixture(count=30, page_sizes=(15, 15), *, subgroups=True):
             },
             "reply": {"rt_cd": "0", "output2": daily[offset:offset+size]},
             "response_tr_cont": (
-                "F" if i == 0 else "M" if i < len(page_sizes)-1 else "D"
+                "D" if i == len(page_sizes)-1 else "F" if i == 0 else "M"
             ),
         })
         offset += size
