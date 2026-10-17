@@ -307,6 +307,90 @@ class XbrlNumericTests(unittest.TestCase):
                 with self.subTest(args=args), redirect_stderr(StringIO()):
                     with self.assertRaises(SystemExit):run(args)
 
+
+    def test_batch_parser_bounds_and_strict_receipts(self):
+        from official_probe.__main__ import _batch_cases
+        cases = ('252990:20260316001120:OFS,'
+                 '280360:20260330001120:CFS')
+        self.assertEqual(list(_batch_cases(cases, ASOF)), ['252990', '280360'])
+        for invalid in (
+            '252990:20260316001120:OFS',
+            '252990:20260316001120:OFS,252990:20260316001120:OFS',
+            '252990:20260316001120:OFS,280360:20260330001120:BAD',
+            '252990:20260316001120:OFS,280360:20270201001120:CFS',
+            '252990:20260316001120:OFS,280360:20260230001120:CFS',
+            '252990:20260316001120:OFS,280360:20261016001120:CFS',
+            '252990:20260316001120:OFS,280360:20260330001120:CFS,'
+            '018880:20260331001120:OFS,014680:20260401001120:OFS,'
+            '064290:20260402001120:OFS,300720:20260403001120:OFS',
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                _batch_cases(invalid, ASOF)
+
+    def test_batch_cli_rejects_before_network_on_invalid_mode_or_symbol_order(self):
+        with tempfile.TemporaryDirectory() as root:
+            src = Path(root) / 'data.json'
+            src.write_text(json.dumps({'date': ASOF, 'stocks': [
+                {'code': '252990', 'market': 'KOSDAQ'},
+                {'code': '280360', 'market': 'KOSPI'}]}), encoding='utf-8')
+            cases = '252990:20260316001120:OFS,280360:20260330001120:CFS'
+            base = ['--asof', ASOF, '--provider', 'dart', '--symbols',
+                    '252990,280360', '--xbrl-batch-cases', cases,
+                    '--source', str(src)]
+            for args in (
+                base,
+                base + ['--xbrl-compare', '--xbrl-receipt', RECEIPT],
+                base + ['--live', '--finance-sample'],
+                base + ['--live', '--revision-audit',
+                        '--revision-expected-receipt', RECEIPT],
+                ['--asof', ASOF, '--provider', 'dart', '--symbols',
+                 '280360,252990', '--xbrl-batch-cases', cases,
+                 '--source', str(src), '--live'],
+            ):
+                with self.subTest(args=args), redirect_stderr(StringIO()):
+                    with self.assertRaises(SystemExit):
+                        with patch('official_probe.__main__.DARTClient', side_effect=AssertionError('network attempted')):
+                            run(args)
+
+    def test_batch_live_is_bounded_and_keeps_all_scope_flags_false(self):
+        with tempfile.TemporaryDirectory() as root:
+            src = Path(root) / 'data.json'
+            output = Path(root) / 'result.json'
+            src.write_text(json.dumps({'date': ASOF, 'stocks': [
+                {'code': '252990', 'market': 'KOSDAQ'},
+                {'code': '280360', 'market': 'KOSPI'}]}), encoding='utf-8')
+            calls = []
+            class BatchClient:
+                def __init__(self, key, session=None):
+                    self.key = key
+                def corp_mapping(self):
+                    return {'252990': CORP, '280360': '00123456'}
+                def recent_filings(self, corp, start, end):
+                    return []
+            def fake_compare(client, corp, business_year, asof, receipt, fs_div):
+                calls.append((corp, business_year, asof, receipt, fs_div))
+                return {'status': 'partial_or_different_values_unverified',
+                        'confirmed_scoring_allowed': False,
+                        'investment_data_ready': False}
+            with patch.dict(os.environ, {'DART_API_KEY': 'OFFLINE_PLACEHOLDER'}):
+                with patch('official_probe.__main__.DARTClient', BatchClient):
+                    with patch('official_probe.__main__.compare_annual_xbrl', side_effect=fake_compare):
+                        result = run(['--asof', ASOF, '--provider', 'dart', '--live',
+                            '--symbols', '252990,280360',
+                            '--xbrl-batch-cases',
+                            '252990:20260316001120:OFS,280360:20260330001120:CFS',
+                            '--source', str(src), '--output', str(output)])
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(calls[0][-2:], (RECEIPT, 'OFS'))
+            self.assertEqual(calls[1][-2:], ('20260330001120', 'CFS'))
+            self.assertEqual(result['dart']['xbrl_batch_pilot']['requested_cases'], 2)
+            self.assertEqual(result['dart']['xbrl_batch_pilot']['completed_case_reports'], 2)
+            self.assertFalse(result['investment_data_ready'])
+            self.assertFalse(result['dart']['xbrl_batch_pilot']['accounting_scope_verified'])
+            self.assertFalse(result['confirmed_scoring_allowed'])
+            self.assertEqual(len(result['dart']['companies_sampled']), 2)
+            self.assertTrue(output.exists())
+
     def test_cli_missing_key_does_not_network(self):
         with tempfile.TemporaryDirectory() as root:
             src=Path(root)/'data.json'
