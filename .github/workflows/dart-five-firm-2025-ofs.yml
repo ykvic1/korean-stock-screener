@@ -32,6 +32,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_pinned_2025_pilot.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_completion.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_parallel.py' -v
+          python -m unittest discover -s tests -p 'test_pit_readiness.py' -v
       - name: Compare five independently identified 2025 annual filings
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -47,6 +48,11 @@ jobs:
             --xbrl-batch-cases '252990:20260316001120:OFS,280360:20260312000907:OFS,018880:20260318000645:OFS,014680:20260318001424:OFS,064290:20260318001550:OFS' \
             --xbrl-use-reviewed-2025-corp-map \
             --output evidence/official_probe/five_company_2025_ofs_research.json
+      - name: Offline receipt-specific numbers and PIT safety census
+        run: |
+          python -m official_probe.pit_readiness \
+            evidence/official_probe/five_company_2025_ofs_research.json \
+            --output evidence/official_probe/pit_evidence_summary.json
       - name: Print statuses without numbers or credentials
         if: always()
         run: |
@@ -97,6 +103,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dart-2025-five-firm-ofs-${{ github.run_id }}
-          path: evidence/official_probe/five_company_2025_ofs_research.json
+          path: |
+            evidence/official_probe/five_company_2025_ofs_research.json
+            evidence/official_probe/pit_evidence_summary.json
           if-no-files-found: warn
           retention-days: 7

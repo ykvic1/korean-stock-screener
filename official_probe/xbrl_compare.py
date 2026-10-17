@@ -411,6 +411,35 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
                 'historical_pit_numeric_value_certified': False,
                 'confirmed_scoring_allowed': False,
             })
+    # Preserve receipt-specific *original XBRL* candidate numbers in the
+    # existing 7-day PRIVATE artifact. Unlike a mere equality flag, these
+    # permit later historical-number review without confusing current API
+    # values with a receipt-bound source. They remain UNVERIFIED for OFS/PIT.
+    original_receipt_numeric_candidates = []
+    if scope_pattern_candidates is not None:
+        if len(scope_pattern_candidates) > 12:
+            raise ProbeError('Too many separate-axis candidates for bounded numeric research')
+        for fact in scope_pattern_candidates:
+            original_receipt_numeric_candidates.append({
+                'source': 'original_xbrl_zip_by_receipt',
+                'concept_local': fact['concept_local'],
+                'concept_namespace_sha256_prefix': fact['concept_namespace_digest'],
+                'concept_qname_sha256_prefix': fact.get('concept_qname_sha256_prefix'),
+                'context_ref_sha256_prefix': fact.get('context_ref_sha256_prefix'),
+                'issuer_id_sha256_prefix': fact.get('issuer_id_sha256_prefix'),
+                'issuer_scheme_sha256_prefix': fact.get('issuer_scheme_sha256_prefix'),
+                'original_xbrl_amount_krw': fact['amount_krw'],
+                'current_api_amount_equal': (
+                    fact['amount_krw'] == api_value if api_value is not None else None),
+                'unit_verified_krw': fact.get('unit_verified_krw') is True,
+                'fiscal_period_verified': fact.get('fiscal_period_verified') is True,
+                'dimension_axes_exactly_separate_pattern_local_only': True,
+                'issuer_identity_verified_against_corp_code': False,
+                'original_zip_immutability_at_historical_date_verified': False,
+                'complete_dts_and_fs_scope_verified': False,
+                'historical_pit_numeric_value_certified': False,
+                'confirmed_scoring_allowed': False,
+            })
     concept_breakdown = []
     for (concept, namespace_digest), grouped in sorted(scope_by_concept.items()):
         concept_breakdown.append({
@@ -474,6 +503,10 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
             'xbrl_requested_scope_pattern_is_verified': False,
             'xbrl_scope_pattern_concept_groups': concept_breakdown,
             'xbrl_revenue_fact_context_evidence': revenue_fact_evidence,
+            'original_receipt_numeric_candidates_private': original_receipt_numeric_candidates,
+            'original_receipt_numeric_candidates_count': len(original_receipt_numeric_candidates),
+            'original_receipt_numeric_candidates_scope_certified': False,
+            'original_receipt_numeric_candidates_pit_certified': False,
             'xbrl_scope_pattern_duplicate_kind': duplicate_kind,
             'xbrl_taxonomy_concept_meaning_verified': False,
             'xbrl_presentation_statement_role_verified': False,
@@ -589,6 +622,11 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     package = _instance_from_zip(raw)
     out['original_xbrl_source_provenance'] = (
         'receipt_specific_live_download_not_historical_archive_attestation')
+    out['original_numeric_values_source'] = 'receipt_specific_xbrl_zip'
+    out['original_numeric_values_separate_from_current_financial_api'] = True
+    out['historical_receipt_zip_content_immutability_verified'] = False
+    out['original_numeric_values_eligible_for_pit_backtest'] = False
+    out['original_numeric_evidence_output_visibility'] = 'private_artifact_only'
     out['historic_numeric_version_equals_current_api_verified'] = False
     out['xbrl_zip_sha256'] = package['zip_sha256']
     out['xbrl_archive_entries'] = package['archive_entries']

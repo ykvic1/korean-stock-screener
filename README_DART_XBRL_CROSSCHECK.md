@@ -552,3 +552,49 @@ XBRL ZIP은 접수번호에 연결되어 현재 호출한 원본 자료이며,
 https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019019
 공식 재무 API
 https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020
+
+## 원본 재무숫자 보존과 PIT 안전성 검사 (2026-10-17)
+
+### 실제 문제와 이번 변경
+5개 기업의 기존 오프라인 JSON에는 30개 지표의
+`xbrl_requested_scope_pattern_only_api_equal_count`만 있고,
+복수 XBRL context로 인해 전부 `xbrl_amount_krw=None`이었다.
+별도축 한정 숫자 후보가 각각 1개(28계정), 2개(2개 매출액)이며
+**API 숫자와 일치하는 후보는 30개**였지만, 이것은 OFS 인증이나
+PIT 재구성에 사용할 수 있는 원본 숫자 스냅샷이 아니다.
+
+다음 연구용 원클릭 실조회에서는 **기존 XBRL ZIP을 추가 호출 없이**
+파싱하면서 재무 항목 6개 × 5기업의 원본 숫자 후보(예상 32개)를
+`original_receipt_numeric_candidates_private`에 보존한다.
+- 출처: 정확한 2025년 사업보고서 `rcept_no`에 연결된
+  `original_xbrl_zip_by_receipt` (접수번호와 ZIP 해시는 상위 결과에 보존)
+- 원본 XBRL의 금액(원 단위 정수), 현재 재무 API와 일치하는지,
+  정해진 2025년 회계기간·원 단위·별도축 local name 패턴을 함께 기록
+- QName·contextRef·XML 발행인 ID 해시를 연결하되, 실제 이름/문맥
+  원문은 출력하지 않음. 각 지표 최대 12개 후보; 초과시 실패
+- **원본 숫자는 반드시 기존 7일 비공개 Actions Artifact 안에서만
+  보존한다. `docs`, 공개 Pages, Actions 로그에 출력하지 않는다.**
+  기존보다 더 민감하게 통제한다(공시 금액 자체는 공개 정보).
+- `python -m official_probe.pit_readiness`는 완료 직후 오프라인으로
+  원본 숫자 수집 누락·필드 위조·중복 후보 수를 검사해
+  `pit_evidence_summary.json`(금액 없음)을 같은 비공개 Artifact에 저장한다.
+
+### 실제로 증명되는 것과 아직 불가능한 것
+- 확보: **현재 시점에 접수번호로 다운로드한** XBRL ZIP에 포함된
+  후보 금액과 현재 재무 API의 값이 서로 일치하는지
+- 미확보: 해당 ZIP과 숫자가 **과거 2026-10-16 당시와 동일**했다는
+  독립적으로 검증 가능한 역사적 원본 보관·버전 증거
+- 미확보: 별도축의 local name이 법인 및 정확한 OFS 회계범위를
+  의미한다는 전체 DTS/정의/회계 실체 인증
+- 미확보: 거래 당일 공시 시각 및 실제 정보 이용 가능 시각
+- 그러므로 이번 후보 32개의 수집이 성공하더라도
+  `historical_numeric_pit_certified=false`,
+  `full_xbrl_dts_statement_and_entity_scope_verified=false`,
+  `confirmed_scoring_allowed=false`이다.
+
+이 단계에서는 **비공개 연구 자료만 확장**하고 기존 v2.2, 재무 스코어,
+KRX, 스크리너 정규 실행, Pages 자동 게시를 변경하지 않는다.
+현재 마지막 성공 실조회 #39019351383는 이 새 원본 금액 필드가 없는
+이전 버전이므로 새 실조회 전에는 증거를 만든 척하지 않는다.
+추가로 API를 반복 요청하기 전에 7일 이내 원본 Artifact 및 조사 이력을
+먼저 활용한다.
