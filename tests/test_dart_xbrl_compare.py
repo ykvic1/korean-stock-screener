@@ -208,8 +208,13 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertFalse(out['confirmed_scoring_allowed'])
         self.assertFalse(out['investment_data_ready'])
 
+        # The requested CFS API basis must agree with the mock API rows.
+        cfs_rows = api_rows()
+        for row in cfs_rows:
+            row['fs_div'] = 'CFS'
         out_cfs = compare_annual_xbrl(
-            FakeDART(zip_xml(xml)), CORP, 2025, ASOF, RECEIPT, fs_div='CFS')
+            FakeDART(zip_xml(xml), rows=cfs_rows), CORP, 2025, ASOF,
+            RECEIPT, fs_div='CFS')
         self.assertIsNone(
             out_cfs['metrics']['revenue']['xbrl_requested_scope_pattern_only_candidate_count'])
         self.assertFalse(out_cfs['xbrl_accounting_scope_verified'])
