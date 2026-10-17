@@ -1,0 +1,15 @@
+# TEMPLATE ONLY: do not enable until a fixed public-IP server is authorized
+# and available. Local-time scheduling requires Asia/Seoul system timezone.
+[Unit]
+Description=Weekday post-close Kiwoom investor flow private ingestion
+
+[Timer]
+# Requires server timezone set to Asia/Seoul.
+OnCalendar=Mon..Fri *-*-* 19:30:00
+Persistent=true
+RandomizedDelaySec=0
+AccuracySec=1min
+Unit=korean-stock-kiwoom.service
+
+[Install]
+WantedBy=timers.target
