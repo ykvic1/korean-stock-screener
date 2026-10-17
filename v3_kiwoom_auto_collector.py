@@ -158,7 +158,7 @@ def fetch_one(code: str, asof: str, token: str, *,
             for name, field in SUBGROUPS.items():
                 if field in source:
                     values[name + "_net_shares"] = _signed(source[field])
-                    present[field] += 1
+                    present[name] += 1
                 else:
                     values[name + "_net_shares"] = None
             all_rows.append(values)
