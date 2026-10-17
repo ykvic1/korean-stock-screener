@@ -232,6 +232,23 @@ def _private_destination(path: Path) -> Path:
 def _private_write(directory: Path, asof: str, payload: dict) -> None:
     root = _private_destination(directory)
     filename = root / ("investor_" + asof + ".json")
+    # A later retry must never destroy an earlier complete daily snapshot,
+    # silently drop prior symbols, or overwrite an unreadable local record.
+    if filename.exists():
+        try:
+            if filename.stat().st_size > 12_000_000:
+                raise KiwoomCollectionError("existing_snapshot_exceeds_safe_limit")
+            previous = json.loads(filename.read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeError):
+            raise KiwoomCollectionError("existing_private_snapshot_unreadable") from None
+        if (type(previous) is not dict or previous.get("asof") != payload.get("asof")
+                or type(previous.get("datasets")) is not dict):
+            raise KiwoomCollectionError("existing_private_snapshot_invalid")
+        if (previous.get("status") == "complete" and
+                payload.get("status") != "complete"):
+            raise KiwoomCollectionError("existing_complete_snapshot_protected")
+        if not set(previous["datasets"]).issubset(set(payload.get("datasets", {}))):
+            raise KiwoomCollectionError("existing_watchlist_data_protected")
     tmp = None
     try:
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=root,
