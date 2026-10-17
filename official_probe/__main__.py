@@ -4,12 +4,14 @@ import argparse
 from datetime import date, timedelta, datetime, timezone
 import json
 import os
+import re
 from pathlib import Path
 
 from .clients import KRXClient, DARTClient, ProbeError, canonical_date, code6
 from .validation import inspect_krx, filter_visible_filings, public_safety_summary
 from .financial import sample_annual_financial
 from .history import sample_history
+from .revisions import audit_annual_revisions
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -40,16 +42,28 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--dart-limit', type=int, default=2, help='number of DART sample firms (1 or 2)')
     p.add_argument('--finance-sample', action='store_true', help='request prior-year CFS sample; not usable as PIT financials')
     p.add_argument('--history-sample', action='store_true', help='one-company three-year annual + Q1/H1 raw DART field study')
+    p.add_argument('--revision-audit', action='store_true', help='one-company annual correction timeline + two original document hashes')
+    p.add_argument('--revision-expected-receipt', help='14-digit report receipt previously observed from OpenDART financial sample')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
     args = p.parse_args(argv)
     if args.finance_sample and (not args.live or args.provider != 'dart'):
         p.error('Finance sample is permitted only for explicit DART live runs')
-    if args.history_sample and (not args.live or args.provider != 'dart' or args.finance_sample):
-        p.error('History sample requires explicit DART-only live run and excludes finance sample')
+    if args.history_sample and (not args.live or args.provider != 'dart' or args.finance_sample or args.revision_audit):
+        p.error('History sample requires DART-only live run and excludes finance or revision audit')
+    if args.revision_audit:
+        if (not args.live or args.provider != 'dart' or args.finance_sample or args.history_sample
+                or not args.revision_expected_receipt):
+            p.error('Revision audit requires DART-only live, no other samples, and prior financial receipt')
+        if not re.fullmatch(r'\d{14}', args.revision_expected_receipt):
+            p.error('Prior financial receipt must be exactly 14 digits')
+    elif args.revision_expected_receipt:
+        p.error('A revision receipt cannot be submitted unless revision audit is selected')
     canonical_date(args.asof)
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
     if args.history_sample and (len(codes) != 1 or args.dart_limit not in (1, 2)):
         p.error('History sample requires exactly one explicit stock symbol')
+    if args.revision_audit and (len(codes) != 1 or not args.symbols):
+        p.error('Revision audit requires exactly one explicitly selected stock')
     if args.dart_limit not in (1, 2):
         p.error('--dart-limit must be 1 or 2')
     if args.asof > str(doc['date']):
@@ -139,6 +153,17 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                                 'status': 'failed', 'investment_data_ready': False,
                                 'revision_history_validated': False,
                                 'error': 'DART history transport or report evidence not verified'}
+                    if args.revision_audit:
+                        try:
+                            item['revision_audit'] = audit_annual_revisions(
+                                client, corp, int(args.asof[:4]) - 1, args.asof,
+                                args.revision_expected_receipt,
+                                download_documents=True)
+                        except (ProbeError, ValueError):
+                            item['revision_audit'] = {
+                                'status': 'failed', 'financial_numeric_changes_verified': False,
+                                'revision_history_validated': False, 'investment_data_ready': False,
+                                'error': 'DART filing chronology or original document evidence unavailable'}
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}

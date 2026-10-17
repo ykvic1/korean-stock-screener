@@ -117,6 +117,14 @@ class DARTClient:
             raise ProbeError('OpenDART status ' + (status if re.fullmatch(r'\d{3}', status) else 'unknown'))
         return result
 
+    def original_document_zip(self, receipt: str) -> bytes:
+        """Fetch one disclosure ZIP by receipt. Never expose URLs or credential."""
+        if not re.fullmatch(r'\d{14}', str(receipt)):
+            raise ValueError('Document receipt must be exactly 14 digits')
+        return _get(self.session, DART_BASE + 'document.xml',
+                    params={'crtfc_key': self._key, 'rcept_no': receipt},
+                    limit=MAX_DART_ZIP)
+
     def corp_mapping(self) -> dict[str, str]:
         raw = _get(self.session, DART_BASE + 'corpCode.xml',
                    params={'crtfc_key': self._key}, limit=MAX_DART_ZIP)
