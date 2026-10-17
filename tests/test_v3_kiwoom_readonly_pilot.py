@@ -85,11 +85,21 @@ class ReadOnlyKiwoomPilotTests(unittest.TestCase):
             self.assertEqual(calls, [])
 
     def test_invalid_token_stops_before_flow_query(self):
-        for token_code in (-1, "100", None):
+        for token_code in (-1, "100"):
             post, calls = fake_post(token_code=token_code)
             with self.assertRaises(KiwoomPilotError):
                 self.run_candidate(post)
             self.assertEqual(len(calls), 1)
+
+    def test_token_without_return_code_is_supported_if_token_present(self):
+        calls = []
+        def post(url, payload, headers):
+            calls.append(url)
+            if len(calls) == 1:
+                return {"token": "FAKE_TOKEN", "token_type": "bearer"}
+            return {"return_code": 0, "stk_invsr_orgn": rows()}
+        self.assertEqual(self.run_candidate(post)["received_rows_one_page"], 5)
+        self.assertEqual(len(calls), 2)
 
     def test_api_flow_error_or_ip_rejection_fails_without_retry(self):
         post, calls = fake_post(flow_code=-2)
