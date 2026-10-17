@@ -26,6 +26,10 @@ on:
         description: 'DART live only: max 2 prior-year annual CFS statements (unverified for backtests)'
         type: boolean
         default: false
+      history_sample:
+        description: 'DART live only: ONE symbol, prior 3 annual years + Q1/H1 fields (PIT unverified)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,7 +41,7 @@ concurrency:
 jobs:
   provider-sample:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,6 +55,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_official_probe.py' -v
           python -m unittest discover -s tests -p 'test_dart_financial_sample.py' -v
+          python -m unittest discover -s tests -p 'test_dart_history_research.py' -v
       - name: Probe only authorized and bounded providers
         env:
           ASOF: ${{ inputs.asof }}
@@ -58,6 +63,7 @@ jobs:
           PROVIDER: ${{ inputs.provider }}
           SYMBOLS: ${{ inputs.symbols }}
           FINANCE_SAMPLE: ${{ inputs.finance_sample }}
+          HISTORY_SAMPLE: ${{ inputs.history_sample }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         shell: bash
@@ -72,6 +78,13 @@ jobs:
               exit 1
             fi
             args+=(--finance-sample)
+          fi
+          if [[ "$HISTORY_SAMPLE" == "true" ]]; then
+            if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || "$FINANCE_SAMPLE" == "true" || -z "$SYMBOLS" ]]; then
+              echo '::error::History sample needs live DART, finance_sample=false, and one explicit stock.'
+              exit 1
+            fi
+            args+=(--history-sample)
           fi
           python -m official_probe "${args[@]}"
       - name: Report clearly separated collection and validation status
@@ -94,6 +107,12 @@ jobs:
           print('::notice::'+message)
           if 'companies_sampled' in r.get('dart', {}):
               for c in r['dart']['companies_sampled']:
+                  if 'history_sample' in c:
+                      h = c['history_sample']
+                      print('::notice::DART history code='+c['code']+
+                            ' status='+h.get('status', 'unavailable')+
+                            ' years='+str(h.get('annual_years_requested', 0))+
+                            ' PIT_validated=false; values only in private artifact.')
                   if 'financial_sample' in c:
                       finance = c['financial_sample']
                       print('::notice::DART annual financial sample code='+c['code']+
