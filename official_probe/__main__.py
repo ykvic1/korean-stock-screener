@@ -111,8 +111,14 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                             'financial_metrics_verified':False}
                     if args.finance_sample:
                         try:
-                            item['financial_sample'] = sample_annual_financial(
-                                client, corp, int(args.asof[:4])-1, args.asof)
+                            annual_year = int(args.asof[:4]) - 1
+                            financial = sample_annual_financial(
+                                client, corp, annual_year, args.asof, fs_div='CFS')
+                            if financial['status'] == 'annual_statement_not_available':
+                                financial = sample_annual_financial(
+                                    client, corp, annual_year, args.asof, fs_div='OFS')
+                                financial['used_OFS_fallback'] = True
+                            item['financial_sample'] = financial
                         except (ProbeError, ValueError):
                             item['financial_sample'] = {
                                 'status': 'failed', 'metric_values': None,
