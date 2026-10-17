@@ -98,7 +98,9 @@ def probe(*, code: str, asof: str, mode: str, app_key: str,
          "secretkey": app_secret},
         {"Content-Type": "application/json;charset=UTF-8"},
     )
-    if not _zero(token_response):
+    # Official Kiwoom client accepts an absent return_code on OAuth success.
+    token_code = token_response.get("return_code")
+    if token_code is not None and not _zero(token_response):
         raise KiwoomPilotError("token_auth_not_accepted")
     token = token_response.get("token")
     if type(token) is not str or not token.strip():
