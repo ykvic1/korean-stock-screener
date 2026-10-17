@@ -78,6 +78,9 @@ class ReviewedMappingTests(unittest.TestCase):
                                 '--source',str(src),'--output',str(dest)])
             self.assertEqual(len(out['dart']['companies_sampled']), 5)
             self.assertEqual(out['dart']['xbrl_batch_pilot']['corp_mapping_request_timings'],[])
+            self.assertEqual(out['dart']['xbrl_batch_pilot']['research_workers'], 2)
+            self.assertIsNone(out['dart']['xbrl_batch_pilot']['soft_budget_seconds'])
+            self.assertEqual(out['dart']['xbrl_batch_pilot']['completed_case_reports'], 5)
             self.assertEqual(out['dart']['xbrl_batch_pilot']['company_mapping_provenance'],
                              'two_prior_official_probe_mapping_observations_not_live')
             self.assertFalse(out['dart']['xbrl_batch_pilot']['company_mapping_live_verified_this_run'])
