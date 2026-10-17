@@ -50,6 +50,10 @@ on:
         description: 'Research pilot: 2-5 CODE:14DIGIT_RECEIPT:OFS|CFS pairs, comma separated; disable xbrl_compare'
         required: false
         type: string
+      xbrl_discover_receipts:
+        description: 'Discover candidate 2025 annual receipts for 2-5 selected stocks only; manual review required'
+        type: boolean
+        default: false
       xbrl_fs_div:
         description: 'Known original accounting basis; never inferred from company name'
         required: true
@@ -84,6 +88,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_history_research.py' -v
           python -m unittest discover -s tests -p 'test_dart_revision_audit.py' -v
           python -m unittest discover -s tests -p 'test_dart_xbrl_compare.py' -v
+          python -m unittest discover -s tests -p 'test_dart_batch_discovery.py' -v
       - name: Probe only authorized and bounded providers
         env:
           ASOF: ${{ inputs.asof }}
@@ -97,6 +102,7 @@ jobs:
           XBRL_COMPARE: ${{ inputs.xbrl_compare }}
           XBRL_RECEIPT: ${{ inputs.xbrl_receipt }}
           XBRL_BATCH_CASES: ${{ inputs.xbrl_batch_cases }}
+          XBRL_DISCOVER_RECEIPTS: ${{ inputs.xbrl_discover_receipts }}
           XBRL_FS_DIV: ${{ inputs.xbrl_fs_div }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -129,6 +135,13 @@ jobs:
           elif [[ -n "$REVISION_EXPECTED_RECEIPT" ]]; then
             echo '::error::Prior receipt can only be used with revision audit.'
             exit 1
+          fi
+          if [[ "$XBRL_DISCOVER_RECEIPTS" == "true" ]]; then
+            if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || -z "$SYMBOLS" || "$XBRL_COMPARE" == "true" || -n "$XBRL_RECEIPT" || -n "$XBRL_BATCH_CASES" || "$FINANCE_SAMPLE" == "true" || "$HISTORY_SAMPLE" == "true" || "$REVISION_AUDIT" == "true" || -n "$REVISION_EXPECTED_RECEIPT" ]]; then
+              echo '::error::Receipt discovery requires DART-only live and no other research modes.'
+              exit 1
+            fi
+            args+=(--xbrl-discover-receipts)
           fi
           if [[ -n "$XBRL_BATCH_CASES" ]]; then
             if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || -z "$SYMBOLS" || "$XBRL_COMPARE" == "true" || -n "$XBRL_RECEIPT" || "$FINANCE_SAMPLE" == "true" || "$HISTORY_SAMPLE" == "true" || "$REVISION_AUDIT" == "true" || -n "$REVISION_EXPECTED_RECEIPT" ]]; then
@@ -168,6 +181,11 @@ jobs:
           print('::notice::'+message)
           if 'companies_sampled' in r.get('dart', {}):
               for c in r['dart']['companies_sampled']:
+                  if 'annual_receipt_discovery' in c:
+                      discovery = c['annual_receipt_discovery']
+                      print('::notice::DART annual receipt discovery code='+c['code']+
+                            ' status='+discovery.get('status', 'unavailable')+
+                            ' candidate values private; scope/PIT unverified.')
                   if 'xbrl_comparison' in c:
                       x = c['xbrl_comparison']
                       print('::notice::DART XBRL numeric crosscheck code='+c['code']+
