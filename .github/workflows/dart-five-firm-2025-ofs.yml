@@ -1,0 +1,81 @@
+name: OpenDART 2025 Five-Firm OFS Research (one click)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-api-probe
+  cancel-in-progress: false
+
+jobs:
+  five-company-scope-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded research dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Research regression tests
+        run: |
+          python -m unittest discover -s tests -p 'test_dart_xbrl_compare.py' -v
+          python -m unittest discover -s tests -p 'test_dart_batch_discovery.py' -v
+          python -m unittest discover -s tests -p 'test_dart_pilot_oneclick.py' -v
+      - name: Compare five independently identified 2025 annual filings
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Receipts observed from manual A001 search run 39009211491,
+          # cutoff 2026-10-16; no new/future-year receipt guessing.
+          # OFS is an explicit *research request*, NOT certified accounting scope.
+          python -m official_probe \
+            --asof 2026-10-16 \
+            --provider dart --live \
+            --symbols '252990,280360,018880,014680,064290' \
+            --xbrl-batch-cases '252990:20260316001120:OFS,280360:20260312000907:OFS,018880:20260318000645:OFS,014680:20260318001424:OFS,064290:20260318001550:OFS' \
+            --output evidence/official_probe/five_company_2025_ofs_research.json
+      - name: Print statuses without numbers or credentials
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('evidence/official_probe/five_company_2025_ofs_research.json')
+          if not path.is_file():
+              print('::warning::No five-company report; workflow failed or was blocked before data retrieval.')
+              raise SystemExit(0)
+          r = json.loads(path.read_text(encoding='utf-8'))
+          dart = r.get('dart', {})
+          print('::notice::Research provider status='+dart.get('status','unknown')+
+                '; investment_data_ready=false; PIT_validated=false.')
+          cases = dart.get('companies_sampled', [])
+          for case in cases:
+              x = case.get('xbrl_comparison', {})
+              counts = x.get('metrics') or {}
+              candidate_ofs = sum(
+                  1 for v in counts.values()
+                  if v.get('xbrl_requested_scope_pattern_only_candidate_count') == 1
+                  and v.get('xbrl_requested_scope_pattern_only_api_equal_count') == 1)
+              print('::notice::code='+case.get('code','unknown')+
+                    ' report='+x.get('status',case.get('status','unknown'))+
+                    ' single-axis-API-matches='+str(candidate_ofs)+'/6'+
+                    '; accounting_scope_verified=false; investment_scoring=false.')
+          if len(cases) != 5:
+              print('::warning::Not all five companies were evaluated; see private artifact.')
+          PY
+      - name: Private research artifact (7 days; never publish to Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-2025-five-firm-ofs-${{ github.run_id }}
+          path: evidence/official_probe/five_company_2025_ofs_research.json
+          if-no-files-found: warn
+          retention-days: 7
