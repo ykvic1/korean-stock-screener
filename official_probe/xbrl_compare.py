@@ -196,7 +196,14 @@ def _instance_facts(root, business_year):
         for key, (aliases, _) in ACCOUNTS.items():
             acceptable = {a.split('_', 1)[1] for a in aliases}
             if local in acceptable:
+                # Concept local name and namespace digest let a researcher
+                # distinguish IFRS Revenue from RevenueFromContractsWithCustomers,
+                # without persisting raw taxonomy URLs or any raw XBRL payload.
+                namespace = element.tag[1:].split('}', 1)[0]
                 facts[key].append({'amount_krw': int(raw),
+                                   'concept_local': local,
+                                   'concept_namespace_digest': sha256(
+                                       namespace.encode('utf-8')).hexdigest()[:16],
                                    'dimensioned': bool(dimensioned),
                                    'context_ref': element.get('contextRef'),
                                    'dimension_axes': axes,
@@ -221,6 +228,39 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
          if tuple(f.get('dimension_axes', ())) == (research_pattern,)
          and f.get('dimensioned', False)]
         if research_pattern is not None else None)
+    # Distinguish alternate taxonomy concepts from duplicate facts sharing
+    # one concept/context. The totals are strictly diagnostic and unverified.
+    # Reference names are limited to _concept's vetted account vocabulary.
+    scope_by_concept = {}
+    if scope_pattern_candidates is not None:
+        for fact in scope_pattern_candidates:
+            key = (fact.get('concept_local', 'unrecognized'),
+                   fact.get('concept_namespace_digest', 'unknown'))
+            scope_by_concept.setdefault(key, []).append(fact)
+    concept_breakdown = []
+    for (concept, namespace_digest), grouped in sorted(scope_by_concept.items()):
+        concept_breakdown.append({
+            'concept_local': concept,
+            'namespace_sha256_prefix': namespace_digest,
+            'fact_count': len(grouped),
+            'api_amount_equal_count': (
+                sum(f['amount_krw'] == api_value for f in grouped)
+                if api_value is not None else None),
+            'distinct_context_count': len({f['context_ref'] for f in grouped}),
+            'distinct_value_count': len({f['amount_krw'] for f in grouped}),
+        })
+    if scope_pattern_candidates is None:
+        duplicate_kind = 'scope_pattern_not_supported_for_requested_basis'
+    elif not scope_pattern_candidates:
+        duplicate_kind = 'no_scope_pattern_only_candidates'
+    elif len(scope_pattern_candidates) == 1:
+        duplicate_kind = 'single_scope_pattern_only_candidate'
+    elif len(scope_by_concept) > 1:
+        duplicate_kind = 'multiple_taxonomy_concepts_or_namespaces'
+    elif len({f['context_ref'] for f in scope_pattern_candidates}) > 1:
+        duplicate_kind = 'same_concept_distinct_contexts'
+    else:
+        duplicate_kind = 'same_concept_same_context_multiple_facts'
     # Scope is not established by the presence/absence of a segment.
     # Record only bounded structural counts in the private research artifact,
     # never guess an accounting basis, candidate value or point-in-time status.
@@ -258,6 +298,10 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
                 if scope_pattern_candidates is not None and api_value is not None
                 else None),
             'xbrl_requested_scope_pattern_is_verified': False,
+            'xbrl_scope_pattern_concept_groups': concept_breakdown,
+            'xbrl_scope_pattern_duplicate_kind': duplicate_kind,
+            'xbrl_taxonomy_concept_meaning_verified': False,
+            'xbrl_presentation_statement_role_verified': False,
             'xbrl_dimension_axis_samples': axis_samples,
             'xbrl_unparsed_dimensioned_fact_count': sum(
                 bool(f['dimensioned']) and not f.get('dimension_axes')
