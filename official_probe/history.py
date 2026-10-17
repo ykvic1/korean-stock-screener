@@ -62,7 +62,7 @@ def sample_period_financial(client, corp_code: str, business_year: int,
         'quarterly_growth_verified': False, 'accounts_returned': 0,
     }
     # This only avoids speculative early calls; actual publication date is checked below.
-    report_period_end = date(business_year, int(month), 1)
+    report_period_end = date(business_year, 3, 31) if month == '03' else date(business_year, 6, 30)
     if cutoff < report_period_end:
         result['status'] = 'report_period_not_ended'
         return result
@@ -169,12 +169,15 @@ def sample_history(client, corp_code: str, asof: str, years: int = 3):
                 client, corp_code, asof_year, code, asof, fs_div=basis)))
     bases = {r['fs_div'] for r in annual
              if r['status'] == 'observed_receipt_matched_revision_unverified'}
-    all_observed = all(r['status'] == 'observed_receipt_matched_revision_unverified'
-                       for r in annual + period)
+    annual_observed = all(r['status'] == 'observed_receipt_matched_revision_unverified'
+                          for r in annual)
+    all_observed = annual_observed and all(
+        r['status'] == 'observed_receipt_matched_revision_unverified'
+        for r in period)
     return {
         'asof': asof, 'annual_years_requested': years,
         'annual': annual, 'current_year_periods': period,
-        'annual_scope_consistent': len(bases) == 1 and len(annual) == years and all_observed,
+        'annual_scope_consistent': len(bases) == 1 and len(annual) == years and annual_observed,
         'accounting_bases_seen': sorted(bases),
         'flow_quarter_values_derived': False,
         'revision_history_validated': False,
