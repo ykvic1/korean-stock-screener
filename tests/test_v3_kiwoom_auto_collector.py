@@ -198,6 +198,48 @@ class KiwoomAutoCollectorTests(unittest.TestCase):
             self.assertNotIn("005930", data["datasets"])
             self.assertNotIn("DO_NOT_LEAK_ACCOUNT_ID", json.dumps(data))
 
+    def test_complete_existing_private_snapshot_survives_failed_retry(self):
+        def first(url, body, headers):
+            if url.endswith("/oauth2/token"):
+                return {"body": {"token": "FAKE"}}
+            return {"body": {"return_code": 0, "stk_invsr_orgn": rows(22)},
+                    "cont_yn": "N", "next_key": ""}
+        def second(url, body, headers):
+            if url.endswith("/oauth2/token"):
+                return {"body": {"token": "FAKE"}}
+            if body["stk_cd"] == "005930":
+                return {"body": {"return_code": -1}}
+            return {"body": {"return_code": 0, "stk_invsr_orgn": rows(22)},
+                    "cont_yn": "N", "next_key": ""}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            c.collect(codes=["252990"], asof="20261016",
+                      app_key="FAKE", app_secret="FAKE", destination=root,
+                      post=first, pause=lambda _: None)
+            path = root / "investor_20261016.json"
+            old = path.read_bytes()
+            with self.assertRaisesRegex(c.KiwoomCollectionError, "existing_complete_snapshot_protected"):
+                c.collect(codes=["252990", "005930"], asof="20261016",
+                          app_key="FAKE", app_secret="FAKE", destination=root,
+                          post=second, pause=lambda _: None)
+            self.assertEqual(path.read_bytes(), old)
+
+    def test_existing_watchlist_cannot_be_silently_dropped_by_retry(self):
+        def fake(url, body, headers):
+            if url.endswith("/oauth2/token"):
+                return {"body": {"token": "FAKE"}}
+            return {"body": {"return_code": 0, "stk_invsr_orgn": rows(20)},
+                    "cont_yn": "N", "next_key": ""}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            c.collect(codes=["252990", "005930"], asof="20261016",
+                      app_key="FAKE", app_secret="FAKE", destination=root,
+                      post=fake, pause=lambda _: None)
+            with self.assertRaisesRegex(c.KiwoomCollectionError, "existing_watchlist_data_protected"):
+                c.collect(codes=["252990"], asof="20261016",
+                          app_key="FAKE", app_secret="FAKE", destination=root,
+                          post=fake, pause=lambda _: None)
+
     def test_repo_public_path_is_forbidden_for_flow_storage(self):
         with self.assertRaisesRegex(c.KiwoomCollectionError, "outside_git_repo"):
             c._private_destination(c.HOST_ROOT / "docs" / "collected_kiwoom")
