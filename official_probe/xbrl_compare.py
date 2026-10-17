@@ -204,11 +204,23 @@ def _instance_facts(root, business_year):
     return facts
 
 
-def _compare_metric(api_rows, parsed_facts, metric):
+def _compare_metric(api_rows, parsed_facts, metric, fs_div):
+    # One observed DART label pattern from the prior OFS sample. QName locals
+    # do NOT establish the taxonomy namespace, presentation role, or primary
+    # statement membership. Never promote this heuristic into validation.
+    research_pattern = (
+        ('explicit', 'ConsolidatedAndSeparateFinancialStatementsAxis',
+         'SeparateMember') if fs_div == 'OFS' else None
+    )
     aliases, sections = ACCOUNTS[metric]
     a = _metric(api_rows, aliases, sections)
     api_value = a['amount_krw']
     all_facts = parsed_facts.get(metric, [])
+    scope_pattern_candidates = (
+        [f for f in all_facts
+         if tuple(f.get('dimension_axes', ())) == (research_pattern,)
+         and f.get('dimensioned', False)]
+        if research_pattern is not None else None)
     # Scope is not established by the presence/absence of a segment.
     # Record only bounded structural counts in the private research artifact,
     # never guess an accounting basis, candidate value or point-in-time status.
@@ -238,6 +250,14 @@ def _compare_metric(api_rows, parsed_facts, metric):
             'xbrl_candidate_api_amount_equal_count': (
                 sum(f['amount_krw'] == api_value for f in all_facts)
                 if api_value is not None else None),
+            'xbrl_requested_scope_pattern_only_candidate_count': (
+                len(scope_pattern_candidates)
+                if scope_pattern_candidates is not None else None),
+            'xbrl_requested_scope_pattern_only_api_equal_count': (
+                sum(f['amount_krw'] == api_value for f in scope_pattern_candidates)
+                if scope_pattern_candidates is not None and api_value is not None
+                else None),
+            'xbrl_requested_scope_pattern_is_verified': False,
             'xbrl_dimension_axis_samples': axis_samples,
             'xbrl_unparsed_dimensioned_fact_count': sum(
                 bool(f['dimensioned']) and not f.get('dimension_axes')
@@ -351,7 +371,7 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     out['xbrl_instance_file'] = name
     facts = _instance_facts(root, business_year)
     out['metrics'] = {
-        metric: _compare_metric(rows, facts, metric) for metric in ACCOUNTS
+        metric: _compare_metric(rows, facts, metric, fs_div) for metric in ACCOUNTS
     }
     matches = sum(v['status'] == 'equal_observed_scope_unverified'
                   for v in out['metrics'].values())
