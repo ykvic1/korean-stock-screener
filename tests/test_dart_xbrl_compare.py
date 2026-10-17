@@ -145,11 +145,26 @@ class XbrlNumericTests(unittest.TestCase):
         out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT)
         self.assertEqual(out['metrics']['revenue']['status'], 'xbrl_fact_or_scope_ambiguous')
         self.assertIsNone(out['metrics']['revenue']['xbrl_amount_krw'])
+        evidence = out['metrics']['revenue']
+        self.assertEqual(evidence['candidate_fact_count'], 2)
+        self.assertEqual(evidence['xbrl_dimensioned_fact_count'], 0)
+        self.assertEqual(evidence['xbrl_undimensioned_fact_count'], 2)
+        self.assertEqual(evidence['xbrl_distinct_context_count'], 1)
+        self.assertIn('multiple_candidate_facts', evidence['xbrl_ambiguity_reasons'])
+        self.assertFalse(evidence['xbrl_accounting_scope_verified'])
 
     def test_dimensioned_primary_context_cannot_be_assigned_OFS(self):
         c = FakeDART(zip_xml(xbrl(dimensioned=True)))
         out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT)
         self.assertEqual(out['metrics']['revenue']['status'], 'xbrl_fact_or_scope_ambiguous')
+        evidence = out['metrics']['revenue']
+        self.assertEqual(evidence['candidate_fact_count'], 1)
+        self.assertEqual(evidence['xbrl_dimensioned_fact_count'], 1)
+        self.assertEqual(evidence['xbrl_undimensioned_fact_count'], 0)
+        self.assertEqual(evidence['xbrl_distinct_context_count'], 1)
+        self.assertIn('segment_or_scenario_present', evidence['xbrl_ambiguity_reasons'])
+        self.assertIsNone(evidence['xbrl_amount_krw'])
+        self.assertFalse(evidence['historical_numeric_snapshot_verified'])
 
     def test_wrong_period_or_currency_not_matched(self):
         for case in (xbrl(period_end='2024-12-31'), xbrl(unit='iso4217:USD')):
