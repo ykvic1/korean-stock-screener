@@ -386,6 +386,59 @@ false/null 유지. 키를 저장하거나 라이브 조회/주문/배포하지 �
   뒤에만 별도 범위로 실시.
 
 
+## 단계 C-6 — 키움 REST API ka10059 기관·외국인·연기금등 수급 검증 계약 (오프라인)
+
+사용자는 기존 키움증권 계좌에서 REST API 사용을 **신청 완료**했다.
+그러나 신청 사실만으로 **앱 등록, App Key/Secret 발급, 실거래
+API 접근 성공**까지 인증한 것은 아니다. 키는 채팅·커밋·웹 문서·
+로그에 입력하지 않는다. GitHub Secrets 설정은 실제 발급 후 별도 확인한다.
+계좌주문/주문 API, 자동매매, 포트폴리오 거래 실행은 범위 밖이다.
+
+키움증권 공식 소스:
+- https://github.com/Kiwoom-Securities/Kiwoom-REST-API
+- https://github.com/Kiwoom-Securities/Kiwoom-REST-API/blob/main/examples/국내주식/종목정보/get_domestic_stock_investor_by_institution.py
+
+**확인된 공식 ka10059 계약**
+- POST `/api/dostk/stkinfo`, 요청 헤더 `api-id: ka10059`.
+- 요청 `dt`(YYYYMMDD), `stk_cd`(6자리 KRX 코드),
+  `amt_qty_tp=2`(수량, `1`은 금액),
+  `trde_tp=0`(순매수, `1/2`는 매수/매도),
+  `unit_tp=1`(단주, `1000`은 천주).
+  이 코드를 다른 TR의 코드표와 절대로 혼합하지 않는다.
+- 응답 `stk_invsr_orgn` 배열의 `dt`, `orgn`(기관계),
+  `frgnr_invsr`(외국인), `penfnd_etc`(연기금등),
+  `invtrt`(투신), `insrnc`(보험),
+  `fnnc_invt`(금융투자), `samo_fund`(사모펀드).
+  **연기금등은 국민연금 단독 매매와 다르며**,
+  기관계와 세부 주체를 중복 합산하면 안 된다.
+- 공식 예제의 `cont_yn`·`next_key`를 사용한 연속조회
+  구조와 최대 10페이지를 오프라인 영수증으로만 검증한다.
+
+신규 `v3_kiwoom_flow_adapter.py`는 실제 요청이 아니라
+**가상/사전 제공된 페이지 영수증**만 해석한다. 페이지 이어짐,
+날짜 엄격한 내림차순·중복·미래일, 20~250행 한도, 날짜별
+부호 있는 주식 수량, 항목 완전 결측/null vs 실측 0주를 구분한다.
+기존 `v3_flow_crosscheck.audit_research_pair`를 재사용해
+Npay 후보와 최근20일 수량을 날짜별 비교하되, 모든
+`confirmed_scoring_allowed=false`, `ias_flow_component=null`,
+`v3_release_ready=false`를 유지한다.
+
+**추후 실측에서 확인할 사항**
+1. 키움 API 사용 승인/앱 등록/키 발급 및 사용 환경(실전·모의),
+   허용 IP, 자동 데이터 수집·보관·재배포 약관.
+2. 샘씨엔에스(252990) 단일 종목 제한조회로 응답 원본의
+   단위·실제 조회 기간·연속조회·거래일 확인. 인증 전 호출 금지.
+3. Npay와 기관/외국인 수량 20/20 일자별 독립 대조,
+   시장/거래세션·투자자 주체 정의·확정/잠정 상태 확인.
+4. 검증 가능한 60/120/250 거래일과 실제 공급 한도를 확인.
+   합성 250행 통과는 실제 250거래일 수신 증명이 아님.
+5. 별개 KRX 정규장-only 거래량, 원본 고정 53종목 전체 이력,
+   OpenDART 과거 PIT 확인 전에는 종합 IAS 점수·순위 출시 금지.
+
+기존 `screener.py`, `flow_collection.py`, `daily.yml`,
+Pages/Excel/공개 데이터, v2.2 운영 배포는 이 단계에서 변경하지 않는다.
+
+
 ## 단계 B-2 — 원래 오류 53종목의 우선 복구 대상 분리 (API 승인 전)
 
 실제 `docs/reliability.json`(기준일 2026-10-16)과
