@@ -116,6 +116,25 @@ class PitReadinessTests(unittest.TestCase):
         self.assertFalse(r['per_company'][0]['receipt_and_cutoff_date_only_observed'])
         self.assertEqual(r['metrics_with_receipt_bound_numeric_candidates'],24)
 
+    def test_offline_cli_fails_if_one_original_numeric_group_is_missing(self):
+        original=os.getcwd()
+        with tempfile.TemporaryDirectory() as root:
+            try:
+                os.chdir(root)
+                evidence=fixture()
+                del evidence['dart']['companies_sampled'][0]['xbrl_comparison'][
+                    'metrics']['revenue']['original_receipt_numeric_candidates_private']
+                Path('private.json').write_text(json.dumps(evidence),encoding='utf-8')
+                with self.assertRaises(SystemExit) as caught:
+                    main(['private.json','--output','evidence/pit_evidence_summary.json'])
+                self.assertEqual(caught.exception.code,1)
+                output=json.loads(Path('evidence/pit_evidence_summary.json').read_text())
+                self.assertEqual(output['metrics_with_receipt_bound_numeric_candidates'],29)
+                self.assertFalse(output['historical_numeric_pit_certified'])
+                self.assertFalse(output['confirmed_scoring_allowed'])
+            finally:
+                os.chdir(original)
+
     def test_cli_private_only_and_works_without_api_access(self):
         original=os.getcwd()
         with tempfile.TemporaryDirectory() as root:
