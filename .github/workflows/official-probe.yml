@@ -22,6 +22,10 @@ on:
         description: 'Optional: up to 10 six-digit symbols from docs/data.json, comma separated'
         required: false
         type: string
+      finance_sample:
+        description: 'DART live only: max 2 prior-year annual CFS statements (unverified for backtests)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -51,6 +55,7 @@ jobs:
           MODE: ${{ inputs.mode }}
           PROVIDER: ${{ inputs.provider }}
           SYMBOLS: ${{ inputs.symbols }}
+          FINANCE_SAMPLE: ${{ inputs.finance_sample }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         shell: bash
@@ -59,6 +64,13 @@ jobs:
           args=(--asof "$ASOF" --provider "$PROVIDER")
           if [[ "$MODE" == live ]]; then args+=(--live); fi
           if [[ -n "$SYMBOLS" ]]; then args+=(--symbols "$SYMBOLS"); fi
+          if [[ "$FINANCE_SAMPLE" == "true" ]]; then
+            if [[ "$MODE" != "live" || "$PROVIDER" != "dart" ]]; then
+              echo '::error::Annual finance sample requires DART-only live mode.'
+              exit 1
+            fi
+            args+=(--finance-sample)
+          fi
           python -m official_probe "${args[@]}"
       - name: Report clearly separated collection and validation status
         if: always()
@@ -78,6 +90,14 @@ jobs:
                      'Regular-only volume/foreign-institution flows remain UNVERIFIED; '
                      'no investment score is authorized.')
           print('::notice::'+message)
+          if 'companies_sampled' in r.get('dart', {}):
+              for c in r['dart']['companies_sampled']:
+                  if 'financial_sample' in c:
+                      finance = c['financial_sample']
+                      print('::notice::DART annual financial sample code='+c['code']+
+                            ' status='+finance.get('status','unavailable')+
+                            ' receipt_matched_before_asof='+str(finance.get('receipt_matched_before_asof',False))+
+                            ' PIT_validated=false; values only in private artifact.')
           import os
           path = os.environ.get('GITHUB_STEP_SUMMARY')
           if path:
