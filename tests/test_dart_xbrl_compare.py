@@ -273,6 +273,61 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertFalse(out['presentation_linkbase_complete_dts_verified'])
         self.assertFalse(out['confirmed_scoring_allowed'])
 
+
+    def test_presentation_roles_are_only_hints_not_statement_proof(self):
+        xml = b'''<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase"
+             xmlns:xlink="http://www.w3.org/1999/xlink">
+          <link:presentationLink xlink:role="https://example.org/role/IncomeStatement">
+            <link:loc xlink:label="r" xlink:href="tax.xsd#ifrs-full_Revenue"/>
+            <link:loc xlink:label="root" xlink:href="tax.xsd#ifrs-full_ProfitLoss"/>
+            <link:presentationArc xlink:from="root" xlink:to="r"/>
+          </link:presentationLink>
+          <link:presentationLink xlink:role="https://example.org/role/RevenueNotes">
+            <link:loc xlink:label="n" xlink:href="tax.xsd#ifrs-full_RevenueFromContractsWithCustomers"/>
+            <link:loc xlink:label="root" xlink:href="tax.xsd#ifrs-full_ProfitLoss"/>
+            <link:presentationArc xlink:from="root" xlink:to="n"/>
+          </link:presentationLink>
+        </link:linkbase>'''
+        buf = BytesIO()
+        with ZipFile(buf, 'w') as archive:
+            archive.writestr('annual.xbrl', xbrl())
+            archive.writestr('presentation.xml', xml)
+        out = compare_annual_xbrl(FakeDART(buf.getvalue()), CORP, 2025, ASOF, RECEIPT)
+        groups = out['revenue_embedded_presentation_role_samples']
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(
+            {(x['role_uri_tail'], x['concept_local'], x['presentation_arc_count'])
+             for x in groups},
+            {('IncomeStatement', 'Revenue', 1),
+             ('RevenueNotes', 'RevenueFromContractsWithCustomers', 1)})
+        self.assertTrue(out['presentation_role_names_are_only_clues'])
+        self.assertFalse(out['primary_statement_role_verified'])
+        self.assertFalse(out['presentation_linkbase_complete_dts_verified'])
+        self.assertFalse(out['xbrl_accounting_scope_verified'])
+        self.assertFalse(out['historical_numeric_snapshot_verified'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+        self.assertTrue(all(len(x['role_uri_sha256_prefix']) == 16 for x in groups))
+
+    def test_filing_date_is_not_an_authenticated_historical_numeric_snapshot(self):
+        out = compare_annual_xbrl(FakeDART(), CORP, 2025, ASOF, RECEIPT)
+        self.assertTrue(out['original_receipt_precedes_asof_date_only'])
+        self.assertEqual(out['filing_availability_granularity'], 'calendar_date_only')
+        self.assertFalse(out['financial_api_is_historical_snapshot_verified'])
+        self.assertFalse(out['asof_join_validated'])
+        self.assertFalse(out['historical_numeric_snapshot_verified'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+
+    def test_amendment_prevents_date_only_approval_and_original_zip_fetch(self):
+        amended = '20260401000234'
+        f = FakeDART(filings=[
+            filing(RECEIPT), filing(amended, report='[정정]사업보고서 (2025.12)')
+        ])
+        out = compare_annual_xbrl(f, CORP, 2025, ASOF, RECEIPT)
+        self.assertEqual(out['status'], 'revision_history_blocks_single_report_comparison')
+        self.assertFalse(out['original_receipt_precedes_asof_date_only'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+        self.assertEqual(f.xbrl_calls, [])
+
     def test_requested_ofs_scope_axis_only_is_diagnostic_not_certification(self):
         xml = xbrl(dimensioned=True).replace(
             b'xmlns:test="http://example.com/test"',
