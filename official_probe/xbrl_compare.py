@@ -18,6 +18,10 @@ from zipfile import ZipFile, BadZipFile
 from .clients import ProbeError, canonical_date
 from .financial import ACCOUNTS, _metric
 from .revisions import audit_annual_revisions
+from .embedded_taxonomy import (
+    extract_embedded_role_definitions, summarize_role_definition,
+    MAX_EMBEDDED_XSD,
+)
 
 INSTANCE_NS = 'http://www.xbrl.org/2003/instance'
 IX = '{' + INSTANCE_NS + '}'
@@ -98,6 +102,7 @@ def _local_presentation_revenue_hints(root):
         return None
     counts = {k: 0 for k in REVENUE_CONCEPTS}
     per_role = {}
+    relation_groups = {}
     links = root.findall(LINK + 'presentationLink')
     if len(links) > MAX_FACTS:
         raise ProbeError('Excessive local XBRL presentation links')
@@ -108,24 +113,40 @@ def _local_presentation_revenue_hints(root):
         role_tail = _safe_qname_local(role_uri.rsplit('/', 1)[-1]
                                       .rsplit('#', 1)[-1])
         labels = {}
+        local_names = {}
         for loc in link.findall(LINK + 'loc'):
             name = (loc.get(XLINK + 'href') or '').split('#')[-1]
-            if '_' not in name:
+            label = loc.get(XLINK + 'label')
+            if not isinstance(label, str) or len(label) > 100:
                 continue
-            tail = name.split('_', 1)[-1]
-            if tail in REVENUE_CONCEPTS:
-                label = loc.get(XLINK + 'label')
-                if isinstance(label, str) and len(label) <= 100:
+            local_names[label] = _safe_qname_local(
+                name.split('_', 1)[-1] if '_' in name else name)
+            if '_' in name:
+                tail = name.split('_', 1)[-1]
+                if tail in REVENUE_CONCEPTS:
                     labels[label] = tail
-        for arc in link.findall(LINK + 'presentationArc'):
+        arcs = link.findall(LINK + 'presentationArc')
+        if len(arcs) > MAX_FACTS:
+            raise ProbeError('Excessive embedded presentation arcs')
+        for arc in arcs:
             src, dst = arc.get(XLINK + 'from'), arc.get(XLINK + 'to')
             for concept in {labels.get(src), labels.get(dst)} & REVENUE_CONCEPTS:
                 counts[concept] += 1
-                key = (role_digest, role_tail, concept)
+                key = (role_uri, role_tail, concept)
                 per_role[key] = per_role.get(key, 0) + 1
+                record = relation_groups.setdefault(
+                    key, {'as_parent_arc_count': 0, 'as_child_arc_count': 0,
+                          'direct_parent_names': set()})
+                if labels.get(dst) == concept:
+                    record['as_child_arc_count'] += 1
+                    record['direct_parent_names'].add(
+                        local_names.get(src, 'unrecognized'))
+                if labels.get(src) == concept:
+                    record['as_parent_arc_count'] += 1
     return {'embedded_presentation_links': len(links),
             'revenue_presentation_arc_hints': counts,
-            'revenue_role_arc_groups': per_role}
+            'revenue_role_arc_groups': per_role,
+            'revenue_relation_groups': relation_groups}
 
 
 
@@ -139,6 +160,7 @@ def _instance_from_zip(blob: bytes):
                 raise ProbeError('XBRL archive has unexpected entry count')
             total = 0
             xml_files = []
+            xsd_files = []
             seen = set()
             for e in entries:
                 name = e.filename
@@ -154,6 +176,10 @@ def _instance_from_zip(blob: bytes):
                     raise ProbeError('XBRL uncompressed archive exceeds limit')
                 if name.lower().endswith(('.xbrl', '.xml')):
                     xml_files.append(e)
+                elif name.lower().endswith('.xsd'):
+                    xsd_files.append(e)
+            if len(xsd_files) > MAX_EMBEDDED_XSD:
+                raise ProbeError('Excessive embedded XBRL schema files')
             if len(xml_files) > MAX_XML_DOCUMENTS:
                 raise ProbeError('XBRL archive has too many XML files')
             found = []
@@ -161,6 +187,13 @@ def _instance_from_zip(blob: bytes):
             embedded_presentation_links = 0
             revenue_arc_hints = {k: 0 for k in REVENUE_CONCEPTS}
             revenue_role_groups = {}
+            revenue_relation_groups = {}
+            role_definitions = {}
+            for e in xsd_files:
+                schema_root = _safe_xml(z.read(e))
+                if schema_root is not None:
+                    extract_embedded_role_definitions(schema_root,
+                                                      role_definitions)
             for e in xml_files:
                 # zip entry total size is already independently bounded.
                 raw = z.read(e)
@@ -177,21 +210,42 @@ def _instance_from_zip(blob: bytes):
                         for key, count in hints['revenue_role_arc_groups'].items():
                             revenue_role_groups[key] = (
                                 revenue_role_groups.get(key, 0) + count)
+                        for key, relation in hints['revenue_relation_groups'].items():
+                            target = revenue_relation_groups.setdefault(
+                                key, {'as_parent_arc_count': 0,
+                                      'as_child_arc_count': 0,
+                                      'direct_parent_names': set()})
+                            target['as_parent_arc_count'] += relation['as_parent_arc_count']
+                            target['as_child_arc_count'] += relation['as_child_arc_count']
+                            target['direct_parent_names'].update(
+                                relation['direct_parent_names'])
             # This evidence is not a resolved taxonomy set. Roles could come
             # from financial statement OR notes; do not select any fact.
             all_roles = sorted(revenue_role_groups.items())
-            role_samples = [
-                {'role_uri_sha256_prefix': role_hash,
-                 'role_uri_tail': role_tail,
-                 'concept_local': concept,
-                 'presentation_arc_count': count}
-                for ((role_hash, role_tail, concept), count)
-                in all_roles[:MAX_PRESENTATION_ROLE_EVIDENCE]
-            ]
+            role_samples = []
+            for ((role_uri, role_tail, concept), count) in (
+                    all_roles[:MAX_PRESENTATION_ROLE_EVIDENCE]):
+                relation = revenue_relation_groups[(role_uri, role_tail, concept)]
+                role_samples.append({
+                    'role_uri_sha256_prefix':
+                        sha256(role_uri.encode('utf-8')).hexdigest()[:16],
+                    'role_uri_tail': role_tail,
+                    'concept_local': concept,
+                    'presentation_arc_count': count,
+                    'as_child_arc_count': relation['as_child_arc_count'],
+                    'as_parent_arc_count': relation['as_parent_arc_count'],
+                    'direct_parent_concept_local_samples': sorted(
+                        relation['direct_parent_names'])[:8],
+                    'parent_sample_truncated': len(relation['direct_parent_names']) > 8,
+                    **summarize_role_definition(role_uri, role_definitions),
+                })
             return {'embedded_presentation_files': embedded_presentation_files,
                     'embedded_presentation_links': embedded_presentation_links,
                     'revenue_presentation_arc_hints': revenue_arc_hints,
                     'revenue_presentation_role_samples': role_samples,
+                    'embedded_xsd_file_count': len(xsd_files),
+                    'embedded_role_type_count': len(role_definitions),
+                    'embedded_role_type_definitions_complete_dts_verified': False,
                     'revenue_presentation_role_samples_truncated':
                         len(all_roles) > MAX_PRESENTATION_ROLE_EVIDENCE,
                     'zip_sha256': sha256(blob).hexdigest(),
@@ -498,6 +552,9 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     out['revenue_embedded_presentation_arc_hints'] = package['revenue_presentation_arc_hints']
     out['revenue_embedded_presentation_role_samples'] = package[
         'revenue_presentation_role_samples']
+    out['embedded_xsd_file_count'] = package['embedded_xsd_file_count']
+    out['embedded_role_type_count'] = package['embedded_role_type_count']
+    out['embedded_role_type_definitions_complete_dts_verified'] = False
     out['revenue_embedded_presentation_role_samples_truncated'] = package[
         'revenue_presentation_role_samples_truncated']
     out['presentation_role_names_are_only_clues'] = True
