@@ -28,6 +28,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_xbrl_compare.py' -v
           python -m unittest discover -s tests -p 'test_dart_batch_discovery.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_oneclick.py' -v
+          python -m unittest discover -s tests -p 'test_dart_pilot_latency.py' -v
       - name: Compare five independently identified 2025 annual filings
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
