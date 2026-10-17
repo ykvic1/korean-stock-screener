@@ -13,6 +13,7 @@ from .financial import sample_annual_financial
 from .history import sample_history
 from .revisions import audit_annual_revisions
 from .xbrl_compare import compare_annual_xbrl
+from .batch_discovery import discover_annual_receipt
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -78,6 +79,7 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--xbrl-compare', action='store_true', help='one-company original annual XBRL vs current DART finance API comparison')
     p.add_argument('--xbrl-receipt', help='14-digit verified annual filing receipt for XBRL comparison')
     p.add_argument('--xbrl-batch-cases', help='2-5 explicit CODE:RECEIPT:OFS|CFS records; DART live research only')
+    p.add_argument('--xbrl-discover-receipts', action='store_true', help='manual DART annual report receipt candidate discovery (2-5 stocks, no numbers)')
     p.add_argument('--xbrl-fs-div', choices=('OFS', 'CFS'), default='OFS', help='accounting basis must be explicitly selected in manual workflow')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
     args = p.parse_args(argv)
@@ -93,6 +95,12 @@ def run(argv=None, *, krx_session=None, dart_session=None):
             p.error('Prior financial receipt must be exactly 14 digits')
     elif args.revision_expected_receipt:
         p.error('A revision receipt cannot be submitted unless revision audit is selected')
+    if args.xbrl_discover_receipts:
+        if (not args.live or args.provider != 'dart' or args.finance_sample
+                or args.history_sample or args.revision_audit
+                or args.xbrl_compare or args.xbrl_receipt or args.xbrl_batch_cases
+                or args.revision_expected_receipt):
+            p.error('XBRL receipt discovery requires DART-only live with other research flags off')
     if args.xbrl_batch_cases:
         if (not args.live or args.provider != 'dart' or args.finance_sample
                 or args.history_sample or args.revision_audit
@@ -112,6 +120,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     except ValueError as exc:
         p.error(str(exc))
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
+    if args.xbrl_discover_receipts and (not args.symbols or not 2 <= len(codes) <= 5):
+        p.error('XBRL receipt discovery requires 2-5 explicitly selected stocks')
     if pilot_cases and (not args.symbols or list(pilot_cases) != codes):
         p.error('XBRL pilot cases must match all explicitly selected symbols in the same order')
     if args.history_sample and (len(codes) != 1 or args.dart_limit not in (1, 2)):
@@ -174,18 +184,35 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 sample = []
                 start = (date.fromisoformat(args.asof)-timedelta(days=90)).isoformat()
                 # Pilot mode is separately limited to 2-5 cases by preflight.
-                for code in (codes if pilot_cases else codes[:args.dart_limit]):
+                for code in (codes if (pilot_cases or args.xbrl_discover_receipts)
+                             else codes[:args.dart_limit]):
                     corp = mapping.get(code)
                     if not corp:
                         sample.append({'code': code, 'status': 'corp_code_unmapped'})
                         continue
-                    filings = client.recent_filings(corp,start,args.asof)
-                    valid = filter_visible_filings(filings,args.asof)
                     item = {'code':code,'corp_code':corp,'status':'observed_not_pit_validated',
+                            'financial_metrics_verified':False}
+                    if not (pilot_cases or args.xbrl_discover_receipts):
+                        filings = client.recent_filings(corp,start,args.asof)
+                        valid = filter_visible_filings(filings,args.asof)
+                        item.update({
                             'filings_returned_first_page':len(filings),
                             'filings_before_asof':len(valid),
                             'same_day_or_invalid_filings_excluded':len(filings)-len(valid),
-                            'financial_metrics_verified':False}
+                        })
+                    if args.xbrl_discover_receipts:
+                        try:
+                            item['annual_receipt_discovery'] = discover_annual_receipt(
+                                client, corp, int(args.asof[:4]) - 1, args.asof)
+                        except (ProbeError, ValueError):
+                            item['annual_receipt_discovery'] = {
+                                'status':'failed_or_unavailable',
+                                'receipt_candidate':None,
+                                'xbrl_accounting_scope_verified':False,
+                                'confirmed_scoring_allowed':False,
+                                'investment_data_ready':False,
+                                'error':'Official annual filing discovery failed safely'}
+                    
                     if args.finance_sample:
                         try:
                             annual_year = int(args.asof[:4]) - 1
@@ -241,6 +268,13 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
+                if args.xbrl_discover_receipts:
+                    out['dart']['annual_receipt_discovery_pilot'] = {
+                        'requested_cases': len(codes),
+                        'numeric_values_checked': False,
+                        'scope_choice_required': True,
+                        'investment_data_ready': False,
+                    }
                 if pilot_cases:
                     out['dart']['xbrl_batch_pilot'] = {
                         'mode': 'manual_explicit_receipts_research_only',
