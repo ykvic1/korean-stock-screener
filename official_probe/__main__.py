@@ -190,11 +190,14 @@ def run(argv=None, *, krx_session=None, dart_session=None):
             out['dart'] = {'status': 'key_required', 'secret_name': 'DART_API_KEY'}
         else:
             try:
-                client = DARTClient(key, session=dart_session)
+                # Pinned parallel mode creates one independent client per worker.
+                # Do not make an unused sixth session or share an injected one.
+                client = (None if args.xbrl_use_reviewed_2025_corp_map
+                          else DARTClient(key, session=dart_session))
                 pilot_start = perf_counter()
                 # Research-only requests fail faster; all other DART modes keep
                 # their original timeout and API semantics.
-                if pilot_cases and hasattr(client, 'set_research_timeout'):
+                if pilot_cases and client is not None and hasattr(client, 'set_research_timeout'):
                     client.set_research_timeout(12)
                 mapping_start = perf_counter()
                 if args.xbrl_use_reviewed_2025_corp_map:
