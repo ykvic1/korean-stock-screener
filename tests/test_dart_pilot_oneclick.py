@@ -16,7 +16,7 @@ class PinnedPilotWorkflowTests(unittest.TestCase):
         self.assertNotIn('    inputs:', content)
         self.assertIn('  contents: read', content)
         self.assertIn('  cancel-in-progress: false', content)
-        self.assertIn('    timeout-minutes: 20', content)
+        self.assertIn('    timeout-minutes: 8', content)
         self.assertIn('--provider dart --live', content)
         self.assertNotIn('--provider both', content)
         self.assertNotIn('KRX_API_KEY:', content)
