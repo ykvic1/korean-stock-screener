@@ -202,3 +202,68 @@ https://openapi.krx.co.kr/contents/OPP/INFO/OPPINFO003.jsp
 
 현재 결과는 **익명 공개 데이터의 20행 숫자 구조 해석 성공**이며,
 공식 KRX 투자자별 수급 인증 또는 상용 자동 이용 허가가 아님.
+
+## 단계 C-2 — Npay 20일 × pykrx(KRX 인터페이스) 교차대조 연구
+
+KRX 정보데이터시스템에는 개별종목 투자자별 거래실적 메뉴가 존재하지만
+공식 OPEN API에서 해당 필드·서비스를 현재 사용자 계정이 승인받아
+접근할 수 있는지는 **아직 확인되지 않음**.
+- 공식 KRX 데이터 메뉴: https://data.krx.co.kr/
+- 공식 Open API 서비스 및 이용승인: https://openapi.krx.co.kr/contents/OPP/INFO/OPPINFO003.jsp
+- 기존 `screener.py`가 pykrx `get_market_trading_volume_by_date`를
+  사용하지만 과거 정기 실행은 이 방법에 대한 인증이나 교차 검증이 없었음.
+
+### 구현: 엄격한 두 출처 비교, 운영 연결 없음
+
+- `v3_flow_crosscheck.py`는 이미 실증한 Npay `organPureBuyQuant`,
+  `foreignerPureBuyQuant` 문자열과 pykrx 응답 `기관합계`,
+  `외국인합계` 숫자를 **공통 최근20개 실제 일자**별로 비교.
+- 날짜가 하나라도 다르면 `trading_day_sets_differ`;
+  외인 또는 기관 중 하나라도 다르면 `investor_quantities_mismatch`.
+  일치 건수만 기록하며 숫자 원문/날짜별 순매수는 출력·커밋 금지.
+- 한 출처의 오류, 날짜 중복, 누락, 잘못된 주체 컬럼, 정수 아님,
+  미래자료, 주식코드 오류, 20개 미만이면 fail-closed.
+- `v3_flow_crosscheck_once.py`는 한 종목(252990), 기준일(2026-10-16),
+  Npay GET 1회와 pykrx 조회함수 1회만 시도. 두 자료 모두
+  실패 없이 있으면 일치 건수 요약만 로그에 출력.
+- **pykrx는 공식 KRX 유료·허가 API의 인증과 동의어가 아니며**
+  두 출처가 완전히 일치해도 정규장 09:00~15:30 주체/거래량,
+  자동 데이터 활용 허가, 거래일 PIT, 60/120/250일 수집은
+  별도 검증해야 한다.
+- `confirmed_scoring_allowed=false`, `v3_release_ready=false`,
+  `ias_flow_component=null` 불변.
+- 네트워크 결과가 없는 유닛테스트는 오프라인. 임시 branch-only
+  실조회 워크플로는 단발 실험 후 PR에서 제거하며 main 예약 실행으로
+  연결하지 않는다.
+
+합의되지 않은 약관/응답 정의·KRX 공식 유료 계정 키를 추측하지
+않는다. 현 단계는 데이터를 **독립적으로 대조할 수 있는지** 확인하며
+정식 v3 출시 일정 약속이 아니다.
+
+### 2026-10-17 실제 1회 교차대조 실행 결과
+
+한 종목 252990 / 거래일 기준 2026-10-16 / 임시 연구 GitHub Actions
+#39032607039 (read-only, 1회):
+- 오프라인 7개 회귀테스트 통과.
+- Npay 익명 공개 트렌드 20행 파싱 완료. 제공 데이터 해석 수준은
+  날짜·기관/외인 부호 있는 순매수 숫자이며 독립 검증 미완료.
+- 이어서 pykrx `get_market_trading_volume_by_date` 1회 호출했으나
+  내부 KRX 제공자 함수 `get_market_trading_value_and_volume_on_ticker_by_date`
+  처리 단계에서 `Expecting value: line 1 column 1 (char 0)`
+  메시지와 함께 **`ValueError` 발생**.
+- 연구 결과: `alternate_krx_interface_unavailable_or_invalid`,
+  `independent_crosscheck_verified=false`,
+  `confirmed_scoring_allowed=false`.
+- 이것은 공급원 조회/응답 형식 문제이며 **실제 Npay vs KRX 숫자
+  불일치라고 판단할 근거가 아니다**.
+- 차단 원인은 KRX 승인 부재라고 단정하지 않는다(현재 서버 응답 원문,
+  라이브 인증/스키마 진단 미확보).
+- 실제 요청은 이 1회로 종료. 무한 재시도·봇 탐지 회피·예측용 숫자
+  채택 없이 임시 GitHub push 실험 워크플로 삭제.
+
+**다음 우선순위:** 공식 KRX 개별종목 기관/외인 수급 조회의
+제공 서비스 범위/계정 권한, 검증 가능한 원본 단위와 거래소
+세션 계약을 확인. 이후 다른 독립 공급원이 제공되는 경우,
+이번에 구현한 일자별 20/20 수량 비교기를 재사용한다.
+현재 시장 데이터 자동화·재배포는 라이선스 확인 전 보류.
+v3 IAS 수급 배점과 완전 순위는 여전히 미출시.
