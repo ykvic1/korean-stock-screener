@@ -189,6 +189,90 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertFalse(out['investment_data_ready'])
 
 
+
+    def test_two_revenue_taxonomy_concepts_remain_unverified_with_one_api_match(self):
+        xml = xbrl(dimensioned=True).replace(
+            b'xmlns:test="http://example.com/test"',
+            b'xmlns:test="http://example.com/test" '
+            b'xmlns:xbrldi="http://xbrl.org/2006/xbrldi"').replace(
+            b'<test:dimension>OFS</test:dimension>',
+            b'<xbrldi:explicitMember dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            b'test:SeparateMember</xbrldi:explicitMember>')
+        xml = xml.replace(
+            b'  <dart:OperatingIncomeLoss',
+            b'  <ifrs:RevenueFromContractsWithCustomers contextRef="D" unitRef="U" '
+            b'decimals="0">999</ifrs:RevenueFromContractsWithCustomers>\\n'
+            b'  <dart:OperatingIncomeLoss')
+        out = compare_annual_xbrl(FakeDART(zip_xml(xml)), CORP, 2025, ASOF, RECEIPT)
+        m = out['metrics']['revenue']
+        self.assertEqual(m['xbrl_requested_scope_pattern_only_candidate_count'], 2)
+        self.assertEqual(m['xbrl_requested_scope_pattern_only_api_equal_count'], 1)
+        self.assertEqual(m['xbrl_scope_pattern_duplicate_kind'],
+                         'multiple_taxonomy_concepts_or_namespaces')
+        self.assertEqual({g['concept_local'] for g in m['xbrl_scope_pattern_concept_groups']},
+                         {'Revenue', 'RevenueFromContractsWithCustomers'})
+        self.assertEqual(sorted(g['api_amount_equal_count']
+                                for g in m['xbrl_scope_pattern_concept_groups']), [0, 1])
+        self.assertEqual(sorted(g['fact_count']
+                                for g in m['xbrl_scope_pattern_concept_groups']), [1, 1])
+        for group in m['xbrl_scope_pattern_concept_groups']:
+            self.assertEqual(len(group['namespace_sha256_prefix']), 16)
+            self.assertFalse(group.get('amount_krw'))
+        self.assertFalse(m['xbrl_taxonomy_concept_meaning_verified'])
+        self.assertFalse(m['xbrl_presentation_statement_role_verified'])
+        self.assertEqual(m['status'], 'xbrl_fact_or_scope_ambiguous')
+        self.assertIsNone(m['xbrl_amount_krw'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+
+    def test_duplicate_same_concept_same_context_does_not_become_statement_fact(self):
+        xml = xbrl(dimensioned=True, dup=True).replace(
+            b'xmlns:test="http://example.com/test"',
+            b'xmlns:test="http://example.com/test" '
+            b'xmlns:xbrldi="http://xbrl.org/2006/xbrldi"').replace(
+            b'<test:dimension>OFS</test:dimension>',
+            b'<xbrldi:explicitMember dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            b'test:SeparateMember</xbrldi:explicitMember>')
+        result = compare_annual_xbrl(FakeDART(zip_xml(xml)), CORP, 2025, ASOF, RECEIPT)
+        revenue = result['metrics']['revenue']
+        self.assertEqual(revenue['xbrl_scope_pattern_duplicate_kind'],
+                         'same_concept_same_context_multiple_facts')
+        self.assertEqual(len(revenue['xbrl_scope_pattern_concept_groups']), 1)
+        self.assertEqual(revenue['xbrl_scope_pattern_concept_groups'][0]['fact_count'], 2)
+        self.assertEqual(revenue['xbrl_scope_pattern_concept_groups'][0]['distinct_context_count'], 1)
+        self.assertEqual(revenue['xbrl_scope_pattern_concept_groups'][0]['distinct_value_count'], 2)
+        self.assertFalse(result['investment_data_ready'])
+
+    def test_bundled_presentation_arc_is_a_hint_not_a_primary_statement_proof(self):
+        xml = xbrl()
+        linkbase = b'''<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase"
+              xmlns:xlink="http://www.w3.org/1999/xlink">
+          <link:presentationLink xlink:role="urn:example:note-not-statement">
+            <link:loc xlink:label="r" xlink:href="taxonomy.xsd#ifrs-full_Revenue"/>
+            <link:loc xlink:label="a" xlink:href="taxonomy.xsd#ifrs-full_ProfitLoss"/>
+            <link:presentationArc xlink:from="a" xlink:to="r"/>
+          </link:presentationLink>
+        </link:linkbase>'''
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w') as archive:
+            archive.writestr('annual.xbrl', xml)
+            archive.writestr('custom-presentation.xml', linkbase)
+        out = compare_annual_xbrl(
+            FakeDART(buffer.getvalue()), CORP, 2025, ASOF, RECEIPT)
+        self.assertEqual(out['embedded_presentation_files_observed'], 1)
+        self.assertEqual(out['embedded_presentation_links_observed'], 1)
+        self.assertEqual(out['revenue_embedded_presentation_arc_hints']['Revenue'], 1)
+        self.assertEqual(out['revenue_embedded_presentation_arc_hints']['RevenueFromContractsWithCustomers'], 0)
+        self.assertFalse(out['presentation_linkbase_complete_dts_verified'])
+        self.assertFalse(out['primary_statement_role_verified'])
+        self.assertFalse(out['investment_data_ready'])
+
+    def test_missing_bundled_presentation_does_not_infer_missing_external_roles(self):
+        out = compare_annual_xbrl(FakeDART(zip_xml()), CORP, 2025, ASOF, RECEIPT)
+        self.assertEqual(out['embedded_presentation_files_observed'], 0)
+        self.assertEqual(out['revenue_embedded_presentation_arc_hints']['Revenue'], 0)
+        self.assertFalse(out['presentation_linkbase_complete_dts_verified'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+
     def test_requested_ofs_scope_axis_only_is_diagnostic_not_certification(self):
         xml = xbrl(dimensioned=True).replace(
             b'xmlns:test="http://example.com/test"',
