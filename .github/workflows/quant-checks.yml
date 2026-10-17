@@ -23,6 +23,8 @@ jobs:
       - name: Kiwoom 3-page Windows PowerShell synthetic pagination (no network or keys)
         shell: pwsh
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
+      - name: OCI installer syntax only (no cloud access, no secrets)
+        run: bash -n deploy/oci_prepare.sh
       - name: JavaScript syntax
         run: |
           python - <<'PY'
