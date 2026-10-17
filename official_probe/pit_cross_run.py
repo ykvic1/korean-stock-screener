@@ -94,6 +94,7 @@ def audit_probe_observations(documents):
     times = [moment for moment,_ in observations]
     if len(set(times)) != len(times):
         raise ValueError('Duplicate observation timestamps are not independent evidence')
+    newest = documents[max(range(len(observations)), key=lambda i: observations[i][0])]
     observations.sort(key=lambda x:x[0])
     comparison = []
     for stock in PINNED_CASES:
@@ -110,7 +111,7 @@ def audit_probe_observations(documents):
             'historical_pit_numeric_eligibility_verified':False,
             'confirmed_scoring_allowed':False,
         })
-    newest = max(zip(observations, documents),key=lambda pair:pair[0][0])[1]
+    # Preserve the newest document's identity even when input order was arbitrary.
     # The newest document may or may not have receipt-specific numbers;
     # keep the originally recorded 30/32 claims separately evidenced.
     try:
