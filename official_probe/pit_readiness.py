@@ -161,6 +161,12 @@ def main(argv=None):
           +' / '+str(report['metric_count'])
           +'; accounting scope and historical PIT remain NOT VERIFIED;'
           +' scoring BLOCKED.')
+    if report['metrics_with_receipt_bound_numeric_candidates'] != report['metric_count']:
+        # The research output has been written privately for diagnosis; fail
+        # the workflow so an incomplete original number set is NEVER success.
+        print('::error::Receipt-specific original numeric evidence INCOMPLETE;'
+              ' inspect the private research artifact.')
+        raise SystemExit(1)
     return report
 
 
