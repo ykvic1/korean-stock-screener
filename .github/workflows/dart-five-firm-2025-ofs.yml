@@ -13,7 +13,7 @@ concurrency:
 jobs:
   five-company-scope-research:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,6 +28,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_xbrl_compare.py' -v
           python -m unittest discover -s tests -p 'test_dart_batch_discovery.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_oneclick.py' -v
+          python -m unittest discover -s tests -p 'test_dart_pilot_latency.py' -v
       - name: Compare five independently identified 2025 annual filings
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -57,7 +58,18 @@ jobs:
           print('::notice::Research provider status='+dart.get('status','unknown')+
                 '; investment_data_ready=false; PIT_validated=false.')
           cases = dart.get('companies_sampled', [])
+          pilot = dart.get('xbrl_batch_pilot') or {}
+          print('::notice::DART mapping-ms='+str(pilot.get('corp_mapping_elapsed_ms', 'unknown'))+
+                ' research-timeout-s='+str(pilot.get('request_timeout_seconds', 'unknown')))
           for case in cases:
+              timing = case.get('xbrl_research_timing') or {}
+              for event in timing.get('sanitized_requests', []):
+                  print('::notice::timing code='+case.get('code','unknown')+
+                        ' stage='+event['stage']+
+                        ' result='+event['result']+
+                        ' elapsed-ms='+str(event['elapsed_ms']))
+              if case.get('status') == 'pilot_soft_budget_exceeded':
+                  print('::warning::Research time budget exceeded; remaining cases not fetched.')
               x = case.get('xbrl_comparison', {})
               counts = x.get('metrics') or {}
               candidate_ofs = sum(

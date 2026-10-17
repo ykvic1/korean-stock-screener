@@ -9,6 +9,7 @@ from datetime import date
 from io import BytesIO
 import json
 import re
+from time import perf_counter
 from xml.etree import ElementTree
 from zipfile import ZipFile, BadZipFile
 
@@ -40,10 +41,10 @@ def code6(code: str) -> str:
     return code
 
 
-def _get(session, url, *, headers=None, params=None, limit=MAX_KRX_BODY):
+def _get(session, url, *, headers=None, params=None, limit=MAX_KRX_BODY, timeout=25):
     try:
         # Prevent an unexpected redirect from forwarding a DART credential in URL.
-        response = session.get(url, headers=headers, params=params, timeout=25,
+        response = session.get(url, headers=headers, params=params, timeout=timeout,
                                allow_redirects=False)
         if response.status_code != 200:
             raise ProbeError('Official API HTTP response is not 200 (authorization/service may be pending)')
@@ -102,12 +103,41 @@ class DARTClient:
             raise ValueError('DART_API_KEY is required')
         self._key = key.strip()
         self.session = session or requests.Session()
+        self.request_timeout = 25
+        self.research_request_timings = []
+
+    def set_research_timeout(self, seconds: int):
+        """Opt-in fail-fast timeout for manual pilots only; no retries."""
+        if type(seconds) is not int or not 8 <= seconds <= 25:
+            raise ValueError('DART pilot timeout must be 8-25 seconds')
+        self.request_timeout = seconds
+
+    def _research_get(self, stage: str, url: str, **kwargs) -> bytes:
+        # Whitelisted stage labels only, NEVER URLs, parameters or tokens.
+        if stage not in ('corp_mapping_zip', 'filing_list', 'financial_json',
+                         'xbrl_zip', 'original_document_zip', 'company_json'):
+            raise ValueError('Unexpected DART research timing label')
+        start = perf_counter()
+        outcome = 'error'
+        try:
+            payload = _get(self.session, url, timeout=self.request_timeout, **kwargs)
+            outcome = 'ok'
+            return payload
+        finally:
+            self.research_request_timings.append({
+                'stage': stage, 'result': outcome,
+                'elapsed_ms': int((perf_counter() - start) * 1000),
+            })
 
     def _api(self, endpoint: str, **params) -> dict:
         if endpoint not in ('list.json', 'fnlttSinglAcntAll.json', 'company.json'):
             raise ValueError('DART endpoint not in fixed probe allowlist')
-        payload = _get(self.session, DART_BASE + endpoint,
-                       params={'crtfc_key': self._key, **params})
+        label = {'list.json': 'filing_list',
+                 'fnlttSinglAcntAll.json': 'financial_json',
+                 'company.json': 'company_json'}[endpoint]
+        payload = self._research_get(
+            label, DART_BASE + endpoint,
+            params={'crtfc_key': self._key, **params})
         result = _json(payload)
         status = str(result.get('status', ''))
         if status == '013':
@@ -121,9 +151,10 @@ class DARTClient:
         """Fetch one disclosure ZIP by receipt. Never expose URLs or credential."""
         if not re.fullmatch(r'\d{14}', str(receipt)):
             raise ValueError('Document receipt must be exactly 14 digits')
-        return _get(self.session, DART_BASE + 'document.xml',
-                    params={'crtfc_key': self._key, 'rcept_no': receipt},
-                    limit=MAX_DART_ZIP)
+        return self._research_get(
+            'original_document_zip', DART_BASE + 'document.xml',
+            params={'crtfc_key': self._key, 'rcept_no': receipt},
+            limit=MAX_DART_ZIP)
 
     def original_xbrl_zip(self, receipt: str, report_code: str = '11011') -> bytes:
         """Fetch one report's XBRL ZIP (no credential in exceptions/logs)."""
@@ -131,14 +162,15 @@ class DARTClient:
             raise ValueError('XBRL receipt must be 14 digits')
         if report_code not in ('11011', '11012', '11013', '11014'):
             raise ValueError('XBRL report code is not an approved periodic report')
-        return _get(self.session, DART_BASE + 'fnlttXbrl.xml',
-                    params={'crtfc_key': self._key, 'rcept_no': receipt,
-                            'reprt_code': report_code},
-                    limit=MAX_DART_ZIP)
+        return self._research_get(
+            'xbrl_zip', DART_BASE + 'fnlttXbrl.xml',
+            params={'crtfc_key': self._key, 'rcept_no': receipt,
+                    'reprt_code': report_code}, limit=MAX_DART_ZIP)
 
     def corp_mapping(self) -> dict[str, str]:
-        raw = _get(self.session, DART_BASE + 'corpCode.xml',
-                   params={'crtfc_key': self._key}, limit=MAX_DART_ZIP)
+        raw = self._research_get(
+            'corp_mapping_zip', DART_BASE + 'corpCode.xml',
+            params={'crtfc_key': self._key}, limit=MAX_DART_ZIP)
         try:
             with ZipFile(BytesIO(raw)) as z:
                 entries = [i for i in z.infolist() if i.filename.upper() == 'CORPCODE.XML']
