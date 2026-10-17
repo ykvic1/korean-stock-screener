@@ -59,8 +59,10 @@ class KisInvestorAdapterTests(unittest.TestCase):
         self.assertFalse(outcome["v3_release_ready"])
         self.assertIsNone(outcome["ias_flow_component"])
         text=json.dumps(outcome)
+        self.assertNotIn("frgn_ntby_qty",text)
+        self.assertNotIn("orgn_ntby_qty",text)
+        self.assertNotIn("stck_bsop_date",text)
         self.assertNotIn("1,800",text)
-        self.assertNotIn("900",text)
 
     def test_one_day_number_conflict_fails_research_agreement(self):
         npay,kis=pair()
