@@ -103,7 +103,8 @@ class KiwoomAutoCollectorTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(out["row_count"], 100)
         self.assertTrue(out["older_pages_available"])
-        self.assertFalse(out["provider_history_complete"])
+        self.assertFalse(out["provider_reports_no_more_pages"])
+        self.assertFalse(out["official_history_completeness_verified"])
         self.assertIsNone(out["windows"]["120"])
         self.assertIsNone(out["windows"]["250"])
 
