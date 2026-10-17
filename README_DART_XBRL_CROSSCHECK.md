@@ -444,3 +444,51 @@ OpenDART 재무 API 금액과 일치하지만 **금액 일치만으로 본문 �
 CI 통과 후 수동 원클릭 연구를 **한 번만 재실행**하여 샘씨엔에스와
 롯데웰푸드에서 역할 정의/계정 상하 관계의 실제 증거를 확인한다.
 그때까지 매출액 두 후보와 다른 28개 값도 투자 점수로 승격하지 않는다.
+
+## 기존 비공개 결과를 재사용하는 오프라인 매출액 후보 판정 (API 0회)
+
+### 실행
+연구 워크플로 #39019351383에서 내려받은 `five_company_2025_ofs_research.json`
+파일을 **로컬 비공개 작업 디렉터리**에 둔다. 원본 재무금액/공시 JSON은
+GitHub 저장소 또는 Pages로 업로드하지 않는다.
+
+```bash
+python -m official_probe.offline_revenue_evidence \
+  private/five_company_2025_ofs_research.json \
+  --output evidence/offline_revenue_review.json
+```
+
+이 명령은 OpenDART에 새 요청을 보내지 않으며
+연구 결과에 **원본 금액/API 인증키/원본 XBRL XML/URL을 재출력하지 않는다**.
+안전한 계정 후보와 진단 상태만 새 JSON에 기록한다.
+
+### 후보 선별의 보수적 조건
+1. 대상 기업·접수번호·OFS·회계연도·기준일이 기검증 고정 5종목과 일치
+2. 기준일보다 이전의 공식 접수번호, 정정 내역 부재, 원본 ZIP 존재
+3. 금액·단위·연도를 필터링한 기존 XBRL 문맥 요약에서
+   **별도재무제표 단일 축에 매달린 `Revenue` 후보 1개**가
+   현재 재무 API 금액과 일치하고, 다른 후보에서는 같은 값이 중복되지 않음
+4. 내장 XSD `roleType`에 별도 손익계산서 표시 역할이 있고
+   `Revenue`가 `StatementOfComprehensiveIncomeAbstract` 아래에
+   1회 등장함. 직접 상위 계정 샘플이 잘리거나 역할 정의가 빠진
+   경우에는 통과하지 않음
+5. 다른 매출 개념이 동일한 별도 손익계산서 본문 역할과 계층의
+   경쟁 후보로 등장하면 통과하지 않음
+
+조건을 만족하면 `unique_revenue_primary_candidate_research_only`로
+**후보만 기록**한다. 금액이 일치한다는 것 외에 정확한 사실 인스턴스의
+`contextRef`↔본문 역할 링크가 완성된 것은 아니며, 외부 DTS,
+회계실체, PIT 재구성은 **여전히 미인증**이다.
+
+### 다음에 반드시 확보할 증거
+- XBRL 원본의 실제 사실 항목에서 정확한 QName 및 `contextRef`를
+  보존하고, 단일 XML 문맥/회계기간/원 단위/별도차원과
+  표시 역할에 있는 해당 개념을 안전하게 연결
+- 전체 외부 DTS 및 공식 별도·연결 회계 축 의미를 검증
+- 원본 접수 시각·정정 이력을 기준으로 **과거에 실제 이용 가능했던
+  원본 숫자**를 재구성하고 이후 수정된 현재 API 값과 비교
+
+이 연구 단계에서 `confirmed_scoring_allowed=false`,
+`investment_data_ready=false`, `numeric_pit_snapshot_verified=false`,
+`full_dts_verified=false`, `ofs_scope_certified=false`는 고정이다.
+스크리너/운영 자동 실행·페이지 공개에는 반영하지 않는다.
