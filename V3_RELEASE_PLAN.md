@@ -306,3 +306,46 @@ KIS 실제 이용 전:
 `kis_historical_source_retrieval_verified=false`,
 `confirmed_scoring_allowed=false`, `v3_release_ready=false`
 고정. pykrx 인터페이스 오류와 독립된 현실적인 대안 후보이다.
+
+
+## 단계 C-4 — KIS 종목별 투자자매매동향(일별) 독립 계약 (오프라인)
+
+공식 KIS 저장소에는 PR #34에서 연구한 **주식현재가 투자자**
+`FHKST01010900`과 구분되는 API가 있다. 이를 혼동해
+장기 수급/연기금 확정치로 승격하면 안 된다.
+
+- 공식 소스:
+  https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/investor_trade_by_stock_daily/investor_trade_by_stock_daily.py
+- 공식 필드 매핑:
+  https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/investor_trade_by_stock_daily/chk_investor_trade_by_stock_daily.py
+- 서비스: **종목별 투자자매매동향(일별)**,
+  TR `FHPTJ04160001`,
+  GET `/uapi/domestic-stock/v1/quotations/investor-trade-by-stock-daily`.
+- 요청 계약: `FID_COND_MRKT_DIV_CODE=J`, 6자리 종목코드,
+  기준 조회일, 공란 가격/기타 구분 필드. 공식 Python 샘플은
+  `output1`/ `output2`와 `tr_cont` 연속조회 처리를 별도로 보유.
+- 일별 수급 후보: `output2`의 `stck_bsop_date`,
+  `orgn_ntby_qty`, `frgn_ntby_qty`; 세부 후보는
+  `ivtr_ntby_qty`(투자신탁), `insu_ntby_qty`(보험),
+  `fund_ntby_qty`(기금). **'기금'만으로 '연기금'이라고
+  단정하지 않음**. 세부 주체를 기관 총합에 중복 가산하지 않음.
+
+새로운 `v3_kis_daily_investor_adapter.py`는 실제 공급자
+조회 없이 이미 전달받은 **가상/오프라인 `output2`**를
+검사한다. 20~40개 일별 레코드, 기준일, 종목코드, 시장,
+부호 있는 정수 수량, 중복/미래/결측을 fail-closed 검증하고,
+Npay와 **동일한 최근20일 날짜별 일치 여부만** 요약한다.
+세부 주체가 전부 누락되면 null, 일부 날짜만 존재하면 실패.
+30행 합성 테스트는 실제 30거래일 수신 실증이 아니다.
+`output`(주식현재가 투자자용)을 `output2`로 몰래 해석하지 않음.
+
+이 단계가 **검증하지 못한 것**: 실제 KIS API 계정/권한,
+응답 원본성, 확정/가집계·시장/시간 세션, 60/120/250거래일
+연속조회 성공, KRX 원본과 독립 일치, 자동 수집/상용 재이용
+허용, 연기금 범주 동일성. 모든 점수와 v3 출시 게이트
+false/null 유지. 키를 저장하거나 라이브 조회/주문/배포하지 않음.
+
+**다음 필요 증거**: KIS 접근 승인과 사용범위 확인 후
+단일 종목/일자부터 실증하고 일별 20건 교차대조.
+별도 KRX 정규장-only 거래량·53종목 전체 이력 및
+재무 PIT 확인 전에는 어떠한 완전 종목 순위도 발행하지 않음.
