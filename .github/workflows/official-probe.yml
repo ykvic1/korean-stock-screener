@@ -38,6 +38,20 @@ on:
         description: '14-digit financial report receipt from previous run; required for revision audit'
         required: false
         type: string
+      xbrl_compare:
+        description: 'One company: 2025 original XBRL vs current DART annual financial API; unverified for PIT'
+        type: boolean
+        default: false
+      xbrl_receipt:
+        description: 'Prior verified annual filing receipt (14 digits); XBRL comparison only'
+        required: false
+        type: string
+      xbrl_fs_div:
+        description: 'Known original accounting basis; never inferred from company name'
+        required: true
+        type: choice
+        default: OFS
+        options: [OFS, CFS]
 
 permissions:
   contents: read
@@ -65,6 +79,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_financial_sample.py' -v
           python -m unittest discover -s tests -p 'test_dart_history_research.py' -v
           python -m unittest discover -s tests -p 'test_dart_revision_audit.py' -v
+          python -m unittest discover -s tests -p 'test_dart_xbrl_compare.py' -v
       - name: Probe only authorized and bounded providers
         env:
           ASOF: ${{ inputs.asof }}
@@ -75,6 +90,9 @@ jobs:
           HISTORY_SAMPLE: ${{ inputs.history_sample }}
           REVISION_AUDIT: ${{ inputs.revision_audit }}
           REVISION_EXPECTED_RECEIPT: ${{ inputs.revision_expected_receipt }}
+          XBRL_COMPARE: ${{ inputs.xbrl_compare }}
+          XBRL_RECEIPT: ${{ inputs.xbrl_receipt }}
+          XBRL_FS_DIV: ${{ inputs.xbrl_fs_div }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         shell: bash
@@ -107,6 +125,16 @@ jobs:
             echo '::error::Prior receipt can only be used with revision audit.'
             exit 1
           fi
+          if [[ "$XBRL_COMPARE" == "true" ]]; then
+            if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || "$FINANCE_SAMPLE" == "true" || "$HISTORY_SAMPLE" == "true" || "$REVISION_AUDIT" == "true" || -z "$XBRL_RECEIPT" || -z "$SYMBOLS" ]]; then
+              echo '::error::XBRL comparison requires live DART, one symbol, valid receipt and no other modes.'
+              exit 1
+            fi
+            args+=(--xbrl-compare --xbrl-receipt "$XBRL_RECEIPT" --xbrl-fs-div "$XBRL_FS_DIV")
+          elif [[ -n "$XBRL_RECEIPT" ]]; then
+            echo '::error::Receipt is only applicable to XBRL compare mode.'
+            exit 1
+          fi
           python -m official_probe "${args[@]}"
       - name: Report clearly separated collection and validation status
         if: always()
@@ -128,6 +156,12 @@ jobs:
           print('::notice::'+message)
           if 'companies_sampled' in r.get('dart', {}):
               for c in r['dart']['companies_sampled']:
+                  if 'xbrl_comparison' in c:
+                      x = c['xbrl_comparison']
+                      print('::notice::DART XBRL numeric crosscheck code='+c['code']+
+                            ' status='+x.get('status','unavailable')+
+                            ' matching_observed='+str(x.get('equal_observed_count',0))+
+                            ' total=6; PIT_validated=false; value details only private artifact.')
                   if 'revision_audit' in c:
                       a = c['revision_audit']
                       print('::notice::DART revision code='+c['code']+
