@@ -404,3 +404,43 @@ OpenDART 재무 API 금액과 일치하지만 **금액 일치만으로 본문 �
 증거를 확인해, 표준 분류체계 관계 검증을 설계할지 결정한다.
 공식 참고: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019019
 및 https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020
+
+## 내장 XSD 역할 정의와 presentation 계층 교차 검증 (수동 연구 전용)
+
+**핵심 전제:** role URI가 손익계산서처럼 보이거나 금액이
+`fnlttSinglAcntAll.json` API와 일치해도 특정 재무제표의 **본문 계정**
+또는 특정 과거 시점의 사용 가능한 금액이라는 결론을 낼 수 없다.
+
+본 실험은 5종목 `2025/OFS/2026-10-16` 고정 원클릭에서 기존에
+다운로드한 원본 XBRL ZIP의 **동봉 XSD**를 추가로 안전하게 확인한다.
+다운로드 요청을 늘리거나 외부 taxonomy URL을 추적하지 않는다.
+
+- ZIP에 동봉된 `.xsd` 최대 8개를 ZIP 압축 해제 크기/경로 검사 후
+  파싱한다. `xs:schema` 내부 `link:roleType`의 정확한 역할 URI를
+  같은 ZIP의 `presentationLink` 역할 URI와 연결한다.
+- `link:definition` 원문을 밖으로 노출하지 않는다. 제한된
+  **본문/주석/연결/별도 관련 키워드 단서**와 정의의 해시만 기록한다.
+  `usedOn=presentationLink` 여부도 관찰하지만 본문 인증은 아니다.
+- 매출 계정이 presentation arc의 **부모**인지 **자식**인지,
+  그리고 자식일 때 **직접 상위 계정 개념(최대 8개)**이 무엇인지
+  기록한다. 이 계층 정보가 본문/주석 구분에 실질적으로 필요한 증거다.
+- 동일 역할 URI에 상충되는 XSD 정의가 있거나, 위험한 XML 엔티티,
+  한도 초과 파일이 나오면 **실패 처리**한다.
+- 외부 공식 taxonomy의 완전한 **DTS (Discoverable Taxonomy Set)**와
+  roleType/연결·별도 statement 관계를 해결하지 않으므로,
+  `embedded_role_type_definitions_complete_dts_verified=false`,
+  `primary_statement_role_verified=false`,
+  `xbrl_accounting_scope_verified=false`,
+  `historical_numeric_snapshot_verified=false`,
+  `confirmed_scoring_allowed=false`를 반드시 유지한다.
+
+한편 OpenDART `xbrlTaxonomy.json`은 공식 재무제표 양식 코드를
+구분한다. 예를 들어 `IS2`는 개별 기능별 손익계산서이고
+`IS1`은 연결 기능별 손익계산서다. 이것은 **공식 형식 정의**이지
+특정 기업의 원본 XBRL 사실을 자동으로 본문/OFS로 선정해 주는
+서비스가 아니다. <https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2020001>
+
+원본 재확보 없이 이전 Artifact에 이 증거를 추가할 수는 없으므로,
+CI 통과 후 수동 원클릭 연구를 **한 번만 재실행**하여 샘씨엔에스와
+롯데웰푸드에서 역할 정의/계정 상하 관계의 실제 증거를 확인한다.
+그때까지 매출액 두 후보와 다른 28개 값도 투자 점수로 승격하지 않는다.
