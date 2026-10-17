@@ -42,6 +42,7 @@ jobs:
             --provider dart --live \
             --symbols '252990,280360,018880,014680,064290' \
             --xbrl-batch-cases '252990:20260316001120:OFS,280360:20260312000907:OFS,018880:20260318000645:OFS,014680:20260318001424:OFS,064290:20260318001550:OFS' \
+            --xbrl-use-reviewed-2025-corp-map \
             --output evidence/official_probe/five_company_2025_ofs_research.json
       - name: Print statuses without numbers or credentials
         if: always()
@@ -82,6 +83,48 @@ jobs:
                     '; accounting_scope_verified=false; investment_scoring=false.')
           if len(cases) != 5:
               print('::warning::Not all five companies were evaluated; see private artifact.')
+          PY
+      - name: Fail the job if any of the five report probes is incomplete
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('evidence/official_probe/five_company_2025_ofs_research.json')
+          if not path.is_file():
+              raise SystemExit('Incomplete research: output missing')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          dart = data.get('dart', {})
+          pilot = dart.get('xbrl_batch_pilot') or {}
+          expected = ('252990','280360','018880','014680','064290')
+          companies = dart.get('companies_sampled') or []
+          complete = (dart.get('status') == 'observed_unverified'
+                      and tuple(c.get('code') for c in companies) == expected
+                      and pilot.get('requested_cases') == 5
+                      and pilot.get('completed_case_reports') == 5
+                      and pilot.get('company_mapping_provenance') ==
+                          'two_prior_official_probe_mapping_observations_not_live'
+                      and data.get('investment_data_ready') is False
+                      and data.get('confirmed_scoring_allowed') is False)
+          incomplete = []
+          for c in companies:
+              x = c.get('xbrl_comparison') or {}
+              m = x.get('metrics')
+              ok = (isinstance(m, dict) and len(m) == 6
+                    and x.get('financial_api_receipt_matches') is True
+                    and x.get('receipt_latest_asof') is True
+                    and x.get('xbrl_original_archive_observed') is True
+                    and x.get('investment_data_ready') is False
+                    and x.get('confirmed_scoring_allowed') is False)
+              if not ok:
+                  incomplete.append(c.get('code','unknown'))
+          if not complete or incomplete:
+              print('::error::Five-firm XBRL research INCOMPLETE; no certified or trade-ready data.')
+              print('::error::No investment scoring allowed. '
+                    'Check private artifact for unavailable cases.')
+              raise SystemExit(1)
+          print('::notice::Five-firm research data COLLECTED (5/5); '
+                'accounting scope/PIT remain UNVERIFIED and scoring BLOCKED.')
           PY
       - name: Private research artifact (7 days; never publish to Pages)
         if: always()
