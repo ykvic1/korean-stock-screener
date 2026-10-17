@@ -508,6 +508,69 @@ class XbrlNumericTests(unittest.TestCase):
         with self.assertRaises(ProbeError):
             _context_axis_members(root)
 
+
+    def test_receipt_specific_original_numbers_are_private_candidates_not_pit(self):
+        xml=xbrl().decode('utf-8').replace(
+            'xmlns:test="http://example.com/test"',
+            'xmlns:test="http://example.com/test" '
+            'xmlns:di="http://xbrl.org/2006/xbrldi"')
+        xml=xml.replace(
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>',
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>'
+            '<xbrli:segment><di:explicitMember '
+            'dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            'test:SeparateMember</di:explicitMember></xbrli:segment>')
+        r=compare_annual_xbrl(FakeDART(zip_xml(xml.encode())),
+                              CORP,2025,ASOF,RECEIPT)
+        self.assertEqual(r['original_numeric_values_source'],'receipt_specific_xbrl_zip')
+        self.assertFalse(r['historical_receipt_zip_content_immutability_verified'])
+        self.assertFalse(r['original_numeric_values_eligible_for_pit_backtest'])
+        for metric in ('revenue','operating_income','operating_cashflow',
+                       'assets','liabilities','equity'):
+            m=r['metrics'][metric]
+            self.assertEqual(m['original_receipt_numeric_candidates_count'],1)
+            cand=m['original_receipt_numeric_candidates_private'][0]
+            self.assertEqual(cand['source'],'original_xbrl_zip_by_receipt')
+            self.assertIs(type(cand['original_xbrl_amount_krw']),int)
+            self.assertTrue(cand['current_api_amount_equal'])
+            self.assertTrue(cand['unit_verified_krw'])
+            self.assertTrue(cand['fiscal_period_verified'])
+            self.assertFalse(cand['historical_pit_numeric_value_certified'])
+            self.assertFalse(cand['complete_dts_and_fs_scope_verified'])
+            self.assertFalse(cand['confirmed_scoring_allowed'])
+        self.assertEqual(r['metrics']['revenue'][
+            'original_receipt_numeric_candidates_private'][0]['original_xbrl_amount_krw'],1000)
+        self.assertFalse(r['confirmed_scoring_allowed'])
+
+    def test_revenue_has_two_original_numbers_but_one_current_api_match(self):
+        xml=xbrl().decode('utf-8').replace(
+            'xmlns:test="http://example.com/test"',
+            'xmlns:test="http://example.com/test" '
+            'xmlns:di="http://xbrl.org/2006/xbrldi"')
+        xml=xml.replace(
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>',
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>'
+            '<xbrli:segment><di:explicitMember '
+            'dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            'test:SeparateMember</di:explicitMember></xbrli:segment>')
+        xml=xml.replace(
+            '<ifrs:Revenue contextRef="D" unitRef="U" decimals="0">1000</ifrs:Revenue>',
+            '<ifrs:Revenue contextRef="D" unitRef="U" decimals="0">1000</ifrs:Revenue>'
+            '<ifrs:RevenueFromContractsWithCustomers contextRef="D" unitRef="U" decimals="0">'
+            '125</ifrs:RevenueFromContractsWithCustomers>')
+        r=compare_annual_xbrl(FakeDART(zip_xml(xml.encode())),
+                              CORP,2025,ASOF,RECEIPT)
+        m=r['metrics']['revenue']
+        c=m['original_receipt_numeric_candidates_private']
+        self.assertEqual(len(c),2)
+        self.assertEqual(sorted(v['original_xbrl_amount_krw'] for v in c),
+                         [125,1000])
+        self.assertEqual(sum(v['current_api_amount_equal'] for v in c),1)
+        self.assertEqual(m['original_receipt_numeric_candidates_count'],2)
+        self.assertFalse(m['original_receipt_numeric_candidates_scope_certified'])
+        self.assertFalse(m['original_receipt_numeric_candidates_pit_certified'])
+        self.assertFalse(r['historical_numeric_snapshot_verified'])
+
     def test_requested_ofs_scope_axis_only_is_diagnostic_not_certification(self):
         xml = xbrl(dimensioned=True).replace(
             b'xmlns:test="http://example.com/test"',
