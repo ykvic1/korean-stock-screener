@@ -255,12 +255,17 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     if not isinstance(rows, list) or not rows:
         out['status'] = 'financial_api_rows_unavailable'
         return out
+    # fs_div is a required *request* parameter, but not a documented
+    # fnlttSinglAcntAll response field. An omitted field is acceptable only
+    # for this identity gate; it does NOT independently verify OFS/CFS scope.
+    out['financial_api_fs_div_explicit_in_rows'] = all(
+        isinstance(row, dict) and 'fs_div' in row for row in rows)
     if not all(isinstance(row, dict)
                and str(row.get('corp_code', corp_code)) == corp_code
                and str(row.get('rcept_no', '')) == receipt
                and str(row.get('bsns_year', '')) == str(business_year)
                and str(row.get('reprt_code', '')) == '11011'
-               and str(row.get('fs_div', '')) == fs_div
+               and ('fs_div' not in row or str(row['fs_div']) == fs_div)
                for row in rows):
         out['status'] = 'financial_api_report_identity_mismatch'
         return out
