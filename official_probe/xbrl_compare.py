@@ -32,6 +32,7 @@ XBRLDI = '{http://xbrl.org/2006/xbrldi}'
 XLINK = '{http://www.w3.org/1999/xlink}'
 LINK = '{http://www.xbrl.org/2003/linkbase}'
 MAX_RESEARCH_AXIS_SAMPLES = 16
+MAX_PRESENTATION_ROLE_EVIDENCE = 32
 REVENUE_CONCEPTS = frozenset(('Revenue', 'RevenueFromContractsWithCustomers'))
 
 
@@ -88,18 +89,24 @@ def _safe_xml(content: bytes):
 
 
 def _local_presentation_revenue_hints(root):
-    """Count bounded, embedded presentation arcs only; no DTS/role verification.
+    """Embedded presentation arc/role evidence; not a primary-statement verdict.
 
-    A presentation network can organise statements OR notes. Its presence or
-    absence is not proof of any primary-statement role or accounting basis.
+    A single concept may appear in BOTH primary statements and notes, in
+    multiple roles. Role URI or label alone cannot certify a statement.
     """
     if root.tag != LINK + 'linkbase':
         return None
     counts = {k: 0 for k in REVENUE_CONCEPTS}
+    per_role = {}
     links = root.findall(LINK + 'presentationLink')
     if len(links) > MAX_FACTS:
         raise ProbeError('Excessive local XBRL presentation links')
     for link in links:
+        role_uri = link.get(XLINK + 'role') or ''
+        role_digest = sha256(role_uri.encode('utf-8')).hexdigest()[:16]
+        # Human-auditable evidence only: bounded and sanitised URI last part.
+        role_tail = _safe_qname_local(role_uri.rsplit('/', 1)[-1]
+                                      .rsplit('#', 1)[-1])
         labels = {}
         for loc in link.findall(LINK + 'loc'):
             name = (loc.get(XLINK + 'href') or '').split('#')[-1]
@@ -112,10 +119,14 @@ def _local_presentation_revenue_hints(root):
                     labels[label] = tail
         for arc in link.findall(LINK + 'presentationArc'):
             src, dst = arc.get(XLINK + 'from'), arc.get(XLINK + 'to')
-            for key in {labels.get(src), labels.get(dst)} & REVENUE_CONCEPTS:
-                counts[key] += 1
+            for concept in {labels.get(src), labels.get(dst)} & REVENUE_CONCEPTS:
+                counts[concept] += 1
+                key = (role_digest, role_tail, concept)
+                per_role[key] = per_role.get(key, 0) + 1
     return {'embedded_presentation_links': len(links),
-            'revenue_presentation_arc_hints': counts}
+            'revenue_presentation_arc_hints': counts,
+            'revenue_role_arc_groups': per_role}
+
 
 
 def _instance_from_zip(blob: bytes):
@@ -149,6 +160,7 @@ def _instance_from_zip(blob: bytes):
             embedded_presentation_files = 0
             embedded_presentation_links = 0
             revenue_arc_hints = {k: 0 for k in REVENUE_CONCEPTS}
+            revenue_role_groups = {}
             for e in xml_files:
                 # zip entry total size is already independently bounded.
                 raw = z.read(e)
@@ -162,9 +174,26 @@ def _instance_from_zip(blob: bytes):
                         embedded_presentation_links += hints['embedded_presentation_links']
                         for k, v in hints['revenue_presentation_arc_hints'].items():
                             revenue_arc_hints[k] += v
+                        for key, count in hints['revenue_role_arc_groups'].items():
+                            revenue_role_groups[key] = (
+                                revenue_role_groups.get(key, 0) + count)
+            # This evidence is not a resolved taxonomy set. Roles could come
+            # from financial statement OR notes; do not select any fact.
+            all_roles = sorted(revenue_role_groups.items())
+            role_samples = [
+                {'role_uri_sha256_prefix': role_hash,
+                 'role_uri_tail': role_tail,
+                 'concept_local': concept,
+                 'presentation_arc_count': count}
+                for ((role_hash, role_tail, concept), count)
+                in all_roles[:MAX_PRESENTATION_ROLE_EVIDENCE]
+            ]
             return {'embedded_presentation_files': embedded_presentation_files,
                     'embedded_presentation_links': embedded_presentation_links,
                     'revenue_presentation_arc_hints': revenue_arc_hints,
+                    'revenue_presentation_role_samples': role_samples,
+                    'revenue_presentation_role_samples_truncated':
+                        len(all_roles) > MAX_PRESENTATION_ROLE_EVIDENCE,
                     'zip_sha256': sha256(blob).hexdigest(),
                     'archive_entries': len(entries),
                     'xml_entries': len(xml_files),
@@ -413,6 +442,15 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     out['filing_list_status'] = timeline['status']
     out['receipt_latest_asof'] = timeline['expected_receipt_latest_asof']
     out['amendment_observed'] = timeline['amendment_observed']
+    # This is strictly *calendar-date* visibility from the bounded filing
+    # list, not historical financial-value PIT verification, nor a filing
+    # timestamp sufficient for trading on the filing day.
+    out['original_receipt_precedes_asof_date_only'] = bool(
+        timeline['revision_listing_complete']
+        and timeline['expected_receipt_latest_asof']
+        and not timeline['amendment_observed'])
+    out['filing_availability_granularity'] = 'calendar_date_only'
+    out['financial_api_is_historical_snapshot_verified'] = False
     if (not timeline['revision_listing_complete']
             or not timeline['expected_receipt_latest_asof']
             or timeline['amendment_observed']):
@@ -458,6 +496,11 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     out['embedded_presentation_files_observed'] = package['embedded_presentation_files']
     out['embedded_presentation_links_observed'] = package['embedded_presentation_links']
     out['revenue_embedded_presentation_arc_hints'] = package['revenue_presentation_arc_hints']
+    out['revenue_embedded_presentation_role_samples'] = package[
+        'revenue_presentation_role_samples']
+    out['revenue_embedded_presentation_role_samples_truncated'] = package[
+        'revenue_presentation_role_samples_truncated']
+    out['presentation_role_names_are_only_clues'] = True
     out['presentation_linkbase_complete_dts_verified'] = False
     out['primary_statement_role_verified'] = False
     if len(package['instances']) != 1:
