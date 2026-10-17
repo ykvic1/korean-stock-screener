@@ -33,6 +33,36 @@ def _symbols(path: Path, selection: str | None):
     return values, market, doc
 
 
+def _batch_cases(text: str, asof: str) -> dict[str, tuple[str, str]]:
+    """Strictly bounded, manually reviewed stock:receipt:scope pilot input.
+
+    No receipt discovery, guessing or automatic API access occurs here.
+    """
+    if not isinstance(text, str):
+        raise ValueError('XBRL pilot cases require explicit text')
+    pieces = text.split(',')
+    if not 2 <= len(pieces) <= 5:
+        raise ValueError('XBRL pilot requires 2-5 explicitly listed cases')
+    result = {}
+    first_allowed = f"{int(asof[:4]):04d}0101"
+    cutoff = canonical_date(asof)
+    for piece in pieces:
+        matched = re.fullmatch(r'(\d{6}):(\d{14}):(OFS|CFS)', piece.strip())
+        if not matched:
+            raise ValueError('Each XBRL pilot case must be CODE:RECEIPT:OFS|CFS')
+        stock, receipt, scope = matched.groups()
+        if stock in result:
+            raise ValueError('Duplicate XBRL pilot stock code')
+        try:
+            date.fromisoformat(receipt[:4] + '-' + receipt[4:6] + '-' + receipt[6:8])
+        except ValueError:
+            raise ValueError('XBRL pilot receipt contains invalid date') from None
+        if not first_allowed <= receipt[:8] < cutoff:
+            raise ValueError('XBRL pilot receipt must be dated within the completed asof window')
+        result[stock] = (receipt, scope)
+    return result
+
+
 def run(argv=None, *, krx_session=None, dart_session=None):
     p = argparse.ArgumentParser(description='Bounded official data connection smoke test; NO automatic publishing')
     p.add_argument('--asof', required=True, help='YYYY-MM-DD, use a completed trading date')
@@ -47,6 +77,7 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--revision-expected-receipt', help='14-digit report receipt previously observed from OpenDART financial sample')
     p.add_argument('--xbrl-compare', action='store_true', help='one-company original annual XBRL vs current DART finance API comparison')
     p.add_argument('--xbrl-receipt', help='14-digit verified annual filing receipt for XBRL comparison')
+    p.add_argument('--xbrl-batch-cases', help='2-5 explicit CODE:RECEIPT:OFS|CFS records; DART live research only')
     p.add_argument('--xbrl-fs-div', choices=('OFS', 'CFS'), default='OFS', help='accounting basis must be explicitly selected in manual workflow')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
     args = p.parse_args(argv)
@@ -62,6 +93,12 @@ def run(argv=None, *, krx_session=None, dart_session=None):
             p.error('Prior financial receipt must be exactly 14 digits')
     elif args.revision_expected_receipt:
         p.error('A revision receipt cannot be submitted unless revision audit is selected')
+    if args.xbrl_batch_cases:
+        if (not args.live or args.provider != 'dart' or args.finance_sample
+                or args.history_sample or args.revision_audit
+                or args.xbrl_compare or args.xbrl_receipt
+                or args.revision_expected_receipt):
+            p.error('XBRL batch pilot requires DART live only, with all other samples disabled')
     if args.xbrl_compare:
         if (not args.live or args.provider != 'dart' or args.finance_sample
                 or args.history_sample or args.revision_audit
@@ -70,7 +107,13 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     elif args.xbrl_receipt:
         p.error('An XBRL receipt requires --xbrl-compare')
     canonical_date(args.asof)
+    try:
+        pilot_cases = _batch_cases(args.xbrl_batch_cases, args.asof) if args.xbrl_batch_cases else {}
+    except ValueError as exc:
+        p.error(str(exc))
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
+    if pilot_cases and (not args.symbols or list(pilot_cases) != codes):
+        p.error('XBRL pilot cases must match all explicitly selected symbols in the same order')
     if args.history_sample and (len(codes) != 1 or args.dart_limit not in (1, 2)):
         p.error('History sample requires exactly one explicit stock symbol')
     if args.revision_audit and (len(codes) != 1 or not args.symbols):
@@ -130,7 +173,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 mapping = client.corp_mapping()
                 sample = []
                 start = (date.fromisoformat(args.asof)-timedelta(days=90)).isoformat()
-                for code in codes[:args.dart_limit]:
+                # Pilot mode is separately limited to 2-5 cases by preflight.
+                for code in (codes if pilot_cases else codes[:args.dart_limit]):
                     corp = mapping.get(code)
                     if not corp:
                         sample.append({'code': code, 'status': 'corp_code_unmapped'})
@@ -177,11 +221,14 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                                 'status': 'failed', 'financial_numeric_changes_verified': False,
                                 'revision_history_validated': False, 'investment_data_ready': False,
                                 'error': 'DART filing chronology or original document evidence unavailable'}
-                    if args.xbrl_compare:
+                    if args.xbrl_compare or pilot_cases:
                         try:
+                            receipt, scope = (
+                                pilot_cases[code] if pilot_cases else
+                                (args.xbrl_receipt, args.xbrl_fs_div))
                             item['xbrl_comparison'] = compare_annual_xbrl(
                                 client, corp, int(args.asof[:4]) - 1, args.asof,
-                                args.xbrl_receipt, fs_div=args.xbrl_fs_div)
+                                receipt, fs_div=scope)
                         except (ProbeError, ValueError):
                             item['xbrl_comparison'] = {
                                 'status': 'failed_or_unavailable',
@@ -194,6 +241,15 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
+                if pilot_cases:
+                    out['dart']['xbrl_batch_pilot'] = {
+                        'mode': 'manual_explicit_receipts_research_only',
+                        'requested_cases': len(pilot_cases),
+                        'completed_case_reports': sum('xbrl_comparison' in s for s in sample),
+                        'accounting_scope_verified': False,
+                        'point_in_time_validated': False,
+                        'investment_data_ready': False,
+                    }
             except (ProbeError, ValueError):
                 out['dart']={'status':'failed','error':'OpenDART authorization, transport or response schema not confirmed'}
     # Do not make reports date-keyed to current time: source asof is the only analytical date.

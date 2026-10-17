@@ -46,6 +46,10 @@ on:
         description: 'Prior verified annual filing receipt (14 digits); XBRL comparison only'
         required: false
         type: string
+      xbrl_batch_cases:
+        description: 'Research pilot: 2-5 CODE:14DIGIT_RECEIPT:OFS|CFS pairs, comma separated; disable xbrl_compare'
+        required: false
+        type: string
       xbrl_fs_div:
         description: 'Known original accounting basis; never inferred from company name'
         required: true
@@ -92,6 +96,7 @@ jobs:
           REVISION_EXPECTED_RECEIPT: ${{ inputs.revision_expected_receipt }}
           XBRL_COMPARE: ${{ inputs.xbrl_compare }}
           XBRL_RECEIPT: ${{ inputs.xbrl_receipt }}
+          XBRL_BATCH_CASES: ${{ inputs.xbrl_batch_cases }}
           XBRL_FS_DIV: ${{ inputs.xbrl_fs_div }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -124,6 +129,13 @@ jobs:
           elif [[ -n "$REVISION_EXPECTED_RECEIPT" ]]; then
             echo '::error::Prior receipt can only be used with revision audit.'
             exit 1
+          fi
+          if [[ -n "$XBRL_BATCH_CASES" ]]; then
+            if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || -z "$SYMBOLS" || "$XBRL_COMPARE" == "true" || -n "$XBRL_RECEIPT" || "$FINANCE_SAMPLE" == "true" || "$HISTORY_SAMPLE" == "true" || "$REVISION_AUDIT" == "true" || -n "$REVISION_EXPECTED_RECEIPT" ]]; then
+              echo '::error::XBRL batch requires DART-only live, explicit symbols/receipts, and no other modes.'
+              exit 1
+            fi
+            args+=(--xbrl-batch-cases "$XBRL_BATCH_CASES")
           fi
           if [[ "$XBRL_COMPARE" == "true" ]]; then
             if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || "$FINANCE_SAMPLE" == "true" || "$HISTORY_SAMPLE" == "true" || "$REVISION_AUDIT" == "true" || -z "$XBRL_RECEIPT" || -z "$SYMBOLS" ]]; then
