@@ -125,6 +125,17 @@ class DARTClient:
                     params={'crtfc_key': self._key, 'rcept_no': receipt},
                     limit=MAX_DART_ZIP)
 
+    def original_xbrl_zip(self, receipt: str, report_code: str = '11011') -> bytes:
+        """Fetch one report's XBRL ZIP (no credential in exceptions/logs)."""
+        if not re.fullmatch(r'\d{14}', str(receipt)):
+            raise ValueError('XBRL receipt must be 14 digits')
+        if report_code not in ('11011', '11012', '11013', '11014'):
+            raise ValueError('XBRL report code is not an approved periodic report')
+        return _get(self.session, DART_BASE + 'fnlttXbrl.xml',
+                    params={'crtfc_key': self._key, 'rcept_no': receipt,
+                            'reprt_code': report_code},
+                    limit=MAX_DART_ZIP)
+
     def corp_mapping(self) -> dict[str, str]:
         raw = _get(self.session, DART_BASE + 'corpCode.xml',
                    params={'crtfc_key': self._key}, limit=MAX_DART_ZIP)
