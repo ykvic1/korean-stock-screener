@@ -1,0 +1,27 @@
+name: V3 Npay One-shot Anonymous Schema Diagnostic
+
+on:
+  push:
+    branches: [v3/npay-one-shot-diagnostic-20261017]
+    paths: ['.github/workflows/v3-npay-once.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-one-shot-npay-research
+  cancel-in-progress: false
+
+jobs:
+  schema-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline one-shot request and no-scoring regression tests
+        run: python -m unittest discover -s tests -p test_v3_npay_schema_probe.py -v
+      - name: One anonymous GET, one fixed symbol, at most five rows
+        run: python -m v3_npay_schema_probe
