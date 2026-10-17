@@ -91,3 +91,32 @@ OpenDART 수동 연구 파이프라인은 그대로 유지한다.
   않고 v3 연구/데이터 정비 경로를 계속 진행.
 - v3.0 정식 릴리즈 여부는 `v3_release_gate`의 근거별
   검증 완료 및 운영 QA로 결정하고 **단순 버전명 변경 금지**.
+
+## v3 KRX 정규장 OHLC와 거래량 관측 계약 (단계 B-1)
+
+KRX 주식 일별매매정보는 일별 시세를 제공하지만 각 API의
+인증키 신청과 개별 서비스 관리자 승인이 필요하다.
+현재 계정의 실제 승인/사용 가능 여부는 미확인이다.
+
+공식 출처:
+https://openapi.krx.co.kr/contents/OPP/INFO/service/OPPINFO004.cmd
+https://openapi.krx.co.kr/contents/OPP/INFO/OPPINFO003.jsp
+
+신규 v3_krx_contract.py:
+- 이미 숫자/날짜/종목 검증을 거친
+  official_probe.validation.inspect_krx 결과만 입력. API 0회.
+- 관찰된 OHLC는 ohlc_observed에 보존하지만 아직 독립 검증
+  가격이라고 인증하지 않는다.
+- ACC_TRDVOL은 aggregate_acc_trdvol_observed에만 보존,
+  regular_only_volume=null을 강제. 정규장-only 거래량의
+  정확한 범위가 인증되기 전까지 OBV/거래량 지표 금지.
+- price_session=UNVERIFIED, volume_session=UNVERIFIED,
+  confirmed_scoring_allowed=false, confirmed_score=null,
+  technical_indicators_eligible=false 고정.
+- 자기 신고로 volume_session_validated=true를 넣거나
+  원본에 regular_volume을 추가하면 실패 처리한다.
+
+**단계 B-1 결과는 코드 계약/오프라인 테스트 완료이지
+실제 정규장-only 공급원 확인이나 v3 운영 승인이 아니다.**
+다음은 KRX 공식 서비스 승인 후 승인된 제한된 샘플에서
+정규장 가격/거래량 범위의 실증과 독립 대조를 수행하는 작업이다.
