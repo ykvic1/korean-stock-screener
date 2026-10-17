@@ -179,9 +179,24 @@ def _compare_metric(api_rows, parsed_facts, metric):
     a = _metric(api_rows, aliases, sections)
     api_value = a['amount_krw']
     all_facts = parsed_facts.get(metric, [])
-    # XBRL scope cannot be established solely from absence of a segment.
+    # Scope is not established by the presence/absence of a segment.
+    # Record only bounded structural counts in the private research artifact,
+    # never guess an accounting basis, candidate value or point-in-time status.
+    dimensioned_count = sum(bool(f['dimensioned']) for f in all_facts)
+    distinct_contexts = len({f['context_ref'] for f in all_facts})
+    ambiguity_reasons = []
+    if len(all_facts) > 1:
+        ambiguity_reasons.append('multiple_candidate_facts')
+    if distinct_contexts > 1:
+        ambiguity_reasons.append('multiple_xbrl_contexts')
+    if dimensioned_count:
+        ambiguity_reasons.append('segment_or_scenario_present')
     base = {'api_amount_krw': api_value, 'xbrl_amount_krw': None,
             'candidate_fact_count': len(all_facts),
+            'xbrl_dimensioned_fact_count': dimensioned_count,
+            'xbrl_undimensioned_fact_count': len(all_facts) - dimensioned_count,
+            'xbrl_distinct_context_count': distinct_contexts,
+            'xbrl_ambiguity_reasons': ambiguity_reasons,
             'xbrl_accounting_scope_verified': False,
             'historical_numeric_snapshot_verified': False,
             'scoring_allowed': False}
