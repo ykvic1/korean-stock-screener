@@ -201,7 +201,7 @@ class XbrlNumericTests(unittest.TestCase):
         xml = xml.replace(
             b'  <dart:OperatingIncomeLoss',
             b'  <ifrs:RevenueFromContractsWithCustomers contextRef="D" unitRef="U" '
-            b'decimals="0">999</ifrs:RevenueFromContractsWithCustomers>\\n'
+            b'decimals="0">999</ifrs:RevenueFromContractsWithCustomers>\n'
             b'  <dart:OperatingIncomeLoss')
         out = compare_annual_xbrl(FakeDART(zip_xml(xml)), CORP, 2025, ASOF, RECEIPT)
         m = out['metrics']['revenue']
