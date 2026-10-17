@@ -5,6 +5,7 @@ from datetime import date, timedelta, datetime, timezone
 import json
 import os
 import re
+from time import perf_counter
 from pathlib import Path
 
 from .clients import KRXClient, DARTClient, ProbeError, canonical_date, code6
@@ -180,12 +181,29 @@ def run(argv=None, *, krx_session=None, dart_session=None):
         else:
             try:
                 client = DARTClient(key, session=dart_session)
+                pilot_start = perf_counter()
+                # Research-only requests fail faster; all other DART modes keep
+                # their original timeout and API semantics.
+                if pilot_cases and hasattr(client, 'set_research_timeout'):
+                    client.set_research_timeout(12)
+                mapping_start = perf_counter()
                 mapping = client.corp_mapping()
+                mapping_elapsed_ms = int((perf_counter() - mapping_start) * 1000)
                 sample = []
                 start = (date.fromisoformat(args.asof)-timedelta(days=90)).isoformat()
                 # Pilot mode is separately limited to 2-5 cases by preflight.
                 for code in (codes if (pilot_cases or args.xbrl_discover_receipts)
                              else codes[:args.dart_limit]):
+                    if pilot_cases and perf_counter() - pilot_start > 210:
+                        sample.append({
+                            'code': code, 'status': 'pilot_soft_budget_exceeded',
+                            'xbrl_comparison': {
+                                'status': 'not_requested_due_to_research_time_budget',
+                                'metrics': None, 'confirmed_scoring_allowed': False,
+                                'investment_data_ready': False,
+                            },
+                        })
+                        continue
                     corp = mapping.get(code)
                     if not corp:
                         sample.append({'code': code, 'status': 'corp_code_unmapped'})
@@ -249,6 +267,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                                 'revision_history_validated': False, 'investment_data_ready': False,
                                 'error': 'DART filing chronology or original document evidence unavailable'}
                     if args.xbrl_compare or pilot_cases:
+                        case_start = perf_counter()
+                        timing_offset = len(getattr(client, 'research_request_timings', []))
                         try:
                             receipt, scope = (
                                 pilot_cases[code] if pilot_cases else
@@ -265,6 +285,16 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                                 'confirmed_scoring_allowed': False,
                                 'investment_data_ready': False,
                                 'error': 'XBRL archive or account comparison unavailable or unsafe'}
+                        if pilot_cases:
+                            times = list(getattr(client, 'research_request_timings', []))[timing_offset:]
+                            elapsed_ms = int((perf_counter() - case_start) * 1000)
+                            item['xbrl_research_timing'] = {
+                                'company_elapsed_ms': elapsed_ms,
+                                'sanitized_requests': times,
+                                'non_network_elapsed_ms': max(
+                                    0, elapsed_ms - sum(t['elapsed_ms'] for t in times)),
+                                'network_requests_count': len(times),
+                            }
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
@@ -279,7 +309,19 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                     out['dart']['xbrl_batch_pilot'] = {
                         'mode': 'manual_explicit_receipts_research_only',
                         'requested_cases': len(pilot_cases),
-                        'completed_case_reports': sum('xbrl_comparison' in s for s in sample),
+                        'completed_case_reports': sum(
+                            'xbrl_comparison' in s
+                            and s['xbrl_comparison']['status']
+                            != 'not_requested_due_to_research_time_budget'
+                            for s in sample),
+                        'request_timeout_seconds': 12,
+                        'soft_budget_seconds': 210,
+                        'overall_elapsed_ms': int(
+                            (perf_counter() - pilot_start) * 1000),
+                        'corp_mapping_elapsed_ms': mapping_elapsed_ms,
+                        'corp_mapping_request_timings': [
+                            t for t in getattr(client, 'research_request_timings', [])
+                            if t['stage'] == 'corp_mapping_zip'],
                         'accounting_scope_verified': False,
                         'point_in_time_validated': False,
                         'investment_data_ready': False,
