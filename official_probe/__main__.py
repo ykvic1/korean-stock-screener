@@ -12,6 +12,7 @@ from .validation import inspect_krx, filter_visible_filings, public_safety_summa
 from .financial import sample_annual_financial
 from .history import sample_history
 from .revisions import audit_annual_revisions
+from .xbrl_compare import compare_annual_xbrl
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -44,6 +45,9 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--history-sample', action='store_true', help='one-company three-year annual + Q1/H1 raw DART field study')
     p.add_argument('--revision-audit', action='store_true', help='one-company annual correction timeline + two original document hashes')
     p.add_argument('--revision-expected-receipt', help='14-digit report receipt previously observed from OpenDART financial sample')
+    p.add_argument('--xbrl-compare', action='store_true', help='one-company original annual XBRL vs current DART finance API comparison')
+    p.add_argument('--xbrl-receipt', help='14-digit verified annual filing receipt for XBRL comparison')
+    p.add_argument('--xbrl-fs-div', choices=('OFS', 'CFS'), default='OFS', help='accounting basis must be explicitly selected in manual workflow')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
     args = p.parse_args(argv)
     if args.finance_sample and (not args.live or args.provider != 'dart'):
@@ -58,12 +62,21 @@ def run(argv=None, *, krx_session=None, dart_session=None):
             p.error('Prior financial receipt must be exactly 14 digits')
     elif args.revision_expected_receipt:
         p.error('A revision receipt cannot be submitted unless revision audit is selected')
+    if args.xbrl_compare:
+        if (not args.live or args.provider != 'dart' or args.finance_sample
+                or args.history_sample or args.revision_audit
+                or not args.xbrl_receipt or not re.fullmatch(r'\d{14}', args.xbrl_receipt)):
+            p.error('XBRL comparison requires DART live, prior receipt and no other sample')
+    elif args.xbrl_receipt:
+        p.error('An XBRL receipt requires --xbrl-compare')
     canonical_date(args.asof)
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
     if args.history_sample and (len(codes) != 1 or args.dart_limit not in (1, 2)):
         p.error('History sample requires exactly one explicit stock symbol')
     if args.revision_audit and (len(codes) != 1 or not args.symbols):
         p.error('Revision audit requires exactly one explicitly selected stock')
+    if args.xbrl_compare and (len(codes) != 1 or not args.symbols):
+        p.error('XBRL comparison requires exactly one explicitly selected stock')
     if args.dart_limit not in (1, 2):
         p.error('--dart-limit must be 1 or 2')
     if args.asof > str(doc['date']):
@@ -164,6 +177,20 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                                 'status': 'failed', 'financial_numeric_changes_verified': False,
                                 'revision_history_validated': False, 'investment_data_ready': False,
                                 'error': 'DART filing chronology or original document evidence unavailable'}
+                    if args.xbrl_compare:
+                        try:
+                            item['xbrl_comparison'] = compare_annual_xbrl(
+                                client, corp, int(args.asof[:4]) - 1, args.asof,
+                                args.xbrl_receipt, fs_div=args.xbrl_fs_div)
+                        except (ProbeError, ValueError):
+                            item['xbrl_comparison'] = {
+                                'status': 'failed_or_unavailable',
+                                'metrics': None,
+                                'historical_numeric_snapshot_verified': False,
+                                'xbrl_accounting_scope_verified': False,
+                                'confirmed_scoring_allowed': False,
+                                'investment_data_ready': False,
+                                'error': 'XBRL archive or account comparison unavailable or unsafe'}
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
