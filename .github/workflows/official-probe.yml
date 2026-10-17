@@ -30,6 +30,14 @@ on:
         description: 'DART live only: ONE symbol, prior 3 annual years + Q1/H1 fields (PIT unverified)'
         type: boolean
         default: false
+      revision_audit:
+        description: 'DART live only: one stock, 2025 filing timeline + max two original document hashes'
+        type: boolean
+        default: false
+      revision_expected_receipt:
+        description: '14-digit financial report receipt from previous run; required for revision audit'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -56,6 +64,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_official_probe.py' -v
           python -m unittest discover -s tests -p 'test_dart_financial_sample.py' -v
           python -m unittest discover -s tests -p 'test_dart_history_research.py' -v
+          python -m unittest discover -s tests -p 'test_dart_revision_audit.py' -v
       - name: Probe only authorized and bounded providers
         env:
           ASOF: ${{ inputs.asof }}
@@ -64,6 +73,8 @@ jobs:
           SYMBOLS: ${{ inputs.symbols }}
           FINANCE_SAMPLE: ${{ inputs.finance_sample }}
           HISTORY_SAMPLE: ${{ inputs.history_sample }}
+          REVISION_AUDIT: ${{ inputs.revision_audit }}
+          REVISION_EXPECTED_RECEIPT: ${{ inputs.revision_expected_receipt }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         shell: bash
@@ -86,6 +97,16 @@ jobs:
             fi
             args+=(--history-sample)
           fi
+          if [[ "$REVISION_AUDIT" == "true" ]]; then
+            if [[ "$MODE" != "live" || "$PROVIDER" != "dart" || "$FINANCE_SAMPLE" == "true" || "$HISTORY_SAMPLE" == "true" || -z "$REVISION_EXPECTED_RECEIPT" || -z "$SYMBOLS" ]]; then
+              echo '::error::Revision audit requires live DART, single symbol, prior receipt and no other samples.'
+              exit 1
+            fi
+            args+=(--revision-audit --revision-expected-receipt "$REVISION_EXPECTED_RECEIPT")
+          elif [[ -n "$REVISION_EXPECTED_RECEIPT" ]]; then
+            echo '::error::Prior receipt can only be used with revision audit.'
+            exit 1
+          fi
           python -m official_probe "${args[@]}"
       - name: Report clearly separated collection and validation status
         if: always()
@@ -107,6 +128,12 @@ jobs:
           print('::notice::'+message)
           if 'companies_sampled' in r.get('dart', {}):
               for c in r['dart']['companies_sampled']:
+                  if 'revision_audit' in c:
+                      a = c['revision_audit']
+                      print('::notice::DART revision code='+c['code']+
+                            ' status='+a.get('status','unavailable')+
+                            ' filing_versions='+str(a.get('version_count',0))+
+                            ' numeric_revision_verified=false; PIT_validated=false.')
                   if 'history_sample' in c:
                       h = c['history_sample']
                       print('::notice::DART history code='+c['code']+
