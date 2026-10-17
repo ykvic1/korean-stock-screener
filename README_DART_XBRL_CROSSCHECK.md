@@ -598,3 +598,54 @@ KRX, 스크리너 정규 실행, Pages 자동 게시를 변경하지 않는다.
 이전 버전이므로 새 실조회 전에는 증거를 만든 척하지 않는다.
 추가로 API를 반복 요청하기 전에 7일 이내 원본 Artifact 및 조사 이력을
 먼저 활용한다.
+
+## 2026-10-17: 4개 실조회 독립 재현성 감사와 PIT의 한계
+
+기존 수동 연구 실행 네 차례:
+- #39015517399, #39016693336, #39019351383, #39024033475
+- 동일 기업 5곳, 동일 2025 사업보고서 접수번호/OFS 연구 요청,
+  동일 분석 기준일 2026-10-16
+- 원본 XBRL ZIP 및 현재 재무 API JSON의 SHA256이
+  각 기업에서 네 실행 모두 같았다(파일 재현성 5/5).
+- 마지막 실행 원본 숫자 후보 32건, 30개 재무계정 모두 수집,
+  현재 API와 금액 일치 후보 30건.
+
+**중요한 한계**: 조회 시점은 **모두 2026-10-17**이었다.
+네 차례의 당일 반복 조회는 재현성 검증이지
+`2026-10-16` 당시 원본 바이트와 금액이 동일했다는
+독립 타임스탬프·서명·보관 기록이 **아니다**.
+
+새 오프라인 모듈 `official_probe.pit_cross_run`은 2~8개
+기존 연구 결과 JSON에서 고정 코호트, 기업·접수번호·연도·범위,
+연구용 미인증 플래그, 완전 수집, UTC 수집시각, 전체 SHA256
+원본/현재 API 응답을 교차검사한다. 다음 사항은 엄격히 구분한다.
+
+- `all_five_repeated_sha256_pairs_stable`: 조회 구간 내 안정성
+- `all_observations_after_cutoff`: 전부 cutoff 이후 관찰
+- `complete_post_cutoff_revision_chain_verified=false`: cutoff 이후
+  공시목록을 추가 검증하지 않았음
+- `source_bytes_authenticated_at_historical_cutoff=false`:
+  cutoff 시점 원본 독립 보관/서명 미확보
+- `historical_numeric_pit_certified=false` 및
+  `confirmed_scoring_allowed=false` 고정
+
+실행 예시(실제 JSON은 기존 GitHub Actions Artifact에서 이미
+받은 로컬 비공개 파일이어야 함, **재호출 없음**):
+
+```bash
+python -m official_probe.pit_cross_run \
+  private/research_run_1.json private/research_run_2.json \
+  private/research_run_3.json private/research_run_4.json \
+  --output evidence/pit_crossrun_summary.json
+```
+
+출력은 기업 코드/검증 상태/원본 후보 총수만 저장하고
+재무 원본 금액, 응답 SHA256 원문, 인증키, 원본 XBRL은
+복제하거나 공개하지 않는다. 미확인 이력을 `PIT pass`로
+승격하지 않는다.
+
+다음 실제 진입 게이트는 **역사적 바이트 독립 증거,
+정정 접수 시점별 전체 이력, 공식 DTS의 회계실체/OFS 대응,
+공시 당일의 이용 가능 시각**이 확보되어야 한다.
+이 모두를 갖추기 전까지 운영 스크리너 실적 점수와
+백테스트에 사용하지 않는다.
