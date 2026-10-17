@@ -1,0 +1,23 @@
+# TEMPLATE ONLY: do not enable until you own a stable public-IP server,
+# have registered its EGRESS IP with Kiwoom, and checked data use rights.
+# Place at /etc/systemd/system/korean-stock-kiwoom.service after review.
+[Unit]
+Description=Private Kiwoom investor share collection (read-only)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=kiwoom
+Group=kiwoom
+WorkingDirectory=/opt/korean-stock-screener
+EnvironmentFile=/etc/korean-stock-screener/kiwoom.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/korean-stock-screener/v3_kiwoom_auto_collector.py --live --codes 252990 --private-dir /var/lib/korean-stock-screener/kiwoom
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/korean-stock-screener/kiwoom
+# No trading, public site update or secrets in this unit.
