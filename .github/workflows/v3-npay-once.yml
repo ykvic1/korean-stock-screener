@@ -23,5 +23,7 @@ jobs:
           python-version: '3.11'
       - name: Offline one-shot request and no-scoring regression tests
         run: python -m unittest discover -s tests -p test_v3_npay_schema_probe.py -v
-      - name: One anonymous GET, one fixed symbol, at most twenty rows
-        run: python -m v3_npay_schema_probe
+      - name: Strict numeric parser regression tests (no network)
+        run: python -m unittest discover -s tests -p test_v3_npay_numeric_probe.py -v
+      - name: Third and final one-shot GET of 20 signed-share rows
+        run: python -m v3_npay_numeric_probe
