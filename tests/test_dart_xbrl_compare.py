@@ -328,6 +328,117 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertFalse(out['confirmed_scoring_allowed'])
         self.assertEqual(f.xbrl_calls, [])
 
+
+    def test_embedded_xsd_role_definitions_join_presentation_graph_but_not_certify(self):
+        xsd = b'''<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:link="http://www.xbrl.org/2003/linkbase">
+          <xs:annotation><xs:appinfo>
+            <link:roleType roleURI="https://example.org/role/SeparateIncomeStatement">
+              <link:definition>Separate Income Statement</link:definition>
+              <link:usedOn>link:presentationLink</link:usedOn>
+            </link:roleType>
+            <link:roleType roleURI="https://example.org/role/RevenueNotes">
+              <link:definition>Disclosure notes about revenue</link:definition>
+              <link:usedOn>link:presentationLink</link:usedOn>
+            </link:roleType>
+          </xs:appinfo></xs:annotation>
+        </xs:schema>'''
+        presentation = b'''<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+          <link:presentationLink xlink:role="https://example.org/role/SeparateIncomeStatement">
+            <link:loc xlink:label="parent" xlink:href="tax.xsd#ifrs-full_ProfitLoss"/>
+            <link:loc xlink:label="r" xlink:href="tax.xsd#ifrs-full_Revenue"/>
+            <link:presentationArc xlink:from="parent" xlink:to="r"/>
+          </link:presentationLink>
+          <link:presentationLink xlink:role="https://example.org/role/RevenueNotes">
+            <link:loc xlink:label="parent" xlink:href="tax.xsd#ifrs-full_DisclosureOfRevenue"/>
+            <link:loc xlink:label="r" xlink:href="tax.xsd#ifrs-full_RevenueFromContractsWithCustomers"/>
+            <link:presentationArc xlink:from="parent" xlink:to="r"/>
+          </link:presentationLink>
+        </link:linkbase>'''
+        zip_bytes = BytesIO()
+        with ZipFile(zip_bytes, 'w') as z:
+            z.writestr('instance.xbrl', xbrl())
+            z.writestr('extension.xsd', xsd)
+            z.writestr('presentation.xml', presentation)
+        report = compare_annual_xbrl(FakeDART(zip_bytes.getvalue()),
+                                     CORP, 2025, ASOF, RECEIPT)
+        self.assertEqual(report['embedded_xsd_file_count'], 1)
+        self.assertEqual(report['embedded_role_type_count'], 2)
+        roles = {x['concept_local']: x
+                 for x in report['revenue_embedded_presentation_role_samples']}
+        self.assertEqual(set(roles), {'Revenue','RevenueFromContractsWithCustomers'})
+        self.assertTrue(all(v['embedded_role_type_found'] for v in roles.values()))
+        self.assertTrue(all(v['embedded_role_type_used_on_presentation']
+                            for v in roles.values()))
+        self.assertIn('income_statement',
+                      roles['Revenue']['embedded_role_definition_hints_unverified'])
+        self.assertIn('notes',
+                      roles['RevenueFromContractsWithCustomers']['embedded_role_definition_hints_unverified'])
+        self.assertEqual(roles['Revenue']['direct_parent_concept_local_samples'],
+                         ['ProfitLoss'])
+        self.assertEqual(roles['RevenueFromContractsWithCustomers']['direct_parent_concept_local_samples'],
+                         ['DisclosureOfRevenue'])
+        self.assertEqual(roles['Revenue']['as_child_arc_count'], 1)
+        self.assertEqual(roles['Revenue']['as_parent_arc_count'], 0)
+        self.assertFalse(report['embedded_role_type_definitions_complete_dts_verified'])
+        self.assertFalse(report['primary_statement_role_verified'])
+        self.assertFalse(report['xbrl_accounting_scope_verified'])
+        self.assertFalse(report['historical_numeric_snapshot_verified'])
+        self.assertFalse(report['confirmed_scoring_allowed'])
+        self.assertFalse(report['investment_data_ready'])
+        self.assertNotIn('Separate Income Statement', json.dumps(report))
+
+    def test_missing_schema_is_unknown_not_statement_denial(self):
+        presentation = b'''<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+          <link:presentationLink xlink:role="https://example.org/role/IncomeStatement">
+            <link:loc xlink:label="p" xlink:href="tax.xsd#ifrs-full_ProfitLoss"/>
+            <link:loc xlink:label="r" xlink:href="tax.xsd#ifrs-full_Revenue"/>
+            <link:presentationArc xlink:from="p" xlink:to="r"/>
+          </link:presentationLink>
+        </link:linkbase>'''
+        zbytes = BytesIO()
+        with ZipFile(zbytes,'w') as z:
+            z.writestr('instance.xbrl',xbrl())
+            z.writestr('presentation.xml',presentation)
+        result = _instance_from_zip(zbytes.getvalue())
+        roles = result['revenue_presentation_role_samples']
+        self.assertEqual(result['embedded_xsd_file_count'],0)
+        self.assertFalse(roles[0]['embedded_role_type_found'])
+        self.assertFalse(roles[0]['embedded_role_type_used_on_presentation'])
+        self.assertFalse(result['embedded_role_type_definitions_complete_dts_verified'])
+
+    def test_conflicting_embedded_role_type_definitions_fail_closed(self):
+        prefix = b'''<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:link="http://www.xbrl.org/2003/linkbase"><xs:annotation>
+            <xs:appinfo><link:roleType roleURI="https://example.org/role/X">
+            <link:definition>'''
+        suffix = b'''</link:definition><link:usedOn>link:presentationLink</link:usedOn>
+            </link:roleType></xs:appinfo></xs:annotation></xs:schema>'''
+        zbytes = BytesIO()
+        with ZipFile(zbytes,'w') as z:
+            z.writestr('instance.xbrl',xbrl())
+            z.writestr('a.xsd',prefix + b'Income Statement' + suffix)
+            z.writestr('b.xsd',prefix + b'Note Disclosure' + suffix)
+        with self.assertRaises(ProbeError):
+            _instance_from_zip(zbytes.getvalue())
+
+    def test_xsd_document_type_and_unbounded_schema_count_fail_closed(self):
+        raw = BytesIO()
+        with ZipFile(raw,'w') as z:
+            z.writestr('instance.xbrl',xbrl())
+            for i in range(9):
+                z.writestr('extension%d.xsd'%i, b'<xs:schema/>')
+        with self.assertRaises(ProbeError):
+            _instance_from_zip(raw.getvalue())
+        raw2 = BytesIO()
+        with ZipFile(raw2,'w') as z:
+            z.writestr('instance.xbrl',xbrl())
+            z.writestr('extension.xsd',b'<!DOCTYPE x [<!ENTITY a "x">]><x/>')
+        with self.assertRaises(ProbeError):
+            _instance_from_zip(raw2.getvalue())
+
     def test_requested_ofs_scope_axis_only_is_diagnostic_not_certification(self):
         xml = xbrl(dimensioned=True).replace(
             b'xmlns:test="http://example.com/test"',
