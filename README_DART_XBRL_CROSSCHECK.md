@@ -200,3 +200,42 @@ segment 또는 scenario가 있는 것으로 관찰되었다. 재무 API 접수�
 
 KRX 정규장 거래량·기관·외국인 수급의 별도 공식 데이터 검증이
 끝나기 전까지 운영 v2.2 스크리너의 투자용 점수에 연결하지 않는다.
+
+## 매출액 2중 후보 개념·표시구조 진단 (PR #19 연구 전용)
+
+2026-10-17의 5개 기업 연구 결과에서 OFS 단일 차원 후보 30개 중
+샘씨엔에스(252990)와 롯데웰푸드(280360)의 **매출액만 두 후보**가
+관찰되었다. 각 매출액에서 공식 API와 일치하는 후보는 하나였으나,
+단순 금액 일치를 기준으로 원본을 채택해서는 안 된다.
+
+### 추가하는 진단 증거
+- 기존 XBRL 표준 계정 whitelist를 이용해 별도재무제표 단일 차원에 속한
+  매출액 후보를 **XBRL 개념 로컬 이름**(예:
+  `Revenue` 및 `RevenueFromContractsWithCustomers`)과 원래 namespace의
+  SHA-256 앞 16자리로 그룹화한다. 원본 namespace URL은 저장하지 않는다.
+- 개념별 후보 개수, 서로 다른 회계 문맥 수, 서로 다른 금액의 **개수**,
+  API 금액과 일치하는 후보의 **개수**만 진단한다. 후보 숫자나 XML 원문을
+  새 필드에 기록하지 않는다.
+- 다중 후보를 `multiple_taxonomy_concepts_or_namespaces`,
+  `same_concept_distinct_contexts`,
+  `same_concept_same_context_multiple_facts`로 분류.
+  이는 **증거 분류**일 뿐 어떤 재무 개념이 정답인지 판단하지 않는다.
+- ZIP 안에 발표(presentation) linkbase XML이 **동봉된 경우에만**
+  로컬 locator + arc 구조가 참조한 매출액 개념의 건수를 부가 기록한다.
+  외부 taxonomy/DTS는 다운로드·해석하지 않는다. linkbase 미동봉은
+  정보 미확인일 뿐 발표구조가 없다는 뜻이 아니다.
+
+### 신뢰성 제한
+XBRL International에 따르면 차원은 사실의 문맥 측면이며, presentation
+linkbase 관계는 재무제표 본문뿐 아니라 기타 보고 목적에도 사용할 수
+있다. 로컬 계정명이나 하나의 presentation arc만으로 본문이라는
+판정은 불가능하다.
+
+- 참고: https://www.xbrl.org/Specification/xbrl-xml/REC-2021-10-13%2Berrata-2023-04-19/xbrl-xml-REC-2021-10-13%2Bcorrected-errata-2023-04-19.html
+- 참고: https://www.xbrl.org/specification/xbrl-recommendation-2003-12-31.pdf
+- OpenDART XBRL 원본 API: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019019
+
+**기존 회계범위/과거 시점(PIT)/재무 점수 차단 상태와
+OpenDART API 요청 수, 운영 v2.2 기능을 변경하지 않는다.**
+신규 로그 진단은 향후 사용자가 직접 5개 기업 수동 워크플로를 재실행했을
+때 비공개 7일 Artifact에 추가된다.
