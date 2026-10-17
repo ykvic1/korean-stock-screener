@@ -267,3 +267,42 @@ KRX 정보데이터시스템에는 개별종목 투자자별 거래실적 메뉴
 이번에 구현한 일자별 20/20 수량 비교기를 재사용한다.
 현재 시장 데이터 자동화·재배포는 라이선스 확인 전 보류.
 v3 IAS 수급 배점과 완전 순위는 여전히 미출시.
+
+## 단계 C-3 — KIS 공식 문서 기반 투자자별 일자 수급 계약 (오프라인)
+
+2026-10-17 재확인한 공식 한국투자증권 Open API 소스:
+
+- 한국투자증권 공식 API 카탈로그:
+  https://apiportal.koreainvestment.com/apiservice-category
+  - 국내주식 기본시세: **주식현재가 투자자**
+  - 국내주식 시세분석: **종목별 투자자매매동향(일별)**
+- 공식 GitHub 예제:
+  https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/inquire_investor/inquire_investor.py
+- 공식 필드 매핑:
+  https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/inquire_investor/chk_inquire_investor.py
+- 요청 계약: 실전 TR `FHKST01010900`,
+  경로 `/uapi/domestic-stock/v1/quotations/inquire-investor`,
+  `FID_COND_MRKT_DIV_CODE=J`(KRX), 종목코드,
+  응답 `stck_bsop_date`, `frgn_ntby_qty`, `orgn_ntby_qty`.
+  외국인 항목은 '외국인+기타외국인'을 뜻할 수 있어 Npay
+  정의와의 동일성은 **실제 일자별 비교 전에는 미인증**.
+
+`v3_kis_investor_adapter.py`는 상기 공식 샘플 스키마의
+**오프라인 가상 응답**을 엄격히 검사하여 기존 Npay 날짜별
+20개 비교기와 연결한다. 누락/문자열-소수/중복/미래 날짜/
+틀린 종목/잘못된 시장코드/20행 미만/응답 성공코드 오류는
+예외 처리한다. 연결·토큰 발급·로그 출력·주문/거래·구독은 없다.
+
+KIS 실제 이용 전:
+1. 사용자/계정의 KIS Open API 서비스 이용·API 키 승인 확인.
+2. 별도 GitHub Secrets에만 키를 등록(코드·로그·채팅 입력 금지).
+3. 실제 단일 종목/최대20~30거래일 자료를 공식 응답과
+   Npay 후보의 **일자별 수량 일치**로 연구 검증.
+4. 시장/체결세션, 확정·가집계 여부, 재이용 조건,
+   수급집계 주체 및 최근 60·120·250일 확장성을 별도 평가.
+
+지금 당장 KIS 키가 없고 실조회도 수행하지 않았으므로
+`kis_live_authentication_and_service_access_verified=false`,
+`kis_historical_source_retrieval_verified=false`,
+`confirmed_scoring_allowed=false`, `v3_release_ready=false`
+고정. pykrx 인터페이스 오류와 독립된 현실적인 대안 후보이다.
