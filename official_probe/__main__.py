@@ -9,6 +9,7 @@ from pathlib import Path
 from .clients import KRXClient, DARTClient, ProbeError, canonical_date, code6
 from .validation import inspect_krx, filter_visible_filings, public_safety_summary
 from .financial import sample_annual_financial
+from .history import sample_history
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -38,12 +39,17 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--live', action='store_true', help='requires approved provider access and credentials')
     p.add_argument('--dart-limit', type=int, default=2, help='number of DART sample firms (1 or 2)')
     p.add_argument('--finance-sample', action='store_true', help='request prior-year CFS sample; not usable as PIT financials')
+    p.add_argument('--history-sample', action='store_true', help='one-company three-year annual + Q1/H1 raw DART field study')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
     args = p.parse_args(argv)
     if args.finance_sample and (not args.live or args.provider != 'dart'):
         p.error('Finance sample is permitted only for explicit DART live runs')
+    if args.history_sample and (not args.live or args.provider != 'dart' or args.finance_sample):
+        p.error('History sample requires explicit DART-only live run and excludes finance sample')
     canonical_date(args.asof)
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
+    if args.history_sample and (len(codes) != 1 or args.dart_limit not in (1, 2)):
+        p.error('History sample requires exactly one explicit stock symbol')
     if args.dart_limit not in (1, 2):
         p.error('--dart-limit must be 1 or 2')
     if args.asof > str(doc['date']):
@@ -124,6 +130,15 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                                 'status': 'failed', 'metric_values': None,
                                 'asof_join_validated': False,
                                 'error': 'DART annual filing/financial response could not be verified'}
+                    if args.history_sample:
+                        try:
+                            item['history_sample'] = sample_history(
+                                client, corp, args.asof, years=3)
+                        except (ProbeError, ValueError):
+                            item['history_sample'] = {
+                                'status': 'failed', 'investment_data_ready': False,
+                                'revision_history_validated': False,
+                                'error': 'DART history transport or report evidence not verified'}
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
