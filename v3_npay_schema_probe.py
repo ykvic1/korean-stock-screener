@@ -1,6 +1,6 @@
 """One-shot read-only Npay *schema* diagnostic for a single public stock.
 
-Only one anonymous GET for 252990, at most 5 rows. No retries, scraping loops,
+Only one anonymous GET for 252990, at most 20 rows. No retries, scraping loops,
 credentials, persistent data, DOM selector guesses, or investment scoring.
 The endpoint is third-party documented, NOT yet confirmed by live execution.
 Intended for a short-lived research workflow, not a production collector.
@@ -15,11 +15,12 @@ from urllib.request import Request, urlopen
 CODE = "252990"
 ENDPOINT = (
     "https://stock.naver.com/api/domestic/detail/252990/trend"
-    "?tradeType=KRX&startIdx=0&pageSize=5"
+    "?tradeType=KRX&startIdx=0&pageSize=20"
 )
 MAX_BYTES = 160_000
 MAX_KEYS = 24
 MAX_ITEMS = 5
+VALUE_KEYS = ('bizdate', 'foreignerPureBuyQuant', 'organPureBuyQuant', 'itemCode')
 
 
 def _key(key):
@@ -51,6 +52,29 @@ def _array_shapes(doc, path="root", depth=0):
     return out
 
 
+def _type_profiles(data):
+    """Type/missingness only for documented candidate keys, never market values."""
+    target = data if isinstance(data,list) else (
+        data.get("content",[]) if isinstance(data,dict) else [])
+    if not isinstance(target,list):
+        return {}
+    report={}
+    for field in VALUE_KEYS:
+        types={}
+        for row in target[:20]:
+            if not isinstance(row,dict):
+                typ="invalid_row"
+            elif field not in row:
+                typ="missing"
+            else:
+                value=row[field]
+                typ=("boolean" if isinstance(value,bool) else
+                     "null" if value is None else type(value).__name__)
+            types[typ]=types.get(typ,0)+1
+        report[field]=types
+    return report
+
+
 def summarize_response(status, data):
     """No raw stock prices, flow numbers, cookies, URLs or internal IDs."""
     if type(status) is not int or status < 200 or status >= 300:
@@ -71,6 +95,7 @@ def summarize_response(status, data):
         "root_key_names":sorted(k for k in data if _key(k))[:MAX_KEYS]
             if isinstance(data,dict) else [],
         "nested_array_shapes":_array_shapes(data),
+        "candidate_field_types":_type_profiles(data),
         "json_object_observed":True,
         "data_shape_validated":False,
         "flow_values_verified":False,
