@@ -239,3 +239,31 @@ KRX 정보데이터시스템에는 개별종목 투자자별 거래실적 메뉴
 합의되지 않은 약관/응답 정의·KRX 공식 유료 계정 키를 추측하지
 않는다. 현 단계는 데이터를 **독립적으로 대조할 수 있는지** 확인하며
 정식 v3 출시 일정 약속이 아니다.
+
+### 2026-10-17 실제 1회 교차대조 실행 결과
+
+한 종목 252990 / 거래일 기준 2026-10-16 / 임시 연구 GitHub Actions
+#39032607039 (read-only, 1회):
+- 오프라인 7개 회귀테스트 통과.
+- Npay 익명 공개 트렌드 20행 파싱 완료. 제공 데이터 해석 수준은
+  날짜·기관/외인 부호 있는 순매수 숫자이며 독립 검증 미완료.
+- 이어서 pykrx `get_market_trading_volume_by_date` 1회 호출했으나
+  내부 KRX 제공자 함수 `get_market_trading_value_and_volume_on_ticker_by_date`
+  처리 단계에서 `Expecting value: line 1 column 1 (char 0)`
+  메시지와 함께 **`ValueError` 발생**.
+- 연구 결과: `alternate_krx_interface_unavailable_or_invalid`,
+  `independent_crosscheck_verified=false`,
+  `confirmed_scoring_allowed=false`.
+- 이것은 공급원 조회/응답 형식 문제이며 **실제 Npay vs KRX 숫자
+  불일치라고 판단할 근거가 아니다**.
+- 차단 원인은 KRX 승인 부재라고 단정하지 않는다(현재 서버 응답 원문,
+  라이브 인증/스키마 진단 미확보).
+- 실제 요청은 이 1회로 종료. 무한 재시도·봇 탐지 회피·예측용 숫자
+  채택 없이 임시 GitHub push 실험 워크플로 삭제.
+
+**다음 우선순위:** 공식 KRX 개별종목 기관/외인 수급 조회의
+제공 서비스 범위/계정 권한, 검증 가능한 원본 단위와 거래소
+세션 계약을 확인. 이후 다른 독립 공급원이 제공되는 경우,
+이번에 구현한 일자별 20/20 수량 비교기를 재사용한다.
+현재 시장 데이터 자동화·재배포는 라이선스 확인 전 보류.
+v3 IAS 수급 배점과 완전 순위는 여전히 미출시.
