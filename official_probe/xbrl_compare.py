@@ -28,6 +28,34 @@ MAX_TOTAL_EXTRACTED = 75_000_000
 MAX_XML_DOCUMENTS = 30
 MAX_CONTEXTS = 20000
 MAX_FACTS = 150000
+XBRLDI = '{http://xbrl.org/2006/xbrldi}'
+MAX_RESEARCH_AXIS_SAMPLES = 16
+
+
+def _safe_qname_local(raw):
+    """Whitelisted local QName fragment, NOT a namespace or accounting proof."""
+    if not isinstance(raw, str):
+        return 'unrecognized'
+    value = raw.strip()
+    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.-]{0,79}(?::[A-Za-z_][A-Za-z0-9_.-]{0,79})?', value):
+        return 'unrecognized'
+    return value.rsplit(':', 1)[-1]
+
+
+def _context_axis_members(context):
+    """Read bounded explicit/typed dimension metadata; never retain typed values."""
+    members = set()
+    for node in context.iter():
+        if node.tag == XBRLDI + 'explicitMember':
+            members.add(('explicit',
+                         _safe_qname_local(node.get('dimension')),
+                         _safe_qname_local(node.text)))
+        elif node.tag == XBRLDI + 'typedMember':
+            members.add(('typed',
+                         _safe_qname_local(node.get('dimension')),
+                         'typed_value_hidden'))
+    return tuple(sorted(members)[:MAX_RESEARCH_AXIS_SAMPLES])
+
 
 
 def _concept(tag: str):
@@ -129,7 +157,8 @@ def _instance_facts(root, business_year):
         # Segmented, scenario and dimensioned facts may be CFS / OFS / notes.
         dimensioned = (entity is not None and entity.find(IX + 'segment') is not None
                        or context.find(IX + 'scenario') is not None)
-        contexts[cid] = (_context_dates(context), dimensioned)
+        contexts[cid] = (_context_dates(context), dimensioned,
+                         _context_axis_members(context))
         if len(contexts) > MAX_CONTEXTS:
             raise ProbeError('Excessive XBRL contexts')
     units = {}
@@ -155,7 +184,7 @@ def _instance_facts(root, business_year):
         context = contexts.get(element.get('contextRef'))
         if context is None or not units.get(element.get('unitRef'), False):
             continue
-        dt, dimensioned = context
+        dt, dimensioned, axes = context
         is_balance = local in ('Assets', 'Liabilities', 'Equity')
         if dt != (expected_instant if is_balance else expected_duration):
             continue
@@ -170,6 +199,7 @@ def _instance_facts(root, business_year):
                 facts[key].append({'amount_krw': int(raw),
                                    'dimensioned': bool(dimensioned),
                                    'context_ref': element.get('contextRef'),
+                                   'dimension_axes': axes,
                                    'precision': element.get('decimals', 'unknown')})
     return facts
 
@@ -184,6 +214,15 @@ def _compare_metric(api_rows, parsed_facts, metric):
     # never guess an accounting basis, candidate value or point-in-time status.
     dimensioned_count = sum(bool(f['dimensioned']) for f in all_facts)
     distinct_contexts = len({f['context_ref'] for f in all_facts})
+    axis_counts = {}
+    for fact in all_facts:
+        for axis in fact.get('dimension_axes', ()):
+            axis_counts[axis] = axis_counts.get(axis, 0) + 1
+    # Only axis/member names and counts, never raw context ids or XBRL fact values.
+    axis_samples = [
+        {'kind': k, 'axis_local': a, 'member_local': m, 'candidate_fact_count': n}
+        for (k, a, m), n in sorted(axis_counts.items())[:MAX_RESEARCH_AXIS_SAMPLES]
+    ]
     ambiguity_reasons = []
     if len(all_facts) > 1:
         ambiguity_reasons.append('multiple_candidate_facts')
@@ -196,6 +235,14 @@ def _compare_metric(api_rows, parsed_facts, metric):
             'xbrl_dimensioned_fact_count': dimensioned_count,
             'xbrl_undimensioned_fact_count': len(all_facts) - dimensioned_count,
             'xbrl_distinct_context_count': distinct_contexts,
+            'xbrl_candidate_api_amount_equal_count': (
+                sum(f['amount_krw'] == api_value for f in all_facts)
+                if api_value is not None else None),
+            'xbrl_dimension_axis_samples': axis_samples,
+            'xbrl_unparsed_dimensioned_fact_count': sum(
+                bool(f['dimensioned']) and not f.get('dimension_axes')
+                for f in all_facts),
+            'xbrl_axis_samples_truncated': len(axis_counts) > MAX_RESEARCH_AXIS_SAMPLES,
             'xbrl_ambiguity_reasons': ambiguity_reasons,
             'xbrl_accounting_scope_verified': False,
             'historical_numeric_snapshot_verified': False,
