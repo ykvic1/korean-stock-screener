@@ -166,6 +166,37 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertIsNone(evidence['xbrl_amount_krw'])
         self.assertFalse(evidence['historical_numeric_snapshot_verified'])
 
+    def test_explicit_dimension_axis_is_diagnostic_not_scope_validation(self):
+        xml = xbrl(dimensioned=True).replace(
+            b'xmlns:test="http://example.com/test"',
+            b'xmlns:test="http://example.com/test" '
+            b'xmlns:xbrldi="http://xbrl.org/2006/xbrldi"').replace(
+            b'<test:dimension>OFS</test:dimension>',
+            b'<xbrldi:explicitMember dimension="test:FinancialStatementsAxis">'
+            b'test:SeparateMember</xbrldi:explicitMember>')
+        c = FakeDART(zip_xml(xml))
+        out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT)
+        metric = out['metrics']['revenue']
+        self.assertEqual(metric['status'], 'xbrl_fact_or_scope_ambiguous')
+        self.assertEqual(metric['xbrl_candidate_api_amount_equal_count'], 1)
+        self.assertEqual(metric['xbrl_unparsed_dimensioned_fact_count'], 0)
+        self.assertEqual(metric['xbrl_dimension_axis_samples'], [{
+            'kind': 'explicit', 'axis_local': 'FinancialStatementsAxis',
+            'member_local': 'SeparateMember', 'candidate_fact_count': 1}])
+        self.assertIsNone(metric['xbrl_amount_krw'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+        self.assertFalse(out['xbrl_accounting_scope_verified'])
+        self.assertFalse(out['investment_data_ready'])
+
+    def test_candidate_amount_equality_diagnostic_never_overrides_ambiguity(self):
+        c = FakeDART(zip_xml(xbrl(dimensioned=True, revenue=1001)))
+        out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT)
+        metric = out['metrics']['revenue']
+        self.assertEqual(metric['xbrl_candidate_api_amount_equal_count'], 0)
+        self.assertEqual(metric['xbrl_unparsed_dimensioned_fact_count'], 1)
+        self.assertEqual(metric['status'], 'xbrl_fact_or_scope_ambiguous')
+        self.assertFalse(out['asof_join_validated'])
+
     def test_wrong_period_or_currency_not_matched(self):
         for case in (xbrl(period_end='2024-12-31'), xbrl(unit='iso4217:USD')):
             with self.subTest(case=case[:100]):
