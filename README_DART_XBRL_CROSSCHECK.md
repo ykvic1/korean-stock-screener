@@ -362,3 +362,45 @@ OpenDART API 요청 수, 운영 v2.2 기능을 변경하지 않는다.**
 
 - 공식 개발가이드: https://opendart.fss.or.kr/guide/main.do
 - 공식 제한 오류 설명: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DE005&apiId=AE00050
+
+## 2026-10-17 별도재무제표 매출액 본문 역할 및 PIT 증거 검증
+
+### 문제 정의
+5종목 파일럿 #39015517399의 실제 원본에서 샘씨엔에스와 롯데웰푸드는
+매출액 본문 후보가 2개이며 계정 개념이 각각 `Revenue`와
+`RevenueFromContractsWithCustomers`로 다르다. 전자는 현재
+OpenDART 재무 API 금액과 일치하지만 **금액 일치만으로 본문 여부를
+선택하지 않는다.**
+
+원본 XBRL ZIP에는 presentation 링크베이스가 포함되어 있으나,
+기존에는 개념별 총 arc 수만 기록하여 **해당 개념이 어느 역할
+(Income Statement인지 Note인지)에 연결됐는지 구분할 증거가 없었다.**
+
+### 실험 전용 추가 증거
+- ZIP에 포함된 XBRL presentation linkbase마다 매출액 개념이 관여하는
+  `presentationArc`를 해당 `presentationLink`의 역할 URI로 그룹화.
+  `role_uri_tail`은 문법 검사를 거친 최대 80자 문자열,
+  `role_uri_sha256_prefix`는 역할 URI의 해시 16자리,
+  `concept_local`과 `presentation_arc_count`만 남긴다.
+  그룹 샘플은 최대 32개, 추가 그룹 존재시 `truncated=true`.
+- 파일 내부 role 이름에 `IncomeStatement`라는 문구가 보이더라도
+  이는 **탐색용 단서일 뿐 본문 판정이 아니다**. 주석에서도 해당
+  계정은 참조될 수 있으며, 외부 DTS schema/roleType 정의, 정확한
+  관계 구조, 해당 fact의 문맥을 별도로 결합하지 않았다.
+- 사업보고서 공시목록의 최신(기준일 이전) 접수번호가 정정 내역 없이
+  일치하면 `original_receipt_precedes_asof_date_only=true`로 기록한다.
+  이 증거는 **달력 날짜 수준**이며 실제 공시 시각과 당일 거래 가능 여부,
+  2025년 시점 숫자 버전, 후속 재작성 여부까지 검증한 것은 아니다.
+- `financial_api_is_historical_snapshot_verified=false`,
+  `historical_numeric_snapshot_verified=false`,
+  `presentation_linkbase_complete_dts_verified=false`,
+  `primary_statement_role_verified=false`,
+  `xbrl_accounting_scope_verified=false` 및 투자 점수 불허를 유지.
+
+### 보수적 의사결정
+이번 추가 필드는 원본 파일의 **증거 수집 단계**다.
+본문 계정/연결·별도 범위/시점별 숫자 재구성까지 자동으로 완료했다고
+표시하지 않는다. 실제 5개 기업 원클릭 워크플로 재실행 후 이 역할별
+증거를 확인해, 표준 분류체계 관계 검증을 설계할지 결정한다.
+공식 참고: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2019019
+및 https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020
