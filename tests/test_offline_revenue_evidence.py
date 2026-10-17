@@ -89,6 +89,53 @@ class OfflineRevenueEvidenceTests(unittest.TestCase):
                      'investment_data_ready'):
             self.assertIs(x[flag], False)
 
+
+    def test_alternate_income_statement_abstract_is_a_valid_research_clue(self):
+        x=fixture_report()
+        x['revenue_embedded_presentation_role_samples'][0][
+            'direct_parent_concept_local_samples']=['IncomeStatementAbstract']
+        verdict=examine_revenue_report(x)
+        self.assertEqual(verdict['status'],
+                         'unique_revenue_primary_candidate_research_only')
+        self.assertEqual(verdict['original_numeric_fact_provenance_status'],
+                         'not_recorded_in_prior_summary')
+        self.assertFalse(verdict['full_dts_verified'])
+        self.assertFalse(verdict['numeric_pit_snapshot_verified'])
+        self.assertFalse(verdict['confirmed_scoring_allowed'])
+
+    def test_individual_fact_fingerprint_is_reconciled_without_scope_certification(self):
+        x=fixture_report()
+        m=x['metrics']['revenue']
+        m['xbrl_revenue_fact_context_evidence']=[
+            {'concept_local':'Revenue',
+             'concept_namespace_sha256_prefix':'a'*16,
+             'concept_qname_sha256_prefix':'f'*16,
+             'context_ref_sha256_prefix':'c'*16,
+             'issuer_id_sha256_prefix':'1'*16,
+             'issuer_scheme_sha256_prefix':'2'*16,
+             'current_api_amount_equal':True, 'unit_verified_krw':True,
+             'fiscal_period_verified':True,
+             'dimension_axes_exactly_separate_pattern_local_only':True,
+             'role_to_numeric_fact_instance_membership_verified':False,
+             'issuer_identity_verified_against_corp_code':False,
+             'historical_pit_numeric_value_certified':False,
+             'confirmed_scoring_allowed':False},
+            {'concept_local':'RevenueFromContractsWithCustomers',
+             'concept_namespace_sha256_prefix':'b'*16,
+             'current_api_amount_equal':False},
+        ]
+        result=examine_revenue_report(x)
+        self.assertEqual(result['status'],
+                         'unique_revenue_primary_candidate_research_only')
+        self.assertEqual(result['original_numeric_fact_provenance_status'],
+                         'one_receipt_bound_revenue_fact_fingerprint_observed_no_scope_or_pit_certification')
+        self.assertFalse(result['individual_fact_to_presentation_role_link_verified'])
+        self.assertFalse(result['ofs_scope_certified'])
+        self.assertFalse(result['confirmed_scoring_allowed'])
+        m['xbrl_revenue_fact_context_evidence'][0]['context_ref_sha256_prefix']='bad'
+        self.assertEqual(examine_revenue_report(x)['status'],
+                         'fact_provenance_missing_or_ambiguous')
+
     def test_conflicting_primary_roles_are_blocked(self):
         doc=fixture_report()
         doc['revenue_embedded_presentation_role_samples'][1]={

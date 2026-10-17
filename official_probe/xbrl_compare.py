@@ -62,7 +62,10 @@ def _context_axis_members(context):
             members.add(('typed',
                          _safe_qname_local(node.get('dimension')),
                          'typed_value_hidden'))
-    return tuple(sorted(members)[:MAX_RESEARCH_AXIS_SAMPLES])
+    if len(members) > MAX_RESEARCH_AXIS_SAMPLES:
+        # A truncated set must never accidentally match SeparateMember-only.
+        raise ProbeError('XBRL context has too many dimensions for safe comparison')
+    return tuple(sorted(members))
 
 
 
@@ -288,8 +291,15 @@ def _instance_facts(root, business_year):
         # Segmented, scenario and dimensioned facts may be CFS / OFS / notes.
         dimensioned = (entity is not None and entity.find(IX + 'segment') is not None
                        or context.find(IX + 'scenario') is not None)
-        contexts[cid] = (_context_dates(context), dimensioned,
-                         _context_axis_members(context))
+        identifier = entity.find(IX + 'identifier') if entity is not None else None
+        issuer_id = (identifier.text or '').strip() if identifier is not None else ''
+        issuer_scheme = (identifier.get('scheme') or '').strip() if identifier is not None else ''
+        # Hash, but do not identify the OpenDART corp_code from issuer strings.
+        contexts[cid] = (
+            _context_dates(context), dimensioned, _context_axis_members(context),
+            sha256(issuer_id.encode('utf-8')).hexdigest()[:16] if issuer_id else None,
+            sha256(issuer_scheme.encode('utf-8')).hexdigest()[:16]
+            if issuer_scheme else None)
         if len(contexts) > MAX_CONTEXTS:
             raise ProbeError('Excessive XBRL contexts')
     units = {}
@@ -315,7 +325,7 @@ def _instance_facts(root, business_year):
         context = contexts.get(element.get('contextRef'))
         if context is None or not units.get(element.get('unitRef'), False):
             continue
-        dt, dimensioned, axes = context
+        dt, dimensioned, axes, issuer_hash, issuer_scheme_hash = context
         is_balance = local in ('Assets', 'Liabilities', 'Equity')
         if dt != (expected_instant if is_balance else expected_duration):
             continue
@@ -332,6 +342,14 @@ def _instance_facts(root, business_year):
                 # without persisting raw taxonomy URLs or any raw XBRL payload.
                 namespace = element.tag[1:].split('}', 1)[0]
                 facts[key].append({'amount_krw': int(raw),
+                                   'concept_qname_sha256_prefix':
+                                       sha256(element.tag.encode('utf-8')).hexdigest()[:16],
+                                   'context_ref_sha256_prefix':
+                                       sha256(element.get('contextRef').encode('utf-8')).hexdigest()[:16],
+                                   'issuer_id_sha256_prefix': issuer_hash,
+                                   'issuer_scheme_sha256_prefix': issuer_scheme_hash,
+                                   'unit_verified_krw': True,
+                                   'fiscal_period_verified': True,
                                    'concept_local': local,
                                    'concept_namespace_digest': sha256(
                                        namespace.encode('utf-8')).hexdigest()[:16],
@@ -368,6 +386,31 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
             key = (fact.get('concept_local', 'unrecognized'),
                    fact.get('concept_namespace_digest', 'unknown'))
             scope_by_concept.setdefault(key, []).append(fact)
+    # Fact-level evidence (bounded). Fingerprints correlate actual XBRL
+    # revenue numbers with their contexts without releasing raw IDs or values.
+    # Presentation links refer to concepts, not individual numeric facts.
+    revenue_fact_evidence = []
+    if metric == 'revenue' and scope_pattern_candidates is not None:
+        if len(scope_pattern_candidates) > 12:
+            raise ProbeError('Too many separate-axis revenue facts for bounded audit')
+        for fact in scope_pattern_candidates:
+            revenue_fact_evidence.append({
+                'concept_local': fact['concept_local'],
+                'concept_namespace_sha256_prefix': fact['concept_namespace_digest'],
+                'concept_qname_sha256_prefix': fact['concept_qname_sha256_prefix'],
+                'context_ref_sha256_prefix': fact['context_ref_sha256_prefix'],
+                'issuer_id_sha256_prefix': fact['issuer_id_sha256_prefix'],
+                'issuer_scheme_sha256_prefix': fact['issuer_scheme_sha256_prefix'],
+                'unit_verified_krw': fact['unit_verified_krw'],
+                'fiscal_period_verified': fact['fiscal_period_verified'],
+                'dimension_axes_exactly_separate_pattern_local_only': True,
+                'current_api_amount_equal': (
+                    fact['amount_krw'] == api_value if api_value is not None else None),
+                'role_to_numeric_fact_instance_membership_verified': False,
+                'issuer_identity_verified_against_corp_code': False,
+                'historical_pit_numeric_value_certified': False,
+                'confirmed_scoring_allowed': False,
+            })
     concept_breakdown = []
     for (concept, namespace_digest), grouped in sorted(scope_by_concept.items()):
         concept_breakdown.append({
@@ -430,6 +473,7 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
                 else None),
             'xbrl_requested_scope_pattern_is_verified': False,
             'xbrl_scope_pattern_concept_groups': concept_breakdown,
+            'xbrl_revenue_fact_context_evidence': revenue_fact_evidence,
             'xbrl_scope_pattern_duplicate_kind': duplicate_kind,
             'xbrl_taxonomy_concept_meaning_verified': False,
             'xbrl_presentation_statement_role_verified': False,
@@ -543,6 +587,9 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
 
     raw = client.original_xbrl_zip(receipt, '11011')
     package = _instance_from_zip(raw)
+    out['original_xbrl_source_provenance'] = (
+        'receipt_specific_live_download_not_historical_archive_attestation')
+    out['historic_numeric_version_equals_current_api_verified'] = False
     out['xbrl_zip_sha256'] = package['zip_sha256']
     out['xbrl_archive_entries'] = package['archive_entries']
     out['xbrl_xml_entries'] = package['xml_entries']

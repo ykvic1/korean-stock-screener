@@ -19,7 +19,7 @@ import re
 from .pinned_2025_pilot import PINNED_CASES, PINNED_ASOF
 
 MAX_PRIVATE_INPUT = 5_000_000
-PRIMARY_ABSTRACT = 'StatementOfComprehensiveIncomeAbstract'
+PRIMARY_ABSTRACTS = frozenset(('StatementOfComprehensiveIncomeAbstract', 'IncomeStatementAbstract'))
 HEX16 = re.compile(r'[a-f0-9]{16}\Z')
 
 
@@ -30,6 +30,8 @@ def _safe_result(status: str, *, concept=None, namespace=None, role=None):
         'candidate_namespace_sha256_prefix': namespace,
         'candidate_role_sha256_prefix': role,
         'individual_fact_to_presentation_role_link_verified': False,
+        'original_numeric_fact_provenance_status':
+            'not_evaluated_or_missing_prior_summary',
         'full_dts_verified': False,
         'ofs_scope_certified': False,
         'numeric_pit_snapshot_verified': False,
@@ -109,7 +111,7 @@ def examine_revenue_report(report: dict) -> dict:
             and role.get('parent_sample_truncated') is False
             and type(role.get('as_child_arc_count')) is int
             and role['as_child_arc_count'] >= 1
-            and PRIMARY_ABSTRACT in parents
+            and any(parent in PRIMARY_ABSTRACTS for parent in parents)
             and 'income_statement' in hints
             and 'separate' in hints
             and 'consolidated' not in hints
@@ -124,11 +126,48 @@ def examine_revenue_report(report: dict) -> dict:
                 competing.append(role)
     if competing or len(matched) != 1:
         return _safe_result('primary_role_evidence_ambiguous_or_absent')
-    return _safe_result(
+    verdict = _safe_result(
         'unique_revenue_primary_candidate_research_only',
         concept='Revenue',
         namespace=revenue[0]['namespace_sha256_prefix'],
         role=matched[0]['role_uri_sha256_prefix'])
+    # Historical artifacts contain concept totals but not individual
+    # fingerprints. Report missing evidence without inventing it.
+    observed_facts = metric.get('xbrl_revenue_fact_context_evidence')
+    if observed_facts is None:
+        verdict['original_numeric_fact_provenance_status'] = (
+            'not_recorded_in_prior_summary')
+    elif not isinstance(observed_facts, list) or len(observed_facts) != sum(
+            g['fact_count'] for g in groups):
+        return _safe_result('fact_provenance_count_mismatch')
+    else:
+        matching_facts = [
+            fact for fact in observed_facts if isinstance(fact, dict)
+            and fact.get('concept_local') == 'Revenue'
+            and fact.get('concept_namespace_sha256_prefix') ==
+                revenue[0]['namespace_sha256_prefix']
+            and fact.get('current_api_amount_equal') is True
+            and fact.get('unit_verified_krw') is True
+            and fact.get('fiscal_period_verified') is True
+            and fact.get('dimension_axes_exactly_separate_pattern_local_only') is True
+            and fact.get('role_to_numeric_fact_instance_membership_verified') is False
+            and fact.get('issuer_identity_verified_against_corp_code') is False
+            and fact.get('historical_pit_numeric_value_certified') is False
+            and fact.get('confirmed_scoring_allowed') is False
+            and all(isinstance(fact.get(name), str) and
+                    HEX16.fullmatch(fact[name]) for name in (
+                        'concept_qname_sha256_prefix',
+                        'context_ref_sha256_prefix',
+                        'issuer_id_sha256_prefix',
+                        'issuer_scheme_sha256_prefix'))
+        ]
+        if len(matching_facts) != 1 or sum(
+                f.get('current_api_amount_equal') is True
+                for f in observed_facts if isinstance(f, dict)) != 1:
+            return _safe_result('fact_provenance_missing_or_ambiguous')
+        verdict['original_numeric_fact_provenance_status'] = (
+            'one_receipt_bound_revenue_fact_fingerprint_observed_no_scope_or_pit_certification')
+    return verdict
 
 
 def audit_private_cohort(data: dict) -> dict:

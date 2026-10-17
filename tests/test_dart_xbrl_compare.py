@@ -439,6 +439,75 @@ class XbrlNumericTests(unittest.TestCase):
         with self.assertRaises(ProbeError):
             _instance_from_zip(raw2.getvalue())
 
+
+    def test_revenue_fact_provenance_matches_exact_krw_year_and_context_without_approval(self):
+        original = xbrl().decode('utf-8')
+        original = original.replace(
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>',
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>'
+            '<xbrli:segment><di:explicitMember '
+            'dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            'test:SeparateMember</di:explicitMember></xbrli:segment>')
+        original = original.replace('xmlns:test="http://example.com/test"',
+            'xmlns:test="http://example.com/test" '
+            'xmlns:di="http://xbrl.org/2006/xbrldi"')
+        result = compare_annual_xbrl(
+            FakeDART(zip_xml(original.encode('utf-8'))),
+            CORP, 2025, ASOF, RECEIPT)
+        records = result['metrics']['revenue']['xbrl_revenue_fact_context_evidence']
+        self.assertEqual(len(records),1)
+        fact = records[0]
+        self.assertEqual(fact['concept_local'],'Revenue')
+        self.assertTrue(fact['current_api_amount_equal'])
+        self.assertTrue(fact['unit_verified_krw'])
+        self.assertTrue(fact['fiscal_period_verified'])
+        self.assertTrue(fact['dimension_axes_exactly_separate_pattern_local_only'])
+        for key in ('concept_qname_sha256_prefix','context_ref_sha256_prefix',
+                    'issuer_id_sha256_prefix','issuer_scheme_sha256_prefix'):
+            self.assertEqual(len(fact[key]),16)
+        self.assertFalse(fact['role_to_numeric_fact_instance_membership_verified'])
+        self.assertFalse(fact['issuer_identity_verified_against_corp_code'])
+        self.assertFalse(fact['historical_pit_numeric_value_certified'])
+        self.assertFalse(fact['confirmed_scoring_allowed'])
+        self.assertNotIn('contextRef',json.dumps(records))
+        self.assertNotIn('amount_krw',json.dumps(records))
+        self.assertFalse(result['historic_numeric_version_equals_current_api_verified'])
+        self.assertFalse(result['confirmed_scoring_allowed'])
+
+    def test_mixed_separate_axis_is_not_a_unique_separate_only_fact(self):
+        original=xbrl().decode('utf-8')
+        original=original.replace(
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>',
+            '<xbrli:identifier scheme="test">01199727</xbrli:identifier>'
+            '<xbrli:segment><di:explicitMember '
+            'dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            'test:SeparateMember</di:explicitMember>'
+            '<di:explicitMember dimension="test:BusinessLineAxis">'
+            'test:CorporateMember</di:explicitMember></xbrli:segment>')
+        original=original.replace('xmlns:test="http://example.com/test"',
+            'xmlns:test="http://example.com/test" '
+            'xmlns:di="http://xbrl.org/2006/xbrldi"')
+        out=compare_annual_xbrl(FakeDART(zip_xml(original.encode())),
+                                CORP,2025,ASOF,RECEIPT)
+        m=out['metrics']['revenue']
+        self.assertEqual(m['xbrl_requested_scope_pattern_only_candidate_count'],0)
+        self.assertEqual(m['xbrl_revenue_fact_context_evidence'],[])
+        self.assertFalse(m['scoring_allowed'])
+
+    def test_overly_many_dimensions_fail_closed_not_silently_truncated(self):
+        from official_probe.xbrl_compare import _context_axis_members
+        from xml.etree import ElementTree as ET
+        dims=''.join(
+            '<di:explicitMember dimension="d:Axis%d">d:Member%d</di:explicitMember>' %(i,i)
+            for i in range(17))
+        root=ET.fromstring(
+            '<xbrli:context xmlns:xbrli="http://www.xbrl.org/2003/instance" '
+            'xmlns:di="http://xbrl.org/2006/xbrldi" id="C">'
+            '<xbrli:entity><xbrli:segment>'+dims+
+            '</xbrli:segment></xbrli:entity></xbrli:context>')
+        with self.assertRaises(ProbeError):
+            _context_axis_members(root)
+
     def test_requested_ofs_scope_axis_only_is_diagnostic_not_certification(self):
         xml = xbrl(dimensioned=True).replace(
             b'xmlns:test="http://example.com/test"',

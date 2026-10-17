@@ -492,3 +492,63 @@ python -m official_probe.offline_revenue_evidence \
 `investment_data_ready=false`, `numeric_pit_snapshot_verified=false`,
 `full_dts_verified=false`, `ofs_scope_certified=false`는 고정이다.
 스크리너/운영 자동 실행·페이지 공개에는 반영하지 않는다.
+
+## XBRL 숫자 인스턴스 문맥 증거 / 안전한 PIT 경계 (2026-10-17)
+
+기존 비공개 5종목 분석과 역할 기반 후보 판정의 다음 단계.
+
+### 지난 분석의 실제 구조 차이
+한온시스템(018880) 별도 손익계산서 Revenue는
+`IncomeStatementAbstract` 아래 배치되어 있고,
+다른 4종목은 `StatementOfComprehensiveIncomeAbstract`가 직접 부모다.
+이 둘은 연구용 표기 변형으로 인정하되, **역할 정의에 separate,
+income_statement 단서가 함께 있고, Revenue 고유 후보가 하나인 경우에
+한해서만 후보 판정**한다. 둘 중 한 표기만 인정해 한온시스템이
+잘못 제외됐던 오프라인 규칙을 개선했다.
+
+### 새 원본 조회 때 확보할 개별 숫자 증거
+현재 XBRL 파서가 이미 검사하는 정확한 회계기간·순수 KRW 단위·
+계정 개념·별도 재무제표 단일 축 **local name 패턴**에 대해
+다음과 같은 숫자 인스턴스 수준 **비식별 식별자**를 기록한다.
+
+- 정확한 element QName의 해시 16자리
+- 원본 contextRef의 해시 16자리
+- XML entity identifier 및 scheme의 해시 각 16자리
+- 계정의 namespace 해시, 단일 축 후보 여부, **현재** 재무 API 값
+  일치 여부 (참/거짓)
+- 원단위·회계연도 일치 확인 (참/거짓), 개별 인스턴스의 원본 금액은
+  추가 기록하지 않음
+
+개별 사실이 많거나 16개를 넘는 차원 정보가 있어 범위가 잘리면
+**즉시 실패**시켜 잘린 정보가 `SeparateMember` 단독 문맥으로
+인식되는 오류를 방지한다.
+
+중요: presentationLink는 **계정 개념**을 연결하는 구조이지
+특정 `contextRef`를 가진 숫자 인스턴스를 링크하는 구조가 아니다.
+따라서 `role_to_numeric_fact_instance_membership_verified=false`,
+`issuer_identity_verified_against_corp_code=false`,
+`original_numeric_fact_provenance_status`는 관찰값일 뿐이며
+**완전한 공식 DTS/별도재무제표 인증이 아니다**.
+
+### PIT 검증이 아직 미완료인 이유
+XBRL ZIP은 접수번호에 연결되어 현재 호출한 원본 자료이며,
+현재 재무 API와 일치한 사실만으로 **당시 특정 거래일 시점의
+투자자가 관찰할 수 있었던 수치임을 입증하지 못한다**.
+과거 정정·교체·원본 공개 시각까지 검증하려면
+공식 접수 시각 또는 검증 가능한 과거 원본 스냅샷·정정 이력이 필요하다.
+`historic_numeric_version_equals_current_api_verified=false` 유지.
+
+이번 작업은 기존 5개 기업의 비공개 JSON을 **오프라인 재평가**
+가능하도록 하면서 다음 원본 수집의 증거력을 높이는 개선이다.
+기존 Artifact에 존재하지 않는 개별 문맥을 가상으로 채우지 않는다.
+새 원본 재조회가 필수로 확인되기 전까지 불필요한 반복 호출은 피한다.
+
+- `investment_data_ready=false`
+- `confirmed_scoring_allowed=false`
+- `xbrl_accounting_scope_verified=false`
+- `historical_numeric_snapshot_verified=false`
+
+참고: OpenDART 공식 XBRL 원본 API
+https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019019
+공식 재무 API
+https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020
