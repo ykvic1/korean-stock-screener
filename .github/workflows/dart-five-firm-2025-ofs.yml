@@ -31,6 +31,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_pilot_latency.py' -v
           python -m unittest discover -s tests -p 'test_dart_pinned_2025_pilot.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_completion.py' -v
+          python -m unittest discover -s tests -p 'test_dart_pilot_parallel.py' -v
       - name: Compare five independently identified 2025 annual filings
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -64,6 +65,9 @@ jobs:
           pilot = dart.get('xbrl_batch_pilot') or {}
           print('::notice::DART mapping-ms='+str(pilot.get('corp_mapping_elapsed_ms', 'unknown'))+
                 ' research-timeout-s='+str(pilot.get('request_timeout_seconds', 'unknown')))
+          print('::notice::Research workers='+str(pilot.get('research_workers', 'unknown'))+
+                ' independent-sessions=true no-automatic-retries=true parallel-wall-ms='+
+                str(pilot.get('research_parallel_wall_ms', 'unknown')))
           for case in cases:
               timing = case.get('xbrl_research_timing') or {}
               for event in timing.get('sanitized_requests', []):
