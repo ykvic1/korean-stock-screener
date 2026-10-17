@@ -16,6 +16,7 @@ from .revisions import audit_annual_revisions
 from .xbrl_compare import compare_annual_xbrl
 from .batch_discovery import discover_annual_receipt
 from .pinned_2025_pilot import fixed_pilot_corp_mapping
+from .pilot_parallel import collect_pinned_pilot
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -189,11 +190,14 @@ def run(argv=None, *, krx_session=None, dart_session=None):
             out['dart'] = {'status': 'key_required', 'secret_name': 'DART_API_KEY'}
         else:
             try:
-                client = DARTClient(key, session=dart_session)
+                # Pinned parallel mode creates one independent client per worker.
+                # Do not make an unused sixth session or share an injected one.
+                client = (None if args.xbrl_use_reviewed_2025_corp_map
+                          else DARTClient(key, session=dart_session))
                 pilot_start = perf_counter()
                 # Research-only requests fail faster; all other DART modes keep
                 # their original timeout and API semantics.
-                if pilot_cases and hasattr(client, 'set_research_timeout'):
+                if pilot_cases and client is not None and hasattr(client, 'set_research_timeout'):
                     client.set_research_timeout(12)
                 mapping_start = perf_counter()
                 if args.xbrl_use_reviewed_2025_corp_map:
@@ -207,111 +211,120 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 mapping_elapsed_ms = int((perf_counter() - mapping_start) * 1000)
                 sample = []
                 start = (date.fromisoformat(args.asof)-timedelta(days=90)).isoformat()
-                # Pilot mode is separately limited to 2-5 cases by preflight.
-                for code in (codes if (pilot_cases or args.xbrl_discover_receipts)
-                             else codes[:args.dart_limit]):
-                    if pilot_cases and perf_counter() - pilot_start > 210:
-                        sample.append({
-                            'code': code, 'status': 'pilot_soft_budget_exceeded',
-                            'xbrl_comparison': {
-                                'status': 'not_requested_due_to_research_time_budget',
-                                'metrics': None, 'confirmed_scoring_allowed': False,
-                                'investment_data_ready': False,
-                            },
-                        })
-                        continue
-                    corp = mapping.get(code)
-                    if not corp:
-                        sample.append({'code': code, 'status': 'corp_code_unmapped'})
-                        continue
-                    item = {'code':code,'corp_code':corp,'status':'observed_not_pit_validated',
-                            'financial_metrics_verified':False}
-                    if not (pilot_cases or args.xbrl_discover_receipts):
-                        filings = client.recent_filings(corp,start,args.asof)
-                        valid = filter_visible_filings(filings,args.asof)
-                        item.update({
-                            'filings_returned_first_page':len(filings),
-                            'filings_before_asof':len(valid),
-                            'same_day_or_invalid_filings_excluded':len(filings)-len(valid),
-                        })
-                    if args.xbrl_discover_receipts:
-                        try:
-                            item['annual_receipt_discovery'] = discover_annual_receipt(
-                                client, corp, int(args.asof[:4]) - 1, args.asof)
-                        except (ProbeError, ValueError):
-                            item['annual_receipt_discovery'] = {
-                                'status':'failed_or_unavailable',
-                                'receipt_candidate':None,
-                                'xbrl_accounting_scope_verified':False,
-                                'confirmed_scoring_allowed':False,
-                                'investment_data_ready':False,
-                                'error':'Official annual filing discovery failed safely'}
-                    
-                    if args.finance_sample:
-                        try:
-                            annual_year = int(args.asof[:4]) - 1
-                            financial = sample_annual_financial(
-                                client, corp, annual_year, args.asof, fs_div='CFS')
-                            if financial['status'] == 'annual_statement_not_available':
+                if args.xbrl_use_reviewed_2025_corp_map:
+                    # One-click fixed cohort ONLY: independent DART sessions,
+                    # max two concurrent company probes, no automatic retries.
+                    # Other/manual generic research modes remain serial.
+                    sample, pinned_parallel = collect_pinned_pilot(
+                        key=key, asof=args.asof, cases=pilot_cases,
+                        client_factory=DARTClient,
+                        compare=compare_annual_xbrl)
+                else:
+                    # Pilot mode is separately limited to 2-5 cases by preflight.
+                    for code in (codes if (pilot_cases or args.xbrl_discover_receipts)
+                                 else codes[:args.dart_limit]):
+                        if pilot_cases and perf_counter() - pilot_start > 210:
+                            sample.append({
+                                'code': code, 'status': 'pilot_soft_budget_exceeded',
+                                'xbrl_comparison': {
+                                    'status': 'not_requested_due_to_research_time_budget',
+                                    'metrics': None, 'confirmed_scoring_allowed': False,
+                                    'investment_data_ready': False,
+                                },
+                            })
+                            continue
+                        corp = mapping.get(code)
+                        if not corp:
+                            sample.append({'code': code, 'status': 'corp_code_unmapped'})
+                            continue
+                        item = {'code':code,'corp_code':corp,'status':'observed_not_pit_validated',
+                                'financial_metrics_verified':False}
+                        if not (pilot_cases or args.xbrl_discover_receipts):
+                            filings = client.recent_filings(corp,start,args.asof)
+                            valid = filter_visible_filings(filings,args.asof)
+                            item.update({
+                                'filings_returned_first_page':len(filings),
+                                'filings_before_asof':len(valid),
+                                'same_day_or_invalid_filings_excluded':len(filings)-len(valid),
+                            })
+                        if args.xbrl_discover_receipts:
+                            try:
+                                item['annual_receipt_discovery'] = discover_annual_receipt(
+                                    client, corp, int(args.asof[:4]) - 1, args.asof)
+                            except (ProbeError, ValueError):
+                                item['annual_receipt_discovery'] = {
+                                    'status':'failed_or_unavailable',
+                                    'receipt_candidate':None,
+                                    'xbrl_accounting_scope_verified':False,
+                                    'confirmed_scoring_allowed':False,
+                                    'investment_data_ready':False,
+                                    'error':'Official annual filing discovery failed safely'}
+                        
+                        if args.finance_sample:
+                            try:
+                                annual_year = int(args.asof[:4]) - 1
                                 financial = sample_annual_financial(
-                                    client, corp, annual_year, args.asof, fs_div='OFS')
-                                financial['used_OFS_fallback'] = True
-                            item['financial_sample'] = financial
-                        except (ProbeError, ValueError):
-                            item['financial_sample'] = {
-                                'status': 'failed', 'metric_values': None,
-                                'asof_join_validated': False,
-                                'error': 'DART annual filing/financial response could not be verified'}
-                    if args.history_sample:
-                        try:
-                            item['history_sample'] = sample_history(
-                                client, corp, args.asof, years=3)
-                        except (ProbeError, ValueError):
-                            item['history_sample'] = {
-                                'status': 'failed', 'investment_data_ready': False,
-                                'revision_history_validated': False,
-                                'error': 'DART history transport or report evidence not verified'}
-                    if args.revision_audit:
-                        try:
-                            item['revision_audit'] = audit_annual_revisions(
-                                client, corp, int(args.asof[:4]) - 1, args.asof,
-                                args.revision_expected_receipt,
-                                download_documents=True)
-                        except (ProbeError, ValueError):
-                            item['revision_audit'] = {
-                                'status': 'failed', 'financial_numeric_changes_verified': False,
-                                'revision_history_validated': False, 'investment_data_ready': False,
-                                'error': 'DART filing chronology or original document evidence unavailable'}
-                    if args.xbrl_compare or pilot_cases:
-                        case_start = perf_counter()
-                        timing_offset = len(getattr(client, 'research_request_timings', []))
-                        try:
-                            receipt, scope = (
-                                pilot_cases[code] if pilot_cases else
-                                (args.xbrl_receipt, args.xbrl_fs_div))
-                            item['xbrl_comparison'] = compare_annual_xbrl(
-                                client, corp, int(args.asof[:4]) - 1, args.asof,
-                                receipt, fs_div=scope)
-                        except (ProbeError, ValueError):
-                            item['xbrl_comparison'] = {
-                                'status': 'failed_or_unavailable',
-                                'metrics': None,
-                                'historical_numeric_snapshot_verified': False,
-                                'xbrl_accounting_scope_verified': False,
-                                'confirmed_scoring_allowed': False,
-                                'investment_data_ready': False,
-                                'error': 'XBRL archive or account comparison unavailable or unsafe'}
-                        if pilot_cases:
-                            times = list(getattr(client, 'research_request_timings', []))[timing_offset:]
-                            elapsed_ms = int((perf_counter() - case_start) * 1000)
-                            item['xbrl_research_timing'] = {
-                                'company_elapsed_ms': elapsed_ms,
-                                'sanitized_requests': times,
-                                'non_network_elapsed_ms': max(
-                                    0, elapsed_ms - sum(t['elapsed_ms'] for t in times)),
-                                'network_requests_count': len(times),
-                            }
-                    sample.append(item)
+                                    client, corp, annual_year, args.asof, fs_div='CFS')
+                                if financial['status'] == 'annual_statement_not_available':
+                                    financial = sample_annual_financial(
+                                        client, corp, annual_year, args.asof, fs_div='OFS')
+                                    financial['used_OFS_fallback'] = True
+                                item['financial_sample'] = financial
+                            except (ProbeError, ValueError):
+                                item['financial_sample'] = {
+                                    'status': 'failed', 'metric_values': None,
+                                    'asof_join_validated': False,
+                                    'error': 'DART annual filing/financial response could not be verified'}
+                        if args.history_sample:
+                            try:
+                                item['history_sample'] = sample_history(
+                                    client, corp, args.asof, years=3)
+                            except (ProbeError, ValueError):
+                                item['history_sample'] = {
+                                    'status': 'failed', 'investment_data_ready': False,
+                                    'revision_history_validated': False,
+                                    'error': 'DART history transport or report evidence not verified'}
+                        if args.revision_audit:
+                            try:
+                                item['revision_audit'] = audit_annual_revisions(
+                                    client, corp, int(args.asof[:4]) - 1, args.asof,
+                                    args.revision_expected_receipt,
+                                    download_documents=True)
+                            except (ProbeError, ValueError):
+                                item['revision_audit'] = {
+                                    'status': 'failed', 'financial_numeric_changes_verified': False,
+                                    'revision_history_validated': False, 'investment_data_ready': False,
+                                    'error': 'DART filing chronology or original document evidence unavailable'}
+                        if args.xbrl_compare or pilot_cases:
+                            case_start = perf_counter()
+                            timing_offset = len(getattr(client, 'research_request_timings', []))
+                            try:
+                                receipt, scope = (
+                                    pilot_cases[code] if pilot_cases else
+                                    (args.xbrl_receipt, args.xbrl_fs_div))
+                                item['xbrl_comparison'] = compare_annual_xbrl(
+                                    client, corp, int(args.asof[:4]) - 1, args.asof,
+                                    receipt, fs_div=scope)
+                            except (ProbeError, ValueError):
+                                item['xbrl_comparison'] = {
+                                    'status': 'failed_or_unavailable',
+                                    'metrics': None,
+                                    'historical_numeric_snapshot_verified': False,
+                                    'xbrl_accounting_scope_verified': False,
+                                    'confirmed_scoring_allowed': False,
+                                    'investment_data_ready': False,
+                                    'error': 'XBRL archive or account comparison unavailable or unsafe'}
+                            if pilot_cases:
+                                times = list(getattr(client, 'research_request_timings', []))[timing_offset:]
+                                elapsed_ms = int((perf_counter() - case_start) * 1000)
+                                item['xbrl_research_timing'] = {
+                                    'company_elapsed_ms': elapsed_ms,
+                                    'sanitized_requests': times,
+                                    'non_network_elapsed_ms': max(
+                                        0, elapsed_ms - sum(t['elapsed_ms'] for t in times)),
+                                    'network_requests_count': len(times),
+                                }
+                        sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
                 if args.xbrl_discover_receipts:
@@ -331,7 +344,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                             != 'not_requested_due_to_research_time_budget'
                             for s in sample),
                         'request_timeout_seconds': 12,
-                        'soft_budget_seconds': 210,
+                        'soft_budget_seconds': None if args.xbrl_use_reviewed_2025_corp_map else 210,
+                        **(pinned_parallel if args.xbrl_use_reviewed_2025_corp_map else {}),
                         'company_mapping_provenance': mapping_provenance,
                         'company_mapping_live_verified_this_run': not args.xbrl_use_reviewed_2025_corp_map,
                         'overall_elapsed_ms': int(
