@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .clients import KRXClient, DARTClient, ProbeError, canonical_date, code6
 from .validation import inspect_krx, filter_visible_filings, public_safety_summary
+from .financial import sample_annual_financial
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -39,6 +40,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--finance-sample', action='store_true', help='request prior-year CFS sample; not usable as PIT financials')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
     args = p.parse_args(argv)
+    if args.finance_sample and (not args.live or args.provider != 'dart'):
+        p.error('Finance sample is permitted only for explicit DART live runs')
     canonical_date(args.asof)
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
     if args.dart_limit not in (1, 2):
@@ -107,7 +110,14 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                             'same_day_or_invalid_filings_excluded':len(filings)-len(valid),
                             'financial_metrics_verified':False}
                     if args.finance_sample:
-                        item['financial_sample'] = client.annual_statement_sample(corp,int(args.asof[:4])-1)
+                        try:
+                            item['financial_sample'] = sample_annual_financial(
+                                client, corp, int(args.asof[:4])-1, args.asof)
+                        except (ProbeError, ValueError):
+                            item['financial_sample'] = {
+                                'status': 'failed', 'metric_values': None,
+                                'asof_join_validated': False,
+                                'error': 'DART annual filing/financial response could not be verified'}
                     sample.append(item)
                 out['dart']={'status':'observed_unverified','corp_mapped_requested':sum(c in mapping for c in codes),
                              'companies_sampled':sample,'financial_asof_join_verified':False}
