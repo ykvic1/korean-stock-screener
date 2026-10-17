@@ -15,6 +15,7 @@ from .history import sample_history
 from .revisions import audit_annual_revisions
 from .xbrl_compare import compare_annual_xbrl
 from .batch_discovery import discover_annual_receipt
+from .pinned_2025_pilot import fixed_pilot_corp_mapping
 
 DEFAULT_SOURCE = Path('docs/data.json')
 
@@ -80,6 +81,7 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     p.add_argument('--xbrl-compare', action='store_true', help='one-company original annual XBRL vs current DART finance API comparison')
     p.add_argument('--xbrl-receipt', help='14-digit verified annual filing receipt for XBRL comparison')
     p.add_argument('--xbrl-batch-cases', help='2-5 explicit CODE:RECEIPT:OFS|CFS records; DART live research only')
+    p.add_argument('--xbrl-use-reviewed-2025-corp-map', action='store_true', help='only the exact previously validated 2025 five-firm manual research cohort')
     p.add_argument('--xbrl-discover-receipts', action='store_true', help='manual DART annual report receipt candidate discovery (2-5 stocks, no numbers)')
     p.add_argument('--xbrl-fs-div', choices=('OFS', 'CFS'), default='OFS', help='accounting basis must be explicitly selected in manual workflow')
     p.add_argument('--output', help='local file location; do NOT place under docs/')
@@ -102,6 +104,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 or args.xbrl_compare or args.xbrl_receipt or args.xbrl_batch_cases
                 or args.revision_expected_receipt):
             p.error('XBRL receipt discovery requires DART-only live with other research flags off')
+    if args.xbrl_use_reviewed_2025_corp_map and not args.xbrl_batch_cases:
+        p.error('Pinned research mapping requires the full explicit XBRL batch')
     if args.xbrl_batch_cases:
         if (not args.live or args.provider != 'dart' or args.finance_sample
                 or args.history_sample or args.revision_audit
@@ -121,6 +125,11 @@ def run(argv=None, *, krx_session=None, dart_session=None):
     except ValueError as exc:
         p.error(str(exc))
     codes, markets, doc = _symbols(Path(args.source), args.symbols)
+    if args.xbrl_use_reviewed_2025_corp_map:
+        try:
+            fixed_pilot_corp_mapping(args.asof, pilot_cases)
+        except ValueError as exc:
+            p.error(str(exc))
     if args.xbrl_discover_receipts and (not args.symbols or not 2 <= len(codes) <= 5):
         p.error('XBRL receipt discovery requires 2-5 explicitly selected stocks')
     if pilot_cases and (not args.symbols or list(pilot_cases) != codes):
@@ -187,7 +196,14 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 if pilot_cases and hasattr(client, 'set_research_timeout'):
                     client.set_research_timeout(12)
                 mapping_start = perf_counter()
-                mapping = client.corp_mapping()
+                if args.xbrl_use_reviewed_2025_corp_map:
+                    # Verified-source prior observations only. Each XBRL request
+                    # still crosschecks company, annual receipt and fiscal year.
+                    mapping = fixed_pilot_corp_mapping(args.asof, pilot_cases)
+                    mapping_provenance = 'two_prior_official_probe_mapping_observations_not_live'
+                else:
+                    mapping = client.corp_mapping()
+                    mapping_provenance = 'live_official_corpCode_zip'
                 mapping_elapsed_ms = int((perf_counter() - mapping_start) * 1000)
                 sample = []
                 start = (date.fromisoformat(args.asof)-timedelta(days=90)).isoformat()
@@ -316,6 +332,8 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                             for s in sample),
                         'request_timeout_seconds': 12,
                         'soft_budget_seconds': 210,
+                        'company_mapping_provenance': mapping_provenance,
+                        'company_mapping_live_verified_this_run': not args.xbrl_use_reviewed_2025_corp_map,
                         'overall_elapsed_ms': int(
                             (perf_counter() - pilot_start) * 1000),
                         'corp_mapping_elapsed_ms': mapping_elapsed_ms,

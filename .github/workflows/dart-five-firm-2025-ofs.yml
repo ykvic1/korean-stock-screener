@@ -29,6 +29,8 @@ jobs:
           python -m unittest discover -s tests -p 'test_dart_batch_discovery.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_oneclick.py' -v
           python -m unittest discover -s tests -p 'test_dart_pilot_latency.py' -v
+          python -m unittest discover -s tests -p 'test_dart_pinned_2025_pilot.py' -v
+          python -m unittest discover -s tests -p 'test_dart_pilot_completion.py' -v
       - name: Compare five independently identified 2025 annual filings
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -42,6 +44,7 @@ jobs:
             --provider dart --live \
             --symbols '252990,280360,018880,014680,064290' \
             --xbrl-batch-cases '252990:20260316001120:OFS,280360:20260312000907:OFS,018880:20260318000645:OFS,014680:20260318001424:OFS,064290:20260318001550:OFS' \
+            --xbrl-use-reviewed-2025-corp-map \
             --output evidence/official_probe/five_company_2025_ofs_research.json
       - name: Print statuses without numbers or credentials
         if: always()
@@ -83,6 +86,8 @@ jobs:
           if len(cases) != 5:
               print('::warning::Not all five companies were evaluated; see private artifact.')
           PY
+      - name: Fail job if any report was not fully collected
+        run: python -m official_probe.pilot_completion evidence/official_probe/five_company_2025_ofs_research.json
       - name: Private research artifact (7 days; never publish to Pages)
         if: always()
         uses: actions/upload-artifact@v4
