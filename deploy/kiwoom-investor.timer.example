@@ -6,7 +6,9 @@ Description=Weekday post-close Kiwoom investor flow private ingestion
 [Timer]
 # Requires server timezone set to Asia/Seoul.
 OnCalendar=Mon..Fri *-*-* 19:30:00
-Persistent=true
+# Do not make an unscheduled catch-up Kiwoom call on a weekend/holiday after VM reboot.
+# The next scheduled close-day run re-fetches the recent observation window.
+Persistent=false
 RandomizedDelaySec=0
 AccuracySec=1min
 Unit=korean-stock-kiwoom.service
