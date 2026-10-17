@@ -188,6 +188,54 @@ class XbrlNumericTests(unittest.TestCase):
         self.assertFalse(out['xbrl_accounting_scope_verified'])
         self.assertFalse(out['investment_data_ready'])
 
+
+    def test_requested_ofs_scope_axis_only_is_diagnostic_not_certification(self):
+        xml = xbrl(dimensioned=True).replace(
+            b'xmlns:test="http://example.com/test"',
+            b'xmlns:test="http://example.com/test" '
+            b'xmlns:xbrldi="http://xbrl.org/2006/xbrldi"').replace(
+            b'<test:dimension>OFS</test:dimension>',
+            b'<xbrldi:explicitMember dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            b'test:SeparateMember</xbrldi:explicitMember>')
+        out = compare_annual_xbrl(FakeDART(zip_xml(xml)), CORP, 2025, ASOF, RECEIPT)
+        metric = out['metrics']['revenue']
+        self.assertEqual(metric['xbrl_requested_scope_pattern_only_candidate_count'], 1)
+        self.assertEqual(metric['xbrl_requested_scope_pattern_only_api_equal_count'], 1)
+        self.assertFalse(metric['xbrl_requested_scope_pattern_is_verified'])
+        self.assertEqual(metric['status'], 'xbrl_fact_or_scope_ambiguous')
+        self.assertIsNone(metric['xbrl_amount_krw'])
+        self.assertFalse(out['xbrl_accounting_scope_verified'])
+        self.assertFalse(out['confirmed_scoring_allowed'])
+        self.assertFalse(out['investment_data_ready'])
+
+        # The requested CFS API basis must agree with the mock API rows.
+        cfs_rows = api_rows()
+        for row in cfs_rows:
+            row['fs_div'] = 'CFS'
+        out_cfs = compare_annual_xbrl(
+            FakeDART(zip_xml(xml), rows=cfs_rows), CORP, 2025, ASOF,
+            RECEIPT, fs_div='CFS')
+        self.assertIsNone(
+            out_cfs['metrics']['revenue']['xbrl_requested_scope_pattern_only_candidate_count'])
+        self.assertFalse(out_cfs['xbrl_accounting_scope_verified'])
+
+    def test_additional_note_axis_cannot_be_counted_as_primary_scope_candidate(self):
+        xml = xbrl(dimensioned=True).replace(
+            b'xmlns:test="http://example.com/test"',
+            b'xmlns:test="http://example.com/test" '
+            b'xmlns:xbrldi="http://xbrl.org/2006/xbrldi"').replace(
+            b'<test:dimension>OFS</test:dimension>',
+            b'<xbrldi:explicitMember dimension="test:ConsolidatedAndSeparateFinancialStatementsAxis">'
+            b'test:SeparateMember</xbrldi:explicitMember>'
+            b'<xbrldi:explicitMember dimension="test:MajorCustomersAxis">'
+            b'test:CustomerAMember</xbrldi:explicitMember>')
+        out = compare_annual_xbrl(FakeDART(zip_xml(xml)), CORP, 2025, ASOF, RECEIPT)
+        metric = out['metrics']['revenue']
+        self.assertEqual(metric['xbrl_candidate_api_amount_equal_count'], 1)
+        self.assertEqual(metric['xbrl_requested_scope_pattern_only_candidate_count'], 0)
+        self.assertEqual(metric['xbrl_requested_scope_pattern_only_api_equal_count'], 0)
+        self.assertFalse(out['confirmed_scoring_allowed'])
+
     def test_candidate_amount_equality_diagnostic_never_overrides_ambiguity(self):
         c = FakeDART(zip_xml(xbrl(dimensioned=True, revenue=1001)))
         out = compare_annual_xbrl(c, CORP, 2025, ASOF, RECEIPT)
