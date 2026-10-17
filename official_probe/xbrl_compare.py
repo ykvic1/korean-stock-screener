@@ -29,7 +29,10 @@ MAX_XML_DOCUMENTS = 30
 MAX_CONTEXTS = 20000
 MAX_FACTS = 150000
 XBRLDI = '{http://xbrl.org/2006/xbrldi}'
+XLINK = '{http://www.w3.org/1999/xlink}'
+LINK = '{http://www.xbrl.org/2003/linkbase}'
 MAX_RESEARCH_AXIS_SAMPLES = 16
+REVENUE_CONCEPTS = frozenset(('Revenue', 'RevenueFromContractsWithCustomers'))
 
 
 def _safe_qname_local(raw):
@@ -83,6 +86,38 @@ def _safe_xml(content: bytes):
         return None
 
 
+
+def _local_presentation_revenue_hints(root):
+    """Count bounded, embedded presentation arcs only; no DTS/role verification.
+
+    A presentation network can organise statements OR notes. Its presence or
+    absence is not proof of any primary-statement role or accounting basis.
+    """
+    if root.tag != LINK + 'linkbase':
+        return None
+    counts = {k: 0 for k in REVENUE_CONCEPTS}
+    links = root.findall(LINK + 'presentationLink')
+    if len(links) > MAX_FACTS:
+        raise ProbeError('Excessive local XBRL presentation links')
+    for link in links:
+        labels = {}
+        for loc in link.findall(LINK + 'loc'):
+            name = (loc.get(XLINK + 'href') or '').split('#')[-1]
+            if '_' not in name:
+                continue
+            tail = name.split('_', 1)[-1]
+            if tail in REVENUE_CONCEPTS:
+                label = loc.get(XLINK + 'label')
+                if isinstance(label, str) and len(label) <= 100:
+                    labels[label] = tail
+        for arc in link.findall(LINK + 'presentationArc'):
+            src, dst = arc.get(XLINK + 'from'), arc.get(XLINK + 'to')
+            for key in {labels.get(src), labels.get(dst)} & REVENUE_CONCEPTS:
+                counts[key] += 1
+    return {'embedded_presentation_links': len(links),
+            'revenue_presentation_arc_hints': counts}
+
+
 def _instance_from_zip(blob: bytes):
     if not 10 <= len(blob) <= MAX_ARCHIVE:
         raise ProbeError('XBRL response outside ZIP size limits')
@@ -111,13 +146,26 @@ def _instance_from_zip(blob: bytes):
             if len(xml_files) > MAX_XML_DOCUMENTS:
                 raise ProbeError('XBRL archive has too many XML files')
             found = []
+            embedded_presentation_files = 0
+            embedded_presentation_links = 0
+            revenue_arc_hints = {k: 0 for k in REVENUE_CONCEPTS}
             for e in xml_files:
                 # zip entry total size is already independently bounded.
                 raw = z.read(e)
                 root = _safe_xml(raw)
                 if root is not None and root.tag == IX + 'xbrl':
                     found.append((e.filename, root))
-            return {'zip_sha256': sha256(blob).hexdigest(),
+                if root is not None:
+                    hints = _local_presentation_revenue_hints(root)
+                    if hints is not None:
+                        embedded_presentation_files += 1
+                        embedded_presentation_links += hints['embedded_presentation_links']
+                        for k, v in hints['revenue_presentation_arc_hints'].items():
+                            revenue_arc_hints[k] += v
+            return {'embedded_presentation_files': embedded_presentation_files,
+                    'embedded_presentation_links': embedded_presentation_links,
+                    'revenue_presentation_arc_hints': revenue_arc_hints,
+                    'zip_sha256': sha256(blob).hexdigest(),
                     'archive_entries': len(entries),
                     'xml_entries': len(xml_files),
                     'instances': found}
@@ -196,7 +244,14 @@ def _instance_facts(root, business_year):
         for key, (aliases, _) in ACCOUNTS.items():
             acceptable = {a.split('_', 1)[1] for a in aliases}
             if local in acceptable:
+                # Concept local name and namespace digest let a researcher
+                # distinguish IFRS Revenue from RevenueFromContractsWithCustomers,
+                # without persisting raw taxonomy URLs or any raw XBRL payload.
+                namespace = element.tag[1:].split('}', 1)[0]
                 facts[key].append({'amount_krw': int(raw),
+                                   'concept_local': local,
+                                   'concept_namespace_digest': sha256(
+                                       namespace.encode('utf-8')).hexdigest()[:16],
                                    'dimensioned': bool(dimensioned),
                                    'context_ref': element.get('contextRef'),
                                    'dimension_axes': axes,
@@ -221,6 +276,39 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
          if tuple(f.get('dimension_axes', ())) == (research_pattern,)
          and f.get('dimensioned', False)]
         if research_pattern is not None else None)
+    # Distinguish alternate taxonomy concepts from duplicate facts sharing
+    # one concept/context. The totals are strictly diagnostic and unverified.
+    # Reference names are limited to _concept's vetted account vocabulary.
+    scope_by_concept = {}
+    if scope_pattern_candidates is not None:
+        for fact in scope_pattern_candidates:
+            key = (fact.get('concept_local', 'unrecognized'),
+                   fact.get('concept_namespace_digest', 'unknown'))
+            scope_by_concept.setdefault(key, []).append(fact)
+    concept_breakdown = []
+    for (concept, namespace_digest), grouped in sorted(scope_by_concept.items()):
+        concept_breakdown.append({
+            'concept_local': concept,
+            'namespace_sha256_prefix': namespace_digest,
+            'fact_count': len(grouped),
+            'api_amount_equal_count': (
+                sum(f['amount_krw'] == api_value for f in grouped)
+                if api_value is not None else None),
+            'distinct_context_count': len({f['context_ref'] for f in grouped}),
+            'distinct_value_count': len({f['amount_krw'] for f in grouped}),
+        })
+    if scope_pattern_candidates is None:
+        duplicate_kind = 'scope_pattern_not_supported_for_requested_basis'
+    elif not scope_pattern_candidates:
+        duplicate_kind = 'no_scope_pattern_only_candidates'
+    elif len(scope_pattern_candidates) == 1:
+        duplicate_kind = 'single_scope_pattern_only_candidate'
+    elif len(scope_by_concept) > 1:
+        duplicate_kind = 'multiple_taxonomy_concepts_or_namespaces'
+    elif len({f['context_ref'] for f in scope_pattern_candidates}) > 1:
+        duplicate_kind = 'same_concept_distinct_contexts'
+    else:
+        duplicate_kind = 'same_concept_same_context_multiple_facts'
     # Scope is not established by the presence/absence of a segment.
     # Record only bounded structural counts in the private research artifact,
     # never guess an accounting basis, candidate value or point-in-time status.
@@ -258,6 +346,10 @@ def _compare_metric(api_rows, parsed_facts, metric, fs_div):
                 if scope_pattern_candidates is not None and api_value is not None
                 else None),
             'xbrl_requested_scope_pattern_is_verified': False,
+            'xbrl_scope_pattern_concept_groups': concept_breakdown,
+            'xbrl_scope_pattern_duplicate_kind': duplicate_kind,
+            'xbrl_taxonomy_concept_meaning_verified': False,
+            'xbrl_presentation_statement_role_verified': False,
             'xbrl_dimension_axis_samples': axis_samples,
             'xbrl_unparsed_dimensioned_fact_count': sum(
                 bool(f['dimensioned']) and not f.get('dimension_axes')
@@ -363,6 +455,11 @@ def compare_annual_xbrl(client, corp_code: str, business_year: int, asof: str,
     out['xbrl_archive_entries'] = package['archive_entries']
     out['xbrl_xml_entries'] = package['xml_entries']
     out['xbrl_instances_found'] = len(package['instances'])
+    out['embedded_presentation_files_observed'] = package['embedded_presentation_files']
+    out['embedded_presentation_links_observed'] = package['embedded_presentation_links']
+    out['revenue_embedded_presentation_arc_hints'] = package['revenue_presentation_arc_hints']
+    out['presentation_linkbase_complete_dts_verified'] = False
+    out['primary_statement_role_verified'] = False
     if len(package['instances']) != 1:
         out['status'] = 'xbrl_instance_missing_or_ambiguous'
         return out
