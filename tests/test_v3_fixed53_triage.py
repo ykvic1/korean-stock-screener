@@ -33,8 +33,8 @@ def example():
             "cross_validation": {
                 "status": "mismatch_or_insufficient",
                 "compared_sessions": min(252, usable),
-                "matched_sessions": min(250, usable),
-                "recent_volume_equal_sessions": min(251, usable),
+                "matched_sessions": max(0, min(252, usable) - 2),
+                "recent_volume_equal_sessions": max(0, min(252, usable) - 1),
             },
         })
     return {
