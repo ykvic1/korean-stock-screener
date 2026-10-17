@@ -165,5 +165,47 @@ class HistoryResearchTests(unittest.TestCase):
         self.assertEqual(out['accounting_bases_seen'], ['CFS','OFS'])
         self.assertTrue(out['annual'][1]['used_OFS_fallback'])
 
+    def test_cli_history_refuses_dry_run_and_more_than_one_stock(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from contextlib import redirect_stderr
+        from io import StringIO
+        from official_probe.__main__ import run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'data.json'
+            source.write_text(json.dumps({'date': ASOF, 'stocks': [
+                {'code': '252990', 'market': 'KOSDAQ'},
+                {'code': '491000', 'market': 'KOSDAQ'},
+            ]}), encoding='utf-8')
+            args = ['--asof', ASOF, '--provider', 'dart',
+                    '--source', str(source), '--history-sample']
+            with redirect_stderr(StringIO()), self.assertRaises(SystemExit):
+                run(args + ['--symbols', '252990'])
+            with redirect_stderr(StringIO()), self.assertRaises(SystemExit):
+                run(args + ['--live', '--symbols', '252990,491000'])
+
+    def test_cli_history_live_one_company_no_key_does_not_network(self):
+        import json
+        import os
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from official_probe.__main__ import run
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'data.json'
+            output = Path(tmp) / 'probe.json'
+            source.write_text(json.dumps({'date': ASOF, 'stocks': [
+                {'code': '252990', 'market': 'KOSDAQ'}
+            ]}), encoding='utf-8')
+            with patch.dict(os.environ, {'DART_API_KEY': ''}):
+                result = run(['--asof', ASOF, '--provider', 'dart', '--live',
+                              '--history-sample', '--symbols', '252990',
+                              '--source', str(source), '--output', str(output)])
+            self.assertEqual(result['dart']['status'], 'key_required')
+            self.assertFalse(result['investment_data_ready'])
+            self.assertTrue(output.exists())
+
 if __name__ == '__main__':
     unittest.main()
