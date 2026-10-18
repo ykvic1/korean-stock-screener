@@ -143,6 +143,56 @@ class FullSixPillarContractTests(unittest.TestCase):
         self.assertIsNone(model["candidate_full_total_research_only"])
         self.assertIsNone(model["confirmed_score"])
 
+    def test_user_example_missing_15_points_provisional_82_3(self):
+        result=research_scorecard(asof="2026-10-16", pillars={
+            "ias":20, "financial":16, "valuation":14,
+            "technical":13, "momentum":7
+        })
+        self.assertEqual(result["candidate_observed_points"], 70)
+        self.assertEqual(result["candidate_available_points"], 85)
+        self.assertEqual(result["candidate_missing_points"], 15)
+        self.assertEqual(result["candidate_coverage_pct"], 85)
+        self.assertEqual(result["candidate_normalized_100"], 82.3)
+        self.assertEqual(result["unscored_pillars"], ["industry"])
+        self.assertEqual(result["candidate_score_type"], "provisional_partial_coverage")
+        self.assertIsNone(result["confirmed_score"])
+        self.assertIsNone(result["confirmed_rank"])
+        self.assertFalse(result["v3_release_ready"])
+
+    def test_partial_ias_references_only_observed_subcategory_weight(self):
+        result=research_scorecard(asof="2026-10-16",
+                                  ias={"accumulated_net_buy":20,
+                                       "buy_persistence":10},
+                                  pillars={"financial":18, "valuation":14})
+        self.assertIsNone(result["pillars"]["ias"]["candidate_points"])
+        self.assertEqual(result["ias_candidate_observed_100"], 30)
+        self.assertEqual(result["ias_candidate_available_100"], 40)
+        # IAS max25, 40% of its subcategories => 10 available and 7.5 earned.
+        self.assertEqual(result["candidate_available_points"], 45)
+        self.assertEqual(result["candidate_observed_points"], 39.5)
+        self.assertEqual(result["candidate_normalized_100"], 87.7)
+        self.assertIn("ias", result["unscored_pillars"])
+        self.assertIsNone(result["confirmed_score"])
+
+    def test_all_absent_does_not_yield_provisional_numeric_score(self):
+        blank=research_scorecard(asof="2026-10-16")
+        self.assertIsNone(blank["candidate_observed_points"])
+        self.assertIsNone(blank["candidate_normalized_100"])
+        self.assertEqual(blank["candidate_available_points"],0)
+        self.assertEqual(blank["candidate_score_type"], "insufficient_data")
+
+    def test_all_six_available_still_provisional_not_released(self):
+        result=research_scorecard(asof="2026-10-16",pillars={
+            "ias":20, "financial":20, "valuation":10, "technical":12,
+            "industry":10, "momentum":8
+        })
+        self.assertEqual(result["candidate_available_points"],100)
+        self.assertEqual(result["candidate_observed_points"],80)
+        self.assertEqual(result["candidate_normalized_100"],80)
+        self.assertEqual(result["candidate_score_type"],"provisional_full_coverage")
+        self.assertIsNone(result["confirmed_score"])
+        self.assertFalse(result["scoring_authorized_for_investment"])
+
     def test_ea_filters_remain_research_only_not_predictive_or_tradeable(self):
         ea = ea_candidate_conditions()
         self.assertEqual(ea["current_ias_threshold_candidate"],60)

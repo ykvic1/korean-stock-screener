@@ -37,6 +37,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_universe_rotation.py' -v
       - name: Complete-market 100-stock job slices and fail-closed aggregate (no network)
         run: python -m unittest discover -s tests -p 'test_full_market_batch.py' -v
+      - name: Client score normalization of obtained weight only, 70/85=82.3
+        run: node tests/test_partial_score_ui.js
       - name: JavaScript syntax
         run: |
           python - <<'PY'
