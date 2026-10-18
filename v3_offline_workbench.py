@@ -29,6 +29,7 @@ from v3_industry_feature_adapter import (
 from v3_factor_overlap_audit import audit_factor_overlap, FeatureOverlapError
 from v3_loss_first_screen import loss_first_screen, LossScreenError
 from v3_mandatory_quality_gate import check_research_quality, InputQualityError
+from v3_structural_levels import structural_levels, StructureError
 
 MAX_BATCH = 20000
 MAX_INPUT_BYTES = 15_000_000
@@ -65,6 +66,7 @@ def run_workbench(bundle, *, min_peers=30):
     industry_warnings_by_identity = {}
     downside_by_identity = {}
     quality_by_identity = {}
+    levels_by_identity = {}
     sectors = bundle.get("industry_cohorts")
     if sectors is not None:
         if not isinstance(sectors, list) or len(sectors) > MAX_BATCH:
@@ -191,6 +193,11 @@ def run_workbench(bundle, *, min_peers=30):
         except InputQualityError:
             raise WorkbenchError("quality_evidence_contamination_or_invalid") from None
         quality_by_identity[(market, code, issuer)] = quality
+        try:
+            levels_by_identity[(market, code, issuer)] = structural_levels(
+                price, asof=asof)
+        except StructureError:
+            raise WorkbenchError("invalid_daily_weekly_structure_evidence") from None
         input_issue_counts["quality_" + quality["status"]] += 1
         factor_input.append({
             "code": code, "issuer_id": issuer, "market": market,
@@ -232,6 +239,8 @@ def run_workbench(bundle, *, min_peers=30):
         outcome = downside_by_identity[(row["market"], row["code"], row["issuer_id"])]
         row["downside_risk_screen"] = outcome
         row["mandatory_quality_gate"] = quality_by_identity[
+            (row["market"], row["code"], row["issuer_id"])]
+        row["observed_daily_weekly_levels"] = levels_by_identity[
             (row["market"], row["code"], row["issuer_id"])]
         # The provisional *numerical* score is retained for research, but
         # a red-flagged firm is NEVER escalated for high-score follow-up.
