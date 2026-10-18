@@ -26,10 +26,11 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <div id="status" class="status bad">시장 분석 데이터 확인 중…</div><div id="updated" class="meta">-</div>
   <div class="stats" style="margin-top:12px">
     <div class="stat"><strong id="date">-</strong><span>가격 기준일</span></div>
-    <div class="stat"><strong id="count">-</strong><span>분석 후보</span></div>
+    <div class="stat"><strong id="count">-</strong><span>웹 표시 후보</span></div>
     <div class="stat"><strong id="flowCount">-</strong><span>수급 확인</span></div>
     <div class="stat"><strong id="valuationCount">-</strong><span>PBR 확인</span></div>
   </div>
+  <p id="universeProgress" class="note" aria-live="polite">시장 전체 1차 검색 및 상세분석 범위를 확인하고 있습니다.</p>
   <div class="buttons"><a id="download" class="btn primary" aria-disabled="true">↓ 최신 엑셀 받기</a><button class="btn" id="refresh">↻ 새로고침</button></div>
   <p class="note">KRX 정규장 가격·거래량과 공식 종가 교차검증 전입니다. 기존 환산점수는 보존된 연구값이며 새 종합 100점 확정 점수가 아닙니다. 점수는 상승 확률이 아닙니다. '확보율'은 데이터로 실제 평가한 배점 비중입니다. 수급과 재무가 빠진 종목은 매수 우선으로 분류하지 않습니다.</p>
 </section>
@@ -164,6 +165,7 @@ async function load(){
   if(d.version!=='2.0'||d.status!=='success'||!Array.isArray(d.stocks)||!d.stocks.length){
     el('status').textContent='v2 새 분석 대기 중';el('status').className='status bad';
     el('updated').textContent='새 스크리너로 첫 성공 실행을 마치면 데이터가 표시됩니다. 기존 v1 결과로 v2 점수를 만들지 않습니다.';
+     el('universeProgress').textContent='현재 조건별 분석 범위를 확인할 수 없습니다.';
     renderPractical(null);
      el('list').innerHTML='<div class="empty">v2 분석 결과가 아직 없습니다.</div>';return;
   }
@@ -175,11 +177,12 @@ async function load(){
   el('updated').textContent=`기준일 ${d.date} · ${d.generated_kst} 생성 · ${d.examined_count}종목 정밀 조회 · 오류 ${d.error_count}건 · 이력 부족 제외 ${(d.history_exclusions||[]).length}종목`;
   el('date').textContent=d.date;
   el('count').textContent=fmt(d.candidate_count);
+   el('universeProgress').textContent='시장 전체 1차 조건 통과 '+fmt(d.eligible_count)+'종목 → 상세 차트 분석 '+fmt(d.examined_count)+'종목 → 웹 표시 '+fmt(d.candidate_count)+'종목 · 중·저유동성 종목은 거래일마다 순환 점검';
   el('flowCount').textContent=fmt(d.flow_confirmed_count);
   el('valuationCount').textContent=fmt(d.fundamental_count);
   el('download').href='reports/latest.xlsx';el('download').setAttribute('aria-disabled','false');
   render();
- }catch(e){renderPractical(null);el('status').textContent='데이터 수신 오류';el('status').className='status bad';el('updated').textContent=String(e.message);}
+ }catch(e){renderPractical(null);el('universeProgress').textContent='시장 후보 데이터 수신 오류';el('status').textContent='데이터 수신 오류';el('status').className='status bad';el('updated').textContent=String(e.message);}
 }
 async function loadHistory(){try{
  const r=await fetch('history.json?now='+Date.now(),{cache:'no-store'});
