@@ -27,6 +27,7 @@ from v3_industry_feature_adapter import (
     evaluate_industry_cohort, IndustryFeatureError
 )
 from v3_factor_overlap_audit import audit_factor_overlap, FeatureOverlapError
+from v3_loss_first_screen import loss_first_screen, LossScreenError
 
 MAX_BATCH = 20000
 MAX_INPUT_BYTES = 15_000_000
@@ -60,6 +61,8 @@ def run_workbench(bundle, *, min_peers=30):
     # Each stock with a declared sector must match exactly one full
     # research cohort. No fallback to surviving members of today's universe.
     derived_industry = {}
+    industry_warnings_by_identity = {}
+    downside_by_identity = {}
     sectors = bundle.get("industry_cohorts")
     if sectors is not None:
         if not isinstance(sectors, list) or len(sectors) > MAX_BATCH:
@@ -97,6 +100,7 @@ def run_workbench(bundle, *, min_peers=30):
                 if identity in derived_industry:
                     raise WorkbenchError("industry_member_assigned_twice")
                 derived_industry[identity] = output["features"]
+                industry_warnings_by_identity[identity] = output["risk_flags_research"]
             if output["risk_flags_research"]:
                 input_issue_counts["industry_cycle_warning_cohorts"] += 1
         if set(target_members) != visited:
@@ -114,6 +118,7 @@ def run_workbench(bundle, *, min_peers=30):
             if set(industry_derived) & set(manual):
                 raise WorkbenchError("manual_industry_metric_conflicts_with_sector")
             merged.update(industry_derived)
+        finance_warning_candidates = []
         statements = stock.get("annual_statements")
         if statements is not None:
             try:
@@ -125,7 +130,8 @@ def run_workbench(bundle, *, min_peers=30):
             if set(finance["features"]) & set(manual):
                 raise WorkbenchError("manual_financial_metric_conflicts_with_statements")
             merged.update(finance["features"])
-            if finance["financial_red_flag_candidates"]:
+            finance_warning_candidates = finance["financial_red_flag_candidates"]
+            if finance_warning_candidates:
                 input_issue_counts["financial_warning_flags"] += 1
         price = stock.get("price_bars")
         obv, price_r60 = None, None
@@ -165,6 +171,16 @@ def run_workbench(bundle, *, min_peers=30):
                         val is not None and val != merged[key]):
                     raise WorkbenchError("conflicting_derived_indicator")
                 merged[key] = val
+        try:
+            downside = loss_first_screen(
+                asof=asof, price_bars=price, raw_features=merged,
+                financial_warning_candidates=finance_warning_candidates,
+                industry_warning_candidates=industry_warnings_by_identity.get(
+                    (market, code, issuer), []))
+        except LossScreenError:
+            raise WorkbenchError("downside_screen_invalid_research_evidence") from None
+        downside_by_identity[(market, code, issuer)] = downside
+        input_issue_counts["loss_first_" + downside["status_research_only"]] += 1
         factor_input.append({
             "code": code, "issuer_id": issuer, "market": market,
             "asof": asof, "features": merged
@@ -201,6 +217,14 @@ def run_workbench(bundle, *, min_peers=30):
         except PortfolioRiskError:
             raise WorkbenchError("invalid_hypothetical_portfolio") from None
     rows = research["rows"]
+    for row in rows:
+        outcome = downside_by_identity[(row["market"], row["code"], row["issuer_id"])]
+        row["downside_risk_screen"] = outcome
+        # The provisional *numerical* score is retained for research, but
+        # a red-flagged firm is NEVER escalated for high-score follow-up.
+        row["high_score_not_allowed_to_override_risk_screen"] = bool(
+            outcome["exclusion_reasons"])
+        row["trade_approval"] = False
     return {
         "schema": "v3-offline-executable-workbench-0.1",
         "asof": asof, "research_stock_count": len(rows),
