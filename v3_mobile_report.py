@@ -126,11 +126,35 @@ footer{font-size:.79rem;color:#53647c;margin-top:24px}
         missing = stock.get("missing_features", [])
         if not isinstance(missing, list):
             raise MobileReportError("invalid_missing_feature_names")
+        risk_screen = stock.get("downside_risk_screen")
+        if (not isinstance(risk_screen, dict)
+                or risk_screen.get("confirmed_buy") is not False
+                or risk_screen.get("v3_release_ready") is not False
+                or stock.get("trade_approval") is not False):
+            raise MobileReportError("risk_first_research_gate_missing")
+        risk_status_labels = {
+            "structural_exclusion": "구조적 위험: 연구 후보 제외",
+            "downside_watch": "하방위험: 관찰",
+            "chase_risk": "단기 급등: 추격 위험",
+            "incomplete_evidence": "판단 근거 부족",
+            "conditional_research_review": "조건부 연구 검토 (매수 아님)",
+            "watch_unconfirmed": "전환 확인 전 관망",
+        }
+        risk_status = risk_screen.get("status_research_only")
+        if risk_status not in risk_status_labels:
+            raise MobileReportError("unknown_risk_screen_status")
+        risk_label = risk_status_labels[risk_status]
+        reasons = risk_screen.get("exclusion_reasons", [])
+        if not isinstance(reasons, list) or any(type(x) is not str for x in reasons):
+            raise MobileReportError("invalid_risk_screen_exclusions")
+        risk_explanation = (" · 고득점이라도 제외" if reasons else "")
         summary = (f"<span>{_esc(stock.get('market', ''))} · "
                    f"{_esc(stock.get('code', ''))}</span>"
                    f"<span class='dot'>자료 {coverage:.0f}%</span>")
         cards.append(
             "<article><details><summary>" + summary + "</summary>"
+            "<p><strong>손실위험 우선 판정: " +
+            _esc(risk_label) + _esc(risk_explanation) + "</strong></p>"
             "<p class='soft'>잠정 연구 합계: <span class='big'>" +
             _points(candidate) + "</span> / 100 · 확정순위 없음</p>"
             "<dl class='scores'>" + "".join(listing) + "</dl>" +
