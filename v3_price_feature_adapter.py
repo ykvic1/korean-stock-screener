@@ -94,7 +94,7 @@ def _relative(close, benchmark, dates, back):
     if any(d not in benchmark for d in sample_dates):
         return None
     market_return = benchmark[sample_dates[-1]] / benchmark[sample_dates[0]]
-    return round(100 * ((close[-1] / close[-back-1]) / market_return - 1), 6)
+    return round(float(100 * ((close[-1] / close[-back-1]) / market_return - 1)), 6)
 
 
 def extract_price_features(bars, *, asof, market_index=None,
@@ -183,7 +183,7 @@ def extract_price_features(bars, *, asof, market_index=None,
             previously_below = bool(np.any(last_eight[:-1] <= last_eight_ma[:-1]))
             if 0 <= gap <= 12 and previously_below:
                 features["technical_weekly_ma120_reclaim_strength"] = round(
-                    0.6 + 0.4 * (1 - gap/12), 6)
+                    float(0.6 + 0.4 * (1 - gap/12)), 6)
             else:
                 # Not re-claiming from below; a mere far-above 120-week line
                 # must not receive an early-reversal bonus.
