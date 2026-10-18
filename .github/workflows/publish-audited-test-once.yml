@@ -1,0 +1,104 @@
+name: Publish Audited Full Market Test Snapshot (one-shot)
+
+on:
+  # This new workflow starts exactly once when this file first merges to main.
+  # No schedule, no workflow_dispatch, no additional full-market OHLCV scan.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-audited-test-once.yml']
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  publish-verified-first-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing application libraries (no browser or fixed IP needed)
+        run: pip install -r requirements.txt
+      - name: Obtain audited 2026-10-18 market code manifest
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39092655438
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: market-code-plan-39092655438
+          path: batch-plan
+      - name: Obtain 25 successful saved 100-stock technical analysis receipts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39092655438
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: market-part-39092655438-*
+          merge-multiple: true
+          path: batch-parts
+      - name: Validate all 2498 stock identities and previously tested metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_full_market_batch.py' -v
+          python - <<'PY'
+          from pathlib import Path
+          import full_market_batch as b
+          manifest=b._read(Path('batch-plan/manifest.json'))
+          if manifest['asof']!='2026-10-18':
+              raise SystemExit('unexpected_historical_manifest_date')
+          merged=b.load_receipts(manifest,Path('batch-parts'))
+          counts=(merged['eligible'],merged['examined'],len(merged['rows']),
+                  len(merged['errors']),len(merged['excluded']))
+          if counts!=(2498,2498,2369,106,23):
+              raise SystemExit('audited_full_market_census_mismatch')
+          if merged['raw_ohlcv_exported'] or not merged['market_scan_complete']:
+              raise SystemExit('audit_not_entirely_verified')
+          print('Audited 2498 / priced 2369 / price errors 106 / insufficient history 23')
+          PY
+      - name: Reuse audited derived data; publish exactly one v2 test snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import full_market_batch as b
+          manifest=b._read(Path('batch-plan/manifest.json'))
+          result=b.publish(manifest=manifest,parts_dir=Path('batch-parts'),
+                           use_flow=False,allow_missing_parts=False)
+          if result['status']!='complete_market_report_published':
+              raise SystemExit('unexpected_partial_publish_refused')
+          if result['eligible']!=2498 or result['attempted']!=2498 or result['priced']<1800:
+              raise SystemExit('insufficient_valid_frozen_stock_coverage')
+          print({k:result[k] for k in ('status','asof','eligible','attempted','priced','displayed','flow_confirmed')})
+          print('Investor flow explicitly not measured: score components stay unconfirmed')
+          PY
+      - name: Publish audited test snapshot to existing GitHub Pages / Excel
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data.json docs/history.json docs/reports/ docs/archive/
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish audited full-market v2 test snapshot (2498 attempted)"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Upload generated end-user Excel report only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-market-test-publication-${{ github.run_id }}
+          path: |
+            reports/*.xlsx
+            logs/collection_audit.json
+          if-no-files-found: warn
+          retention-days: 7
