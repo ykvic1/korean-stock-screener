@@ -1,9 +1,11 @@
-name: Full-Market 100-Stock Batches (manual pilot)
+name: Full-Market 100-Stock Batches
 
 on:
-  # The first full-market audit was already started. Avoid triggering another
-  # expensive 2,498-stock run on each code update while the first is active.
-  # Keep explicit/manual mode until the single-run audit is confirmed.
+  # One real full-market audit (2498 attempted/2369 priced) already passed.
+  # Automatically recompute ALL surviving ordinary stocks in 100-stock slices
+  # on weekdays; this replaces the legacy time-limited daily schedule.
+  schedule:
+    - cron: '30 9 * * 1-5'  # 18:30 Korea standard time
   workflow_dispatch:
     inputs:
       asof:
@@ -12,7 +14,7 @@ on:
         default: ''
         type: string
       mode:
-        description: 'audit = no Pages updates; publish = successful chunks with explicit incomplete coverage'
+        description: 'audit = no Pages updates; publish = successful chunks with explicit incomplete coverage. Schedule always publishes.'
         required: true
         default: audit
         type: choice
@@ -125,7 +127,7 @@ jobs:
           path: batch-parts
       - name: Ensure every stock was accounted for; publish only by explicit request
         env:
-          MODE: ${{ inputs.mode }}
+          MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
@@ -138,7 +140,7 @@ jobs:
               --manifest batch-plan/manifest.json --parts batch-parts
           fi
       - name: Publish ONE final v2 Pages/Excel snapshot after complete union
-        if: ${{ inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -151,7 +153,7 @@ jobs:
             git push origin HEAD:main
           fi
       - name: Keep only final derived Excel and failure audit after requested publication
-        if: ${{ always() && inputs.mode == 'publish' }}
+        if: ${{ always() && (github.event_name == 'schedule' || inputs.mode == 'publish') }}
         uses: actions/upload-artifact@v4
         with:
           name: full-market-final-report-${{ github.run_id }}
