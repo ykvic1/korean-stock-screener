@@ -254,7 +254,7 @@ def build_dossier(row,score,stop,history,day):
         "evidence_gaps":gaps,
         "confirmed_buy":reliable,
         "prediction_probabilities":None,
-        "eliott_primary":None,"elliott_alternative":None,
+        "elliott_primary":None,"elliott_alternative":None,
         "analyst_attention":"수급·실적·주봉 대안 파동 검증 후 매매 재판단"
     }
     # Exclude presentation-only changed status from fingerprint.
