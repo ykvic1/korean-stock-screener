@@ -28,6 +28,7 @@ from v3_industry_feature_adapter import (
 )
 from v3_factor_overlap_audit import audit_factor_overlap, FeatureOverlapError
 from v3_loss_first_screen import loss_first_screen, LossScreenError
+from v3_mandatory_quality_gate import check_research_quality, InputQualityError
 
 MAX_BATCH = 20000
 MAX_INPUT_BYTES = 15_000_000
@@ -63,6 +64,7 @@ def run_workbench(bundle, *, min_peers=30):
     derived_industry = {}
     industry_warnings_by_identity = {}
     downside_by_identity = {}
+    quality_by_identity = {}
     sectors = bundle.get("industry_cohorts")
     if sectors is not None:
         if not isinstance(sectors, list) or len(sectors) > MAX_BATCH:
@@ -181,6 +183,15 @@ def run_workbench(bundle, *, min_peers=30):
             raise WorkbenchError("downside_screen_invalid_research_evidence") from None
         downside_by_identity[(market, code, issuer)] = downside
         input_issue_counts["loss_first_" + downside["status_research_only"]] += 1
+        try:
+            quality = check_research_quality(
+                asof=asof, code=code, issuer_id=issuer,
+                market=market, price_bars=price,
+                evidence=stock.get("quality_evidence"))
+        except InputQualityError:
+            raise WorkbenchError("quality_evidence_contamination_or_invalid") from None
+        quality_by_identity[(market, code, issuer)] = quality
+        input_issue_counts["quality_" + quality["status"]] += 1
         factor_input.append({
             "code": code, "issuer_id": issuer, "market": market,
             "asof": asof, "features": merged
@@ -220,11 +231,14 @@ def run_workbench(bundle, *, min_peers=30):
     for row in rows:
         outcome = downside_by_identity[(row["market"], row["code"], row["issuer_id"])]
         row["downside_risk_screen"] = outcome
+        row["mandatory_quality_gate"] = quality_by_identity[
+            (row["market"], row["code"], row["issuer_id"])]
         # The provisional *numerical* score is retained for research, but
         # a red-flagged firm is NEVER escalated for high-score follow-up.
         row["high_score_not_allowed_to_override_risk_screen"] = bool(
             outcome["exclusion_reasons"])
         row["trade_approval"] = False
+        row["eligible_for_verified_v3"] = False
     return {
         "schema": "v3-offline-executable-workbench-0.1",
         "asof": asof, "research_stock_count": len(rows),
