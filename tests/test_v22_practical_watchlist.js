@@ -163,15 +163,15 @@ if(frozen.status==='success'&&frozen.stocks?.length) {
 const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 for(const phrase of ['손절선 거리 (추격·환금성은 별도 표시)','적합 접근기간 (잠정)',
   '단기 접근 · 약 1개월','중기 접근 · 약 3개월','장기 검토 · 6개월 이상',
-  '과거 유사조건 순수익:','미래 기대수익 미산출',
+  '과거 유사조건 순수익:','미래 기대수익률 미산출',
   '장기 보유 주의:','가장 먼저 심층분석할 종목']) {
  assert.ok(html.includes(phrase),phrase);
 }
 assert.ok(html.includes("profile?.riskLabel"));
 assert.ok(html.includes('손절 위험 등급의 해석:'));
 assert.ok(!html.includes("profile?.label||'위험·상승공간 미확인'"));
-assert.ok(html.includes('손절 기준:'));
-assert.ok(html.includes('환금성:'));
+assert.ok(html.includes('위험 구분:'));
+assert.ok(html.includes('환금성 '));
 assert.ok(html.includes('riskBreakdown?.stop'));
 assert.ok(!html.includes('손절·추격·환금위험 높음'));
 assert.ok(!html.includes('낮은 손절폭 · 고점거리 큼'));
