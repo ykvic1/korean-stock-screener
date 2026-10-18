@@ -69,11 +69,10 @@ class InsufficientHistory(ValueError):
 ROOT = Path(__file__).resolve().parent
 SITE, OUT, LOG = ROOT / 'docs', ROOT / 'reports', ROOT / 'logs'
 DEFAULT = {
-    'min_market_cap_eok':5000, 'max_market_cap_eok':50000,
-    'min_daily_trading_eok':2, 'preselect_limit':210,
     'min_history_bars':160, 'historical_days':1100,
     'request_sleep_seconds':0.18, 'top_candidates_for_flows':35,
-    'flow_days':20, 'max_watch_rows':200,
+    'flow_days':20, 'history_time_budget_seconds':2100,
+    'flow_time_budget_seconds':420,
     'max_data_age_days':6, 'preferred_pbr_max':1.5,
     'max_stop_distance_pct':15,
     'enable_optional_company_listing':True
@@ -117,8 +116,12 @@ def market_snapshot():
         if not (code.isdigit() and len(code)==6 and market in ('KOSPI','KOSDAQ')):continue
         if any(t in name.upper() for t in ('ETF','ETN','SPAC','스팩','인버스','레버리지')) or name.endswith(('우','우B')):continue
         vals=[finite(r[t]) for t in ('Close','Volume','Amount','Marcap')]
-        if any(v is None or v<=0 for v in vals):continue
+        if any(v is None for v in vals):continue
         px,volume,amount,marcap=vals
+        # No market-cap or trading-value cutoff: thinly traded and small-cap
+        # shares stay observable, with liquidity/financial risks flagged later.
+        # Exclude only invalid quotes/identifiers, not genuine zero-turnover days.
+        if px<=0 or marcap<=0 or volume<0 or amount<0:continue
         found[code]={'code':code,'name':name,'market':market,'price':px,'snapshot_volume':volume,
                      'trading_eok':amount/1e8,'market_cap_eok':marcap/1e8,
                      'sector':None,'pbr':None,'valuation_source':None}
@@ -153,45 +156,34 @@ def optional_listings(rows):
 
 
 def select_universe(rows,cfg,day):
-    """One low-cost whole-market scan; rotate expensive history work in 3 liquidity buckets.
+    """Scan ALL listed ordinary shares; day-rotate history work without cap.
 
-    The previous once-per-week random sample could omit neglected stocks
-    indefinitely. Keep 1/3 liquid names steady; move through medium/quiet
-    buckets in deterministic consecutive-weekday windows. No more OHLCV API
-    calls per day than the existing 210-stock limit.
+    The stock listing is fetched market-wide once. Historical OHLCV remains
+    expensive (one request per symbol), so build_rows processes this entire
+    rotating queue only while its elapsed-time safety budget permits.
+
+    Market capitalization, liquidity and PBR are ANALYSIS fields, not
+    permission to be screened. No stock is removed for being small/illiquid.
+    Neither a 210-symbol limit nor a fixed publication list exists.
     """
-    valid=[r for r in rows.values() if cfg['min_market_cap_eok']<=r['market_cap_eok']<=cfg['max_market_cap_eok']
-           and r['trading_eok']>=cfg['min_daily_trading_eok']]
-    valid.sort(key=lambda r:(-r['trading_eok'],r['code']))
-    cap=int(cfg['preselect_limit'])
-    if cap<3 or cap>210:
-        raise ValueError('현재 저비용 운영에서는 일별 상세조회 3~210종목만 허용')
-    if len(valid)<=cap:return valid,len(valid)
+    valid=[r for r in rows.values()
+           if r.get('code') and r.get('market') in ('KOSPI','KOSDAQ')]
+    valid.sort(key=lambda r:r['code'])
+    if not valid:return valid,0
 
-    n1=cap//3;n2=cap//3;n3=cap-n1-n2
-    first=valid[:n1]
-    rest=valid[n1:]
-    pivot=max(1,len(rest)//2)
-    mids=rest[:pivot]
-    quieter=rest[pivot:]
-
-    # Business-weekday index: Fri->Mon moves one day, Sat/Sun do not
-    # rotate. Exchange holidays may skip windows but never fabricate data.
     trade_day=day.date() if isinstance(day,datetime) else day
     elapsed=(trade_day-datetime(2000,1,3).date()).days
     weeks,weekday=divmod(elapsed,7)
-    weekday_index=weeks*5+min(weekday,4)
-
-    def rotate(bucket,size):
-        if len(bucket)<=size:return bucket[:]
-        origin=(weekday_index*size)%len(bucket)
-        return (bucket[origin:]+bucket[:origin])[:size]
-
-    chosen=first+rotate(mids,n2)+rotate(quieter,n3)
-    if len(chosen)<cap:
-        unique={r['code'] for r in chosen}
-        chosen += [r for r in valid if r['code'] not in unique][:cap-len(chosen)]
-    return chosen,len(valid)
+    business_day_index=weeks*5+min(weekday,4)
+    # Coprime stride ensures the start position eventually visits every
+    # symbol even if the number of currently listed equities is unchanged.
+    # No promise that every symbol is deeply assessed in any single run.
+    stride=997
+    while math.gcd(stride,len(valid))!=1:
+        stride+=1
+    origin=(business_day_index*stride)%len(valid)
+    rotated=valid[origin:]+valid[:origin]
+    return rotated,len(valid)
 
 def ma_last(arr,period):return float(np.mean(arr[-period:])) if len(arr)>=period else None
 
@@ -459,10 +451,21 @@ def build_rows(day,cfg):
     optional=[]
     if cfg.get('enable_optional_company_listing',True):optional=optional_listings(universe)
     selected,total=select_universe(universe,cfg,day)
-    logging.info('시장 전체 1차 조건 통과 %s종목 / 순환 상세조회 %s종목 / 공개 한도 %s종목; 기업 보조 데이터=%s',total,len(selected),cfg['max_watch_rows'],optional)
+    logging.info('전시장 보통주 후보 %s종목 (시총·거래대금 상하한 없음); 별도 일일 종목 수 상한 없음 / 보조 목록=%s',
+                 total,optional)
     idx=load_indexes(day,cfg)
     valid=[];errors=[];excluded=[]
+    history_start=time.monotonic()
+    history_budget=float(cfg.get('history_time_budget_seconds',2100))
+    if not 120<=history_budget<=2700:
+        raise ValueError('상세 가격 조회 실행시간 예산은 120~2700초 이내여야 함')
+    history_attempted=0
     for i,r in enumerate(selected,1):
+        if i>1 and time.monotonic()-history_start>=history_budget:
+            logging.info('과거 차트 상세조회 시간예산 도달: %s/%s종목 처리, 나머지 %s종목 다음 거래일에 재검색',
+                         history_attempted,total,total-history_attempted)
+            break
+        history_attempted+=1
         try:
             v=analyze_history(r['code'],cfg,day);r.update(v)
             ref=idx.get(r['market'])
@@ -483,7 +486,7 @@ def build_rows(day,cfg):
     if not valid:raise RuntimeError('모든 종목 가격조회 실패 — 결과 덮어쓰기 중단')
     freshest=max(r['price_date'] for r in valid)
     valid=[r for r in valid if r['price_date']==freshest]
-    if len(valid)<min(20,len(selected)//5):raise RuntimeError('최근 거래일 유효 종목 부족')
+    if len(valid)<20:raise RuntimeError('최근 거래일 유효한 기술 분석 종목이 20개 미만: 발행 중단')
     if (day.date()-datetime.fromisoformat(freshest).date()).days>6:raise RuntimeError('분석 기준일이 오래됨')
     # Select candidates for flow check by non-OBV composite, not simply liquidity.
     for r in valid:score_one(r,cfg)
@@ -518,8 +521,14 @@ def build_rows(day,cfg):
         time.sleep(cfg['request_sleep_seconds'])
     for r in valid:score_one(r,cfg)
     valid.sort(key=lambda x:(x['decision']=='정밀 검토 우선',x['decision']=='관찰',x['score'] or 0,x['coverage_pct'] or 0),reverse=True)
-    return valid,errors,datetime.fromisoformat(freshest),{'eligible':total,'examined':len(selected),
-      'index_markets':list(idx),'optional_listings':optional,'excluded':excluded,'flow_attempted':collector.attempted,'flow_planned':len(attempts)}
+    return valid,errors,datetime.fromisoformat(freshest),{
+      'eligible':total,'examined':history_attempted,
+      'history_deferred':max(0,total-history_attempted),
+      'history_scan_complete':history_attempted==total,
+      'history_usable':len(valid),
+      'index_markets':list(idx),'optional_listings':optional,
+      'excluded':excluded,'flow_attempted':collector.attempted,
+      'flow_planned':len(attempts)}
 
 
 def _xml_xlsx(sheets, path):
@@ -591,7 +600,7 @@ def make_report(rows,errors,analysis_day,cfg,meta):
       ['재무 실적/현금흐름','아직 자동 연동되지 않음. 배점 5점을 결측 처리'],
       ['손절선','최근 20~45 거래일 저점 기준 참고선. 확정 지지선 아님'],
       ['상승 여력','52주 고점 대비 공간은 목표주가 예측이 아님'],
-      ['종목 선정','전체시장 시총·거래대금 필터 후 210종목/일: 고유동성 1/3 고정, 중·저유동성 각 1/3 거래일 순환'],
+      ['종목 선정','전체시장 보통주 1차 검색 (시가총액/거래대금 상하한 없음) 후 실행시간 내 개별 차트 조회. 일별 시작 위치 순환'],
       ['데이터 출처','https://github.com/FinanceData/FinanceDataReader'],
       ['수급 출처','https://github.com/sharebook-kr/pykrx']]
     headers=['순위','종목코드','종목명','시장','업종(가능시)','가격 기준일','종가 원','시총 억원','거래대금 억원',
@@ -604,7 +613,7 @@ def make_report(rows,errors,analysis_day,cfg,meta):
              '외국인 순매수일','기관 순매수일','PBR','손절참고 원','손절폭 %','52주 최고가 원',
              '52주고점 공간 %','단순 손익비','패턴 후보','위험 경고','예상수익률','엘리어트 검증']
     table=[headers]
-    for i,r in enumerate(rows[:cfg['max_watch_rows']],1):
+    for i,r in enumerate(rows,1):
         table.append([i,r['code'],r['name'],r['market'],r['sector'],r['price_date'],int(r['price_latest']),
           round_or_none(r['market_cap_eok'],0),round_or_none(r['trading_eok']),
           r['phase'],r['decision'],r['score'],r['coverage_pct'],r['raw_score'],r['available_max'],
@@ -621,12 +630,12 @@ def make_report(rows,errors,analysis_day,cfg,meta):
           r['stop_line'],r['stop_pct'],r['reference_resistance'],r['reference_target_pct'],
           r['reward_risk'],' / '.join(r['patterns']),' / '.join(r['risk_flags']),r['forecast'],r['elliott']])
     breakdown=[['종목코드','종목명','구분','관측점수','항목만점','확인상태']]
-    for r in rows[:cfg['max_watch_rows']]:
+    for r in rows:
         for key,maxw in WEIGHTS.items():
             v=r['components'][key]
             breakdown.append([r['code'],r['name'],key,v,maxw,'확인' if v is not None else '미확인/미수집'])
     risks=[['종목명','가격 기준일','현재 단계','종가','구조적 손절 참고선','손절폭 %','52주 고점 공간 %','참고 손익비','검증할 위험']]
-    for r in rows[:cfg['max_watch_rows']]:
+    for r in rows:
         risks.append([r['name'],r['price_date'],r['phase'],int(r['price_latest']),
           r['stop_line'],r['stop_pct'],r['reference_target_pct'],r['reward_risk'],' / '.join(r['risk_flags'])])
     err=[['종목코드','수집 구간','사유']]+errors
@@ -646,7 +655,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
     SITE.mkdir(parents=True,exist_ok=True)
     reportdir=SITE/'reports';reportdir.mkdir(exist_ok=True)
     view=[]
-    for i,r in enumerate(rows[:cfg['max_watch_rows']],1):
+    for i,r in enumerate(rows,1):
         view.append({
           'rank':i,'code':r['code'],'name':r['name'],'market':r['market'],
           'sector':r['sector'],'price':int(r['price_latest']),
@@ -674,6 +683,9 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
     out={'status':'success','version':'2.0','date':analysis_day.strftime('%Y-%m-%d'),
          'generated_kst':datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M KST'),
          'candidate_count':len(view),'examined_count':meta['examined'],'eligible_count':meta['eligible'],
+          'history_deferred_count':meta.get('history_deferred',0),
+          'history_scan_complete':bool(meta.get('history_scan_complete',False)),
+          'history_usable_count':meta.get('history_usable'),
          'flow_confirmed_count':sum(x['flows_confirmed'] for x in view),
          'fundamental_count':sum(x['pbr'] is not None for x in view),
          'index_available':meta['index_markets'],
