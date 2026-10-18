@@ -73,13 +73,13 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <h2>기술점수 상위 20개 · 추가 탐색용</h2>
   <p class="note">전체 스크리닝의 <strong>부분환산 점수 상위 20개</strong>를 보여주고, 종목별로 <strong>단기 1개월 / 중기 3개월 / 장기 6개월 이상</strong> 가운데 어떤 접근을 우선 검토할지 표시합니다. 손절 위험과 기존 퀀트 연구의 기간별 수익·손실도 비교하지만, <strong>과거 52주 고점 거리를 기대수익으로 간주하지 않습니다.</strong> 재무·기관수급·업황이 충분히 검증되지 않아 확정 매수 추천과 미래 기대수익률은 보류합니다.</p>
   <div class="watch-filters">
-    <label for="watchKind">손절 · 추격 · 환금 위험
+    <label for="watchKind">진입 위험 (구체적 원인은 종목별 표시)
       <select id="watchKind" aria-label="투자 위험 수준">
         <option value="all">모든 위험 수준</option>
-        <option value="low">차트 손절위험 낮음</option>
-        <option value="middle">차트 손절위험 중간</option>
-        <option value="high">손절·추격·환금 위험 높음</option>
-        <option value="unknown">위험 근거 미확인</option>
+        <option value="low">별도 경고 없음 · 손절폭 짧음</option>
+        <option value="middle">손절폭 중간</option>
+        <option value="high">진입 주의 요인 있음 (원인별 구분)</option>
+        <option value="unknown">손절 기준 미확인</option>
       </select>
     </label>
     <label for="watchHorizon">적합 접근기간 (잠정)
@@ -92,6 +92,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
       </select>
     </label>
   </div>
+  <p class="note"><strong>위험 등급의 해석:</strong> '높음'은 전부 손절폭이 크다는 뜻이 아닙니다. 손절선이 너무 가깝거나 멀 때, 급등·추격 주의, 거래대금 부족(환금성), 주봉 약세 중 무엇이 원인인지 종목별로 따로 표시합니다. 거래대금이나 추격 위험을 손절폭으로 혼동하지 않도록 구분했습니다.</p>
   <p class="note">좋은 투자 후보는 <strong>상승 가능성과 기대수익이 높으면서 실제 손절 위험이 통제되는 종목</strong>입니다. 현재 위험 유형은 손절 참고폭 등 <em>차트 위험</em>으로만 구분하며, 기업의 재무건전성까지 확정한 등급이 아닙니다. 실제 기대수익률을 계산할 근거가 없으면 '미산출'로 두고, 과거 퀀트 관측 수익은 별도 표시합니다. 장기 접근에는 실적·산업 사이클 검증이 추가로 필요합니다.</p>
   <div id="reviewPriority" class="summary" aria-live="polite">추천 여부와 우선 분석 후보를 평가하고 있습니다.</div>
   <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
@@ -187,10 +188,11 @@ function drawCard(r){
   <div class="metric"><label>60일 주가변화</label><b>${signed(r.price60,'%')}</b></div>
   <div class="metric"><label>120주선 괴리</label><b>${signed(r.ma120w_gap,'%')}</b></div>
  </div><div class="tags">${tags.join('')}</div>
- <div class="quick-axes"><span>${esc(profile?.label||'위험·상승공간 미확인')}</span><span>${esc(profile?.horizonLabel||'기간 분류 미확인')}</span></div>
+ <div class="quick-axes"><span>${esc(profile?.riskLabel||'진입 위험 근거 미확인')}</span><span>${esc(profile?.horizonLabel||'기간 분류 미확인')}</span></div>
  <div class="inline-research"><span class="quality-text">가격 데이터: ${esc(r._quality?.label||'품질 자료 조회 중')}</span>
  <button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div>
  <div class="summary">${esc(profile?.horizonLabel||'기간 미판정')} · ${esc(profile?.recommendation||'추천 판단 보류')} · 손절 참고선 ${val(r.stop_line,'원')} (${signed(r.stop_pct,'%')}) · 미래 기대수익률 미산출</div>
+ <p class="note"><b>위험 구분:</b> 손절선 ${esc(profile?.riskBreakdown?.stop||'미확인')} · 급등·추격 ${esc(profile?.riskBreakdown?.chase||'미확인')} · 환금성 ${esc(profile?.riskBreakdown?.liquidity||'미확인')} · 장기 추세 ${esc(profile?.riskBreakdown?.trend||'미확인')}</p>
  <details><summary>수급 · 차트 · 상대강도 · 위험 상세 보기</summary>
   <div class="details-grid">
   ${indicator('20일 주가변화',signed(r.price20,'%'))}
@@ -344,6 +346,8 @@ function renderPractical(snapshot){
     return heading+`<div class="quick-item ${i<report.featured_count?'featured':''}"><div class="quick-main"><b>${i+1}. ${esc(r.name)}</b>
       <small>${esc(r.code)} · ${esc(signals)}</small>
       <div class="quick-axes"><span>${esc(p.riskLabel)}</span><span>${esc(p.horizonLabel)}</span></div>
+      <div class="quick-info"><b>손절 기준:</b> ${esc(p.riskBreakdown.stop)} · <b>추격:</b> ${esc(p.riskBreakdown.chase)}</div>
+      <div class="quick-info"><b>환금성:</b> ${esc(p.riskBreakdown.liquidity)} · <b>주봉:</b> ${esc(p.riskBreakdown.trend)}</div>
       <div class="quick-info"><b>접근 의견: ${esc(p.recommendation)}</b> · ${esc(p.reasoning)}</div>
       ${p.longHoldingCaution?'<div class="quick-info"><b>장기 보유 주의:</b> '+esc(p.longHoldingCaution)+'</div>':''}
       <div class="quick-info"><b>과거 유사조건 순수익:</b> ${esc(observedPeriods)}</div>
