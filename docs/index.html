@@ -254,6 +254,7 @@ function showDeepReport(){
    }).join(' · ');
    const stop=d.downside?.stop;
    const risk=d.downside?.risk_level||'unknown';
+   const separateWarnings=(stop?.non_stop_warning_flags||[]).map(esc).join(' · ');
    const gaps=(d.evidence_gaps||[]).map(esc).join(' · ')||'검증 자료 확인';
    return '<article class="research-dossier">'+
     '<div class="research-title"><h3>'+esc(d.rank||i+1)+'. '+esc(d.name)+' <small>'+esc(d.code)+'</small></h3>'+
@@ -283,7 +284,8 @@ function showDeepReport(){
        ' / 미래 수익률 및 확률: 미산출</dd></div>'+
     '<div><dt>⑧ 위험관리 · 매매전략</dt><dd>'+esc(d.trade_action||'관망')+
        ' · '+esc(d.downside?.hypothesis||'지지선 확인 필요')+
-       (d.long_holding_caution?' · <b>장기 보유 위험 확인</b>':'')+'</dd></div>'+
+       (d.long_holding_caution?' · <b>장기 보유 위험 확인</b>':'')+
+       (separateWarnings?' · <b>손절폭과 별도 경고: </b>'+separateWarnings:'')+'</dd></div>'+
     '<div><dt>추가 확보할 근거</dt><dd>'+gaps+'</dd></div>'+
     '</dl><div class="quick-actions"><button class="btn quant-button" type="button" data-quant-code="'+esc(d.code)+
       '">퀀트 상세 검증</button></div></details>'+
