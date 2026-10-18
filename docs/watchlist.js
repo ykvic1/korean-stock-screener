@@ -208,7 +208,7 @@
         (horizon==='all'||p.horizon===horizon);
     });
     const rows=matching.slice(0,MAX_LISTED);
-    const review=matching.find(row=>profile(
+    const review=rows.find(row=>profile(
       row,byCode.get(row.code),snapshot.date
     ).recommendation==='심층분석 우선 후보')||null;
     return {
