@@ -125,6 +125,8 @@ def verify_manifest(manifest):
             raise EvidenceChainError("paired_market_snapshots_required")
         for market in MARKETS:
             _source(sources[market], entry["asof"])
+        if sources["KOSPI"]["raw_sha256"] == sources["KOSDAQ"]["raw_sha256"]:
+            raise EvidenceChainError("cross_market_source_digest_reused")
         if entry["prev_hash"] != prev or not _sha(entry["entry_hash"]):
             raise EvidenceChainError("broken_manifest_hash_link")
         expected = _hash(_entry_content(entry["asof"], sources, prev))
@@ -156,6 +158,8 @@ def append_market_pair(manifest, *, asof, kospi, kosdaq):
         "KOSPI": _source(kospi, asof),
         "KOSDAQ": _source(kosdaq, asof),
     }
+    if sources["KOSPI"]["raw_sha256"] == sources["KOSDAQ"]["raw_sha256"]:
+        raise EvidenceChainError("cross_market_source_digest_reused")
     entries = manifest["entries"]
     if entries:
         latest_day = _day(entries[-1]["asof"])
