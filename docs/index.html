@@ -14,7 +14,32 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .info{font-size:12px;color:var(--sub)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}.metric{border-left:2px solid #d6e4e6;padding-left:9px}.metric label{display:block;color:var(--sub);font-size:11px}.metric b{font-size:15px;white-space:normal;overflow-wrap:anywhere}
 .tags{display:flex;gap:5px;flex-wrap:wrap}.tag{display:inline-block;border-radius:7px;background:#edf3f5;color:#3d5661;padding:4px 7px;font-size:12px}.tag.good{background:#e2f4ed;color:#086b52}.tag.warn{background:#fff0df;color:#92500b}.tag.risk{background:#fcebe8;color:#9c4035}
 .summary{margin-top:12px;padding:9px 11px;background:#f4f8f8;border-radius:8px;font-size:13px}details{margin-top:12px;border-top:1px solid var(--line);padding-top:9px}summary{cursor:pointer;color:#2c6673;font-weight:700} .details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}.details-grid div{padding:8px;background:#f6f9fa;border-radius:8px;font-size:13px}.details-grid label{font-size:11px;color:var(--sub);display:block} .scores{margin:10px 0}.scores div{display:flex;justify-content:space-between;border-bottom:1px solid #e8eef0;padding:5px;font-size:13px}
-.quick-list{display:grid;gap:8px}.quick-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #e1e9eb;border-radius:11px;padding:11px 13px;background:#fbfcfd}.quick-item b{display:block;font-size:15px}.quick-item small{display:block;color:var(--sub);font-size:12px;margin-top:2px}.quick-risk{text-align:right;font-size:13px}.quick-risk b{color:#92500b;font-size:14px}.quick-risk small{font-size:11px}.quick-info{font-size:12px;color:var(--sub)}.quick-tier{font-size:13px;font-weight:700;color:var(--ink);margin:9px 0 2px;padding:6px 0;border-bottom:1px solid var(--line)}.quick-item.featured{border-left:3px solid var(--cyan);background:#f9fcfc}
+.quick-list{display:grid;gap:8px}
+.quick-item{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(190px,1fr);align-items:start;gap:16px;border:1px solid #e1e9eb;border-radius:11px;padding:14px;background:#fbfcfd}
+.quick-main{min-width:0;width:100%;overflow-wrap:anywhere;word-break:keep-all}
+.quick-item b{display:block;font-size:15px;line-height:1.5;overflow-wrap:anywhere;word-break:keep-all}
+.quick-item small{display:block;color:var(--sub);font-size:12px;line-height:1.55;margin-top:3px}
+.quick-risk{min-width:0;text-align:right;font-size:13px;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.quick-risk b{color:#92500b;font-size:14px}
+.quick-risk small{font-size:11px;max-width:100%;overflow-wrap:anywhere}
+.quick-info{font-size:12px;line-height:1.55;margin-top:3px}
+.quick-tier{font-size:13px;font-weight:700;color:var(--ink);margin:9px 0 2px;padding:6px 0;border-bottom:1px solid var(--line)}
+.quick-item.featured{border-left:3px solid var(--cyan);background:#f9fcfc}
+/* A phone card uses the FULL width for stock name/signals. Its stop panel
+   moves underneath, so the right-side button cannot crush Korean text. */
+@media(max-width:760px){
+  .quick-item{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
+  .quick-risk{width:100%;border-top:1px solid var(--line);padding-top:11px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:center;text-align:left}
+  .quick-risk b{grid-column:1;grid-row:1}
+  .quick-risk small{grid-column:1;grid-row:2;margin-top:0}
+  .quick-actions{grid-column:2;grid-row:1 / span 2;margin-top:0;align-self:center}
+  .quick-actions .quant-button{min-height:42px;padding:9px 12px}
+}
+@media(max-width:350px){
+  .quick-risk{grid-template-columns:minmax(0,1fr)}
+  .quick-actions{grid-column:1;grid-row:auto;margin-top:7px}
+  .quick-actions .quant-button{width:100%}
+}
 .watch-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.watch-filters label{font-size:12px;color:var(--sub);font-weight:650}.watch-filters select{margin-top:4px;font-size:14px;padding:9px}.quick-axes{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0}.quick-axes span{font-size:11px;border:1px solid #d8e6e8;border-radius:6px;padding:3px 7px;background:#f3f8f9;color:#3b5866}@media(max-width:620px){.watch-filters{grid-template-columns:1fr}}
 [hidden]{display:none!important}.inline-research{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}.quality-text{font-size:12px;color:var(--sub)}.quant-button{font-size:12px;padding:6px 11px;white-space:nowrap}.quick-actions{margin-top:7px}.quant-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.quant-table-wrap{overflow-x:auto}.quant-table{border-collapse:collapse;min-width:620px;width:100%;font-size:13px}.quant-table th,.quant-table td{border-bottom:1px solid #e5edef;padding:10px;text-align:right;white-space:nowrap}.quant-table th:first-child,.quant-table td:first-child{text-align:left}.quant-table th{background:#f6f9fa}.research-note{font-size:12px;color:var(--sub)}.research-warn{color:#9a5310;font-weight:700}
 a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.history a{display:block;margin:7px 0;font-size:13px}
@@ -196,7 +221,7 @@ function renderPractical(snapshot){
       `<div class="quick-tier">부분환산 점수 상위 ${report.featured_count}종목</div>`:
       i===report.featured_count?
       `<div class="quick-tier">점수순 추가 후보 ${report.additional_count}종목</div>`:'';
-    return heading+`<div class="quick-item ${i<report.featured_count?'featured':''}"><div><b>${i+1}. ${esc(r.name)}</b>
+    return heading+`<div class="quick-item ${i<report.featured_count?'featured':''}"><div class="quick-main"><b>${i+1}. ${esc(r.name)}</b>
       <small>${esc(r.code)} · ${esc(signals)}</small>
       <div class="quick-axes"><span>${esc(p.label)}</span><span>${esc(p.horizonLabel)}</span></div>
       <div class="quick-info">차트 근거: ${esc(p.reasoning)}</div>
