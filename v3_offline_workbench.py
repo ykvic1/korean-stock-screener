@@ -103,8 +103,10 @@ def run_workbench(bundle, *, min_peers=30):
     try:
         research = research_factor_batch(
             factor_input, asof=asof, min_peers=min_peers)
-    except FactorEngineError:
-        raise WorkbenchError("factor_batch_not_validated") from None
+    except FactorEngineError as exc:
+        # FactorEngineError only has static safe reason codes. Preserve the
+        # category for offline operator triage, never include raw metrics.
+        raise WorkbenchError("factor_batch_not_validated:" + str(exc)) from None
 
     # User-declared hypothetical loss controls are separate from score.
     plans = bundle.get("hypothetical_portfolio_plans")
