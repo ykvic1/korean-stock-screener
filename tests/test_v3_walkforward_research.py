@@ -68,7 +68,7 @@ class WalkForwardResearchTests(unittest.TestCase):
         self.assertEqual(hit["event"], "stop_first")
         self.assertTrue(hit["same_bar_stop_target_ambiguous"])
         self.assertAlmostEqual(hit["net_return_pct"], -10.3)
-        self.assertEqual(hit["mae_pct"], -11.0)
+        self.assertAlmostEqual(hit["mae_pct"], -11.0)
         self.assertEqual(hit["mfe_pct"], 12.0)
 
     def test_opening_gap_below_stop_executes_at_worse_open(self):
