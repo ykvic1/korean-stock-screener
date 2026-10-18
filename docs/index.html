@@ -39,6 +39,16 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .research-title{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .research-status{font-weight:700;color:#8c5117;font-size:12px}
 .research-summary{padding:10px;border-radius:8px;background:#f6f9fa;margin:9px 0;font-size:13px}
+.deep-insight{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fafcfc}
+.deep-insight .deep-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.deep-insight .deep-caption{font-size:12px;color:var(--sub);line-height:1.6;margin:6px 0}
+.deep-insight .research-status{font-size:12px}
+.deep-insight .research-summary{margin:7px 0}
+.deep-insight dl{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;margin:9px 0}
+.deep-insight dl div{padding:9px;background:#f5f8f9;border-radius:8px;overflow-wrap:anywhere}
+.deep-insight dt{font-weight:750;font-size:12px}
+.deep-insight dd{margin:2px 0 0;font-size:12px;color:var(--sub);line-height:1.65}
+@media(max-width:620px){.stock .top{gap:8px;min-width:0}.stock .top>div:first-child{min-width:0;overflow-wrap:anywhere;word-break:keep-all}.stock .score{flex-shrink:0;max-width:49%}.stock .score small{overflow-wrap:anywhere;line-height:1.45}}
 @media(max-width:620px){.research-dossier{padding:12px}}
 /* A phone card uses the FULL width for stock name/signals. Its stop panel
    moves underneath, so the right-side button cannot crush Korean text. */
@@ -67,7 +77,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note">전 종목을 먼저 평가한 뒤 손절·점수·확보율 조건을 충족한 종목만 상세 분석합니다. 20개는 <strong>표시할 최대 수</strong>이며, 충분한 후보가 없다면 적게 표시합니다. <strong>심층분석 대상은 매수 추천이 아닙니다.</strong> 재무·업황·기관 수급 및 수익률 전망이 검증되지 않으면 확정 추천 0종목도 정상적인 결과입니다.</p>
   <div class="research-summary" id="deepResearchStatus" aria-live="polite">전 종목 심층분석 보고서를 불러오는 중입니다.</div>
   <p class="note" id="deepChanges"></p>
-  <div id="deepDossiers"><div class="empty">종목별 분석 자료 확인 중…</div></div>
+  <div id="deepDossiers" class="rich-stock-list"><div class="empty">종목별 분석 자료 확인 중…</div></div>
 </section>
 <section class="panel" id="practicalWatchlist">
   <h2>기술점수 상위 20개 · 추가 탐색용</h2>
@@ -95,7 +105,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note"><strong>손절 위험 등급의 해석:</strong> 현재가와 구조적 손절 참고선 사이의 거리만으로 '짧음 / 중간 / 과도하게 가깝거나 멂 / 기준 미확인'을 구분합니다. 추격·거래대금 부족(환금성)·주봉 장기 약세는 별도 경고입니다. 손절폭이 짧다고 기업 전체 투자위험이 낮다는 의미는 아닙니다.</p>
   <p class="note">좋은 투자 후보는 <strong>상승 가능성과 기대수익이 높으면서 실제 손절 위험이 통제되는 종목</strong>입니다. 현재 위험 유형은 손절 참고폭 등 <em>차트 위험</em>으로만 구분하며, 기업의 재무건전성까지 확정한 등급이 아닙니다. 실제 기대수익률을 계산할 근거가 없으면 '미산출'로 두고, 과거 퀀트 관측 수익은 별도 표시합니다. 장기 접근에는 실적·산업 사이클 검증이 추가로 필요합니다.</p>
   <div id="reviewPriority" class="summary" aria-live="polite">추천 여부와 우선 분석 후보를 평가하고 있습니다.</div>
-  <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
+  <div id="practicalList" class="rich-stock-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
   <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
   <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
 </section>
@@ -169,9 +179,16 @@ function isMatch(r){
   return true;
 }
 function indicator(k,v){return `<div><label>${esc(k)}</label><b>${esc(v)}</b></div>`;}
-function drawCard(r){
+function drawCard(r,options={}){
  const rating=r._rating||null;
+ const displayedRank=options.rank??r._displayRank??r.rank;
+ const extraHtml=options.extraHtml||'';
  const profile=window.V22Watchlist?.profile(r,quantStudyByCode.get(r.code),marketSnapshot?.date)||null;
+ const periodLabels=[['1m','1개월'],['3m','3개월'],['6m','6개월']];
+ const historicText=periodLabels.map(([k,label])=>{
+   const p=profile?.historical?.[k];
+   return label+' '+(p?.status==='exploratory'?signed(p.meanHistoricalNetPct,'%')+' (과거 '+val(p.sampleN,'건')+')':'미검증');
+ }).join(' · ');
  const ratingText=rating?rating.normalized.toFixed(1):'미산출';
  const missing=rating?rating.missing.map(x=>x.name+' '+x.weight+'점').join(' · '):'평가항목 또는 배점 확인 필요';
  const tag=(v,c='')=>`<span class="tag ${c}">${esc(v)}</span>`;
@@ -181,7 +198,7 @@ function drawCard(r){
  if(r.pbr===null)tags.push(tag('밸류 미확인','warn'));
  if(r.risk_flags?.some(x=>x.includes('과대')||x.includes('급등')))tags.push(tag('위험 신호','risk'));
  const components=Object.entries(r.components||{}).map(([k,v])=>`<div><span>${esc(k)}</span><b>${typeof v==='number'?esc(String(v))+'점':'미확인'}</b></div>`).join('');
- return `<article class="stock"><div class="top"><div><div class="name">${esc(r._displayRank??r.rank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">${esc(ratingText)}<small>v2 부분환산 (잠정) / 100점<br>취득 ${rating?val(rating.earned):'미확인'} / ${rating?val(rating.available):'미확인'}점 · 확보율 ${rating?val(rating.coverage,'%'):'미확인'}</small></div></div>
+ return `<article class="stock"><div class="top"><div><div class="name">${esc(displayedRank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">${esc(ratingText)}<small>v2 부분환산 (잠정) / 100점<br>취득 ${rating?val(rating.earned):'미확인'} / ${rating?val(rating.available):'미확인'}점 · 확보율 ${rating?val(rating.coverage,'%'):'미확인'}</small></div></div>
  <div class="metrics">
   <div class="metric"><label>현재가</label><b>${val(r.price,'원')}</b></div>
   <div class="metric"><label>거래량 20일/이전40일</label><b>${val(r.volume_ratio,'배')}</b></div>
@@ -193,6 +210,8 @@ function drawCard(r){
  <button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div>
  <div class="summary">${esc(profile?.horizonLabel||'기간 미판정')} · ${esc(profile?.recommendation||'추천 판단 보류')} · 손절 참고선 ${val(r.stop_line,'원')} (${signed(r.stop_pct,'%')}) · 미래 기대수익률 미산출</div>
  <p class="note"><b>위험 구분:</b> 손절선 ${esc(profile?.riskBreakdown?.stop||'미확인')} · 급등·추격 ${esc(profile?.riskBreakdown?.chase||'미확인')} · 환금성 ${esc(profile?.riskBreakdown?.liquidity||'미확인')} · 장기 추세 ${esc(profile?.riskBreakdown?.trend||'미확인')}</p>
+ <p class="note"><b>기간별 과거 유사조건 순수익:</b> ${esc(historicText)} · 미래 예측이 아닙니다.</p>
+ ${profile?.longHoldingCaution?'<p class="note"><b>장기 보유 주의:</b> '+esc(profile.longHoldingCaution)+'</p>':''}
  <details><summary>수급 · 차트 · 상대강도 · 위험 상세 보기</summary>
   <div class="details-grid">
   ${indicator('20일 주가변화',signed(r.price20,'%'))}
@@ -218,7 +237,7 @@ function drawCard(r){
   <p class="note"><b>위험/검증:</b> ${esc((r.risk_flags||[]).join(' · ')||'별도 경고 없음')}</p>
   <p class="note"><b>미래 수익률:</b> ${esc(r.forecast)}</p>
   <p class="note">차트 패턴은 근사 후보이며, 엘리어트 파동과 업황은 정밀 검증 후 판단합니다.</p>
- </details></article>`;
+ </details>${extraHtml}</article>`;
 }
 function showDeepReport(){
  const panel=el('deepDossiers'),status=el('deepResearchStatus'),news=el('deepChanges');
@@ -246,6 +265,8 @@ function showDeepReport(){
  const textOr=(x)=>x===null||x===undefined?'미확인':esc(x);
  const periodNames={'1m':'1개월','3m':'3개월','6m':'6개월','12m':'12개월'};
  panel.innerHTML=(q.dossiers||[]).map((d,i)=>{
+   const stock=stocks.find(x=>x.code===d.code);
+   if(!stock)return '<div class="research-summary">심층분석 종목 '+esc(d.code)+' · 현재 가격 카드 없음 (다른 날짜 데이터로 대체하지 않음)</div>';
    const change={'entered':'신규 진입','updated':'근거 갱신','unchanged':'기존 유지'}[d.daily_change]||'미확인';
    const confirmed=d.confirmed_buy===true;
    const periods=['1m','3m','6m','12m'].map(k=>{
@@ -256,8 +277,8 @@ function showDeepReport(){
    const risk=d.downside?.risk_level||'unknown';
    const separateWarnings=(stop?.non_stop_warning_flags||[]).map(esc).join(' · ');
    const gaps=(d.evidence_gaps||[]).map(esc).join(' · ')||'검증 자료 확인';
-   return '<article class="research-dossier">'+
-    '<div class="research-title"><h3>'+esc(d.rank||i+1)+'. '+esc(d.name)+' <small>'+esc(d.code)+'</small></h3>'+
+   const researchHtml='<div class="deep-insight">'+
+    '<div class="deep-head"><span class="research-label">심층분석 '+esc(d.rank||i+1)+'순위</span>'+
     '<span class="research-status">'+(confirmed?'검증 기반 조건부 매수 검토':'심층 분석 진행 · 매수 보류')+'</span></div>'+
     '<span class="research-label">'+esc({'1m':'단기 1개월','3m':'중기 3개월','6m':'장기 6개월 이상'}[d.approach_horizon]||'기간 미정')+'</span>'+
     '<span class="research-label">손실위험 '+esc(risk)+'</span>'+
@@ -289,7 +310,8 @@ function showDeepReport(){
     '<div><dt>추가 확보할 근거</dt><dd>'+gaps+'</dd></div>'+
     '</dl><div class="quick-actions"><button class="btn quant-button" type="button" data-quant-code="'+esc(d.code)+
       '">퀀트 상세 검증</button></div></details>'+
-   '</article>';
+   '</div>';
+   return drawCard(stock,{rank:d.rank||i+1,extraHtml:researchHtml});
  }).join('')||'<div class="empty">추천·심층분석 조건을 통과한 종목이 없습니다. 무리하게 20개를 채우지 않고 관망합니다.</div>';
 }
 async function loadDeep(){
@@ -332,32 +354,11 @@ function renderPractical(snapshot){
     return;
   }
   host.innerHTML=report.rows.map((r,i)=>{
-    const pattern=(r.patterns||[]).find(x=>/쐐기|어깨|삼각|수렴/.test(x));
-    const signals=[r.phase,r.obv_rising===true?'OBV 상승':'차트 패턴 관찰',pattern]
-      .filter(Boolean).slice(0,3).join(' · ');
-    const p=window.V22Watchlist.profile(r,quantStudyByCode.get(r.code),snapshot.date);
-    const observedPeriods=['1m','3m','6m'].map(h=>{
-      const point=p.historical[h];
-      const label=h==='1m'?'1개월':h==='3m'?'3개월':'6개월';
-      return label+' '+(point.status==='exploratory'?signed(point.meanHistoricalNetPct,'%')+' (과거 표본 '+val(point.sampleN,'건')+')':'미검증');
-    }).join(' · ');
     const heading=i===0?
-      `<div class="quick-tier">부분환산 점수 상위 ${report.featured_count}종목</div>`:
+      '<div class="quick-tier">부분환산 점수 상위 '+report.featured_count+'종목</div>':
       i===report.featured_count?
-      `<div class="quick-tier">점수순 추가 후보 ${report.additional_count}종목</div>`:'';
-    return heading+`<div class="quick-item ${i<report.featured_count?'featured':''}"><div class="quick-main"><b>${i+1}. ${esc(r.name)}</b>
-      <small>${esc(r.code)} · ${esc(signals)}</small>
-      <div class="quick-axes"><span>${esc(p.riskLabel)}</span><span>${esc(p.horizonLabel)}</span></div>
-      <div class="quick-info"><b>손절 기준:</b> ${esc(p.riskBreakdown.stop)} · <b>추격:</b> ${esc(p.riskBreakdown.chase)}</div>
-      <div class="quick-info"><b>환금성:</b> ${esc(p.riskBreakdown.liquidity)} · <b>주봉:</b> ${esc(p.riskBreakdown.trend)}</div>
-      <div class="quick-info"><b>접근 의견: ${esc(p.recommendation)}</b> · ${esc(p.reasoning)}</div>
-      ${p.longHoldingCaution?'<div class="quick-info"><b>장기 보유 주의:</b> '+esc(p.longHoldingCaution)+'</div>':''}
-      <div class="quick-info"><b>과거 유사조건 순수익:</b> ${esc(observedPeriods)}</div>
-      <div class="quick-info">기존 v2 부분환산 ${r._rating?r._rating.normalized.toFixed(1):'미산출'}점 · 확보배점 ${r._rating?val(r._rating.available):'미확인'}/100</div>
-      <div class="quick-info">가격 데이터: ${esc(r._quality?.label||'자동 품질 조회 중')} · 수급·재무·업황 별도 확인</div></div>
-      <div class="quick-risk"><b>손절 참고 ${signed(r.stop_pct,'%')}</b>
-      <small>미래 기대수익 미산출 · 손익비 판단에는 목표수익 근거 필요</small>
-      <div class="quick-actions"><button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div></div></div>`;
+      '<div class="quick-tier">점수순 추가 후보 '+report.additional_count+'종목</div>':'';
+    return heading+drawCard(r,{rank:i+1});
   }).join('');
   note.textContent=`기준일 ${snapshot.date} · 전체 점수 산출 ${report.eligible_count}종목 · 선택 조건 ${report.filtered_count}종목 중 상위 ${report.rows.length}/20종목 · 접근기간은 기술적/과거 관측 근거의 잠정 분류이며 향후 수익을 보장하지 않습니다.`;
 }
@@ -374,7 +375,7 @@ function render(){
  const shown=arr.slice(0,visibleLimit);
  const remaining=Math.max(0,arr.length-visibleLimit);
  el('list').innerHTML=arr.length?
-   shown.map(drawCard).join('')+(remaining?
+   shown.map(r=>drawCard(r)).join('')+(remaining?
    `<button class="btn" id="loadMoreCandidates" type="button" style="width:100%;margin-top:8px">다음 50종목 보기 (남은 ${remaining}개)</button>`:
    `<p class="note">현재 필터에서 ${arr.length}개 후보를 모두 표시했습니다.</p>`):
    '<div class="empty">이 조건의 종목이 없습니다. 다른 필터를 선택하세요.</div>';
@@ -391,9 +392,10 @@ async function load(){
     renderPractical(null);
      el('list').innerHTML='<div class="empty">v2 분석 결과가 아직 없습니다.</div>';return;
   }
-  stocks=d.stocks;marketSnapshot=d;showDeepReport();
+  stocks=d.stocks;marketSnapshot=d;
   for(const row of stocks){row._rating=window.PartialScoreView?.rating(row,d.weights)||null;}
   studies.setMarket(d);
+  showDeepReport();
   dataLoaded=true;
    visibleLimit=50;renderPractical(d);
   const days=(Date.now()-new Date(d.date+'T18:30:00+09:00').getTime())/86400000;
@@ -420,7 +422,7 @@ async function loadQuantForDecision(){
       row.code,{...row,asof:source.asof}
     ]));
   }catch(e){quantResearch=null;quantStudyByCode=new Map();}
-  if(marketSnapshot){renderPractical(marketSnapshot);render();}
+  if(marketSnapshot){renderPractical(marketSnapshot);render();showDeepReport();}
 }
 async function loadHistory(){try{
  const r=await fetch('history.json?now='+Date.now(),{cache:'no-store'});
@@ -449,7 +451,7 @@ el('download').addEventListener('click',e=>{if(el('download').getAttribute('aria
 const studies=window.StockResearchUI.mount({
   getStocks:()=>stocks,
   getMarket:()=>marketSnapshot,
-  redraw:()=>{if(marketSnapshot){renderPractical(marketSnapshot);render();}}
+  redraw:()=>{if(marketSnapshot){renderPractical(marketSnapshot);render();showDeepReport();}}
 });
 load();loadDeep();loadQuantForDecision();studies.refreshQuality();loadHistory();
 </script></body></html>
