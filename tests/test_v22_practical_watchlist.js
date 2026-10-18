@@ -86,7 +86,7 @@ assert.ok(watch.profile(row('001004',{ma120w_gap:-20,
 assert.equal(watch.profile(row('001005',{phase:'중립/기타'})).horizon,'unknown');
 assert.equal(watch.profile(row('001006',{stop_line:null,stop_pct:null})).risk,'unknown');
 assert.equal(watch.profile(row('001007',{stop_line:7000,stop_pct:-6})).risk,'unknown');
-assert.equal(watch.profile(row('001008',{trading_eok:0.1})).risk,'high');
+assert.equal(watch.profile(row('001008',{trading_eok:0.1})).risk,'low');
 assert.equal(watch.profile(row('001009',{stop_line:9800,stop_pct:-2})).risk,'high');
 assert.equal(watch.profile(row('001010',{stop_line:8800,stop_pct:-12})).risk,'middle');
 
@@ -95,16 +95,16 @@ assert.equal(watch.profile(row('001010',{stop_line:8800,stop_pct:-12})).risk,'mi
 // or a liquidity exit would be difficult.
 const chase=watch.profile(row('002001',{stop_line:9400,stop_pct:-6,
   risk_flags:['52주 고점권 — 추격 주의']}));
-assert.equal(chase.risk,'high');
+assert.equal(chase.risk,'low');
 assert.equal(chase.riskBreakdown.stop,'손절폭 짧음');
-assert.ok(chase.riskLabel.includes('급등·추격'));
+assert.ok(chase.riskLabel.includes('손절폭 짧음'));
 assert.ok(!chase.riskLabel.includes('손절폭 큼'));
 assert.ok(chase.riskReasons.some(x=>x.includes('추격')));
 const liquidity=watch.profile(row('002002',{stop_line:9400,stop_pct:-6,
   trading_eok:0.45}));
-assert.equal(liquidity.risk,'high');
+assert.equal(liquidity.risk,'low');
 assert.equal(liquidity.riskBreakdown.stop,'손절폭 짧음');
-assert.ok(liquidity.riskLabel.includes('거래대금 부족'));
+assert.ok(!liquidity.riskLabel.includes('거래대금 부족'));
 assert.ok(liquidity.riskBreakdown.liquidity.includes('2억원 미만'));
 const stopWide=watch.profile(row('002003',{stop_line:8100,stop_pct:-19}));
 assert.equal(stopWide.risk,'high');
@@ -116,7 +116,7 @@ assert.ok(stopTight.riskReasons.includes('손절선 과도하게 근접'));
 const noWarning=watch.profile(row('002005',{stop_line:9400,stop_pct:-6}));
 assert.equal(noWarning.risk,'low');
 assert.equal(noWarning.riskReasons.length,0);
-assert.ok(noWarning.riskLabel.includes('별도 진입 경고 없음'));
+assert.ok(noWarning.riskLabel.includes('손절폭 짧음'));
 assert.equal(noWarning.riskBreakdown.stop,'손절폭 짧음');
 const unknownStop=watch.profile(row('002006',{stop_line:null,stop_pct:null,
   risk_flags:['52주 고점권 — 추격 주의']}));
@@ -161,13 +161,14 @@ if(frozen.status==='success'&&frozen.stocks?.length) {
    assert.ok(watch.compare(sample.rows[i-1],sample.rows[i])<=0);
 }
 const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
-for(const phrase of ['진입 위험 (구체적 원인은 종목별 표시)','적합 접근기간 (잠정)',
+for(const phrase of ['손절선 거리 (추격·환금성은 별도 표시)','적합 접근기간 (잠정)',
   '단기 접근 · 약 1개월','중기 접근 · 약 3개월','장기 검토 · 6개월 이상',
   '과거 유사조건 순수익:','미래 기대수익 미산출',
   '장기 보유 주의:','가장 먼저 심층분석할 종목']) {
  assert.ok(html.includes(phrase),phrase);
 }
 assert.ok(html.includes("profile?.riskLabel"));
+assert.ok(html.includes('손절 위험 등급의 해석:'));
 assert.ok(!html.includes("profile?.label||'위험·상승공간 미확인'"));
 assert.ok(html.includes('손절 기준:'));
 assert.ok(html.includes('환금성:'));
