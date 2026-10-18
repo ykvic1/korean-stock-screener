@@ -70,7 +70,7 @@ ROOT = Path(__file__).resolve().parent
 SITE, OUT, LOG = ROOT / 'docs', ROOT / 'reports', ROOT / 'logs'
 DEFAULT = {
     'min_history_bars':160, 'historical_days':1100,
-    'request_sleep_seconds':0.18, 'top_candidates_for_flows':35,
+    'request_sleep_seconds':0.18,
     'flow_days':20, 'history_time_budget_seconds':2100,
     'flow_time_budget_seconds':420,
     'max_data_age_days':6, 'preferred_pbr_max':1.5,
