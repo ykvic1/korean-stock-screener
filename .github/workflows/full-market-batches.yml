@@ -1,6 +1,11 @@
 name: Full-Market 100-Stock Batches (manual pilot)
 
 on:
+  # Run ONE audit automatically on first merge of this feature, without
+  # publishing any data; user never needs to start a PC or server.
+  push:
+    branches: [main]
+    paths: ['full_market_batch.py', '.github/workflows/full-market-batches.yml']
   workflow_dispatch:
     inputs:
       asof:
