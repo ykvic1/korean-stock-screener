@@ -58,15 +58,33 @@ class V3FlowReadinessTests(unittest.TestCase):
         self.assertNotIn("Locator.wait_for",json.dumps(report))
 
     def test_actual_existing_daily_snapshot_flow_census(self):
+        """A real daily snapshot evolves: never pin a 2026-10-16 error count.
+
+        The fixed historic 3-timeout/205-deferral case is preserved in the
+        separate offline fixture. Current data may publish 35, 3, or 0
+        error rows after time budgets, source recovery or schema changes.
+        """
         existing=json.loads((ROOT / "docs/data.json").read_text(encoding="utf-8"))
         report=diagnose_v2_snapshot(existing)
         self.assertEqual(report["asof"],existing["date"])
-        self.assertEqual(report["flow_error_rows"],208)
-        self.assertEqual(report["actual_supplier_attempts_reported"],3)
-        self.assertEqual(report["actual_observed_npay_exchange_locator_timeouts"],3)
-        self.assertEqual(report["circuit_breaker_follow_on_deferrals"],205)
-        self.assertEqual(report["confirmed_flow_candidates_in_existing_snapshot"],0)
+        flow_errors=[v for v in existing["collection_errors"]
+                     if v[1]=="기관·외국인 수급"]
+        real_timeout=sum("TraderTrend_trader-trend-toolbar-exchange" in v[2]
+                         and "Timeout" in v[2] for v in flow_errors)
+        real_deferred=sum("deferred: consecutive supplier timeouts" in v[2]
+                          for v in flow_errors)
+        self.assertEqual(report["flow_error_rows"],len(flow_errors))
+        self.assertEqual(report["actual_supplier_attempts_reported"],
+                         existing["flow_attempted_count"])
+        self.assertEqual(report["actual_observed_npay_exchange_locator_timeouts"],
+                         real_timeout)
+        self.assertEqual(report["circuit_breaker_follow_on_deferrals"],
+                         real_deferred)
+        self.assertEqual(report["confirmed_flow_candidates_in_existing_snapshot"],
+                         existing["flow_confirmed_count"])
         self.assertFalse(report["verified_regular_session_investor_flows"])
+        self.assertIsNone(report["ias_investor_flow_component"])
+        self.assertFalse(report["missing_flow_is_zero_net_shares"])
         self.assertFalse(report["v3_release_ready"])
 
     def test_input_census_fails_closed_on_duplicate_malformed_or_bad_counts(self):
