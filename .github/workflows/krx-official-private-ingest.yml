@@ -1,0 +1,56 @@
+name: KRX Official Two-Market Private Ingestion (manual / approval-gated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      asof:
+        description: 'Completed KRX market date YYYY-MM-DD (not a holiday)'
+        required: true
+        type: string
+        default: '2026-10-16'
+      mode:
+        description: 'dry_run is offline; live requires approved KOSPI AND KOSDAQ services'
+        required: true
+        type: choice
+        default: dry_run
+        options: [dry_run, live]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-official-krx-private-staging
+  cancel-in-progress: false
+
+jobs:
+  two-market-private-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install minimal official client dependencies
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Fail-closed offline tests first
+        run: python -m unittest discover -s tests -p 'test_v3_krx_private_daily.py' -v
+      - name: Official KRX KOSPI + KOSDAQ private EOD snapshot
+        shell: bash
+        env:
+          MODE: ${{ inputs.mode }}
+          ASOF: ${{ inputs.asof }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          RUNNER_TEMP_PRIVATE: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          # Files remain in this runner's TEMP and are destroyed after the job;
+          # never commit, upload, or publish KRX EOD original records.
+          if [[ "$MODE" == "live" ]]; then
+            python v3_krx_private_daily.py --asof "$ASOF" \
+              --private-dir "$RUNNER_TEMP_PRIVATE/krx-official-private" --live
+          else
+            python v3_krx_private_daily.py --asof "$ASOF"
+          fi
