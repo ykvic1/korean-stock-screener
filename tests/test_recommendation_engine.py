@@ -108,7 +108,7 @@ class DynamicDossiers(unittest.TestCase):
         self.assertEqual(s["downside"]["structural_invalidation_price"],9400)
         self.assertFalse(s["return_assessment"]["past_52week_high_used_as_target"])
         self.assertEqual(s["eliott_primary"],None)
-        self.assertEqual(s["eliott_alternative"],None)
+        self.assertEqual(s["elliott_alternative"],None)
 
     def test_quant_research_is_historical_not_forward_forecast(self):
         q={"asof":"2026-10-16","stocks":[{"code":"000002","periods":{
