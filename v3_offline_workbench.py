@@ -20,6 +20,9 @@ from v3_research_factor_engine import (
 )
 from v3_price_feature_adapter import extract_price_features, PriceFeatureError
 from v3_portfolio_risk import evaluate_portfolio, PortfolioRiskError
+from v3_financial_feature_adapter import (
+    calculate_financial_raw_features, FinancialFeatureError
+)
 
 MAX_BATCH = 20000
 MAX_INPUT_BYTES = 15_000_000
@@ -58,6 +61,19 @@ def run_workbench(bundle, *, min_peers=30):
         manual = stock.get("manual_raw_features", {})
         _reject_unknown_metrics(manual)
         merged = dict(manual)
+        statements = stock.get("annual_statements")
+        if statements is not None:
+            try:
+                finance = calculate_financial_raw_features(
+                    statements, asof=asof, issuer_id=issuer,
+                    market_cap=stock.get("market_cap"))
+            except (FinancialFeatureError, KeyError, TypeError):
+                raise WorkbenchError("unusable_pit_financial_observations") from None
+            if set(finance["features"]) & set(manual):
+                raise WorkbenchError("manual_financial_metric_conflicts_with_statements")
+            merged.update(finance["features"])
+            if finance["financial_red_flag_candidates"]:
+                input_issue_counts["financial_warning_flags"] += 1
         price = stock.get("price_bars")
         obv, price_r60 = None, None
         if price is not None:
@@ -195,14 +211,34 @@ def demo_bundle(*, sample_each_market=32):
                 "institution_definition": "total_includes_pension",
                 "pension_definition": "pension_etc_subcategory",
                 "observations": flow_days}
+            # These four annual statements are fully SYNTHETIC; actual
+            # OpenDART fiscal scope, revisions and PIT require later proof.
+            annuals = []
+            for year in range(2022, 2026):
+                k = year - 2022
+                revenue = 100_000_000_000 + i*1_000_000_000 + k*5_000_000_000
+                operating_income = round(revenue*(0.09 + i/2000))
+                assets = 180_000_000_000 + i*2_000_000_000 + k*4_000_000_000
+                liabilities = 80_000_000_000 + i*1_000_000_000 + k*1_000_000_000
+                annuals.append({
+                    "issuer_id": issuer, "fiscal_year": year, "scope": "CFS",
+                    "currency": "KRW", "published_on": f"{year+1}-03-01",
+                    "rcept_no": f"{year+1}0301{i+1:06d}",
+                    "original_sha256": "a"*64,
+                    "accounts": {
+                        "revenue_krw": revenue,
+                        "operating_income_krw": operating_income,
+                        "operating_cashflow_krw": 16_000_000_000 + i*100_000_000 + k*200_000_000,
+                        "capex_cash_outflow_krw": 4_000_000_000 + k*100_000_000,
+                        "assets_krw": assets, "liabilities_krw": liabilities,
+                        "equity_krw": assets - liabilities,
+                        "owners_equity_krw": assets - liabilities - 5_000_000_000,
+                        "owners_profit_krw": 8_000_000_000 + i*70_000_000 + k*100_000_000,
+                        "cash_krw": 20_000_000_000,
+                        "interest_bearing_debt_krw": 50_000_000_000 + i*500_000_000
+                    }
+                })
             manual = {
-                "financial_revenue_cagr_3y_pct": 3 + i,
-                "financial_operating_margin_3y_pct": 4 + i / 5,
-                "financial_fcf_assets_3y_pct": 1 + i / 10,
-                "financial_net_debt_equity_pct": 35 - i / 2,
-                "valuation_pbr": 0.6 + i / 100,
-                "valuation_earnings_yield_pct": 3 + i / 7,
-                "valuation_fcf_yield_pct": 1 + i / 10,
                 "industry_profit_growth_12m_pct": 2 + i / 8,
                 "industry_breadth_above_ma_ratio": min(0.9, 0.4 + i / 100),
             }
@@ -213,6 +249,9 @@ def demo_bundle(*, sample_each_market=32):
                 "industry_index": industry_benchmark,
                 "flow_ledger": ledger, "float_shares": 1_000_000 + 10000*i,
                 "ownership_delta_250_pp": 0.2 + i / 100,
+                "annual_statements": annuals,
+                "market_cap": {"asof": asof.isoformat(),
+                               "amount_krw": 115_000_000_000 + i*1_000_000_000},
                 "manual_raw_features": manual,
             })
     return {"asof": asof.isoformat(), "stocks": result}
