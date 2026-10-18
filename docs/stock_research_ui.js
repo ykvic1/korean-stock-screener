@@ -26,7 +26,7 @@
       const seq=++qualitySeq;
       const banner=elem('qualityStatus');
       if(banner)banner.textContent='종목별 데이터 품질 연구를 자동으로 불러오고 있습니다.';
-      fetch('reliability.json?t='+Date.now(),{cache:'no-store'}).then(res=>{
+      return fetch('reliability.json?t='+Date.now(),{cache:'no-store'}).then(res=>{
         if(!res.ok) throw Error('quality_http_failed');
         return res.json();
       }).then(source=>{
