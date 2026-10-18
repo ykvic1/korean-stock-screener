@@ -16,7 +16,7 @@ on:
         options: [audit, publish]
 
 permissions:
-  contents: write
+  contents: read
 
 # Reuse existing publication lock; do not publish racing daily/quant reports.
 concurrency:
@@ -96,6 +96,8 @@ jobs:
 
   combine:
     needs: [prepare, analyze]
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
