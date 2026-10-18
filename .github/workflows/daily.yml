@@ -1,12 +1,9 @@
 name: Korean Stock Screener v2
 
 on:
+  # Manual emergency fallback ONLY. The proven full-market 100-stock batches
+  # own the weekday 18:30 schedule. Do not run two publishers on each close.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['screener.py', 'config.json', '.github/workflows/daily.yml']
-  schedule:
-    - cron: '30 9 * * 1-5'  # 18:30 KST weekdays
 
 permissions:
   contents: write
