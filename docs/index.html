@@ -39,6 +39,16 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .research-title{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .research-status{font-weight:700;color:#8c5117;font-size:12px}
 .research-summary{padding:10px;border-radius:8px;background:#f6f9fa;margin:9px 0;font-size:13px}
+.deep-insight{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fafcfc}
+.deep-insight .deep-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.deep-insight .deep-caption{font-size:12px;color:var(--sub);line-height:1.6;margin:6px 0}
+.deep-insight .research-status{font-size:12px}
+.deep-insight .research-summary{margin:7px 0}
+.deep-insight dl{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;margin:9px 0}
+.deep-insight dl div{padding:9px;background:#f5f8f9;border-radius:8px;overflow-wrap:anywhere}
+.deep-insight dt{font-weight:750;font-size:12px}
+.deep-insight dd{margin:2px 0 0;font-size:12px;color:var(--sub);line-height:1.65}
+@media(max-width:620px){.stock .top{gap:8px;min-width:0}.stock .top>div:first-child{min-width:0;overflow-wrap:anywhere;word-break:keep-all}.stock .score{flex-shrink:0;max-width:49%}.stock .score small{overflow-wrap:anywhere;line-height:1.45}}
 @media(max-width:620px){.research-dossier{padding:12px}}
 /* A phone card uses the FULL width for stock name/signals. Its stop panel
    moves underneath, so the right-side button cannot crush Korean text. */
@@ -67,7 +77,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note">전 종목을 먼저 평가한 뒤 손절·점수·확보율 조건을 충족한 종목만 상세 분석합니다. 20개는 <strong>표시할 최대 수</strong>이며, 충분한 후보가 없다면 적게 표시합니다. <strong>심층분석 대상은 매수 추천이 아닙니다.</strong> 재무·업황·기관 수급 및 수익률 전망이 검증되지 않으면 확정 추천 0종목도 정상적인 결과입니다.</p>
   <div class="research-summary" id="deepResearchStatus" aria-live="polite">전 종목 심층분석 보고서를 불러오는 중입니다.</div>
   <p class="note" id="deepChanges"></p>
-  <div id="deepDossiers"><div class="empty">종목별 분석 자료 확인 중…</div></div>
+  <div id="deepDossiers" class="rich-stock-list"><div class="empty">종목별 분석 자료 확인 중…</div></div>
 </section>
 <section class="panel" id="practicalWatchlist">
   <h2>기술점수 상위 20개 · 추가 탐색용</h2>
@@ -95,7 +105,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note"><strong>손절 위험 등급의 해석:</strong> 현재가와 구조적 손절 참고선 사이의 거리만으로 '짧음 / 중간 / 과도하게 가깝거나 멂 / 기준 미확인'을 구분합니다. 추격·거래대금 부족(환금성)·주봉 장기 약세는 별도 경고입니다. 손절폭이 짧다고 기업 전체 투자위험이 낮다는 의미는 아닙니다.</p>
   <p class="note">좋은 투자 후보는 <strong>상승 가능성과 기대수익이 높으면서 실제 손절 위험이 통제되는 종목</strong>입니다. 현재 위험 유형은 손절 참고폭 등 <em>차트 위험</em>으로만 구분하며, 기업의 재무건전성까지 확정한 등급이 아닙니다. 실제 기대수익률을 계산할 근거가 없으면 '미산출'로 두고, 과거 퀀트 관측 수익은 별도 표시합니다. 장기 접근에는 실적·산업 사이클 검증이 추가로 필요합니다.</p>
   <div id="reviewPriority" class="summary" aria-live="polite">추천 여부와 우선 분석 후보를 평가하고 있습니다.</div>
-  <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
+  <div id="practicalList" class="rich-stock-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
   <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
   <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
 </section>
@@ -169,8 +179,10 @@ function isMatch(r){
   return true;
 }
 function indicator(k,v){return `<div><label>${esc(k)}</label><b>${esc(v)}</b></div>`;}
-function drawCard(r){
+function drawCard(r,options={}){
  const rating=r._rating||null;
+ const displayedRank=options.rank??r._displayRank??r.rank;
+ const extraHtml=options.extraHtml||'';
  const profile=window.V22Watchlist?.profile(r,quantStudyByCode.get(r.code),marketSnapshot?.date)||null;
  const ratingText=rating?rating.normalized.toFixed(1):'미산출';
  const missing=rating?rating.missing.map(x=>x.name+' '+x.weight+'점').join(' · '):'평가항목 또는 배점 확인 필요';
@@ -181,7 +193,7 @@ function drawCard(r){
  if(r.pbr===null)tags.push(tag('밸류 미확인','warn'));
  if(r.risk_flags?.some(x=>x.includes('과대')||x.includes('급등')))tags.push(tag('위험 신호','risk'));
  const components=Object.entries(r.components||{}).map(([k,v])=>`<div><span>${esc(k)}</span><b>${typeof v==='number'?esc(String(v))+'점':'미확인'}</b></div>`).join('');
- return `<article class="stock"><div class="top"><div><div class="name">${esc(r._displayRank??r.rank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">${esc(ratingText)}<small>v2 부분환산 (잠정) / 100점<br>취득 ${rating?val(rating.earned):'미확인'} / ${rating?val(rating.available):'미확인'}점 · 확보율 ${rating?val(rating.coverage,'%'):'미확인'}</small></div></div>
+ return `<article class="stock"><div class="top"><div><div class="name">${esc(displayedRank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">${esc(ratingText)}<small>v2 부분환산 (잠정) / 100점<br>취득 ${rating?val(rating.earned):'미확인'} / ${rating?val(rating.available):'미확인'}점 · 확보율 ${rating?val(rating.coverage,'%'):'미확인'}</small></div></div>
  <div class="metrics">
   <div class="metric"><label>현재가</label><b>${val(r.price,'원')}</b></div>
   <div class="metric"><label>거래량 20일/이전40일</label><b>${val(r.volume_ratio,'배')}</b></div>
@@ -218,7 +230,7 @@ function drawCard(r){
   <p class="note"><b>위험/검증:</b> ${esc((r.risk_flags||[]).join(' · ')||'별도 경고 없음')}</p>
   <p class="note"><b>미래 수익률:</b> ${esc(r.forecast)}</p>
   <p class="note">차트 패턴은 근사 후보이며, 엘리어트 파동과 업황은 정밀 검증 후 판단합니다.</p>
- </details></article>`;
+ </details>${extraHtml}</article>`;
 }
 function showDeepReport(){
  const panel=el('deepDossiers'),status=el('deepResearchStatus'),news=el('deepChanges');
@@ -374,7 +386,7 @@ function render(){
  const shown=arr.slice(0,visibleLimit);
  const remaining=Math.max(0,arr.length-visibleLimit);
  el('list').innerHTML=arr.length?
-   shown.map(drawCard).join('')+(remaining?
+   shown.map(r=>drawCard(r)).join('')+(remaining?
    `<button class="btn" id="loadMoreCandidates" type="button" style="width:100%;margin-top:8px">다음 50종목 보기 (남은 ${remaining}개)</button>`:
    `<p class="note">현재 필터에서 ${arr.length}개 후보를 모두 표시했습니다.</p>`):
    '<div class="empty">이 조건의 종목이 없습니다. 다른 필터를 선택하세요.</div>';
@@ -391,9 +403,10 @@ async function load(){
     renderPractical(null);
      el('list').innerHTML='<div class="empty">v2 분석 결과가 아직 없습니다.</div>';return;
   }
-  stocks=d.stocks;marketSnapshot=d;showDeepReport();
+  stocks=d.stocks;marketSnapshot=d;
   for(const row of stocks){row._rating=window.PartialScoreView?.rating(row,d.weights)||null;}
   studies.setMarket(d);
+  showDeepReport();
   dataLoaded=true;
    visibleLimit=50;renderPractical(d);
   const days=(Date.now()-new Date(d.date+'T18:30:00+09:00').getTime())/86400000;
@@ -420,7 +433,7 @@ async function loadQuantForDecision(){
       row.code,{...row,asof:source.asof}
     ]));
   }catch(e){quantResearch=null;quantStudyByCode=new Map();}
-  if(marketSnapshot){renderPractical(marketSnapshot);render();}
+  if(marketSnapshot){renderPractical(marketSnapshot);render();showDeepReport();}
 }
 async function loadHistory(){try{
  const r=await fetch('history.json?now='+Date.now(),{cache:'no-store'});
@@ -437,6 +450,10 @@ function resetAndRender(){visibleLimit=50;render();}
 el('search').addEventListener('input',resetAndRender);el('sort').addEventListener('change',resetAndRender);
 el('watchKind').addEventListener('change',()=>{if(marketSnapshot)renderPractical(marketSnapshot);});
 el('watchHorizon').addEventListener('change',()=>{if(marketSnapshot)renderPractical(marketSnapshot);});
+el('deepDossiers').addEventListener('click',e=>{
+ const btn=e.target.closest('[data-quant-code]');
+ if(btn)studies.openQuant(btn.dataset.quantCode);
+});
 el('list').addEventListener('click',e=>{
   if(e.target.closest('#loadMoreCandidates')){visibleLimit+=50;render();}
 });
@@ -449,7 +466,7 @@ el('download').addEventListener('click',e=>{if(el('download').getAttribute('aria
 const studies=window.StockResearchUI.mount({
   getStocks:()=>stocks,
   getMarket:()=>marketSnapshot,
-  redraw:()=>{if(marketSnapshot){renderPractical(marketSnapshot);render();}}
+  redraw:()=>{if(marketSnapshot){renderPractical(marketSnapshot);render();showDeepReport();}}
 });
 load();loadDeep();loadQuantForDecision();studies.refreshQuality();loadHistory();
 </script></body></html>
