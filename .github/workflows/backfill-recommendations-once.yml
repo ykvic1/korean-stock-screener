@@ -1,0 +1,60 @@
+name: One-time Deep Dossier Bootstrap From Published Universe
+
+on:
+  # Populate research display from the already verified full-market published
+  # dataset, exactly once on this workflow file's first main merge.
+  # No repeated OHLCV downloads or hidden future schedule.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/backfill-recommendations-once.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify score, risk, no-forced-list and daily delta contracts
+        run: python -m unittest discover -s tests -p 'test_recommendation_engine.py' -v
+      - name: Generate first live dossiers using published full-market dataset
+        run: |
+          set -eu
+          python recommendation_engine.py --snapshot docs/data.json --docs docs
+          python - <<'PY'
+          import json
+          s=json.load(open('docs/data.json'))
+          r=json.load(open('docs/recommendations.json'))
+          assert r['asof']==s['date']
+          assert r['market_price_valid']==len(s['stocks'])
+          assert r['screened_count']==len(s['stocks'])
+          assert r['research_dossier_count']<=20
+          assert r['confirmed_recommendation_count']<=r['research_dossier_count']
+          assert r['missing_validation_must_not_invent_expected_return'] is True
+          assert all(d['return_assessment']['past_52week_high_used_as_target'] is False for d in r['dossiers'])
+          print('Full existing universe examined; confirmed_buy',
+                r['confirmed_recommendation_count'],
+                'research_dossiers',r['research_dossier_count'])
+          PY
+      - name: Commit dated research dashboard and changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/recommendations.json docs/recommendation_history.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Backfill evidence-first dynamic top20 research dossiers"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
