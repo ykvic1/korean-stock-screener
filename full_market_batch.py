@@ -184,7 +184,8 @@ def scan(*, manifest: dict, part: int, out: Path,
             "valid": len(rows), "errors": len(errors), "excluded": len(excluded)}
 
 
-def combine_receipts(manifest: dict, receipts: list[dict]) -> dict:
+def combine_receipts(manifest: dict, receipts: list[dict], *,
+                     allow_missing_parts: bool = False) -> dict:
     _, codes = validate_manifest(manifest)
     parts = {}
     for rec in receipts:
@@ -192,24 +193,36 @@ def combine_receipts(manifest: dict, receipts: list[dict]) -> dict:
         if rec["part"] in parts:
             raise BatchError("duplicate_job_receipt")
         parts[rec["part"]] = rec
-    if set(parts) != set(range(manifest["batch_count"])):
+    expected = set(range(manifest["batch_count"]))
+    missing = sorted(expected - set(parts))
+    if missing and not allow_missing_parts:
         raise BatchError("missing_batch_job_receipt")
-    ordered = [parts[i] for i in range(manifest["batch_count"])]
+    if not parts:
+        raise BatchError("no_successful_batch_receipts")
+    ordered = [parts[i] for i in sorted(parts)]
+    missing_codes = [code for i in missing for code in batch_codes(manifest, i)]
     rows = [r for p in ordered for r in p["rows"]]
     errors = [r for p in ordered for r in p["errors"]]
     excluded = [r for p in ordered for r in p["excluded"]]
-    if len(rows)+len(errors)+len(excluded) != len(codes):
-        raise BatchError("full_market_count_mismatch")
+    attempted = sum(p["attempted"] for p in ordered)
+    if len(rows)+len(errors)+len(excluded) != attempted or attempted+len(missing_codes)!=len(codes):
+        raise BatchError("market_partial_census_mismatch")
     return {"rows": rows, "errors": errors, "excluded": excluded,
-            "eligible": len(codes), "examined": len(codes),
-            "raw_ohlcv_exported": False, "market_scan_complete": True}
+            "eligible": len(codes), "examined": attempted,
+            "deferred": len(missing_codes), "missing_batch_parts": missing,
+            "raw_ohlcv_exported": False, "market_scan_complete": not missing}
 
 
-def load_receipts(manifest: dict, root: Path) -> dict:
+def load_receipts(manifest: dict, root: Path, *,
+                  allow_missing_parts: bool = False) -> dict:
     files = sorted(root.glob("part-*.json"))
-    if len(files) != manifest["batch_count"]:
+    if not allow_missing_parts and len(files) != manifest["batch_count"]:
         raise BatchError("missing_or_extra_job_artifact")
-    return combine_receipts(manifest, [_read(p) for p in files])
+    if not files:
+        raise BatchError("no_successful_batch_artifacts")
+    return combine_receipts(
+        manifest, [_read(p) for p in files],
+        allow_missing_parts=allow_missing_parts)
 
 
 def flow_after_merge(rows: list[dict], day: datetime, cfg: dict, errors: list):
@@ -240,8 +253,10 @@ def flow_after_merge(rows: list[dict], day: datetime, cfg: dict, errors: list):
 
 def publish(*, manifest: dict, parts_dir: Path,
             listing=None, index_data=None, optional_sources=None,
-            cfg=None, use_flow=True, write_report=True):
-    merged = load_receipts(manifest, parts_dir)
+            cfg=None, use_flow=True, write_report=True,
+            allow_missing_parts=False):
+    merged = load_receipts(
+        manifest, parts_dir, allow_missing_parts=allow_missing_parts)
     cfg = screener.cfg_read() if cfg is None else cfg
     listing = screener.market_snapshot() if listing is None else listing
     if set(listing) != set(manifest["codes"]):
@@ -285,7 +300,8 @@ def publish(*, manifest: dict, parts_dir: Path,
         r["decision"] == "정밀 검토 우선", r["decision"] == "관찰",
         r["score"] or 0, r["coverage_pct"] or 0), reverse=True)
     meta = {"eligible": merged["eligible"], "examined": merged["examined"],
-            "history_deferred": 0, "history_scan_complete": True,
+            "history_deferred": merged["deferred"],
+            "history_scan_complete": merged["market_scan_complete"],
             "history_usable": len(current), "index_markets": list(idx),
             "optional_listings": optional, "excluded": merged["excluded"],
             "flow_attempted": attempted, "flow_planned": planned,
@@ -297,9 +313,15 @@ def publish(*, manifest: dict, parts_dir: Path,
                                  datetime.fromisoformat(freshest), cfg, meta)
     data = screener.web_publish(current, errors,
                                 datetime.fromisoformat(freshest), cfg, meta, excel)
-    return {"status": "complete_market_report_published",
+    return {"status": ("complete_market_report_published"
+                        if merged["market_scan_complete"]
+                        else "partial_market_report_published_with_missing_batch_warning"),
             "asof": freshest, "eligible": merged["eligible"],
-            "attempted": merged["examined"], "priced": len(current),
+            "attempted": merged["examined"],
+            "not_attempted_due_to_missing_batch": merged["deferred"],
+            "missing_batch_parts": merged["missing_batch_parts"],
+            "market_scan_complete": merged["market_scan_complete"],
+            "priced": len(current),
             "displayed": data["candidate_count"],
             "flow_confirmed": data["flow_confirmed_count"],
             "v3_score_verified": False}
@@ -332,10 +354,17 @@ def main(argv=None):
             if not args.publish:
                 # First pilot is audit-only: do not fetch again, score,
                 # commit source data, or change current production.
-                result = load_receipts(manifest, Path(args.parts))
+                result = load_receipts(manifest, Path(args.parts),
+                                       allow_missing_parts=True)
                 result = {
-                    "status": "complete_market_batches_audited_not_published",
-                    "all_codes_accounted_for": result["eligible"],
+                    "status": ("complete_market_batches_audited_not_published"
+                               if result["market_scan_complete"] else
+                               "partial_market_batches_audited_not_published"),
+                    "all_codes_in_original_universe": result["eligible"],
+                    "actually_attempted": result["examined"],
+                    "missing_batch_part_count": len(result["missing_batch_parts"]),
+                    "unattempted_due_to_missing_batch": result["deferred"],
+                    "market_scan_complete": result["market_scan_complete"],
                     "priced": len(result["rows"]),
                     "price_errors": len(result["errors"]),
                     "insufficient_history": len(result["excluded"]),
@@ -343,7 +372,8 @@ def main(argv=None):
                 }
             else:
                 result = publish(manifest=manifest,
-                                 parts_dir=Path(args.parts))
+                                 parts_dir=Path(args.parts),
+                                 allow_missing_parts=True)
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
     except BatchError as exc:
