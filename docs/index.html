@@ -184,6 +184,11 @@ function drawCard(r,options={}){
  const displayedRank=options.rank??r._displayRank??r.rank;
  const extraHtml=options.extraHtml||'';
  const profile=window.V22Watchlist?.profile(r,quantStudyByCode.get(r.code),marketSnapshot?.date)||null;
+ const periodLabels=[['1m','1개월'],['3m','3개월'],['6m','6개월']];
+ const historicText=periodLabels.map(([k,label])=>{
+   const p=profile?.historical?.[k];
+   return label+' '+(p?.status==='exploratory'?signed(p.meanHistoricalNetPct,'%')+' (과거 '+val(p.sampleN,'건')+')':'미검증');
+ }).join(' · ');
  const ratingText=rating?rating.normalized.toFixed(1):'미산출';
  const missing=rating?rating.missing.map(x=>x.name+' '+x.weight+'점').join(' · '):'평가항목 또는 배점 확인 필요';
  const tag=(v,c='')=>`<span class="tag ${c}">${esc(v)}</span>`;
@@ -205,6 +210,8 @@ function drawCard(r,options={}){
  <button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div>
  <div class="summary">${esc(profile?.horizonLabel||'기간 미판정')} · ${esc(profile?.recommendation||'추천 판단 보류')} · 손절 참고선 ${val(r.stop_line,'원')} (${signed(r.stop_pct,'%')}) · 미래 기대수익률 미산출</div>
  <p class="note"><b>위험 구분:</b> 손절선 ${esc(profile?.riskBreakdown?.stop||'미확인')} · 급등·추격 ${esc(profile?.riskBreakdown?.chase||'미확인')} · 환금성 ${esc(profile?.riskBreakdown?.liquidity||'미확인')} · 장기 추세 ${esc(profile?.riskBreakdown?.trend||'미확인')}</p>
+ <p class="note"><b>기간별 과거 유사조건 순수익:</b> ${esc(historicText)} · 미래 예측이 아닙니다.</p>
+ ${profile?.longHoldingCaution?'<p class="note"><b>장기 보유 주의:</b> '+esc(profile.longHoldingCaution)+'</p>':''}
  <details><summary>수급 · 차트 · 상대강도 · 위험 상세 보기</summary>
   <div class="details-grid">
   ${indicator('20일 주가변화',signed(r.price20,'%'))}
@@ -432,10 +439,6 @@ function resetAndRender(){visibleLimit=50;render();}
 el('search').addEventListener('input',resetAndRender);el('sort').addEventListener('change',resetAndRender);
 el('watchKind').addEventListener('change',()=>{if(marketSnapshot)renderPractical(marketSnapshot);});
 el('watchHorizon').addEventListener('change',()=>{if(marketSnapshot)renderPractical(marketSnapshot);});
-el('deepDossiers').addEventListener('click',e=>{
- const btn=e.target.closest('[data-quant-code]');
- if(btn)studies.openQuant(btn.dataset.quantCode);
-});
 el('list').addEventListener('click',e=>{
   if(e.target.closest('#loadMoreCandidates')){visibleLimit+=50;render();}
 });
