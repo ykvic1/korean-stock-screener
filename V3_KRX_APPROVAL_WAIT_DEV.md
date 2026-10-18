@@ -41,3 +41,7 @@
 6. 기존 `daily.yml` v2.2, Excel, Pages는 출시 검증 전 그대로 유지하며 **v3_release_ready=false**.
 
 **현재 외부 고정 IP Oracle/키움 서버는 보류**, 사용자의 PC에서 반복 PowerShell 실행도 요구하지 않는다.
+
+## 점수체계 보전 (2026-10-18)
+
+공식 KRX API 승인 대기 중 개발한 모듈이 사용자 합의 모델을 축소하지 않도록 [V3_SCORE_MODEL_SPEC.md](./V3_SCORE_MODEL_SPEC.md)에 **IAS25·재무20·가치15·기술15·업종15·모멘텀10 = 100점**과 IAS 세부 6항목, 누적순매수 기간가중치 15/25/30/30%를 고정했다. `v3_score_contract.py`는 이 배점을 테스트로 보호하지만 **원시재무/수급에 점수를 임의 할당하지 않으며**, `confirmed_score=null`, `v3_release_ready=false`가 유지된다. 현재 가동 중인 v2.2 과거 8영역 휴리스틱 점수와 v3 6영역 100점은 다른 척도이며, v2.2가 코드 운영 중인 것과 신뢰성 검증 완료는 별개다.
