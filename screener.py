@@ -423,6 +423,10 @@ def score_one(r,cfg):
     if r['price60']>=40:risk_flags.append('단기 급등 — 추격 주의')
     if r['ma120w_gap'] is not None and r['ma120w_gap']<-15:risk_flags.append('장기 추세 취약')
     if r['one_day_volume_ratio']>8:risk_flags.append('급격한 거래량 집중 확인 필요')
+    # Low liquidity does NOT remove an otherwise promising small-cap stock.
+    # It is an execution/slippage risk, never a proxy for weak financials.
+    if r.get('trading_eok') is not None and r['trading_eok']<2:
+        risk_flags.append('거래대금 부족 — 환금성·호가 스프레드 점검 필요')
     if not r.get('flows_confirmed'):risk_flags.append('외국인·기관 수급 미확인')
     if not r['financial_confirmed']:risk_flags.append('실적·현금흐름 검증 필요')
     if not r['pbr_confirmed']:risk_flags.append('PBR 미확인')
