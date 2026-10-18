@@ -120,14 +120,18 @@ def evaluate_portfolio(plans, *, total_nav_risk_budget_pct):
         * p["planned_position_pct"] for p in plans)
     pass_budget = exact_stress <= budget + 1e-12
     # Under stress, report cap per each position as if all OTHERS stayed fixed.
-    for i, row in enumerate(rows):
-        remaining_for_this = max(0.0, budget - (exact_stress -
-                               row["hypothetical_gap_loss_of_nav_pct"]))
-        ratio = row["hypothetical_stress_loss_per_position_pct"]
-        cap = remaining_for_this / ratio * 100
-        # Floor arithmetic capacity, never recommend a buy/size.
+    for plan, row in zip(plans, rows):
+        exact_loss_per_allocated_pct = (
+            1 - (plan["stop_price"] / plan["entry_price"])
+            * (1 - plan["stress_gap_below_stop_pct"] / 100))
+        exact_contribution = exact_loss_per_allocated_pct * plan["planned_position_pct"]
+        remaining_for_this = max(0.0, budget - (exact_stress - exact_contribution))
+        risk_limited_cap = remaining_for_this / exact_loss_per_allocated_pct
+        remaining_capital = max(0.0, 100 - used_capital + plan["planned_position_pct"])
+        # Floor arithmetic capacity and check both NAV budget and cash balance.
+        # Neither the cap nor the stop is an executable position recommendation.
         row["theoretical_max_pct_with_other_plans_unchanged"] = _floor2(
-            min(100.0, max(0.0, cap)))
+            min(100.0, remaining_capital, risk_limited_cap))
         row["actual_allocation_recommendation_pct"] = None
     return {
         "schema": "v3-portfolio-loss-budget-research-0.1",
