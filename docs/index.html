@@ -14,6 +14,7 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .info{font-size:12px;color:var(--sub)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}.metric{border-left:2px solid #d6e4e6;padding-left:9px}.metric label{display:block;color:var(--sub);font-size:11px}.metric b{font-size:15px;white-space:normal;overflow-wrap:anywhere}
 .tags{display:flex;gap:5px;flex-wrap:wrap}.tag{display:inline-block;border-radius:7px;background:#edf3f5;color:#3d5661;padding:4px 7px;font-size:12px}.tag.good{background:#e2f4ed;color:#086b52}.tag.warn{background:#fff0df;color:#92500b}.tag.risk{background:#fcebe8;color:#9c4035}
 .summary{margin-top:12px;padding:9px 11px;background:#f4f8f8;border-radius:8px;font-size:13px}details{margin-top:12px;border-top:1px solid var(--line);padding-top:9px}summary{cursor:pointer;color:#2c6673;font-weight:700} .details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}.details-grid div{padding:8px;background:#f6f9fa;border-radius:8px;font-size:13px}.details-grid label{font-size:11px;color:var(--sub);display:block} .scores{margin:10px 0}.scores div{display:flex;justify-content:space-between;border-bottom:1px solid #e8eef0;padding:5px;font-size:13px}
+.quick-list{display:grid;gap:8px}.quick-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #e1e9eb;border-radius:11px;padding:11px 13px;background:#fbfcfd}.quick-item b{display:block;font-size:15px}.quick-item small{display:block;color:var(--sub);font-size:12px;margin-top:2px}.quick-risk{text-align:right;font-size:13px}.quick-risk b{color:#92500b;font-size:14px}.quick-risk small{font-size:11px}.quick-info{font-size:12px;color:var(--sub)}
 a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.history a{display:block;margin:7px 0;font-size:13px}
 @media(max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr}header h1{font-size:22px}.panel{padding:14px}.stock{padding:12px}.score{font-size:19px}}
 </style></head><body>
@@ -32,7 +33,14 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <div class="buttons"><a id="download" class="btn primary" aria-disabled="true">↓ 최신 엑셀 받기</a><button class="btn" id="refresh">↻ 새로고침</button></div>
   <p class="note">KRX 정규장 가격·거래량과 공식 종가 교차검증 전입니다. 기존 환산점수는 보존된 연구값이며 새 종합 100점 확정 점수가 아닙니다. 점수는 상승 확률이 아닙니다. '확보율'은 데이터로 실제 평가한 배점 비중입니다. 수급과 재무가 빠진 종목은 매수 우선으로 분류하지 않습니다.</p>
 </section>
-<section class="panel">
+<section class="panel" id="practicalWatchlist">
+  <h2>먼저 살펴볼 기술적 관찰 후보</h2>
+  <p class="note">현재 v2.2 자료에서 상승 전환·수렴 구조, OBV·패턴, 손절 참고선, 데이터 확보율을 확인한 최대 5종목입니다. 기존 점수순이나 v3 종합 순위가 아니며 <strong>매수 추천이 아닙니다.</strong> 기관 수급·재무·업황이 확인되지 않으면 반드시 추가 검토하세요.</p>
+  <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
+  <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
+  <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
+</section>
+<section class="panel" id="screenList">
   <h2>관심 종목 스크리닝</h2>
   <div class="filters"><input id="search" placeholder="종목명 또는 코드 검색" aria-label="종목 검색"/><select id="sort" aria-label="종목 정렬"><option value="score">기존 연구점수순 (미확정)</option><option value="risk">손절 위험이 낮은 순</option><option value="recent">60일 수익률 낮은 순</option><option value="relative">시장 상대강도순</option><option value="coverage">데이터 확보율순</option></select></div>
   <div class="chips" id="filterBar">
@@ -54,6 +62,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note">가격 및 상장 정보: FinanceDataReader · 수급: pykrx/KRX · 네이버 금융 대체 조회(각 종목에 실제 출처 표시). 공개 GitHub Pages에 개인 보유종목·매수가·API 키를 넣지 마세요.</p>
 </section>
 </main>
+<script src="watchlist.js"></script>
 <script>
 'use strict';
 let stocks=[],mode='all',dataLoaded=false;
@@ -110,6 +119,32 @@ function drawCard(r){
   <p class="note">차트 패턴은 근사 후보이며, 엘리어트 파동과 업황은 정밀 검증 후 판단합니다.</p>
  </details></article>`;
 }
+function renderPractical(snapshot){
+  const host=el('practicalList'),note=el('practicalNote');
+  if(!window.V22Watchlist){host.textContent='관찰 후보 계산 모듈을 불러오지 못했습니다.';return;}
+  const report=window.V22Watchlist.select(snapshot);
+  if(report.status==='stale_or_unavailable'){
+    host.innerHTML='<div class="empty">최근 자료가 없어 관찰 후보를 표시하지 않습니다.</div>';
+    note.textContent='기준일/자동 갱신을 확인하세요. 오래된 분석을 오늘의 후보로 제시하지 않습니다.';
+    return;
+  }
+  if(!report.rows.length){
+    host.innerHTML='<div class="empty">현재 조건을 충족하는 종목이 없습니다. 관망이 우선입니다.</div>';
+    note.textContent='손절 참고선 -3~-15%, 데이터 확보율 60% 이상, 기술적 신호와 위험 필터를 모두 적용했습니다.';
+    return;
+  }
+  host.innerHTML=report.rows.map((r,i)=>{
+    const pattern=(r.patterns||[]).find(x=>/쐐기|어깨|삼각|수렴/.test(x));
+    const signals=[r.phase,r.obv_rising===true?'OBV 상승':'차트 패턴 관찰',pattern]
+      .filter(Boolean).slice(0,3).join(' · ');
+    return `<div class="quick-item"><div><b>${i+1}. ${esc(r.name)}</b>
+      <small>${esc(r.code)} · ${esc(signals)}</small>
+      <div class="quick-info">데이터 확보율 ${val(r.coverage_pct,'%')} · 수급/재무/업황 별도 확인</div></div>
+      <div class="quick-risk"><b>손절 참고 ${signed(r.stop_pct,'%')}</b>
+      <small>참고선 ${val(r.stop_line,'원')} · 단순 손익비 ${val(r.reward_risk)}</small></div></div>`;
+  }).join('');
+  note.textContent=`기준일 ${snapshot.date} · ${report.rows.length}종목 기술적 관찰 후보 · 정밀 평가와 매수 판단은 별도 · 위험 관리는 차트 무효화 기준으로 재확인`;
+}
 function render(){
  let q=el('search').value.toLowerCase().trim();
  let arr=stocks.filter(r=>(String(r.name).toLowerCase().includes(q)||String(r.code).includes(q))&&isMatch(r));
@@ -129,9 +164,11 @@ async function load(){
   if(d.version!=='2.0'||d.status!=='success'||!Array.isArray(d.stocks)||!d.stocks.length){
     el('status').textContent='v2 새 분석 대기 중';el('status').className='status bad';
     el('updated').textContent='새 스크리너로 첫 성공 실행을 마치면 데이터가 표시됩니다. 기존 v1 결과로 v2 점수를 만들지 않습니다.';
-    el('list').innerHTML='<div class="empty">v2 분석 결과가 아직 없습니다.</div>';return;
+    renderPractical(null);
+     el('list').innerHTML='<div class="empty">v2 분석 결과가 아직 없습니다.</div>';return;
   }
   stocks=d.stocks;dataLoaded=true;
+   renderPractical(d);
   const days=(Date.now()-new Date(d.date+'T18:30:00+09:00').getTime())/86400000;
   el('status').textContent=days>6?'분석 갱신 확인 필요':(!d.flow_confirmed_count?'가격 분석 완료 · 수급 미확인':'분석 완료 · 종목별 확보율 확인');
   el('status').className=days>6||!d.flow_confirmed_count?'status bad':'status';
@@ -142,7 +179,7 @@ async function load(){
   el('valuationCount').textContent=fmt(d.fundamental_count);
   el('download').href='reports/latest.xlsx';el('download').setAttribute('aria-disabled','false');
   render();
- }catch(e){el('status').textContent='데이터 수신 오류';el('status').className='status bad';el('updated').textContent=String(e.message);}
+ }catch(e){renderPractical(null);el('status').textContent='데이터 수신 오류';el('status').className='status bad';el('updated').textContent=String(e.message);}
 }
 async function loadHistory(){try{
  const r=await fetch('history.json?now='+Date.now(),{cache:'no-store'});
