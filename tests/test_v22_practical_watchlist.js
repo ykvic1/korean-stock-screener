@@ -135,4 +135,16 @@ for(const marker of ['관심종목 점수 상위 20개','watchKind','watchHorizo
 }
 assert.ok(html.includes('<script src="watchlist.js"></script>'));
 assert.ok(html.includes('renderPractical(d);'));
+// Mobile readability regression: stacked stock description/stop actions.
+// A fixed-width right panel next to a 1fr text column caused Korean names
+// such as "현대그린푸드" to be broken across several narrow lines.
+const css=html.split('<style>')[1]?.split('</style>')[0]||'';
+assert.ok(html.includes('<div class="quick-main"><b>'));
+assert.match(css,/\.quick-item\{[^}]*grid-template-columns:minmax\(0,1\.8fr\) minmax\(190px,1fr\)/);
+assert.match(css,/\.quick-main\{[^}]*min-width:0;[^}]*word-break:keep-all/);
+assert.match(css,/@media\(max-width:760px\)\{\s*\.quick-item\{grid-template-columns:minmax\(0,1fr\)/);
+assert.ok(css.includes('.quick-risk{width:100%;border-top:1px solid var(--line)'));
+assert.ok(css.includes('.quick-actions{grid-column:2;grid-row:1 / span 2'));
+assert.ok(css.includes('@media(max-width:350px)'));
+assert.ok(css.includes('.quick-actions .quant-button{width:100%}'));
 console.log('risk_horizon_score_ranked_watchlist_offline_tests_passed');
