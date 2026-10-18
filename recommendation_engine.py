@@ -82,10 +82,25 @@ def stop_assessment(row):
         t in f for t in SERIOUS_FLAGS)]
     thin=finite(row.get("trading_eok")) and row["trading_eok"]<2
     distance=abs(percent)
-    risk=("high" if distance<3 or distance>15 or warnings or thin
+    # Match the PR #60 site definition: stop-distance tier depends ONLY on
+    # the validated distance to structural invalidation. Chase, liquidity,
+    # and long-term trend are separate research cautions, not a stop tier.
+    risk=("high" if distance<3 or distance>15
           else "low" if distance<=8 else "medium")
+    chase=any(any(t in flag for t in
+                  ("단기 급등","추격 주의","급격한 거래량 집중"))
+              for flag in warnings)
+    weak_trend=any("장기 추세 취약" in flag for flag in warnings)
+    non_stop=[]
+    if chase:
+        non_stop.append("급등·추격 주의")
+    if thin:
+        non_stop.append("거래대금 부족 · 환금성 주의")
+    if weak_trend:
+        non_stop.append("장기 추세 취약")
     return {"status":"observed","risk":risk,"stop_pct":percent,
-            "stop_price":stop,"warning_flags":warnings}
+            "stop_price":stop,"warning_flags":warnings,
+            "non_stop_warning_flags":non_stop}
 
 
 def published_quant(quant,day):
@@ -188,13 +203,17 @@ def build_dossier(row,score,stop,history,day):
         if not present:gaps.append(evidence)
     reliable=(financial_verified and flow_verified and industry_verified and
         valuation_verified and gain is not None and loss is not None and rr>=1.8
-        and risk in ("low","medium"))
+        and risk in ("low","medium")
+        and not stop.get("non_stop_warning_flags"))
     if reliable:
         status="verified_recommendation"
         strategy="조건부 분할매수 검토"
     elif risk=="high" or stop["status"]!="observed":
         status="risk_or_invalid_stop"
-        strategy="신규 매수 관망, 손절/환금 위험 재검증"
+        strategy="신규 매수 관망, 구조적 손절 참고선 재검증"
+    elif stop.get("non_stop_warning_flags"):
+        status="separate_caution_research_only"
+        strategy="손절폭과 별개로 추격·환금성·장기추세 확인 전 관망"
     else:
         status="needs_deeper_evidence"
         strategy="추가 검증 전 관망"
