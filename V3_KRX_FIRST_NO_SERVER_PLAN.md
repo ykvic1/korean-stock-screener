@@ -19,7 +19,7 @@
 
 ## 현재 개발 패치: PC 없이 1종목 시험
 
-- `v3_krx_website_flow_pilot.py`: 명시적 `--live` 옵션에서만 한 종목 **기관/외국인 45일 범위 일별 순매수** 최대 1회 조회 + 해당 날짜 **연기금등 기간합계** 최대 1회. 원본 숫자·조회 인증키·예외 원문 비출력. 날짜 내림차순·수량 정수·중복·20행 충분성·최근성 검사. 20일 연기금 이력이나 250일 장기 커버리지까지 확인됐다고 하지 않음.
+- `v3_krx_website_flow_pilot.py`: 명시적 `--live` 옵션에서만 한 종목 **기관/외국인 45일 범위 일별 순매수** 최대 1회 함수 호출 + 해당 날짜 **연기금등 기간합계** 최대 1회 함수 호출. 원본 숫자·조회 인증키·예외 원문 비출력. 날짜 내림차순·수량 정수·중복·20행 충분성·최근성 검사. 20일 연기금 이력이나 250일 장기 커버리지까지 확인됐다고 하지 않음.
 - `.github/workflows/krx-website-flow-pilot.yml`: GitHub Actions **수동** 연구 워크플로, default `dry_run`, 실제 수급 수집을 예약/자동화하지 않음. 사용자의 집 PC·별도 VM·키움 App Key 불필요. **개발 확인 1회 목적**이며 수집 성공 시에만 제한 호출 스케줄을 후속 개발.
 - `tests/test_v3_krx_website_flow_pilot.py`: 완전 오프라인 tests. 기존 `daily.yml`, v2.2, 공개 Pages, 정식 v3 점수, 구형 키움 연구 파일은 변경하지 않음.
 
@@ -28,7 +28,7 @@
 [Actions → KRX Investor Flow Portal Feasibility](https://github.com/ykvic1/korean-stock-screener/actions/workflows/krx-website-flow-pilot.yml) → Run workflow
 
 - `asof: 2026-10-16` (검증된 완료일), `code: 252990`, `mode: dry_run`으로 offline 확인
-- 한 번 실제 연결 여부가 필요하면 `mode: live`. 1종목, 최대 2번 웹 요청, 서버 로그인/고정 IP 불필요
+- 한 번 실제 연결 여부가 필요하면 `mode: live`. 1종목, 최대 2번 pykrx 조회 함수 호출(라이브러리 내부 네트워크 요청 횟수는 별도 확인), 서버 로그인/고정 IP 불필요
 - `status=research_only_krx_portal_daily_candidate`: 당일 runner에서 날짜·부호 있는 기관/외국인 숫자 형식 정상 응답. **향후 모든 날짜에 지속 접속 보증 없음**.
 - `status=research_unavailable`: 접속 불가, 빈 데이터, 변경된 형식 등. **수급 0 아님**. 점수에 반영하지 않음
 - `single_day_pension_etc_row_observed=true`: 단일일자 **연기금등 후보 행** 존재일 뿐 20/60/120/250일 연기금 추세 검증 아님.
