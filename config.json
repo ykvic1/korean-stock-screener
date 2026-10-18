@@ -2,7 +2,6 @@
   "min_history_bars": 160,
   "historical_days": 1100,
   "request_sleep_seconds": 0.18,
-  "top_candidates_for_flows": 35,
   "flow_days": 20,
   "max_data_age_days": 6,
   "preferred_pbr_max": 1.5,
