@@ -1,0 +1,57 @@
+name: KRX Investor Flow Portal Feasibility (manual research only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      asof:
+        description: 'Already-completed stock-market date YYYY-MM-DD'
+        required: true
+        type: string
+        default: '2026-10-16'
+      code:
+        description: 'ONE 6-digit stock code only (default 252990)'
+        required: true
+        type: string
+        default: '252990'
+      mode:
+        description: 'offline dry_run by default; live makes <=2 KRX portal queries'
+        type: choice
+        required: true
+        default: dry_run
+        options: [dry_run, live]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-website-flow-research
+  cancel-in-progress: false
+
+jobs:
+  one-stock-no-secret:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded research dependency
+        run: python -m pip install 'pykrx>=1.0.48,<2' 'pandas>=2,<3'
+      - name: Offline unit tests first
+        run: python -m unittest discover -s tests -p 'test_v3_krx_website_flow_pilot.py' -v
+      - name: Research-only KRX portal investor data feasibility
+        env:
+          CODE: ${{ inputs.code }}
+          ASOF: ${{ inputs.asof }}
+          MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" != "live" ]]; then
+            python v3_krx_website_flow_pilot.py --code "$CODE" --asof "$ASOF"
+            exit 0
+          fi
+          python v3_krx_website_flow_pilot.py --code "$CODE" --asof "$ASOF" --live
