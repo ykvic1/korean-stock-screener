@@ -176,7 +176,15 @@ assert.ok(html.includes('riskBreakdown?.stop'));
 assert.ok(!html.includes('손절·추격·환금위험 높음'));
 assert.ok(!html.includes('낮은 손절폭 · 고점거리 큼'));
 assert.ok(!html.includes('높은 위험 · 고점거리 큼'));
-assert.ok(html.includes('<div class="quick-main"><b>'));
+// Both the top-20 list and whole-market results now use the same rich
+// score/current price/volume/60-day/120-week expandable card.
+assert.ok(html.includes('return heading+drawCard(r,{rank:i+1})'));
+assert.ok(html.includes('return drawCard(stock,{rank:d.rank||i+1,extraHtml:researchHtml})'));
+assert.ok(html.includes('<div class="metrics">'));
+assert.ok(html.includes('<div class="score">'));
+assert.ok(html.includes('수급 · 차트 · 상대강도 · 위험 상세 보기'));
+assert.ok(html.includes('기간별 과거 유사조건 순수익:'));
+assert.ok(html.includes('장기 보유 주의:'));
 const css=html.split('<style>')[1]?.split('</style>')[0]||'';
 assert.match(css,/@media\(max-width:760px\)\{\s*\.quick-item\{grid-template-columns:minmax\(0,1fr\)/);
 assert.ok(css.includes('.quick-actions{grid-column:2;grid-row:1 / span 2'));
