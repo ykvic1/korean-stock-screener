@@ -251,7 +251,7 @@ def research_factor_batch(rows, *, asof, min_peers=MIN_PEERS):
                 for name in PILLAR_POINTS
             },
             "per_metric_valid_peer_count": {
-                name: len(baseline[row["market"]][name])
+                name: len(baseline[name])
                 for name in FIELD_SPECS
             },
             "missing_features": [
