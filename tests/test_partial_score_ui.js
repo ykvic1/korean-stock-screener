@@ -90,5 +90,7 @@ assert.equal(y.coverage,70);
 assert.deepEqual(y.missing.map(x=>x.name),['수급','PBR','실적·현금흐름']);
 
 // Full market scan remains independent from 20 candidate shortlist.
-assert.ok(html.includes('관심종목 점수 상위 20개'));
+assert.ok(html.includes('기술점수 상위 20개 · 추가 탐색용'));
+assert.ok(html.includes('전체시장 기반 종목별 심층 분석 · 최대 20개'));
+assert.ok(html.includes('id="deepDossiers"'));
 console.log('provisional_normalized_score_ui_tests_passed');
