@@ -94,6 +94,32 @@ class DynamicDossiers(unittest.TestCase):
         self.assertNotIn("000001",[a["code"] for a in x["dossiers"]])
         self.assertEqual(x["dossiers"][0]["downside"]["stop"]["risk"],"low")
 
+    def test_stop_distance_not_misclassified_by_chase_liquidity_or_trend(self):
+        row=stock(10,stop_pct=-6,stop_line=9400,trading_eok=1,
+                  risk_flags=["단기 급등 — 추격 주의","장기 추세 취약"])
+        stop=rec.stop_assessment(row)
+        self.assertEqual(stop["status"],"observed")
+        self.assertEqual(stop["risk"],"low")
+        self.assertEqual(stop["stop_pct"],-6)
+        self.assertEqual(set(stop["non_stop_warning_flags"]),
+                         {"급등·추격 주의","거래대금 부족 · 환금성 주의",
+                          "장기 추세 취약"})
+        result=rec.calculate(snapshot([row]))
+        self.assertEqual(result["downside_screen_pass_count"],1)
+        self.assertEqual(result["research_eligible_count"],1)
+        dossier=result["dossiers"][0]
+        self.assertEqual(dossier["downside"]["risk_level"],"low")
+        self.assertEqual(dossier["qualification"],"separate_caution_research_only")
+        self.assertFalse(dossier["confirmed_buy"])
+        self.assertEqual(result["confirmed_recommendation_count"],0)
+
+    def test_stop_distance_high_still_rejected_even_without_other_warnings(self):
+        x=stock(1,stop_pct=-18,stop_line=8200,risk_flags=[])
+        stop=rec.stop_assessment(x)
+        self.assertEqual(stop["risk"],"high")
+        self.assertEqual(stop["non_stop_warning_flags"],[])
+        self.assertEqual(rec.calculate(snapshot([x]))["research_dossier_count"],0)
+
     def test_flow_and_financial_missing_do_not_masquerade_as_proven(self):
         s=rec.calculate(snapshot([stock(2)]))["dossiers"][0]
         self.assertFalse(s["flows"]["validated"])
