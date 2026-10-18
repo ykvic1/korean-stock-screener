@@ -25,6 +25,8 @@ jobs:
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: OCI installer syntax only (no cloud access, no secrets)
         run: bash -n deploy/oci_prepare.sh
+      - name: KRX website investor flow offline contract (no network or keys)
+        run: python -m unittest discover -s tests -p 'test_v3_krx_website_flow_pilot.py' -v
       - name: JavaScript syntax
         run: |
           python - <<'PY'
