@@ -24,7 +24,13 @@
       return {risk:'unknown', upside:'unknown', kind:'unknown', horizon:'unknown',
         label:KINDS.unknown, horizonLabel:HORIZONS.unknown, reasoning:'자료 미확인'};
     }
-    const distance=numeric(row.stop_pct)&&row.stop_pct<0?-row.stop_pct:null;
+    const price=numeric(row.price)&&row.price>0?row.price:null;
+    const stop=numeric(row.stop_line)&&row.stop_line>0?row.stop_line:null;
+    const stopValid=price!==null&&stop!==null&&stop<price&&
+      numeric(row.stop_pct)&&row.stop_pct<0 &&
+      Math.abs(100*(stop/price-1)-row.stop_pct)<=1.0;
+    // A corrupted or missing price/stop pairing is not "low-risk".
+    const distance=stopValid?-row.stop_pct:null;
     const flags=Array.isArray(row.risk_flags)?row.risk_flags:[];
     const severe=flags.some(x=>typeof x==='string' &&
       /손절폭 과대|장기 추세 취약|단기 급등|추격 주의/.test(x));
