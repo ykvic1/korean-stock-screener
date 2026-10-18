@@ -16,7 +16,7 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
-      - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py
+      - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py recommendation_engine.py
       - name: Kiwoom Windows PowerShell offline mock (no credentials or network)
         shell: pwsh
         run: ./scripts/kiwoom_readonly_probe.ps1 -OfflineSelfTest
@@ -37,6 +37,10 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_universe_rotation.py' -v
       - name: Complete-market 100-stock job slices and fail-closed aggregate (no network)
         run: python -m unittest discover -s tests -p 'test_full_market_batch.py' -v
+      - name: Full-market evidence-led research selection, no forced20, daily entry/exit tracking
+        run: python -m unittest discover -s tests -p 'test_recommendation_engine.py' -v
+      - name: Top20 per-stock deep analysis published UI and stale fail-closed rendering
+        run: node tests/test_recommendation_site.js
       - name: Client score normalization of obtained weight only, 70/85=82.3
         run: node tests/test_partial_score_ui.js
       - name: Investor-first homepage, stock-level quant lookup and automatic price-quality status

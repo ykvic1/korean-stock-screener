@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows:
       - Korean Stock Screener v2
+      - Full-Market 100-Stock Batches
     types:
       - completed
 
@@ -75,6 +76,9 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
         run: python publish_quant.py
+      - name: Re-evaluate dynamic deep dossiers with newly updated quant observations
+        if: steps.engine.outcome == 'success'
+        run: python recommendation_engine.py --snapshot docs/data.json --docs docs
 
       - name: Commit dashboard and study results
         if: always()
@@ -82,7 +86,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/
+          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/ docs/recommendations.json docs/recommendation_history.json
           git diff --cached --stat
           git add docs/reports/quant_*.xlsx 2>/dev/null || true
           if ! git diff --cached --quiet; then

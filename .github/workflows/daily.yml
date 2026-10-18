@@ -1,12 +1,9 @@
 name: Korean Stock Screener v2
 
 on:
+  # Manual emergency fallback ONLY. The proven full-market 100-stock batches
+  # own the weekday 18:30 schedule. Do not run two publishers on each close.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['screener.py', 'config.json', '.github/workflows/daily.yml']
-  schedule:
-    - cron: '30 9 * * 1-5'  # 18:30 KST weekdays
 
 permissions:
   contents: write
@@ -44,7 +41,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data.json docs/history.json docs/reports/ docs/archive/
+          git add docs/data.json docs/history.json docs/recommendations.json docs/recommendation_history.json docs/reports/ docs/archive/
           if ! git diff --cached --quiet; then
             git commit -m "Daily v2 multi-factor screen"
             git pull --rebase origin main

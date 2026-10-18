@@ -121,6 +121,8 @@
     }
     elem('list').addEventListener('click',onQuantClick);
     elem('practicalList').addEventListener('click',onQuantClick);
+    // Dynamic deep-research dossier quant buttons use the same read-only panel.
+    elem('deepDossiers').addEventListener('click',onQuantClick);
     elem('closeQuant').addEventListener('click',()=>{
       activeCode=null;
       elem('quantPanel').hidden=true;
