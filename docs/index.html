@@ -14,13 +14,13 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .info{font-size:12px;color:var(--sub)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}.metric{border-left:2px solid #d6e4e6;padding-left:9px}.metric label{display:block;color:var(--sub);font-size:11px}.metric b{font-size:15px;white-space:normal;overflow-wrap:anywhere}
 .tags{display:flex;gap:5px;flex-wrap:wrap}.tag{display:inline-block;border-radius:7px;background:#edf3f5;color:#3d5661;padding:4px 7px;font-size:12px}.tag.good{background:#e2f4ed;color:#086b52}.tag.warn{background:#fff0df;color:#92500b}.tag.risk{background:#fcebe8;color:#9c4035}
 .summary{margin-top:12px;padding:9px 11px;background:#f4f8f8;border-radius:8px;font-size:13px}details{margin-top:12px;border-top:1px solid var(--line);padding-top:9px}summary{cursor:pointer;color:#2c6673;font-weight:700} .details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}.details-grid div{padding:8px;background:#f6f9fa;border-radius:8px;font-size:13px}.details-grid label{font-size:11px;color:var(--sub);display:block} .scores{margin:10px 0}.scores div{display:flex;justify-content:space-between;border-bottom:1px solid #e8eef0;padding:5px;font-size:13px}
-.quick-list{display:grid;gap:8px}.quick-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #e1e9eb;border-radius:11px;padding:11px 13px;background:#fbfcfd}.quick-item b{display:block;font-size:15px}.quick-item small{display:block;color:var(--sub);font-size:12px;margin-top:2px}.quick-risk{text-align:right;font-size:13px}.quick-risk b{color:#92500b;font-size:14px}.quick-risk small{font-size:11px}.quick-info{font-size:12px;color:var(--sub)}
+.quick-list{display:grid;gap:8px}.quick-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #e1e9eb;border-radius:11px;padding:11px 13px;background:#fbfcfd}.quick-item b{display:block;font-size:15px}.quick-item small{display:block;color:var(--sub);font-size:12px;margin-top:2px}.quick-risk{text-align:right;font-size:13px}.quick-risk b{color:#92500b;font-size:14px}.quick-risk small{font-size:11px}.quick-info{font-size:12px;color:var(--sub)}.quick-tier{font-size:13px;font-weight:700;color:var(--ink);margin:9px 0 2px;padding:6px 0;border-bottom:1px solid var(--line)}.quick-item.featured{border-left:3px solid var(--cyan);background:#f9fcfc}
 a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.history a{display:block;margin:7px 0;font-size:13px}
 @media(max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr}header h1{font-size:22px}.panel{padding:14px}.stock{padding:12px}.score{font-size:19px}}
 </style></head><body>
 <header><div class="wrap"><div class="eyebrow">QUANT RESEARCH / KOREA</div><h1>한국주식 다면 스크리너 <small style="font-size:12px;color:#9fd5d4">v2.0</small></h1><p>거래량 · 일봉·주봉 구조 · 수급 · 시장강도 · 밸류 · 손실 통제</p></div></header>
 <main>
-<section class="panel"><h2>v2.2 데이터 신뢰성</h2><p>원본 품질·공급원 교차검증·RSI 추가 전후와 하방 위험을 확인하세요. 이 연구는 현재 최대 120종목 표본 기준이며, 확대된 웹 표시 200종목 전체를 검증한 것은 아닙니다.</p><a class="btn primary" href="reliability.html">데이터 신뢰성 및 RSI 연구 열기 →</a></section>
+<section class="panel"><h2>v2.2 데이터 신뢰성</h2><p>원본 품질·공급원 교차검증·RSI 추가 전후와 하방 위험을 확인하세요. 이 연구는 현재 최대 120종목 표본 기준이며, 전시장 검색 대상 전체를 검증한 것은 아닙니다.</p><a class="btn primary" href="reliability.html">데이터 신뢰성 및 RSI 연구 열기 →</a></section>
 <section class="panel"><h2>v2.1 과거 유사조건 분석</h2><p>기존 최대 120종목 표본의 기간별 관측 빈도·MFE·MAE·손절 위험을 확인하세요. 미래 상승 확률이 아닙니다.</p><a class="btn primary" href="quant.html">퀀트 분석 열기 →</a></section>
 <section class="panel">
   <div id="status" class="status bad">시장 분석 데이터 확인 중…</div><div id="updated" class="meta">-</div>
@@ -35,8 +35,8 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note">KRX 정규장 가격·거래량과 공식 종가 교차검증 전입니다. 기존 환산점수는 보존된 연구값이며 새 종합 100점 확정 점수가 아닙니다. 점수는 상승 확률이 아닙니다. '확보율'은 데이터로 실제 평가한 배점 비중입니다. 수급과 재무가 빠진 종목은 매수 우선으로 분류하지 않습니다.</p>
 </section>
 <section class="panel" id="practicalWatchlist">
-  <h2>먼저 살펴볼 기술적 관찰 후보</h2>
-  <p class="note">현재 v2.2 자료에서 상승 전환·수렴 구조, OBV·패턴, 손절 참고선, 데이터 확보율을 확인한 최대 5종목입니다. 기존 점수순이나 v3 종합 순위가 아니며 <strong>매수 추천이 아닙니다.</strong> 기관 수급·재무·업황이 확인되지 않으면 반드시 추가 검토하세요.</p>
+  <h2>관심 종목 최대 20개 · 우선 관찰 5개</h2>
+  <p class="note">현재 v2.2 자료에서 상승 전환·수렴 구조, OBV·패턴, 손절 참고선, 데이터 확보율을 확인한 <strong>최대 20종목</strong>입니다. 우선 살펴볼 5개와 추가 관찰 후보 최대 15개로 구분합니다. 조건을 만족하지 않는 종목을 억지로 채우지 않습니다. 기존 점수순이나 v3 종합 순위가 아니며 <strong>매수 추천이 아닙니다.</strong> 기관 수급·재무·업황이 확인되지 않으면 반드시 추가 검토하세요.</p>
   <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
   <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
   <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
@@ -139,13 +139,17 @@ function renderPractical(snapshot){
     const pattern=(r.patterns||[]).find(x=>/쐐기|어깨|삼각|수렴/.test(x));
     const signals=[r.phase,r.obv_rising===true?'OBV 상승':'차트 패턴 관찰',pattern]
       .filter(Boolean).slice(0,3).join(' · ');
-    return `<div class="quick-item"><div><b>${i+1}. ${esc(r.name)}</b>
+    const heading=i===0?
+      `<div class="quick-tier">우선 관찰 ${report.featured_count}종목</div>`:
+      i===report.featured_count?
+      `<div class="quick-tier">추가 관찰 ${report.additional_count}종목</div>`:'';
+    return heading+`<div class="quick-item ${i<report.featured_count?'featured':''}"><div><b>${i+1}. ${esc(r.name)}</b>
       <small>${esc(r.code)} · ${esc(signals)}</small>
       <div class="quick-info">데이터 확보율 ${val(r.coverage_pct,'%')} · 수급/재무/업황 별도 확인</div></div>
       <div class="quick-risk"><b>손절 참고 ${signed(r.stop_pct,'%')}</b>
       <small>참고선 ${val(r.stop_line,'원')} · 단순 손익비 ${val(r.reward_risk)}</small></div></div>`;
   }).join('');
-  note.textContent=`기준일 ${snapshot.date} · ${report.rows.length}종목 기술적 관찰 후보 · 정밀 평가와 매수 판단은 별도 · 위험 관리는 차트 무효화 기준으로 재확인`;
+  note.textContent=`기준일 ${snapshot.date} · 총 ${report.rows.length}/20종목 (우선 ${report.featured_count}, 추가 ${report.additional_count}) · 기존 v2 기술적 관찰 · v3 종합점수/매수 판단 미확정 · 위험 관리는 차트 무효화 기준으로 재확인`;
 }
 function render(){
  let q=el('search').value.toLowerCase().trim();

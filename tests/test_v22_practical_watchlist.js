@@ -17,12 +17,21 @@ const base = (code, extra = {}) => ({
   ...extra
 });
 
-const candidateRows = Array.from({length: 8}, (_, i) =>
-  base(String(100000 + i), {stop_line: 9500 - 100 * i, stop_pct: -5 - i}));
+const candidateRows = Array.from({length: 25}, (_, i) =>
+  base(String(100000 + i), {
+    stop_line: 9600 - 15 * i, stop_pct: -4 - 0.15 * i,
+    patterns: i%3 === 0 ? ['상승 후 수렴 후보'] : []
+  }));
 const snapshot = rows => ({status: 'success', date: '2026-10-16', stocks: rows});
 
 assert.equal(w.select(snapshot(candidateRows), now).status, 'technical_observation_only');
-assert.equal(w.select(snapshot(candidateRows), now).rows.length, 5);
+assert.equal(w.MAX_LISTED, 20);
+assert.equal(w.MAX_FEATURED, 5);
+assert.equal(w.select(snapshot(candidateRows), now).rows.length, 20);
+assert.equal(w.select(snapshot(candidateRows), now).featured_count, 5);
+assert.equal(w.select(snapshot(candidateRows), now).additional_count, 15);
+assert.equal(new Set(w.select(snapshot(candidateRows), now).rows.map(x=>x.code)).size, 20);
+assert.deepEqual(w.select(snapshot(candidateRows.slice(0, 8)), now).rows.length, 8);
 
 for (const bad of [
   {stop_pct: -25, stop_line: 7500},
@@ -73,7 +82,7 @@ const actual = JSON.parse(fs.readFileSync(path.join(__dirname, '../docs/data.jso
 if (actual.status === 'success' && Array.isArray(actual.stocks) && actual.date) {
   const date = new Date(actual.date + 'T18:30:00+09:00');
   const result = w.select(actual, new Date(date.getTime() + 12 * 3600000));
-  assert.ok(result.rows.length <= 5);
+  assert.ok(result.rows.length <= 20);
   for (const row of result.rows) {
     assert.ok(w.candidate(row));
     assert.ok(row.stop_pct >= -15 && row.stop_pct <= -3);
@@ -87,4 +96,7 @@ assert.ok(html.includes('<script src="watchlist.js"></script>'));
 assert.ok(html.includes('renderPractical(d);'));
 assert.ok(html.includes('esc(r.name)'));
 assert.ok(html.includes('매수 추천이 아닙니다'));
+assert.ok(html.includes('관심 종목 최대 20개'));
+assert.ok(html.includes('우선 관찰'));
+assert.ok(html.includes('추가 관찰'));
 console.log('practical_watchlist_offline_tests_passed');

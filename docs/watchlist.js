@@ -1,10 +1,12 @@
-/* Small research-only shortlist using existing v2.2 observations.
+/* Up to 20 research-only candidates using existing v2.2 observations.
  * NOT a v3 six-pillar score, investment recommendation, or re-ranking of
  * missing institutional/financial evidence. No fetch, credentials, or new API.
  * Browser: window.V22Watchlist; Node offline tests: module.exports.
  */
 (function (root) {
   'use strict';
+  const MAX_LISTED = 20;
+  const MAX_FEATURED = 5;
   const EARLY = new Set(['초기 돌파 확인 중', '장기 추세 전환 관찰', '상승 후 수렴']);
   const numeric = value => typeof value === 'number' && Number.isFinite(value);
   const missingRisk = row => Array.isArray(row.risk_flags) && row.risk_flags.some(
@@ -64,18 +66,23 @@
   function select(snapshot, now = new Date()) {
     if (!snapshot || snapshot.status !== 'success' ||
         !Array.isArray(snapshot.stocks) || !isFresh(snapshot.date, now)) {
-      return {status: 'stale_or_unavailable', rows: []};
+      return {status: 'stale_or_unavailable', rows: [], featured_count: 0};
     }
     const used = new Set();
     const rows = snapshot.stocks.filter(candidate).sort(compare).filter(row => {
       if (used.has(row.code)) return false;
       used.add(row.code);
       return true;
-    }).slice(0, 5);
-    return {status: rows.length ? 'technical_observation_only' : 'no_eligible_observations', rows};
+    }).slice(0, MAX_LISTED);
+    return {
+      status: rows.length ? 'technical_observation_only' : 'no_eligible_observations',
+      rows,
+      featured_count: Math.min(MAX_FEATURED, rows.length),
+      additional_count: Math.max(0, rows.length - MAX_FEATURED)
+    };
   }
 
-  const api = {candidate, isFresh, select};
+  const api = {candidate, isFresh, select, MAX_LISTED, MAX_FEATURED};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.V22Watchlist = api;
 })(typeof window === 'undefined' ? {} : window);
