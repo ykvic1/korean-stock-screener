@@ -68,18 +68,25 @@ def _validate_path(db_path: Any, *, create: bool):
     return path
 
 
-def _connect(path):
+def _connect(path, *, read_only=False):
     try:
-        con = sqlite3.connect(str(path), isolation_level=None, timeout=10)
-        con.execute("PRAGMA journal_mode=DELETE")
-        con.execute("PRAGMA synchronous=FULL")
-        con.execute("PRAGMA foreign_keys=ON")
-        con.execute("CREATE TABLE IF NOT EXISTS source_pairs ("
-                    "asof TEXT PRIMARY KEY,"
-                    "chain_entry_json TEXT NOT NULL,"
-                    "kospi_raw BLOB NOT NULL,"
-                    "kosdaq_raw BLOB NOT NULL)")
-        return con
+        if read_only:
+            # Inspect never creates a database/table or a journal.
+            from urllib.parse import quote
+            conn = sqlite3.connect("file:" + quote(str(path)) + "?mode=ro",
+                                   uri=True, isolation_level=None, timeout=10)
+            conn.execute("PRAGMA query_only=ON")
+            return conn
+        conn = sqlite3.connect(str(path), isolation_level=None, timeout=10)
+        conn.execute("PRAGMA journal_mode=DELETE")
+        conn.execute("PRAGMA synchronous=FULL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.execute("CREATE TABLE IF NOT EXISTS source_pairs ("
+                     "asof TEXT PRIMARY KEY,"
+                     "chain_entry_json TEXT NOT NULL,"
+                     "kospi_raw BLOB NOT NULL,"
+                     "kosdaq_raw BLOB NOT NULL)")
+        return conn
     except sqlite3.Error:
         raise PrivateStoreError("private_database_open_failed") from None
 
@@ -188,7 +195,7 @@ def store_pair(*, database_path=DEFAULT_DB, asof, kospi_raw, kosdaq_raw,
 def inspect_private_store(*, database_path=DEFAULT_DB):
     """Rehash and verify all stored bytes without returning or printing them."""
     path = _validate_path(database_path, create=False)
-    conn = _connect(path)
+    conn = _connect(path, read_only=True)
     try:
         _, report = _read_verified_pairs(conn)
         return _safe_audit(report)
