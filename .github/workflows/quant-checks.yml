@@ -29,6 +29,10 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_v3_krx_website_flow_pilot.py' -v
       - name: KRX official two-market private staging offline contract (no keys or network)
         run: python -m unittest discover -s tests -p 'test_v3_krx_private_daily.py' -v
+      - name: v3 daily and weekly causal structural pivot support and resistance offline
+        run: |
+          python -m py_compile v3_structural_levels.py
+          python -m unittest discover -s tests -p 'test_v3_structural_levels.py' -v
       - name: v3 mandatory PIT and event quality screen always blocks unverified evidence
         run: |
           python -m py_compile v3_mandatory_quality_gate.py
