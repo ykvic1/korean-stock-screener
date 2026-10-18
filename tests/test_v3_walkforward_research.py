@@ -152,8 +152,8 @@ class WalkForwardResearchTests(unittest.TestCase):
         self.assertFalse(r["survivorship_bias_resolved"])
 
     def test_overlapping_stock_windows_suppressed_and_order_independent(self):
-        a = example(code="000002", signal="2023-01-03")
-        b = example(code="000002", signal="2023-02-10")
+        a = example(code="000002", signal="2022-01-03")
+        b = example(code="000002", signal="2022-02-10")
         forward = evaluate([a, b], split_date="2024-01-01")
         reversed_order = evaluate([b, a], split_date="2024-01-01")
         x = forward["periods"]["12m"]["train"]
