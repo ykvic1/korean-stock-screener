@@ -35,6 +35,10 @@ jobs:
         run: |
           python -m py_compile v3_walkforward_research.py
           python -m unittest discover -s tests -p 'test_v3_walkforward_research.py' -v
+      - name: v3 PIT/corporate-event quality-gated five-horizon walk-forward (synthetic only)
+        run: |
+          python -m py_compile v3_walkforward_quality_gate.py
+          python -m unittest discover -s tests -p 'test_v3_walkforward_quality_gate.py' -v
       - name: v3 PIT aligned issuer, flow, filing and industry join contract (synthetic only)
         run: |
           python -m py_compile v3_pit_join.py
