@@ -39,6 +39,19 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_full_market_batch.py' -v
       - name: Client score normalization of obtained weight only, 70/85=82.3
         run: node tests/test_partial_score_ui.js
+      - name: Investor-first homepage, stock-level quant lookup and automatic price-quality status
+        run: node tests/test_stock_research_home.js
+      - name: Syntax of new research UI JavaScript and patchnotes HTML
+        run: |
+          node --check docs/stock_research.js
+          node --check docs/stock_research_ui.js
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class P(HTMLParser):
+              pass
+          P().feed(Path('docs/patch-notes.html').read_text(encoding='utf-8'))
+          PY
       - name: JavaScript syntax
         run: |
           python - <<'PY'
