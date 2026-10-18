@@ -33,7 +33,8 @@
   function orderKey(row) {
     const structures = Array.isArray(row.patterns) ? row.patterns : [];
     const preferred = structures.some(p => typeof p === 'string' && /쐐기|어깨|삼각|수렴/.test(p));
-    const chase = numeric(row.price20) && row.price20 > 12 ? 1 : 0;
+    const chase = (numeric(row.price20) && row.price20 > 12) ||
+      (numeric(row.price60) && row.price60 > 25) ? 1 : 0;
     return {
       chase,
       preferred: preferred ? 1 : 0,
@@ -57,7 +58,7 @@
     if (typeof asof !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(asof)) return false;
     const closeKst = new Date(asof + 'T18:30:00+09:00');
     const elapsed = now.getTime() - closeKst.getTime();
-    return Number.isFinite(elapsed) && elapsed >= -6 * 3600000 && elapsed <= 6 * 86400000;
+    return Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= 6 * 86400000;
   }
 
   function select(snapshot, now = new Date()) {
