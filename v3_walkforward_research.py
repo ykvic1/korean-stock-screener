@@ -142,7 +142,7 @@ def _p75(values):
     return ordered[max(0, math.ceil(0.75 * len(ordered)) - 1)]
 
 
-def _summary(outcomes, censored, excluded_by_embargo):
+def _summary(outcomes, censored, excluded_by_embargo, overlaps):
     n = len(outcomes)
     symbols = len({code for code, _, _ in outcomes})
     quarters = len({(d.year, (d.month - 1) // 3) for _, d, _ in outcomes})
@@ -151,6 +151,7 @@ def _summary(outcomes, censored, excluded_by_embargo):
     return {
         "n": n, "symbols": symbols, "signal_quarters": quarters,
         "right_censored": censored, "purged_or_embargoed": excluded_by_embargo,
+        "overlapping_same_symbol_suppressed": overlaps,
         "meets_exploratory_sample_floor": enough,
         "mean_historical_net_pct": round(statistics.mean(
             v["net_return_pct"] for v in values), 4) if enough else None,
@@ -197,10 +198,16 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
             raise WalkForwardError("duplicate_symbol_signal")
         seen.add(key)
         validated.append((case, signal))
+    # Input order must not change the outcome or which same-symbol case wins.
+    validated.sort(key=lambda item: (item[1], item[0]["code"]))
     result = {}
     for key, horizon in HORIZONS.items():
         cohorts = {"train": [], "holdout": []}
         censored = {"train": 0, "holdout": 0}
+        overlaps = {"train": 0, "holdout": 0}
+        # Use one signal per symbol per entire PLANNED holding window,
+        # regardless of early exit, to avoid dependent duplicated labels.
+        previous_window_end = {"train": {}, "holdout": {}}
         purged = 0
         for case, signal in validated:
             bars = case["bars"]
@@ -222,15 +229,23 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
             else:
                 purged += 1
                 continue
+            prior_end = previous_window_end[group].get(case["code"])
+            if prior_end is not None and signal <= prior_end:
+                overlaps[group] += 1
+                continue
             outcome = _outcome(case, horizon, round_trip_cost_bps)
             if outcome is None:
                 censored[group] += 1
                 continue
+            previous_window_end[group][case["code"]] = _date(
+                bars[horizon - 1]["date"])
             cohorts[group].append((case["code"], signal, outcome))
         result[key] = {
             "trading_sessions_proxy": horizon,
-            "train": _summary(cohorts["train"], censored["train"], purged),
-            "holdout": _summary(cohorts["holdout"], censored["holdout"], purged),
+            "train": _summary(cohorts["train"], censored["train"], purged,
+                              overlaps["train"]),
+            "holdout": _summary(cohorts["holdout"], censored["holdout"], purged,
+                                overlaps["holdout"]),
         }
     return {
         "schema": "v3-walkforward-exploratory-0.1",
