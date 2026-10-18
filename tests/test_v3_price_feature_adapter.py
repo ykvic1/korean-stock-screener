@@ -54,6 +54,9 @@ class TechnicalOHLCVTests(unittest.TestCase):
         self.assertIn("technical_weekly_rsi_divergence_strength", r["available_features"])
         self.assertIn("technical_pattern_confirmation_strength", r["available_features"])
         self.assertTrue(all(k in FIELD_SPECS for k in f))
+        # NumPy scalars are not accepted by the strict v3 normalization
+        # boundary; cross-module API uses plain JSON-compatible floats.
+        self.assertTrue(all(type(v) in (int, float) for v in f.values() if v is not None))
         self.assertFalse(r["source_regular_only_volume_verified"])
         self.assertFalse(r["corporate_action_history_verified"])
         self.assertFalse(r["safe_to_feed_investable_v3_score"])
