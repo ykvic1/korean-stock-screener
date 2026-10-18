@@ -119,6 +119,23 @@ def research_scorecard(*, asof: str,
     else:
         candidates["ias"] = candidates.get("ias")
 
+    # User-facing provisional normalisation, not a verified trading score.
+    # A missing category contributes neither points nor maximum potential.
+    # For partially observed IAS, preserve only the *observed share* of its
+    # 25pt total (no inflation for missing pension/holding/other signals).
+    observed = sum(v for v in candidates.values() if v is not None)
+    available = sum(PILLAR_POINTS[k] for k,v in candidates.items() if v is not None)
+    ias_observed = sum(v for v in components.values() if v is not None)
+    ias_available = sum(IAS_POINTS[k] for k,v in components.items() if v is not None)
+    if ias is not None and not ias_fully_observed:
+        observed += ias_observed * (PILLAR_POINTS["ias"] / IAS_MAX)
+        available += ias_available * (PILLAR_POINTS["ias"] / IAS_MAX)
+    if available > 0:
+        # One-decimal truncation (70/85 => 82.3), never round up claimed score.
+        normalized = math.floor((observed / available * 100 + 1e-12) * 10) / 10
+    else:
+        normalized = None
+
     pillar_rows = {
         key: {
             "maximum": maximum,
@@ -160,6 +177,19 @@ def research_scorecard(*, asof: str,
             PILLAR_POINTS[name] for name, v in candidates.items()
             if v is not None
         ),
+        "candidate_observed_points": round(observed, 6) if available > 0 else None,
+        "candidate_available_points": round(available, 6),
+        "candidate_missing_points": round(MODEL_MAX - available, 6),
+        "candidate_coverage_pct": round(100 * available / MODEL_MAX, 2),
+        "candidate_normalized_100": normalized,
+        "candidate_score_type": (
+            "provisional_partial_coverage" if available < MODEL_MAX
+            else "provisional_full_coverage"
+        ) if available > 0 else "insufficient_data",
+        "ias_candidate_observed_100": (
+            round(ias_observed, 6) if ias is not None and ias_available > 0 else None
+        ),
+        "ias_candidate_available_100": ias_available if ias is not None else None,
         "unscored_pillars": [name for name, v in candidates.items() if v is None],
         "ias_internal_six_components_complete": complete_ias,
         "candidate_full_total_research_only": (
@@ -176,7 +206,8 @@ def research_scorecard(*, asof: str,
         "scoring_authorized_for_investment": False,
         "note": (
             "Six-pillar design fixed. Numeric inputs are unverified research "
-            "candidates; not approved buy/sell signals. Missing is null, not zero."
+            "candidates; not approved buy/sell signals. Missing is excluded "
+            "from the denominator and shown explicitly, never assigned zero."
         ),
     }
 
