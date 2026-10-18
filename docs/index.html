@@ -49,30 +49,29 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
 <main>
 <section class="panel" id="practicalWatchlist">
   <h2>관심종목 점수 상위 20개</h2>
-  <p class="note">전체 스크리닝과 <strong>동일한 기존 v2 부분환산 점수순</strong>으로 최대 20개를 보여줍니다. 위험이 높다는 이유로 고득점 종목을 숨기지 않고, <strong>위험·참고 상승여력과 1·3·6개월 이상 관찰 기간</strong>을 따로 분류합니다. 수급·재무·업황 미확인 영역은 확보배점에서 제외하며, 점수는 v3 확정 점수나 매수 추천이 아닙니다.</p>
+  <p class="note">전체 스크리닝의 <strong>부분환산 점수 상위 20개</strong>를 보여주고, 종목별로 <strong>단기 1개월 / 중기 3개월 / 장기 6개월 이상</strong> 가운데 어떤 접근을 우선 검토할지 표시합니다. 손절 위험과 기존 퀀트 연구의 기간별 수익·손실도 비교하지만, <strong>과거 52주 고점 거리를 기대수익으로 간주하지 않습니다.</strong> 재무·기관수급·업황이 충분히 검증되지 않아 확정 매수 추천과 미래 기대수익률은 보류합니다.</p>
   <div class="watch-filters">
-    <label for="watchKind">위험 · 참고 상승여력
-      <select id="watchKind" aria-label="위험과 참고 상승여력 유형">
-        <option value="all">전체 유형</option>
-        <option value="low-high">낮은 손절폭 · 고점거리 큼</option>
-        <option value="low-low">낮은 손절폭 · 고점거리 작음</option>
-        <option value="high-high">높은 위험 · 고점거리 큼</option>
-        <option value="high-low">높은 위험 · 고점거리 작음</option>
-        <option value="balanced">중간/혼합 유형</option>
-        <option value="unknown">평가 미확인 유형</option>
+    <label for="watchKind">손절 · 추격 · 환금 위험
+      <select id="watchKind" aria-label="투자 위험 수준">
+        <option value="all">모든 위험 수준</option>
+        <option value="low">차트 손절위험 낮음</option>
+        <option value="middle">차트 손절위험 중간</option>
+        <option value="high">손절·추격·환금 위험 높음</option>
+        <option value="unknown">위험 근거 미확인</option>
       </select>
     </label>
-    <label for="watchHorizon">차트 관찰 기간
-      <select id="watchHorizon" aria-label="차트 관찰 기간">
-        <option value="all">전체 기간</option>
-        <option value="1m">단기 · 1개월</option>
-        <option value="3m">중기 · 3개월</option>
-        <option value="6m">장기 · 6개월 이상</option>
-        <option value="unknown">기간 분류 미확인</option>
+    <label for="watchHorizon">적합 접근기간 (잠정)
+      <select id="watchHorizon" aria-label="접근기간 가설">
+        <option value="all">모든 접근기간</option>
+        <option value="1m">단기 접근 · 약 1개월</option>
+        <option value="3m">중기 접근 · 약 3개월</option>
+        <option value="6m">장기 검토 · 6개월 이상</option>
+        <option value="unknown">기간 판단 보류</option>
       </select>
     </label>
   </div>
-  <p class="note">위험은 <strong>손절 참고폭·급등/유동성 위험</strong>, 상승여력은 <strong>과거 52주 고점까지의 거리와 단순 손익비</strong>로 구분한 참고값입니다. '고위험·고수익 확정'이 아니며 실제 기대수익률은 검증되지 않았습니다. 기간은 일봉·주봉의 관찰 관점으로, 목표가 달성 시점의 예측이 아닙니다.</p>
+  <p class="note">좋은 투자 후보는 <strong>상승 가능성과 기대수익이 높으면서 실제 손절 위험이 통제되는 종목</strong>입니다. 현재 위험 유형은 손절 참고폭 등 <em>차트 위험</em>으로만 구분하며, 기업의 재무건전성까지 확정한 등급이 아닙니다. 실제 기대수익률을 계산할 근거가 없으면 '미산출'로 두고, 과거 퀀트 관측 수익은 별도 표시합니다. 장기 접근에는 실적·산업 사이클 검증이 추가로 필요합니다.</p>
+  <div id="reviewPriority" class="summary" aria-live="polite">추천 여부와 우선 분석 후보를 평가하고 있습니다.</div>
   <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
   <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
   <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
@@ -128,7 +127,8 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
 <script src="stock_research_ui.js"></script>
 <script>
 'use strict';
-let stocks=[],mode='all',dataLoaded=false,visibleLimit=50,marketSnapshot=null;
+let stocks=[],mode='all',dataLoaded=false,visibleLimit=50,marketSnapshot=null,quantResearch=null;
+let quantStudyByCode=new Map();
 const el=(id)=>document.getElementById(id);
 const fmt=(x)=>typeof x==='number' && Number.isFinite(x)?x.toLocaleString('ko-KR'):'미확인';
 const val=(x,suffix='')=>typeof x==='number' && Number.isFinite(x)?fmt(x)+suffix:'미확인';
@@ -148,7 +148,7 @@ function isMatch(r){
 function indicator(k,v){return `<div><label>${esc(k)}</label><b>${esc(v)}</b></div>`;}
 function drawCard(r){
  const rating=r._rating||null;
- const profile=window.V22Watchlist?.profile(r)||null;
+ const profile=window.V22Watchlist?.profile(r,quantStudyByCode.get(r.code),marketSnapshot?.date)||null;
  const ratingText=rating?rating.normalized.toFixed(1):'미산출';
  const missing=rating?rating.missing.map(x=>x.name+' '+x.weight+'점').join(' · '):'평가항목 또는 배점 확인 필요';
  const tag=(v,c='')=>`<span class="tag ${c}">${esc(v)}</span>`;
@@ -168,7 +168,7 @@ function drawCard(r){
  <div class="quick-axes"><span>${esc(profile?.label||'위험·상승공간 미확인')}</span><span>${esc(profile?.horizonLabel||'기간 분류 미확인')}</span></div>
  <div class="inline-research"><span class="quality-text">가격 데이터: ${esc(r._quality?.label||'품질 자료 조회 중')}</span>
  <button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div>
- <div class="summary">손절 참고선 ${val(r.stop_line,'원')} (현재가 대비 ${signed(r.stop_pct,'%')}) · 52주 고점 공간 ${val(r.reference_target_pct,'%')} · 단순 손익비 ${val(r.reward_risk)}</div>
+ <div class="summary">${esc(profile?.horizonLabel||'기간 미판정')} · ${esc(profile?.recommendation||'추천 판단 보류')} · 손절 참고선 ${val(r.stop_line,'원')} (${signed(r.stop_pct,'%')}) · 미래 기대수익률 미산출</div>
  <details><summary>수급 · 차트 · 상대강도 · 위험 상세 보기</summary>
   <div class="details-grid">
   ${indicator('20일 주가변화',signed(r.price20,'%'))}
