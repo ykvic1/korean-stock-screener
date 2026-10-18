@@ -306,7 +306,7 @@ async function loadQuantForDecision(){
     const source=await response.json();
     if(!source||!Array.isArray(source.stocks)||!source.asof)throw Error('invalid research');
     quantResearch=source;
-    quantStudyByCode=new Map(source.stocks.filter(row=>/^\\d{6}$/.test(String(row.code))).map(row=>[
+    quantStudyByCode=new Map(source.stocks.filter(row=>/^\d{6}$/.test(String(row.code))).map(row=>[
       row.code,{...row,asof:source.asof}
     ]));
   }catch(e){quantResearch=null;quantStudyByCode=new Map();}
