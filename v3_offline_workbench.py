@@ -23,6 +23,9 @@ from v3_portfolio_risk import evaluate_portfolio, PortfolioRiskError
 from v3_financial_feature_adapter import (
     calculate_financial_raw_features, FinancialFeatureError
 )
+from v3_industry_feature_adapter import (
+    evaluate_industry_cohort, IndustryFeatureError
+)
 
 MAX_BATCH = 20000
 MAX_INPUT_BYTES = 15_000_000
@@ -53,6 +56,50 @@ def run_workbench(bundle, *, min_peers=30):
         raise WorkbenchError("invalid_asof_or_cohort")
     factor_input = []
     input_issue_counts = Counter()
+    # Each stock with a declared sector must match exactly one full
+    # research cohort. No fallback to surviving members of today's universe.
+    derived_industry = {}
+    sectors = bundle.get("industry_cohorts")
+    if sectors is not None:
+        if not isinstance(sectors, list) or len(sectors) > MAX_BATCH:
+            raise WorkbenchError("invalid_industry_cohorts")
+        target_members = {}
+        for item in stocks:
+            if not isinstance(item, dict):
+                raise WorkbenchError("invalid_industry_stock")
+            sector_code = item.get("industry_code")
+            if sector_code is not None:
+                key = (item.get("market"), sector_code)
+                target_members.setdefault(key, set()).add(
+                    (item.get("market"), item.get("code"), item.get("issuer_id")))
+        visited = set()
+        for sector in sectors:
+            if not isinstance(sector, dict):
+                raise WorkbenchError("invalid_industry_cohort")
+            key = (sector.get("market"), sector.get("industry_code"))
+            if key in visited:
+                raise WorkbenchError("duplicate_industry_cohort")
+            visited.add(key)
+            try:
+                output = evaluate_industry_cohort(
+                    sector, asof=asof,
+                    decision_at_utc=asof + "T07:10:00Z")
+            except (IndustryFeatureError, KeyError, TypeError):
+                raise WorkbenchError("unusable_industry_member_evidence") from None
+            included = {
+                (x["market"], x["code"], x["issuer_id"])
+                for x in output["declared_member_identities"]
+            }
+            if included != target_members.get(key, set()):
+                raise WorkbenchError("industry_member_roster_not_same_research_cohort")
+            for identity in included:
+                if identity in derived_industry:
+                    raise WorkbenchError("industry_member_assigned_twice")
+                derived_industry[identity] = output["features"]
+            if output["risk_flags_research"]:
+                input_issue_counts["industry_cycle_warning_cohorts"] += 1
+        if set(target_members) != visited:
+            raise WorkbenchError("industry_classification_missing_cohort")
     for stock in stocks:
         if not isinstance(stock, dict) or stock.get("asof") != asof:
             raise WorkbenchError("mixed_snapshot_dates")
@@ -61,6 +108,11 @@ def run_workbench(bundle, *, min_peers=30):
         manual = stock.get("manual_raw_features", {})
         _reject_unknown_metrics(manual)
         merged = dict(manual)
+        industry_derived = derived_industry.get((market, code, issuer))
+        if industry_derived is not None:
+            if set(industry_derived) & set(manual):
+                raise WorkbenchError("manual_industry_metric_conflicts_with_sector")
+            merged.update(industry_derived)
         statements = stock.get("annual_statements")
         if statements is not None:
             try:
@@ -179,6 +231,7 @@ def demo_bundle(*, sample_each_market=32):
     days.reverse()
     markets = ["KOSPI", "KOSDAQ"]
     result = []
+    industry_cohorts = []
     for market_index, market_name in enumerate(markets):
         market_benchmark = [
             {"date": d, "close": 1000 + 0.025 * j}
@@ -238,12 +291,10 @@ def demo_bundle(*, sample_each_market=32):
                         "interest_bearing_debt_krw": 50_000_000_000 + i*500_000_000
                     }
                 })
-            manual = {
-                "industry_profit_growth_12m_pct": 2 + i / 8,
-                "industry_breadth_above_ma_ratio": min(0.9, 0.4 + i / 100),
-            }
+            manual = {}
             result.append({
                 "code": code, "issuer_id": issuer, "market": market_name,
+                "industry_code": f"IND.{market_index+1}",
                 "asof": asof.isoformat(), "price_bars": bars,
                 "market_index": market_benchmark,
                 "industry_index": industry_benchmark,
@@ -254,7 +305,36 @@ def demo_bundle(*, sample_each_market=32):
                                "amount_krw": 115_000_000_000 + i*1_000_000_000},
                 "manual_raw_features": manual,
             })
-    return {"asof": asof.isoformat(), "stocks": result}
+        group = [item for item in result if item["market"] == market_name]
+        industry_members = []
+        for item in group:
+            annual = item["annual_statements"][-2:]
+            industry_members.append({
+                "market": market_name, "code": item["code"],
+                "issuer_id": item["issuer_id"],
+                "valid_from": "2020-01-01", "valid_to": None,
+                "membership_observed_at_utc": asof.isoformat() + "T05:00:00Z",
+                "daily_closes": [
+                    {"date": row["date"], "close": row["close"],
+                     "session": row["session"]}
+                    for row in item["price_bars"][-60:]
+                ],
+                "annual_operating_profit": [
+                    {"fiscal_year": statement["fiscal_year"],
+                     "published_on": statement["published_on"],
+                     "observed_at_utc": statement["published_on"] + "T01:00:00Z",
+                     "operating_profit_krw": statement["accounts"]["operating_income_krw"]}
+                    for statement in annual
+                ],
+            })
+        industry_cohorts.append({
+            "asof": asof.isoformat(),
+            "market": market_name, "industry_code": f"IND.{market_index+1}",
+            "latest_comparable_fiscal_year": 2025,
+            "members": industry_members,
+        })
+    return {"asof": asof.isoformat(), "stocks": result,
+            "industry_cohorts": industry_cohorts}
 
 
 def main(argv=None):

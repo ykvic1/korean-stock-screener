@@ -144,8 +144,9 @@ class AnnualRawFinancialFeatureTests(unittest.TestCase):
     def test_demo_workbench_now_uses_actual_financial_arithmetic(self):
         input_data = demo_bundle()
         example = input_data["stocks"][0]
-        self.assertEqual(set(example["manual_raw_features"]), {
-            "industry_profit_growth_12m_pct", "industry_breadth_above_ma_ratio"})
+        # PR industry-cycle adapter now derives these from cohort raw inputs.
+        self.assertEqual(set(example["manual_raw_features"]), set())
+        self.assertEqual(len(input_data["industry_cohorts"]), 2)
         self.assertEqual(len(example["annual_statements"]), 4)
         financial = calculate_financial_raw_features(
             example["annual_statements"], asof=example["asof"],
