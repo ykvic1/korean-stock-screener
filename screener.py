@@ -6,7 +6,6 @@ import json
 import logging
 import math
 import os
-import random
 import shutil
 import sys
 import re
@@ -74,7 +73,7 @@ DEFAULT = {
     'min_daily_trading_eok':2, 'preselect_limit':210,
     'min_history_bars':160, 'historical_days':1100,
     'request_sleep_seconds':0.18, 'top_candidates_for_flows':35,
-    'flow_days':20, 'max_watch_rows':120,
+    'flow_days':20, 'max_watch_rows':200,
     'max_data_age_days':6, 'preferred_pbr_max':1.5,
     'max_stop_distance_pct':15,
     'enable_optional_company_listing':True
@@ -154,25 +153,45 @@ def optional_listings(rows):
 
 
 def select_universe(rows,cfg,day):
-    """Diversify liquidity buckets instead of only top turnover (which misses neglected names)."""
+    """One low-cost whole-market scan; rotate expensive history work in 3 liquidity buckets.
+
+    The previous once-per-week random sample could omit neglected stocks
+    indefinitely. Keep 1/3 liquid names steady; move through medium/quiet
+    buckets in deterministic consecutive-weekday windows. No more OHLCV API
+    calls per day than the existing 210-stock limit.
+    """
     valid=[r for r in rows.values() if cfg['min_market_cap_eok']<=r['market_cap_eok']<=cfg['max_market_cap_eok']
            and r['trading_eok']>=cfg['min_daily_trading_eok']]
-    valid.sort(key=lambda r:r['trading_eok'],reverse=True)
+    valid.sort(key=lambda r:(-r['trading_eok'],r['code']))
     cap=int(cfg['preselect_limit'])
+    if cap<3 or cap>210:
+        raise ValueError('현재 저비용 운영에서는 일별 상세조회 3~210종목만 허용')
     if len(valid)<=cap:return valid,len(valid)
+
     n1=cap//3;n2=cap//3;n3=cap-n1-n2
-    # top turnover 1/3, mid turnover 1/3, less-followed eligible names 1/3
     first=valid[:n1]
     rest=valid[n1:]
     pivot=max(1,len(rest)//2)
-    mids=rest[:pivot];quieter=rest[pivot:]
-    rng=random.Random(int(day.strftime('%Y%m%d'))//7)
-    chosen=first+rng.sample(mids,min(n2,len(mids)))+rng.sample(quieter,min(n3,len(quieter)))
+    mids=rest[:pivot]
+    quieter=rest[pivot:]
+
+    # Business-weekday index: Fri->Mon moves one day, Sat/Sun do not
+    # rotate. Exchange holidays may skip windows but never fabricate data.
+    trade_day=day.date() if isinstance(day,datetime) else day
+    elapsed=(trade_day-datetime(2000,1,3).date()).days
+    weeks,weekday=divmod(elapsed,7)
+    weekday_index=weeks*5+min(weekday,4)
+
+    def rotate(bucket,size):
+        if len(bucket)<=size:return bucket[:]
+        origin=(weekday_index*size)%len(bucket)
+        return (bucket[origin:]+bucket[:origin])[:size]
+
+    chosen=first+rotate(mids,n2)+rotate(quieter,n3)
     if len(chosen)<cap:
         unique={r['code'] for r in chosen}
         chosen += [r for r in valid if r['code'] not in unique][:cap-len(chosen)]
     return chosen,len(valid)
-
 
 def ma_last(arr,period):return float(np.mean(arr[-period:])) if len(arr)>=period else None
 
@@ -440,7 +459,7 @@ def build_rows(day,cfg):
     optional=[]
     if cfg.get('enable_optional_company_listing',True):optional=optional_listings(universe)
     selected,total=select_universe(universe,cfg,day)
-    logging.info('조건 부합 %s종목 중 %s종목 분산 선별; 기업 보조 데이터=%s',total,len(selected),optional)
+    logging.info('시장 전체 1차 조건 통과 %s종목 / 순환 상세조회 %s종목 / 공개 한도 %s종목; 기업 보조 데이터=%s',total,len(selected),cfg['max_watch_rows'],optional)
     idx=load_indexes(day,cfg)
     valid=[];errors=[];excluded=[]
     for i,r in enumerate(selected,1):
@@ -572,7 +591,7 @@ def make_report(rows,errors,analysis_day,cfg,meta):
       ['재무 실적/현금흐름','아직 자동 연동되지 않음. 배점 5점을 결측 처리'],
       ['손절선','최근 20~45 거래일 저점 기준 참고선. 확정 지지선 아님'],
       ['상승 여력','52주 고점 대비 공간은 목표주가 예측이 아님'],
-      ['종목 선정','거래대금 상위 1/3, 중간 1/3, 저거래대금 1/3 분산 표본'],
+      ['종목 선정','전체시장 시총·거래대금 필터 후 210종목/일: 고유동성 1/3 고정, 중·저유동성 각 1/3 거래일 순환'],
       ['데이터 출처','https://github.com/FinanceData/FinanceDataReader'],
       ['수급 출처','https://github.com/sharebook-kr/pykrx']]
     headers=['순위','종목코드','종목명','시장','업종(가능시)','가격 기준일','종가 원','시총 억원','거래대금 억원',
