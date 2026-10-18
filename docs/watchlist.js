@@ -17,8 +17,10 @@
     'unknown':'적정 보유기간 판단 보류'
   });
   const RISKS=Object.freeze({
-    low:'차트 손절위험 낮음',middle:'차트 손절위험 중간',
-    high:'손절·추격·환금위험 높음',unknown:'손실위험 자료 미확인'
+    low:'진입 주의 요인 적음 (차트 기준)',
+    middle:'진입 주의 요인 보통 (차트 기준)',
+    high:'진입 주의 요인 있음',
+    unknown:'진입 위험 근거 미확인'
   });
   const QUANT_PERIODS=Object.freeze({
     '1m':'스윙 1개월','3m':'중기 3개월','6m':'중기 6개월'
@@ -54,6 +56,10 @@
   function profile(row,study=null,marketDate=null) {
     const empty={
       risk:'unknown',riskLabel:RISKS.unknown,
+      riskReasons:[],riskBreakdown:{
+        stop:'손절 기준 미확인',chase:'추격 경고 미확인',
+        liquidity:'거래대금 미확인',trend:'장기 추세 미확인'
+      },
       horizon:'unknown',horizonLabel:HORIZONS.unknown,
       reasoning:'데이터 부족으로 기간 판단 보류',
       stopDistancePct:null,expectedReturnPct:null,
@@ -74,12 +80,36 @@
       Math.abs(100*(stop/price-1)-row.stop_pct)<=1.0;
     const distance=consistentStop?-row.stop_pct:null;
     const flags=Array.isArray(row.risk_flags)?row.risk_flags:[];
-    const dangerous=flags.some(f=>typeof f==='string' &&
-      /손절폭 과대|장기 추세 취약|단기 급등|추격 주의|급격한 거래량 집중/.test(f));
-    const illiquid=numeric(row.trading_eok)&&row.trading_eok<2;
+    const validFlags=flags.filter(f=>typeof f==='string');
+    const chase=validFlags.some(f=>/단기 급등|추격 주의|급격한 거래량 집중/.test(f));
+    const trend=validFlags.some(f=>/장기 추세 취약/.test(f));
+    const unusuallyClose=distance!==null&&distance<3;
+    const overlyWide=distance!==null&&distance>15;
+    const turnover=numeric(row.trading_eok)?row.trading_eok:null;
+    const illiquid=turnover!==null&&turnover<2;
+    const stopCategory=distance===null?'손절 기준 미확인':
+      unusuallyClose?'손절선 근접 · 잦은 손절 가능':
+      overlyWide?'손절폭 과대 · 하방 위험':
+      distance<=8?'손절폭 짧음':
+      '손절폭 중간';
+    const riskReasons=[];
+    if(unusuallyClose)riskReasons.push('손절선 과도하게 근접');
+    if(overlyWide)riskReasons.push('손절폭 큼');
+    if(chase)riskReasons.push('급등·추격 주의');
+    if(illiquid)riskReasons.push('거래대금 부족 · 환금성 주의');
+    if(trend)riskReasons.push('장기 추세 취약');
     const risk=distance===null?'unknown':
-      (distance<3||distance>15||dangerous||illiquid)?'high':
-      distance<=8?'low':'middle';
+      riskReasons.length?'high':distance<=8?'low':'middle';
+    const riskLabel=risk==='high'?'주의: '+riskReasons.slice(0,2).join(' / '):
+      RISKS[risk];
+    const riskBreakdown={
+      stop:stopCategory,
+      chase:chase?'급등·추격 주의':'별도 급등·추격 경고 없음',
+      liquidity:turnover===null?'거래대금 미확인':
+        illiquid?'거래대금 부족(2억원 미만)':'거래대금 경고 없음',
+      trend:trend?'장기 추세 취약':'별도 장기 약세 경고 없음'
+    };
+    const dangerous=unusuallyClose||overlyWide||chase||illiquid||trend;
 
     const qt=historicalPeriods(study,marketDate);
     const p1=qt['1m'],p3=qt['3m'],p6=qt['6m'];
@@ -141,10 +171,11 @@
       '조건부 관찰';
     const recommendationReason=plausible?
       '기술점수·데이터 확보율·손절 참고폭이 양호하나 재무·수급·업황 확인 전 매수 확정 불가':
-      risk==='high'?'손절 거리·추격 또는 환금성 경고가 있어 진입 보류가 우선':
+      risk==='high'?'해당 경고('+riskReasons.join(', ')+')의 원인을 나눠 점검한 뒤 진입 판단':
       '자료 부족 또는 기술점수/기간 근거가 미흡해 매수 우선추천은 보류';
     return {
-      risk,riskLabel:RISKS[risk],horizon,horizonLabel:HORIZONS[horizon],
+      risk,riskLabel,riskReasons,riskBreakdown,
+      horizon,horizonLabel:HORIZONS[horizon],
       reasoning,stopDistancePct:distance,
       expectedReturnPct:null,
       expectedReturnVerified:false,highExpectedReturn:false,
