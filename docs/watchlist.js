@@ -17,10 +17,10 @@
     'unknown':'적정 보유기간 판단 보류'
   });
   const RISKS=Object.freeze({
-    low:'별도 진입 경고 없음 (차트 참고)',
-    middle:'손절폭 중간 (차트 참고)',
-    high:'진입 주의 요인 있음',
-    unknown:'진입 위험 근거 미확인'
+    low:'손절폭 짧음 (3~8%)',
+    middle:'손절폭 중간 (8~15%)',
+    high:'손절폭 과대 또는 지나치게 근접',
+    unknown:'손절 기준 미확인'
   });
   const QUANT_PERIODS=Object.freeze({
     '1m':'스윙 1개월','3m':'중기 3개월','6m':'중기 6개월'
@@ -98,10 +98,12 @@
     if(chase)riskReasons.push('급등·추격 주의');
     if(illiquid)riskReasons.push('거래대금 부족 · 환금성 주의');
     if(trend)riskReasons.push('장기 추세 취약');
+    // "Stop risk" is about the actual price-to-invalidation distance,
+    // NOT a synonym for illiquidity, high momentum, or weak weekly trend.
+    // Those remain independent reasons in riskBreakdown/riskReasons.
     const risk=distance===null?'unknown':
-      riskReasons.length?'high':distance<=8?'low':'middle';
-    const riskLabel=risk==='high'?'주의: '+riskReasons.slice(0,2).join(' / '):
-      RISKS[risk];
+      unusuallyClose||overlyWide?'high':distance<=8?'low':'middle';
+    const riskLabel=risk==='high'?stopCategory:RISKS[risk];
     const riskBreakdown={
       stop:stopCategory,
       chase:chase?'급등·추격 주의':'별도 급등·추격 경고 없음',
@@ -166,12 +168,14 @@
       numeric(coverage)&&coverage>=60&&horizon!=='unknown' &&
       !dangerous;
     const recommendation=plausible?'심층분석 우선 후보':
-      risk==='high'?'위험 우선 점검':
+      risk==='high'?'손절 구조 재검토':
       risk==='unknown'?'손절 근거 확인 후 판단':
+      dangerous?'추격·환금성·장기추세 추가 점검':
       '조건부 관찰';
     const recommendationReason=plausible?
       '기술점수·데이터 확보율·손절 참고폭이 양호하나 재무·수급·업황 확인 전 매수 확정 불가':
-      risk==='high'?'해당 경고('+riskReasons.join(', ')+')의 원인을 나눠 점검한 뒤 진입 판단':
+      risk==='high'?'손절 참고폭이 지나치게 멀거나 가까워 구조적 손절선 재검토 필요':
+      dangerous?'손절폭과는 별개의 주의 요인('+riskReasons.join(', ')+') 확인 필요':
       '자료 부족 또는 기술점수/기간 근거가 미흡해 매수 우선추천은 보류';
     return {
       risk,riskLabel,riskReasons,riskBreakdown,
