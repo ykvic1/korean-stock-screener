@@ -14,7 +14,7 @@ on:
         type: string
         default: '252990'
       mode:
-        description: 'offline dry_run by default; live makes <=2 KRX portal queries'
+        description: 'offline dry_run by default; live makes 2 bounded pykrx function calls'
         type: choice
         required: true
         default: dry_run
