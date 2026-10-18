@@ -29,6 +29,10 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_v3_krx_website_flow_pilot.py' -v
       - name: KRX official two-market private staging offline contract (no keys or network)
         run: python -m unittest discover -s tests -p 'test_v3_krx_private_daily.py' -v
+      - name: v3 no-partial KOSPI KOSDAQ staged pagination and fault-injected bounded retries
+        run: |
+          python -m py_compile v3_atomic_ingestion.py
+          python -m unittest discover -s tests -p 'test_v3_atomic_ingestion.py' -v
       - name: v3 freeze-time scoring to quality-gated 1 2 3 6 12 month research backtest
         run: |
           python -m py_compile v3_frozen_score_backtest.py
