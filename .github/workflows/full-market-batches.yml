@@ -1,11 +1,9 @@
 name: Full-Market 100-Stock Batches (manual pilot)
 
 on:
-  # Run ONE audit automatically on first merge of this feature, without
-  # publishing any data; user never needs to start a PC or server.
-  push:
-    branches: [main]
-    paths: ['full_market_batch.py', '.github/workflows/full-market-batches.yml']
+  # The first full-market audit was already started. Avoid triggering another
+  # expensive 2,498-stock run on each code update while the first is active.
+  # Keep explicit/manual mode until the single-run audit is confirmed.
   workflow_dispatch:
     inputs:
       asof:
@@ -14,7 +12,7 @@ on:
         default: ''
         type: string
       mode:
-        description: 'audit = no Pages updates; publish = one verified final v2 report'
+        description: 'audit = no Pages updates; publish = successful chunks with explicit incomplete coverage'
         required: true
         default: audit
         type: choice
@@ -101,6 +99,9 @@ jobs:
 
   combine:
     needs: [prepare, analyze]
+    # An isolated 100-stock worker can fail without discarding all successful
+    # batch results. Account for missing whole jobs as UNATTEMPTED, not zero.
+    if: ${{ always() && needs.prepare.result == 'success' }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
