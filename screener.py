@@ -492,13 +492,18 @@ def build_rows(day,cfg):
     for r in valid:score_one(r,cfg)
     attempts=sorted(valid,key=lambda x:((x['components']['일봉 구조'] or 0)+
               (x['components']['주봉·추세'] or 0)+(x['components']['거래량·OBV'] or 0),
-              x['market_cap_eok']),reverse=True)[:cfg['top_candidates_for_flows']]
+              x['market_cap_eok']),reverse=True)
     collector=FlowCollector(
         (lambda code: flows(code,day,cfg)) if os.getenv('KRX_ID') and os.getenv('KRX_PW') else None,
         lambda code: flows_naver(code,day,cfg),
         budget_seconds=int(cfg.get('flow_time_budget_seconds',1200)))
+    flow_deferred=0
     for i,r in enumerate(attempts,1):
         result,error=collector.collect(r['code'])
+        if result is None and isinstance(error,str) and error.startswith('deferred:'):
+            flow_deferred=len(attempts)-i+1
+            logging.info('수급 조회 공급원 중단/시간예산 소진: %s종목 수급 미확인',flow_deferred)
+            break
         if result is not None:r.update(result)
         else:
             errors.append([r['code'],'기관·외국인 수급',error])
@@ -528,7 +533,7 @@ def build_rows(day,cfg):
       'history_usable':len(valid),
       'index_markets':list(idx),'optional_listings':optional,
       'excluded':excluded,'flow_attempted':collector.attempted,
-      'flow_planned':len(attempts)}
+      'flow_planned':len(attempts),'flow_deferred':flow_deferred}
 
 
 def _xml_xlsx(sheets, path):
@@ -691,6 +696,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
          'index_available':meta['index_markets'],
          'error_count':len(errors),'collection_errors':errors,'history_exclusions':meta.get('excluded',[]),
          'flow_attempted_count':meta.get('flow_attempted'),
+         'flow_deferred_count':meta.get('flow_deferred'),
          'limitations':['실적/현금흐름 자동연결 미구현','기관·외국인 조회 실패 시 미확인',
            '차트패턴 근사후보: 주봉/일봉 이미지 검증 필요','상승확률/미래수익률 예측 아님',
            '업종 순환 자동판정 미구현'],
