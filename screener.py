@@ -726,6 +726,15 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
         archive=SITE/'archive';archive.mkdir(exist_ok=True)
         shutil.copyfile(previous,archive/f"data_before_{datetime.now(ZoneInfo('Asia/Seoul')):%Y%m%d_%H%M%S}.json")
     previous.write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+    # Generate date-aligned research dossiers for the BEST qualified stocks
+    # from the COMPLETE set of valid price observations, not preselected 20.
+    # Failure prevents git publication of a mismatched dashboard snapshot.
+    from recommendation_engine import publish as publish_recommendations
+    research=publish_recommendations(out,SITE)
+    logging.info('심층분석: 전체 %s / 자격 %s / 보고서 %s / 검증 매수후보 %s / 신규 %s / 이탈 %s',
+         research['screened_count'],research['research_eligible_count'],
+         research['research_dossier_count'],research['confirmed_recommendation_count'],
+         len(research['daily_changes']['entered']),len(research['daily_changes']['exited']))
     return out
 
 
