@@ -25,6 +25,21 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .quick-info{font-size:12px;line-height:1.55;margin-top:3px}
 .quick-tier{font-size:13px;font-weight:700;color:var(--ink);margin:9px 0 2px;padding:6px 0;border-bottom:1px solid var(--line)}
 .quick-item.featured{border-left:3px solid var(--cyan);background:#f9fcfc}
+.research-dossier{border:1px solid #e0e8ed;border-radius:12px;padding:14px;margin:10px 0;background:#fcfdfd}
+.research-dossier h3{font-size:16px;margin:0 0 6px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
+.research-dossier .research-line{font-size:12px;line-height:1.6;color:var(--sub);margin:5px 0}
+.research-dossier details{margin-top:9px}
+.research-dossier details summary{padding:8px 0;font-weight:700}
+.research-dossier dl{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;margin:9px 0}
+.research-dossier dl div{padding:9px;background:#f5f8f9;border-radius:8px;overflow-wrap:anywhere}
+.research-dossier dt{font-weight:750;font-size:12px;color:var(--ink)}
+.research-dossier dd{margin:2px 0 0;font-size:12px;color:var(--sub);line-height:1.65}
+.research-label{display:inline-block;margin-right:5px;padding:3px 7px;border-radius:6px;background:#edf3f5;color:#425f6b;font-size:11px}
+.research-note.warn{color:#995a1b}
+.research-title{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.research-status{font-weight:700;color:#8c5117;font-size:12px}
+.research-summary{padding:10px;border-radius:8px;background:#f6f9fa;margin:9px 0;font-size:13px}
+@media(max-width:620px){.research-dossier{padding:12px}}
 /* A phone card uses the FULL width for stock name/signals. Its stop panel
    moves underneath, so the right-side button cannot crush Korean text. */
 @media(max-width:760px){
@@ -47,8 +62,15 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
 </style></head><body>
 <header><div class="wrap"><div class="eyebrow">QUANT RESEARCH / KOREA</div><h1>한국주식 다면 스크리너 <small style="font-size:12px;color:#9fd5d4">v2.0</small></h1><p>거래량 · 일봉·주봉 구조 · 수급 · 시장강도 · 밸류 · 손실 통제</p></div></header>
 <main>
+<section class="panel" id="deepResearch">
+  <h2>전체시장 기반 종목별 심층 분석 · 최대 20개</h2>
+  <p class="note">전 종목을 먼저 평가한 뒤 손절·점수·확보율 조건을 충족한 종목만 상세 분석합니다. 20개는 <strong>표시할 최대 수</strong>이며, 충분한 후보가 없다면 적게 표시합니다. <strong>심층분석 대상은 매수 추천이 아닙니다.</strong> 재무·업황·기관 수급 및 수익률 전망이 검증되지 않으면 확정 추천 0종목도 정상적인 결과입니다.</p>
+  <div class="research-summary" id="deepResearchStatus" aria-live="polite">전 종목 심층분석 보고서를 불러오는 중입니다.</div>
+  <p class="note" id="deepChanges"></p>
+  <div id="deepDossiers"><div class="empty">종목별 분석 자료 확인 중…</div></div>
+</section>
 <section class="panel" id="practicalWatchlist">
-  <h2>관심종목 점수 상위 20개</h2>
+  <h2>기술점수 상위 20개 · 추가 탐색용</h2>
   <p class="note">전체 스크리닝의 <strong>부분환산 점수 상위 20개</strong>를 보여주고, 종목별로 <strong>단기 1개월 / 중기 3개월 / 장기 6개월 이상</strong> 가운데 어떤 접근을 우선 검토할지 표시합니다. 손절 위험과 기존 퀀트 연구의 기간별 수익·손실도 비교하지만, <strong>과거 52주 고점 거리를 기대수익으로 간주하지 않습니다.</strong> 재무·기관수급·업황이 충분히 검증되지 않아 확정 매수 추천과 미래 기대수익률은 보류합니다.</p>
   <div class="watch-filters">
     <label for="watchKind">손절 · 추격 · 환금 위험
@@ -127,7 +149,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
 <script src="stock_research_ui.js"></script>
 <script>
 'use strict';
-let stocks=[],mode='all',dataLoaded=false,visibleLimit=50,marketSnapshot=null,quantResearch=null;
+let stocks=[],mode='all',dataLoaded=false,visibleLimit=50,marketSnapshot=null,quantResearch=null,deepReport=null;
 let quantStudyByCode=new Map();
 const el=(id)=>document.getElementById(id);
 const fmt=(x)=>typeof x==='number' && Number.isFinite(x)?x.toLocaleString('ko-KR'):'미확인';
@@ -196,6 +218,88 @@ function drawCard(r){
   <p class="note">차트 패턴은 근사 후보이며, 엘리어트 파동과 업황은 정밀 검증 후 판단합니다.</p>
  </details></article>`;
 }
+function showDeepReport(){
+ const panel=el('deepDossiers'),status=el('deepResearchStatus'),news=el('deepChanges');
+ if(!marketSnapshot){panel.textContent='전체시장 기초자료 확인 중…';return;}
+ if(!deepReport||deepReport.schema!=='recommendations-v1-research'||
+    deepReport.asof!==marketSnapshot.date){
+   status.textContent='해당 가격 기준일의 심층분석 파일이 아직 없습니다. 기존 차트 검색은 계속 이용할 수 있습니다.';
+   news.textContent='오래된 분석결과를 오늘의 추천으로 표시하지 않습니다.';
+   panel.innerHTML='<div class="empty">분석 자료 갱신 대기 중 · 매수 추천 없음</div>';
+   return;
+ }
+ const q=deepReport;
+ status.textContent='기준일 '+q.asof+' · 실제 가격 분석 '+fmt(q.screened_count)+'종목 전체 확인 → '+
+  '심층 검토 조건 충족 '+fmt(q.research_eligible_count)+'종목 → 상세 보고서 '+
+  fmt(q.research_dossier_count)+'/20종목 · 확정 매수 추천 '+fmt(q.confirmed_recommendation_count)+'종목'+
+  (q.market_scan_complete?' · 전체 종목 조회 완료':' · 일부 종목 미조회 (전시장 전체 완료 아님)');
+ const changes=q.daily_changes||{};
+ const changeCodes=(c)=>Array.isArray(c)?c.join(', ')||'없음':'미확인';
+ news.textContent='전회 대비 신규 '+changeCodes(changes.entered)+
+  ' · 수정 '+changeCodes(changes.updated)+
+  ' · 이탈 '+changeCodes(changes.exited)+
+  ' · 유지 '+(changes.unchanged?.length??0)+'종목';
+ const evidence=(e,label)=>e?.validated===true?label+' 검증':'자료 부족 · '+esc(e?.comment||'별도 확인 필요');
+ const pct=(n)=>typeof n==='number'&&Number.isFinite(n)?signed(n,'%'):'미산출';
+ const textOr=(x)=>x===null||x===undefined?'미확인':esc(x);
+ const periodNames={'1m':'1개월','3m':'3개월','6m':'6개월','12m':'12개월'};
+ panel.innerHTML=(q.dossiers||[]).map((d,i)=>{
+   const change={'entered':'신규 진입','updated':'근거 갱신','unchanged':'기존 유지'}[d.daily_change]||'미확인';
+   const confirmed=d.confirmed_buy===true;
+   const periods=['1m','3m','6m','12m'].map(k=>{
+     const x=d.historical_quant?.[k],meas=x?.evidence==='historical_exploratory';
+     return periodNames[k]+' 과거 유사조건 '+(meas?pct(x.mean_historical_net_pct):'미검증');
+   }).join(' · ');
+   const stop=d.downside?.stop;
+   const risk=d.downside?.risk_level||'unknown';
+   const gaps=(d.evidence_gaps||[]).map(esc).join(' · ')||'검증 자료 확인';
+   return '<article class="research-dossier">'+
+    '<div class="research-title"><h3>'+esc(d.rank||i+1)+'. '+esc(d.name)+' <small>'+esc(d.code)+'</small></h3>'+
+    '<span class="research-status">'+(confirmed?'검증 기반 조건부 매수 검토':'심층 분석 진행 · 매수 보류')+'</span></div>'+
+    '<span class="research-label">'+esc({'1m':'단기 1개월','3m':'중기 3개월','6m':'장기 6개월 이상'}[d.approach_horizon]||'기간 미정')+'</span>'+
+    '<span class="research-label">손실위험 '+esc(risk)+'</span>'+
+    '<span class="research-label">'+esc(change)+'</span>'+
+    '<div class="research-line">v2 부분환산 '+esc(d.v2_score?.normalized??'미산출')+'점 · 확보배점 '+
+       esc(d.v2_score?.available??'미확인')+'/100 · 기준가 '+val(d.price,'원')+'</div>'+
+    '<div class="research-line">손절 구조 '+pct(stop?.stop_pct)+' · 투자 가설 무효화 가격 '+val(d.downside?.structural_invalidation_price,'원')+
+       ' · 미래 기대수익률 '+pct(d.return_assessment?.expected_gain_pct)+
+       ' · 검증된 기대 손익비 '+textOr(d.return_assessment?.expected_reward_risk)+'</div>'+
+    '<div class="research-line">접근 기간 근거: '+esc(d.approach_basis)+
+       (d.long_holding_caution?' · <b>장기보유 주의</b>':'')+'</div>'+
+    '<details><summary>심층 분석 · 수급·재무·업황·시나리오 보기</summary><dl>'+
+    '<div><dt>① 차트·시장</dt><dd>'+esc(d.technical?.phase||'미확인')+' · '+esc((d.technical?.signals||[]).join(' / ')||'신호 미확인')+
+       ' · OBV 상승 '+(d.technical?.obv_rising?'관측':'미확인')+'</dd></div>'+
+    '<div><dt>② 수급</dt><dd>'+evidence(d.flows,'수급')+'</dd></div>'+
+    '<div><dt>③ 재무·현금흐름</dt><dd>'+evidence(d.financials,'재무')+'</dd></div>'+
+    '<div><dt>④ 업황·산업 사이클</dt><dd>'+evidence(d.industry,'업황')+'</dd></div>'+
+    '<div><dt>⑤ 밸류에이션</dt><dd>'+evidence(d.valuation,'가치')+
+       ' · PBR '+val(d.valuation?.pbr,'배')+'</dd></div>'+
+    '<div><dt>⑥ 기간별 과거 유사조건 (미래 예상 수익률 아님)</dt><dd>'+esc(periods)+'</dd></div>'+
+    '<div><dt>⑦ 상승·중립·하락 시나리오</dt><dd>상승: '+esc(d.scenarios?.up?.conditions||'미확인')+
+       ' / 중립: '+esc(d.scenarios?.neutral?.conditions||'미확인')+
+       ' / 하락: '+esc(d.scenarios?.down?.conditions||'미확인')+
+       ' / 미래 수익률 및 확률: 미산출</dd></div>'+
+    '<div><dt>⑧ 위험관리 · 매매전략</dt><dd>'+esc(d.trade_action||'관망')+
+       ' · '+esc(d.downside?.hypothesis||'지지선 확인 필요')+
+       (d.long_holding_caution?' · <b>장기 보유 위험 확인</b>':'')+'</dd></div>'+
+    '<div><dt>추가 확보할 근거</dt><dd>'+gaps+'</dd></div>'+
+    '</dl><div class="quick-actions"><button class="btn quant-button" type="button" data-quant-code="'+esc(d.code)+
+      '">퀀트 상세 검증</button></div></details>'+
+   '</article>';
+ }).join('')||'<div class="empty">추천·심층분석 조건을 통과한 종목이 없습니다. 무리하게 20개를 채우지 않고 관망합니다.</div>';
+}
+async function loadDeep(){
+ try{
+   const r=await fetch('recommendations.json?t='+Date.now(),{cache:'no-store'});
+   if(!r.ok)throw Error('deep research unavailable');
+   const x=await r.json();
+   if(x?.schema!=='recommendations-v1-research'||!Array.isArray(x.dossiers))
+     throw Error('invalid research format');
+   deepReport=x;
+ }catch(e){deepReport=null;}
+ showDeepReport();
+}
+
 function renderPractical(snapshot){
   const host=el('practicalList'),note=el('practicalNote');
   if(!window.V22Watchlist){host.textContent='관찰 후보 계산 모듈을 불러오지 못했습니다.';return;}
@@ -281,7 +385,7 @@ async function load(){
     renderPractical(null);
      el('list').innerHTML='<div class="empty">v2 분석 결과가 아직 없습니다.</div>';return;
   }
-  stocks=d.stocks;marketSnapshot=d;
+  stocks=d.stocks;marketSnapshot=d;showDeepReport();
   for(const row of stocks){row._rating=window.PartialScoreView?.rating(row,d.weights)||null;}
   studies.setMarket(d);
   dataLoaded=true;
@@ -334,14 +438,14 @@ el('filterBar').addEventListener('click',e=>{
  const b=e.target.closest('[data-filter]');if(!b)return;mode=b.dataset.filter;
  [...document.querySelectorAll('[data-filter]')].forEach(x=>x.classList.toggle('active',x===b));resetAndRender();
 });
-el('refresh').addEventListener('click',()=>{load();studies.refreshQuality();loadHistory();});
+el('refresh').addEventListener('click',()=>{load();loadDeep();studies.refreshQuality();loadHistory();});
 el('download').addEventListener('click',e=>{if(el('download').getAttribute('aria-disabled')==='true')e.preventDefault();});
 const studies=window.StockResearchUI.mount({
   getStocks:()=>stocks,
   getMarket:()=>marketSnapshot,
   redraw:()=>{if(marketSnapshot){renderPractical(marketSnapshot);render();}}
 });
-load();loadQuantForDecision();studies.refreshQuality();loadHistory();
+load();loadDeep();loadQuantForDecision();studies.refreshQuality();loadHistory();
 </script></body></html>
 
 
