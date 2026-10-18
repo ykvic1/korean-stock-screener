@@ -116,6 +116,9 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
                 except (ResearchGateError,WalkForwardError,TypeError,KeyError):
                     raise ScoredBacktestError("underlying_quality_gate_rejected_case") from None
                 cell=result["periods"][label]
+                if cell["quality_exclusion_counts"].get("right_censored_short_history"):
+                    exclusions["short_history"]+=1
+                    continue
                 if cell["quality_exclusion_counts"] or not cell["internally_eligible_cases_submitted"]:
                     exclusions["quality_censored"]+=1
                     continue
