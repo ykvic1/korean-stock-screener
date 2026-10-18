@@ -41,6 +41,24 @@ class MobileReportTests(unittest.TestCase):
         self.assertNotIn("institution_total_net_shares", html)
         self.assertNotIn("operating_profit_krw", html)
 
+    def test_loss_first_gate_is_visible_above_score_and_missing_gate_blocks(self):
+        html = render_mobile_report(self.sample)
+        self.assertEqual(html.count("손실위험 우선 판정:"), 64)
+        self.assertLess(html.index("손실위험 우선 판정:"),
+                        html.index("잠정 연구 합계:"))
+        sample = deepcopy(self.sample)
+        sample["stocks_in_code_order_not_ranked"][0][
+            "downside_risk_screen"]["status_research_only"] = "structural_exclusion"
+        sample["stocks_in_code_order_not_ranked"][0][
+            "downside_risk_screen"]["exclusion_reasons"] = [
+                "latest_confirmed_swing_low_broken"]
+        view = render_mobile_report(sample)
+        self.assertIn("고득점이라도 제외", view)
+        sample = deepcopy(self.sample)
+        sample["stocks_in_code_order_not_ranked"][0].pop("downside_risk_screen")
+        with self.assertRaisesRegex(MobileReportError, "risk_first_research_gate_missing"):
+            render_mobile_report(sample)
+
     def test_private_html_write_atomic_permissions_and_no_raw_market_inputs(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "v3-mobile.html"
