@@ -125,7 +125,7 @@ async function settle(){
  assert.ok(same.byId('deepDossiers').innerHTML.includes('심층 분석 진행 · 매수 보류'));
  assert.ok(same.byId('deepDossiers').innerHTML.includes('미래 기대수익률 미산출'));
  assert.ok(same.byId('deepDossiers').innerHTML.includes('재무 미확인'));
- assert.ok(same.byId('deepDossiers').innerHTML.includes('9400'));
+ assert.ok(same.byId('deepDossiers').innerHTML.includes('9,400'));
  assert.ok(same.byId('deepChanges').textContent.includes('123456'));
  assert.ok(same.byId('deepChanges').textContent.includes('555555'));
  assert.ok(same.requests.some(u=>u.startsWith('recommendations.json')));
