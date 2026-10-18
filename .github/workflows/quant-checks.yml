@@ -33,7 +33,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_v3_score_contract.py' -v
       - name: Small technical watchlist offline safety checks (no APIs)
         run: node tests/test_v22_practical_watchlist.js
-      - name: 200-stock display and rotating 210-stock history window contract
+      - name: Full KOSPI-KOSDAQ universe without size count or turnover caps (offline)
         run: python -m unittest discover -s tests -p 'test_universe_rotation.py' -v
       - name: JavaScript syntax
         run: |
