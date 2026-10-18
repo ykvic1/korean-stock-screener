@@ -328,10 +328,22 @@ def main(argv=None):
             result = scan(manifest=_read(Path(args.manifest)),
                           part=args.part, out=Path(args.out))
         else:
+            manifest = _read(Path(args.manifest))
             if not args.publish:
-                raise BatchError("explicit_final_publication_required")
-            result = publish(manifest=_read(Path(args.manifest)),
-                             parts_dir=Path(args.parts))
+                # First pilot is audit-only: do not fetch again, score,
+                # commit source data, or change current production.
+                result = load_receipts(manifest, Path(args.parts))
+                result = {
+                    "status": "complete_market_batches_audited_not_published",
+                    "all_codes_accounted_for": result["eligible"],
+                    "priced": len(result["rows"]),
+                    "price_errors": len(result["errors"]),
+                    "insufficient_history": len(result["excluded"]),
+                    "raw_ohlcv_exported": False,
+                }
+            else:
+                result = publish(manifest=manifest,
+                                 parts_dir=Path(args.parts))
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
     except BatchError as exc:
