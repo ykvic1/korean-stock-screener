@@ -26,6 +26,7 @@ from v3_financial_feature_adapter import (
 from v3_industry_feature_adapter import (
     evaluate_industry_cohort, IndustryFeatureError
 )
+from v3_factor_overlap_audit import audit_factor_overlap, FeatureOverlapError
 
 MAX_BATCH = 20000
 MAX_INPUT_BYTES = 15_000_000
@@ -176,6 +177,13 @@ def run_workbench(bundle, *, min_peers=30):
         # category for offline operator triage, never include raw metrics.
         raise WorkbenchError("factor_batch_not_validated:" + str(exc)) from None
 
+    # High correlation between nested windows is recorded, not fixed by
+    # multiplying original evidence or silently adjusting agreed weights.
+    try:
+        overlap = audit_factor_overlap(factor_input, asof=asof)
+    except FeatureOverlapError:
+        raise WorkbenchError("overlap_diagnostics_unusable") from None
+
     # User-declared hypothetical loss controls are separate from score.
     plans = bundle.get("hypothetical_portfolio_plans")
     budget = bundle.get("hypothetical_nav_risk_budget_pct")
@@ -202,6 +210,7 @@ def run_workbench(bundle, *, min_peers=30):
         "no_input_evidence_or_partial": sum(
             x["candidate_full_total_research_only"] is None for x in rows),
         "input_issue_counts": dict(sorted(input_issue_counts.items())),
+        "factor_overlap_diagnostics_research_only": overlap,
         "stocks_in_code_order_not_ranked": sorted(
             rows, key=lambda x: (x["market"], x["code"])),
         "hypothetical_portfolio_risk_only": portfolio,
