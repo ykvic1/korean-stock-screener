@@ -35,6 +35,8 @@ jobs:
         run: node tests/test_v22_practical_watchlist.js
       - name: Full KOSPI-KOSDAQ universe without size count or turnover caps (offline)
         run: python -m unittest discover -s tests -p 'test_universe_rotation.py' -v
+      - name: Complete-market 100-stock job slices and fail-closed aggregate (no network)
+        run: python -m unittest discover -s tests -p 'test_full_market_batch.py' -v
       - name: JavaScript syntax
         run: |
           python - <<'PY'

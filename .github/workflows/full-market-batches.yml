@@ -1,0 +1,161 @@
+name: Full-Market 100-Stock Batches (manual pilot)
+
+on:
+  # Run ONE audit automatically on first merge of this feature, without
+  # publishing any data; user never needs to start a PC or server.
+  push:
+    branches: [main]
+    paths: ['full_market_batch.py', '.github/workflows/full-market-batches.yml']
+  workflow_dispatch:
+    inputs:
+      asof:
+        description: 'Korean market date YYYY-MM-DD; empty = today KST'
+        required: false
+        default: ''
+        type: string
+      mode:
+        description: 'audit = no Pages updates; publish = one verified final v2 report'
+        required: true
+        default: audit
+        type: choice
+        options: [audit, publish]
+
+permissions:
+  contents: read
+
+# Reuse existing publication lock; do not publish racing daily/quant reports.
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install full market listing dependencies
+        run: pip install -r requirements.txt
+      - id: plan
+        name: Plan all stocks, codes only, chunks of 100
+        env:
+          REQUESTED_ASOF: ${{ inputs.asof }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$REQUESTED_ASOF" ]]; then
+            python full_market_batch.py plan --asof "$REQUESTED_ASOF" --out batch-plan
+          else
+            python full_market_batch.py plan --out batch-plan
+          fi
+          echo "matrix=$(python -c 'import json;print(json.dumps(json.load(open("batch-plan/matrix.json")),separators=(",",":")))')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-code-plan-${{ github.run_id }}
+          path: batch-plan/manifest.json
+          retention-days: 1
+          if-no-files-found: error
+
+  analyze:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: market-code-plan-${{ github.run_id }}
+          path: batch-plan
+      - name: Analyze this 100-stock chunk
+        env:
+          CHUNK_INDEX: ${{ matrix.part }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python full_market_batch.py scan \
+            --manifest batch-plan/manifest.json \
+            --part "$CHUNK_INDEX" --out batch-parts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-part-${{ github.run_id }}-${{ matrix.part }}
+          path: batch-parts/part-*.json
+          if-no-files-found: error
+          retention-days: 1
+
+  combine:
+    needs: [prepare, analyze]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: market-code-plan-${{ github.run_id }}
+          path: batch-plan
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: market-part-${{ github.run_id }}-*
+          merge-multiple: true
+          path: batch-parts
+      - name: Ensure every stock was accounted for; publish only by explicit request
+        env:
+          MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" == "publish" ]]; then
+            python -m playwright install --with-deps chromium
+            python full_market_batch.py merge \
+              --manifest batch-plan/manifest.json --parts batch-parts --publish
+          else
+            python full_market_batch.py merge \
+              --manifest batch-plan/manifest.json --parts batch-parts
+          fi
+      - name: Publish ONE final v2 Pages/Excel snapshot after complete union
+        if: ${{ inputs.mode == 'publish' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data.json docs/history.json docs/reports/ docs/archive/
+          if ! git diff --cached --quiet; then
+            git commit -m "Full-market batch-derived v2 screen"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Keep only final derived Excel and failure audit after requested publication
+        if: ${{ always() && inputs.mode == 'publish' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-market-final-report-${{ github.run_id }}
+          path: |
+            reports/*.xlsx
+            logs/
+          if-no-files-found: warn
+          retention-days: 30
