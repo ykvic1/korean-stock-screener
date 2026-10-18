@@ -76,10 +76,11 @@ class AtomicIngestionTests(unittest.TestCase):
                                     expected_roster=exp,attempts_per_page=2)
 
     def test_incomplete_or_survivor_roster_does_not_autofill(self):
+        original=roster()
         expected=roster()
         expected["KOSPI"].append({"code":"123456","issuer_id":"87654321"})
         with self.assertRaisesRegex(IngestionError,"incomplete"):
-            collect_atomic_pair(fetcher(expected),asof=DATE,
+            collect_atomic_pair(fetcher(original),asof=DATE,
                                 expected_roster=expected)
 
     def test_invalid_issuers_and_roster_dup_and_boolean_volume_block(self):
