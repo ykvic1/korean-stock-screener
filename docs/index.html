@@ -15,6 +15,7 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 .tags{display:flex;gap:5px;flex-wrap:wrap}.tag{display:inline-block;border-radius:7px;background:#edf3f5;color:#3d5661;padding:4px 7px;font-size:12px}.tag.good{background:#e2f4ed;color:#086b52}.tag.warn{background:#fff0df;color:#92500b}.tag.risk{background:#fcebe8;color:#9c4035}
 .summary{margin-top:12px;padding:9px 11px;background:#f4f8f8;border-radius:8px;font-size:13px}details{margin-top:12px;border-top:1px solid var(--line);padding-top:9px}summary{cursor:pointer;color:#2c6673;font-weight:700} .details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}.details-grid div{padding:8px;background:#f6f9fa;border-radius:8px;font-size:13px}.details-grid label{font-size:11px;color:var(--sub);display:block} .scores{margin:10px 0}.scores div{display:flex;justify-content:space-between;border-bottom:1px solid #e8eef0;padding:5px;font-size:13px}
 .quick-list{display:grid;gap:8px}.quick-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #e1e9eb;border-radius:11px;padding:11px 13px;background:#fbfcfd}.quick-item b{display:block;font-size:15px}.quick-item small{display:block;color:var(--sub);font-size:12px;margin-top:2px}.quick-risk{text-align:right;font-size:13px}.quick-risk b{color:#92500b;font-size:14px}.quick-risk small{font-size:11px}.quick-info{font-size:12px;color:var(--sub)}.quick-tier{font-size:13px;font-weight:700;color:var(--ink);margin:9px 0 2px;padding:6px 0;border-bottom:1px solid var(--line)}.quick-item.featured{border-left:3px solid var(--cyan);background:#f9fcfc}
+.watch-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.watch-filters label{font-size:12px;color:var(--sub);font-weight:650}.watch-filters select{margin-top:4px;font-size:14px;padding:9px}.quick-axes{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0}.quick-axes span{font-size:11px;border:1px solid #d8e6e8;border-radius:6px;padding:3px 7px;background:#f3f8f9;color:#3b5866}@media(max-width:620px){.watch-filters{grid-template-columns:1fr}}
 [hidden]{display:none!important}.inline-research{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}.quality-text{font-size:12px;color:var(--sub)}.quant-button{font-size:12px;padding:6px 11px;white-space:nowrap}.quick-actions{margin-top:7px}.quant-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.quant-table-wrap{overflow-x:auto}.quant-table{border-collapse:collapse;min-width:620px;width:100%;font-size:13px}.quant-table th,.quant-table td{border-bottom:1px solid #e5edef;padding:10px;text-align:right;white-space:nowrap}.quant-table th:first-child,.quant-table td:first-child{text-align:left}.quant-table th{background:#f6f9fa}.research-note{font-size:12px;color:var(--sub)}.research-warn{color:#9a5310;font-weight:700}
 a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.history a{display:block;margin:7px 0;font-size:13px}
 @media(max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr}header h1{font-size:22px}.panel{padding:14px}.stock{padding:12px}.score{font-size:19px}}
@@ -22,8 +23,31 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
 <header><div class="wrap"><div class="eyebrow">QUANT RESEARCH / KOREA</div><h1>한국주식 다면 스크리너 <small style="font-size:12px;color:#9fd5d4">v2.0</small></h1><p>거래량 · 일봉·주봉 구조 · 수급 · 시장강도 · 밸류 · 손실 통제</p></div></header>
 <main>
 <section class="panel" id="practicalWatchlist">
-  <h2>관심 종목 최대 20개 · 우선 관찰 5개</h2>
-  <p class="note">현재 v2.2 자료에서 상승 전환·수렴 구조, OBV·패턴, 손절 참고선, 데이터 확보율을 확인한 <strong>최대 20종목</strong>입니다. 우선 살펴볼 5개와 추가 관찰 후보 최대 15개로 구분합니다. 조건을 만족하지 않는 종목을 억지로 채우지 않습니다. 기존 점수순이나 v3 종합 순위가 아니며 <strong>매수 추천이 아닙니다.</strong> 기관 수급·재무·업황이 확인되지 않으면 반드시 추가 검토하세요.</p>
+  <h2>관심종목 점수 상위 20개</h2>
+  <p class="note">전체 스크리닝과 <strong>동일한 기존 v2 부분환산 점수순</strong>으로 최대 20개를 보여줍니다. 위험이 높다는 이유로 고득점 종목을 숨기지 않고, <strong>위험·참고 상승여력과 1·3·6개월 이상 관찰 기간</strong>을 따로 분류합니다. 수급·재무·업황 미확인 영역은 확보배점에서 제외하며, 점수는 v3 확정 점수나 매수 추천이 아닙니다.</p>
+  <div class="watch-filters">
+    <label for="watchKind">위험 · 참고 상승여력
+      <select id="watchKind" aria-label="위험과 참고 상승여력 유형">
+        <option value="all">전체 유형</option>
+        <option value="low-high">낮은 손절폭 · 고점거리 큼</option>
+        <option value="low-low">낮은 손절폭 · 고점거리 작음</option>
+        <option value="high-high">높은 위험 · 고점거리 큼</option>
+        <option value="high-low">높은 위험 · 고점거리 작음</option>
+        <option value="balanced">중간/혼합 유형</option>
+        <option value="unknown">평가 미확인 유형</option>
+      </select>
+    </label>
+    <label for="watchHorizon">차트 관찰 기간
+      <select id="watchHorizon" aria-label="차트 관찰 기간">
+        <option value="all">전체 기간</option>
+        <option value="1m">단기 · 1개월</option>
+        <option value="3m">중기 · 3개월</option>
+        <option value="6m">장기 · 6개월 이상</option>
+        <option value="unknown">기간 분류 미확인</option>
+      </select>
+    </label>
+  </div>
+  <p class="note">위험은 <strong>손절 참고폭·급등/유동성 위험</strong>, 상승여력은 <strong>과거 52주 고점까지의 거리와 단순 손익비</strong>로 구분한 참고값입니다. '고위험·고수익 확정'이 아니며 실제 기대수익률은 검증되지 않았습니다. 기간은 일봉·주봉의 관찰 관점으로, 목표가 달성 시점의 예측이 아닙니다.</p>
   <div id="practicalList" class="quick-list" aria-live="polite"><div class="empty">관찰 후보 계산 중…</div></div>
   <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
   <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
@@ -99,6 +123,7 @@ function isMatch(r){
 function indicator(k,v){return `<div><label>${esc(k)}</label><b>${esc(v)}</b></div>`;}
 function drawCard(r){
  const rating=r._rating||null;
+ const profile=window.V22Watchlist?.profile(r)||null;
  const ratingText=rating?rating.normalized.toFixed(1):'미산출';
  const missing=rating?rating.missing.map(x=>x.name+' '+x.weight+'점').join(' · '):'평가항목 또는 배점 확인 필요';
  const tag=(v,c='')=>`<span class="tag ${c}">${esc(v)}</span>`;
@@ -108,13 +133,14 @@ function drawCard(r){
  if(r.pbr===null)tags.push(tag('밸류 미확인','warn'));
  if(r.risk_flags?.some(x=>x.includes('과대')||x.includes('급등')))tags.push(tag('위험 신호','risk'));
  const components=Object.entries(r.components||{}).map(([k,v])=>`<div><span>${esc(k)}</span><b>${typeof v==='number'?esc(String(v))+'점':'미확인'}</b></div>`).join('');
- return `<article class="stock"><div class="top"><div><div class="name">${esc(r.rank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">${esc(ratingText)}<small>v2 부분환산 (잠정) / 100점<br>취득 ${rating?val(rating.earned):'미확인'} / ${rating?val(rating.available):'미확인'}점 · 확보율 ${rating?val(rating.coverage,'%'):'미확인'}</small></div></div>
+ return `<article class="stock"><div class="top"><div><div class="name">${esc(r._displayRank??r.rank)}. ${esc(r.name)}</div><div class="info">${esc(r.code)} · ${esc(r.market)} · ${esc(r.sector||'업종 미확인')}</div><div class="info">${esc(r.decision||'추가 검증 필요')}</div></div><div class="score">${esc(ratingText)}<small>v2 부분환산 (잠정) / 100점<br>취득 ${rating?val(rating.earned):'미확인'} / ${rating?val(rating.available):'미확인'}점 · 확보율 ${rating?val(rating.coverage,'%'):'미확인'}</small></div></div>
  <div class="metrics">
   <div class="metric"><label>현재가</label><b>${val(r.price,'원')}</b></div>
   <div class="metric"><label>거래량 20일/이전40일</label><b>${val(r.volume_ratio,'배')}</b></div>
   <div class="metric"><label>60일 주가변화</label><b>${signed(r.price60,'%')}</b></div>
   <div class="metric"><label>120주선 괴리</label><b>${signed(r.ma120w_gap,'%')}</b></div>
  </div><div class="tags">${tags.join('')}</div>
+ <div class="quick-axes"><span>${esc(profile?.label||'위험·상승공간 미확인')}</span><span>${esc(profile?.horizonLabel||'기간 분류 미확인')}</span></div>
  <div class="inline-research"><span class="quality-text">가격 데이터: ${esc(r._quality?.label||'품질 자료 조회 중')}</span>
  <button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div>
  <div class="summary">손절 참고선 ${val(r.stop_line,'원')} (현재가 대비 ${signed(r.stop_pct,'%')}) · 52주 고점 공간 ${val(r.reference_target_pct,'%')} · 단순 손익비 ${val(r.reward_risk)}</div>
@@ -148,34 +174,39 @@ function drawCard(r){
 function renderPractical(snapshot){
   const host=el('practicalList'),note=el('practicalNote');
   if(!window.V22Watchlist){host.textContent='관찰 후보 계산 모듈을 불러오지 못했습니다.';return;}
-  const report=window.V22Watchlist.select(snapshot);
+  const report=window.V22Watchlist.select(snapshot,new Date(),{
+    kind:el('watchKind').value,horizon:el('watchHorizon').value
+  });
   if(report.status==='stale_or_unavailable'){
     host.innerHTML='<div class="empty">최근 자료가 없어 관찰 후보를 표시하지 않습니다.</div>';
     note.textContent='기준일/자동 갱신을 확인하세요. 오래된 분석을 오늘의 후보로 제시하지 않습니다.';
     return;
   }
   if(!report.rows.length){
-    host.innerHTML='<div class="empty">현재 조건을 충족하는 종목이 없습니다. 관망이 우선입니다.</div>';
-    note.textContent='손절 참고선 -3~-15%, 데이터 확보율 60% 이상, 기술적 신호와 위험 필터를 모두 적용했습니다.';
+    host.innerHTML='<div class="empty">선택한 위험·기간 조합에 해당하는 점수 산출 종목이 없습니다.</div>';
+    note.textContent='이 유형에는 분류된 종목이 없거나 필요한 가격·손절 참고 자료가 부족합니다. 조건을 바꿔 확인하세요.';
     return;
   }
   host.innerHTML=report.rows.map((r,i)=>{
     const pattern=(r.patterns||[]).find(x=>/쐐기|어깨|삼각|수렴/.test(x));
     const signals=[r.phase,r.obv_rising===true?'OBV 상승':'차트 패턴 관찰',pattern]
       .filter(Boolean).slice(0,3).join(' · ');
+    const p=window.V22Watchlist.profile(r);
     const heading=i===0?
-      `<div class="quick-tier">우선 관찰 ${report.featured_count}종목</div>`:
+      `<div class="quick-tier">부분환산 점수 상위 ${report.featured_count}종목</div>`:
       i===report.featured_count?
-      `<div class="quick-tier">추가 관찰 ${report.additional_count}종목</div>`:'';
+      `<div class="quick-tier">점수순 추가 후보 ${report.additional_count}종목</div>`:'';
     return heading+`<div class="quick-item ${i<report.featured_count?'featured':''}"><div><b>${i+1}. ${esc(r.name)}</b>
       <small>${esc(r.code)} · ${esc(signals)}</small>
-      <div class="quick-info">v2 부분환산 ${r._rating?r._rating.normalized.toFixed(1):'미산출'}점 · 확보배점 ${r._rating?val(r._rating.available):'미확인'}/100 · 수급/재무/업황 별도 확인</div>
-      <div class="quick-info">가격 데이터: ${esc(r._quality?.label||'자동 품질 조회 중')}</div></div>
+      <div class="quick-axes"><span>${esc(p.label)}</span><span>${esc(p.horizonLabel)}</span></div>
+      <div class="quick-info">차트 근거: ${esc(p.reasoning)}</div>
+      <div class="quick-info">기존 v2 부분환산 ${r._rating?r._rating.normalized.toFixed(1):'미산출'}점 · 확보배점 ${r._rating?val(r._rating.available):'미확인'}/100</div>
+      <div class="quick-info">가격 데이터: ${esc(r._quality?.label||'자동 품질 조회 중')} · 수급·재무·업황 별도 확인</div></div>
       <div class="quick-risk"><b>손절 참고 ${signed(r.stop_pct,'%')}</b>
-      <small>참고선 ${val(r.stop_line,'원')} · 단순 손익비 ${val(r.reward_risk)}</small>
+      <small>52주 고점까지 거리 ${signed(r.reference_target_pct,'%')} · 단순 손익비 ${val(r.reward_risk)}</small>
       <div class="quick-actions"><button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div></div></div>`;
   }).join('');
-  note.textContent=`기준일 ${snapshot.date} · 총 ${report.rows.length}/20종목 (우선 ${report.featured_count}, 추가 ${report.additional_count}) · 기존 v2 기술적 관찰 · v3 종합점수/매수 판단 미확정 · 위험 관리는 차트 무효화 기준으로 재확인`;
+  note.textContent=`기준일 ${snapshot.date} · 전체 점수 산출 ${report.eligible_count}종목 · 선택 유형 ${report.filtered_count}종목 중 상위 ${report.rows.length}/20종목 · 점수 동일시 확보율 우선 · 고수익/기간 달성 예측 아님`;
 }
 function render(){
  let q=el('search').value.toLowerCase().trim();
@@ -185,7 +216,8 @@ function render(){
  if(s==='recent')arr.sort((a,b)=>(a.price60??9999)-(b.price60??9999));
  if(s==='relative')arr.sort((a,b)=>(b.relative60??-9999)-(a.relative60??-9999));
  if(s==='coverage')arr.sort((a,b)=>(b._rating?.coverage??-1)-(a._rating?.coverage??-1));
- if(s==='score')arr.sort((a,b)=>(b._rating?.normalized??-1)-(a._rating?.normalized??-1) || (b._rating?.coverage??-1)-(a._rating?.coverage??-1));
+ if(s==='score')arr.sort((a,b)=>(b._rating?.normalized??-1)-(a._rating?.normalized??-1) || (b._rating?.coverage??-1)-(a._rating?.coverage??-1) || String(a.code).localeCompare(String(b.code)));
+ arr.forEach((row,i)=>{row._displayRank=i+1;});
  const shown=arr.slice(0,visibleLimit);
  const remaining=Math.max(0,arr.length-visibleLimit);
  el('list').innerHTML=arr.length?
@@ -237,6 +269,8 @@ async function loadHistory(){try{
 }catch(e){el('history').textContent='보고서 조회에 실패했습니다.';}}
 function resetAndRender(){visibleLimit=50;render();}
 el('search').addEventListener('input',resetAndRender);el('sort').addEventListener('change',resetAndRender);
+el('watchKind').addEventListener('change',()=>{if(marketSnapshot)renderPractical(marketSnapshot);});
+el('watchHorizon').addEventListener('change',()=>{if(marketSnapshot)renderPractical(marketSnapshot);});
 el('list').addEventListener('click',e=>{
   if(e.target.closest('#loadMoreCandidates')){visibleLimit+=50;render();}
 });
