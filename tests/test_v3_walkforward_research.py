@@ -135,7 +135,7 @@ class WalkForwardResearchTests(unittest.TestCase):
             while signal.weekday() >= 5:
                 signal += timedelta(days=1)
             for j in range(4):
-                cases.append(example(code=f"{(q*4+j)%12+1:06d}",
+                cases.append(example(code=f"{q*4+j+1:06d}",
                                      signal=signal.isoformat()))
         r = evaluate(cases, split_date="2024-01-01")
         train = r["periods"]["12m"]["train"]
@@ -150,6 +150,18 @@ class WalkForwardResearchTests(unittest.TestCase):
         self.assertIsNone(train["forward_expected_return_pct"])
         self.assertFalse(train["confirmed_buy"])
         self.assertFalse(r["survivorship_bias_resolved"])
+
+    def test_overlapping_stock_windows_suppressed_and_order_independent(self):
+        a = example(code="000002", signal="2023-01-03")
+        b = example(code="000002", signal="2023-02-10")
+        forward = evaluate([a, b], split_date="2024-01-01")
+        reversed_order = evaluate([b, a], split_date="2024-01-01")
+        x = forward["periods"]["12m"]["train"]
+        self.assertEqual(x["n"], 1)
+        self.assertEqual(x["overlapping_same_symbol_suppressed"], 1)
+        self.assertEqual(x, reversed_order["periods"]["12m"]["train"])
+        self.assertEqual(forward["periods"]["1m"]["train"]["n"], 2)
+        self.assertFalse(forward["authorized_for_v3_scoring"])
 
     def test_invalid_unverified_or_reused_history_fails_closed(self):
         changes = {
