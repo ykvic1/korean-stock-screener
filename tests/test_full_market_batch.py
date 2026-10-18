@@ -111,6 +111,70 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             with self.assertRaisesRegex(b.BatchError,"missing_or_extra_job_artifact"):
                 b.load_receipts(m, folder)
 
+    def test_missing_one_whole_job_keeps_others_and_reports_true_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, listed = self._plan(tmp, 255)
+            folder, _ = self._scan_all(tmp, manifest)
+            (folder/"part-001.json").unlink()
+            with self.assertRaises(b.BatchError):
+                b.load_receipts(manifest, folder)
+            partial = b.load_receipts(manifest, folder, allow_missing_parts=True)
+            self.assertEqual(partial["eligible"], 255)
+            self.assertEqual(partial["examined"], 155)
+            self.assertEqual(partial["deferred"], 100)
+            self.assertEqual(partial["missing_batch_parts"], [1])
+            self.assertEqual(len(partial["rows"]), 155)
+            self.assertFalse(partial["market_scan_complete"])
+            self.assertEqual(
+                partial["examined"]+partial["deferred"],partial["eligible"])
+
+            def score_stub(row,cfg):
+                row.update({"components": {"일봉 구조":5, "주봉·추세":5,
+                                           "거래량·OBV":5},
+                            "score":30, "coverage_pct":25,
+                            "decision":"추가 검증 필요",
+                            "risk_flags":["수급·재무 미확인"]})
+                return row
+
+            with patch.object(screener, "score_one", side_effect=score_stub):
+                output=b.publish(
+                    manifest=manifest, parts_dir=folder, listing=listed,
+                    optional_sources=[], index_data={}, use_flow=False,
+                    write_report=False, allow_missing_parts=True)
+            self.assertEqual(len(output["rows"]),155)
+            self.assertEqual(output["metadata"]["history_deferred"],100)
+            self.assertFalse(output["metadata"]["history_scan_complete"])
+            self.assertEqual(output["metadata"]["examined"],155)
+            self.assertEqual(output["metadata"]["eligible"],255)
+
+    def test_all_part_artifacts_missing_still_blocks_publication(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, listed = self._plan(tmp, 105)
+            folder=Path(tmp)/"empty"
+            folder.mkdir()
+            with self.assertRaisesRegex(b.BatchError,"no_successful_batch_artifacts"):
+                b.load_receipts(manifest, folder, allow_missing_parts=True)
+            with self.assertRaises(b.BatchError):
+                b.publish(manifest=manifest, parts_dir=folder, listing=listed,
+                          optional_sources=[], index_data={}, use_flow=False,
+                          write_report=False, allow_missing_parts=True)
+
+    def test_single_failing_symbol_does_not_cancel_others(self):
+        def fails_one(code,cfg,day):
+            if code=="100012":
+                raise ConnectionError("no local OHLCV")
+            return mock_history(code,cfg,day)
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, _ = self._plan(tmp, 105)
+            folder, parts=self._scan_all(tmp,manifest,analyzer=fails_one)
+            self.assertEqual(sum(x["attempted"] for x in parts),105)
+            self.assertEqual(sum(x["errors"] for x in parts),1)
+            full=b.load_receipts(manifest,folder)
+            self.assertEqual(len(full["rows"]),104)
+            self.assertEqual(len(full["errors"]),1)
+            self.assertEqual(full["examined"],105)
+            self.assertTrue(full["market_scan_complete"])
+
     def test_wrong_digest_or_stock_from_another_day_blocked(self):
         with tempfile.TemporaryDirectory() as tmp:
             m, _, _ = self._plan(tmp, 101)
