@@ -107,8 +107,8 @@ class PrivateDailyChartTests(unittest.TestCase):
         self.assertEqual(c["latest_ma"]["5"], 377.0)
         self.assertIsNone(c["latest_ma"]["120"])
         self.assertIsNone(c["latest_ma"]["240"])
-        self.assertEqual(c["timeline"][-8]["date"], skipped)
-        self.assertIsNone(c["timeline"][-8]["candle"])
+        self.assertEqual(c["timeline"][-7]["date"], skipped)
+        self.assertIsNone(c["timeline"][-7]["candle"])
         self.assertIsNone(c["timeline"][-1]["ma"]["120"])
 
     def test_over35pct_unadjusted_discontinuity_splits_all_ma(self):
