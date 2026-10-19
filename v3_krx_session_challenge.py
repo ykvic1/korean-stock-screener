@@ -137,9 +137,12 @@ def main(argv=None):
         if args.output:
             root=Path(__file__).resolve().parent
             safe=(root/"evidence"/"krx_history").resolve()
-            output=Path(args.output).resolve()
-            if safe not in output.parents:
+            requested_output=Path(args.output).resolve()
+            if safe not in requested_output.parents:
+                # Never assign a rejected path to output, even for error
+                # diagnostics: fail-closed must not create an outside file.
                 raise SessionChallengeError("calendar_summary_location_not_private")
+            output=requested_output
         try:
             report=inspect_days(
                 [v.strip() for v in args.dates.split(",")],
