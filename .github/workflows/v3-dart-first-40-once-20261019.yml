@@ -1,0 +1,92 @@
+name: One-Time Live OpenDART First 40 Listed Annual References 2026-10-19
+
+on:
+  push:
+    branches: [v3-dart-first-live-40-20261019-once]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  first-batch-listed-financials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official DART connector dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Verify all current listed and official annual no-score contracts
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_rolling_book_reference.py' -v
+      - name: Fetch ONLY 40 bounded current-listed 2025 annual references
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from v3_dart_rolling_book_reference import write
+          from v22_full_universe_audit import audit_published_universe
+          m=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          c=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
+          official=json.loads(Path('docs/official.json').read_text(encoding='utf8'))
+          if (m.get('date')!='2026-10-19' or c.get('date')!='2026-10-19'
+              or official.get('asof')!='2026-10-19'
+              or audit_published_universe(m)['market_listing_size']!=c['listed_total']):
+              raise ValueError('wrong_market_session_20261019')
+          dest=Path('docs/v3-dart-book-reference.json')
+          prior=json.loads(dest.read_text(encoding='utf8')) if dest.exists() else None
+          outcome=write(m,c,output=dest,prior=prior,official=official,
+                        key=os.environ.get('DART_API_KEY'),limit=40)
+          if (outcome['new_attempts_this_run']!=40
+              or outcome['observed_annual_count']<3
+              or outcome['stock_buy_certified'] is not False
+              or outcome['official_exchange_pbr_verified'] is not False
+              or outcome['raw_dart_account_rows_published'] is not False):
+              raise ValueError('insufficient_actual_filing_results_or_unsafe_promotion')
+          print('Observed genuine annual data:',outcome['observed_annual_count'],
+                'of currently listed:',outcome['market_listed_total'],
+                'simple non-official book reference:',outcome['pbr_simple_reference_count'],
+                'new requests:',outcome['new_attempts_this_run'])
+          PY
+      - name: Commit original-day derived annual summaries only
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-book-reference.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Observed 2026-10-19 current-listed annual OpenDART book references (not official PBR)"
+            git pull --rebase origin main
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          c=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
+          d=json.loads(Path('docs/v3-dart-book-reference.json').read_text(encoding='utf8'))
+          ids={v['code'] for v in c['rows']}
+          records=[x['code'] for x in d['records']]
+          if (m.get('date')!='2026-10-19' or c.get('date')!='2026-10-19'
+              or d.get('asof')!='2026-10-19' or len(ids)!=d['market_listed_total']
+              or not set(records)<=ids or len(records)!=len(set(records))
+              or len(records)!=d['attempted_reference_count']
+              or d['observed_annual_count']<3
+              or d['score_weight_changed'] is not False):
+              raise ValueError('source_day_or_current_company_set_changed')
+          print('Posting observed safe financial references only')
+          PY
+            git push origin HEAD:main
+          fi
+      - name: Original DART rows and OHLCV cannot enter public archive
+        if: always()
+        run: echo 'Only source-date receipt + named financial derived values; no secrets, raw statements, scores or buy calls.'
