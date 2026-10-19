@@ -23,6 +23,7 @@ import requests
 from bs4 import BeautifulSoup
 import atexit
 from flow_collection import FlowCollector, parse_naver_flow_table
+from price_failure_taxonomy import PriceHistoryIssue
 
 _NAVER_BROWSER = None
 
@@ -190,18 +191,40 @@ def ma_last(arr,period):return float(np.mean(arr[-period:])) if len(arr)>=period
 
 def last_series(series, code, cfg,day):
     start=(day-timedelta(days=int(cfg['historical_days']))).strftime('%Y-%m-%d')
-    df=fdr.DataReader(code,start,(day+timedelta(days=1)).strftime('%Y-%m-%d'))
-    if df is None or df.empty:raise ValueError('가격 이력 없음')
+    try:
+        df=fdr.DataReader(code,start,(day+timedelta(days=1)).strftime('%Y-%m-%d'))
+    except ValueError:
+        # Unknown third-party error messages can contain raw URLs or keys.
+        # Do not confuse a provider ValueError with an observed bad price.
+        raise PriceHistoryIssue("upstream_value_error") from None
+    if df is None or df.empty:
+        raise PriceHistoryIssue("empty_price_source")
     df=df.loc[df.index<=day.strftime('%Y-%m-%d')].sort_index()
-    if len(df)<cfg['min_history_bars']:raise InsufficientHistory(f'유효 일봉 부족: {len(df)}/{cfg["min_history_bars"]}; 지표 계산 불가')
+    if df.empty:
+        raise PriceHistoryIssue("no_price_session_by_asof")
+    if len(df)<cfg['min_history_bars']:
+        raise InsufficientHistory(
+            f'유효 일봉 부족: {len(df)}/{cfg["min_history_bars"]}; 지표 계산 불가')
     cols=('Open','High','Low','Close','Volume')
-    if any(c not in df for c in cols):raise ValueError('필수 OHLCV 누락')
-    for c in cols:df[c]=df[c].astype(float)
-    if df[list(cols)].isnull().any().any():raise ValueError('OHLCV 결측 데이터')
-    if df['Close'].iloc[-1]<=0:raise ValueError('현재 종가 0이하')
-    if df['Volume'].iloc[-1]<=0:raise ValueError('현재 거래량 0이하')
+    if any(c not in df for c in cols):
+        raise PriceHistoryIssue("missing_ohlcv_columns")
+    try:
+        for c in cols:
+            df[c]=df[c].astype(float)
+    except (TypeError,ValueError,OverflowError):
+        raise PriceHistoryIssue("unparseable_ohlcv_numeric") from None
+    # Reject NaN, positive/negative infinity in every observed bar.
+    # Stock price, volume and corporate-action authenticity are still
+    # separate verification dimensions; never silently fill bad values.
+    if not np.isfinite(df[list(cols)].to_numpy(dtype=float)).all():
+        raise PriceHistoryIssue("nonfinite_ohlcv")
+    if df['Close'].iloc[-1]<=0:
+        raise PriceHistoryIssue("invalid_latest_close")
+    if df['Volume'].iloc[-1]<=0:
+        raise PriceHistoryIssue("invalid_latest_volume")
     last=df.index[-1].date()
-    if (day.date()-last).days>cfg['max_data_age_days']:raise ValueError('가격 이력 최신성 오류')
+    if (day.date()-last).days>cfg['max_data_age_days']:
+        raise PriceHistoryIssue("stale_price_session")
     return df,last
 
 
