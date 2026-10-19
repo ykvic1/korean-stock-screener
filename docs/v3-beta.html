@@ -14,9 +14,9 @@
 </div></header>
 <main>
 <section class="panel intro">
-<div class="eyebrow dark">자동 선별 → 점수 확인 → 퀀트 검증 → 매수·관망 판단</div>
-<h2>전 종목 점수 → 심층 후보 → 과거 손절 위험 → 최종 대응</h2>
-<p class="note">기본 목록에는 자동 선별된 전체 심층 후보를 표시합니다. 위험 경고가 큰 종목은 숨기지 않고 <strong>연구 전용·매수 보류</strong>로 별도 표시해, 높은 점수만 보고 매수하지 않도록 합니다.</p>
+<div class="eyebrow dark">손실 우선 기술 관찰 → 기존 점수 → 퀀트 검증 → 매수·관망 판단</div>
+<h2>OBV·선호 차트 패턴 관찰 → 심층 검증 → 최종 대응</h2>
+<p class="note">첫 화면은 2,000여 가격 분석 종목 중 OBV 상승, 가격 미반영 또는 초기 차트 구조, 구조 손절거리 3~15%와 데이터 품질을 동시에 확인한 <strong>기술적 관찰 목록</strong>입니다. 자동 심층 추천과는 별개이며 기관 매집·실전 매수 신호가 아닙니다. 심층 선별 후보는 별도 탭에 유지합니다.</p>
 <p id="rankStatus" class="status" aria-live="polite">분석 데이터를 불러오고 있습니다.</p>
 <p id="rankQuantStatus" class="note">퀀트 연구의 실제 자료와 기준일을 확인합니다.</p>
 <p id="rankCandidateQuant" class="note" aria-live="polite">추천 종목과 과거 연구의 연결 여부를 확인하고 있습니다.</p>
@@ -24,9 +24,11 @@
 <div class="notice">현재 화면의 점수는 <strong>기존 v2.2의 8영역 관측 기반 점수</strong>입니다. 확정되지 않은 v3의 IAS25·재무20·가치15·기술15·업종15·모멘텀10 배점을 임의로 계산하지 않습니다. <strong>심층 선별은 매수 추천이 아니라 분석 후보입니다.</strong> 수급·재무가 부족하거나 손절 위험이 크면 관망할 수 있습니다.</div>
 </section>
 <section class="panel">
-<div class="section-row"><h2>1. 오늘의 자동 선별 후보</h2><button id="rankReload" type="button" class="secondary">최신 자료 다시 읽기</button></div>
+<div class="section-row"><h2>1. 우선 관찰할 기술적 후보 · 매수 미인증</h2><button id="rankReload" type="button" class="secondary">최신 자료 다시 읽기</button></div>
 <div class="modes" id="rankModes" aria-label="후보 유형">
-<button type="button" data-mode="recommended" aria-pressed="true">심층 선별 후보</button>
+<button type="button" data-mode="watch" aria-pressed="true">우선 관찰(OBV·패턴)</button>
+<button type="button" data-mode="obv" aria-pressed="false">OBV 상승·주가 미반영</button>
+<button type="button" data-mode="recommended" aria-pressed="false">심층 선별 후보</button>
 <button type="button" data-mode="quant" aria-pressed="false">퀀트 자료 있는 종목</button>
 <button type="button" data-mode="early" aria-pressed="false">상승 초기 후보</button>
 <button type="button" data-mode="all" aria-pressed="false">전 종목 점수 순위</button>
@@ -39,6 +41,7 @@
 <input type="search" id="rankSearch" placeholder="기본은 자동추천 · 검색은 선택사항" autocomplete="off">
 </label>
 </div>
+<p class="note">우선 관찰은 기존 v2.2 가격·거래량 추정 패턴입니다. OBV 상승은 수급 주체를 식별하지 못하며, 주가 미반영은 과거 60거래일 가격 변화로 계산한 휴리스틱입니다. 수급·정식 PBR·업황·미래 수익률이 확인되기 전에는 매수를 확정하지 않습니다.</p>
 <p id="rankCount" class="note" aria-live="polite">후보 목록 확인 중…</p>
 <div id="rankCards"><p class="empty">점수와 자료를 검증하고 있습니다.</p></div>
 <button id="rankMore" type="button" class="secondary" hidden>다음 후보 24종목 더 보기</button>
