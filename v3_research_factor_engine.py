@@ -60,10 +60,11 @@ PILLAR_METRICS = {
         ("industry_breadth_above_ma_ratio", 4, 1, (0, 1)),
     ],
     "momentum": [
-        # Avoid duplicating the strengthened technical pattern/trend pillar.
-        ("momentum_stock_relative_strength_20_pct", 2, 1, None),
-        ("momentum_stock_relative_strength_60_pct", 2, 1, None),
-        ("momentum_positive_days_20_ratio", 1, 1, (0, 1)),
+        # Independent relative-strength measures are not chart-shape bonuses.
+        # Existing user-approved momentum pillar has 10 points.
+        ("momentum_stock_relative_strength_20_pct", 4, 1, None),
+        ("momentum_stock_relative_strength_60_pct", 4, 1, None),
+        ("momentum_positive_days_20_ratio", 2, 1, (0, 1)),
     ],
 }
 ALL_SPECS = [item for group in IAS_METRICS.values() for item in group]
