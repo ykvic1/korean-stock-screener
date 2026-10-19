@@ -93,8 +93,10 @@ def validate_dates(dates):
 def _inspect_market_code_shapes(rows):
     """Inspect every code before rejection; return only privacy-safe counts.
 
-    KRX docs name ISU_CD a market security code but do not mandate six digits
-    for all historical security types. Never guess identity or dedupe by name.
+    KRX ISU_CD is a string, NOT a six-decimal-digit guarantee.
+    Some Korean share tickers use six ASCII uppercase alphanumeric chars,
+    including letters in positions other than the last. Preserve the opaque
+    value exactly, never guess issuer identity or dedupe by name.
     """
     counts = {
         "missing_code": 0, "non_string_code": 0,
@@ -111,7 +113,9 @@ def _inspect_market_code_shapes(rows):
             counts["missing_code"] += 1
         elif type(code) is not str:
             counts["non_string_code"] += 1
-        elif not re.fullmatch(r"[0-9]{6}", code):
+        elif not re.fullmatch(r"[0-9A-Z]{6}", code):
+            # Legacy reason key retained for historical diagnostic continuity.
+            # It now means unsupported six-character uppercase alnum shape.
             counts["non_six_digit_code"] += 1
             if re.fullmatch(r"A[0-9]{6}", code):
                 counts["prefixed_six_digit_pattern"] += 1
@@ -152,7 +156,7 @@ def _snapshot_market(rows, raw, *, market, asof):
         if not isinstance(item, dict):
             raise HistoryCollectionError("invalid_market_member")
         code = item.get("ISU_CD")
-        if (type(code) is not str or not re.fullmatch(r"[0-9]{6}", code)
+        if (type(code) is not str or not re.fullmatch(r"[0-9A-Z]{6}", code)
                 or code in seen):
             raise HistoryCollectionError("ambiguous_or_duplicate_market_code")
         seen.add(code)
@@ -174,17 +178,29 @@ def _snapshot_market(rows, raw, *, market, asof):
         usable.append(item)
     if not usable:
         raise HistoryCollectionError("no_usable_ohlcv_market_rows")
-    try:
-        check = inspect_krx(usable, market, asof,
-                            {r["ISU_CD"] for r in usable}, raw)
-    except (ValueError, ProbeError):
-        raise HistoryCollectionError("market_ohlcv_contract_failed") from None
-    if check["missing_symbols"] or len(check["found_symbols"]) != len(usable):
+    numeric_codes = [r for r in usable if re.fullmatch(r"[0-9]{6}", r["ISU_CD"])]
+    alphanumeric_codes = [
+        r for r in usable if not re.fullmatch(r"[0-9]{6}", r["ISU_CD"])]
+    # Existing independent OHLC check deliberately has a decimal-only code
+    # contract. Use it unchanged for that subset, NOT by stripping letters
+    # from the other valid six-character KRX identifiers.
+    if numeric_codes:
+        try:
+            check = inspect_krx(numeric_codes, market, asof,
+                                {r["ISU_CD"] for r in numeric_codes}, raw)
+        except (ValueError, ProbeError):
+            raise HistoryCollectionError("market_ohlcv_contract_failed") from None
+        if check["missing_symbols"] or len(check["found_symbols"]) != len(numeric_codes):
+            raise HistoryCollectionError("market_member_count_inconsistent")
+    if len(numeric_codes) + len(alphanumeric_codes) != len(usable):
         raise HistoryCollectionError("market_member_count_inconsistent")
     return {
         "market": market, "asof": asof,
         "provider_rows_observed": len(rows),
         "observed_numeric_candidates": len(usable),
+        "six_digit_numeric_code_rows": len(numeric_codes),
+        "six_character_alphanumeric_code_rows": len(alphanumeric_codes),
+        "opaque_alphanumeric_identity_reconciled_with_official_master": False,
         "quarantined_unpriced_candidates": quarantined,
         "source_sha256": sha256(raw).hexdigest(),
         "regular_session_volume_verified": False,
