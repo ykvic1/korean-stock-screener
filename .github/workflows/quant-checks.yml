@@ -27,6 +27,11 @@ jobs:
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: OCI installer syntax only (no cloud access, no secrets)
         run: bash -n deploy/oci_prepare.sh
+      - name: v2.2 full-market stock-by-stock accounting and quality safeguards (offline)
+        run: |
+          python -m py_compile v22_full_universe_audit.py
+          python -m unittest discover -s tests -p 'test_v22_full_universe_audit.py' -v
+          python v22_full_universe_audit.py --daily docs/data.json
       - name: v3 user-facing paper-beta page and browser logic (offline)
         run: |
           node --check docs/v3-beta.js
