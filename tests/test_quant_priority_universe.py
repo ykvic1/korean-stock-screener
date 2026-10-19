@@ -30,6 +30,16 @@ class PriorityQuantHistoryTests(unittest.TestCase):
         self.assertEqual(len(set(x["code"] for x in selected)),120)
         self.assertNotIn("100120",[x["code"] for x in selected])
 
+    def test_separate_caution_is_studied_not_automatically_buyable(self):
+        d=fixture()
+        r={"asof":"2026-10-16","research_source_matched":True,
+           "dossiers":[{"code":"100134","qualification":"separate_caution_research_only"},
+                       {"code":"100135","qualification":"verified_recommendation"},
+                       {"code":"100136","qualification":"risk_or_invalid_stop"}]}
+        first=[x["code"] for x in prioritized_stocks(d,r,120)[:2]]
+        self.assertEqual(first,["100134","100135"])
+        self.assertNotEqual(first,["100136"])
+
     def test_stale_and_unproven_screen_does_not_override_stock_order(self):
         d=fixture()
         stale={"asof":"2026-10-15","research_source_matched":True,

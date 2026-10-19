@@ -33,7 +33,8 @@ function observedScore(r,weights){
 function period(q,name){
  const p=q?.periods?.[name];
  return q?.status==='exploratory'&&p?.status==='exploratory'&&
- finite(p.sample_n)&&p.sample_n>=40&&finite(p.mean_net_return_pct)&&
+ finite(p.sample_n)&&p.sample_n>=40&&finite(p.symbol_n)&&p.symbol_n>=10&&
+ finite(p.quarter_n)&&p.quarter_n>=12&&finite(p.mean_net_return_pct)&&
  finite(p.stop_first_pct)&&finite(p.max_adverse_p75_pct)?p:null;
 }
 function decision(row,q){
@@ -72,9 +73,15 @@ function prepare(data,quant,recs){
  rows.sort((a,b)=>Number(b.qualified)-Number(a.qualified)||
   Number(a.highRisk)-Number(b.highRisk)||b.r.score-a.r.score||
   b.r.coverage_pct-a.r.coverage_pct||a.r.code.localeCompare(b.r.code));
+ const selected=rows.filter(x=>x.qualified);
+ const withStudy=selected.filter(x=>x.quant).length;
+ const withUsable=selected.filter(x=>x.quant&&
+   ['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월'].some(k=>period(x.q,k))).length;
  return {date:data.date,rows,weights:data.weights,marketEligible:data.eligible_count,
   quantCurrent:matched,quantAsOf:quant?.asof||null,
-  quantCount:rows.filter(x=>x.quant).length,recommendationCount:rows.filter(x=>x.qualified).length};
+  quantCount:rows.filter(x=>x.quant).length,recommendationCount:selected.length,
+  recommendationQuantCount:withStudy,recommendationUsableQuantCount:withUsable,
+  recommendationAwaitingCount:selected.length-withStudy};
 }
 function select(data,mode,market='all',search=''){
  const query=String(search).toLocaleLowerCase('ko-KR').trim();
@@ -105,7 +112,9 @@ function init(){
      '<div class="rank-metrics"><div><small>종가</small><b>'+money(r.price)+'</b></div>'+
      '<div><small>손절 참고선</small><b>'+money(r.stop_line)+'</b></div>'+
      '<div><small>현재 대응</small><b>'+esc(x.decision.label)+'</b></div>'+
-     '<div><small>퀀트 연구</small><b>'+(x.quant?'자료 있음':'미확보')+'</b></div></div>'+
+     '<div><small>퀀트 연구</small><b>'+(x.quant?
+       (['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월'].some(k=>period(x.q,k))?
+        '유사통계 있음':'표본 미충족'):'최신 연구 대기')+'</b></div></div>'+
      '<div class="rank-foot"><span>'+esc(x.decision.reason)+'</span>'+
      '<button type="button" data-show="'+esc(r.code)+'">점수·퀀트 검증 보기</button></div></article>';
   }).join(''):'<p class="empty">조건에 해당하는 연구 후보가 없습니다. 추천 수를 억지로 채우지 않았습니다.</p>';
@@ -176,12 +185,18 @@ function init(){
      '종목 · 동일 기준일 퀀트 '+model.quantCount+'종목';
    status.className='status';
    $('rankQuantStatus').textContent=model.quantCurrent?
-     '퀀트 기준일 '+model.quantAsOf+' · 유사조건 과거 빈도이며 예측 성능 검증 전':
-     '퀀트 기준일 불일치 또는 미확보: 최신 추천의 성과 검증은 보류';
+     '퀀트 기준일 '+model.quantAsOf+' · 역사적 유사조건 참고 통계, 미래 수익률 예측 검증 전':
+     '퀀트 기준일 불일치 또는 미확보: 최신 추천의 퀀트 검증은 대기';
+   $('rankCandidateQuant').textContent='심층 선별 후보 '+model.recommendationCount+
+     '종목 · 같은 날 퀀트 연구 연결 '+model.recommendationQuantCount+
+     '종목 · 매매 검토 가능한 유사조건 표본 '+model.recommendationUsableQuantCount+
+     '종목 · 자료 확보 대기 '+model.recommendationAwaitingCount+
+     '종목. 유사통계가 있어도 검증된 미래 수익률은 아닙니다.';
    render();
   }catch(_){
    model=null;status.className='status error';
    status.textContent='정상 전 종목 점수 자료 미확보. 허위 추천을 표시하지 않습니다.';
+   $('rankCandidateQuant').textContent='추천 후보 및 퀀트 연계 검증 불가';
    cards.innerHTML='<p class="empty">유효한 전시장 데이터가 필요합니다.</p>';
   }
  }
