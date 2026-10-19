@@ -115,6 +115,7 @@ function prepare(data,quant,recs,official,priorityQuant){
    ['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월'].some(k=>period(x.q,k))).length;
  return {date:data.date,rows,weights:data.weights,marketEligible:data.eligible_count,
   quantCurrent:matched,quantAsOf:quant?.asof||null,
+  priorityQuantCurrent:priorityMatched,priorityQuantAsOf:priorityQuant?.asof||null,
   quantCount:rows.filter(x=>x.quant).length,recommendationCount:selected.length,
   recommendationQuantCount:withStudy,recommendationUsableQuantCount:withUsable,
   recommendationAwaitingCount:selected.length-withStudy,
@@ -239,7 +240,10 @@ function init(){
      '종목 · 동일 기준일 퀀트 '+model.quantCount+'종목';
    status.className='status';
    $('rankQuantStatus').textContent=model.quantCurrent?
-     '퀀트 기준일 '+model.quantAsOf+' · 역사적 유사조건 참고 통계, 미래 수익률 예측 검증 전':
+     '일반 퀀트 기준일 '+model.quantAsOf+' · 역사적 유사조건 참고 통계, 미래 수익률 예측 검증 전':
+     model.priorityQuantCurrent?
+     '추천 후보 우선 실데이터 연구 '+model.priorityQuantAsOf+
+       ' · 40종목 대상의 탐색 통계 (기존 120종목 연구와 별개, 미래 수익률 예측 미검증)':
      '퀀트 기준일 불일치 또는 미확보: 최신 추천의 퀀트 검증은 대기';
    $('rankCandidateQuant').textContent='연간 공시 참고자료 '+model.recommendationFinancialCount+
      '/'+model.recommendationCount+'개 · 심층 선별 후보 '+model.recommendationCount+
