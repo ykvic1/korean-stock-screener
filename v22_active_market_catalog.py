@@ -108,10 +108,11 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
             "v3_confirmed_score":None,
         })
     if (status_counts["priced"]!=audit["priced_current_session_count"] or
-            sum(status_counts.values())!=audit["market_listing_size"] or
-            flow_observed!=audit["flow_confirmed_count"] or
-            pbr_observed < audit["pbr_observed_count"]):
+            sum(status_counts.values())!=audit["market_listing_size"]):
         raise ActiveCatalogError("catalog_outcome_or_evidence_counts_mismatch")
+    # User-facing reference factors may be PARTIAL. Never block an otherwise
+    # sound whole-market price catalog because a flow/PBR source is missing or
+    # supplies an incomplete observation. Keep those factors null instead.
     return {
         "schema":"v22-current-listed-catalog-0.1",
         "date":snapshot["date"],
@@ -123,6 +124,8 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
                           "insufficient_history","unattempted_batch")},
         "pbr_observed_count":pbr_observed,
         "flow_reference_count":flow_observed,
+        "flow_reference_unavailable_count":audit["flow_confirmed_count"]-flow_observed,
+        "pbr_reference_unavailable_count":max(0,audit["pbr_observed_count"]-pbr_observed),
         "data_level":"reference_observations_not_independent_facts",
         "historical_delisted_stocks_included":False,
         "historical_backtest_has_survivorship_bias":True,
