@@ -292,7 +292,8 @@ assert.deepEqual(m.select(watchModel,'obv').map(x=>x.r.code),['111111']);
 assert.equal(watchModel.recommendationCount,1,'watch-only does not manufacture shortlist');
 assert.equal(watchModel.rows[0].decision.label,'조건부 모의 검토',
  'a technical watch filter never promotes an unverified buy signal');
-assert.ok(m.watchEvidence(watchBase).labels.some(s=>s.includes('OBV 상승')));
+assert.ok(m.watchEvidence(watchBase).labels.some(s=>s.includes('OBV·가격 미반영 보조')),
+ 'OBV is supporting evidence, not the watchlist heading');
 assert.ok(m.watchEvidence({...watchBase,obv_rising:false})?.pattern,
  'preferred chart pattern must not require OBV rising');
 assert.equal(m.watchEvidence({...watchBase,obv_rising:false})?.obvLag,false,
