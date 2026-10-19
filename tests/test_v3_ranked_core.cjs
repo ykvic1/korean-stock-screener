@@ -51,6 +51,41 @@ assert.equal(withFinance.financialReferenceCount,1);
 assert.equal(withFinance.recommendationFinancialCount,1);
 assert.equal(withFinance.rows[0].financialRef.year,2025);
 assert.equal(withFinance.rows[0].financialRef.values.revenue,12000000000);
+const scopedOfficial={...official,dart:{...official.dart,stocks:[{
+ code:'111111',status:'observed',reports:[
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2025,
+   values:{revenue:13000000000,operating_income:4100000000,
+    operating_cashflow:6200000000,operating_margin_pct:31.5,
+    debt_to_equity_pct:6.6}},
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2024,
+   receipt_id:'20250320001234',
+   values:{revenue:12000000000,operating_income:3400000000,
+    operating_cashflow:3000000000,operating_margin_pct:28.3,debt_to_equity_pct:6.1}},
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2023,
+   receipt_id:'20240320001234',
+   values:{revenue:14000000000,operating_income:4300000000,
+    operating_cashflow:3600000000,operating_margin_pct:30.7,debt_to_equity_pct:9.1}},
+  {...official.dart.stocks[0].reports[0],fs_div:'CFS',year:2024,
+   receipt_id:'20250320001234',
+   values:{revenue:999999999999}},
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2026,
+   receipt_id:'20271111001234',values:{revenue:888888888888}},
+ ]}]}};
+const historical=m.observedAnnuals(scopedOfficial,'2026-10-16').get('111111');
+assert.deepEqual(historical.history.map(x=>x.year),[2025,2024,2023]);
+assert.ok(historical.history.every(x=>x.fs_div==='OFS'),
+ 'never mix different statement scopes in a growth trend');
+assert.ok(m.financialHistoryTable(historical).includes('2023년'));
+assert.ok(m.financialHistoryTable(historical).includes('130억원'));
+assert.ok(!m.financialHistoryTable(historical).includes('9,999억원'));
+assert.ok(!m.financialHistoryTable(historical).includes('2026년'));
+assert.equal(m.observedAnnuals({...scopedOfficial,asof:'2026-10-15'},'2026-10-16').size,0,
+ 'a future or prior matching annual feed must not be used without asof consistency');
+const spoofReceipt=structuredClone(scopedOfficial);
+spoofReceipt.dart.stocks[0].reports=spoofReceipt.dart.stocks[0].reports.map(t=>(
+ {...t,receipt_id:'20271019001234'}));
+assert.equal(m.observedAnnuals(spoofReceipt,'2026-10-16').size,0,
+ 'later-published accounts cannot leak into an earlier stock signal date');
 assert.equal(m.eok(12000000000),'120억원');
 assert.equal(m.eok(null),'미확인');
 assert.equal(m.prepare(snap,research,recs,{...official,asof:'2026-10-15'}).financialReferenceCount,0,
@@ -61,7 +96,7 @@ assert.equal(m.observedAnnuals({...official,dart:{...official.dart,stocks:[
  {code:'111111',status:'observed',reports:[{...official.dart.stocks[0].reports[0],year:2027}]}]
 }},'2026-10-16').size,0,'financial report newer than screen must not attach');
 const priorityFeed={schema:'v3-targeted-live-shortlist-quant-v1',
- asof:'2026-10-16',status:'exploratory',peer_cohort_valid:29,
+ asof:'2026-10-16',status:'exploratory',peer_cohort_requested:40,peer_cohort_valid:29,
  raw_ohlcv_copied:false,verified_predictive_accuracy:false,
  stocks:[{code:'111111',status:'exploratory',reference_price_date:'2026-10-16',
          peer_cohort_requested:40,periods:{
@@ -70,7 +105,7 @@ const oldBroad={status:'exploratory',asof:'2026-10-15',stocks:[]};
 const targeted=m.prepare(snap,oldBroad,recs,undefined,priorityFeed);
 assert.equal(targeted.recommendationQuantCount,1);
 assert.equal(targeted.recommendationUsableQuantCount,1);
-assert.equal(targeted.rows[0].quantSource,'추천 우선 연구 40종목 표본');
+assert.equal(targeted.rows[0].quantSource,'추천 우선 연구 40종목 요청 / 29종목 실제 이력 확보');
 assert.equal(targeted.rows[0].decision.label,'조건부 모의 검토');
 assert.equal(m.prepare(snap,research,recs,undefined,priorityFeed).rows[0].quantSource,
  '일반 연구 최대 120종목 표본','prefer same-day full 120 peer study when usable');
@@ -78,6 +113,53 @@ assert.equal(m.prepare(snap,oldBroad,recs,undefined,
  {...priorityFeed,asof:'2026-10-15'}).recommendationQuantCount,0);
 assert.equal(m.prepare(snap,oldBroad,recs,undefined,
  {...priorityFeed,verified_predictive_accuracy:true}).recommendationQuantCount,0);
+// Current, published dossiers are displayed even when a name is caution-only.
+// A higher *observed* v2 score must never override a current risk warning.
+const riskDossiers={asof:'2026-10-16',research_source_matched:false,dossiers:[
+ {code:'222222',qualification:'separate_caution_research_only'},
+ {code:'111111',qualification:'needs_deeper_evidence'}]};
+const mixed=m.prepare(snap,oldBroad,riskDossiers,undefined,priorityFeed);
+assert.equal(mixed.recommendationCount,2,'show all published research dossiers, including cautions');
+assert.equal(mixed.recommendationCautionCount,1);
+assert.equal(mixed.recommendationQuantCount,1);
+assert.equal(mixed.recommendationUsableQuantCount,1);
+assert.equal(mixed.recommendationInsufficientCount,0);
+assert.deepEqual(m.select(mixed,'recommended').map(x=>x.r.code),['111111','222222'],
+ 'risk-reviewed shortlist first; cautionary scored names still visible separately');
+assert.equal(mixed.rows.find(x=>x.r.code==='222222').decision.label,'매수 보류');
+assert.equal(mixed.priorityQuantRequested,40);
+assert.equal(mixed.priorityQuantValid,29);
+const real120={...priorityFeed,peer_cohort_requested:120,peer_cohort_valid:75,
+ stocks:priorityFeed.stocks.map(x=>({...x,peer_cohort_requested:120,peer_cohort_valid:75}))};
+const expanded=m.prepare(snap,oldBroad,riskDossiers,undefined,real120);
+assert.equal(expanded.priorityQuantRequested,120);
+assert.equal(expanded.priorityQuantValid,75);
+assert.ok(expanded.rows.find(x=>x.r.code==='111111').quantSource.includes('120종목 요청 / 75종목'));
+assert.ok(m.quantGlance(real120.stocks[0]).includes('1개월 평균 +5.2%'));
+// Real 2026-10-19 Avatec-like risk mix: a weakly positive 3m analogue
+// does not outweigh consistently >=40% stop-first readings.
+const avatecRisk={status:'exploratory',periods:{}};
+for(const [key,mean,stop] of [
+ ['스윙 1개월',-0.12,44.8],['스윙 2개월',-0.47,48.8],
+ ['중기 3개월',0.77,46.2],['중기 6개월',-0.65,55.1]]){
+ avatecRisk.periods[key]={status:'exploratory',sample_n:181,symbol_n:23,quarter_n:26,
+  mean_net_return_pct:mean,stop_first_pct:stop,max_adverse_p75_pct:12};
+}
+assert.equal(m.decision(stocks[0],avatecRisk).label,'매수 보류',
+ 'do not buy a 70-plus point candidate when observed stop-first risks dominate');
+assert.ok(m.quantGlance(avatecRisk).includes('1개월 평균 -0.1%'));
+const insufficientStudy={status:'insufficient',periods:{}};
+const insufficientPriority={...real120,stocks:[
+ {...real120.stocks[0],code:'222222',status:'insufficient',periods:{}},
+ real120.stocks[0]
+]};
+const insufficientView=m.prepare(snap,oldBroad,riskDossiers,undefined,insufficientPriority);
+assert.equal(insufficientView.recommendationInsufficientCount,1);
+assert.equal(insufficientView.recommendationAwaitingCount,0);
+assert.equal(insufficientView.rows.find(x=>x.r.code==='222222').decision.label,'매수 보류');
+assert.equal(m.prepare(snap,oldBroad,riskDossiers,undefined,
+ {...insufficientPriority,asof:'2026-10-15'}).recommendationQuantCount,0,
+ 'never attach stale studied outcomes to a current-day shortlisted name');
 const result=m.prepare(snap,research,recs);
 assert.equal(result.marketEligible,2498);
 assert.equal(result.rows.length,3);
@@ -141,4 +223,11 @@ assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 �
 assert.ok(home.includes('v3-manual.html'));
 assert.ok(home.includes('rankCandidateQuant'));
 assert.ok(!home.includes('수익률 100% 보장'));
+const uiSource=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+assert.ok(!uiSource.includes('40종목 대상 탐색 통계'),
+ 'never label a 120-peer live result as the old one-shot 40-peer pilot');
+assert.ok(uiSource.includes('model.priorityQuantRequested')&&uiSource.includes('model.priorityQuantValid'),
+ 'display actual source peer count from published JSON');
+assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)'),
+ 'make downside tier and historical stop-first metrics visible on candidate card');
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
