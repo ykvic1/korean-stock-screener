@@ -121,6 +121,7 @@ def observe(df):
                               _double_bottom(close, high, low, vol)) if p]
     out.update(asof=df.index[-1].date().isoformat(),
                status="heuristic_unverified",
+               pattern_geometry=pattern_snapshot(df),
                rsi14=round(float(rs[-1]), 2) if np.isfinite(rs[-1]) else None,
                rsi30_cross_recent=cross_recent,
                rsi_bullish_divergence_recent=bool(np.any(bull[-12:])),
@@ -175,5 +176,10 @@ def observe_completed_weekly(daily):
     # post-rise compression. Each is only a *heuristic candidate*.
     study["pattern_geometry"] = pattern_snapshot(week)
     study["completed_week_only"] = True
+    study["weekly_ma120_gap_pct"] = (
+        round(100 * (float(week["Close"].iloc[-1]) /
+                     float(week["Close"].iloc[-120:].mean()) - 1), 4)
+        if len(week) >= 120 else None
+    )
     study["asof"] = week.index[-1].date().isoformat()
     return study
