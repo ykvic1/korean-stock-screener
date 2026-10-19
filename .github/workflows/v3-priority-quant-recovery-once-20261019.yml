@@ -1,0 +1,125 @@
+name: One-Time V3 Source-Matched Priority Quant Recovery 2026-10-19
+
+on:
+  push:
+    branches: [v3-priority-quant-20261019-recovery-once]
+
+permissions:
+  contents: write
+
+# One authoring job publishes only a small derived file, after re-checking
+# that the whole-market snapshot and displayed shortlist have not changed.
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  bounded-live-featured:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pre-existing quant dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify source day, current shortlist and all-priority-first ordering
+        id: screen
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          from datetime import date
+          import json
+          from quant_priority_universe import prioritized_stocks
+          s=json.load(open('docs/data.json',encoding='utf-8'))
+          r=json.load(open('docs/recommendations.json',encoding='utf-8'))
+          asof=date.fromisoformat(s['date'])
+          if s.get('status')!='success' or s.get('version')!='2.0':
+              raise ValueError('unverified_production_signal')
+          if (date.today()-asof).days not in range(0,8):
+              raise ValueError('source_price_date_too_old')
+          if r.get('asof')!=s['date'] or not r.get('research_source_matched'):
+              raise ValueError('shortlist_date_mismatch')
+          shortlist=[x['code'] for x in r['dossiers']]
+          codes=[x['code'] for x in prioritized_stocks(s,r,40)]
+          if not shortlist or shortlist!=codes[:len(shortlist)]:
+              raise ValueError('shortlist_not_first_in_bounded_study')
+          print('day='+s['date'])
+          print('shortlist_count='+str(len(shortlist)))
+          PY
+      - name: Collect real nine-year OHLCV in temporary job-only folder
+        run: |
+          set -euo pipefail
+          python quant_fetch_history.py \
+            --signals docs/data.json \
+            --cache-dir cache/quant_history \
+            --asof "${{ steps.screen.outputs.day }}" \
+            --years 9 --max-stocks 40 \
+            --recommendations docs/recommendations.json
+      - name: Calculate actual nearest-case historical research on 40-name cohort
+        run: |
+          set -euo pipefail
+          python quant_engine.py \
+            --signals docs/data.json \
+            --history-dir cache/quant_history \
+            --output staging/quant-40.json \
+            --asof "${{ steps.screen.outputs.day }}" \
+            --max-stocks 40 \
+            --recommendations docs/recommendations.json
+      - name: Derive audited same-day current candidate statistics only
+        run: |
+          set -euo pipefail
+          python v3_ranked_quant_coverage.py \
+            --screen docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant staging/quant-40.json \
+            --output staging/coverage.json \
+            --assert-study-candidates
+          python v3_priority_quant_feed.py \
+            --market docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant staging/quant-40.json \
+            --output docs/v3-priority-quant.json
+      - name: Publish derived research only after stable main source recheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-priority-quant.json
+          if git diff --cached --quiet; then
+            echo "Same derived candidate results already published"
+          else
+            git commit -m "Publish actual same-day candidate-priority historical quant (derived, no OHLCV)"
+            git pull --rebase origin main
+            python - <<'PY'
+          import json
+          from v3_priority_quant_feed import build_priority_feed
+          market=json.load(open('docs/data.json',encoding='utf-8'))
+          rec=json.load(open('docs/recommendations.json',encoding='utf-8'))
+          pilot=json.load(open('staging/quant-40.json',encoding='utf-8'))
+          shipped=json.load(open('docs/v3-priority-quant.json',encoding='utf-8'))
+          expected=build_priority_feed(market,rec,pilot)
+          if expected!=shipped:
+              raise ValueError('source_changed_or_derived_candidate_study_inconsistent')
+          if shipped['raw_ohlcv_copied'] or shipped['verified_predictive_accuracy']:
+              raise ValueError('raw_or_prediction_promotion_not_permitted')
+          print('published_candidate_count=',shipped['candidate_count'],
+                'asof=',shipped['asof'],
+                'peer_cohort_valid=',shipped['peer_cohort_valid'])
+          PY
+            git push origin HEAD:main
+          fi
+      - name: Audit artifact for user-visible traceability; no price history files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-source-verified-priority-quant-${{ github.run_id }}
+          path: |
+            docs/v3-priority-quant.json
+            staging/coverage.json
+          if-no-files-found: warn
+          retention-days: 14
