@@ -1,0 +1,42 @@
+name: One-Time Research Candidate Flow 2-Symbol Source Feasibility
+
+on:
+  push:
+    branches: [v3-current-two-candidate-flow-feasibility-20261019]
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-flow-feasibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install public pykrx interface (no portal authentication)
+        run: python -m pip install 'pykrx>=1.0.45,<2'
+      - name: Verify two symbols remain in same-day shortlisted publication
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          market=json.loads(Path('docs/recommendations.json').read_text(encoding='utf8'))
+          if market['asof']!='2026-10-19' or [x['code'] for x in market['dossiers']]!=['131090','149950']:
+              raise ValueError('changed_screen_or_shortlist')
+          print('Bounded current shortlist verified:',len(market['dossiers']))
+          PY
+      - name: Read-only KRX portal investor schema, one bounded call pair per symbol
+        run: |
+          # Neither program prints raw signed shares or provider bodies.
+          # Research access failure does not become a zero-share conclusion.
+          set +e
+          python -m v3_krx_website_flow_pilot --code 131090 --asof 2026-10-19 --live
+          first=$?
+          python -m v3_krx_website_flow_pilot --code 149950 --asof 2026-10-19 --live
+          second=$?
+          set -e
+          echo "Research-only KRX portal statuses: first=$first second=$second"
+          echo "No trading-signal publication; KRX website data license and 250-day investor history remain unverified."
