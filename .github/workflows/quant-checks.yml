@@ -27,6 +27,10 @@ jobs:
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: OCI installer syntax only (no cloud access, no secrets)
         run: bash -n deploy/oci_prepare.sh
+      - name: v3 first bounded KRX real-provider to partial technical pipeline (synthetic CI only)
+        run: |
+          python -m py_compile v3_krx_first_real_pipeline.py
+          python -m unittest discover -s tests -p 'test_v3_krx_first_real_pipeline.py' -v
       - name: v3 decade-plus append-only history planning and source chain capacity (offline)
         run: |
           python -m py_compile v3_evidence_chain.py v3_local_private_store.py v3_krx_private_backfill_plan.py v3_price_feature_adapter.py
