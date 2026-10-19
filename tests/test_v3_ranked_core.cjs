@@ -61,7 +61,7 @@ assert.equal(m.observedAnnuals({...official,dart:{...official.dart,stocks:[
  {code:'111111',status:'observed',reports:[{...official.dart.stocks[0].reports[0],year:2027}]}]
 }},'2026-10-16').size,0,'financial report newer than screen must not attach');
 const priorityFeed={schema:'v3-targeted-live-shortlist-quant-v1',
- asof:'2026-10-16',status:'exploratory',peer_cohort_valid:29,
+ asof:'2026-10-16',status:'exploratory',peer_cohort_requested:40,peer_cohort_valid:29,
  raw_ohlcv_copied:false,verified_predictive_accuracy:false,
  stocks:[{code:'111111',status:'exploratory',reference_price_date:'2026-10-16',
          peer_cohort_requested:40,periods:{
