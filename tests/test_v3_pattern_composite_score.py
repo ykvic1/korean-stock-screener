@@ -56,8 +56,8 @@ def stock(code="005930"):
 class PatternWithinOriginalSixPillars(unittest.TestCase):
     def test_fixed_six_pillar_contract_and_25_technical_points(self):
         self.assertEqual(dict(PILLAR_POINTS), {
-            "ias": 25, "financial": 15, "valuation": 15,
-            "technical": 25, "industry": 15, "momentum": 5})
+            "ias": 20, "financial": 15, "valuation": 15,
+            "technical": 25, "industry": 15, "momentum": 10})
         self.assertEqual(TECHNICAL_WEIGHTS, {
             "daily_pattern": 7, "weekly_pattern": 8,
             "daily_rsi": 2, "weekly_rsi": 3,
@@ -153,9 +153,9 @@ class PatternWithinOriginalSixPillars(unittest.TestCase):
     def test_other_pillars_complete_candidate_not_real_buy_score(self):
         r = stock()
         full = evaluate(r, other_pillars={
-            "ias": 21, "financial": 13, "valuation": 11,
-            "industry": 13, "momentum": 4})
-        self.assertAlmostEqual(full["six_pillar_full_candidate_only"], 86.04)
+            "ias": 18, "financial": 13, "valuation": 11,
+            "industry": 13, "momentum": 8})
+        self.assertAlmostEqual(full["six_pillar_full_candidate_only"], 87.04)
         self.assertEqual(full["six_pillar_coverage_pct"], 100)
         self.assertTrue(full["provisional_full_six_pillar_sort_eligible"])
         self.assertIsNone(full["investable_score"])
