@@ -7,6 +7,7 @@ An XKRX holiday is third-party research input, never a source of market truth.
 from __future__ import annotations
 
 import argparse
+from datetime import date, timedelta
 import hashlib
 import json
 import os
@@ -68,7 +69,10 @@ def inspect_days(days, *, live=False, key=None, client=None):
     if len(valid) > MAX_CHALLENGE_DATES:
         raise SessionChallengeError("too_many_calendar_challenges")
     try:
-        base = calendar_weekday_candidates(valid[0], valid[-1])
+        # A holiday-only request still needs valid surrounding XKRX sessions.
+        # Backward-only padding never reaches a future, unfinished day.
+        padded_start = (date.fromisoformat(valid[0])-timedelta(days=10)).isoformat()
+        base = calendar_weekday_candidates(padded_start, valid[-1])
         candidate = candidate_dates(base, source="xkrx")
     except (BackfillPlanError, CandidateCalendarError):
         raise SessionChallengeError("xkrx_candidate_calendar_unavailable") from None
