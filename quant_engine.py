@@ -17,6 +17,7 @@ from statistics import mean
 
 import numpy as np
 import pandas as pd
+from quant_priority_universe import prioritized_stocks, optional_recommendations
 
 HORIZONS = {
     "초단기 1주": (5, 0.05, 0.04),
@@ -336,13 +337,14 @@ def grade_periods(periods: dict) -> dict:
 
 
 def run(screener_json:Path,history_dir:Path,output:Path,
-        asof:str | None=None,max_stocks:int=120) -> dict:
+        asof:str | None=None,max_stocks:int=120,
+        recommendations:Path|None=Path('docs/recommendations.json')) -> dict:
     d=json.loads(screener_json.read_text(encoding="utf-8"))
     if d.get("status")!="success": raise ValueError("정상 수집된 최신 스크리너 JSON이 필요")
     asof = asof or d["date"]
     if d["date"] != asof:
         raise ValueError("신호일과 백테스트 기준일이 다름. 결측 데이터를 과거 시점에 대입하지 않음")
-    stocks=[s for s in d["stocks"] if valid_code(str(s.get("code","")))][:max_stocks]
+    stocks=prioritized_stocks(d,optional_recommendations(recommendations),max_stocks)
     cache={}; markets={}; missing=[]
     for s in stocks:
         code = str(s["code"])
@@ -415,8 +417,10 @@ def main():
     parser.add_argument("--output",default="docs/quant.json")
     parser.add_argument("--asof",default=None)
     parser.add_argument("--max-stocks",type=int,default=120)
+    parser.add_argument("--recommendations",default="docs/recommendations.json")
     args=parser.parse_args()
-    result=run(Path(args.signals),Path(args.history_dir),Path(args.output),args.asof,args.max_stocks)
+    result=run(Path(args.signals),Path(args.history_dir),Path(args.output),args.asof,args.max_stocks,
+               Path(args.recommendations))
     print(json.dumps({k:result.get(k) for k in ("status","asof","available_symbols","requested_symbols","required_symbols")},ensure_ascii=False))
     return 0 if result["status"]=="exploratory" else 2
 

@@ -1,0 +1,98 @@
+name: V3 Ranked Candidate Quant Research Refresh
+
+on:
+  schedule:
+    - cron: '0 1 * * 6'  # Saturday 10:00 Asia/Seoul; does not duplicate weekday 18:30
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  same-day-analogue-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing study dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Reject stale market signal and choose exact published source date
+        id: asof
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          from datetime import date
+          import json
+          d=json.load(open('docs/data.json',encoding='utf-8'))
+          day=date.fromisoformat(d['date'])
+          if d['status']!='success' or d.get('version')!='2.0':
+              raise ValueError('missing_current_approved_screen')
+          if not 0 <= (date.today()-day).days <= 7:
+              raise ValueError('outdated_or_future_market_snapshot')
+          if len(d['stocks'])<20:
+              raise ValueError('too_few_observed_equity_signals')
+          print('day='+day.isoformat())
+          PY
+      - name: Fetch bounded FDR OHLCV for recommended stocks and study peers
+        run: |
+          set -euo pipefail
+          python quant_fetch_history.py \
+            --signals docs/data.json \
+            --cache-dir cache/quant_history \
+            --asof "${{ steps.asof.outputs.day }}" \
+            --years 9 \
+            --max-stocks 120 \
+            --recommendations docs/recommendations.json
+      - name: Calculate existing exploratory nearest-case quant statistics
+        run: |
+          set -euo pipefail
+          python quant_engine.py \
+            --signals docs/data.json \
+            --history-dir cache/quant_history \
+            --output docs/quant.json \
+            --asof "${{ steps.asof.outputs.day }}" \
+            --max-stocks 120 \
+            --recommendations docs/recommendations.json
+      - name: Reject inconsistent shortlist / study dates and incomplete output
+        run: |
+          python - <<'PY'
+          import json
+          from quant_priority_universe import prioritized_stocks
+          market=json.load(open('docs/data.json',encoding='utf-8'))
+          priority=json.load(open('docs/recommendations.json',encoding='utf-8'))
+          q=json.load(open('docs/quant.json',encoding='utf-8'))
+          if q['status']!='exploratory' or q['asof']!=market['date']:
+              raise ValueError('quant_research_incomplete')
+          actual={s['code'] for s in q['stocks']}
+          expected={s['code'] for s in prioritized_stocks(market,priority,120)}
+          if actual!=expected:
+              raise ValueError('quant_does_not_cover_prioritized_universe')
+          print('quant_valid=',q['available_symbols'],'requested=',q['requested_symbols'])
+          PY
+      - name: Publish derived quant summaries ONLY (never raw 9-year prices)
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/quant.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh candidate-priority exploratory quant research"
+            git pull --rebase origin main
+            python - <<'PY'
+          import json
+          m=json.load(open('docs/data.json',encoding='utf-8'))
+          q=json.load(open('docs/quant.json',encoding='utf-8'))
+          if m['date']!=q['asof']:
+              raise ValueError('market_changed_during_quant_run')
+          PY
+            git push origin HEAD:main
+          fi
