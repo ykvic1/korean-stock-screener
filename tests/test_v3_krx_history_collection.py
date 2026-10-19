@@ -103,6 +103,72 @@ class KRXHistoricalCollectorTests(unittest.TestCase):
             with self.subTest(malformed=malformed),self.assertRaises(HistoryCollectionError):
                 _snapshot_market(malformed,raw,market="KOSPI",asof=day)
 
+    def test_all_market_code_shapes_report_counts_not_identifiers(self):
+        day = "2026-10-15"
+        standard = rows("KOSPI", day)[0]
+        malformed = [
+            standard,
+            {**standard, "ISU_CD": "A123456"},
+            {**standard, "ISU_CD": "KR1234567890"},
+            {**standard, "ISU_CD": "12345"},
+            {**standard, "ISU_CD": None},
+            {**standard, "ISU_CD": 5930},
+            standard,
+        ]
+        raw = json.dumps({"OutBlock_1":malformed}).encode()
+        with self.assertRaises(HistoryCollectionError) as observed:
+            _snapshot_market(malformed, raw, market="KOSPI", asof=day)
+        exception = observed.exception
+        self.assertEqual(str(exception),"multiple_market_code_identity_anomalies")
+        self.assertEqual(exception.code_anomaly_counts,{
+            "missing_code":1,"non_string_code":1,
+            "non_six_digit_code":3,"duplicate_six_digit_code":1,
+            "prefixed_six_digit_pattern":1,"twelve_character_pattern":1,
+        })
+        self.assertNotIn("005930",str(exception))
+        self.assertNotIn("KR1234567890",str(exception))
+
+    def test_duplicate_code_is_different_from_nonsix_identity(self):
+        day = "2026-10-15"
+        standard = rows("KOSPI",day)[0]
+        for batch,reason,key in (
+            ([standard,standard],"duplicate_six_digit_code",
+             "duplicate_six_digit_code"),
+            ([{**standard,"ISU_CD":"A123456"}],
+             "non_six_digit_code","non_six_digit_code"),
+            ([{**standard,"ISU_CD":None}],
+             "missing_code","missing_code"),
+        ):
+            with self.subTest(reason=reason):
+                raw=json.dumps({"OutBlock_1":batch}).encode()
+                with self.assertRaises(HistoryCollectionError) as observed:
+                    _snapshot_market(batch,raw,market="KOSPI",asof=day)
+                self.assertEqual(str(observed.exception),reason)
+                self.assertEqual(observed.exception.code_anomaly_counts[key],1)
+
+    def test_real_workflow_failure_preserves_whitelisted_code_counts(self):
+        day="2026-10-15"
+        class NonSixMarket(FakeClient):
+            def daily_market(self,market,asof):
+                items=rows(market,asof)
+                items[0]["ISU_CD"]="A123456"
+                return items,json.dumps({"OutBlock_1":items}).encode()
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/"safe-summary.json"
+            with patch("v3_krx_history_collection.KRXClient",return_value=NonSixMarket()):
+                with patch.dict(os.environ,{"KRX_API_KEY":"SECRET_TOKEN_NOT_FOR_LOGS"}):
+                    with patch("sys.stdout",new_callable=StringIO) as output:
+                        code=main(["--dates",day,"--live","--output",str(path)])
+            self.assertEqual(code,1)
+            failure=json.loads(path.read_text())
+            self.assertEqual(failure["reason"],"non_six_digit_code")
+            self.assertEqual(failure["code_anomaly_counts"]["non_six_digit_code"],1)
+            self.assertEqual(failure["failed_date"],day)
+            self.assertEqual(failure["failed_market"],"KOSPI")
+            self.assertNotIn("A123456",path.read_text())
+            self.assertNotIn("SECRET_TOKEN_NOT_FOR_LOGS",path.read_text())
+            self.assertNotIn("SECRET_TOKEN_NOT_FOR_LOGS",output.getvalue())
+
     def test_market_data_must_match_exact_original_response_bytes(self):
         day="2026-10-16"
         original=rows("KOSPI",day)

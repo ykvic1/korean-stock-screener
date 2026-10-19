@@ -82,6 +82,16 @@ jobs:
               n=n if type(n) is int and 0 <= n <= 5 else 0
               print('::warning::KRX history blocked: date='+day+' market='+market+
                     ' reason='+reason+' prior_complete_days='+str(n))
+              counts=d.get('code_anomaly_counts')
+              labels=('missing_code','non_string_code','non_six_digit_code',
+                      'duplicate_six_digit_code','prefixed_six_digit_pattern',
+                      'twelve_character_pattern')
+              if (isinstance(counts,dict) and set(counts)==set(labels)
+                      and all(type(counts[k]) is int and 0<=counts[k]<=20000 for k in labels)):
+                  print('::warning::KRX identity shapes: '+
+                        ' '.join(k+'='+str(counts[k]) for k in labels)+
+                        ' (raw identifiers withheld)')
+
           else:
               n=d.get('observed_days')
               n=n if type(n) is int and 0 <= n <= 5 else 0
