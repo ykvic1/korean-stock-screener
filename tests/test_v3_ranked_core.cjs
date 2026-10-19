@@ -394,7 +394,8 @@ assert.equal(m.stockPage('005930'),'https://finance.naver.com/item/main.naver?co
 assert.equal(m.stockPage('005930?x=1'),null,'do not allow user-supplied external link injection');
 assert.equal(m.stockPage('<script>'),null);
 const home=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
-assert.ok(home.includes('자동 종목 추천 · 퀀트 검증'));
+assert.ok(home.includes('차트 패턴 중심 종목 발굴 · 퀀트 검증'));
+assert.ok(home.includes('폴링 웻지')&&home.includes('역헤드앤숄더')&&home.includes('더블바텀')&&home.includes('Bull Flag'));
 assert.ok(home.includes('v3-ranking.js')&&home.includes('v3-ranking.css'));
 assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 있는 종목'));
 assert.ok(home.includes('data-mode="watch" aria-pressed="true"')&&
