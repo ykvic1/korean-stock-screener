@@ -320,6 +320,11 @@ def publish(*, manifest: dict, parts_dir: Path,
     # Keep ALL currently listed stocks searchable even when OHLCV unavailable.
     from v22_active_market_catalog import write_active_catalog
     write_active_catalog(data, listing, screener.SITE / "v22-market-catalog.json")
+    # Separate small active-listing research: 60-159 genuine bars can yield
+    # MA20/MA60 and OBV without pretending to have 120-week history or a
+    # full v2.2 ranking score. Any source failure stays unavailable.
+    from v22_short_history_observations import write_short_history
+    write_short_history(data, screener.SITE / "v22-partial-history.json", cfg=cfg)
     return {"status": ("complete_market_report_published"
                         if merged["market_scan_complete"]
                         else "partial_market_report_published_with_missing_batch_warning"),
