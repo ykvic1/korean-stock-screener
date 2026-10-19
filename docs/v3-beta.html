@@ -15,7 +15,7 @@
 <main>
 <section class="panel intro">
 <div class="eyebrow dark">손실 우선 기술 관찰 → 기존 점수 → 퀀트 검증 → 매수·관망 판단</div>
-<h2>선호 차트 패턴 → RSI 전환 → 거래량·OBV 확인 → 하방위험</h2>
+<h2>완성 주봉·일봉 패턴 → RSI 전환 → 손실 위험 → 수급 검증</h2>
 <p class="note">첫 화면은 가격 분석 종목 중 <strong>차트 패턴 형성·전환과 RSI 회복</strong>을 우선 확인하고, 구조 손절거리 3~15% 및 데이터 품질로 위험을 점검하는 <strong>기술적 관찰 목록</strong>입니다. OBV는 필수 조건이 아닌 보조 신호입니다. 자동 심층 추천과는 별개이며 기관 매집·실전 매수 신호가 아닙니다. 심층 선별 후보는 별도 탭에 유지합니다.</p>
 <p id="rankStatus" class="status" aria-live="polite">분석 데이터를 불러오고 있습니다.</p>
 <p id="rankQuantStatus" class="note">퀀트 연구의 실제 자료와 기준일을 확인합니다.</p>
@@ -27,6 +27,7 @@
 <div class="section-row"><h2>1. 차트 패턴·RSI 관찰 후보 · 매수 미인증</h2><button id="rankReload" type="button" class="secondary">최신 자료 다시 읽기</button></div>
 <div class="modes" id="rankModes" aria-label="후보 유형">
 <button type="button" data-mode="watch" aria-pressed="true">패턴·RSI 우선 관찰</button>
+<button type="button" data-mode="weekly" aria-pressed="false">주봉 패턴·RSI (중장기)</button>
 <button type="button" data-mode="pattern" aria-pressed="false">선호 차트 패턴</button>
 <button type="button" data-mode="rsi" aria-pressed="false">RSI 30 재돌파·상승다이버전스</button>
 <button type="button" data-mode="obv" aria-pressed="false">OBV 보조 탐색</button>
@@ -43,7 +44,7 @@
 <input type="search" id="rankSearch" placeholder="기본은 자동추천 · 검색은 선택사항" autocomplete="off">
 </label>
 </div>
-<p class="note">핵심 패턴: 폴링 웻지 · 역헤드앤숄더 · 더블바텀 · Bull Flag(상승 깃발형). RSI 14의 30선 상향 재돌파 및 상승다이버전스는 신규 일봉 관측자료가 발행되면 표시됩니다. 기존 패턴 근사와 신규 형성 중·돌파 관측은 구분되며, 자동 매수 인증은 아닙니다. OBV는 수급 주체를 식별하지 못합니다.</p>
+<p class="note">핵심 패턴: 폴링 웻지 · 역헤드앤숄더 · 더블바텀 · Bull Flag(상승 깃발형). <strong>일봉은 스윙, 완성된 주봉은 중장기 관찰</strong>로 구분합니다. 현재 진행 중인 주봉은 사용하지 않으며, 최근 RSI 30 재돌파·확정 상승다이버전스도 주기별로 표시합니다. 신규 패턴과 RSI는 다음 정상 장마감 분석에서 관측되며, 매수 신호·기관 매집 증거가 아닙니다.</p>
 <p id="rankCount" class="note" aria-live="polite">후보 목록 확인 중…</p>
 <div id="rankCards"><p class="empty">점수와 자료를 검증하고 있습니다.</p></div>
 <button id="rankMore" type="button" class="secondary" hidden>다음 후보 24종목 더 보기</button>
