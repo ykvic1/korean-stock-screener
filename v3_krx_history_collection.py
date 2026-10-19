@@ -151,7 +151,9 @@ def collect_krx_history(dates, *, live=False, key=None,
             except KRXProbeError as err:
                 raise HistoryCollectionError(
                     "krx_" + err.market.lower() + "_" + err.reason) from None
-            except (ProbeError, ValueError, KeyError, TypeError):
+            except Exception:
+                # Do not emit arbitrary provider exceptions: a transport
+                # exception can contain authorization headers or URLs.
                 raise HistoryCollectionError(
                     "krx_" + market.lower() + "_schema_or_transport_rejected") from None
             raws[market] = raw
