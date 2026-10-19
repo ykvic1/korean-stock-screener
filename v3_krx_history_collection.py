@@ -230,6 +230,31 @@ def collect_krx_history(dates, *, live=False, key=None,
     }
 
 
+def _approved_summary_path(value):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise HistoryCollectionError("invalid_summary_location")
+    dest = Path(value)
+    project = Path(__file__).resolve().parent
+    artifact_root = project / "evidence" / "krx_history"
+    resolved = dest.resolve()
+    if (resolved == project or
+            (project in resolved.parents
+             and artifact_root != resolved
+             and artifact_root not in resolved.parents)):
+        raise HistoryCollectionError("summary_location_not_approved")
+    return dest
+
+
+def _write_private_summary(dest, payload):
+    if dest is not None:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True),
+            encoding="utf-8")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="KRX two-market bounded historical collection, private only")
     parser.add_argument("--dates", required=True,
@@ -240,7 +265,9 @@ def main(argv=None):
                         help="Affirm you reviewed official contract for local raw data retention")
     parser.add_argument("--output", help="Optional PRIVATE summary JSON, never under docs/")
     args = parser.parse_args(argv)
+    dest = None
     try:
+        dest = _approved_summary_path(args.output)
         if args.private_db and not args.live:
             raise HistoryCollectionError("dry_run_cannot_archive")
         result = collect_krx_history(
@@ -248,27 +275,27 @@ def main(argv=None):
             live=args.live, key=os.getenv("KRX_API_KEY"),
             archive_path=args.private_db,
             consent_to_private_retention=args.ack_private_storage)
-        if args.output:
-            dest = Path(args.output)
-            project = Path(__file__).resolve().parent
-            # Summarized counts/digests only may be a private Actions
-            # artifact. Vendor RAW bytes remain forbidden in the repository.
-            artifact_root = project / "evidence" / "krx_history"
-            resolved = dest.resolve()
-            if (resolved == project or
-                    (project in resolved.parents
-                     and artifact_root != resolved
-                     and artifact_root not in resolved.parents)):
-                raise HistoryCollectionError("summary_location_not_approved")
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(json.dumps(result, ensure_ascii=False,
-                                       sort_keys=True), encoding="utf-8")
+        _write_private_summary(dest, result)
+        # Summary contains aggregate counts and hashes, never original payload.
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
     except HistoryCollectionError as exc:
-        # Fixed internal code only: do not leak request URLs or vendor payloads.
-        print(json.dumps({"status":"blocked","reason":str(exc),
-                          "v3_release_ready":False,"confirmed_buy":False}))
+        failure = {
+            "schema": "v3-krx-bounded-daily-history-failure-0.1",
+            "status": "blocked",
+            "reason": str(exc),
+            "failed_market": exc.market,
+            "failed_date": exc.trade_date,
+            "completed_pairs_before_failure": exc.completed_pairs,
+            "http_status": exc.http_status,
+            "v3_release_ready": False,
+            "verified_history_250_sessions": False,
+            "confirmed_buy": False,
+        }
+        # Unlike old code, retain a SAFE diagnostic artifact when KRX fails.
+        # Never include vendor exception bodies, token, request URL or raw bytes.
+        _write_private_summary(dest, failure)
+        print(json.dumps(failure, ensure_ascii=False, sort_keys=True))
         return 1
 
 
