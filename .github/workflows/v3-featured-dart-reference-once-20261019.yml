@@ -1,0 +1,146 @@
+name: One-Time OpenDART 2 Ranked Candidates 2026-10-19
+
+on:
+  push:
+    branches: [v3-20261019-ranked-dart-two-company-once]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  bounded-ranked-dart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install only OpenDART request dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Verify today's market-dated published recommended stocks
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from datetime import date
+          from pathlib import Path
+          market=json.loads(Path('docs/data.json').read_text(encoding='utf-8'))
+          rec=json.loads(Path('docs/recommendations.json').read_text(encoding='utf-8'))
+          if market.get('status')!='success' or market.get('version')!='2.0':
+              raise ValueError('not_a_current_market_snapshot')
+          if market.get('date')!='2026-10-19' or rec.get('asof')!=market['date']:
+              raise ValueError('old_or_mismatched_source_day')
+          if (date.today()-date.fromisoformat(market['date'])).days not in range(0,3):
+              raise ValueError('old_market_date')
+          target=[d.get('code') for d in rec.get('dossiers',[])]
+          present={r.get('code'):r for r in market['stocks']}
+          if not target or len(target)>5 or len(set(target))!=len(target):
+              raise ValueError('no_bounded_current_shortlist')
+          if any(c not in present or present[c].get('price_date')!=market['date']
+                 or present[c].get('price',0)<=0 for c in target):
+              raise ValueError('target_not_validly_priced_same_day')
+          print('Current-day DART candidates=',len(target),'source-day=',market['date'])
+          PY
+      - name: Collect 2023-2025 annual accounts for ONLY current shortlisted firms
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,re
+          from pathlib import Path
+          from official_data import dart_collect
+          market=json.loads(Path('docs/data.json').read_text(encoding='utf-8'))
+          rec=json.loads(Path('docs/recommendations.json').read_text(encoding='utf-8'))
+          day=market['date']
+          targets={x['code']:x for x in market['stocks']}
+          names=[d['code'] for d in rec['dossiers']]
+          secret=os.environ.get('DART_API_KEY')
+          if not secret:
+              raise ValueError('official_DART_key_unavailable_redacted')
+          observed=dart_collect([targets[c] for c in names],day,secret,
+                                years=3,budget_seconds=240)
+          if len(observed)!=len(names) or [x.get('code') for x in observed]!=names:
+              raise ValueError('DART_target_identity_mismatch')
+          for stock in observed:
+              if stock.get('status') not in ('observed','unconfirmed','deferred'):
+                  raise ValueError('unexpected_DART_status')
+              for item in stock.get('reports',[]):
+                  receipt=item.get('receipt_id')
+                  if (not isinstance(receipt,str) or
+                      not re.fullmatch(r'\d{14}',receipt) or receipt[:8]>day.replace('-','') or
+                      item.get('year') not in (2023,2024,2025) or
+                      item.get('fs_div') not in ('CFS','OFS') or
+                      item.get('currency')!='KRW' or
+                      item.get('revision_history_verified') is not False or
+                      item.get('point_in_time_historical_price_verified') is not False):
+                      raise ValueError('unverified_filing_receipt_or_scope')
+          valid=sum(x['status']=='observed' for x in observed)
+          if valid<1:
+              raise ValueError('no_ranked_DART_annual_reference_observed')
+          out={
+            'asof':day,
+            'dart':{
+              'status':'observed','requested':len(names),
+              'universe':len(market['stocks']),
+              'observed':valid,
+              'unconfirmed':sum(x['status']=='unconfirmed' for x in observed),
+              'deferred':sum(x['status']=='deferred' for x in observed),
+              'source':'OpenDART fnlttSinglAcntAll annual (bounded ranked candidates)',
+              'audit_basis':'receipt dated no later than screen, revisions and PIT not validated',
+              'stocks':observed,
+            },
+            'krx':{'status':'key_required','secret':'KRX_API_KEY'},
+            'backtest_included':False,
+            'financial_reference_not_automatically_scored':True
+          }
+          path=Path('docs/official.json')
+          tmp=path.with_suffix('.tmp')
+          tmp.write_text(json.dumps(out,ensure_ascii=False,indent=2,allow_nan=False)+'\n',
+                         encoding='utf-8')
+          tmp.replace(path)
+          print('Ranked OpenDART reference observed=',valid,'requested=',len(names),
+                ' historical_backtest=false')
+          PY
+      - name: Publish limited derived annual references only after source-date recheck
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/official.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Source-dated OpenDART annual references for two shortlisted stocks (observed only)"
+            git pull --rebase origin main
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('docs/data.json').read_text(encoding='utf-8'))
+          r=json.loads(Path('docs/recommendations.json').read_text(encoding='utf-8'))
+          o=json.loads(Path('docs/official.json').read_text(encoding='utf-8'))
+          codes=[d.get('code') for d in r.get('dossiers',[])]
+          entries=o['dart'].get('stocks',[])
+          if (m.get('date')!='2026-10-19' or r.get('asof')!=m['date'] or
+              o.get('asof')!=m['date'] or
+              [x.get('code') for x in entries]!=codes or
+              o['dart']['requested']!=len(codes) or
+              o['dart']['status']!='observed' or
+              o['dart']['observed']<1 or
+              o.get('backtest_included') is not False or
+              o.get('financial_reference_not_automatically_scored') is not True or
+              any(x.get('code') not in {s.get('code') for s in m['stocks']} for x in entries)):
+              raise ValueError('DART_publication_source_changed')
+          print('Source matched: observed-ranked-DART=',o['dart']['observed'])
+          PY
+            git push origin HEAD:main
+          fi
+      - name: Do not archive original filings or API request payloads
+        if: always()
+        run: |
+          echo 'Only compact derived annual summaries may be committed to docs/official.json.'
