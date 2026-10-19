@@ -2,8 +2,8 @@
   "schema": "v3-targeted-live-shortlist-quant-v1",
   "asof": "2026-10-19",
   "status": "exploratory",
-  "peer_cohort_requested": 40,
-  "peer_cohort_valid": 23,
+  "peer_cohort_requested": 120,
+  "peer_cohort_valid": 75,
   "candidate_count": 2,
   "historical_statistics_exploratory_only": true,
   "survivorship_bias_unresolved": true,
@@ -16,8 +16,8 @@
       "status": "insufficient",
       "reference_price_date": "2026-10-19",
       "periods": {},
-      "peer_cohort_requested": 40,
-      "peer_cohort_valid": 23
+      "peer_cohort_requested": 120,
+      "peer_cohort_valid": 75
     },
     {
       "code": "149950",
@@ -26,94 +26,94 @@
       "reference_price_date": "2026-10-19",
       "periods": {
         "초단기 1주": {
-          "status": "insufficient",
-          "sample_n": 185,
-          "symbol_n": 7,
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 25,
           "quarter_n": 27,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
+          "mean_net_return_pct": -0.61,
+          "stop_first_pct": 41.6,
+          "max_adverse_p75_pct": 6.29,
+          "target_first_pct": 27.0,
+          "up_pct": 44.2,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "단기 2주": {
-          "status": "insufficient",
-          "sample_n": 183,
-          "symbol_n": 7,
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 24,
           "quarter_n": 26,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
+          "mean_net_return_pct": -0.59,
+          "stop_first_pct": 42.6,
+          "max_adverse_p75_pct": 8.62,
+          "target_first_pct": 29.4,
+          "up_pct": 43.6,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "스윙 1개월": {
-          "status": "insufficient",
-          "sample_n": 181,
-          "symbol_n": 6,
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 23,
           "quarter_n": 26,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
+          "mean_net_return_pct": -0.12,
+          "stop_first_pct": 44.8,
+          "max_adverse_p75_pct": 12.34,
+          "target_first_pct": 33.4,
+          "up_pct": 41.6,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "스윙 2개월": {
-          "status": "insufficient",
-          "sample_n": 93,
-          "symbol_n": 6,
-          "quarter_n": 24,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
+          "status": "exploratory",
+          "sample_n": 441,
+          "symbol_n": 24,
+          "quarter_n": 26,
+          "mean_net_return_pct": -0.47,
+          "stop_first_pct": 48.8,
+          "max_adverse_p75_pct": 17.47,
+          "target_first_pct": 32.0,
+          "up_pct": 40.6,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "중기 3개월": {
-          "status": "insufficient",
-          "sample_n": 66,
-          "symbol_n": 6,
-          "quarter_n": 24,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
+          "status": "exploratory",
+          "sample_n": 299,
+          "symbol_n": 24,
+          "quarter_n": 26,
+          "mean_net_return_pct": 0.77,
+          "stop_first_pct": 46.2,
+          "max_adverse_p75_pct": 20.12,
+          "target_first_pct": 36.5,
+          "up_pct": 43.5,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "중기 6개월": {
-          "status": "insufficient",
-          "sample_n": 31,
-          "symbol_n": 6,
-          "quarter_n": 13,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
+          "status": "exploratory",
+          "sample_n": 147,
+          "symbol_n": 23,
+          "quarter_n": 19,
+          "mean_net_return_pct": -0.65,
+          "stop_first_pct": 55.1,
+          "max_adverse_p75_pct": 24.34,
+          "target_first_pct": 31.3,
+          "up_pct": 42.2,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "장기 1년": {
           "status": "insufficient",
-          "sample_n": 17,
-          "symbol_n": 6,
-          "quarter_n": 5,
+          "sample_n": 74,
+          "symbol_n": 24,
+          "quarter_n": 10,
           "mean_net_return_pct": null,
           "stop_first_pct": null,
           "max_adverse_p75_pct": null,
@@ -124,8 +124,8 @@
           }
         }
       },
-      "peer_cohort_requested": 40,
-      "peer_cohort_valid": 23
+      "peer_cohort_requested": 120,
+      "peer_cohort_valid": 75
     }
   ]
 }
