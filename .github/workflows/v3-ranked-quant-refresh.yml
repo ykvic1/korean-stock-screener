@@ -100,10 +100,18 @@ jobs:
             git pull --rebase origin main
             python - <<'PY'
           import json
-          m=json.load(open('docs/data.json',encoding='utf-8'))
-          q=json.load(open('docs/quant.json',encoding='utf-8'))
-          if m['date']!=q['asof']:
-              raise ValueError('market_changed_during_quant_run')
+          from v3_ranked_quant_coverage import audit_recommended_quant
+          market=json.load(open('docs/data.json',encoding='utf-8'))
+          rec=json.load(open('docs/recommendations.json',encoding='utf-8'))
+          study=json.load(open('docs/quant.json',encoding='utf-8'))
+          published=json.load(open('docs/v3-quant-coverage.json',encoding='utf-8'))
+          fresh=audit_recommended_quant(market,rec,study)
+          if not fresh['quant_study_same_date'] or any(
+                  fresh['candidate_status_counts'][key]
+                  for key in ('awaiting_fresh_study',)):
+              raise ValueError('failed_live_recommendation_quant_reconciliation')
+          if published != fresh:
+              raise ValueError('quant_research_document_and_market_mismatch')
           PY
             git push origin HEAD:main
           fi
