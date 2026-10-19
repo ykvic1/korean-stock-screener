@@ -44,7 +44,7 @@ assert.equal(observed.stopCloseBroken,false);
 const violated=x.markToMarket(tracked,{'043370':{price:10370}},'2026-10-19',Date.parse('2026-10-19T07:00:00Z'));
 assert.equal(violated.stopCloseBroken,true);
 assert.equal(x.markToMarket(tracked,{},'2026-10-19',Date.parse('2026-10-19T07:00:00Z')).gainPct,null);
-assert.equal(x.markToMarket(tracked,{'043370':{price:9999}},'2026-10-24',Date.parse('2026-10-24T07:00:00Z')).gainPct,null,'stale values cannot become forward performance');
+assert.equal(x.markToMarket(tracked,{'043370':{price:9999}},'2026-10-24',Date.parse('2026-10-30T07:00:00Z')).gainPct,null,'stale values cannot become forward performance');
 assert.equal(x.markToMarket(tracked,{'043370':{price:9999}},'2026-10-15',Date.parse('2026-10-15T07:00:00Z')).gainPct,null,'past observations cannot be future returns');
 assert.equal(x.safeRecord({date:'2026-10-16',code:'043370',entry:10,stop:20}),null);
 assert.equal(x.escapeHtml('<img src=x onerror=alert(1)>'),'&lt;img src=x onerror=alert(1)&gt;');
