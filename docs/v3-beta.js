@@ -6,7 +6,7 @@
   'use strict';
   const STORAGE_KEY='kr-stock-v3-paper-beta-1';
   const ID=/^[0-9A-Z]{6}$/;
-  const KIND_VALUES=new Set(['all','early','weekly','pattern','volume','obv']);
+  const KIND_VALUES=new Set(['all','early','weekly','pattern','volume','obv','partial']);
   const RISK_VALUES=new Set(['all','controlled','unverified']);
   const STATUS_VALUES=new Set(['all','priced','missing']);
   const MARKET_VALUES=new Set(['all','KOSPI','KOSDAQ']);
@@ -72,6 +72,47 @@
     return {...view,stocks:rows,total:rows.length,catalogLoaded:true,
       pricedCount:counts.priced,missingCount:rows.length-counts.priced};
   }
+  function mergePartial(view,partial){
+    if(!view?.catalogLoaded||!partial||
+        partial.schema!=='v22-current-listed-partial-daily-60to159-v0.1'||
+        partial.asof!==view.date||!Array.isArray(partial.rows)||
+        partial.rows.length>80||
+        partial.rows.length!==partial.listed_insufficient_history_count||
+        partial.full_v22_score_allowed!==false||
+        partial.v3_validated_technical_score_allowed!==false||
+        partial.confirmed_buy_signal!==false||
+        partial.raw_ohlcv_published!==false)return null;
+    const candidates=new Map(view.stocks.filter(r=>r.price_history_status==='insufficient_history')
+      .map(r=>[r.code,r]));
+    if(candidates.size!==partial.rows.length)return null;
+    const seen=new Set(),map=new Map(),outcomes={partial_technical_observed:0,not_observable_partial:0};
+    for(const x of partial.rows){
+      if(!x||!ID.test(clean(x.code))||!candidates.has(x.code)||seen.has(x.code)||
+         !Object.prototype.hasOwnProperty.call(outcomes,x.status)||
+         !Number.isInteger(x.bars)||x.bars<0||x.bars>3500)return null;
+      seen.add(x.code);outcomes[x.status]++;
+      if(x.status==='partial_technical_observed'){
+        if(x.bars<60||x.bars>=160||!fin(x.close_reference)||x.close_reference<=0||
+           !fin(x.ma20)||x.ma20<=0||!fin(x.ma60)||x.ma60<=0||
+           !fin(x.close_vs_ma20_pct)||!fin(x.close_vs_ma60_pct)||
+           !['rising','falling','flat'].includes(x.obv_direction_60_daily)||
+           !(x.ma120_daily===null||(x.bars>=120&&fin(x.ma120_daily)&&x.ma120_daily>0))||
+           (x.bars<120&&x.ma120_daily!==null)||
+           !(x.volume_ratio_20_vs_prior_20===null||
+             (fin(x.volume_ratio_20_vs_prior_20)&&x.volume_ratio_20_vs_prior_20>=0))||
+           x.full_score!==undefined||x.stop_line!==undefined||
+           x.v3_buy_signal!==undefined)return null;
+      }else if(x.close_reference!==undefined||x.ma20!==undefined||
+               x.ma60!==undefined)return null;
+      map.set(x.code,x);
+    }
+    if(seen.size!==candidates.size||
+       outcomes.partial_technical_observed!==partial.partial_observed_count||
+       outcomes.not_observable_partial!==partial.still_unavailable_count)return null;
+    return {...view,stocks:view.stocks.map(r=>map.has(r.code)?
+      {...r,partialObservation:map.get(r.code)}:r),
+      partialLoaded:true,partialObservedCount:outcomes.partial_technical_observed};
+  }
   function priceRisk(row) {
     const stop=n(row&&row.stop_line), price=n(row&&row.price);
     if(!(price>0&&stop>0&&stop<price))return null;
@@ -96,6 +137,7 @@
     if(filter.status==='priced'&&r.price_history_status&&r.price_history_status!=='priced')return false;
     if(filter.status==='missing'&&(!r.price_history_status||r.price_history_status==='priced'))return false;
     if(filter.kind==='early'&&!early(r))return false;
+    if(filter.kind==='partial'&&r.partialObservation?.status!=='partial_technical_observed')return false;
     if(filter.kind==='weekly'&&!((r.signals||[]).includes('주봉 120주선 회복')||
       (fin(r.ma120w_gap)&&Math.abs(r.ma120w_gap)<=10)))return false;
     if(filter.kind==='pattern'&&!(Array.isArray(r.patterns)&&r.patterns.length))return false;
@@ -152,7 +194,7 @@
       latestPrice:r.price,asof:day,
     };
   }
-  const core={parseSnapshot,mergeCatalog,priceRisk,riskDescription,eligible,rankRows,isStale,safeRecord,makeRecord,markToMarket,escapeHtml,KIND_VALUES,RISK_VALUES,STATUS_VALUES,MARKET_VALUES};
+  const core={parseSnapshot,mergeCatalog,mergePartial,priceRisk,riskDescription,eligible,rankRows,isStale,safeRecord,makeRecord,markToMarket,escapeHtml,KIND_VALUES,RISK_VALUES,STATUS_VALUES,MARKET_VALUES};
   if(typeof module!=='undefined'&&module.exports)module.exports=core;
   root.V3BetaCore=core;
   if(!root.document)return;
