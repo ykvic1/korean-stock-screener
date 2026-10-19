@@ -238,12 +238,24 @@
         const lowTurnoverNote=r.price_history_status==='price_source_or_validation_error'&&
           trade===0?
           ' · 상장 목록 참고 거래대금 0.00억원(반올림). 원 단위 무거래·거래정지 여부는 미확인.':'';
+        const partial=r.partialObservation?.status==='partial_technical_observed'?
+          '<p class="note"><b>일봉 부분 관측 ('+r.partialObservation.bars+'개)</b> · 기준일 종가 '+
+          money(r.partialObservation.close_reference)+' · 20일 MA '+
+          money(r.partialObservation.ma20)+' · 60일 MA '+
+          money(r.partialObservation.ma60)+
+          (fin(r.partialObservation.ma120_daily)?' · 일봉 120일 MA '+
+            money(r.partialObservation.ma120_daily):' · 일봉 120일 MA 미확보')+
+          ' · OBV 60일 방향 '+escapeHtml(r.partialObservation.obv_direction_60_daily)+
+          ' · 지난 20일/직전 20일 거래량 비율 '+
+          (fin(r.partialObservation.volume_ratio_20_vs_prior_20)?
+            r.partialObservation.volume_ratio_20_vs_prior_20.toFixed(2)+'배':'미확인')+
+          '. <b>주봉120주선·정식 점수·매수 판단 없음</b></p>':'';
         return '<article class="v3-stock"><div class="v3-head"><div><strong>'+escapeHtml(r.name)+
           '</strong><div class="sub">'+escapeHtml(r.code)+' · '+escapeHtml(r.market)+
           '</div></div><span class="v3-tag">'+escapeHtml(reason)+'</span></div>'+
           '<p class="sub">'+escapeHtml(firm)+' · '+escapeHtml(sourceNote)+'</p>'+
           '<p class="note">현재 분석 기준일의 기술 지표가 없어 모의 진입 기록과 매수 판단을 생성하지 않습니다.'+
-          escapeHtml(lowTurnoverNote)+'</p></article>';
+          escapeHtml(lowTurnoverNote)+'</p>'+partial+'</article>';
       }
       const risk=priceRisk(r);
       const signals=Array.isArray(r.patterns)?r.patterns.slice(0,2).map(escapeHtml).join(' · '):'없음';
@@ -287,7 +299,9 @@
       by('v3Count').textContent='현재 상장 종목 '+view.stocks.length.toLocaleString('ko-KR')+
         '개 ('+(view.catalogLoaded?'전 종목 목록 연결':'가격 관측 가능한 종목만 연결')+') · 가격 분석 '+
         (view.pricedCount??view.stocks.length).toLocaleString('ko-KR')+'개 · 자료 부족/오류 '+
-        (view.missingCount??'미집계')+'개 · 필터 '+matching.length.toLocaleString('ko-KR')+
+        (view.missingCount??'미집계')+'개 · 일봉 부분 관측 '+
+        (view.partialLoaded?view.partialObservedCount+'개':'게시 대기')+
+        ' · 필터 '+matching.length.toLocaleString('ko-KR')+
         '개 · '+selected.length+'개 표시';
       list.innerHTML=selected.length?selected.map(rowCard).join(''):'<p class="empty">현재 조건을 충족하는 후보가 없어 관망합니다. 필터를 바꿔 확인할 수 있습니다.</p>';
       by('v3More').hidden=matching.length<=limit;
@@ -336,6 +350,16 @@
             if(merged)view=merged;
           }
         }catch(_){/* Existing valid price cards remain usable until next market run. */}
+        if(view.catalogLoaded){
+          try{
+            const partialResponse=await root.fetch('v22-partial-history.json?beta='+Date.now(),{cache:'no-store'});
+            if(partialResponse.ok){
+              const p=await partialResponse.json();
+              const merged=mergePartial(view,p);
+              if(merged)view=merged;
+            }
+          }catch(_){/* Missing or stale short-history optional data keeps existing safe rows. */}
+        }
         noteStatus();
         render();renderLedger();
       }catch(_){
