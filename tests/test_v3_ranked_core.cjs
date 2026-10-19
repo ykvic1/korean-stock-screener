@@ -119,6 +119,18 @@ const fake=structuredClone(stocks[0]);fake.stop_pct=-1;
 assert.equal(m.stopDistance(fake),null);
 const lq=structuredClone(research);lq.stocks[0].reference_price_date='2026-10-15';
 assert.equal(m.prepare(snap,lq,recs).quantCount,0);
+const todayRecPending={...recs,research_source_matched:false,
+  research_source_date:'2026-10-15'};
+const pending=m.prepare(snap,oldBroad,todayRecPending);
+assert.equal(pending.recommendationCount,1,
+  'show current-day screened candidate without waiting for its historical quant');
+assert.equal(pending.recommendationQuantCount,0,
+  'old 120-stock study must never become a current-day quant outcome');
+assert.equal(pending.rows[0].decision.label,'퀀트 대기',
+  'allow research request but not an imaginary current-day buy signal');
+const nowResearched=m.prepare(snap,oldBroad,todayRecPending,undefined,priorityFeed);
+assert.equal(nowResearched.recommendationUsableQuantCount,1,
+  'a separately observed same-date priority cohort must bootstrap current candidate review');
 const badRec={...recs,asof:'2026-10-15'};
 assert.equal(m.prepare(snap,research,badRec).recommendationCount,0);
 assert.equal(m.esc('<img src=x>'),'&lt;img src=x&gt;');
