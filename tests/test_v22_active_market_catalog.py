@@ -70,6 +70,15 @@ class ActiveListedMarketCatalogTests(unittest.TestCase):
         self.assertIsNone(entries["300003"]["flow_reference"])
         self.assertIsNone(entries["300004"]["fundamental_revenue"])
 
+    def test_incomplete_flow_is_nullable_without_blocking_entire_market(self):
+        snap,listing=fixture()
+        snap["stocks"][0]["foreign_shares"]=None
+        result=build_active_catalog(snap,listing)
+        row=next(x for x in result["rows"] if x["code"]=="005930")
+        self.assertIsNone(row["flow_reference"])
+        self.assertEqual(result["flow_reference_unavailable_count"],1)
+        self.assertEqual(result["listed_total"],7)
+
     def test_missing_stock_is_not_silently_deleted_and_delisted_not_added(self):
         snap,listing=fixture()
         listing.pop("300005")
