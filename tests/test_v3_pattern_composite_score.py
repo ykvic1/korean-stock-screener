@@ -88,6 +88,13 @@ class CompositeContract(unittest.TestCase):
         self.assertEqual(x["score"], 77.7, "v2 score remains unchanged")
         self.assertEqual(x["decision"], "추가 검증 필요")
 
+    def test_stop_price_uses_analysed_ohlcv_not_old_listing_snapshot(self):
+        x = stock()
+        x["price"] = 70  # stale raw-listing value, not the price_latest day
+        out = evaluate(x)
+        self.assertEqual(out["components"]["downside"], 10)
+        self.assertTrue(out["ready_for_ranking"])
+
     def test_missing_weekly_evidence_must_not_fake_full_100(self):
         x = stock()
         del x["pattern_weekly_research"]
