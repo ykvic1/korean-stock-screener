@@ -174,6 +174,74 @@ class KRXHistoricalCollectorTests(unittest.TestCase):
                                 consent_to_private_retention=True)
         self.assertFalse(p.exists())
 
+    def test_schema_failure_keeps_exact_safe_date_market_and_private_artifact(self):
+        class BadSource(FakeClient):
+            def daily_market(self, market, day):
+                self.calls.append((market, day))
+                invalid = rows(market, day)
+                invalid[0]["BAS_DD"] = "20261014"
+                return invalid, json.dumps({"OutBlock_1":invalid}).encode()
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "diagnostic.json"
+            fake = BadSource()
+            with patch("v3_krx_history_collection.KRXClient", return_value=fake):
+                with patch.dict(os.environ, {"KRX_API_KEY":"MOST_PRIVATE_KEY"}):
+                    with patch("sys.stdout",new_callable=StringIO) as console:
+                        rc=main(["--dates","2026-10-15,2026-10-16",
+                                 "--live","--output",str(path)])
+            self.assertEqual(rc,1)
+            report=json.loads(path.read_text())
+            self.assertEqual(report["reason"],"cross_date_market_data")
+            self.assertEqual(report["failed_market"],"KOSPI")
+            self.assertEqual(report["failed_date"],"2026-10-15")
+            self.assertEqual(report["completed_pairs_before_failure"],0)
+            self.assertEqual(fake.calls,[("KOSPI","2026-10-15")])
+            self.assertFalse(report["confirmed_buy"])
+            self.assertNotIn("MOST_PRIVATE_KEY",console.getvalue())
+            self.assertNotIn("MOST_PRIVATE_KEY",path.read_text())
+
+    def test_private_failure_summary_redacts_vendor_exception(self):
+        private="a-secret-must-never-appear-in-history-failure-report"
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/"diagnostic.json"
+            class ExplodingSource(FakeClient):
+                def daily_market(self,market,day):
+                    raise RuntimeError("https://krx.example/api?AUTH_KEY="+private)
+            with patch("v3_krx_history_collection.KRXClient",return_value=ExplodingSource()):
+                with patch.dict(os.environ,{"KRX_API_KEY":private}):
+                    with patch("sys.stdout",new_callable=StringIO) as console:
+                        rc=main(["--dates","2026-10-15","--live",
+                                 "--output",str(path)])
+            self.assertEqual(rc,1)
+            record=json.loads(path.read_text())
+            self.assertEqual(record["reason"],"unclassified_market_processing_error")
+            self.assertEqual(record["failed_date"],"2026-10-15")
+            self.assertEqual(record["failed_market"],"KOSPI")
+            self.assertIsNone(record["http_status"])
+            self.assertNotIn(private,path.read_text())
+            self.assertNotIn(private,console.getvalue())
+            self.assertNotIn("https",console.getvalue())
+
+    def test_second_day_failed_diagnostic_counts_only_complete_prior_pair(self):
+        day1="2026-10-15"
+        day2="2026-10-16"
+        class MidwayBad(FakeClient):
+            def daily_market(self,market,day):
+                self.calls.append((market,day))
+                line=rows(market,day)
+                if market=="KOSDAQ" and day==day2:
+                    line[0]["BAS_DD"]="20261014"
+                return line,json.dumps({"OutBlock_1":line}).encode()
+        fake=MidwayBad()
+        with self.assertRaises(HistoryCollectionError) as error:
+            collect_krx_history([day1,day2],live=True,key="local-demo",client=fake)
+        exc=error.exception
+        self.assertEqual((exc.trade_date,exc.market,exc.completed_pairs),
+                         (day2,"KOSDAQ",1))
+        self.assertEqual(str(exc),"cross_date_market_data")
+        self.assertEqual(len(fake.calls),4)
+
     def test_cli_dry_run_summary_only_allowlisted_private_path(self):
         with tempfile.TemporaryDirectory() as td:
             output=Path(td)/"report.json"
