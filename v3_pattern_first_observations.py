@@ -5,7 +5,7 @@ Never create investor flow, official-price evidence, or investment decisions.
 """
 import numpy as np
 import pandas as pd
-from technical_v22 import rsi, divergence
+from technical_v22 import rsi, divergence, pattern_snapshot
 
 SCHEMA = "v3-pattern-first-daily-research-0.1"
 
@@ -171,6 +171,9 @@ def observe_completed_weekly(daily):
     if study["status"] != "heuristic_unverified":
         return result
     study["timeframe"] = "weekly"
+    # Same-price-source geometry: falling wedge, inverse H&S, triangle and
+    # post-rise compression. Each is only a *heuristic candidate*.
+    study["pattern_geometry"] = pattern_snapshot(week)
     study["completed_week_only"] = True
     study["asof"] = week.index[-1].date().isoformat()
     return study
