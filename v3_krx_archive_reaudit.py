@@ -54,7 +54,7 @@ def audit_private_archive(*, start, end, private_db, calendar_source="xkrx",
     Only small metadata descriptors enter the chain manifest. The database is
     never created or mutated and no official API is called.
     """
-    if type(private_db) not in (str, Path) or not str(private_db):
+    if not isinstance(private_db, (str, Path)) or not str(private_db):
         raise ArchiveReauditError("explicit_private_database_path_required")
     path = Path(private_db).expanduser()
     if path.suffix != ".sqlite3":
