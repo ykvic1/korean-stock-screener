@@ -22,6 +22,7 @@ import sys
 from zoneinfo import ZoneInfo
 
 import screener
+from v22_price_error_triage import public_reason
 
 SCHEMA = "full-market-batched-100-v0.1"
 CHUNK = 100
@@ -167,7 +168,10 @@ def scan(*, manifest: dict, part: int, out: Path,
         except screener.InsufficientHistory:
             excluded.append([code, "insufficient_valid_price_history"])
         except Exception as exc:
-            label = type(exc).__name__
+            # 2026-10-19 operational failures were all logged "ValueError".
+            # Preserve stable fixed cause codes without ever publishing the
+            # source exception text, raw provider rows or credentials.
+            label = public_reason(exc) if isinstance(exc, ValueError) else type(exc).__name__
             if not re.fullmatch(r"[A-Za-z_]{1,64}", label):
                 label = "SourceError"
             errors.append([code, "가격이력", label])
