@@ -60,6 +60,24 @@ assert.equal(m.observedAnnuals({...official,dart:{status:'key_required'}},'2026-
 assert.equal(m.observedAnnuals({...official,dart:{...official.dart,stocks:[
  {code:'111111',status:'observed',reports:[{...official.dart.stocks[0].reports[0],year:2027}]}]
 }},'2026-10-16').size,0,'financial report newer than screen must not attach');
+const priorityFeed={schema:'v3-targeted-live-shortlist-quant-v1',
+ asof:'2026-10-16',status:'exploratory',peer_cohort_valid:29,
+ raw_ohlcv_copied:false,verified_predictive_accuracy:false,
+ stocks:[{code:'111111',status:'exploratory',reference_price_date:'2026-10-16',
+         peer_cohort_requested:40,periods:{
+          '스윙 1개월':research.stocks[0].periods['스윙 1개월']}}]};
+const oldBroad={status:'exploratory',asof:'2026-10-15',stocks:[]};
+const targeted=m.prepare(snap,oldBroad,recs,undefined,priorityFeed);
+assert.equal(targeted.recommendationQuantCount,1);
+assert.equal(targeted.recommendationUsableQuantCount,1);
+assert.equal(targeted.rows[0].quantSource,'추천 우선 연구 40종목 표본');
+assert.equal(targeted.rows[0].decision.label,'조건부 모의 검토');
+assert.equal(m.prepare(snap,research,recs,undefined,priorityFeed).rows[0].quantSource,
+ '일반 연구 최대 120종목 표본','prefer same-day full 120 peer study when usable');
+assert.equal(m.prepare(snap,oldBroad,recs,undefined,
+ {...priorityFeed,asof:'2026-10-15'}).recommendationQuantCount,0);
+assert.equal(m.prepare(snap,oldBroad,recs,undefined,
+ {...priorityFeed,verified_predictive_accuracy:true}).recommendationQuantCount,0);
 const result=m.prepare(snap,research,recs);
 assert.equal(result.marketEligible,2498);
 assert.equal(result.rows.length,3);
