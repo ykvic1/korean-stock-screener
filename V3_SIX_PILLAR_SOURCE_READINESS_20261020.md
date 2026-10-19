@@ -12,7 +12,7 @@ The audit deliberately distinguishes:
 - Stock-relative 20/60d price indicators from independent market-calibrated momentum10.
 - Current sector labels from a complete as-of historical sector-constituent cohort required for industry15.
 
-Output is source-labeled, date-stamped diagnostic JSON with **observed counts and blockers**, NOT an investment ranking. It does not claim that six-pillar released scores are available. It is stored only as a time-limited GitHub Actions artifact from a manual, read-only workflow `V3 Six-Pillar Source Readiness Audit (offline)`, with **no repository write** and **no UI changes**. GitHub scheduled market screening, OpenDART rolling calls, Pages and v2.2 decisions are unchanged.
+Output is source-labeled, date-stamped diagnostic JSON with **observed counts and blockers**, NOT an investment ranking. It does not claim that six-pillar released scores are available. It is stored only as a 14-day GitHub Actions diagnostic artifact from a read-only workflow `V3 Six-Pillar Source Readiness Audit (offline)`, with **no repository write** and **no UI changes**. It runs once automatically on `main` push of its own audit code/workflow and can be run manually afterwards. Ordinary daily trading-data commits do not trigger it. GitHub scheduled market screening, OpenDART rolling calls, Pages and v2.2 decisions are unchanged.
 
 Use `python v3_six_pillar_source_readiness.py --output reports/v3-source-readiness.json` locally or the manual workflow to generate an audit from the currently published snapshots. If market/catalog dates differ or DART is unexpectedly future-dated, abort without a misleading success report. A rolling DART file older than market date is identified by its precise lag, not forged into a same-day valuation.
 
