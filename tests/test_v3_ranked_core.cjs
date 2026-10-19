@@ -37,6 +37,29 @@ assert.equal(m.decision(stocks[1],research.stocks[0]).label,'매수 보류');
 assert.equal(m.decision(stocks[2],research.stocks[0]).label,'매수 보류');
 assert.equal(m.decision(stocks[0],research.stocks[0]).label,'조건부 모의 검토');
 assert.equal(m.decision(stocks[0],null).label,'퀀트 대기');
+const official={asof:'2026-10-16',dart:{status:'observed',stocks:[
+ {code:'111111',status:'observed',reports:[
+  {year:2025,fs_div:'CFS',receipt_id:'20260331001234',currency:'KRW',
+   values:{revenue:12000000000,operating_income:900000000,
+           operating_cashflow:1000000000,debt_to_equity_pct:90.4},
+   revision_history_verified:false}
+ ]},
+ {code:'222222',status:'unconfirmed',reports:[]},
+]}};
+const withFinance=m.prepare(snap,research,recs,official);
+assert.equal(withFinance.financialReferenceCount,1);
+assert.equal(withFinance.recommendationFinancialCount,1);
+assert.equal(withFinance.rows[0].financialRef.year,2025);
+assert.equal(withFinance.rows[0].financialRef.values.revenue,12000000000);
+assert.equal(m.eok(12000000000),'120억원');
+assert.equal(m.eok(null),'미확인');
+assert.equal(m.prepare(snap,research,recs,{...official,asof:'2026-10-15'}).financialReferenceCount,0,
+ 'old annual summary must not attach to newer stock price date');
+assert.equal(m.observedAnnuals({...official,dart:{status:'key_required'}},'2026-10-16').size,0,
+ 'DART key missing is not equivalent to 0 KRW revenue');
+assert.equal(m.observedAnnuals({...official,dart:{...official.dart,stocks:[
+ {code:'111111',status:'observed',reports:[{...official.dart.stocks[0].reports[0],year:2027}]}]
+}},'2026-10-16').size,0,'financial report newer than screen must not attach');
 const result=m.prepare(snap,research,recs);
 assert.equal(result.marketEligible,2498);
 assert.equal(result.rows.length,3);
