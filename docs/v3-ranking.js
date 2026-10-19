@@ -190,6 +190,16 @@ function financialHistoryTable(annual){
    '<th>영업현금흐름</th><th>부채비율</th></tr></thead><tbody>'+
    rows+'</tbody></table></div>';
 }
+function simpleAnnualOfsBookReference(row,annual){
+ // This is NOT exchange-reported PBR and MUST NOT fill the v2 PBR factor.
+ // OFS total equity and current market cap are different reporting dates.
+ if(!annual||annual.fs_div!=='OFS'||!finite(row?.market_cap_eok)||
+     row.market_cap_eok<=0||!finite(annual.values?.equity)||
+     annual.values.equity<=0)return null;
+ const ratio=row.market_cap_eok*1e8/annual.values.equity;
+ return finite(ratio)&&ratio>0&&ratio<10000?
+   Math.round(ratio*100)/100:null;
+}
 function quantGlance(q){
  if(!q)return '당일 퀀트 미확보';
  const items=[['스윙 1개월','1개월'],['중기 3개월','3개월'],['중기 6개월','6개월']]
@@ -198,7 +208,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,financialHistoryTable,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
@@ -290,7 +300,14 @@ function init(){
       '<div><small>부채비율</small><b>'+
        (finite(x.financialRef.values.debt_to_equity_pct)?
          x.financialRef.values.debt_to_equity_pct.toFixed(1)+'%':'미확인')+
-      '</b></div></div>'+financialHistoryTable(x.financialRef):
+      '</b></div></div>'+
+     (simpleAnnualOfsBookReference(r,x.financialRef)!==null?
+       '<p class="note"><b>비공식 간이 P/B 참고: '+
+        simpleAnnualOfsBookReference(r,x.financialRef).toFixed(2)+'배</b> · 현재 시가총액 ÷ '+
+        x.financialRef.year+'년 별도(OFS) 기말 자기자본. 공시일·시총 시점 불일치, 우선주·주식수·정정 이력 미검증. '+
+        '<b>거래소 공인 PBR이나 기존 점수의 PBR 5점을 대신하지 않습니다.</b></p>':
+       '<p class="note">간이 P/B 참고 미산출 — 검증 가능한 별도 자기자본 및 현재 시총 동시 확보가 필요합니다.</p>')+
+     financialHistoryTable(x.financialRef):
      '<p class="note">해당 종목의 접수일 확인 가능한 연간 공시 재무 참고자료가 아직 연결되지 않았습니다. 미확인 값을 임의 점수로 채우지 않습니다.</p>')+
    '<h3>④ 과거 유사조건 퀀트 연구</h3>'+
    '<p class="note">통계 모집단: '+esc(x.quantSource)+
