@@ -299,8 +299,9 @@ def analyze_history(code,cfg,day):
     rr=(reward_pct / abs(stop_pct)) if reward_pct is not None and stop_pct is not None and stop_pct<0 else None
     pat=daily_patterns(df)
     # Independent unscored pattern/RSI observation. Legacy v2 weights unchanged.
-    from v3_pattern_first_observations import observe
+    from v3_pattern_first_observations import observe, observe_completed_weekly
     pattern_research=observe(df)
+    pattern_weekly_research=observe_completed_weekly(df)
     return {
       'price_date':last.isoformat(),'price_latest':p,'price20':round_or_none(price20),
       'price60':round_or_none(price60),'price120':round_or_none(price120),
@@ -316,7 +317,8 @@ def analyze_history(code,cfg,day):
       'stop_pct':round_or_none(stop_pct),'reference_resistance':round_or_none(high52,0),
       'reference_target_pct':round_or_none(reward_pct),'reward_risk':round_or_none(rr,2),
       'close_vs_ma60_pct':round_or_none(pct(p,m60)),
-      'pattern_research':pattern_research,**pat}
+      'pattern_research':pattern_research,
+      'pattern_weekly_research':pattern_weekly_research,**pat}
 
 
 def load_indexes(day,cfg):
@@ -690,6 +692,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'flow_start_date':r.get('flow_start_date'),'flow_end_date':r.get('flow_end_date'),
           'pbr':r['pbr'],'patterns':r['patterns'],'signals':r['signals'],
           'pattern_research':r.get('pattern_research'),
+          'pattern_weekly_research':r.get('pattern_weekly_research'),
           'stop_line':r['stop_line'],'stop_pct':r['stop_pct'],
           'reference_resistance':r['reference_resistance'],
           'reference_target_pct':r['reference_target_pct'],
