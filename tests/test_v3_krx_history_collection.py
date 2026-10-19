@@ -103,10 +103,20 @@ class KRXHistoricalCollectorTests(unittest.TestCase):
             with self.subTest(malformed=malformed),self.assertRaises(HistoryCollectionError):
                 _snapshot_market(malformed,raw,market="KOSPI",asof=day)
 
+    def test_market_data_must_match_exact_original_response_bytes(self):
+        day="2026-10-16"
+        original=rows("KOSPI",day)
+        raw=json.dumps({"OutBlock_1":original}).encode()
+        malicious=copy.deepcopy(original)
+        malicious[0]["TDD_CLSPRC"]="115"
+        with self.assertRaisesRegex(HistoryCollectionError,"disagree_with_raw"):
+            _snapshot_market(malicious,raw,market="KOSPI",asof=day)
+
     def test_all_suspended_rows_cannot_confirm_market(self):
         batch=rows("KOSPI","2026-10-16",True)[1:]
         with self.assertRaisesRegex(HistoryCollectionError,"no_usable"):
-            _snapshot_market(batch,b"private",market="KOSPI",asof="2026-10-16")
+            _snapshot_market(batch,json.dumps({"OutBlock_1":batch}).encode(),
+                             market="KOSPI",asof="2026-10-16")
 
     def test_invalid_dates_weekend_unsorted_and_oversized_batches_rejected(self):
         for days in ([],["2026-10-16"]*2,["2026-10-17"],
