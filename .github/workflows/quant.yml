@@ -21,7 +21,7 @@ jobs:
     # Never train/run from a failed source data update.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 120
     steps:
       - name: Checkout data branch
         uses: actions/checkout@v4
@@ -80,13 +80,22 @@ jobs:
         if: steps.engine.outcome == 'success'
         run: python recommendation_engine.py --snapshot docs/data.json --docs docs
 
+      - name: Confirm every displayed candidate has been included in today's quant research
+        if: steps.engine.outcome == 'success'
+        run: |
+          python v3_ranked_quant_coverage.py \
+            --screen docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant docs/quant.json \
+            --output docs/v3-quant-coverage.json \
+            --assert-study-candidates
       - name: Commit dashboard and study results
-        if: always()
+        if: steps.engine.outcome == 'success'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/ docs/recommendations.json docs/recommendation_history.json
+          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/ docs/recommendations.json docs/recommendation_history.json docs/v3-quant-coverage.json
           git diff --cached --stat
           git add docs/reports/quant_*.xlsx 2>/dev/null || true
           if ! git diff --cached --quiet; then
