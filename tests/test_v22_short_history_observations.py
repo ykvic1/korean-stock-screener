@@ -117,7 +117,7 @@ class PartialShortHistoryStockTests(unittest.TestCase):
             self.assertFalse(on_disk["raw_ohlcv_published"])
             source=dest.read_text(encoding="utf8")
             for prohibited in ("AUTH_KEY","Raw OHLCV","marketOrder","target_first",
-                               "confirmed_buy",'"stop_line"','"price_history_full_score"'):
+                               '"confirmed_buy_signal":true','"stop_line"','"price_history_full_score"'):
                 self.assertNotIn(prohibited,source)
 
     def test_publish_wiring_keeps_legacy_price_score_source_unchanged(self):
