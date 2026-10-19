@@ -27,6 +27,30 @@ class ProbeError(Exception):
     """Public-safe diagnostic that never includes credentials or URL parameters."""
 
 
+class KRXProbeError(ProbeError):
+    """Strictly allowlisted KRX failure reason; never include response or URL."""
+
+    REASONS = frozenset((
+        "http_unauthorized", "http_forbidden", "http_not_found",
+        "http_rate_limited", "http_server_error", "http_other",
+        "transport_failure", "empty_body", "oversized_body",
+        "invalid_json", "missing_outblock_1", "empty_market_rows",
+        "invalid_market_rows",
+    ))
+
+    def __init__(self, market, reason, http_status=None):
+        if market not in KRX_ROUTES or reason not in self.REASONS:
+            raise ValueError("invalid_krx_error_diagnostic")
+        self.market = market
+        self.reason = reason
+        # Integer status only: never echo headers, response body or API key.
+        self.http_status = (
+            http_status if type(http_status) is int
+            and 100 <= http_status <= 599 else None
+        )
+        super().__init__("KRX request unsuccessful: " + reason)
+
+
 def canonical_date(asof: str) -> str:
     if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', asof):
         raise ValueError('Date must be YYYY-MM-DD')
@@ -41,21 +65,38 @@ def code6(code: str) -> str:
     return code
 
 
-def _get(session, url, *, headers=None, params=None, limit=MAX_KRX_BODY, timeout=25):
+def _get(session, url, *, headers=None, params=None, limit=MAX_KRX_BODY, timeout=25,
+         krx_market=None):
     try:
         # Prevent an unexpected redirect from forwarding a DART credential in URL.
         response = session.get(url, headers=headers, params=params, timeout=timeout,
                                allow_redirects=False)
         if response.status_code != 200:
+            if krx_market is not None:
+                code = response.status_code
+                reason = (
+                    "http_unauthorized" if code == 401 else
+                    "http_forbidden" if code == 403 else
+                    "http_not_found" if code == 404 else
+                    "http_rate_limited" if code == 429 else
+                    "http_server_error" if 500 <= code <= 599 else
+                    "http_other"
+                )
+                raise KRXProbeError(krx_market, reason, code)
             raise ProbeError('Official API HTTP response is not 200 (authorization/service may be pending)')
         payload = response.content
         if len(payload) == 0 or len(payload) > limit:
+            if krx_market is not None:
+                reason = "empty_body" if not payload else "oversized_body"
+                raise KRXProbeError(krx_market, reason, 200)
             raise ProbeError('Official API response is empty or larger than probe limit')
         return payload
     except ProbeError:
         raise
     except Exception:
-        # Do not include exception text: requests may embed crtfc_key in it.
+        # Never leak vendor exception details: URLs can contain DART keys.
+        if krx_market is not None:
+            raise KRXProbeError(krx_market, "transport_failure") from None
         raise ProbeError('Official API transport failed (request details suppressed)') from None
 
 
@@ -83,15 +124,19 @@ class KRXClient:
             raise ValueError('KRX market must be KOSPI or KOSDAQ')
         day = canonical_date(asof)
         payload = _get(self.session, KRX_BASE + KRX_ROUTES[market],
-                       headers={'AUTH_KEY': self._key}, params={'basDd': day})
-        parsed = _json(payload)
+                       headers={'AUTH_KEY': self._key}, params={'basDd': day},
+                       krx_market=market)
+        try:
+            parsed = _json(payload)
+        except ProbeError:
+            raise KRXProbeError(market, "invalid_json", 200) from None
         rows = parsed.get('OutBlock_1')
         if not isinstance(rows, list):
-            raise ProbeError('KRX response missing OutBlock_1 stock list')
+            raise KRXProbeError(market, "missing_outblock_1", 200)
         if not rows:
-            raise ProbeError('KRX returned zero rows; holiday, pending data or API issue')
+            raise KRXProbeError(market, "empty_market_rows", 200)
         if any(not isinstance(row, dict) for row in rows):
-            raise ProbeError('KRX response contains non-object rows')
+            raise KRXProbeError(market, "invalid_market_rows", 200)
         return rows, payload
 
 
