@@ -1,42 +1,48 @@
-# 2026-10-20: Pattern-first composite research priority, independent of v2/v3 trading decisions
+# 2026-10-20 correction: Chart patterns are ONE part of original v3 six-pillar 100
 
-## Dependency / deployment order
+## User clarification and correct unmodified scoring framework
 
-PR #122 was the preceding completed-week experiment, including early UI work. Because the user wants **all UI changes deferred**, this PR incorporates the necessary weekly BACKEND observations directly but **restores all HTML, JS, and existing UI tests to the current main files**. It is self-contained against main and replaces PR #122 as the backend rollout candidate. PR #122 should remain unmerged/closed as superseded. A queued CI is not a pass. The user requested backend scoring only.
+The previous proposal of a **separate pattern-only 100** was wrong: it cannot replace the user's already agreed total model. This PR revises the backend so that patterns and RSI fit **inside technical 15** of the ORIGINAL six pillars:
 
-## Why a separate 100-point research priority index
-
-The old v2.2 ranking weights are already published and operational. The unreleased v3 formal six-pillar model is contractually fixed at IAS25/financial20/valuation15/technical15/industry15/momentum10 and lacks certified source evidence. Replacing either system's weights with a heuristic pattern score would be misleading.
-
-Instead, `v3_pattern_composite_score.py` computes a completely separate **observed-technical research priority** out of 100 points only when ALL constituent data have valid source dates:
-
-| Component | Max score |
+| Original v3 pillar | Exact points |
 |---|---:|
-| Daily preferred chart pattern | 25 |
-| **Completed weekly** preferred chart pattern | **25** |
-| Daily RSI14 30 recross / confirmed bullish divergence | 10 |
-| **Completed weekly** RSI14 30 recross / confirmed bullish divergence | **10** |
-| Turnover + optionally OBV/volume (OBV at most 4 of 10) | 10 |
-| Long weekly trend / verified weekly MA120 proximity | 10 |
-| Structural price-stop distance (3% to 15% eligible) | 10 |
+| Institutional/foreign accumulation strength (IAS) | 25 |
+| Financials | 20 |
+| Valuation | 15 |
+| **Technical analysis, including DAILY + WEEKLY patterns** | **15** |
+| Industry and sector cycle | 15 |
+| Momentum / relative strength | 10 |
 | **Total** | **100** |
 
-Patterns are half of the total. Bull Flag and double bottom have explicit `forming` and `breakout_observed` tiers. Daily wedge/inverse-H&S/triangle/rise-compression heuristics and **weekly** wedge/inverse-H&S/triangle/rise-compression geometry are included. On the SAME timeframe, only the highest independent pattern is rewarded (prevents adding Bull Flag+triangle+compression for the same exact candles). Distinct **daily and weekly** evidence can each earn their respective maximum.
+No IAS, financial, valuation, sector or momentum weights are changed. The existing 6-pillar validation contract `v3_score_contract.py` remains unchanged, as does legacy v2.2 scoring.
 
-RSI crossing and divergence are separately checked; the latter only uses confirmable pivots. OBV is corroboration, never a gateway, never a known institutional buyer. A price that only has 160 daily sessions cannot be treated as having 90 completed weekly candles; weekly observation is **missing**, not zero, and no final total is issued. Incomplete components are `null` with `observed_weight` and coverage; no normalization to manufacture a perfect score.
+### Research allocation INSIDE technical 15 (not an extra score)
 
-## Safety and output
+- Daily favorite chart patterns 3 + **completed weekly** favorite chart patterns 4 = **7**.
+- Daily RSI14 30 upward recross / pivot-confirmed bullish divergence 1 + completed weekly RSI 2 = **3**.
+- Completed weekly MA120 relative position = **3**.
+- Daily confirmed volume breakout = **2**; OBV **not added here**, because IAS already has a volume/OBV component. No double-count.
+- Total technical: **15**. The existing `v3_research_factor_engine.py` technical feature-level theoretical weights are adjusted from 4/3/4/4 to **MA120 3 / RSI 3 / preferred patterns 7 / volume 2**, summing to the original 15.
 
-- High technical points **cannot** override an invalid/missing structural stop, stop distance outside 3–15%, thin liquidity, steep rally, long-trend weakness, abnormal trading surge or recent high-chase warning. These rows get `risk_excluded`, no rank.
-- Research priority **is not** a probability, target price, entry decision, full six-pillar V3 rank, automatic trade order or independent KRX source certification.
-- Each stock's **new** nested field `pattern_composite` includes fixed component scores / coverage / risks, complete or partial status, day/week top patterns, 100-point technical research priority and **deterministic rank** only if fully covered and passes the risk gate.
-- Top-level `pattern_ranking` is a pre-sorted list of eligible `{code,rank,research_priority_score}`; `pattern_scoring_status` provides complete / excluded / missing counts and explicit disclosure.
-- Existing `docs/data.json` stock ordering, UI, v2.2 score, v3 six-pillar score contract, recommendation engine, quant, OpenDART 320/day schedule and existing 18:30 screening schedule are **unchanged**.
-- The next actual successful full-market scan after both PRs merge will be the first possible source of weekly observed composite rankings. **No current candidate counts / scores / picks are claimed in this PR**.
-- After source-quality checks, a **separate future UI rollout** may display pattern-first ranks; this PR does not change HTML, JS or CSS.
+### Evidence
 
-## Validation and limitations
+- Bull Flag, double bottom and (geometric heuristic) falling wedge, inverse head and shoulders, triangle and post-rise consolidation; no multiple overlapping pattern rewards inside one timeframe.
+- Each independent timeframe contributes its own maximum. A **partially completed current weekly bar is EXCLUDED**, preventing false Bull Flags or RSI due to premature low volume.
+- Only actual source-date-matched daily and completed Friday-ending weekly OHLCV research can contribute technical points.
+- Missing 120-week history, malformed source date, unconfirmed chart structure, or insufficient recent data => technical candidate **null/partial**, NEVER disguised as 0 or renormalized into total 100.
 
-Offline synthetic tests cover exact 25+25 daily/week pattern weights, forming vs breakout, RSI recross/divergence, missing/stale/future/incomplete weekly evidence, double-count prevention, score/decision immutability, risk veto and deterministic whole-market sorted ranks. **Entire existing CI must be green** before promotion. Patterns remain unvalidated heuristic geometry; a historical holdout/false-positive test is needed before estimating pattern success probabilities.
+### Overall score and ordering
 
-Remaining work: cup-and-handle, box-bottom and other attached image patterns require individual causal detectors and separately validated shape/reference levels rather than keyword-only bonus; daily and weekly chart visuals will be released together later per user request.
+- `v3_pattern_composite_score.evaluate` calculates technical research evidence and passes it through the exact existing `v3_score_contract.research_scorecard` as **only technical candidate points**.
+- IAS25/financial20/valuation15/industry15/momentum10 remain **null** until independently observed source-verified candidate components are legitimately produced by existing specialized providers/adapters. No use of old v2.2 score, guessed PBR or OBV as a substitute.
+- `six_pillar_full_candidate_only` exists **only when all six pillar candidates are present**; only then can provisional same-asof research ordering occur, and only after structural stop, recent price-chase, liquidity risk vetoes. This is not a validated expected return, trained win probability or a buy/sell instruction.
+- Current stock output adds `v3_pattern_integrated`, its 15-point evidence breakdown, missing original pillars and completion metrics. Top-level `six_pillar_research_sort` remains genuinely EMPTY while the other five pillars are missing.
+- Original stock order, v2.2 trading grade, current recommendation list, historical quant, market routines and existing user-facing HTML/JS/CSS **remain unchanged**. The user explicitly requested the UI be built together later.
+
+## GitHub release guard
+
+PR #122 was closed unmerged because it contained premature UI changes. This backend-only PR supersedes it with the necessary weekly OHLCV aggregation. Only merge PR #123 when ALL latest CI succeeds and conflicts with new market-data commits on main are resolved safely. No successful production data or scores are claimed until the following actual market run.
+
+## Future correctness work
+
+Calibrate patterns including cup & handle, distinguish weekly Bull Flag consolidation windows (current baseline is a multi-week heuristic), validate OHLCV corporate actions / regular-session volume, check historical false positives with survival-biased archives repaired, integrate verified IAS/financial/value/sector/momentum before actual investment ranking. Screenshot-based visual validation belongs in the deferred UI phase.
