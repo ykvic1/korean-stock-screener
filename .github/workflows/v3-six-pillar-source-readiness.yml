@@ -1,0 +1,43 @@
+name: V3 Six-Pillar Source Readiness Audit (offline)
+
+on:
+  workflow_dispatch:
+  # One read-only live-source audit immediately after first merge. Later
+  # routine market data commits do NOT trigger this diagnostic run.
+  push:
+    branches: [main]
+    paths:
+      - 'v3_six_pillar_source_readiness.py'
+      - '.github/workflows/v3-six-pillar-source-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audited-source-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out currently published source snapshots
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Use standard-library Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Audit date and source coverage without guessing investment scores
+        run: |
+          python v3_six_pillar_source_readiness.py \
+            --market docs/data.json \
+            --catalog docs/v22-market-catalog.json \
+            --book docs/v3-dart-book-reference.json \
+            --output reports/v3-source-readiness.json
+      - name: Save private diagnostic artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-six-pillar-source-readiness-${{ github.run_id }}
+          path: reports/v3-source-readiness.json
+          if-no-files-found: error
+          retention-days: 14
