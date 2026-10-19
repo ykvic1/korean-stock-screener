@@ -49,6 +49,8 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
     rows=[]
     status_counts=Counter()
     pbr_observed=0;flow_observed=0
+    price_failed_rounded_zero_turnover=0
+    insufficient_nonzero_rounded_turnover=0
     for code in sorted(listing_codes):
         item=listing[code]
         if not isinstance(item,dict) or item.get("code")!=code:
@@ -69,6 +71,14 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
         else:
             status="unattempted_batch"
         status_counts[status]+=1
+        # FDR listing reports turnover in eok units, rounded to 0.01 eok.
+        # Thus 0.00 eok is NOT proof of exactly zero executed shares.
+        turnover_reference=_amount(item.get("trading_eok"))
+        if status=="price_source_or_validation_error" and turnover_reference==0:
+            price_failed_rounded_zero_turnover+=1
+        if status=="insufficient_history" and (
+                turnover_reference is not None and turnover_reference>0):
+            insufficient_nonzero_rounded_turnover+=1
         # The front end uses the independently published current-price analysis
         # only, never the unvalidated listing's standalone quote.
         raw_pbr=existing.get("pbr") if existing else item.get("pbr")
@@ -99,7 +109,7 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
             "price_history_status":status,
             "published_price":existing["price"] if existing else None,
             "reference_market_cap_eok":_amount(item.get("market_cap_eok")),
-            "reference_trading_value_eok":_amount(item.get("trading_eok")),
+            "reference_trading_value_eok":turnover_reference,
             "pbr_observed":pbr,
             "pbr_source": (item.get("valuation_source") or "v2_observed_unknown_provider") if pbr is not None else None,
             "flow_reference":flow,
@@ -122,6 +132,9 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
         "status_counts":{k:status_counts[k] for k in
                          ("priced","price_source_or_validation_error",
                           "insufficient_history","unattempted_batch")},
+        "price_error_rounded_zero_turnover_reference_count":price_failed_rounded_zero_turnover,
+        "insufficient_history_nonzero_turnover_reference_count":insufficient_nonzero_rounded_turnover,
+        "reference_turnover_rounding_note":"0.00 eok is rounded, not proof of zero actual won or suspension",
         "pbr_observed_count":pbr_observed,
         "flow_reference_count":flow_observed,
         "flow_reference_unavailable_count":audit["flow_confirmed_count"]-flow_observed,
