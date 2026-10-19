@@ -109,9 +109,14 @@ function prepare(data,quant,recs,official,priorityQuant){
      '추천 우선 연구 '+priority.peer_cohort_requested+'종목 요청 / '+priority.peer_cohort_valid+'종목 실제 이력 확보':
      standard&&q===standard?'일반 연구 최대 120종목 표본':'연구 자료 없음';
    const qualified=!!rec&&rec.qualification==='needs_deeper_evidence'&&!highRisk(r);
+   const caution=!!rec&&!qualified;
+   const observedDecision=decision(r,q);
+   const finalDecision=caution&&observedDecision.label!=='매수 보류'?
+     {label:'매수 보류',reason:'위험 경고·연구 전용 후보 — '+observedDecision.reason,level:'wait'}:
+     observedDecision;
    rows.push({r,q,rec,quantSource,financialRef:financials.get(r.code)||null,quant:!!q,
-     researchCandidate:!!rec,qualified,caution:!!rec&&!qualified,
-     risk:stopDistance(r),highRisk:highRisk(r),decision:decision(r,q)});
+     researchCandidate:!!rec,qualified,caution,
+     risk:stopDistance(r),highRisk:highRisk(r),decision:finalDecision});
  }
  // Only source-dated, published dossiers are considered shortlisted.
  // Cautionary names are NOT promoted to buy status; show them separately
