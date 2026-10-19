@@ -81,6 +81,45 @@ const official={asof:'2026-10-16',dart:{status:'observed',stocks:[
  ]},
  {code:'222222',status:'unconfirmed',reports:[]},
 ]}};
+const rollingBook={
+ schema:'v3-dart-current-listed-annual-book-reference-0.1',asof:'2026-10-16',
+ market_listed_total:2498,attempted_reference_count:1,
+ observed_annual_count:1,pbr_simple_reference_count:1,
+ official_exchange_pbr_verified:false,historical_point_in_time_verified:false,
+ stock_buy_certified:false,score_weight_changed:false,raw_dart_account_rows_published:false,
+ records:[{code:'111111',status:'observed',last_attempted_day:'2026-10-16',
+   annual:{year:2025,fs_div:'OFS',receipt_id:'20260331001234',
+      currency:'KRW',values:{equity:30000000000}}}],
+ observations:[{code:'111111',year:2025,fs_div:'OFS',receipt_id:'20260331001234',
+   market_cap_reference_day:'2026-10-16',pbr_simple_annual_reference:1.23,
+   official_exchange_pbr_verified:false,financial_statement_pit_verified:false}]
+};
+const ready=m.observedRollingBook(rollingBook,'2026-10-16',2498);
+assert.equal(ready.get('111111').value,1.23);
+assert.equal(m.observedRollingBook(rollingBook,'2026-10-15',2498).size,0,
+ 'future source may not backfill an older stock score');
+assert.equal(m.observedRollingBook(rollingBook,'2026-10-16',2497).size,0);
+assert.equal(m.observedRollingBook({...rollingBook,stock_buy_certified:true},
+ '2026-10-16',2498).size,0);
+assert.equal(m.observedRollingBook({...rollingBook,score_weight_changed:true},
+ '2026-10-16',2498).size,0);
+assert.equal(m.observedRollingBook({...rollingBook,records:[rollingBook.records[0],rollingBook.records[0]],
+ attempted_reference_count:2},'2026-10-16',2498).size,0);
+assert.equal(m.observedRollingBook({...rollingBook,observations:[
+ {...rollingBook.observations[0],pbr_simple_annual_reference:null}]},
+ '2026-10-16',2498).size,0);
+assert.equal(m.observedRollingBook({...rollingBook,records:[{
+ ...rollingBook.records[0],annual:{...rollingBook.records[0].annual,
+ receipt_id:'20271019001234'}}]},'2026-10-16',2498).size,0);
+const enriched=m.prepare(snap,research,recs,official,null,rollingBook);
+assert.equal(enriched.rollingBookCount,1);
+assert.equal(enriched.rows.find(x=>x.r.code==='111111').rollingBook.value,1.23);
+assert.equal(enriched.rows.find(x=>x.r.code==='111111').r.score,stocks[0].score);
+assert.equal(enriched.rows.find(x=>x.r.code==='111111').decision.label,
+ m.prepare(snap,research,recs,official).rows.find(x=>x.r.code==='111111').decision.label,
+ 'annual P/B evidence cannot modify recommendation verdict or v2 points');
+assert.equal(m.prepare(snap,research,recs,official,null,
+ {...rollingBook,asof:'2026-10-15'}).rollingBookCount,0);
 const withFinance=m.prepare(snap,research,recs,official);
 assert.equal(withFinance.financialReferenceCount,1);
 assert.equal(withFinance.recommendationFinancialCount,1);
@@ -294,6 +333,9 @@ assert.ok(!uiSource.includes('40종목 대상 탐색 통계'),
  'never label a 120-peer live result as the old one-shot 40-peer pilot');
 assert.ok(uiSource.includes('model.priorityQuantRequested')&&uiSource.includes('model.priorityQuantValid'),
  'display actual source peer count from published JSON');
+assert.ok(uiSource.includes('v3-dart-book-reference.json')&&
+ uiSource.includes('model.rollingBookCount'),
+ 'rolling multi-company annual accounts should appear on ranked user view without scoring');
 assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)'),
  'make downside tier and historical stop-first metrics visible on candidate card');
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
