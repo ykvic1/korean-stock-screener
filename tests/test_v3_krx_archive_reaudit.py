@@ -103,7 +103,7 @@ class PrivateArchiveReauditTests(unittest.TestCase):
             self.assertFalse(result[key], key)
         rendered = json.dumps(result)
         for sensitive in ("005930", "247540", "00088K", "00088L",
-                          "107", "TEST_SECRET", str(self.path)):
+                          "TDD_OPNPRC", "TEST_SECRET", str(self.path)):
             self.assertNotIn(sensitive, rendered)
 
     def test_hash_valid_wrong_date_source_fails_semantic_check(self):
