@@ -20,9 +20,10 @@ from v3_krx_private_backfill_plan import (
     calendar_weekday_candidates, BackfillPlanError)
 from v3_krx_session_candidates import candidate_dates, CandidateCalendarError
 
-MA_WINDOWS = (5, 20, 60)
+MA_WINDOWS = (5, 20, 60, 120, 240)
 WEEK_WINDOWS = (10, 20, 120)
-OPTIONAL = ("daily_ma5", "daily_ma20", "daily_ma60", "daily_rsi14",
+OPTIONAL = ("daily_ma5", "daily_ma20", "daily_ma60",
+            "daily_ma120", "daily_ma240", "daily_rsi14",
             "close_return20_pct", "close_return60_pct",
             "prior20_support_low", "prior20_resistance_high",
             "weekly_ma10", "weekly_ma20", "weekly_ma120",
@@ -198,6 +199,8 @@ def run_optional_technical_research(*, start, end, private_db, targets,
             any(x.startswith("daily_") for x in checked["available"]))
         c["targets_with_daily_ma20"] += "daily_ma20" in checked["available"]
         c["targets_with_daily_ma60"] += "daily_ma60" in checked["available"]
+        c["targets_with_daily_ma120"] += "daily_ma120" in checked["available"]
+        c["targets_with_daily_ma240"] += "daily_ma240" in checked["available"]
         c["targets_with_rsi14"] += "daily_rsi14" in checked["available"]
         c["targets_with_weekly_ma20"] += "weekly_ma20" in checked["available"]
         c["targets_with_optional_weekly_ma120"] += "weekly_ma120" in checked["available"]
@@ -217,7 +220,8 @@ def run_optional_technical_research(*, start, end, private_db, targets,
                 bool(saved_dates) and saved_dates[-1] == candidate_days[-1]),
             **{k: c[k] for k in (
                 "targets_with_any_daily_indicator", "targets_with_daily_ma20",
-                "targets_with_daily_ma60", "targets_with_rsi14",
+                "targets_with_daily_ma60", "targets_with_daily_ma120",
+                "targets_with_daily_ma240", "targets_with_rsi14",
                 "targets_with_weekly_ma20", "targets_with_optional_weekly_ma120",
                 "targets_with_obv_proxy20_unverified",
                 "targets_blocked_at_latest_saved_day")},
