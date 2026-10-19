@@ -25,32 +25,90 @@ def dart_json(session, endpoint, key, **params):
     return data.get('list',[])
 
 
-def dart_collect(stocks,asof,key,years=3):
-    import requests
-    session=requests.Session()
-    try:
-        response=session.get('https://opendart.fss.or.kr/api/corpCode.xml',params={'crtfc_key':key},timeout=40)
-        response.raise_for_status()
-        with ZipFile(BytesIO(response.content)) as z:root=ET.fromstring(z.read('CORPCODE.xml'))
-    except Exception:raise RuntimeError('OpenDART company mapping failed (credentials redacted)') from None
-    mapping={e.findtext('stock_code'):e.findtext('corp_code') for e in root.findall('list') if e.findtext('stock_code')}
-    result=[];year=int(asof[:4])
-    for s in stocks:
-        corp=mapping.get(s['code']);reports=[];errors=[]
-        if not corp:result.append({'code':s['code'],'status':'unconfirmed','reason':'corp_code unmapped'});continue
-        for y in range(year-1,year-years-1,-1):
-            for fs in ('CFS','OFS'):
-                try:
-                    rows=dart_json(session,'fnlttSinglAcntAll.json',key,corp_code=corp,bsns_year=str(y),reprt_code='11011',fs_div=fs)
-                    rows=[r for r in rows if receipt_visible(r,asof)]
-                    if rows:
-                        reports.append({'year':y,'fs_div':fs,'accounts':rows,'source':'OpenDART annual accounts; receipt date cutoff enforced'})
-                        break
-                except RuntimeError as e:errors.append(str(e));break
-            time.sleep(.15)
-        result.append({'code':s['code'],'status':'observed' if reports else 'unconfirmed','reports':reports,'errors':errors,'backtest_included':False})
-    return result
+def dart_collect(stocks, asof, key, years=3, budget_seconds=360):
+    """Latest historical annual reported values for *bounded active candidates*.
 
+    Keep a 6-minute optional enrichment budget so a slow DART endpoint cannot
+    postpone publishing core stock/quant decisions. Never publish raw filings.
+    """
+    import requests
+    from financial_metrics import metrics
+    if not isinstance(stocks, list) or not 1 <= len(stocks) <= 20:
+        raise ValueError("bounded_research_targets_required")
+    if not 1 <= years <= 3 or not 30 <= budget_seconds <= 900:
+        raise ValueError("invalid_financial_probe_budget")
+    session=requests.Session()
+    started=time.monotonic()
+    try:
+        response=session.get('https://opendart.fss.or.kr/api/corpCode.xml',
+                             params={'crtfc_key':key},timeout=40)
+        response.raise_for_status()
+        with ZipFile(BytesIO(response.content)) as z:
+            root=ET.fromstring(z.read('CORPCODE.xml'))
+    except Exception:
+        raise RuntimeError('OpenDART company mapping failed (credentials redacted)') from None
+    mapping={e.findtext('stock_code'):e.findtext('corp_code')
+             for e in root.findall('list') if e.findtext('stock_code')}
+    result=[]
+    year=int(asof[:4])
+    for stock in stocks:
+        code=stock['code']
+        if time.monotonic()-started>=budget_seconds:
+            result.append({'code':code,'status':'deferred','reason':'time_budget'})
+            continue
+        corp=mapping.get(code)
+        if not corp:
+            result.append({'code':code,'status':'unconfirmed',
+                           'reason':'corp_code_not_mapped'})
+            continue
+        records=[]
+        errors=[]
+        for y in range(year-1,year-years-1,-1):
+            if time.monotonic()-started>=budget_seconds:
+                errors.append('time_budget_exceeded')
+                break
+            for fs in ('CFS','OFS'):
+                if time.monotonic()-started>=budget_seconds:
+                    errors.append('time_budget_exceeded')
+                    break
+                try:
+                    annual=dart_json(session,'fnlttSinglAcntAll.json',key,
+                       corp_code=corp,bsns_year=str(y),reprt_code='11011',
+                       fs_div=fs)
+                    annual=[r for r in annual if receipt_visible(r,asof)]
+                    if not annual:
+                        continue
+                    observed=metrics(annual,stock.get('market_cap_eok'))
+                    # Full annual account rows and filing payloads remain
+                    # ephemeral. Export only derived observed summary + basis.
+                    values={k:v for k,v in observed['values'].items()
+                            if type(v) in (int,float) or v is None}
+                    receipts=sorted(set(
+                        str(r.get('rcept_no')) for r in annual
+                        if receipt_visible(r,asof)))
+                    records.append({
+                        'year':y,'fs_div':fs,'values':values,
+                        'receipt_id':receipts[0] if receipts else None,
+                        'source':'OpenDART fnlttSinglAcntAll annual',
+                        'currency':'KRW',
+                        'revision_history_verified':False,
+                        'point_in_time_historical_price_verified':False,
+                    })
+                    break
+                except RuntimeError as exc:
+                    errors.append(str(exc)[:90])
+                    break
+            time.sleep(.08)
+        result.append({
+            'code':code,
+            'status':'observed' if records else
+                     'deferred' if 'time_budget_exceeded' in errors else
+                     'unconfirmed',
+            'reports':records,
+            'error_codes':errors[:3],
+            'backtest_included':False,
+        })
+    return result
 
 def krx_indices(asof,key):
     import requests
@@ -65,14 +123,54 @@ def krx_indices(asof,key):
     return {'status':'observed' if result else 'unconfirmed','asof':asof,'series':result,'errors':errors,'membership_status':'historical stock-sector membership not implemented'}
 
 
-def collect(source=Path('docs/data.json'),output=Path('docs/official.json')):
-    d=json.loads(source.read_text());asof=d['date'];key=os.getenv('DART_API_KEY');krx=os.getenv('KRX_API_KEY')
-    out={'asof':asof,'dart':{'status':'key_required','secret':'DART_API_KEY'},'krx':{'status':'key_required','secret':'KRX_API_KEY'},'backtest_included':False}
+def collect(source=Path('docs/data.json'),output=Path('docs/official.json'),
+            shortlist=Path('docs/recommendations.json'),max_stocks=20):
+    """Batched source-observed references without blocking daily 2,000+ screen.
+
+    Prioritize user's actual deep recommendations before other scored peers.
+    DART findings are limited, and never used as an invented v3 score.
+    """
+    from quant_priority_universe import prioritized_stocks,optional_recommendations
+    d=json.loads(source.read_text(encoding='utf-8'))
+    if d.get('status')!='success' or d.get('version')!='2.0':
+        raise ValueError('no_current_price_screen_for_optional_official_enrichment')
+    if type(max_stocks) is not int or not 20<=max_stocks<=20:
+        raise ValueError('official_detail_budget_20_stocks_max')
+    asof=d['date']
+    key=os.getenv('DART_API_KEY')
+    krx=os.getenv('KRX_API_KEY')
+    chosen=prioritized_stocks(d,optional_recommendations(shortlist),max_stocks)
+    out={'asof':asof,
+         'dart':{'status':'key_required','secret':'DART_API_KEY',
+                 'requested':len(chosen),'universe':len(d['stocks'])},
+         'krx':{'status':'key_required','secret':'KRX_API_KEY'},
+         'backtest_included':False,
+         'financial_reference_not_automatically_scored':True}
     if key:
-        try:out['dart']={'status':'completed','stocks':dart_collect(d['stocks'],asof,key)}
-        except Exception as e:out['dart']={'status':'failed','error':str(e)}
-    if krx:out['krx']=krx_indices(asof,krx)
-    output.write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8');return out
+        try:
+            observed=dart_collect(chosen,asof,key,years=3,budget_seconds=360)
+            valid=sum(x.get('status')=='observed' for x in observed)
+            missing=sum(x.get('status')=='unconfirmed' for x in observed)
+            deferred=sum(x.get('status')=='deferred' for x in observed)
+            out['dart']={
+                'status':'observed' if valid else 'unconfirmed',
+                'universe':len(d['stocks']),'requested':len(chosen),
+                'observed':valid,'unconfirmed':missing,'deferred':deferred,
+                'source':'OpenDART reported annual accounts (research reference)',
+                'audit_basis':'filing receipt not newer than source day; historical revisions not verified',
+                'stocks':observed,
+            }
+        except Exception:
+            out['dart']={'status':'failed','requested':len(chosen),
+                         'error':'optional_DART_enrichment_failed_redacted'}
+    if krx:
+        out['krx']=krx_indices(asof,krx)
+    output.parent.mkdir(parents=True,exist_ok=True)
+    tmp=output.with_suffix('.tmp')
+    tmp.write_text(json.dumps(out,ensure_ascii=False,indent=2,allow_nan=False),
+                   encoding='utf-8')
+    tmp.replace(output)
+    return out
 
 if __name__=='__main__':
     d=collect();print(json.dumps({'dart':d['dart']['status'],'krx':d['krx']['status']}))
