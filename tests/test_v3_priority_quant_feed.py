@@ -52,6 +52,14 @@ class PriorityLiveCandidateQuant(unittest.TestCase):
         self.assertNotIn('"Close"',data)
         self.assertNotIn('"Volume"',data)
 
+    def test_current_shortlist_is_valid_target_even_if_previous_quant_date_lags(self):
+        market,rec,quant=make()
+        rec["research_source_matched"]=False
+        feed=build_priority_feed(market,rec,quant)
+        self.assertEqual(feed["candidate_count"],3)
+        self.assertEqual(feed["asof"],ASOF)
+        self.assertFalse(feed["verified_predictive_accuracy"])
+
     def test_missing_candidate_or_old_day_aborts(self):
         m,r,q=make()
         q["stocks"]=q["stocks"][1:]

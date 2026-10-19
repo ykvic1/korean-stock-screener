@@ -102,11 +102,20 @@ class V3ReadinessTests(unittest.TestCase):
     def test_current_published_v22_snapshot_is_blocked(self):
         def data(path):
             return json.loads((ROOT/path).read_text(encoding='utf-8'))
-        r=assess_v3(data('docs/reliability.json'),
-                    data('docs/quant_v22.json'),
-                    data('docs/data.json'),
+        reliability=data('docs/reliability.json')
+        quant=data('docs/quant_v22.json')
+        daily=data('docs/data.json')
+        r=assess_v3(reliability,quant,daily,
                     data('config/v22_baseline_53.json'))
-        self.assertEqual(r['asof'],'2026-10-16')
+        # The daily public market snapshot advances every trading day, while
+        # historical v2.2 reliability/quant evidence may lag behind. An
+        # unmatched snapshot must FAIL CLOSED, not be assigned a hard-coded
+        # prior market date as though all feeds were synchronized.
+        dates=(reliability.get('asof'),quant.get('asof'),daily.get('date'))
+        matched=all(isinstance(d,str) for d in dates) and len(set(dates))==1
+        self.assertEqual(r['asof'],dates[0] if matched else None)
+        if not matched:
+            self.assertFalse(r['gates']['consistent_snapshots']['passed'])
         self.assertFalse(r['v3_release_ready'])
         self.assertEqual(r['measured']['regular_session_verified'],0)
         self.assertEqual(r['measured']['independent_matched'],0)

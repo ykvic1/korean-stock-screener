@@ -52,9 +52,11 @@ def audit_recommended_quant(snapshot:dict,recommendations:dict,
             raise ValueError()
     except ValueError:
         raise CoverageError("bad_screen_date") from None
+    # Current-day dossiers are a valid PRIORITY source even when the
+    # historical quant study has not yet been computed for this date.
+    # The study's own date/period evidence gates below remain strict.
     if (not isinstance(recommendations,dict)
         or recommendations.get("asof")!=asof
-        or recommendations.get("research_source_matched") is not True
         or not isinstance(recommendations.get("dossiers"),list)):
         raise CoverageError("stale_or_unmatched_dossiers")
     current={x.get("code"):x for x in snapshot["stocks"]

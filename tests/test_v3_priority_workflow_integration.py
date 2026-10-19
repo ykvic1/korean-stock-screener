@@ -41,6 +41,17 @@ class V3RankedQuantWorkflowTests(unittest.TestCase):
         self.assertIn("Korean Stock Quant Study v2.1",nightly)
         self.assertIn("docs/v3-quant-coverage.json",nightly)
 
+    def test_production_quant_installs_same_pinned_calendar_before_full_tests(self):
+        nightly=(ROOT/PATHS[0]).read_text(encoding="utf-8")
+        check=(ROOT/".github/workflows/quant-checks.yml").read_text(encoding="utf-8")
+        dependency="exchange-calendars==4.13.1"
+        self.assertIn(dependency,nightly)
+        self.assertIn(dependency,check)
+        install=nightly.index(dependency)
+        suite=nightly.index("python -m unittest discover -s tests -v")
+        self.assertLess(install,suite,
+                        "Never let production quant full tests fail from omitted calendar dependency")
+
     def test_no_public_raw_ohlcv_or_fake_validation_in_publishing_steps(self):
         for path in PATHS:
             with self.subTest(path=path):

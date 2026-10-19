@@ -28,9 +28,12 @@ def prioritized_stocks(data:dict, recommendations:dict|None, limit:int=120)->lis
     # Small/invalid research fixtures remain an insufficient-data result,
     # never an exception that prevents the quant failure report.
     priority=[]
+    # Current-day shortlist is computed from the current market screen.
+    # research_source_matched describes EXISTING quant (often yesterday's);
+    # requiring it here deadlocks the first live quant fetch each new session.
+    # Preserve exact market date/price/code and allowed dossier qualification.
     if (isinstance(recommendations,dict) and
             recommendations.get("asof")==data["date"] and
-            recommendations.get("research_source_matched") is True and
             isinstance(recommendations.get("dossiers"),list)):
         for d in recommendations["dossiers"]:
             if not isinstance(d,dict):continue

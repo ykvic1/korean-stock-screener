@@ -38,6 +38,26 @@ class RankedQuantCoverage(unittest.TestCase):
         self.assertEqual(len(chosen),120)
         self.assertEqual(len({x["code"] for x in chosen}),120)
 
+    def test_current_dossier_without_same_date_study_is_visible_but_not_certified(self):
+        market,rec=make()
+        rec["research_source_matched"]=False
+        prior={"status":"exploratory","asof":"2026-10-15","stocks":[]}
+        result=audit_recommended_quant(market,rec,prior)
+        self.assertEqual(result["candidate_count"],3)
+        self.assertFalse(result["quant_study_same_date"])
+        self.assertEqual(result["candidate_status_counts"]["awaiting_fresh_study"],3)
+        self.assertTrue(all(s["priority_in_next_study"] for s in result["stocks"]))
+        self.assertFalse(result["predicted_profit_or_buy_certified"])
+        fresh={"status":"exploratory","asof":DAY,"stocks":[
+            {"code":"100138","status":"exploratory",
+             "reference_price_date":DAY,"periods":{"스윙 1개월":valid_period()}},
+            {"code":"100137","status":"insufficient"},
+            {"code":"100136","status":"insufficient"}]}
+        present=audit_recommended_quant(market,rec,fresh)
+        self.assertTrue(present["quant_study_same_date"])
+        self.assertEqual(present["candidates_with_usable_historical_periods"],1)
+        self.assertFalse(present["predicted_profit_or_buy_certified"])
+
     def test_today_actual_missing_quant_is_not_promoted(self):
         market,rec=make()
         study={"status":"exploratory","asof":DAY,"stocks":[

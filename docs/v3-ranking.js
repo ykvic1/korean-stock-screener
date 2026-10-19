@@ -74,7 +74,10 @@ function prepare(data,quant,recs,official,priorityQuant){
  const matched=!!quant&&quant.status==='exploratory'&&quant.asof===data.date&&Array.isArray(quant.stocks);
  const qmap=new Map((matched?quant.stocks:[]).filter(q=>q&&q.status==='exploratory'&&
     q.reference_price_date===data.date).map(q=>[q.code,q]));
- const matchedRec=!!recs&&recs.asof===data.date&&recs.research_source_matched===true&&
+ // The shortlist comes from TODAY's price/score snapshot; its attached
+ // historical quant may still be yesterday's. Show current candidates while
+ // keeping study and DART data strictly gated to current source date.
+ const matchedRec=!!recs&&recs.asof===data.date&&
    Array.isArray(recs.dossiers);
  const rmap=new Map((matchedRec?recs.dossiers:[]).map(r=>[r.code,r]));
  const priorityMatched=!!priorityQuant&&
