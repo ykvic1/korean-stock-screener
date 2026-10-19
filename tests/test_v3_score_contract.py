@@ -118,7 +118,7 @@ class FullSixPillarContractTests(unittest.TestCase):
             {"ias": -1},
             {"ias": 21},
             {"financial": 16},
-            {"momentum": 6},
+            {"momentum": 11},
             {"technical": 26},
         )
         for bad in candidates:
