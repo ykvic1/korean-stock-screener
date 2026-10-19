@@ -136,5 +136,53 @@ class BoundedOfficialFinances(unittest.TestCase):
             official_data.dart_collect([{"code":"005930"}],DAY,"fake",
                                       budget_seconds=86400)
 
+    def test_opendart_quota_account_and_service_errors_stop_immediately(self):
+        # Provider often returns HTTP 200 with an application failure status.
+        # These are not per-company missing statements (013).
+        for status in ("010", "011", "012", "020", "800", "900", "901"):
+            with self.subTest(status=status):
+                session=Mock()
+                response=Mock()
+                response.json.return_value={"status":status,"message":"provider response"}
+                response.raise_for_status.return_value=None
+                session.get.return_value=response
+                with self.assertRaisesRegex(official_data.DartStopCollectionError,status):
+                    official_data.dart_json(session,"fnlttSinglAcntAll.json",
+                                            "test-key",corp_code="00126380",
+                                            bsns_year="2025",reprt_code="11011",
+                                            fs_div="OFS")
+                self.assertEqual(session.get.call_count,1)
+
+        session=Mock()
+        response=Mock()
+        response.json.return_value={"status":"013"}
+        response.raise_for_status.return_value=None
+        session.get.return_value=response
+        self.assertEqual(official_data.dart_json(
+            session,"fnlttSinglAcntAll.json","test-key",
+            corp_code="00126380",bsns_year="2025",
+            reprt_code="11011",fs_div="OFS"),[])
+
+    def test_quota_stop_does_not_continue_looping_through_20_issuers(self):
+        xml=b"<result><list><corp_code>00126380</corp_code><stock_code>100139</stock_code></list><list><corp_code>00126381</corp_code><stock_code>100138</stock_code></list></result>"
+        buf=BytesIO()
+        with ZipFile(buf,"w") as z:
+            z.writestr("CORPCODE.xml",xml)
+        response=Mock(content=buf.getvalue())
+        response.raise_for_status.return_value=None
+        session=Mock()
+        session.get.return_value=response
+        with patch("requests.Session",return_value=session),patch.object(
+            official_data,"dart_json",
+            side_effect=official_data.DartStopCollectionError("OpenDART stop status 020")
+        ) as dart:
+            with self.assertRaisesRegex(official_data.DartStopCollectionError,"020"):
+                official_data.dart_collect([
+                    {"code":"100139","market_cap_eok":500},
+                    {"code":"100138","market_cap_eok":500},
+                ],DAY,"test-key",years=1,budget_seconds=300)
+            self.assertEqual(dart.call_count,1,
+                             "no repeated DART calls after provider quota failure")
+
 if __name__=="__main__":
     unittest.main()
