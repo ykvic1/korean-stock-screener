@@ -3,20 +3,20 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#172b45">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
-<title>v3 후보 추천 · 점수와 퀀트 검증 | 한국주식</title>
+<title>차트패턴 우선 종목 관찰 · RSI 회복 | 한국주식</title>
 <link rel="stylesheet" href="v3-ranking.css"><script src="v3-ranking.js" defer></script>
 </head><body>
 <header><div class="wrap">
 <div class="eyebrow">KOREAN STOCK RESEARCH · V3 USER BETA</div>
-<h1>자동 종목 추천 · 퀀트 검증</h1>
-<p>코스피·코스닥 전 종목을 분석한 뒤, 점수와 손절 위험으로 후보를 추리고 과거 통계까지 확인합니다.</p>
+<h1>차트 패턴 중심 종목 발굴 · 퀀트 검증</h1>
+<p>폴링 웻지·역헤드앤숄더·더블바텀·Bull Flag를 우선 관찰하고 RSI 회복·거래량·위험을 함께 확인합니다.</p>
 <div class="header-links"><a href="index.html">기존 v2.2 전체 스크리너</a><a href="v3-manual.html">직접 종목 검색 · 모의 관찰</a></div>
 </div></header>
 <main>
 <section class="panel intro">
 <div class="eyebrow dark">손실 우선 기술 관찰 → 기존 점수 → 퀀트 검증 → 매수·관망 판단</div>
-<h2>OBV·선호 차트 패턴 관찰 → 심층 검증 → 최종 대응</h2>
-<p class="note">첫 화면은 2,000여 가격 분석 종목 중 OBV 상승, 가격 미반영 또는 초기 차트 구조, 구조 손절거리 3~15%와 데이터 품질을 동시에 확인한 <strong>기술적 관찰 목록</strong>입니다. 자동 심층 추천과는 별개이며 기관 매집·실전 매수 신호가 아닙니다. 심층 선별 후보는 별도 탭에 유지합니다.</p>
+<h2>선호 차트 패턴 → RSI 전환 → 거래량·OBV 확인 → 하방위험</h2>
+<p class="note">첫 화면은 가격 분석 종목 중 <strong>차트 패턴 형성·전환과 RSI 회복</strong>을 우선 확인하고, 구조 손절거리 3~15% 및 데이터 품질로 위험을 점검하는 <strong>기술적 관찰 목록</strong>입니다. OBV는 필수 조건이 아닌 보조 신호입니다. 자동 심층 추천과는 별개이며 기관 매집·실전 매수 신호가 아닙니다. 심층 선별 후보는 별도 탭에 유지합니다.</p>
 <p id="rankStatus" class="status" aria-live="polite">분석 데이터를 불러오고 있습니다.</p>
 <p id="rankQuantStatus" class="note">퀀트 연구의 실제 자료와 기준일을 확인합니다.</p>
 <p id="rankCandidateQuant" class="note" aria-live="polite">추천 종목과 과거 연구의 연결 여부를 확인하고 있습니다.</p>
@@ -24,10 +24,12 @@
 <div class="notice">현재 화면의 점수는 <strong>기존 v2.2의 8영역 관측 기반 점수</strong>입니다. 확정되지 않은 v3의 IAS25·재무20·가치15·기술15·업종15·모멘텀10 배점을 임의로 계산하지 않습니다. <strong>심층 선별은 매수 추천이 아니라 분석 후보입니다.</strong> 수급·재무가 부족하거나 손절 위험이 크면 관망할 수 있습니다.</div>
 </section>
 <section class="panel">
-<div class="section-row"><h2>1. 우선 관찰할 기술적 후보 · 매수 미인증</h2><button id="rankReload" type="button" class="secondary">최신 자료 다시 읽기</button></div>
+<div class="section-row"><h2>1. 차트 패턴·RSI 관찰 후보 · 매수 미인증</h2><button id="rankReload" type="button" class="secondary">최신 자료 다시 읽기</button></div>
 <div class="modes" id="rankModes" aria-label="후보 유형">
-<button type="button" data-mode="watch" aria-pressed="true">우선 관찰(OBV·패턴)</button>
-<button type="button" data-mode="obv" aria-pressed="false">OBV 상승·주가 미반영</button>
+<button type="button" data-mode="watch" aria-pressed="true">패턴·RSI 우선 관찰</button>
+<button type="button" data-mode="pattern" aria-pressed="false">선호 차트 패턴</button>
+<button type="button" data-mode="rsi" aria-pressed="false">RSI 30 재돌파·상승다이버전스</button>
+<button type="button" data-mode="obv" aria-pressed="false">OBV 보조 탐색</button>
 <button type="button" data-mode="recommended" aria-pressed="false">심층 선별 후보</button>
 <button type="button" data-mode="quant" aria-pressed="false">퀀트 자료 있는 종목</button>
 <button type="button" data-mode="early" aria-pressed="false">상승 초기 후보</button>
@@ -41,7 +43,7 @@
 <input type="search" id="rankSearch" placeholder="기본은 자동추천 · 검색은 선택사항" autocomplete="off">
 </label>
 </div>
-<p class="note">우선 관찰은 기존 v2.2 가격·거래량 추정 패턴입니다. OBV 상승은 수급 주체를 식별하지 못하며, 주가 미반영은 과거 60거래일 가격 변화로 계산한 휴리스틱입니다. 수급·정식 PBR·업황·미래 수익률이 확인되기 전에는 매수를 확정하지 않습니다.</p>
+<p class="note">핵심 패턴: 폴링 웻지 · 역헤드앤숄더 · 더블바텀 · Bull Flag(상승 깃발형). RSI 14의 30선 상향 재돌파 및 상승다이버전스는 신규 일봉 관측자료가 발행되면 표시됩니다. 기존 패턴 근사와 신규 형성 중·돌파 관측은 구분되며, 자동 매수 인증은 아닙니다. OBV는 수급 주체를 식별하지 못합니다.</p>
 <p id="rankCount" class="note" aria-live="polite">후보 목록 확인 중…</p>
 <div id="rankCards"><p class="empty">점수와 자료를 검증하고 있습니다.</p></div>
 <button id="rankMore" type="button" class="secondary" hidden>다음 후보 24종목 더 보기</button>
