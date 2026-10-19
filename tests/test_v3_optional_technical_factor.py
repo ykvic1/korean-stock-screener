@@ -1,4 +1,4 @@
-"""Research-only 120-week evidence with rebalanced pattern-first technical 15; no inflation."""
+"""Research-only 120-week evidence with user-updated pattern-first technical 25; no inflation."""
 import unittest
 
 from v3_research_factor_engine import FIELD_SPECS, research_factor_batch
@@ -32,22 +32,22 @@ def cohort(*, n=40, market="KOSPI", missing=()):
 
 
 class OptionalTechnicalFactorCoverageTests(unittest.TestCase):
-    def test_missing_120week_gives_12_of_15_research_only_not_full_pillar(self):
+    def test_missing_120week_gives_22_of_25_research_only_not_full_pillar(self):
         result=research_factor_batch(
             cohort(missing=(LONG_WEEK,)),asof=ASOF,min_peers=30)
         for row in result["rows"]:
             t=row["technical_subfactor_partial_research_only"]
-            self.assertEqual(t["observed_maximum_points"],12)
+            self.assertEqual(t["observed_maximum_points"],22)
             self.assertEqual(t["unavailable_maximum_points"],3)
             self.assertIsNone(t["individual_research_points"][LONG_WEEK])
             self.assertIn(LONG_WEEK,t["missing_or_insufficient_peer_metrics"])
-            self.assertLessEqual(t["research_points_unscaled"],12)
+            self.assertLessEqual(t["research_points_unscaled"],22)
             self.assertTrue(t["missing_120week_is_not_zero_or_reweighted"])
             self.assertFalse(t["equal_to_complete_technical_pillar"])
             self.assertIsNone(t["confirmed_technical_score"])
             self.assertIsNone(row["pillar_research_candidates"]["technical"])
             self.assertIsNone(row["candidate_full_total_research_only"])
-            self.assertEqual(row["candidate_coverage_pct"],85.0)
+            self.assertEqual(row["candidate_coverage_pct"],75.0)
             self.assertIsNone(row["confirmed_score"])
             self.assertIsNone(row["confirmed_rank"])
 
@@ -55,7 +55,7 @@ class OptionalTechnicalFactorCoverageTests(unittest.TestCase):
         result=research_factor_batch(cohort(),asof=ASOF,min_peers=30)
         for row in result["rows"]:
             t=row["technical_subfactor_partial_research_only"]
-            self.assertEqual(t["observed_maximum_points"],15)
+            self.assertEqual(t["observed_maximum_points"],25)
             self.assertEqual(t["unavailable_maximum_points"],0)
             self.assertTrue(t["equal_to_complete_technical_pillar"])
             self.assertAlmostEqual(
@@ -71,9 +71,9 @@ class OptionalTechnicalFactorCoverageTests(unittest.TestCase):
             cohort(missing=missing),asof=ASOF,min_peers=30)
         for row in result["rows"]:
             t=row["technical_subfactor_partial_research_only"]
-            self.assertEqual(t["observed_maximum_points"],7)
-            self.assertEqual(t["unavailable_maximum_points"],8)
-            self.assertLessEqual(t["research_points_unscaled"],7)
+            self.assertEqual(t["observed_maximum_points"],15)
+            self.assertEqual(t["unavailable_maximum_points"],10)
+            self.assertLessEqual(t["research_points_unscaled"],15)
             self.assertIsNone(row["pillar_research_candidates"]["technical"])
             self.assertFalse(row["scoring_authorized_for_investment"])
 
@@ -83,7 +83,7 @@ class OptionalTechnicalFactorCoverageTests(unittest.TestCase):
         for row in r["rows"]:
             t=row["technical_subfactor_partial_research_only"]
             self.assertEqual(t["observed_maximum_points"],0)
-            self.assertEqual(t["unavailable_maximum_points"],15)
+            self.assertEqual(t["unavailable_maximum_points"],25)
             self.assertIsNone(t["research_points_unscaled"])
             self.assertEqual(len(t["observed_metrics"]),0)
             self.assertIsNone(row["confirmed_score"])
