@@ -6,7 +6,7 @@
   'use strict';
   const STORAGE_KEY='kr-stock-v3-paper-beta-1';
   const ID=/^[0-9A-Z]{6}$/;
-  const KIND_VALUES=new Set(['all','early','weekly','pattern','volume','obv']);
+  const KIND_VALUES=new Set(['all','early','weekly','pattern','volume','obv','partial']);
   const RISK_VALUES=new Set(['all','controlled','unverified']);
   const STATUS_VALUES=new Set(['all','priced','missing']);
   const MARKET_VALUES=new Set(['all','KOSPI','KOSDAQ']);
@@ -72,6 +72,47 @@
     return {...view,stocks:rows,total:rows.length,catalogLoaded:true,
       pricedCount:counts.priced,missingCount:rows.length-counts.priced};
   }
+  function mergePartial(view,partial){
+    if(!view?.catalogLoaded||!partial||
+        partial.schema!=='v22-current-listed-partial-daily-60to159-v0.1'||
+        partial.asof!==view.date||!Array.isArray(partial.rows)||
+        partial.rows.length>80||
+        partial.rows.length!==partial.listed_insufficient_history_count||
+        partial.full_v22_score_allowed!==false||
+        partial.v3_validated_technical_score_allowed!==false||
+        partial.confirmed_buy_signal!==false||
+        partial.raw_ohlcv_published!==false)return null;
+    const candidates=new Map(view.stocks.filter(r=>r.price_history_status==='insufficient_history')
+      .map(r=>[r.code,r]));
+    if(candidates.size!==partial.rows.length)return null;
+    const seen=new Set(),map=new Map(),outcomes={partial_technical_observed:0,not_observable_partial:0};
+    for(const x of partial.rows){
+      if(!x||!ID.test(clean(x.code))||!candidates.has(x.code)||seen.has(x.code)||
+         !Object.prototype.hasOwnProperty.call(outcomes,x.status)||
+         !Number.isInteger(x.bars)||x.bars<0||x.bars>3500)return null;
+      seen.add(x.code);outcomes[x.status]++;
+      if(x.status==='partial_technical_observed'){
+        if(x.bars<60||x.bars>=160||!fin(x.close_reference)||x.close_reference<=0||
+           !fin(x.ma20)||x.ma20<=0||!fin(x.ma60)||x.ma60<=0||
+           !fin(x.close_vs_ma20_pct)||!fin(x.close_vs_ma60_pct)||
+           !['rising','falling','flat'].includes(x.obv_direction_60_daily)||
+           !(x.ma120_daily===null||(x.bars>=120&&fin(x.ma120_daily)&&x.ma120_daily>0))||
+           (x.bars<120&&x.ma120_daily!==null)||
+           !(x.volume_ratio_20_vs_prior_20===null||
+             (fin(x.volume_ratio_20_vs_prior_20)&&x.volume_ratio_20_vs_prior_20>=0))||
+           x.full_score!==undefined||x.stop_line!==undefined||
+           x.v3_buy_signal!==undefined)return null;
+      }else if(x.close_reference!==undefined||x.ma20!==undefined||
+               x.ma60!==undefined)return null;
+      map.set(x.code,x);
+    }
+    if(seen.size!==candidates.size||
+       outcomes.partial_technical_observed!==partial.partial_observed_count||
+       outcomes.not_observable_partial!==partial.still_unavailable_count)return null;
+    return {...view,stocks:view.stocks.map(r=>map.has(r.code)?
+      {...r,partialObservation:map.get(r.code)}:r),
+      partialLoaded:true,partialObservedCount:outcomes.partial_technical_observed};
+  }
   function priceRisk(row) {
     const stop=n(row&&row.stop_line), price=n(row&&row.price);
     if(!(price>0&&stop>0&&stop<price))return null;
@@ -96,6 +137,7 @@
     if(filter.status==='priced'&&r.price_history_status&&r.price_history_status!=='priced')return false;
     if(filter.status==='missing'&&(!r.price_history_status||r.price_history_status==='priced'))return false;
     if(filter.kind==='early'&&!early(r))return false;
+    if(filter.kind==='partial'&&r.partialObservation?.status!=='partial_technical_observed')return false;
     if(filter.kind==='weekly'&&!((r.signals||[]).includes('주봉 120주선 회복')||
       (fin(r.ma120w_gap)&&Math.abs(r.ma120w_gap)<=10)))return false;
     if(filter.kind==='pattern'&&!(Array.isArray(r.patterns)&&r.patterns.length))return false;
@@ -152,7 +194,7 @@
       latestPrice:r.price,asof:day,
     };
   }
-  const core={parseSnapshot,mergeCatalog,priceRisk,riskDescription,eligible,rankRows,isStale,safeRecord,makeRecord,markToMarket,escapeHtml,KIND_VALUES,RISK_VALUES,STATUS_VALUES,MARKET_VALUES};
+  const core={parseSnapshot,mergeCatalog,mergePartial,priceRisk,riskDescription,eligible,rankRows,isStale,safeRecord,makeRecord,markToMarket,escapeHtml,KIND_VALUES,RISK_VALUES,STATUS_VALUES,MARKET_VALUES};
   if(typeof module!=='undefined'&&module.exports)module.exports=core;
   root.V3BetaCore=core;
   if(!root.document)return;
@@ -196,12 +238,24 @@
         const lowTurnoverNote=r.price_history_status==='price_source_or_validation_error'&&
           trade===0?
           ' · 상장 목록 참고 거래대금 0.00억원(반올림). 원 단위 무거래·거래정지 여부는 미확인.':'';
+        const partial=r.partialObservation?.status==='partial_technical_observed'?
+          '<p class="note"><b>일봉 부분 관측 ('+r.partialObservation.bars+'개)</b> · 기준일 종가 '+
+          money(r.partialObservation.close_reference)+' · 20일 MA '+
+          money(r.partialObservation.ma20)+' · 60일 MA '+
+          money(r.partialObservation.ma60)+
+          (fin(r.partialObservation.ma120_daily)?' · 일봉 120일 MA '+
+            money(r.partialObservation.ma120_daily):' · 일봉 120일 MA 미확보')+
+          ' · OBV 60일 방향 '+escapeHtml(r.partialObservation.obv_direction_60_daily)+
+          ' · 지난 20일/직전 20일 거래량 비율 '+
+          (fin(r.partialObservation.volume_ratio_20_vs_prior_20)?
+            r.partialObservation.volume_ratio_20_vs_prior_20.toFixed(2)+'배':'미확인')+
+          '. <b>주봉120주선·정식 점수·매수 판단 없음</b></p>':'';
         return '<article class="v3-stock"><div class="v3-head"><div><strong>'+escapeHtml(r.name)+
           '</strong><div class="sub">'+escapeHtml(r.code)+' · '+escapeHtml(r.market)+
           '</div></div><span class="v3-tag">'+escapeHtml(reason)+'</span></div>'+
           '<p class="sub">'+escapeHtml(firm)+' · '+escapeHtml(sourceNote)+'</p>'+
           '<p class="note">현재 분석 기준일의 기술 지표가 없어 모의 진입 기록과 매수 판단을 생성하지 않습니다.'+
-          escapeHtml(lowTurnoverNote)+'</p></article>';
+          escapeHtml(lowTurnoverNote)+'</p>'+partial+'</article>';
       }
       const risk=priceRisk(r);
       const signals=Array.isArray(r.patterns)?r.patterns.slice(0,2).map(escapeHtml).join(' · '):'없음';
@@ -245,7 +299,9 @@
       by('v3Count').textContent='현재 상장 종목 '+view.stocks.length.toLocaleString('ko-KR')+
         '개 ('+(view.catalogLoaded?'전 종목 목록 연결':'가격 관측 가능한 종목만 연결')+') · 가격 분석 '+
         (view.pricedCount??view.stocks.length).toLocaleString('ko-KR')+'개 · 자료 부족/오류 '+
-        (view.missingCount??'미집계')+'개 · 필터 '+matching.length.toLocaleString('ko-KR')+
+        (view.missingCount??'미집계')+'개 · 일봉 부분 관측 '+
+        (view.partialLoaded?view.partialObservedCount+'개':'게시 대기')+
+        ' · 필터 '+matching.length.toLocaleString('ko-KR')+
         '개 · '+selected.length+'개 표시';
       list.innerHTML=selected.length?selected.map(rowCard).join(''):'<p class="empty">현재 조건을 충족하는 후보가 없어 관망합니다. 필터를 바꿔 확인할 수 있습니다.</p>';
       by('v3More').hidden=matching.length<=limit;
@@ -294,6 +350,16 @@
             if(merged)view=merged;
           }
         }catch(_){/* Existing valid price cards remain usable until next market run. */}
+        if(view.catalogLoaded){
+          try{
+            const partialResponse=await root.fetch('v22-partial-history.json?beta='+Date.now(),{cache:'no-store'});
+            if(partialResponse.ok){
+              const p=await partialResponse.json();
+              const merged=mergePartial(view,p);
+              if(merged)view=merged;
+            }
+          }catch(_){/* Missing or stale short-history optional data keeps existing safe rows. */}
+        }
         noteStatus();
         render();renderLedger();
       }catch(_){
