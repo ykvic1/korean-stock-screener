@@ -256,6 +256,88 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             self.assertFalse(any(r["flows_confirmed"] for r in combined["rows"]))
             self.assertTrue(all(r["decision"] == "추가 검증 필요" for r in combined["rows"]))
 
+    def test_scheduled_merger_produces_v3_daily_weekly_technical25_not_faked_100(self):
+        """The actual 18:30 route is batch.scan -> batch.publish, not build_rows."""
+        def observation(kind):
+            study = {
+                "schema": "v3-pattern-first-daily-research-0.1",
+                "asof": DAY, "timeframe": kind, "status": "heuristic_unverified",
+                "patterns": [{"type": "bull_flag", "stage": "breakout_observed"}],
+                "rsi14": 41.0, "rsi30_cross_recent": True,
+                "rsi_bullish_divergence_recent": False,
+                "pattern_geometry": {
+                    "status": "heuristic_unvalidated",
+                    "falling_wedge_candidate": False,
+                    "inverse_head_shoulders_breakout_candidate": False,
+                    "triangle_candidate": False,
+                    "post_rise_consolidation_candidate": False,
+                },
+                "scoring_allowed": False, "buy_signal": False,
+                "official_regular_session_verified": False,
+            }
+            if kind == "weekly":
+                study["completed_week_only"] = True
+                study["weekly_ma120_gap_pct"] = 4.0
+            return study
+
+        def research_analyzer(code, cfg, day):
+            base = mock_history(code, cfg, day)
+            base.update({
+                "stop_line": 920.0, "stop_pct": -8.0,
+                "one_day_volume_ratio": 1.7,
+                "pattern_research": observation("daily"),
+                "pattern_weekly_research": observation("weekly"),
+            })
+            if code == "100001":
+                # Missing finished weekly evidence must never become 0 points
+                # or be promoted into a full six-pillar investment score.
+                base["pattern_weekly_research"] = None
+            return base
+
+        def v2_score_stub(row, _cfg):
+            row.update({
+                "components": {"일봉 구조": 5, "주봉·추세": 5,
+                               "거래량·OBV": 5},
+                "score": 60, "coverage_pct": 30,
+                "decision": "추가 검증 필요",
+                "risk_flags": ["수급·재무 미확인"],
+            })
+            return row
+
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, listing = self._plan(tmp, 105)
+            parts, _ = self._scan_all(tmp, manifest, analyzer=research_analyzer)
+            with patch.object(screener, "score_one", side_effect=v2_score_stub):
+                result = b.publish(
+                    manifest=manifest, parts_dir=parts, listing=listing,
+                    optional_sources=[], index_data={}, use_flow=False,
+                    write_report=False)
+            rows = result["rows"]
+            self.assertEqual(len(rows), 105)
+            self.assertEqual(sum(
+                x["v3_pattern_integrated"]["technical_research_candidate"] is not None
+                for x in rows), 104)
+            self.assertEqual(sum(
+                x["v3_pattern_integrated"]["technical_research_candidate"] is None
+                for x in rows), 1)
+            self.assertEqual(next(
+                x for x in rows if x["code"] == "100001"
+            )["v3_pattern_integrated"]["technical_observed_maximum"], 11)
+            complete = next(x for x in rows if x["code"] == "100002")
+            item = complete["v3_pattern_integrated"]
+            self.assertEqual(item["technical_parts"]["daily_pattern"], 7.0)
+            self.assertEqual(item["technical_parts"]["weekly_pattern"], 8.0)
+            self.assertEqual(item["technical_research_candidate"], 25.0)
+            self.assertEqual(item["six_pillar_coverage_pct"], 25.0)
+            self.assertEqual(set(item["missing_pillars"]),
+                             {"ias", "financial", "valuation", "industry", "momentum"})
+            self.assertIsNone(item["six_pillar_full_candidate_only"])
+            self.assertIsNone(item["confirmed_rank"])
+            self.assertFalse(item["buy_certified"])
+            self.assertEqual(complete["decision"], "추가 검증 필요")
+            self.assertEqual(complete["score"], 60)
+            self.assertEqual([r["code"] for r in rows], sorted(r["code"] for r in rows))
+
     def test_changed_market_listing_blocks_reusing_mismatched_date(self):
         with tempfile.TemporaryDirectory() as tmp:
             m, _, listed = self._plan(tmp, 105)
