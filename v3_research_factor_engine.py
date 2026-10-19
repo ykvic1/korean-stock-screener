@@ -36,9 +36,9 @@ IAS_METRICS = {
 }
 PILLAR_METRICS = {
     "financial": [
-        ("financial_revenue_cagr_3y_pct", 6, 1, None),
-        ("financial_operating_margin_3y_pct", 6, 1, None),
-        ("financial_fcf_assets_3y_pct", 5, 1, None),
+        ("financial_revenue_cagr_3y_pct", 4, 1, None),
+        ("financial_operating_margin_3y_pct", 4, 1, None),
+        ("financial_fcf_assets_3y_pct", 4, 1, None),
         ("financial_net_debt_equity_pct", 3, -1, None),
     ],
     "valuation": [
@@ -47,11 +47,11 @@ PILLAR_METRICS = {
         ("valuation_fcf_yield_pct", 5, 1, None),
     ],
     "technical": [
-        # Keep original six-pillar TECHNICAL total at 15. Pattern weight
-        # covers independent daily+fully completed weekly chart evidence.
+        # Within the new technical25, observed pattern evidence is dominant.
+        # Daily+fully completed weekly patterns = 15; RSI5, MA1203, volume2.
         ("technical_weekly_ma120_reclaim_strength", 3, 1, (0, 1)),
-        ("technical_weekly_rsi_divergence_strength", 3, 1, (0, 1)),
-        ("technical_pattern_confirmation_strength", 7, 1, (0, 1)),
+        ("technical_weekly_rsi_divergence_strength", 5, 1, (0, 1)),
+        ("technical_pattern_confirmation_strength", 15, 1, (0, 1)),
         ("technical_volume_breakout_ratio", 2, 1, (0, None)),
     ],
     "industry": [
@@ -60,9 +60,10 @@ PILLAR_METRICS = {
         ("industry_breadth_above_ma_ratio", 4, 1, (0, 1)),
     ],
     "momentum": [
-        ("momentum_stock_relative_strength_20_pct", 4, 1, None),
-        ("momentum_stock_relative_strength_60_pct", 4, 1, None),
-        ("momentum_positive_days_20_ratio", 2, 1, (0, 1)),
+        # Avoid duplicating the strengthened technical pattern/trend pillar.
+        ("momentum_stock_relative_strength_20_pct", 2, 1, None),
+        ("momentum_stock_relative_strength_60_pct", 2, 1, None),
+        ("momentum_positive_days_20_ratio", 1, 1, (0, 1)),
     ],
 }
 ALL_SPECS = [item for group in IAS_METRICS.values() for item in group]

@@ -14,10 +14,10 @@ from v3_score_contract import (
 
 
 class FullSixPillarContractTests(unittest.TestCase):
-    def test_agreed_top_level_100_points_are_unchanged(self):
+    def test_user_updated_top_level_remains_exactly_100(self):
         self.assertEqual(dict(PILLAR_POINTS), {
-            "ias": 25, "financial": 20, "valuation": 15,
-            "technical": 15, "industry": 15, "momentum": 10,
+            "ias": 25, "financial": 15, "valuation": 15,
+            "technical": 25, "industry": 15, "momentum": 5,
         })
         self.assertEqual(sum(PILLAR_POINTS.values()), 100)
         _check_design()
@@ -58,9 +58,9 @@ class FullSixPillarContractTests(unittest.TestCase):
         # A partial "flow/chart" focus cannot promote a 100-point model.
         model = research_scorecard(
             asof="2026-10-16",
-            pillars={"ias": 17.0, "technical": 10.0, "momentum": 6.0},
+            pillars={"ias": 17.0, "technical": 10.0, "momentum": 4.0},
         )
-        self.assertEqual(model["candidate_nonmissing_weight"], 50)
+        self.assertEqual(model["candidate_nonmissing_weight"], 55)
         self.assertIn("financial", model["unscored_pillars"])
         self.assertIn("valuation", model["unscored_pillars"])
         self.assertIn("industry", model["unscored_pillars"])
@@ -71,12 +71,12 @@ class FullSixPillarContractTests(unittest.TestCase):
         ia = dict(IAS_POINTS)
         model = research_scorecard(
             asof="2026-10-16", ias=ia,
-            pillars={"financial": 18, "valuation": 12,
-                     "technical": 10, "industry": 14, "momentum": 8},
+            pillars={"financial": 13, "valuation": 12,
+                     "technical": 20, "industry": 14, "momentum": 4},
         )
         self.assertEqual(model["pillars"]["ias"]["candidate_points"], 25.0)
         self.assertEqual(model["candidate_nonmissing_weight"], 100)
-        self.assertEqual(model["candidate_full_total_research_only"], 87.0)
+        self.assertEqual(model["candidate_full_total_research_only"], 88.0)
         self.assertTrue(model["ias_internal_six_components_complete"])
         self.assertIsNone(model["confirmed_score"])
         self.assertIsNone(model["confirmed_rank"])
@@ -104,7 +104,7 @@ class FullSixPillarContractTests(unittest.TestCase):
         model = research_scorecard(asof="2026-10-16",
                                    pillars={"financial": 0})
         self.assertEqual(model["pillars"]["financial"]["candidate_points"], 0.0)
-        self.assertEqual(model["candidate_nonmissing_weight"], 20)
+        self.assertEqual(model["candidate_nonmissing_weight"], 15)
         self.assertIsNone(model["pillars"]["valuation"]["candidate_points"])
         self.assertIsNone(model["confirmed_score"])
 
@@ -116,8 +116,9 @@ class FullSixPillarContractTests(unittest.TestCase):
             {"ias": float("nan")},
             {"ias": float("inf")},
             {"ias": -1},
-            {"financial": 21},
-            {"momentum": 11},
+            {"financial": 16},
+            {"momentum": 6},
+            {"technical": 26},
         )
         for bad in candidates:
             with self.subTest(bad=bad), self.assertRaises(ScoreContractError):
@@ -145,8 +146,8 @@ class FullSixPillarContractTests(unittest.TestCase):
 
     def test_user_example_missing_15_points_provisional_82_3(self):
         result=research_scorecard(asof="2026-10-16", pillars={
-            "ias":20, "financial":16, "valuation":14,
-            "technical":13, "momentum":7
+            "ias":20, "financial":12, "valuation":14,
+            "technical":20, "momentum":4
         })
         self.assertEqual(result["candidate_observed_points"], 70)
         self.assertEqual(result["candidate_available_points"], 85)
@@ -163,14 +164,14 @@ class FullSixPillarContractTests(unittest.TestCase):
         result=research_scorecard(asof="2026-10-16",
                                   ias={"accumulated_net_buy":20,
                                        "buy_persistence":10},
-                                  pillars={"financial":18, "valuation":14})
+                                  pillars={"financial":13, "valuation":14})
         self.assertIsNone(result["pillars"]["ias"]["candidate_points"])
         self.assertEqual(result["ias_candidate_observed_100"], 30)
         self.assertEqual(result["ias_candidate_available_100"], 40)
         # IAS max25, 40% of its subcategories => 10 available and 7.5 earned.
-        self.assertEqual(result["candidate_available_points"], 45)
-        self.assertEqual(result["candidate_observed_points"], 39.5)
-        self.assertEqual(result["candidate_normalized_100"], 87.7)
+        self.assertEqual(result["candidate_available_points"], 40)
+        self.assertEqual(result["candidate_observed_points"], 34.5)
+        self.assertEqual(result["candidate_normalized_100"], 86.2)
         self.assertIn("ias", result["unscored_pillars"])
         self.assertIsNone(result["confirmed_score"])
 
@@ -183,8 +184,8 @@ class FullSixPillarContractTests(unittest.TestCase):
 
     def test_all_six_available_still_provisional_not_released(self):
         result=research_scorecard(asof="2026-10-16",pillars={
-            "ias":20, "financial":20, "valuation":10, "technical":12,
-            "industry":10, "momentum":8
+            "ias":20, "financial":15, "valuation":10, "technical":20,
+            "industry":10, "momentum":5
         })
         self.assertEqual(result["candidate_available_points"],100)
         self.assertEqual(result["candidate_observed_points"],80)
