@@ -129,6 +129,22 @@ jobs:
                                 ' market='+market['market']+' '+
                                 ' '.join(k+'='+str(quality[k]) for k in buckets)+
                                 ' (no halt/split cause inferred)')
+                      zero=market.get('zero_price_ohlc_field_counts')
+                      labels=('zero_price_rows','zero_open_rows','zero_high_rows',
+                              'zero_low_rows','zero_close_rows','multiple_zero_ohlc_rows',
+                              'zero_price_with_zero_accumulated_volume',
+                              'zero_price_with_positive_accumulated_volume',
+                              'zero_price_with_unparseable_accumulated_volume')
+                      expected=quality.get('zero_or_negative_price') if isinstance(quality,dict) else None
+                      if (isinstance(zero,dict) and set(zero)==set(labels)
+                              and type(expected) is int and 0<=expected<=20000
+                              and all(type(zero[k]) is int and 0<=zero[k]<=expected for k in labels)
+                              and zero['zero_price_rows']==expected
+                              and sum(zero[k] for k in labels[-3:])==expected):
+                          print('::notice::KRX zero-OHLC field audit date='+valid_day+
+                                ' market='+market['market']+' '+
+                                ' '.join(k+'='+str(zero[k]) for k in labels)+
+                                ' (field overlaps; no halt/split conclusion)')
 
 
           PY
