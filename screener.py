@@ -198,7 +198,8 @@ def last_series(series, code, cfg,day):
     if any(c not in df for c in cols):raise ValueError('필수 OHLCV 누락')
     for c in cols:df[c]=df[c].astype(float)
     if df[list(cols)].isnull().any().any():raise ValueError('OHLCV 결측 데이터')
-    if df['Close'].iloc[-1]<=0 or df['Volume'].iloc[-1]<=0:raise ValueError('현재가/거래량 오류')
+    if df['Close'].iloc[-1]<=0:raise ValueError('현재 종가 0이하')
+    if df['Volume'].iloc[-1]<=0:raise ValueError('현재 거래량 0이하')
     last=df.index[-1].date()
     if (day.date()-last).days>cfg['max_data_age_days']:raise ValueError('가격 이력 최신성 오류')
     return df,last

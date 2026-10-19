@@ -191,11 +191,17 @@
       if(missing){
         const reason={insufficient_history:'가격 이력 부족',price_source_or_validation_error:'가격 수집·검증 오류',
           unattempted_batch:'해당 배치 미시도'}[r.price_history_status]||'가격 분석 불가';
+        // The listing's 0.00억원 is rounded (can include small positive
+        // transactions), so never claim confirmed suspension or exact zero.
+        const lowTurnoverNote=r.price_history_status==='price_source_or_validation_error'&&
+          trade===0?
+          ' · 상장 목록 참고 거래대금 0.00억원(반올림). 원 단위 무거래·거래정지 여부는 미확인.':'';
         return '<article class="v3-stock"><div class="v3-head"><div><strong>'+escapeHtml(r.name)+
           '</strong><div class="sub">'+escapeHtml(r.code)+' · '+escapeHtml(r.market)+
           '</div></div><span class="v3-tag">'+escapeHtml(reason)+'</span></div>'+
           '<p class="sub">'+escapeHtml(firm)+' · '+escapeHtml(sourceNote)+'</p>'+
-          '<p class="note">현재 분석 기준일의 기술 지표가 없어 모의 진입 기록과 매수 판단을 생성하지 않습니다.</p></article>';
+          '<p class="note">현재 분석 기준일의 기술 지표가 없어 모의 진입 기록과 매수 판단을 생성하지 않습니다.'+
+          escapeHtml(lowTurnoverNote)+'</p></article>';
       }
       const risk=priceRisk(r);
       const signals=Array.isArray(r.patterns)?r.patterns.slice(0,2).map(escapeHtml).join(' · '):'없음';

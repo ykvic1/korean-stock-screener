@@ -56,6 +56,8 @@ class ActiveListedMarketCatalogTests(unittest.TestCase):
         self.assertEqual(len(c["rows"]),7)
         self.assertEqual({x["code"] for x in c["rows"]},set(listing))
         self.assertEqual(c["pbr_observed_count"],1)
+        self.assertEqual(c["price_error_rounded_zero_turnover_reference_count"],0)
+        self.assertEqual(c["insufficient_history_nonzero_turnover_reference_count"],2)
         self.assertEqual(c["flow_reference_count"],1)
         self.assertFalse(c["historical_delisted_stocks_included"])
         self.assertTrue(c["historical_backtest_has_survivorship_bias"])
@@ -69,6 +71,18 @@ class ActiveListedMarketCatalogTests(unittest.TestCase):
         self.assertIsNone(entries["300003"]["published_price"])
         self.assertIsNone(entries["300003"]["flow_reference"])
         self.assertIsNone(entries["300004"]["fundamental_revenue"])
+
+    def test_rounded_zero_turnover_is_not_proof_of_exact_zero_shares(self):
+        snap,listing=fixture()
+        listing["300003"]["trading_eok"]=0.001  # nonzero KRW, rounded to 0.00억원
+        result=build_active_catalog(snap,listing)
+        self.assertEqual(result["price_error_rounded_zero_turnover_reference_count"],1)
+        self.assertEqual(result["insufficient_history_nonzero_turnover_reference_count"],2)
+        self.assertIn("not proof",result["reference_turnover_rounding_note"])
+        row=next(x for x in result["rows"] if x["code"]=="300003")
+        self.assertEqual(row["reference_trading_value_eok"],0)
+        self.assertIsNone(row["published_price"])
+        self.assertEqual(row["price_history_status"],"price_source_or_validation_error")
 
     def test_incomplete_flow_is_nullable_without_blocking_entire_market(self):
         snap,listing=fixture()
