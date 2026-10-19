@@ -2,7 +2,11 @@ name: Rolling OpenDART Annual Book Reference - Current Listed
 
 on:
   schedule:
-    - cron: '0 12 * * 1-5'  # 21:00 Korea, after 18:30 full-market scan
+    # Three non-overlapping KST weekday windows. Each retains its independent
+    # <=40 issuer bounded DART budget; never increase per-run query size.
+    - cron: '0 22 * * 0-4'  # 07:00 KST Monday-Friday (previous UTC day)
+    - cron: '0 4 * * 1-5'   # 13:00 KST Monday-Friday
+    - cron: '0 12 * * 1-5'  # 21:00 KST Monday-Friday, after 18:30 market scan
   workflow_dispatch:
     inputs:
       limit:
