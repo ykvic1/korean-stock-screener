@@ -97,6 +97,26 @@ jobs:
               n=n if type(n) is int and 0 <= n <= 5 else 0
               print('::notice::KRX paired-day pilot finished, paired_days='+str(n)+
                     '; investment eligibility remains false.')
+              for daily in d.get('days',[]) if isinstance(d.get('days'),list) else []:
+                  if not isinstance(daily,dict):
+                      continue
+                  valid_day=daily.get('asof')
+                  if not isinstance(valid_day,str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',valid_day):
+                      continue
+                  for market in daily.get('markets',[]):
+                      if not isinstance(market,dict) or market.get('market') not in ('KOSPI','KOSDAQ'):
+                          continue
+                      counts=('provider_rows_observed','six_digit_numeric_code_rows',
+                              'six_character_alphanumeric_code_rows','quarantined_unpriced_candidates')
+                      if not all(type(market.get(k)) is int and 0<=market[k]<=20000 for k in counts):
+                          continue
+                      print('::notice::KRX date='+valid_day+' market='+market['market']+
+                            ' rows='+str(market['provider_rows_observed'])+
+                            ' numeric6='+str(market['six_digit_numeric_code_rows'])+
+                            ' alphanumeric6='+str(market['six_character_alphanumeric_code_rows'])+
+                            ' unpriced='+str(market['quarantined_unpriced_candidates'])+
+                            ' (raw codes omitted, no scoring approval)')
+
           PY
       - name: Keep research-only counts and SHA manifest as a private seven-day artifact
         if: always()
