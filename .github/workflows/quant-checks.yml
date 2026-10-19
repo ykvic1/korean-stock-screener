@@ -36,6 +36,10 @@ jobs:
           python -m py_compile v22_full_universe_audit.py
           python -m unittest discover -s tests -p 'test_v22_full_universe_audit.py' -v
           python v22_full_universe_audit.py --daily docs/data.json
+      - name: V3 separately published real candidate quant, 40-peer cohort and no false prediction (offline)
+        run: |
+          python -m py_compile v3_priority_quant_feed.py
+          python -m unittest discover -s tests -p 'test_v3_priority_quant_feed.py' -v
       - name: V3 bounded 20-stock annual financial reference from DART (offline mock, no secrets)
         run: |
           python -m py_compile official_data.py
