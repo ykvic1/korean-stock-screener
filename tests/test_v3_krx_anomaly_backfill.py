@@ -56,7 +56,7 @@ class DailyAnomalyTests(unittest.TestCase):
     def test_aggregate_accounting_and_source_identity(self):
         cases=[row("005930"),
                {**row("00088K"),"TDD_CLSPRC":"-"},
-               {**row("00088L"),"TDD_HGPRC":"105"},
+               {**row("00088L"),"TDD_HGPRC":"102"},
                {**row("00088M"),"TDD_OPNPRC":"0"},
                {**row("00088N"),"ACC_TRDVOL":"N/A"},
                {**row("00088P"),"ACC_TRDVOL":"0"},
