@@ -2,7 +2,7 @@
 
 ## Dependency / deployment order
 
-PR #122 (completed-week weekly pattern/RSi evidence) is still OPEN and its GitHub Actions CI is QUEUED at the time this branch is authored. This new branch is based on PR #122's head commit; **do not merge this before PR #122**. A pending CI is not a pass. The user requested **backend scoring only**, with **no UI changes** in this step.
+PR #122 was the preceding completed-week experiment, including early UI work. Because the user wants **all UI changes deferred**, this PR incorporates the necessary weekly BACKEND observations directly but **restores all HTML, JS, and existing UI tests to the current main files**. It is self-contained against main and replaces PR #122 as the backend rollout candidate. PR #122 should remain unmerged/closed as superseded. A queued CI is not a pass. The user requested backend scoring only.
 
 ## Why a separate 100-point research priority index
 
