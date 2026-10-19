@@ -129,8 +129,10 @@ class PrivateArchiveReauditTests(unittest.TestCase):
                         self.check(private_db=db)
 
     def test_cross_market_ticker_collision_fails(self):
+        # Different raw hashes so the storage layer accepts the pair, but
+        # the semantic re-audit still detects one ticker in both markets.
         self.record(kpi=raw(row("005930", DAY0)),
-                    kdq=raw(row("005930", DAY0)))
+                    kdq=raw(row("005930", DAY0, opened="101", high="113")))
         with self.assertRaisesRegex(ArchiveReauditError,
                                     "cross_market_duplicate_short_code"):
             self.check()
