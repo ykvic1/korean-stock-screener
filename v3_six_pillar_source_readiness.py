@@ -10,6 +10,7 @@ import argparse
 from datetime import date
 import json
 from pathlib import Path
+import math
 import re
 
 from v3_score_contract import PILLAR_POINTS
@@ -71,6 +72,18 @@ def _unique_codes(records, expected=None):
     return seen
 
 
+def _valid_technical_candidate(item, asof):
+    candidate = item.get("v3_pattern_integrated")
+    if not isinstance(candidate, dict) or (
+        candidate.get("schema") != "v3-pattern-within-six-pillars-research-0.4"
+        or candidate.get("asof") != asof
+    ):
+        return False
+    score = candidate.get("technical_research_candidate")
+    return (type(score) in (float, int) and math.isfinite(score)
+            and 0 <= score <= PILLAR_POINTS["technical"])
+
+
 def _market_source(market):
     if market.get("status") != "success":
         raise ReadinessError("market_run_not_successful")
@@ -81,21 +94,12 @@ def _market_source(market):
     observed_flow = _count(market.get("flow_confirmed_count"), total)
     if observed_flow != sum(x.get("flows_confirmed") is True for x in rows):
         raise ReadinessError("published_flow_count_mismatch")
-    technical = sum(
-        isinstance(x.get("v3_pattern_integrated"), dict)
-        and x["v3_pattern_integrated"].get("schema") ==
-        "v3-pattern-within-six-pillars-research-0.4"
-        and x["v3_pattern_integrated"].get("asof") == day.isoformat()
-        and isinstance(
-            x["v3_pattern_integrated"].get("technical_research_candidate"),
-            (int, float))
-        and type(x["v3_pattern_integrated"]["technical_research_candidate"])
-        is not bool
-        for x in rows
-    )
+    technical = sum(_valid_technical_candidate(x, day.isoformat())
+                    for x in rows)
     paired_relative_strength = sum(
         type(x.get("relative20")) in (float, int)
         and type(x.get("relative60")) in (float, int)
+        and math.isfinite(x["relative20"]) and math.isfinite(x["relative60"])
         for x in rows
     )
     return day, codes, {
