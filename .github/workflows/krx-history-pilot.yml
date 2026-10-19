@@ -116,6 +116,20 @@ jobs:
                             ' alphanumeric6='+str(market['six_character_alphanumeric_code_rows'])+
                             ' unpriced='+str(market['quarantined_unpriced_candidates'])+
                             ' (raw codes omitted, no scoring approval)')
+                      quality=market.get('price_volume_anomaly_reason_counts')
+                      buckets=('valid_numeric_observation','missing_price_field',
+                               'non_numeric_price','zero_or_negative_price',
+                               'ohlc_range_inconsistent','missing_volume_field',
+                               'non_numeric_volume')
+                      if (isinstance(quality,dict) and set(quality)==set(buckets)
+                              and all(type(quality[k]) is int and 0<=quality[k]<=20000
+                                      for k in buckets)
+                              and sum(quality.values())==market['provider_rows_observed']):
+                          print('::notice::KRX quarantined-field triage date='+valid_day+
+                                ' market='+market['market']+' '+
+                                ' '.join(k+'='+str(quality[k]) for k in buckets)+
+                                ' (no halt/split cause inferred)')
+
 
           PY
       - name: Keep research-only counts and SHA manifest as a private seven-day artifact
