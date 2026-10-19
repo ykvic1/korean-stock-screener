@@ -274,6 +274,37 @@ assert.equal(result.recommendationQuantCount,1);
 assert.equal(result.recommendationUsableQuantCount,1);
 assert.equal(result.recommendationAwaitingCount,0);
 assert.equal(result.rows[0].r.code,'111111');
+// Shortlist is not the only usable research entry point: a separate, strictly
+// risk-gated technical watchlist is derived from actual v2.2 observed fields.
+const watchBase=structuredClone(stocks[0]);
+watchBase.obv_rising=true;
+watchBase.divergence=true;
+watchBase.price20=2;
+watchBase.price60=5;
+watchBase.one_day_volume_ratio=1.5;
+const watchModel=m.prepare({...snap,stocks:[watchBase,stocks[1],stocks[2]]},research,recs);
+assert.equal(watchModel.watchCount,1);
+assert.equal(watchModel.obvLagCount,1);
+assert.deepEqual(m.select(watchModel,'watch').map(x=>x.r.code),['111111']);
+assert.deepEqual(m.select(watchModel,'obv').map(x=>x.r.code),['111111']);
+assert.equal(watchModel.recommendationCount,1,'watch-only does not manufacture shortlist');
+assert.equal(watchModel.rows[0].decision.label,'조건부 모의 검토',
+ 'a technical watch filter never promotes an unverified buy signal');
+assert.ok(m.watchEvidence(watchBase).labels.some(s=>s.includes('OBV 상승')));
+assert.equal(m.watchEvidence({...watchBase,obv_rising:false}),null,
+ 'no OBV observation means no fabricated accumulation');
+assert.equal(m.watchEvidence({...watchBase,coverage_pct:30}),null);
+assert.equal(m.watchEvidence({...watchBase,stop_line:null}),null);
+assert.equal(m.watchEvidence({...watchBase,price60:48}),null,
+ 'exclude already rallied, higher chase-risk shares');
+assert.equal(m.watchEvidence({...watchBase,risk_flags:['거래대금 부족']}),null,
+ 'technical momentum does not override explicit liquidity danger');
+assert.equal(m.watchEvidence({...watchBase,divergence:false,
+ patterns:['삼각수렴 후보'],price60:14})?.obvLag,false,
+ 'pattern candidates remain observations distinct from OBV-price lag');
+assert.equal(m.watchEvidence({...watchBase,divergence:false,
+ patterns:[],phase:'중립/기타'}),null,
+ 'no structure or lag implies no watchlist entry');
 assert.equal(m.select(result,'recommended').length,1);
 assert.equal(m.select(result,'quant').length,1);
 assert.equal(m.select(result,'early').length,1);
@@ -321,10 +352,16 @@ assert.equal(nowResearched.recommendationUsableQuantCount,1,
 const badRec={...recs,asof:'2026-10-15'};
 assert.equal(m.prepare(snap,research,badRec).recommendationCount,0);
 assert.equal(m.esc('<img src=x>'),'&lt;img src=x&gt;');
+assert.equal(m.stockPage('005930'),'https://finance.naver.com/item/main.naver?code=005930');
+assert.equal(m.stockPage('005930?x=1'),null,'do not allow user-supplied external link injection');
+assert.equal(m.stockPage('<script>'),null);
 const home=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
 assert.ok(home.includes('자동 종목 추천 · 퀀트 검증'));
 assert.ok(home.includes('v3-ranking.js')&&home.includes('v3-ranking.css'));
 assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 있는 종목'));
+assert.ok(home.includes('data-mode="watch" aria-pressed="true"')&&
+ home.includes('data-mode="obv"')&&home.includes('매수 미인증'),
+ 'user-facing first view must expose observable technical research without buy claim');
 assert.ok(home.includes('v3-manual.html'));
 assert.ok(home.includes('rankCandidateQuant'));
 assert.ok(!home.includes('수익률 100% 보장'));
@@ -336,6 +373,19 @@ assert.ok(uiSource.includes('model.priorityQuantRequested')&&uiSource.includes('
 assert.ok(uiSource.includes('v3-dart-book-reference.json')&&
  uiSource.includes('model.rollingBookCount'),
  'rolling multi-company annual accounts should appear on ranked user view without scoring');
+assert.ok(uiSource.includes('rel="noopener noreferrer"')&&uiSource.includes('종목 차트'),
+ 'validated per-ticker chart navigation should work without new quote scraping');
 assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)'),
  'make downside tier and historical stop-first metrics visible on candidate card');
+// Also exercise the *published* actual market source. Do not assert a minimum
+// count: legitimate weak-market periods may yield zero safe watch candidates.
+const liveDaily=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
+const liveWatch=m.prepare(liveDaily,null,null);
+assert.ok(liveWatch.watchCount<=liveWatch.rows.length);
+assert.ok(liveWatch.obvLagCount<=liveWatch.watchCount);
+assert.ok(m.select(liveWatch,'watch').every(x=>x.watch&&!x.highRisk&&
+ x.r.obv_rising===true&&x.risk>=3&&x.risk<=15));
+console.log('Published actual market technical watch evidence:',liveDaily.date,
+  'scored=',liveWatch.rows.length,'watch=',liveWatch.watchCount,
+  'OBV-price-lag=',liveWatch.obvLagCount);
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
