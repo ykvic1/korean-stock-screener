@@ -37,7 +37,11 @@ def _num(v,*,positive=False):
 def _day(v):
     if type(v) is not str or not re.fullmatch(r"\d{4}-\d{2}-\d{2}",v):
         raise ValueError("invalid_market_day")
-    if date.fromisoformat(v).isoformat()!=v:
+    try:
+        parsed=date.fromisoformat(v)
+    except ValueError:
+        raise ValueError("invalid_market_day") from None
+    if parsed.isoformat()!=v:
         raise ValueError("invalid_market_day")
     return v
 
@@ -233,7 +237,7 @@ def write(snapshot,catalog, *,output,prior=None,official=None,key=None,
     path=Path(output)
     path.parent.mkdir(parents=True,exist_ok=True)
     encoded=json.dumps(data,ensure_ascii=False,allow_nan=False,sort_keys=True,separators=(",",":"))
-    if len(encoded.encode("utf8"))>2_000_000:
+    if len(encoded.encode("utf8"))>8_000_000:
         raise ValueError("derived_book_reference_size_limit")
     tmp=path.with_suffix(".tmp")
     tmp.write_text(encoded+"\n",encoding="utf8")
