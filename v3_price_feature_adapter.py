@@ -13,7 +13,9 @@ import pandas as pd
 
 from technical_v22 import rsi, divergence, pattern_snapshot
 
-MAX_BARS = 4000
+# Safety bound, NOT an investment lookback. About two decades of daily
+# observations may be accepted; research indicators keep their own windows.
+MAX_BARS = 6000
 SESSION = "KRX_REGULAR_0900_1530_ASIA_SEOUL"
 
 

@@ -14,7 +14,10 @@ import json
 SCHEMA = "v3-two-market-private-manifest-contract-0.1"
 ZERO_HASH = "0" * 64
 MARKETS = ("KOSPI", "KOSDAQ")
-MAX_RECORDS = 1800
+# Archive capacity (not an analysis window): supports the 5-10 year weekly
+# baseline plus post-2010 research and expansion without dropping old rows.
+# This is an explicit memory/resource safety bound; never evict oldest data.
+MAX_RECORDS = 6000
 MAX_BYTES_PER_SOURCE = 20_000_000
 BLOCKED_FLAGS = (
     "independent_head_anchor_verified",

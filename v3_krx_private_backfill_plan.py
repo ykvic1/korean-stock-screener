@@ -16,8 +16,14 @@ from v3_local_private_store import (archived_trade_dates, DEFAULT_DB,
                                     PrivateStoreError)
 from v3_krx_session_candidates import candidate_dates, CandidateCalendarError
 
-MAX_PLANNED_WEEKDAYS = 400
+# Long-range *planning* capacity, not a retained-price lookback.
+# 6000 weekday candidates and <= 8400 calendar days allow around 20+ years;
+# a caller can inspect 5-10 years and older available history without trimming.
+# Provider requests STILL remain at most five dates/two markets per batch.
+MAX_PLANNED_WEEKDAYS = 6000
+MAX_PLANNED_CALENDAR_DAYS = 8400
 MAX_DAILY_CALLS = 10
+# Legacy IAS long-window context ONLY, never a full-history cap.
 TARGET_KRX_PAIRED_DAYS = 250
 
 
@@ -36,7 +42,7 @@ def calendar_weekday_candidates(start, end):
             raise BackfillPlanError("planned_date_not_yet_finished")
     except (TypeError, ValueError):
         raise BackfillPlanError("invalid_date_range") from None
-    if (last-first).days>560:
+    if (last-first).days>MAX_PLANNED_CALENDAR_DAYS:
         raise BackfillPlanError("candidate_range_over_limit")
     dates=[]
     current=first
