@@ -219,7 +219,7 @@ def save_private_chart_html(*, output_path, private_db, html, acknowledge=False)
     """Only explicit opt-in local write in the already private DB directory."""
     if acknowledge is not True:
         raise PrivateDailyChartError("explicit_local_chart_retention_ack_required")
-    if type(output_path) not in (str, Path) or type(html) is not str:
+    if not isinstance(output_path, (str, Path)) or type(html) is not str:
         raise PrivateDailyChartError("invalid_private_output")
     source = Path(private_db).expanduser()
     target = Path(output_path).expanduser()
