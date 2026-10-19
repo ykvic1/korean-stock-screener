@@ -1,6 +1,6 @@
-"""Pattern-heavy TECHNICAL 15/100 research adapter for the existing six pillars.
+"""Pattern-heavy TECHNICAL 25/100 research adapter for the six pillars.
 
-Preserve IAS25, finance20, valuation15, technical15, industry15, momentum10.
+IAS25, financial15, valuation15, technical25, industry15, momentum5.
 This module never substitutes a technical-only 100-point ranking for six-pillar
 evidence or generates buy recommendations. Weekly candles must be completed.
 """
@@ -9,18 +9,19 @@ import math
 
 from v3_score_contract import PILLAR_POINTS, research_scorecard
 
-SCHEMA = "v3-pattern-within-six-pillars-research-0.2"
+SCHEMA = "v3-pattern-within-six-pillars-research-0.3"
 SOURCE = "v3-pattern-first-daily-research-0.1"
 
-# All of these are WITHIN the original 15-point technical pillar.
+# All items fit strictly WITHIN the user-updated 25-point technical pillar.
+# Favorite patterns (daily + completed weekly) account for 15/25.
 TECHNICAL_WEIGHTS = {
-    "daily_pattern": 3, "weekly_pattern": 4,
-    "daily_rsi": 1, "weekly_rsi": 2,
+    "daily_pattern": 7, "weekly_pattern": 8,
+    "daily_rsi": 2, "weekly_rsi": 3,
     "weekly_ma120": 3, "volume_confirmation": 2,
 }
 assert dict(PILLAR_POINTS) == {
-    "ias": 25, "financial": 20, "valuation": 15,
-    "technical": 15, "industry": 15, "momentum": 10,
+    "ias": 25, "financial": 15, "valuation": 15,
+    "technical": 25, "industry": 15, "momentum": 5,
 }
 assert sum(TECHNICAL_WEIGHTS.values()) == PILLAR_POINTS["technical"]
 
@@ -150,11 +151,11 @@ def evaluate(row, *, other_pillars=None):
     """
     daily = _observed(row, "daily")
     weekly = _observed(row, "weekly")
-    d_pattern, d_label = _pattern(daily, 3) if daily else (None, None)
-    w_pattern, w_label = _pattern(weekly, 4) if weekly else (None, None)
-    d_rsi = (1 if daily["rsi30_cross_recent"] or
+    d_pattern, d_label = _pattern(daily, 7) if daily else (None, None)
+    w_pattern, w_label = _pattern(weekly, 8) if weekly else (None, None)
+    d_rsi = (2 if daily["rsi30_cross_recent"] or
              daily["rsi_bullish_divergence_recent"] else 0) if daily else None
-    w_rsi = (2 if weekly["rsi30_cross_recent"] or
+    w_rsi = (3 if weekly["rsi30_cross_recent"] or
              weekly["rsi_bullish_divergence_recent"] else 0) if weekly else None
     ma120 = _weekly_trend(weekly) if weekly else None
     vol = _num(row.get("one_day_volume_ratio"))
@@ -165,7 +166,7 @@ def evaluate(row, *, other_pillars=None):
         "weekly_ma120": ma120, "volume_confirmation": vol_score,
     }
     available = sum(TECHNICAL_WEIGHTS[k] for k, v in parts.items() if v is not None)
-    technical = round(sum(parts.values()), 4) if available == 15 else None
+    technical = round(sum(parts.values()), 4) if available == 25 else None
     supplied = {} if other_pillars is None else dict(other_pillars)
     if "technical" in supplied:
         raise ValueError("technical_pillar_double_count_forbidden")
@@ -184,7 +185,7 @@ def evaluate(row, *, other_pillars=None):
     return {
         "schema": SCHEMA, "asof": asof,
         "six_pillar_maximum": dict(PILLAR_POINTS),
-        "technical_maximum": 15,
+        "technical_maximum": 25,
         "technical_weights": dict(TECHNICAL_WEIGHTS),
         "technical_parts": parts,
         "technical_observed_maximum": available,
@@ -207,8 +208,8 @@ def evaluate(row, *, other_pillars=None):
 def compute_candidates(rows):
     """Attach technical+six-pillar evidence, retaining legacy order and grade.
 
-    With no verified five external pillars, the provisional six-pillar sort
-    correctly stays empty. Do not rank technical 15/15 as if it were 100.
+    Without source-verified evidence for the other five pillars, do not
+    present a 25/25 technical score as if it were the full 100-point score.
     """
     for row in rows:
         row["v3_pattern_integrated"] = evaluate(row)
