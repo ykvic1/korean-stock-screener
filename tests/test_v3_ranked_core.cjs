@@ -22,7 +22,7 @@ const snap={status:'success',version:'2.0',date:'2026-10-16',
   eligible_count:2498,weights:w,stocks};
 const research={status:'exploratory',asof:'2026-10-16',stocks:[{
  code:'111111',status:'exploratory',reference_price_date:'2026-10-16',
- periods:{'스윙 1개월':{status:'exploratory',sample_n:113,
+ periods:{'스윙 1개월':{status:'exploratory',sample_n:113,symbol_n:18,quarter_n:16,
   mean_net_return_pct:5.2,stop_first_pct:18,max_adverse_p75_pct:12,
   up_pct:61,target_first_pct:49,
   chronological_holdout:{status:'미검증',test_mean_net_return_pct:null}}}
@@ -42,6 +42,9 @@ assert.equal(result.marketEligible,2498);
 assert.equal(result.rows.length,3);
 assert.equal(result.quantCount,1);
 assert.equal(result.recommendationCount,1);
+assert.equal(result.recommendationQuantCount,1);
+assert.equal(result.recommendationUsableQuantCount,1);
+assert.equal(result.recommendationAwaitingCount,0);
 assert.equal(result.rows[0].r.code,'111111');
 assert.equal(m.select(result,'recommended').length,1);
 assert.equal(m.select(result,'quant').length,1);
@@ -50,10 +53,18 @@ assert.equal(m.select(result,'all','KOSDAQ').length,2);
 assert.equal(m.select(result,'all','all','위험').length,1);
 assert.equal(m.period(research.stocks[0],'스윙 1개월').sample_n,113);
 assert.equal(m.period(research.stocks[0],'중기 3개월'),null);
+const weak=structuredClone(research.stocks[0]);
+weak.periods['스윙 1개월'].symbol_n=1;
+assert.equal(m.period(weak,'스윙 1개월'),null,'few symbol observations are not sufficient');
+const weakQuarter=structuredClone(research.stocks[0]);
+weakQuarter.periods['스윙 1개월'].quarter_n=3;
+assert.equal(m.period(weakQuarter,'스윙 1개월'),null,'few distinct quarters are not sufficient');
 const badHoldout=structuredClone(research);
 badHoldout.asof='2026-10-15';
 const stale=m.prepare(snap,badHoldout,recs);
 assert.equal(stale.quantCount,0);
+assert.equal(stale.recommendationQuantCount,0);
+assert.equal(stale.recommendationAwaitingCount,1);
 assert.equal(stale.rows[0].decision.label,'퀀트 대기');
 const duplicate={...snap,stocks:[stocks[0],stocks[0]]};
 assert.equal(m.prepare(duplicate,research,recs).rows.length,1);
@@ -75,5 +86,6 @@ assert.ok(home.includes('자동 종목 추천 · 퀀트 검증'));
 assert.ok(home.includes('v3-ranking.js')&&home.includes('v3-ranking.css'));
 assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 있는 종목'));
 assert.ok(home.includes('v3-manual.html'));
+assert.ok(home.includes('rankCandidateQuant'));
 assert.ok(!home.includes('수익률 100% 보장'));
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
