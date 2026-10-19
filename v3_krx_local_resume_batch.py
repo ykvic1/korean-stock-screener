@@ -54,6 +54,18 @@ def run_one_local_batch(*, start, end, database_path, batch_size=5, live=False,
                 "actual_krx_calls":0,"private_archive_updated":False}
     if type(key) is not str or not key.strip():
         raise LocalBatchError("krx_api_key_environment_missing")
+    # A valid SHA chain does not prove the source JSON contains the stated
+    # market/date or usable OHLCV. Before ANY additional official request,
+    # independently re-check all existing private pairs without rewriting.
+    if plan["archived_two_market_pairs_verified_internally"]:
+        from v3_krx_archive_reaudit import audit_private_archive, ArchiveReauditError
+        try:
+            audit_private_archive(
+                start=start, end=end, private_db=database_path,
+                batch_size=batch_size, calendar_source=calendar_source)
+        except ArchiveReauditError:
+            raise LocalBatchError(
+                "existing_private_archive_semantic_reaudit_failed") from None
     try:
         collected=collect_krx_history(
             dates,live=True,key=key,client=client,
