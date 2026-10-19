@@ -27,6 +27,10 @@ jobs:
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: OCI installer syntax only (no cloud access, no secrets)
         run: bash -n deploy/oci_prepare.sh
+      - name: v3 user-facing paper-beta page and browser logic (offline)
+        run: |
+          node --check docs/v3-beta.js
+          node tests/test_v3_user_beta.cjs
       - name: v3 first bounded KRX real-provider to partial technical pipeline (synthetic CI only)
         run: |
           python -m py_compile v3_krx_first_real_pipeline.py
