@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#172b45">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>종목 직접 탐색 · 모의 관찰 | 한국주식</title>
+<link rel="stylesheet" href="v3-beta.css">
+<script src="v3-beta.js" defer></script>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="eyebrow">KOREAN STOCK RESEARCH · v3 USER BETA</div>
+    <h1>직접 종목 탐색 · 모의 관찰</h1>
+    <p>실제 공개 가격 관측을 직접 검색하고, 진입 가설을 기록해 추적합니다.</p>
+    <a href="v3-beta.html" class="back">← 자동 후보 추천 · 퀀트 검증</a>
+  </div>
+</header>
+<main>
+<section class="panel intro">
+  <div class="label">실데이터 사용자 평가 · 제한 공개</div>
+  <h2>현재는 예측 점수보다 종목 발굴과 손실 위험을 먼저 검증합니다.</h2>
+  <p>이 화면은 <strong>기존 v2.2 공개 일별 분석값</strong>과 새 <strong>현재 상장 종목 전체 목록</strong>을 연결하는 <strong>v3 사용자 모의검증 베타</strong>입니다. 코스피·코스닥 전 종목을 조회하되 기술 지표가 없는 종목은 이유를 표시하고 임의로 채우지 않습니다. PBR·시가총액·기관/외국인 수급은 관측이 있으면 출처를 구분해 참고자료로 사용합니다. 새 6영역 점수, 10년치 공식 KRX 데이터 및 표본외 성과가 검증되었다는 뜻은 아닙니다.</p>
+  <p class="status" id="v3Status" aria-live="polite">공개 가격 자료를 확인 중입니다.</p>
+  <p class="note" id="v3Notice">미확인 수급과 기업가치는 임의 점수로 채우지 않습니다.</p>
+  <div class="notice"><strong>모의 관찰은 가상 매매체결이 아닙니다.</strong> 최초 기록은 당시 화면의 종가이며, 이후 공개된 종가와 비교합니다. 장중 최저가·손절 선도달·실제 체결·매매비용·생존편향을 검증하지 않으므로 적중률이나 미래 수익률을 발표하지 않습니다.</div>
+</section>
+<section class="panel" aria-label="종목 검색">
+  <div class="section-row"><h2>1. 관심 종목 검색</h2><button id="v3Reload" type="button" class="secondary">가격 자료 다시 읽기</button></div>
+  <div class="filters">
+    <label>종목명·코드·업종
+      <input id="v3Search" type="search" placeholder="예: 삼성, 피에이치에이, 005930" autocomplete="off">
+    </label>
+    <label>시장
+      <select id="v3Market">
+        <option value="all">코스피 + 코스닥 전체</option>
+        <option value="KOSPI">코스피</option>
+        <option value="KOSDAQ">코스닥</option>
+      </select>
+    </label>
+    <label>자료 확보 상태
+      <select id="v3Coverage">
+        <option value="all">현재 상장 전 종목</option>
+        <option value="priced">가격 분석 가능</option>
+        <option value="missing">가격 이력 부족·오류·미시도</option>
+      </select>
+    </label>
+    <label>차트/수급 패턴 후보
+      <select id="v3Pattern">
+        <option value="all">전체 분석 종목</option>
+        <option value="early">상승 초기·바닥·추세 전환</option>
+        <option value="pattern">쐐기·삼각·역헤드앤숄더 등 패턴 후보</option>
+        <option value="weekly">주봉 120주선 근접·회복 후보</option>
+        <option value="volume">거래량 증가 후보</option>
+        <option value="obv">OBV 상승 후보</option>
+      </select>
+    </label>
+    <label>참고 손절선 구간
+      <select id="v3Risk">
+        <option value="all">모두 보기 (위험 큰 종목 포함)</option>
+        <option value="controlled">3~15% 이내 구조 참고선</option>
+        <option value="unverified">손절 참고선 미확인</option>
+      </select>
+    </label>
+  </div>
+  <p class="note">정렬은 매수 점수나 수익률 순위가 아니라 <strong>관측 가능한 손절 참고선까지의 거리순</strong>입니다. 3~15%는 편의용 필터일 뿐 손실이 그 범위로 제한된다는 보장은 없습니다.</p>
+  <p id="v3Count" class="sub" aria-live="polite">분석 가능 종목 확인 중…</p>
+  <div id="v3List" aria-live="polite"><p class="empty">자료 수신 중…</p></div>
+  <button id="v3More" type="button" class="secondary" hidden>다음 후보 40개 보기</button>
+</section>
+<section class="panel" aria-label="개인 모의 관찰 기록">
+  <div class="section-row"><h2>2. 내 모의 관찰 기록</h2><button type="button" id="v3Export" class="secondary">내 기록 JSON 내보내기</button></div>
+  <p>종목의 <strong>모의 관찰 기록</strong>을 누르면 그날 공개된 종가와 손절 참고선이 기록됩니다. 이후 이 화면에 다시 접속하면 최신으로 공개된 종가와 비교합니다.</p>
+  <div id="v3Ledger"><p class="empty">기록된 종목이 없습니다.</p></div>
+  <p id="v3LedgerNote" class="note">내 기록은 이 브라우저의 로컬 저장소에만 보관되고 계정 간 동기화되지 않습니다. 같은 기기의 브라우저 데이터를 지우면 없어지므로 JSON으로 백업하세요.</p>
+</section>
+<section class="panel">
+  <h2>3. v3 확장 작업과 현재 경계</h2>
+  <div class="roadmap">
+    <div><strong>지금 사용 가능</strong><p>현재 상장 코스피·코스닥 전체 목록 검색(다음 전시장 데이터 갱신 시 연결), 주봉/거래량/OBV 후보, PBR·시가총액·수급 관측 참고자료, 미분석 사유, 모의 기록.</p></div>
+    <div><strong>데이터 연결 1차 성공</strong><p>KRX 실제 5거래일 실조회가 기술분석 엔진에 도달하고 2016·2021년 단일일자 조회에도 성공했지만, 실제 10년치 원본의 지속 보존은 미완료.</p></div>
+    <div><strong>개발 중 · 이 화면에서 미제공</strong><p>공식 KRX 장기 일·주봉 차트, 120·240일 이평선, IAS·재무·산업 6영역 확정 점수, 전체 역사적 상장폐지 포함 백테스트, 표본외 수익성 검증.</p></div>
+  </div>
+  <p class="note">사용 데이터는 현재 공개된 v2.2 종목 요약이므로 공개 KRX 원본의 신규 재배포는 없습니다. 종목을 눌러 분석 과정과 오류 여부를 살펴볼 수 있는 기존 화면도 병행하세요.</p>
+  <a class="back dark" href="index.html#screenList">기존 분석 화면에서 종목별 상세 근거 보기 →</a>
+</section>
+</main>
+<footer>v3 USER RESEARCH BETA · 투자 신호/주문/수익 보장 없음 · 기준일 확인 후 참고</footer>
+</body></html>
