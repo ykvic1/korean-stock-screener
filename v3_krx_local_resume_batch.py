@@ -22,7 +22,8 @@ class LocalBatchError(ValueError):
 
 
 def run_one_local_batch(*, start, end, database_path, batch_size=5, live=False,
-                        consent=False, key=None, client=None):
+                        consent=False, key=None, client=None,
+                        calendar_source="weekdays"):
     if (live is True and consent is not True):
         raise LocalBatchError("private_storage_contract_ack_required")
     if live is True and (not isinstance(database_path, (str, Path))
@@ -40,7 +41,8 @@ def run_one_local_batch(*, start, end, database_path, batch_size=5, live=False,
             raise LocalBatchError("private_storage_path_not_safe")
     try:
         plan=plan_private_history(start,end,db_path=database_path,
-                                  batch_size=batch_size)
+                                  batch_size=batch_size,
+                                  calendar_source=calendar_source)
     except BackfillPlanError:
         raise LocalBatchError("verified_private_resume_plan_rejected") from None
     dates=plan["next_batch_dates"]
@@ -70,6 +72,10 @@ def run_one_local_batch(*, start, end, database_path, batch_size=5, live=False,
         "attempted_market_calls_at_most":len(dates)*2,
         "new_paired_days_observed":collected["observed_days"],
         "total_archive_paired_days_integrity_checked":len(archived),
+        "calendar_candidate_source":plan["calendar_candidate_source"],
+        "calendar_candidate_library_version":plan["calendar_candidate_library_version"],
+        "candidate_dates_sha256":plan["candidate_dates_sha256"],
+        "official_krx_session_calendar_authenticated":False,
         "latest_paired_day":archived[-1],
         "historical_exchange_calendar_verified":False,
         "historical_issuer_universe_verified":False,
@@ -87,6 +93,8 @@ def main(argv=None):
     parser.add_argument("--end",required=True)
     parser.add_argument("--private-db",help="Explicit local SQLite outside public repository")
     parser.add_argument("--batch-size",type=int,default=5)
+    parser.add_argument("--calendar-source",choices=("weekdays","xkrx"),
+                        default="weekdays",help="XKRX is an unverified third-party candidate calendar")
     parser.add_argument("--live",action="store_true")
     parser.add_argument("--ack-private-storage",action="store_true")
     args=parser.parse_args(argv)
@@ -98,6 +106,7 @@ def main(argv=None):
             start=args.start,end=args.end,database_path=args.private_db,
             batch_size=args.batch_size,live=args.live,
             consent=args.ack_private_storage,
+            calendar_source=args.calendar_source,
             key=os.environ.get("KRX_API_KEY"))
         print(json.dumps(report,sort_keys=True))
         return 0
