@@ -6,6 +6,22 @@ const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,t=>({'&':'&amp;','<':'&lt;'
 const finite=x=>typeof x==='number'&&Number.isFinite(x);
 const money=x=>finite(x)?Math.round(x).toLocaleString('ko-KR')+'원':'미확인';
 const pct=x=>finite(x)?(x>=0?'+':'')+x.toFixed(1)+'%':'미산출';
+const eok=x=>finite(x)?(x/100000000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'억원':'미확인';
+function observedAnnuals(official,asof){
+ const byCode=new Map();
+ if(!official||official.asof!==asof||!['observed','completed'].includes(official.dart?.status)
+    ||!Array.isArray(official.dart.stocks))return byCode;
+ for(const stock of official.dart.stocks){
+  if(!stock||!/^[0-9]{6}$/.test(String(stock.code))||
+    stock.status!=='observed'||!Array.isArray(stock.reports))continue;
+  const annual=stock.reports.find(x=>x&&Number.isInteger(x.year)&&
+    x.year<=Number(asof.slice(0,4))&&x.year>=2010&&
+    (x.fs_div==='CFS'||x.fs_div==='OFS')&&x.currency==='KRW'&&
+    typeof x.values==='object'&&x.values!==null);
+  if(annual)byCode.set(stock.code,annual);
+ }
+ return byCode;
+}
 function stopDistance(r){
   if(!finite(r?.price)||!finite(r?.stop_line)||r.price<=0||r.stop_line<=0||r.stop_line>=r.price)return null;
   const p=100*(r.price-r.stop_line)/r.price;
@@ -51,7 +67,7 @@ function decision(row,q){
    return {label:'조건부 모의 검토',reason:'과거 연구 일부 우호적; 차트·수급·실적 추가 확인',level:'review'};
  return {label:'관망·추가 확인',reason:'과거 유사조건의 위험과 수익이 혼재',level:'review'};
 }
-function prepare(data,quant,recs){
+function prepare(data,quant,recs,official){
  if(!data||data.version!=='2.0'||data.status!=='success'||!/^\d{4}-\d{2}-\d{2}$/.test(data.date)||
     !Array.isArray(data.stocks)||data.stocks.length<1||data.stocks.length>6000)
     throw Error('invalid_daily_observations');
@@ -61,13 +77,15 @@ function prepare(data,quant,recs){
  const matchedRec=!!recs&&recs.asof===data.date&&recs.research_source_matched===true&&
    Array.isArray(recs.dossiers);
  const rmap=new Map((matchedRec?recs.dossiers:[]).map(r=>[r.code,r]));
+ const financials=observedAnnuals(official,data.date);
  const rows=[],seen=new Set();
  for(const r of data.stocks){
    if(!r||!/^\d{6}$/.test(String(r.code))||seen.has(r.code)||!finite(r.price)||r.price<=0||
       !['KOSPI','KOSDAQ'].includes(r.market)||!observedScore(r,data.weights))continue;
    seen.add(r.code);
    const q=qmap.get(r.code)||null,rec=rmap.get(r.code)||null;
-   rows.push({r,q,rec,quant:!!q,qualified:!!rec&&rec.qualification==='needs_deeper_evidence'&&!highRisk(r),
+   rows.push({r,q,rec,financialRef:financials.get(r.code)||null,quant:!!q,
+     qualified:!!rec&&rec.qualification==='needs_deeper_evidence'&&!highRisk(r),
      risk:stopDistance(r),highRisk:highRisk(r),decision:decision(r,q)});
  }
  rows.sort((a,b)=>Number(b.qualified)-Number(a.qualified)||
@@ -81,7 +99,9 @@ function prepare(data,quant,recs){
   quantCurrent:matched,quantAsOf:quant?.asof||null,
   quantCount:rows.filter(x=>x.quant).length,recommendationCount:selected.length,
   recommendationQuantCount:withStudy,recommendationUsableQuantCount:withUsable,
-  recommendationAwaitingCount:selected.length-withStudy};
+  recommendationAwaitingCount:selected.length-withStudy,
+  financialReferenceCount:rows.filter(x=>x.financialRef!==null).length,
+  recommendationFinancialCount:selected.filter(x=>x.financialRef!==null).length};
 }
 function select(data,mode,market='all',search=''){
  const query=String(search).toLocaleLowerCase('ko-KR').trim();
@@ -160,9 +180,23 @@ function init(){
    '<div><small>PBR 참고값</small><b>'+(finite(r.pbr)?r.pbr.toFixed(2)+'배':'미확인')+'</b></div></div>'+
    '<p class="note">위험 경고: '+(flags.length?esc(flags.join(' · ')):'추가 위험 경고 등록 없음')+
    '. 실제 손절 체결 가격·손실은 이론값보다 나쁠 수 있습니다.</p>'+
-   '<h3>③ 과거 유사조건 퀀트 연구</h3>'+quant+
+   '<h3>③ OpenDART 연간 실적 참고자료</h3>'+
+   (x.financialRef?
+     '<p class="note">공시 '+x.financialRef.year+'년 '+esc(x.financialRef.fs_div)+
+       ' · 접수번호 '+esc(x.financialRef.receipt_id||'미확인')+
+       ' · 원화 연간 기준, 정정공시·과거 시점 정보 검증 전</p>'+
+     '<div class="rank-metrics">'+
+      '<div><small>매출액</small><b>'+eok(x.financialRef.values.revenue)+'</b></div>'+
+      '<div><small>영업이익</small><b>'+eok(x.financialRef.values.operating_income)+'</b></div>'+
+      '<div><small>영업현금흐름</small><b>'+eok(x.financialRef.values.operating_cashflow)+'</b></div>'+
+      '<div><small>부채비율</small><b>'+
+       (finite(x.financialRef.values.debt_to_equity_pct)?
+         x.financialRef.values.debt_to_equity_pct.toFixed(1)+'%':'미확인')+
+      '</b></div></div>':
+     '<p class="note">해당 종목의 접수일 확인 가능한 연간 공시 재무 참고자료가 아직 연결되지 않았습니다. 미확인 값을 임의 점수로 채우지 않습니다.</p>')+
+   '<h3>④ 과거 유사조건 퀀트 연구</h3>'+quant+
    '<p class="note">연구 통계는 유사한 과거 사례의 기술적 분포일 뿐 미래 상승 확률이 아닙니다. 수익률은 왕복비용 0.4%p 가정, 과거 상장폐지 제외·미수정 가격/시장 동조성 등 한계가 있습니다. 표본외 수익률이 미검증이면 절대로 검증됐다고 표시하지 않습니다.</p>'+
-   '<h3>④ 매수 판단 가설</h3><p>매수 검토: 패턴 돌파·거래량 지속·주봉 안착, 재무와 수급 개선 확인.<br>'+
+   '<h3>⑤ 매수 판단 가설</h3><p>매수 검토: 패턴 돌파·거래량 지속·주봉 안착, 재무와 수급 개선 확인.<br>'+
    '관망: 과거 퀀트의 손절빈도 상승 또는 재무·수급 부재.<br>'+
    '무효화: 구조 참고선 이탈 시 차트/업황 가설을 다시 검토.</p>'+
    '<p class="note">확정 매수 추천이 아니며, v3 공식 6영역 총점과 1·2·3·6·12개월 기대수익률은 실측 데이터 검증 전 미산출입니다.</p>';
@@ -173,7 +207,7 @@ function init(){
  async function load(){
   status.textContent='전 시장 점수와 퀀트 자료 조회 중…';
   try{
-   const urls=['data.json','quant.json','recommendations.json'];
+   const urls=['data.json','quant.json','recommendations.json','official.json'];
    const src=await Promise.all(urls.map(async name=>{
     try{const r=await root.fetch(name+'?rank='+Date.now(),{cache:'no-store'});return r.ok?await r.json():null}
     catch(_){return null;}
@@ -187,7 +221,8 @@ function init(){
    $('rankQuantStatus').textContent=model.quantCurrent?
      '퀀트 기준일 '+model.quantAsOf+' · 역사적 유사조건 참고 통계, 미래 수익률 예측 검증 전':
      '퀀트 기준일 불일치 또는 미확보: 최신 추천의 퀀트 검증은 대기';
-   $('rankCandidateQuant').textContent='심층 선별 후보 '+model.recommendationCount+
+   $('rankCandidateQuant').textContent='연간 공시 참고자료 '+model.recommendationFinancialCount+
+     '/'+model.recommendationCount+'개 · 심층 선별 후보 '+model.recommendationCount+
      '종목 · 같은 날 퀀트 연구 연결 '+model.recommendationQuantCount+
      '종목 · 매매 검토 가능한 유사조건 표본 '+model.recommendationUsableQuantCount+
      '종목 · 자료 확보 대기 '+model.recommendationAwaitingCount+
