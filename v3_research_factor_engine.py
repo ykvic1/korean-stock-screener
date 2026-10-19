@@ -47,10 +47,12 @@ PILLAR_METRICS = {
         ("valuation_fcf_yield_pct", 5, 1, None),
     ],
     "technical": [
-        ("technical_weekly_ma120_reclaim_strength", 4, 1, (0, 1)),
+        # Keep original six-pillar TECHNICAL total at 15. Pattern weight
+        # covers independent daily+fully completed weekly chart evidence.
+        ("technical_weekly_ma120_reclaim_strength", 3, 1, (0, 1)),
         ("technical_weekly_rsi_divergence_strength", 3, 1, (0, 1)),
-        ("technical_pattern_confirmation_strength", 4, 1, (0, 1)),
-        ("technical_volume_breakout_ratio", 4, 1, (0, None)),
+        ("technical_pattern_confirmation_strength", 7, 1, (0, 1)),
+        ("technical_volume_breakout_ratio", 2, 1, (0, None)),
     ],
     "industry": [
         ("industry_relative_strength_60_pct", 6, 1, None),
