@@ -40,15 +40,19 @@ class PriorityQuantHistoryTests(unittest.TestCase):
         self.assertEqual(first,["100134","100135"])
         self.assertNotEqual(first,["100136"])
 
-    def test_stale_and_unproven_screen_does_not_override_stock_order(self):
+    def test_current_shortlist_bootstraps_new_day_when_quant_yet_to_refresh(self):
         d=fixture()
         stale={"asof":"2026-10-15","research_source_matched":True,
                "dossiers":[{"code":"100138","qualification":"needs_deeper_evidence"}]}
-        s=prioritized_stocks(d,stale,120)
-        self.assertEqual(s[0]["code"],"100000")
+        self.assertEqual(prioritized_stocks(d,stale,120)[0]["code"],"100000",
+                         "old shortlist cannot influence today's screen")
         stale["asof"]="2026-10-16"
         stale["research_source_matched"]=False
-        self.assertEqual(prioritized_stocks(d,stale,120)[0]["code"],"100000")
+        self.assertEqual(prioritized_stocks(d,stale,120)[0]["code"],"100138",
+                         "current screened candidate MUST be first even without same-date quant")
+        d["stocks"][138]["price_date"]="2026-10-15"
+        self.assertNotIn("100138",[x["code"] for x in prioritized_stocks(d,stale,120)],
+                         "stale ticker price must not sneak into research cohort")
 
     def test_only_current_signal_codes_and_no_duplicates(self):
         d=fixture()
