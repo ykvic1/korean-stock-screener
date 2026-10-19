@@ -2,3 +2,6 @@
 evidence/official_probe/
 __pycache__/
 *.pyc
+
+# Raw-free temporary KRX historic sample diagnostics; never public docs.
+evidence/krx_history/

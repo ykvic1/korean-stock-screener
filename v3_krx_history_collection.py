@@ -1,0 +1,245 @@
+"""Bounded read-only KRX daily-market history collection, never a live signal.
+
+Each explicitly selected historical day requests BOTH KOSPI and KOSDAQ once.
+A single date's raw source bytes are never confused with a 09:00–15:30-only
+session, adjusted prices, independent history certification, or investor flow.
+Default mode does not call KRX and does not save vendor data. Live is opt-in.
+"""
+from __future__ import annotations
+
+import argparse
+from datetime import date, datetime, timezone, time
+from zoneinfo import ZoneInfo
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
+import re
+
+from official_probe.clients import KRXClient, KRXProbeError, ProbeError
+from official_probe.validation import inspect_krx, _numeric
+from v3_local_private_store import store_pair, PrivateStoreError, inspect_private_store
+
+MAX_DATES_PER_BATCH = 5
+TARGET_PAIRED_DAYS = 250
+MARKETS = ("KOSPI", "KOSDAQ")
+
+
+class HistoryCollectionError(ValueError):
+    """Public-safe fixed code; no raw market data, file paths or keys."""
+
+
+def validate_dates(dates):
+    if (not isinstance(dates, list) or not 1 <= len(dates) <= MAX_DATES_PER_BATCH
+            or any(type(x) is not str for x in dates)):
+        raise HistoryCollectionError("one_to_five_explicit_trade_dates_required")
+    accepted = []
+    for item in dates:
+        try:
+            if (not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", item)
+                    or date.fromisoformat(item).isoformat() != item):
+                raise ValueError()
+            day = date.fromisoformat(item)
+        except ValueError:
+            raise HistoryCollectionError("invalid_trade_date") from None
+        # Weekends are not active KRX regular sessions. Weekdays are merely
+        # CANDIDATES, never independently certified exchange sessions.
+        if day.weekday() >= 5:
+            raise HistoryCollectionError("non_session_weekend_date")
+        now_kst = datetime.now(ZoneInfo("Asia/Seoul"))
+        if day > now_kst.date():
+            raise HistoryCollectionError("future_trade_date_not_allowed")
+        if day == now_kst.date() and now_kst.time() < time(15, 30):
+            raise HistoryCollectionError("session_not_yet_completed")
+        if accepted and item <= accepted[-1]:
+            raise HistoryCollectionError("duplicate_or_unsorted_dates")
+        accepted.append(item)
+    return accepted
+
+
+def _snapshot_market(rows, raw, *, market, asof):
+    """Internal market rows and OHLC quarantine, never print price values."""
+    if (not isinstance(rows, list) or not 0 < len(rows) <= 20000
+            or type(raw) is not bytes or not raw):
+        raise HistoryCollectionError("invalid_market_snapshot")
+    try:
+        body = json.loads(raw)
+        if not isinstance(body, dict) or body.get("OutBlock_1") != rows:
+            raise ValueError()
+    except (ValueError, TypeError, UnicodeError):
+        raise HistoryCollectionError("market_rows_disagree_with_raw_source") from None
+    seen = set()
+    usable = []
+    quarantined = 0
+    for item in rows:
+        if not isinstance(item, dict):
+            raise HistoryCollectionError("invalid_market_member")
+        code = item.get("ISU_CD")
+        if (type(code) is not str or not re.fullmatch(r"[0-9]{6}", code)
+                or code in seen):
+            raise HistoryCollectionError("ambiguous_or_duplicate_market_code")
+        seen.add(code)
+        if str(item.get("BAS_DD", "")).replace("-", "") != asof.replace("-", ""):
+            raise HistoryCollectionError("cross_date_market_data")
+        try:
+            op, hi, lo, cl = (
+                _numeric(item.get(f), f, positive=True)
+                for f in ("TDD_OPNPRC", "TDD_HGPRC", "TDD_LWPRC", "TDD_CLSPRC")
+            )
+            vol = _numeric(item.get("ACC_TRDVOL"), "ACC_TRDVOL")
+            if lo > min(op, cl) or hi < max(op, cl) or lo > hi:
+                raise ProbeError("invalid OHLC bounds")
+        except ProbeError:
+            # Suspended/unpriced issuer cannot be silently filled. Preserve
+            # RAW bytes privately and count quarantined candidates.
+            quarantined += 1
+            continue
+        usable.append(item)
+    if not usable:
+        raise HistoryCollectionError("no_usable_ohlcv_market_rows")
+    try:
+        check = inspect_krx(usable, market, asof,
+                            {r["ISU_CD"] for r in usable}, raw)
+    except (ValueError, ProbeError):
+        raise HistoryCollectionError("market_ohlcv_contract_failed") from None
+    if check["missing_symbols"] or len(check["found_symbols"]) != len(usable):
+        raise HistoryCollectionError("market_member_count_inconsistent")
+    return {
+        "market": market, "asof": asof,
+        "provider_rows_observed": len(rows),
+        "observed_numeric_candidates": len(usable),
+        "quarantined_unpriced_candidates": quarantined,
+        "source_sha256": sha256(raw).hexdigest(),
+        "regular_session_volume_verified": False,
+        "corporate_actions_verified": False,
+        "historical_issuer_universe_verified": False,
+        "confirmed_scoring_allowed": False,
+    }
+
+
+def collect_krx_history(dates, *, live=False, key=None,
+                        client=None, archive_path=None,
+                        consent_to_private_retention=False):
+    """Collect up to 5 explicitly selected session pairs; no silent fallback.
+
+    If archiving is enabled, commit each complete two-market day atomically.
+    A later day failing preserves previous complete pairs; the whole batch
+    raises an error and does not emit a fake successful batch report.
+    """
+    valid = validate_dates(dates)
+    if live is not True:
+        if archive_path is not None:
+            raise HistoryCollectionError("dry_run_cannot_archive")
+        return {
+            "schema": "v3-krx-bounded-daily-history-0.1",
+            "mode": "dry_run", "requested_days": valid,
+            "planned_market_calls": len(valid)*2,
+            "target_paired_trading_sessions": TARGET_PAIRED_DAYS,
+            "observed_days": 0, "markets": MARKETS,
+            "verified_history_250_sessions": False,
+            "official_regular_only_volume_verified": False,
+            "v3_release_ready": False, "confirmed_buy": False,
+        }
+    if not isinstance(key, str) or not key.strip():
+        raise HistoryCollectionError("krx_key_required")
+    if archive_path is not None and consent_to_private_retention is not True:
+        raise HistoryCollectionError("explicit_private_storage_consent_required")
+    # Never archive raw vendor payloads in GitHub Actions default ephemeral
+    # workspace. Explicit local database must be outside the public repository.
+    api = client if client is not None else KRXClient(key)
+    completed = []
+    for day in valid:
+        raws = {}
+        inspections = {}
+        received = {}
+        for market in MARKETS:
+            try:
+                rows, raw = api.daily_market(market, day)
+                inspections[market] = _snapshot_market(
+                    rows, raw, market=market, asof=day)
+            except KRXProbeError as err:
+                raise HistoryCollectionError(
+                    "krx_" + err.market.lower() + "_" + err.reason) from None
+            except Exception:
+                # Do not emit arbitrary provider exceptions: a transport
+                # exception can contain authorization headers or URLs.
+                raise HistoryCollectionError(
+                    "krx_" + market.lower() + "_schema_or_transport_rejected") from None
+            raws[market] = raw
+            received[market] = datetime.now(timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ")
+        if archive_path is not None:
+            try:
+                store_pair(
+                    database_path=archive_path, asof=day,
+                    kospi_raw=raws["KOSPI"], kosdaq_raw=raws["KOSDAQ"],
+                    kospi_received_at_utc=received["KOSPI"],
+                    kosdaq_received_at_utc=received["KOSDAQ"])
+            except PrivateStoreError:
+                raise HistoryCollectionError(
+                    "private_two_market_atomic_archive_rejected") from None
+        completed.append({
+            "asof": day,
+            "markets": [inspections[m] for m in MARKETS],
+            "stored_in_private_sqlite": archive_path is not None,
+        })
+    return {
+        "schema": "v3-krx-bounded-daily-history-0.1",
+        "mode": "live", "observed_days": len(completed),
+        "requested_days": valid, "days": completed,
+        "target_paired_trading_sessions": TARGET_PAIRED_DAYS,
+        "paired_dates_unverified_as_true_exchange_calendar": True,
+        "official_regular_only_volume_verified": False,
+        "adjusted_price_events_verified": False,
+        "foreign_institution_pension_flows_verified": False,
+        "historical_full_universe_verified": False,
+        "verified_history_250_sessions": False,
+        "archive_is_independently_authenticated": False,
+        "v3_release_ready": False, "confirmed_buy": False,
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="KRX two-market bounded historical collection, private only")
+    parser.add_argument("--dates", required=True,
+                        help="1-5 ascending completed weekdays, comma-separated YYYY-MM-DD")
+    parser.add_argument("--live", action="store_true", help="Opt in to 2 requests per selected date")
+    parser.add_argument("--private-db", help="Optional durable SQLite outside repository")
+    parser.add_argument("--ack-private-storage", action="store_true",
+                        help="Affirm you reviewed official contract for local raw data retention")
+    parser.add_argument("--output", help="Optional PRIVATE summary JSON, never under docs/")
+    args = parser.parse_args(argv)
+    try:
+        if args.private_db and not args.live:
+            raise HistoryCollectionError("dry_run_cannot_archive")
+        result = collect_krx_history(
+            [x.strip() for x in args.dates.split(",")],
+            live=args.live, key=os.getenv("KRX_API_KEY"),
+            archive_path=args.private_db,
+            consent_to_private_retention=args.ack_private_storage)
+        if args.output:
+            dest = Path(args.output)
+            project = Path(__file__).resolve().parent
+            # Summarized counts/digests only may be a private Actions
+            # artifact. Vendor RAW bytes remain forbidden in the repository.
+            artifact_root = project / "evidence" / "krx_history"
+            resolved = dest.resolve()
+            if (resolved == project or
+                    (project in resolved.parents
+                     and artifact_root != resolved
+                     and artifact_root not in resolved.parents)):
+                raise HistoryCollectionError("summary_location_not_approved")
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(json.dumps(result, ensure_ascii=False,
+                                       sort_keys=True), encoding="utf-8")
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 0
+    except HistoryCollectionError as exc:
+        # Fixed internal code only: do not leak request URLs or vendor payloads.
+        print(json.dumps({"status":"blocked","reason":str(exc),
+                          "v3_release_ready":False,"confirmed_buy":False}))
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
