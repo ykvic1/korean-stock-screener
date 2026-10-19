@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, timedelta
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -65,7 +64,10 @@ def _interpret(expect_xkrx_session, market_items):
 
 
 def inspect_days(days, *, live=False, key=None, client=None):
-    valid = validate_dates(days)
+    try:
+        valid = validate_dates(days)
+    except HistoryCollectionError:
+        raise SessionChallengeError("invalid_calendar_challenge_dates") from None
     if len(valid) > MAX_CHALLENGE_DATES:
         raise SessionChallengeError("too_many_calendar_challenges")
     try:
