@@ -63,7 +63,7 @@ class PriorityLiveCandidateQuant(unittest.TestCase):
             build_priority_feed(m,r,q)
         m,r,q=make()
         q["stocks"][0]["reference_price_date"]="2026-10-15"
-        with self.assertRaisesRegex(CoverageError,"research_price_not_asof"):
+        with self.assertRaisesRegex(CoverageError,"missing_featured_symbol_in_live_study"):
             build_priority_feed(m,r,q)
 
     def test_peer_sample_must_be_at_least_twenty_real_names(self):
