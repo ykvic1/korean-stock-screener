@@ -1,10 +1,8 @@
 name: v3 KRX Historical 2016 2021 Reach (one-time live / manual later)
 
 on:
-  push:
-    branches: [v3-step13-oldest-krx-historical-evidence]
-    paths:
-      - '.github/workflows/v3-krx-historical-reach.yml'
+  # One-time branch-scoped live smoke passed (Actions run 39206460086).
+  # Future runs are explicitly manual only.
   workflow_dispatch:
     inputs:
       mode:
@@ -39,11 +37,10 @@ jobs:
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           MODE: ${{ inputs.mode }}
-          EVENT_KIND: ${{ github.event_name }}
         run: |
           set -euo pipefail
           # No bytes saved to disk; only non-sensitive aggregate counts printed.
-          if [[ "$EVENT_KIND" == "push" || "$MODE" == "live" ]]; then
+          if [[ "$MODE" == "live" ]]; then
             python v3_krx_historical_reach_probe.py --live
           else
             python v3_krx_historical_reach_probe.py
