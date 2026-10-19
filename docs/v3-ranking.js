@@ -14,11 +14,26 @@ function observedAnnuals(official,asof){
  for(const stock of official.dart.stocks){
   if(!stock||!/^[0-9]{6}$/.test(String(stock.code))||
     stock.status!=='observed'||!Array.isArray(stock.reports))continue;
-  const annual=stock.reports.find(x=>x&&Number.isInteger(x.year)&&
+  // Keep the latest dated annual reference AND up to three comparable
+  // years of the SAME accounting scope. Do not blend consolidated CFS with
+  // separate OFS financials or attach future filings to an old market day.
+  const candidates=stock.reports.filter(x=>x&&Number.isInteger(x.year)&&
     x.year<=Number(asof.slice(0,4))&&x.year>=2010&&
     (x.fs_div==='CFS'||x.fs_div==='OFS')&&x.currency==='KRW'&&
-    typeof x.values==='object'&&x.values!==null);
-  if(annual)byCode.set(stock.code,annual);
+    typeof x.values==='object'&&x.values!==null&&
+    typeof x.receipt_id==='string'&&/^\\d{14}$/.test(x.receipt_id)&&
+    x.receipt_id.slice(0,8)<=asof.replaceAll('-',''))
+    .sort((a,b)=>b.year-a.year||(a.fs_div==='CFS'?-1:1));
+  const annual=candidates[0];
+  if(annual){
+    const seenYears=new Set(),history=[];
+    for(const report of candidates){
+      if(report.fs_div!==annual.fs_div||seenYears.has(report.year))continue;
+      seenYears.add(report.year);history.push(report);
+      if(history.length>=3)break;
+    }
+    byCode.set(stock.code,{...annual,history});
+  }
  }
  return byCode;
 }
@@ -157,6 +172,24 @@ function select(data,mode,market='all',search=''){
   (mode==='recommended'?x.researchCandidate:mode==='quant'?x.quant:
    mode==='early'?(!x.highRisk&&x.risk!==null&&x.risk>=3&&x.risk<=15&&/초기|전환|수렴|바닥/.test(String(x.r.phase))&&x.r.coverage_pct>=55):true));
 }
+function financialHistoryTable(annual){
+ const data=Array.isArray(annual?.history)?annual.history:[];
+ if(data.length<2)return '';
+ const rows=data.map(y=>
+   '<tr><th>'+y.year+'년</th><td>'+eok(y.values?.revenue)+'</td>'+
+   '<td>'+eok(y.values?.operating_income)+'</td>'+
+   '<td>'+(finite(y.values?.operating_margin_pct)?
+      y.values.operating_margin_pct.toFixed(1)+'%':'미확인')+'</td>'+
+   '<td>'+eok(y.values?.operating_cashflow)+'</td>'+
+   '<td>'+(finite(y.values?.debt_to_equity_pct)?
+      y.values.debt_to_equity_pct.toFixed(1)+'%':'미확인')+'</td></tr>').join('');
+ return '<p class="note">'+esc(annual.fs_div)+
+   ' 동일 회계범위의 연간 공시 3개년(최대) 관측 비교. 연결/별도 혼용 없음.</p>'+
+   '<div class="quant-scroller"><table class="financial-table"><thead><tr>'+
+   '<th>연도</th><th>매출액</th><th>영업이익</th><th>영업이익률</th>'+
+   '<th>영업현금흐름</th><th>부채비율</th></tr></thead><tbody>'+
+   rows+'</tbody></table></div>';
+}
 function quantGlance(q){
  if(!q)return '당일 퀀트 미확보';
  const items=[['스윙 1개월','1개월'],['중기 3개월','3개월'],['중기 6개월','6개월']]
@@ -165,7 +198,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,financialHistoryTable,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
@@ -257,7 +290,7 @@ function init(){
       '<div><small>부채비율</small><b>'+
        (finite(x.financialRef.values.debt_to_equity_pct)?
          x.financialRef.values.debt_to_equity_pct.toFixed(1)+'%':'미확인')+
-      '</b></div></div>':
+      '</b></div></div>'+financialHistoryTable(x.financialRef):
      '<p class="note">해당 종목의 접수일 확인 가능한 연간 공시 재무 참고자료가 아직 연결되지 않았습니다. 미확인 값을 임의 점수로 채우지 않습니다.</p>')+
    '<h3>④ 과거 유사조건 퀀트 연구</h3>'+
    '<p class="note">통계 모집단: '+esc(x.quantSource)+
