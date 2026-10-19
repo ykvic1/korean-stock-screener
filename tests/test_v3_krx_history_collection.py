@@ -103,6 +103,85 @@ class KRXHistoricalCollectorTests(unittest.TestCase):
             with self.subTest(malformed=malformed),self.assertRaises(HistoryCollectionError):
                 _snapshot_market(malformed,raw,market="KOSPI",asof=day)
 
+    def test_six_char_uppercase_mixed_tickers_preserve_opaque_identifiers(self):
+        day = "2026-10-15"
+        original = rows("KOSPI", day)[0]
+        # Realistic shaped SYNTHETIC combinations, never live values.
+        batch = [
+            original,
+            {**original, "ISU_CD": "00088K"},
+            {**original, "ISU_CD": "0220WL"},
+            {**original, "ISU_CD": "12345L"},
+        ]
+        provider = FakeClient()
+        class AlphaClient(FakeClient):
+            def daily_market(self,market,asof):
+                self.calls.append((market,asof))
+                r = batch if market == "KOSPI" else rows(market,asof)
+                return r,json.dumps({"OutBlock_1":r}).encode()
+        out = collect_krx_history(
+            [day],live=True,key="SYNTHETIC_TEST_ONLY",client=AlphaClient())
+        one = out["days"][0]["markets"][0]
+        self.assertEqual(one["provider_rows_observed"],4)
+        self.assertEqual(one["six_digit_numeric_code_rows"],1)
+        self.assertEqual(one["six_character_alphanumeric_code_rows"],3)
+        self.assertEqual(one["quarantined_unpriced_candidates"],0)
+        self.assertFalse(one["opaque_alphanumeric_identity_reconciled_with_official_master"])
+        self.assertFalse(one["confirmed_scoring_allowed"])
+        serialized = json.dumps(out)
+        for value in ("00088K","0220WL","12345L","SYNTHETIC_TEST_ONLY"):
+            self.assertNotIn(value,serialized)
+        self.assertFalse(out["verified_history_250_sessions"])
+        self.assertFalse(out["v3_release_ready"])
+
+    def test_batch_with_27_nonnumeric_six_char_codes_is_not_silently_dropped(self):
+        day = "2026-10-15"
+        numeric = rows("KOSPI",day)[0]
+        codes = [f"{i:05d}K" for i in range(27)]
+        kpi = [numeric] + [{**numeric, "ISU_CD":code} for code in codes]
+        kdq = rows("KOSDAQ",day)
+        class TwentySevenCase(FakeClient):
+            def daily_market(self,market,asof):
+                self.calls.append((market,asof))
+                data = kpi if market=="KOSPI" else kdq
+                return data,json.dumps({"OutBlock_1":data}).encode()
+        provider=TwentySevenCase()
+        result=collect_krx_history([day],live=True,key="OFFLINE",client=provider)
+        self.assertEqual(provider.calls,[("KOSPI",day),("KOSDAQ",day)])
+        self.assertEqual(result["days"][0]["markets"][0]["provider_rows_observed"],28)
+        self.assertEqual(result["days"][0]["markets"][0]["six_character_alphanumeric_code_rows"],27)
+        self.assertEqual(result["days"][0]["markets"][0]["observed_numeric_candidates"],28)
+        self.assertFalse(result["days"][0]["markets"][0]["historical_issuer_universe_verified"])
+        self.assertFalse(result["foreign_institution_pension_flows_verified"])
+
+    def test_duplicate_alphanumeric_code_still_blocks_full_market(self):
+        day = "2026-10-15"
+        row = {**rows("KOSPI",day)[0],"ISU_CD":"00088K"}
+        batch = [row,row]
+        with self.assertRaisesRegex(HistoryCollectionError,"duplicate"):
+            _snapshot_market(batch,json.dumps({"OutBlock_1":batch}).encode(),
+                             market="KOSPI",asof=day)
+        # Upper/lowercase, arbitrary length and key stripping MUST NOT be
+        # normalized into a fake valid six-character historical stock.
+        for invalid in ("00088k","KR00088K","00088K ","00593","a12345"):
+            row2 = {**row,"ISU_CD":invalid}
+            with self.subTest(invalid=invalid),self.assertRaises(HistoryCollectionError):
+                _snapshot_market([row2],
+                    json.dumps({"OutBlock_1":[row2]}).encode(),
+                    market="KOSPI",asof=day)
+
+    def test_non_numeric_alpha_ohlc_invalid_quarantined_not_upgraded(self):
+        day="2026-10-15"
+        row=rows("KOSPI",day)[0]
+        bad={**row,"ISU_CD":"00088K","TDD_CLSPRC":"-"}
+        batch=[row,bad]
+        safe=_snapshot_market(batch,json.dumps({"OutBlock_1":batch}).encode(),
+                              market="KOSPI",asof=day)
+        self.assertEqual(safe["quarantined_unpriced_candidates"],1)
+        self.assertEqual(safe["six_character_alphanumeric_code_rows"],0)
+        self.assertEqual(safe["provider_rows_observed"],2)
+        self.assertFalse(safe["confirmed_scoring_allowed"])
+
     def test_all_market_code_shapes_report_counts_not_identifiers(self):
         day = "2026-10-15"
         standard = rows("KOSPI", day)[0]
