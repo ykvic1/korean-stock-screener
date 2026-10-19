@@ -48,7 +48,7 @@ assert.equal(x.markToMarket(tracked,{'043370':{price:9999}},'2026-10-24',Date.pa
 assert.equal(x.markToMarket(tracked,{'043370':{price:9999}},'2026-10-15',Date.parse('2026-10-15T07:00:00Z')).gainPct,null,'past observations cannot be future returns');
 assert.equal(x.safeRecord({date:'2026-10-16',code:'043370',entry:10,stop:20}),null);
 assert.equal(x.escapeHtml('<img src=x onerror=alert(1)>'),'&lt;img src=x onerror=alert(1)&gt;');
-const page=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
+const page=fs.readFileSync(path.join(__dirname,'../docs/v3-manual.html'),'utf8');
 assert.ok(page.includes('v3 사용자 모의검증 베타'));
 assert.ok(page.includes('기존 v2.2 공개 일별 분석값'));
 assert.ok(page.includes('브라우저'));
