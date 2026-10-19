@@ -31,6 +31,10 @@ jobs:
         run: |
           python -m py_compile v22_active_market_catalog.py
           python -m unittest discover -s tests -p 'test_v22_active_market_catalog.py' -v
+      - name: v2.2 106-price-error reason triage, exact 100-share batch accounting, and bounded retry sample (offline)
+        run: |
+          python -m py_compile v22_price_error_triage.py v22_price_reason_recheck_once.py
+          python -m unittest discover -s tests -p 'test_v22_price_error_triage.py' -v
       - name: v2.2 full-market stock-by-stock accounting and quality safeguards (offline)
         run: |
           python -m py_compile v22_full_universe_audit.py
