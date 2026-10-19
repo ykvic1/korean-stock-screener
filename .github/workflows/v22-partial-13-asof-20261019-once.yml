@@ -1,0 +1,85 @@
+name: One-Time Publish Real 13 Short-History Partial Observations 2026-10-19
+
+on:
+  push:
+    branches: [v22-short-history-current-13-backfill-20261019]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  publish-short-histories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing FDR observations dependency only
+        run: pip install -r requirements.txt
+      - name: Source-day quality and partial no-score tests
+        run: |
+          python -m unittest discover -s tests -p 'test_v22_short_history_observations.py' -v
+          node tests/test_v22_short_history_ui.cjs
+      - name: Compute only 23 short-listed source-day derived signals
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from v22_short_history_observations import write_short_history
+          market=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          target=market.get('history_exclusions',[])
+          if (market.get('date')!='2026-10-19' or market.get('status')!='success'
+              or market.get('version')!='2.0' or len(target)!=23):
+              raise ValueError('old_or_wrong_market_partial_source')
+          result=write_short_history(market,'docs/v22-partial-history.json')
+          if (result['listed_insufficient_history_count']!=23 or
+              result['partial_observed_count']<1 or
+              result['partial_observed_count']+result['still_unavailable_count']!=23 or
+              result['confirmed_buy_signal'] or result['raw_ohlcv_published']):
+              raise ValueError('partial_source_insufficient_or_unsafe')
+          print('Current-day short observations=',result['partial_observed_count'],
+                'remaining short/unavailable=',result['still_unavailable_count'],
+                'certified_buy=False,raw_bars_published=False')
+          PY
+      - name: Commit date-matched partial observations without raw OHLCV
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v22-partial-history.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Derived source-day short-listing MA60 and OBV partial observations (no investable score)"
+            git pull --rebase origin main
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          p=json.loads(Path('docs/v22-partial-history.json').read_text(encoding='utf8'))
+          listed={x[0] for x in m['history_exclusions']}
+          codes={x['code'] for x in p['rows']}
+          if (m.get('date')!='2026-10-19' or
+              p.get('asof')!=m['date'] or
+              len(listed)!=23 or codes!=listed or len(p['rows'])!=23 or
+              p.get('partial_observed_count',0)<1 or
+              p.get('partial_observed_count',0)+p.get('still_unavailable_count',0)!=23 or
+              p.get('full_v22_score_allowed') is not False or
+              p.get('v3_validated_technical_score_allowed') is not False or
+              p.get('confirmed_buy_signal') is not False or
+              p.get('raw_ohlcv_published') is not False):
+              raise ValueError('source_day_or_stock_universe_changed')
+          print('Publication source-day and 23-current-listed row checks passed.')
+          PY
+            git push origin HEAD:main
+          fi
+      - name: No vendor time series retained
+        if: always()
+        run: echo 'Only same-day MA/OBV derived JSON; no history cache or raw FDR export.'
