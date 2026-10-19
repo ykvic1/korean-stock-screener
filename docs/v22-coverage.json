@@ -1,0 +1,34 @@
+{
+  "schema": "v22-full-market-accounting-0.1",
+  "asof": "2026-10-19",
+  "status": "census_accounted_with_unresolved_quality",
+  "market_listing_size": 2497,
+  "attempted_stock_count": 2497,
+  "complete_batch_census": true,
+  "priced_current_session_count": 2368,
+  "price_coverage_pct": 94.83,
+  "not_priced_total": 129,
+  "price_failure_count": 106,
+  "insufficient_price_history_count": 23,
+  "unattempted_batch_count": 0,
+  "price_issue_types": {
+    "ValueError": 106
+  },
+  "priced_by_market": {
+    "KOSPI": 801,
+    "KOSDAQ": 1567
+  },
+  "flow_confirmed_count": 0,
+  "flow_unavailable_in_errors_count": 6,
+  "pbr_observed_count": 0,
+  "all_attempted_stock_codes_reconciled_once": true,
+  "independent_historical_prices_verified": false,
+  "full_5_to_10_year_history_verified": false,
+  "all_stock_corporate_actions_verified": false,
+  "official_regular_only_volume_verified": false,
+  "historical_issuer_delisting_pit_verified": false,
+  "foreign_institution_250_day_history_verified": false,
+  "v3_full_score_release_ready": false,
+  "confirmed_stock_recommendations": 0,
+  "private_or_vendor_raw_copied": false
+}
