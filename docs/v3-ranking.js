@@ -223,6 +223,7 @@ function init(){
     '종목 · 최신 퀀트 연결 '+model.quantCount+'종목';
   cards.innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
    const r=x.r;
+   const bookReference=simpleAnnualOfsBookReference(r,x.financialRef);
    return '<article class="rank-card"><div class="top"><div>'+
      '<span class="rank-number">'+(i+1)+'</span> <strong>'+esc(r.name)+'</strong>'+
      '<p class="sub">'+esc(r.code)+' · '+esc(r.market)+' · '+esc(r.phase||'위치 미확인')+'</p></div>'+
@@ -235,6 +236,11 @@ function init(){
        (['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월'].some(k=>period(x.q,k))?
         '유사통계 있음':'표본 미충족'):'최신 연구 대기')+'</b></div></div>'+
      '<p class="rank-quant-line">'+esc(quantGlance(x.q))+'</p>'+
+     '<p class="rank-finance-reference">'+
+      (bookReference!==null?
+       '<b>비공식 간이 P/B '+bookReference.toFixed(2)+'배</b> · 현재 시가총액 ÷ 최근 별도재무제표(OFS) 연간 자기자본. 정식 PBR 점수 제외.':
+       '비공식 간이 P/B 미산출 · 동일 기준일 재무/시가총액 자료 확인 필요. 정식 PBR 점수 제외.')+
+     '</p>'+
      '<div class="rank-foot"><span>'+esc(x.decision.reason)+'</span>'+
      '<button type="button" data-show="'+esc(r.code)+'">점수·퀀트 검증 보기</button></div></article>';
   }).join(''):'<p class="empty">조건에 해당하는 연구 후보가 없습니다. 추천 수를 억지로 채우지 않았습니다.</p>';
