@@ -95,6 +95,29 @@ function highRisk(r){
    ['손절폭 과대','단기 급등','추격 주의','장기 추세 취약','거래대금 부족','급격한 거래량 집중'].some(x=>String(s).includes(x)))||
    (finite(r.price60)&&r.price60>=40);
 }
+function watchEvidence(r){
+ // Separate, cautiously usable *technical observation* from investment advice.
+ // OBV is the published v2.2 price/volume heuristic, NOT investor net purchases.
+ const risk=stopDistance(r);
+ if(!r||r.obv_rising!==true||!finite(r.score)||r.score<60||
+    !finite(r.coverage_pct)||r.coverage_pct<55||highRisk(r)||
+    risk===null||risk<3||risk>15||!finite(r.price60)||
+    r.price60>25||r.price60< -35||!finite(r.price20)||r.price20>15)
+   return null;
+ const lag=r.divergence===true&&r.price60>=-12&&r.price60<=10;
+ const favorites=(Array.isArray(r.patterns)?r.patterns:[])
+   .filter(t=>typeof t==='string'&&/쐐기|역헤드|삼각|수렴|횡보/.test(t))
+   .slice(0,2);
+ const phase=typeof r.phase==='string'&&/초기|전환|수렴|바닥|반등/.test(r.phase);
+ if(!lag&&!favorites.length&&!phase)return null;
+ const labels=[];
+ if(lag)labels.push('OBV 상승·60일 주가 미반영 후보');
+ labels.push(...favorites.map(x=>'차트: '+x));
+ if(phase&&!favorites.length)labels.push('위치: '+r.phase);
+ if(finite(r.one_day_volume_ratio)&&r.one_day_volume_ratio>=1.2&&
+    r.one_day_volume_ratio<=8)labels.push('당일 거래량 관측 증가');
+ return {obvLag:lag,pattern:!!favorites.length,phase:!!phase,labels:labels.slice(0,4)};
+}
 function observedScore(r,weights){
  if(!finite(r.score)||!finite(r.coverage_pct)||r.score<0||r.score>100||r.coverage_pct<0||r.coverage_pct>100||
     !weights||typeof weights!=='object'||!r.components)return false;
@@ -185,7 +208,7 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
    const finalDecision=caution&&observedDecision.label!=='매수 보류'?
      {label:'매수 보류',reason:'위험 경고·연구 전용 후보 — '+observedDecision.reason,level:'wait'}:
      observedDecision;
-   rows.push({r,q,rec,quantSource,financialRef:financials.get(r.code)||null,
+   rows.push({r,q,rec,watch:watchEvidence(r),quantSource,financialRef:financials.get(r.code)||null,
      rollingBook:books.get(r.code)||null,quant:!!q,
      researchCandidate:!!rec,qualified,caution,
      risk:stopDistance(r),highRisk:highRisk(r),decision:finalDecision});
@@ -207,7 +230,8 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
   priorityQuantCurrent:priorityMatched,priorityQuantAsOf:priorityQuant?.asof||null,
   priorityQuantRequested:priorityMatched?priorityQuant.peer_cohort_requested:null,
   priorityQuantValid:priorityMatched?priorityQuant.peer_cohort_valid:null,
-  quantCount:rows.filter(x=>x.quant).length,recommendationCount:selected.length,
+  quantCount:rows.filter(x=>x.quant).length,watchCount:rows.filter(x=>!!x.watch).length,
+  obvLagCount:rows.filter(x=>x.watch?.obvLag===true).length,recommendationCount:selected.length,
   recommendationQuantCount:withStudy,recommendationUsableQuantCount:withUsable,
   recommendationInsufficientCount:selected.filter(x=>x.quant&&!researchReady(x)).length,
   recommendationCautionCount:selected.filter(x=>x.caution).length,
@@ -218,10 +242,17 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
 }
 function select(data,mode,market='all',search=''){
  const query=String(search).toLocaleLowerCase('ko-KR').trim();
- return data.rows.filter(x=>(market==='all'||market===x.r.market)&&
+ const results=data.rows.filter(x=>(market==='all'||market===x.r.market)&&
   (!query||(x.r.name+' '+x.r.code+' '+(x.r.sector||'')).toLocaleLowerCase('ko-KR').includes(query))&&
-  (mode==='recommended'?x.researchCandidate:mode==='quant'?x.quant:
+  (mode==='watch'?!!x.watch:mode==='obv'?x.watch?.obvLag===true:
+   mode==='recommended'?x.researchCandidate:mode==='quant'?x.quant:
    mode==='early'?(!x.highRisk&&x.risk!==null&&x.risk>=3&&x.risk<=15&&/초기|전환|수렴|바닥/.test(String(x.r.phase))&&x.r.coverage_pct>=55):true));
+ if(mode==='watch'||mode==='obv')results.sort((a,b)=>
+   Number(b.watch.obvLag)-Number(a.watch.obvLag)||
+   Number(b.watch.pattern)-Number(a.watch.pattern)||
+   b.r.score-a.r.score||b.r.coverage_pct-a.r.coverage_pct||
+   a.r.code.localeCompare(b.r.code));
+ return results;
 }
 function financialHistoryTable(annual){
  const data=Array.isArray(annual?.history)?annual.history:[];
@@ -304,18 +335,18 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,watchEvidence,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
 function init(){
  const D=root.document,$=id=>D.getElementById(id);
- let model=null,mode='recommended',limit=24;
+ let model=null,mode='watch',limit=24;
  const status=$('rankStatus'),cards=$('rankCards'),details=$('rankDetails');
  function render(){
   if(!model)return;
   const rows=select(model,mode,$('marketFilter').value,$('rankSearch').value);
-  $('rankCount').textContent='해당 조건 '+rows.length+'종목 · 점수 산출 '+model.rows.length+
+  $('rankCount').textContent=(mode==='watch'||mode==='obv'?'관찰용·매수 신호 아님 · ':'')+'해당 조건 '+rows.length+'종목 · 점수 산출 '+model.rows.length+
     '종목 · 최신 퀀트 연결 '+model.quantCount+'종목';
   cards.innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
    const r=x.r;
@@ -331,6 +362,10 @@ function init(){
      '<p class="sub">'+esc(r.code)+' · '+esc(r.market)+' · '+esc(r.phase||'위치 미확인')+'</p></div>'+
      '<div class="rank-score">'+r.score.toFixed(1)+'점<small>v2.2 관측점수<br>확보 '+r.coverage_pct.toFixed(0)+'%</small></div></div>'+
      (x.caution?'<p class="rank-caution"><b>위험 경고·연구 전용:</b> 매수 후보로 승격되지 않았습니다.</p>':'')+
+     ((mode==='watch'||mode==='obv')&&x.watch?
+       '<p class="rank-watchline"><b>기술적 관찰 대상 · 매수 미인증</b> · '+
+       esc(x.watch.labels.join(' · '))+
+       ' · 외국인·기관 수급 미확인 시 매집 단정 금지</p>':'')+
      '<div class="rank-metrics"><div><small>종가</small><b>'+money(r.price)+'</b></div>'+
      '<div><small>손절 참고선</small><b>'+money(r.stop_line)+'</b></div>'+
      '<div><small>현재 대응</small><b>'+esc(x.decision.label)+'</b></div>'+
@@ -396,6 +431,9 @@ function init(){
    '<div><small>PBR 참고값</small><b>'+(finite(r.pbr)?r.pbr.toFixed(2)+'배':'미확인')+'</b></div></div>'+
    '<p class="note">위험 경고: '+(flags.length?esc(flags.join(' · ')):'추가 위험 경고 등록 없음')+
    '. 실제 손절 체결 가격·손실은 이론값보다 나쁠 수 있습니다.</p>'+
+   (x.watch?'<p class="rank-watchline"><b>차트 관찰 근거</b> · '+
+     esc(x.watch.labels.join(' · '))+
+     '. 기술적 휴리스틱으로 확정된 기관 매집·상승확률이 아닙니다.</p>':'')+
    '<h3>③ OpenDART 연간 실적 참고자료</h3>'+
    (x.financialRef?
      '<p class="note">공시 '+x.financialRef.year+'년 '+esc(x.financialRef.fs_div)+
@@ -440,7 +478,7 @@ function init(){
    model=prepare(...src.slice(0,5),src[7]);
    $('rankSourceQuality').textContent=sourceCompletenessText(
      sourceCompleteness(model,src[5],src[6]));
-   status.textContent='기준일 '+model.date+' · 점수 산출 '+model.rows.length+
+   status.textContent='기준일 '+model.date+' · OBV·패턴 관찰 '+model.watchCount+'종목 (OBV·가격 미반영 '+model.obvLagCount+'종목) · 점수 산출 '+model.rows.length+
      '종목 / 전체 분석 대상 '+(model.marketEligible||'미확인')+
      '종목 · 심층 선별 '+model.recommendationCount+
      '종목 · 동일 기준일 퀀트 '+model.quantCount+'종목';
