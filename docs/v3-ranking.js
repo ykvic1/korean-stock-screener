@@ -97,28 +97,60 @@ function highRisk(r){
    ['손절폭 과대','단기 급등','추격 주의','장기 추세 취약','거래대금 부족','급격한 거래량 집중'].some(x=>String(s).includes(x)))||
    (finite(r.price60)&&r.price60>=40);
 }
+function validatedPatternResearch(r){
+ const p=r?.pattern_research;
+ if(!p||p.schema!=='v3-pattern-first-daily-research-0.1'||
+    p.timeframe!=='daily'||p.status!=='heuristic_unverified'||
+    p.asof!==r.price_date||
+    p.scoring_allowed!==false||p.buy_signal!==false||
+    p.official_regular_session_verified!==false||
+    !Array.isArray(p.patterns)||p.patterns.length>6||
+    (p.rsi14!==null&&(!finite(p.rsi14)||p.rsi14<0||p.rsi14>100))||
+    typeof p.rsi30_cross_recent!=='boolean'||
+    typeof p.rsi_bullish_divergence_recent!=='boolean')return null;
+ const seen=new Set();
+ for(const item of p.patterns){
+   if(!item||!['bull_flag','double_bottom'].includes(item.type)||
+      !['forming','breakout_observed'].includes(item.stage)||seen.has(item.type))
+     return null;
+   seen.add(item.type);
+ }
+ return p;
+}
 function watchEvidence(r){
- // Separate, cautiously usable *technical observation* from investment advice.
- // OBV is the published v2.2 price/volume heuristic, NOT investor net purchases.
+ // Technical pattern / RSI first. Never require OBV or assume buyer identity.
  const risk=stopDistance(r);
- if(!r||r.obv_rising!==true||!finite(r.score)||r.score<60||
+ if(!r||!finite(r.score)||r.score<60||
     !finite(r.coverage_pct)||r.coverage_pct<55||highRisk(r)||
     risk===null||risk<3||risk>15||!finite(r.price60)||
-    r.price60>25||r.price60< -35||!finite(r.price20)||r.price20>15)
+    r.price60>35||r.price60< -35||!finite(r.price20)||r.price20>18)
    return null;
- const lag=r.divergence===true&&r.price60>=-12&&r.price60<=10;
+ const p=validatedPatternResearch(r);
+ const prioritized=p?.patterns?.map(t=>({
+   label:t.type==='bull_flag'?'Bull Flag(상승 깃발형)':'더블바텀',
+   stage:t.stage
+ }))||[];
  const favorites=(Array.isArray(r.patterns)?r.patterns:[])
-   .filter(t=>typeof t==='string'&&/쐐기|역헤드|삼각|수렴|횡보/.test(t))
-   .slice(0,2);
+  .filter(t=>typeof t==='string'&&/쐐기|역헤드|삼각|수렴|횡보|컵.*핸들|더블바텀|쌍바닥|깃발/.test(t))
+  .slice(0,3);
+ const rsi30=p?.rsi30_cross_recent===true;
+ const bullishDiv=p?.rsi_bullish_divergence_recent===true;
  const phase=typeof r.phase==='string'&&/초기|전환|수렴|바닥|반등/.test(r.phase);
- if(!lag&&!favorites.length&&!phase)return null;
+ const lag=r.obv_rising===true&&r.divergence===true&&
+   r.price60>=-12&&r.price60<=10;
+ if(!prioritized.length&&!favorites.length&&!rsi30&&!bullishDiv&&!phase)return null;
  const labels=[];
- if(lag)labels.push('OBV 상승·60일 주가 미반영 후보');
- labels.push(...favorites.map(x=>'차트: '+x));
- if(phase&&!favorites.length)labels.push('위치: '+r.phase);
- if(finite(r.one_day_volume_ratio)&&r.one_day_volume_ratio>=1.2&&
-    r.one_day_volume_ratio<=8)labels.push('당일 거래량 관측 증가');
- return {obvLag:lag,pattern:!!favorites.length,phase:!!phase,labels:labels.slice(0,4)};
+ labels.push(...prioritized.map(t=>t.label+(t.stage==='forming'?' 형성 중':' 돌파 관측')));
+ labels.push(...favorites.map(t=>'패턴 근사: '+t));
+ if(rsi30)labels.push('RSI 30 상향 재돌파(최근 7거래일)');
+ if(bullishDiv)labels.push('RSI 상승다이버전스(확정 피벗, 최근 관측)');
+ if(!labels.length&&phase)labels.push('위치: '+r.phase);
+ if(lag)labels.push('OBV·가격 미반영 보조 관측');
+ const strength=(prioritized.some(t=>t.label==='Bull Flag(상승 깃발형)'||t.label==='더블바텀')?3:0)+
+   (favorites.length?2:0)+(rsi30||bullishDiv?1:0);
+ return {obvLag:lag,pattern:prioritized.length+favorites.length>0,
+  rsiSignal:rsi30||bullishDiv,phase:!!phase,
+  strength,labels:labels.slice(0,5),rsi14:p?.rsi14??null};
 }
 function observedScore(r,weights){
  if(!finite(r.score)||!finite(r.coverage_pct)||r.score<0||r.score>100||r.coverage_pct<0||r.coverage_pct>100||
@@ -233,6 +265,8 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
   priorityQuantRequested:priorityMatched?priorityQuant.peer_cohort_requested:null,
   priorityQuantValid:priorityMatched?priorityQuant.peer_cohort_valid:null,
   quantCount:rows.filter(x=>x.quant).length,watchCount:rows.filter(x=>!!x.watch).length,
+  patternWatchCount:rows.filter(x=>x.watch?.pattern).length,
+  rsiWatchCount:rows.filter(x=>x.watch?.rsiSignal).length,
   obvLagCount:rows.filter(x=>x.watch?.obvLag===true).length,recommendationCount:selected.length,
   recommendationQuantCount:withStudy,recommendationUsableQuantCount:withUsable,
   recommendationInsufficientCount:selected.filter(x=>x.quant&&!researchReady(x)).length,
@@ -246,12 +280,16 @@ function select(data,mode,market='all',search=''){
  const query=String(search).toLocaleLowerCase('ko-KR').trim();
  const results=data.rows.filter(x=>(market==='all'||market===x.r.market)&&
   (!query||(x.r.name+' '+x.r.code+' '+(x.r.sector||'')).toLocaleLowerCase('ko-KR').includes(query))&&
-  (mode==='watch'?!!x.watch:mode==='obv'?x.watch?.obvLag===true:
+  (mode==='watch'?!!x.watch:mode==='pattern'?x.watch?.pattern===true:
+   mode==='rsi'?x.watch?.rsiSignal===true:
+   mode==='obv'?x.r.obv_rising===true&&x.r.divergence===true&&
+     x.r.price60>=-12&&x.r.price60<=10&&!x.highRisk&&x.risk!==null&&
+     x.risk>=3&&x.risk<=15:
    mode==='recommended'?x.researchCandidate:mode==='quant'?x.quant:
    mode==='early'?(!x.highRisk&&x.risk!==null&&x.risk>=3&&x.risk<=15&&/초기|전환|수렴|바닥/.test(String(x.r.phase))&&x.r.coverage_pct>=55):true));
- if(mode==='watch'||mode==='obv')results.sort((a,b)=>
-   Number(b.watch.obvLag)-Number(a.watch.obvLag)||
-   Number(b.watch.pattern)-Number(a.watch.pattern)||
+ if(['watch','pattern','rsi'].includes(mode))results.sort((a,b)=>
+   (b.watch?.strength??0)-(a.watch?.strength??0)||
+   Number(b.watch?.rsiSignal)-Number(a.watch?.rsiSignal)||
    b.r.score-a.r.score||b.r.coverage_pct-a.r.coverage_pct||
    a.r.code.localeCompare(b.r.code));
  return results;
@@ -337,7 +375,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,watchEvidence,stockPage,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,validatedPatternResearch,watchEvidence,stockPage,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
@@ -348,7 +386,7 @@ function init(){
  function render(){
   if(!model)return;
   const rows=select(model,mode,$('marketFilter').value,$('rankSearch').value);
-  $('rankCount').textContent=(mode==='watch'||mode==='obv'?'관찰용·매수 신호 아님 · ':'')+'해당 조건 '+rows.length+'종목 · 점수 산출 '+model.rows.length+
+  $('rankCount').textContent=(['watch','pattern','rsi','obv'].includes(mode)?'관찰용·매수 신호 아님 · ':'')+'해당 조건 '+rows.length+'종목 · 점수 산출 '+model.rows.length+
     '종목 · 최신 퀀트 연결 '+model.quantCount+'종목';
   cards.innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
    const r=x.r;
@@ -364,7 +402,7 @@ function init(){
      '<p class="sub">'+esc(r.code)+' · '+esc(r.market)+' · '+esc(r.phase||'위치 미확인')+'</p></div>'+
      '<div class="rank-score">'+r.score.toFixed(1)+'점<small>v2.2 관측점수<br>확보 '+r.coverage_pct.toFixed(0)+'%</small></div></div>'+
      (x.caution?'<p class="rank-caution"><b>위험 경고·연구 전용:</b> 매수 후보로 승격되지 않았습니다.</p>':'')+
-     ((mode==='watch'||mode==='obv')&&x.watch?
+     ((['watch','pattern','rsi'].includes(mode))&&x.watch?
        '<p class="rank-watchline"><b>기술적 관찰 대상 · 매수 미인증</b> · '+
        esc(x.watch.labels.join(' · '))+
        ' · 외국인·기관 수급 미확인 시 매집 단정 금지</p>':'')+
@@ -481,7 +519,7 @@ function init(){
    model=prepare(...src.slice(0,5),src[7]);
    $('rankSourceQuality').textContent=sourceCompletenessText(
      sourceCompleteness(model,src[5],src[6]));
-   status.textContent='기준일 '+model.date+' · OBV·패턴 관찰 '+model.watchCount+'종목 (OBV·가격 미반영 '+model.obvLagCount+'종목) · 점수 산출 '+model.rows.length+
+   status.textContent='기준일 '+model.date+' · 패턴·RSI 우선 관찰 '+model.watchCount+'종목 (패턴 '+model.patternWatchCount+' · RSI '+model.rsiWatchCount+' · OBV 보조 '+model.obvLagCount+') · 점수 산출 '+model.rows.length+
      '종목 / 전체 분석 대상 '+(model.marketEligible||'미확인')+
      '종목 · 심층 선별 '+model.recommendationCount+
      '종목 · 동일 기준일 퀀트 '+model.quantCount+'종목';

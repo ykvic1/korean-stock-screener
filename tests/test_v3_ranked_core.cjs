@@ -286,13 +286,18 @@ const watchModel=m.prepare({...snap,stocks:[watchBase,stocks[1],stocks[2]]},rese
 assert.equal(watchModel.watchCount,1);
 assert.equal(watchModel.obvLagCount,1);
 assert.deepEqual(m.select(watchModel,'watch').map(x=>x.r.code),['111111']);
+assert.deepEqual(m.select(watchModel,'pattern').map(x=>x.r.code),['111111']);
+assert.equal(m.select(watchModel,'rsi').length,0);
 assert.deepEqual(m.select(watchModel,'obv').map(x=>x.r.code),['111111']);
 assert.equal(watchModel.recommendationCount,1,'watch-only does not manufacture shortlist');
 assert.equal(watchModel.rows[0].decision.label,'조건부 모의 검토',
  'a technical watch filter never promotes an unverified buy signal');
-assert.ok(m.watchEvidence(watchBase).labels.some(s=>s.includes('OBV 상승')));
-assert.equal(m.watchEvidence({...watchBase,obv_rising:false}),null,
- 'no OBV observation means no fabricated accumulation');
+assert.ok(m.watchEvidence(watchBase).labels.some(s=>s.includes('OBV·가격 미반영 보조')),
+ 'OBV is supporting evidence, not the watchlist heading');
+assert.ok(m.watchEvidence({...watchBase,obv_rising:false})?.pattern,
+ 'preferred chart pattern must not require OBV rising');
+assert.equal(m.watchEvidence({...watchBase,obv_rising:false})?.obvLag,false,
+ 'missing OBV must not be mislabeled accumulation');
 assert.equal(m.watchEvidence({...watchBase,coverage_pct:30}),null);
 assert.equal(m.watchEvidence({...watchBase,stop_line:null}),null);
 assert.equal(m.watchEvidence({...watchBase,price60:48}),null,
@@ -305,6 +310,39 @@ assert.equal(m.watchEvidence({...watchBase,divergence:false,
 assert.equal(m.watchEvidence({...watchBase,divergence:false,
  patterns:[],phase:'중립/기타'}),null,
  'no structure or lag implies no watchlist entry');
+const flagNoObv={...watchBase,obv_rising:false,divergence:false,
+ price_date:'2026-10-16',patterns:[],phase:'중립/기타',pattern_research:{
+ schema:'v3-pattern-first-daily-research-0.1',asof:'2026-10-16',
+ status:'heuristic_unverified',
+ timeframe:'daily',official_regular_session_verified:false,
+ scoring_allowed:false,buy_signal:false,rsi14:43,
+ rsi30_cross_recent:false,rsi_bullish_divergence_recent:false,
+ patterns:[{type:'bull_flag',stage:'forming',reference_breakout:114,
+            reference_flag_low:103}]}};
+assert.equal(m.watchEvidence(flagNoObv)?.pattern,true,
+ 'Bull Flag must be detected even without supportive OBV');
+assert.ok(m.watchEvidence(flagNoObv).labels.join(' ').includes('Bull Flag'));
+const db={...flagNoObv,pattern_research:{...flagNoObv.pattern_research,
+ patterns:[{type:'double_bottom',stage:'breakout_observed'}]}};
+assert.ok(m.watchEvidence(db).labels.join(' ').includes('더블바텀'));
+const rsiRecovery={...flagNoObv,pattern_research:{
+ ...flagNoObv.pattern_research,patterns:[],rsi14:37,
+ rsi30_cross_recent:true}};
+assert.equal(m.watchEvidence(rsiRecovery).rsiSignal,true,
+ 'RSI 30 re-cross is a standalone observation without OBV');
+const divRecovery={...rsiRecovery,pattern_research:{
+ ...rsiRecovery.pattern_research,rsi30_cross_recent:false,
+ rsi_bullish_divergence_recent:true}};
+assert.ok(m.watchEvidence(divRecovery).labels.join(' ').includes('상승다이버전스'));
+assert.equal(m.watchEvidence({...flagNoObv,pattern_research:{
+ ...flagNoObv.pattern_research,buy_signal:true}}),null,
+ 'invented promotion of a pattern to certified buy must be rejected');
+assert.equal(m.watchEvidence({...flagNoObv,pattern_research:{
+ ...flagNoObv.pattern_research,patterns:[{type:'dragon',stage:'forming'}]}}),null,
+ 'unknown pattern type cannot silently mint an observed favorite');
+assert.equal(m.watchEvidence({...flagNoObv,risk_flags:['거래대금 부족']}),null,
+ 'Bull Flag must not bypass the liquidity risk exclusion');
+assert.equal(m.watchEvidence({...flagNoObv,stop_line:null}),null);
 assert.equal(m.select(result,'recommended').length,1);
 assert.equal(m.select(result,'quant').length,1);
 assert.equal(m.select(result,'early').length,1);
@@ -356,11 +394,14 @@ assert.equal(m.stockPage('005930'),'https://finance.naver.com/item/main.naver?co
 assert.equal(m.stockPage('005930?x=1'),null,'do not allow user-supplied external link injection');
 assert.equal(m.stockPage('<script>'),null);
 const home=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
-assert.ok(home.includes('자동 종목 추천 · 퀀트 검증'));
+assert.ok(home.includes('차트 패턴 중심 종목 발굴 · 퀀트 검증'));
+assert.ok(home.includes('폴링 웻지')&&home.includes('역헤드앤숄더')&&home.includes('더블바텀')&&home.includes('Bull Flag'));
 assert.ok(home.includes('v3-ranking.js')&&home.includes('v3-ranking.css'));
 assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 있는 종목'));
 assert.ok(home.includes('data-mode="watch" aria-pressed="true"')&&
- home.includes('data-mode="obv"')&&home.includes('매수 미인증'),
+ home.includes('data-mode="pattern"')&&home.includes('data-mode="rsi"')&&
+ home.includes('data-mode="obv"')&&home.includes('Bull Flag')&&
+ home.includes('매수 미인증'),
  'user-facing first view must expose observable technical research without buy claim');
 assert.ok(home.includes('v3-manual.html'));
 assert.ok(home.includes('rankCandidateQuant'));
@@ -382,10 +423,15 @@ assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)
 const liveDaily=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
 const liveWatch=m.prepare(liveDaily,null,null);
 assert.ok(liveWatch.watchCount<=liveWatch.rows.length);
-assert.ok(liveWatch.obvLagCount<=liveWatch.watchCount);
+assert.ok(liveWatch.obvLagCount<=liveWatch.rows.length);
+assert.ok(liveWatch.patternWatchCount<=liveWatch.watchCount);
+assert.ok(liveWatch.rsiWatchCount<=liveWatch.watchCount);
 assert.ok(m.select(liveWatch,'watch').every(x=>x.watch&&!x.highRisk&&
- x.r.obv_rising===true&&x.risk>=3&&x.risk<=15));
+ x.risk>=3&&x.risk<=15));
+assert.ok(m.select(liveWatch,'pattern').every(x=>x.watch?.pattern));
+assert.ok(m.select(liveWatch,'rsi').every(x=>x.watch?.rsiSignal));
 console.log('Published actual market technical watch evidence:',liveDaily.date,
   'scored=',liveWatch.rows.length,'watch=',liveWatch.watchCount,
-  'OBV-price-lag=',liveWatch.obvLagCount);
+  'patterns=',liveWatch.patternWatchCount,
+  'RSI=',liveWatch.rsiWatchCount,'OBV-support=',liveWatch.obvLagCount);
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
