@@ -154,9 +154,11 @@ class SafeResumeLocalTests(unittest.TestCase):
     def test_reject_public_repo_storage_without_leaking_token(self):
         repo=Path(__file__).resolve().parents[1]
         path=repo/"docs"/"cannot-write-historical.sqlite3"
-        with self.assertRaises(LocalBatchError):
+        provider=SyntheticKRX()
+        with self.assertRaisesRegex(LocalBatchError,"private_storage_path_not_safe"):
             run_one_local_batch(start=DAY0,end=DAY1,database_path=path,
-                live=True,consent=True,key="VERY_PRIVATE",client=SyntheticKRX())
+                live=True,consent=True,key="VERY_PRIVATE",client=provider)
+        self.assertEqual(provider.calls,[])
         self.assertFalse(path.exists())
 
     def test_cli_no_key_exposed_and_no_implicit_storage_path(self):
