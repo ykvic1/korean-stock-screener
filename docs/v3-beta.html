@@ -22,7 +22,7 @@
 <section class="panel intro">
   <div class="label">실데이터 사용자 평가 · 제한 공개</div>
   <h2>현재는 예측 점수보다 종목 발굴과 손실 위험을 먼저 검증합니다.</h2>
-  <p>이 화면은 <strong>기존 v2.2 공개 일별 분석값</strong>을 사용하는 <strong>v3 사용자 모의검증 베타</strong>입니다. 새 6영역 점수, 10년치 공식 KRX 데이터 및 표본외 성과가 검증되었다는 뜻은 아닙니다. 실제 종목을 검색·추적하면서 연구 엔진의 품질을 개선하기 위한 화면입니다.</p>
+  <p>이 화면은 <strong>기존 v2.2 공개 일별 분석값</strong>과 새 <strong>현재 상장 종목 전체 목록</strong>을 연결하는 <strong>v3 사용자 모의검증 베타</strong>입니다. 코스피·코스닥 전 종목을 조회하되 기술 지표가 없는 종목은 이유를 표시하고 임의로 채우지 않습니다. PBR·시가총액·기관/외국인 수급은 관측이 있으면 출처를 구분해 참고자료로 사용합니다. 새 6영역 점수, 10년치 공식 KRX 데이터 및 표본외 성과가 검증되었다는 뜻은 아닙니다.</p>
   <p class="status" id="v3Status" aria-live="polite">공개 가격 자료를 확인 중입니다.</p>
   <p class="note" id="v3Notice">미확인 수급과 기업가치는 임의 점수로 채우지 않습니다.</p>
   <div class="notice"><strong>모의 관찰은 가상 매매체결이 아닙니다.</strong> 최초 기록은 당시 화면의 종가이며, 이후 공개된 종가와 비교합니다. 장중 최저가·손절 선도달·실제 체결·매매비용·생존편향을 검증하지 않으므로 적중률이나 미래 수익률을 발표하지 않습니다.</div>
@@ -32,6 +32,20 @@
   <div class="filters">
     <label>종목명·코드·업종
       <input id="v3Search" type="search" placeholder="예: 삼성, 피에이치에이, 005930" autocomplete="off">
+    </label>
+    <label>시장
+      <select id="v3Market">
+        <option value="all">코스피 + 코스닥 전체</option>
+        <option value="KOSPI">코스피</option>
+        <option value="KOSDAQ">코스닥</option>
+      </select>
+    </label>
+    <label>자료 확보 상태
+      <select id="v3Coverage">
+        <option value="all">현재 상장 전 종목</option>
+        <option value="priced">가격 분석 가능</option>
+        <option value="missing">가격 이력 부족·오류·미시도</option>
+      </select>
     </label>
     <label>차트/수급 패턴 후보
       <select id="v3Pattern">
@@ -65,7 +79,7 @@
 <section class="panel">
   <h2>3. v3 확장 작업과 현재 경계</h2>
   <div class="roadmap">
-    <div><strong>지금 사용 가능</strong><p>전시장 공개 분석값 검색, 초기/주봉/거래량/OBV 후보 필터, 종가·구조 참고선 가상 기록, 최신 종가 관찰.</p></div>
+    <div><strong>지금 사용 가능</strong><p>현재 상장 코스피·코스닥 전체 목록 검색(다음 전시장 데이터 갱신 시 연결), 주봉/거래량/OBV 후보, PBR·시가총액·수급 관측 참고자료, 미분석 사유, 모의 기록.</p></div>
     <div><strong>데이터 연결 1차 성공</strong><p>KRX 실제 5거래일 실조회가 기술분석 엔진에 도달하고 2016·2021년 단일일자 조회에도 성공했지만, 실제 10년치 원본의 지속 보존은 미완료.</p></div>
     <div><strong>개발 중 · 이 화면에서 미제공</strong><p>공식 KRX 장기 일·주봉 차트, 120·240일 이평선, IAS·재무·산업 6영역 확정 점수, 전체 역사적 상장폐지 포함 백테스트, 표본외 수익성 검증.</p></div>
   </div>

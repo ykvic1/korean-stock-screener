@@ -313,6 +313,9 @@ def publish(*, manifest: dict, parts_dir: Path,
                                  datetime.fromisoformat(freshest), cfg, meta)
     data = screener.web_publish(current, errors,
                                 datetime.fromisoformat(freshest), cfg, meta, excel)
+    # Keep ALL currently listed stocks searchable even when OHLCV unavailable.
+    from v22_active_market_catalog import write_active_catalog
+    write_active_catalog(data, listing, screener.SITE / "v22-market-catalog.json")
     return {"status": ("complete_market_report_published"
                         if merged["market_scan_complete"]
                         else "partial_market_report_published_with_missing_batch_warning"),

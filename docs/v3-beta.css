@@ -19,7 +19,7 @@ h2{font-size:19px;line-height:1.4;margin:0 0 12px}
 .note,.sub{font-size:13px;color:#596e82;line-height:1.65}
 .section-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .section-row h2{margin:0}
-.filters{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .filters label{font-size:12px;font-weight:800;color:#3f5267}
 input,select{display:block;width:100%;margin-top:5px;min-height:42px;padding:10px;border:1px solid #c8d4e1;border-radius:9px;font:inherit;font-size:14px;background:#fff;color:#1d3046}
 button{padding:10px 13px;font-weight:700;font:inherit;cursor:pointer;border-radius:9px;border:1px solid #15787f;color:white;background:#15787f}

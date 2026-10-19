@@ -8,6 +8,8 @@
   const ID=/^[0-9A-Z]{6}$/;
   const KIND_VALUES=new Set(['all','early','weekly','pattern','volume','obv']);
   const RISK_VALUES=new Set(['all','controlled','unverified']);
+  const STATUS_VALUES=new Set(['all','priced','missing']);
+  const MARKET_VALUES=new Set(['all','KOSPI','KOSDAQ']);
   const clean=(x)=>String(x==null?'':x);
   const escapeHtml=(x)=>clean(x).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   const fin=(x)=>typeof x==='number'&&Number.isFinite(x);
@@ -32,6 +34,44 @@
     if (!rows.length) throw Error('유효한 종목 가격이 없습니다');
     return {date:x.date,stocks:rows,total:x.stocks.length,flowConfirmedCount:x.flow_confirmed_count};
   }
+  function mergeCatalog(view,catalog){
+    if(!catalog||catalog.schema!=='v22-current-listed-catalog-0.1'||
+       catalog.date!==view.date||!Array.isArray(catalog.rows)||
+       catalog.rows.length!==catalog.listed_total||catalog.rows.length>6000||
+       catalog.priced_count!==view.stocks.length) return null;
+    const validStatuses=new Set(['priced','price_source_or_validation_error',
+                                 'insufficient_history','unattempted_batch']);
+    const existing=new Map(view.stocks.map(r=>[r.code,r]));
+    const seen=new Set(),rows=[],counts={priced:0,price_source_or_validation_error:0,
+      insufficient_history:0,unattempted_batch:0};
+    for(const x of catalog.rows){
+      if(!x||!ID.test(clean(x.code))||seen.has(x.code)||!validStatuses.has(x.price_history_status)||
+          typeof x.name!=='string'||!x.name.trim()||!['KOSPI','KOSDAQ'].includes(x.market))return null;
+      seen.add(x.code);counts[x.price_history_status]++;
+      const raw=existing.get(x.code);
+      if(x.price_history_status==='priced'){
+        if(!raw||raw.market!==x.market||raw.name!==x.name||raw.price!==x.published_price)return null;
+        rows.push({...raw,price_history_status:'priced',
+          reference_market_cap_eok:fin(x.reference_market_cap_eok)?x.reference_market_cap_eok:null,
+          reference_trading_value_eok:fin(x.reference_trading_value_eok)?x.reference_trading_value_eok:null,
+          pbr_observed:fin(x.pbr_observed)?x.pbr_observed:null,
+          pbr_source:clean(x.pbr_source),flow_reference:x.flow_reference||null});
+      }else{
+        if(raw||x.published_price!==null)return null;
+        rows.push({code:x.code,name:x.name,market:x.market,sector:x.sector||null,
+          price:null,price_history_status:x.price_history_status,
+          reference_market_cap_eok:fin(x.reference_market_cap_eok)?x.reference_market_cap_eok:null,
+          reference_trading_value_eok:fin(x.reference_trading_value_eok)?x.reference_trading_value_eok:null,
+          pbr_observed:fin(x.pbr_observed)?x.pbr_observed:null,
+          pbr_source:clean(x.pbr_source),flow_reference:null,
+          patterns:[],signals:[],flows_confirmed:false});
+      }
+    }
+    if(counts.priced!==view.stocks.length||existing.size!==counts.priced)return null;
+    for(const [key,v] of Object.entries(counts))if(v!==catalog.status_counts?.[key])return null;
+    return {...view,stocks:rows,total:rows.length,catalogLoaded:true,
+      pricedCount:counts.priced,missingCount:rows.length-counts.priced};
+  }
   function priceRisk(row) {
     const stop=n(row&&row.stop_line), price=n(row&&row.price);
     if(!(price>0&&stop>0&&stop<price))return null;
@@ -52,6 +92,9 @@
     return /초기|전환|수렴|바닥/.test(clean(r.phase));
   }
   function eligible(r,filter) {
+    if(filter.market&&filter.market!=='all'&&filter.market!==r.market)return false;
+    if(filter.status==='priced'&&r.price_history_status&&r.price_history_status!=='priced')return false;
+    if(filter.status==='missing'&&(!r.price_history_status||r.price_history_status==='priced'))return false;
     if(filter.kind==='early'&&!early(r))return false;
     if(filter.kind==='weekly'&&!((r.signals||[]).includes('주봉 120주선 회복')||
       (fin(r.ma120w_gap)&&Math.abs(r.ma120w_gap)<=10)))return false;
@@ -67,6 +110,9 @@
   }
   function rankRows(rows) {
     return rows.slice().sort((a,b)=>{
+      const am=a.price_history_status&&a.price_history_status!=='priced';
+      const bm=b.price_history_status&&b.price_history_status!=='priced';
+      if(am!==bm)return am?1:-1;
       const ar=priceRisk(a),br=priceRisk(b);
       if(ar!==null&&br===null)return -1;
       if(ar===null&&br!==null)return 1;
@@ -106,7 +152,7 @@
       latestPrice:r.price,asof:day,
     };
   }
-  const core={parseSnapshot,priceRisk,riskDescription,eligible,rankRows,isStale,safeRecord,makeRecord,markToMarket,escapeHtml,KIND_VALUES,RISK_VALUES};
+  const core={parseSnapshot,mergeCatalog,priceRisk,riskDescription,eligible,rankRows,isStale,safeRecord,makeRecord,markToMarket,escapeHtml,KIND_VALUES,RISK_VALUES,STATUS_VALUES,MARKET_VALUES};
   if(typeof module!=='undefined'&&module.exports)module.exports=core;
   root.V3BetaCore=core;
   if(!root.document)return;
@@ -131,9 +177,26 @@
     };
     records=safeStore.load();
     function filters(){return {
-      search:by('v3Search').value,kind:by('v3Pattern').value,risk:by('v3Risk').value
+      search:by('v3Search').value,kind:by('v3Pattern').value,risk:by('v3Risk').value,
+      market:by('v3Market').value,status:by('v3Coverage').value
     };}
     function rowCard(r){
+      const missing=r.price_history_status&&r.price_history_status!=='priced';
+      const cap=fin(r.reference_market_cap_eok)?r.reference_market_cap_eok:r.market_cap_eok;
+      const trade=fin(r.reference_trading_value_eok)?r.reference_trading_value_eok:r.trading_eok;
+      const pbr=fin(r.pbr_observed)?r.pbr_observed:r.pbr;
+      const sourceNote=fin(pbr)?'PBR '+pbr.toFixed(2)+'배 (출처: '+clean(r.pbr_source||'v2 공개 종목자료')+' · 추가 검증 전)':'PBR 미확인';
+      const firm='시가총액 '+(fin(cap)?cap.toLocaleString('ko-KR')+'억원':'미확인')+
+        ' · 거래대금 '+(fin(trade)?trade.toLocaleString('ko-KR')+'억원':'미확인');
+      if(missing){
+        const reason={insufficient_history:'가격 이력 부족',price_source_or_validation_error:'가격 수집·검증 오류',
+          unattempted_batch:'해당 배치 미시도'}[r.price_history_status]||'가격 분석 불가';
+        return '<article class="v3-stock"><div class="v3-head"><div><strong>'+escapeHtml(r.name)+
+          '</strong><div class="sub">'+escapeHtml(r.code)+' · '+escapeHtml(r.market)+
+          '</div></div><span class="v3-tag">'+escapeHtml(reason)+'</span></div>'+
+          '<p class="sub">'+escapeHtml(firm)+' · '+escapeHtml(sourceNote)+'</p>'+
+          '<p class="note">현재 분석 기준일의 기술 지표가 없어 모의 진입 기록과 매수 판단을 생성하지 않습니다.</p></article>';
+      }
       const risk=priceRisk(r);
       const signals=Array.isArray(r.patterns)?r.patterns.slice(0,2).map(escapeHtml).join(' · '):'없음';
       const stop=risk!==null?money(r.stop_line)+' (현재가 대비 -'+risk.toFixed(1)+'%)':'구조 참고선 미확인';
@@ -152,9 +215,14 @@
         '<span><small>구조 참고 손절선</small><b>'+stop+'</b></span>'+
         '<span><small>20일 / 60일 주가</small><b>'+price20+' / '+price60+'</b></span>'+
         '<span><small>당일 거래량 / 주봉120주선 괴리</small><b>'+volume+' / '+weekly+'</b></span>'+
-        '</div><p class="sub">관측 패턴: '+(signals||'없음')+' · OBV 상승 후보: '+
+        '</div><p class="sub">'+escapeHtml(firm)+' · '+escapeHtml(sourceNote)+'</p><p class="sub">관측 패턴: '+(signals||'없음')+' · OBV 상승 후보: '+
         (r.obv_rising===true?'있음':'확인되지 않음')+
-        ' · 외국인·기관 수급: '+(r.flows_confirmed===true?'v2 관측 있음 (공식 미인증)':'미확인')+'</p>'+
+        ' · 수급: '+(r.flow_reference&&Number.isInteger(r.flow_reference.foreign_20d_shares_observed)&&
+          Number.isInteger(r.flow_reference.institution_20d_shares_observed)?
+          '외국인 '+r.flow_reference.foreign_20d_shares_observed.toLocaleString('ko-KR')+
+          '주 / 기관 '+r.flow_reference.institution_20d_shares_observed.toLocaleString('ko-KR')+
+          '주 ('+escapeHtml(r.flow_reference.end||'기간 미확인')+' 기준 · 출처: '+escapeHtml(r.flow_reference.source||'기준 미확인')+' · 참고자료)':
+          r.flows_confirmed===true?'v2 관측 있음 (독립 검증 전)':'미확인')+'</p>'+
         '<div class="v3-bottom"><span>'+escapeHtml(riskDescription(r))+
         (Array.isArray(r.risk_flags)&&r.risk_flags.length?' · '+escapeHtml(r.risk_flags.slice(0,2).join(' · ')):'')+
         '</span><button type="button" data-capture="'+escapeHtml(r.code)+'"'+
@@ -164,11 +232,15 @@
     function render(){
       if(!view){list.textContent='가격 자료 확인 중…';return;}
       const f=filters();
-      if(!KIND_VALUES.has(f.kind)||!RISK_VALUES.has(f.risk))return;
+      if(!KIND_VALUES.has(f.kind)||!RISK_VALUES.has(f.risk)||
+         !STATUS_VALUES.has(f.status)||!MARKET_VALUES.has(f.market))return;
       const matching=rankRows(view.stocks.filter(r=>eligible(r,f)));
       const selected=matching.slice(0,limit);
-      by('v3Count').textContent='전체 분석 가능 '+view.stocks.length.toLocaleString('ko-KR')+
-        '종목 · 필터 '+matching.length.toLocaleString('ko-KR')+'종목 · '+selected.length+'종목 표시';
+      by('v3Count').textContent='현재 상장 종목 '+view.stocks.length.toLocaleString('ko-KR')+
+        '개 ('+(view.catalogLoaded?'전 종목 목록 연결':'가격 관측 가능한 종목만 연결')+') · 가격 분석 '+
+        (view.pricedCount??view.stocks.length).toLocaleString('ko-KR')+'개 · 자료 부족/오류 '+
+        (view.missingCount??'미집계')+'개 · 필터 '+matching.length.toLocaleString('ko-KR')+
+        '개 · '+selected.length+'개 표시';
       list.innerHTML=selected.length?selected.map(rowCard).join(''):'<p class="empty">현재 조건을 충족하는 후보가 없어 관망합니다. 필터를 바꿔 확인할 수 있습니다.</p>';
       by('v3More').hidden=matching.length<=limit;
     }
@@ -206,6 +278,16 @@
         if(!response.ok)throw Error('자료 요청 오류');
         const source=await response.json();
         view=parseSnapshot(source);
+        // The complete active-listing index is a separately published derived
+        // catalog. Do not blend stale or inconsistent sources into stock facts.
+        try{
+          const catalogResponse=await root.fetch('v22-market-catalog.json?beta='+Date.now(),{cache:'no-store'});
+          if(catalogResponse.ok){
+            const candidate=await catalogResponse.json();
+            const merged=mergeCatalog(view,candidate);
+            if(merged)view=merged;
+          }
+        }catch(_){/* Existing valid price cards remain usable until next market run. */}
         noteStatus();
         render();renderLedger();
       }catch(_){
@@ -246,7 +328,7 @@
       const a=D.createElement('a');a.href=url;a.download='v3-paper-observations.json';
       a.click();root.URL.revokeObjectURL(url);
     });
-    ['v3Search','v3Pattern','v3Risk'].forEach(id=>by(id).addEventListener(
+    ['v3Search','v3Pattern','v3Risk','v3Market','v3Coverage'].forEach(id=>by(id).addEventListener(
       id==='v3Search'?'input':'change',()=>{limit=40;render();}));
     by('v3More').addEventListener('click',()=>{limit=Math.min(limit+40,400);render();});
     by('v3Reload').addEventListener('click',load);
