@@ -1,4 +1,4 @@
-"""Regression: day/week patterns belong to TECHNICAL 15 of original six pillars."""
+"""Regression: day/week favorite patterns lead TECHNICAL 25 inside six-pillar 100."""
 import copy
 import unittest
 
@@ -54,29 +54,29 @@ def stock(code="005930"):
 
 
 class PatternWithinOriginalSixPillars(unittest.TestCase):
-    def test_fixed_six_pillar_contract_and_15_technical_points(self):
+    def test_fixed_six_pillar_contract_and_25_technical_points(self):
         self.assertEqual(dict(PILLAR_POINTS), {
-            "ias": 25, "financial": 20, "valuation": 15,
-            "technical": 15, "industry": 15, "momentum": 10})
+            "ias": 25, "financial": 15, "valuation": 15,
+            "technical": 25, "industry": 15, "momentum": 5})
         self.assertEqual(TECHNICAL_WEIGHTS, {
-            "daily_pattern": 3, "weekly_pattern": 4,
-            "daily_rsi": 1, "weekly_rsi": 2,
+            "daily_pattern": 7, "weekly_pattern": 8,
+            "daily_rsi": 2, "weekly_rsi": 3,
             "weekly_ma120": 3, "volume_confirmation": 2})
-        self.assertEqual(sum(TECHNICAL_WEIGHTS.values()), 15)
-        self.assertEqual([x[1] for x in PILLAR_METRICS["technical"]], [3, 3, 7, 2])
+        self.assertEqual(sum(TECHNICAL_WEIGHTS.values()), 25)
+        self.assertEqual([x[1] for x in PILLAR_METRICS["technical"]], [3, 5, 15, 2])
 
     def test_pattern_weight_both_timeframes_without_double_count(self):
         r = stock()
         x = evaluate(r)
         self.assertEqual(x["schema"], SCHEMA)
         self.assertEqual(x["technical_parts"], {
-            "daily_pattern": 3.0,  # Bull Flag observed breakout
-            "weekly_pattern": 3.52,  # wedge .88 beats forming flag .72
-            "daily_rsi": 1, "weekly_rsi": 2,
+            "daily_pattern": 7.0,  # Bull Flag observed breakout
+            "weekly_pattern": 7.04,  # wedge .88 beats forming flag .72
+            "daily_rsi": 2, "weekly_rsi": 3,
             "weekly_ma120": 3, "volume_confirmation": 2})
-        self.assertAlmostEqual(x["technical_research_candidate"], 14.52)
-        self.assertEqual(x["technical_observed_maximum"], 15)
-        self.assertEqual(x["six_pillar_coverage_pct"], 15.0)
+        self.assertAlmostEqual(x["technical_research_candidate"], 24.04)
+        self.assertEqual(x["technical_observed_maximum"], 25)
+        self.assertEqual(x["six_pillar_coverage_pct"], 25.0)
         self.assertIsNone(x["six_pillar_full_candidate_only"])
         self.assertEqual(set(x["missing_pillars"]), {
             "ias", "financial", "valuation", "industry", "momentum"})
@@ -102,7 +102,7 @@ class PatternWithinOriginalSixPillars(unittest.TestCase):
         r.pop("pattern_weekly_research")
         x = evaluate(r)
         self.assertIsNone(x["technical_research_candidate"])
-        self.assertEqual(x["technical_observed_maximum"], 6)
+        self.assertEqual(x["technical_observed_maximum"], 11)
         self.assertIsNone(x["six_pillar_full_candidate_only"])
         self.assertFalse(x["provisional_full_six_pillar_sort_eligible"])
         self.assertIn("technical", x["missing_pillars"])
@@ -137,7 +137,7 @@ class PatternWithinOriginalSixPillars(unittest.TestCase):
         x = evaluate(r)
         self.assertEqual(x["technical_parts"]["daily_rsi"], 0)
         self.assertEqual(x["technical_parts"]["weekly_rsi"], 0)
-        self.assertAlmostEqual(x["technical_research_candidate"], 11.52)
+        self.assertAlmostEqual(x["technical_research_candidate"], 19.04)
 
     def test_loss_risks_not_waived_by_good_pattern(self):
         r = stock()
@@ -153,9 +153,9 @@ class PatternWithinOriginalSixPillars(unittest.TestCase):
     def test_other_pillars_complete_candidate_not_real_buy_score(self):
         r = stock()
         full = evaluate(r, other_pillars={
-            "ias": 21, "financial": 17, "valuation": 11,
-            "industry": 13, "momentum": 9})
-        self.assertAlmostEqual(full["six_pillar_full_candidate_only"], 85.52)
+            "ias": 21, "financial": 13, "valuation": 11,
+            "industry": 13, "momentum": 4})
+        self.assertAlmostEqual(full["six_pillar_full_candidate_only"], 86.04)
         self.assertEqual(full["six_pillar_coverage_pct"], 100)
         self.assertTrue(full["provisional_full_six_pillar_sort_eligible"])
         self.assertIsNone(full["investable_score"])
@@ -175,7 +175,7 @@ class PatternWithinOriginalSixPillars(unittest.TestCase):
             r["v3_pattern_integrated"]["six_pillar_full_candidate_only"] is None
             for r in rows))
         self.assertTrue(all(
-            r["v3_pattern_integrated"]["six_pillar_coverage_pct"] == 15.0
+            r["v3_pattern_integrated"]["six_pillar_coverage_pct"] == 25.0
             for r in rows))
 
 
