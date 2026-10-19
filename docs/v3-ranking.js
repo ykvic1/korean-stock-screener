@@ -37,6 +37,54 @@ function observedAnnuals(official,asof){
  }
  return byCode;
 }
+function observedRollingBook(rolling,asof,eligible){
+ const found=new Map();
+ if(!rolling||rolling.schema!=='v3-dart-current-listed-annual-book-reference-0.1'||
+   rolling.asof!==asof||!Number.isInteger(eligible)||rolling.market_listed_total!==eligible||
+   rolling.official_exchange_pbr_verified!==false||
+   rolling.historical_point_in_time_verified!==false||
+   rolling.stock_buy_certified!==false||rolling.score_weight_changed!==false||
+   rolling.raw_dart_account_rows_published!==false||
+   !Array.isArray(rolling.records)||!Array.isArray(rolling.observations)||
+   rolling.records.length!==rolling.attempted_reference_count||
+   rolling.observations.length!==rolling.observed_annual_count||
+   rolling.records.length>eligible||rolling.observations.length>rolling.records.length)
+   return found;
+ const allowed=new Set(),accounts=new Map();
+ for(const record of rolling.records){
+   if(!record||typeof record.code!=='string'||!/^\d{6}$/.test(record.code)||
+      allowed.has(record.code)||!['observed','unconfirmed','deferred'].includes(record.status))
+     return new Map();
+   allowed.add(record.code);
+   if(record.status==='observed'){
+     const a=record.annual;
+     if(!a||!Number.isInteger(a.year)||a.year<2018||a.year>Number(asof.slice(0,4))-1||
+        !['OFS','CFS'].includes(a.fs_div)||typeof a.receipt_id!=='string'||
+        !/^\d{14}$/.test(a.receipt_id)||a.receipt_id.slice(0,8)>asof.replaceAll('-',''))
+       return new Map();
+     accounts.set(record.code,a);
+   }
+ }
+ const seen=new Set();
+ for(const row of rolling.observations){
+   if(!row||!/^\d{6}$/.test(String(row.code))||seen.has(row.code)||
+      !accounts.has(row.code)||row.market_cap_reference_day!==asof||
+      row.official_exchange_pbr_verified!==false||
+      row.financial_statement_pit_verified!==false) return new Map();
+   const a=accounts.get(row.code);
+   if(a.receipt_id!==row.receipt_id||a.year!==row.year||a.fs_div!==row.fs_div)
+     return new Map();
+   seen.add(row.code);
+   if(finite(row.pbr_simple_annual_reference)&&row.pbr_simple_annual_reference>0&&
+      row.pbr_simple_annual_reference<1000)
+     found.set(row.code,{
+       value:row.pbr_simple_annual_reference,
+       year:row.year,fs_div:row.fs_div,receipt_id:row.receipt_id
+     });
+   else if(row.pbr_simple_annual_reference!==null)return new Map();
+ }
+ return found;
+}
 function stopDistance(r){
   if(!finite(r?.price)||!finite(r?.stop_line)||r.price<=0||r.stop_line<=0||r.stop_line>=r.price)return null;
   const p=100*(r.price-r.stop_line)/r.price;
@@ -84,7 +132,7 @@ function decision(row,q){
    return {label:'조건부 모의 검토',reason:'과거 연구 일부 우호적; 차트·수급·실적 추가 확인',level:'review'};
  return {label:'관망·추가 확인',reason:'과거 유사조건의 위험과 수익이 혼재',level:'review'};
 }
-function prepare(data,quant,recs,official,priorityQuant){
+function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
  if(!data||data.version!=='2.0'||data.status!=='success'||!/^\d{4}-\d{2}-\d{2}$/.test(data.date)||
     !Array.isArray(data.stocks)||data.stocks.length<1||data.stocks.length>6000)
     throw Error('invalid_daily_observations');
@@ -113,6 +161,7 @@ function prepare(data,quant,recs,official,priorityQuant){
     /^[0-9]{6}$/.test(String(x.code))&&rmap.has(x.code)&&
     finite(x.peer_cohort_requested)&&x.peer_cohort_requested>=20).map(x=>[x.code,x]));
  const financials=observedAnnuals(official,data.date);
+ const books=observedRollingBook(rollingAnnual,data.date,data.eligible_count);
  const rows=[],seen=new Set();
  for(const r of data.stocks){
    if(!r||!/^\d{6}$/.test(String(r.code))||seen.has(r.code)||!finite(r.price)||r.price<=0||
@@ -136,7 +185,8 @@ function prepare(data,quant,recs,official,priorityQuant){
    const finalDecision=caution&&observedDecision.label!=='매수 보류'?
      {label:'매수 보류',reason:'위험 경고·연구 전용 후보 — '+observedDecision.reason,level:'wait'}:
      observedDecision;
-   rows.push({r,q,rec,quantSource,financialRef:financials.get(r.code)||null,quant:!!q,
+   rows.push({r,q,rec,quantSource,financialRef:financials.get(r.code)||null,
+     rollingBook:books.get(r.code)||null,quant:!!q,
      researchCandidate:!!rec,qualified,caution,
      risk:stopDistance(r),highRisk:highRisk(r),decision:finalDecision});
  }
@@ -162,6 +212,7 @@ function prepare(data,quant,recs,official,priorityQuant){
   recommendationInsufficientCount:selected.filter(x=>x.quant&&!researchReady(x)).length,
   recommendationCautionCount:selected.filter(x=>x.caution).length,
   recommendationAwaitingCount:selected.length-withStudy,
+  rollingBookCount:rows.filter(x=>x.rollingBook!==null).length,
   financialReferenceCount:rows.filter(x=>x.financialRef!==null).length,
   recommendationFinancialCount:selected.filter(x=>x.financialRef!==null).length};
 }
@@ -253,7 +304,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
@@ -268,7 +319,13 @@ function init(){
     '종목 · 최신 퀀트 연결 '+model.quantCount+'종목';
   cards.innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
    const r=x.r;
-   const bookReference=simpleAnnualOfsBookReference(r,x.financialRef);
+   const firstBook=simpleAnnualOfsBookReference(r,x.financialRef);
+   const bookReference=firstBook!==null?firstBook:x.rollingBook?.value??null;
+   const bookBasis=firstBook!==null?
+      '현재 시가총액 ÷ 최근 별도재무제표(OFS) 연간 자기자본':
+      x.rollingBook?
+      ('현재 시가총액 ÷ '+x.rollingBook.year+'년 '+
+       (x.rollingBook.fs_div==='OFS'?'별도 자기자본':'연결 지배기업 자기자본')):'';
    return '<article class="rank-card"><div class="top"><div>'+
      '<span class="rank-number">'+(i+1)+'</span> <strong>'+esc(r.name)+'</strong>'+
      '<p class="sub">'+esc(r.code)+' · '+esc(r.market)+' · '+esc(r.phase||'위치 미확인')+'</p></div>'+
@@ -283,7 +340,7 @@ function init(){
      '<p class="rank-quant-line">'+esc(quantGlance(x.q))+'</p>'+
      '<p class="rank-finance-reference">'+
       (bookReference!==null?
-       '<b>비공식 간이 P/B '+bookReference.toFixed(2)+'배</b> · 현재 시가총액 ÷ 최근 별도재무제표(OFS) 연간 자기자본. 정식 PBR 점수 제외.':
+       '<b>비공식 간이 P/B '+bookReference.toFixed(2)+'배</b> · '+esc(bookBasis)+'. 정식 PBR 점수 제외.':
        '비공식 간이 P/B 미산출 · 동일 기준일 재무/시가총액 자료 확인 필요. 정식 PBR 점수 제외.')+
      '</p>'+
      '<div class="rank-foot"><span>'+esc(x.decision.reason)+'</span>'+
@@ -375,12 +432,12 @@ function init(){
  async function load(){
   status.textContent='전 시장 점수와 퀀트 자료 조회 중…';
   try{
-   const urls=['data.json','quant.json','recommendations.json','official.json','v3-priority-quant.json','v22-coverage.json','v22-partial-history.json'];
+   const urls=['data.json','quant.json','recommendations.json','official.json','v3-priority-quant.json','v22-coverage.json','v22-partial-history.json','v3-dart-book-reference.json'];
    const src=await Promise.all(urls.map(async name=>{
     try{const r=await root.fetch(name+'?rank='+Date.now(),{cache:'no-store'});return r.ok?await r.json():null}
     catch(_){return null;}
    }));
-   model=prepare(...src.slice(0,5));
+   model=prepare(...src.slice(0,5),src[7]);
    $('rankSourceQuality').textContent=sourceCompletenessText(
      sourceCompleteness(model,src[5],src[6]));
    status.textContent='기준일 '+model.date+' · 점수 산출 '+model.rows.length+
@@ -396,7 +453,8 @@ function init(){
      '일반 퀀트 기준일 '+model.quantAsOf+
        ' · 역사적 유사조건 참고 통계, 미래 수익률 예측 검증 전':
      '퀀트 기준일 불일치 또는 미확보: 최신 추천의 퀀트 검증은 대기';
-   $('rankCandidateQuant').textContent='연간 공시 참고자료 '+model.recommendationFinancialCount+
+   $('rankCandidateQuant').textContent='누적 OpenDART 간이 장부가 참고 '+model.rollingBookCount+
+     '종목 (정식 PBR 및 매수점수 제외) · 연간 공시 참고자료 '+model.recommendationFinancialCount+
      '/'+model.recommendationCount+'개 · 심층 선별 후보 '+model.recommendationCount+
      '종목 (위험 경고·연구 전용 '+model.recommendationCautionCount+'종목 포함)'+
      ' · 당일 퀀트 연결 '+model.recommendationQuantCount+
