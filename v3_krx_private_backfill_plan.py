@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 from v3_local_private_store import (archived_trade_dates, DEFAULT_DB,
                                     PrivateStoreError)
+from v3_krx_session_candidates import candidate_dates, CandidateCalendarError
 
 MAX_PLANNED_WEEKDAYS = 400
 MAX_DAILY_CALLS = 10
@@ -88,8 +89,14 @@ def plan_next_batch(candidates, *, already_archived=None, batch_size=5):
     }
 
 
-def plan_private_history(start,end,*,db_path=DEFAULT_DB,batch_size=5):
-    candidates=calendar_weekday_candidates(start,end)
+def plan_private_history(start,end,*,db_path=DEFAULT_DB,batch_size=5,
+                         calendar_source="weekdays"):
+    weekdays=calendar_weekday_candidates(start,end)
+    try:
+        calendar=candidate_dates(weekdays,source=calendar_source)
+    except CandidateCalendarError:
+        raise BackfillPlanError("calendar_candidate_generation_rejected") from None
+    candidates=calendar["dates"]
     path=Path(db_path).expanduser()
     try:
         # This read never creates an empty database. Preserve zero state on
@@ -97,7 +104,14 @@ def plan_private_history(start,end,*,db_path=DEFAULT_DB,batch_size=5):
         days=archived_trade_dates(database_path=path) if path.exists() else []
     except (PrivateStoreError, OSError):
         raise BackfillPlanError("private_archive_integrity_or_permissions_invalid") from None
-    return plan_next_batch(candidates,already_archived=days,batch_size=batch_size)
+    return {
+        **plan_next_batch(candidates,already_archived=days,batch_size=batch_size),
+        **{k:v for k,v in calendar.items() if k!="dates"},
+        "calendar_candidate_count":len(candidates),
+        "full_window_calendar_weekdays":len(weekdays),
+        "historical_exchange_calendar_verified":False,
+        "official_trading_days_250_verified":False,
+    }
 
 
 def main(argv=None):
@@ -106,11 +120,14 @@ def main(argv=None):
     p.add_argument("--end",required=True,help="latest candidate YYYY-MM-DD")
     p.add_argument("--private-db",default=str(DEFAULT_DB))
     p.add_argument("--batch-size",type=int,default=5)
+    p.add_argument("--calendar-source",choices=("weekdays","xkrx"),
+                   default="weekdays",help="xkrx: third-party UNVERIFIED session candidates")
     args=p.parse_args(argv)
     try:
         report=plan_private_history(args.start,args.end,
                                     db_path=args.private_db,
-                                    batch_size=args.batch_size)
+                                    batch_size=args.batch_size,
+                                    calendar_source=args.calendar_source)
         print(json.dumps(report,sort_keys=True))
         return 0
     except BackfillPlanError as exc:
