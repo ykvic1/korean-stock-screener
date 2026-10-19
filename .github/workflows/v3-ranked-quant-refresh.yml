@@ -62,6 +62,17 @@ jobs:
             --asof "${{ steps.asof.outputs.day }}" \
             --max-stocks 120 \
             --recommendations docs/recommendations.json
+      - name: Update recommendation dossiers from newly researched historical cases
+        run: |
+          python recommendation_engine.py --snapshot docs/data.json --docs docs
+      - name: Reconcile all today's displayed recommendations with researched stocks
+        run: |
+          python v3_ranked_quant_coverage.py \
+            --screen docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant docs/quant.json \
+            --output docs/v3-quant-coverage.json \
+            --assert-study-candidates
       - name: Reject inconsistent shortlist / study dates and incomplete output
         run: |
           python - <<'PY'
@@ -83,7 +94,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/quant.json
+          git add docs/quant.json docs/recommendations.json docs/recommendation_history.json docs/v3-quant-coverage.json
           if ! git diff --cached --quiet; then
             git commit -m "Refresh candidate-priority exploratory quant research"
             git pull --rebase origin main
