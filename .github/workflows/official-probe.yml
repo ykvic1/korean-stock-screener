@@ -84,6 +84,7 @@ jobs:
       - name: Run offline regression suite
         run: |
           python -m unittest discover -s tests -p 'test_official_probe.py' -v
+          python -m unittest discover -s tests -p 'test_official_probe_krx_diagnostics.py' -v
           python -m unittest discover -s tests -p 'test_dart_financial_sample.py' -v
           python -m unittest discover -s tests -p 'test_dart_history_research.py' -v
           python -m unittest discover -s tests -p 'test_dart_revision_audit.py' -v
@@ -179,6 +180,18 @@ jobs:
                      'Regular-only volume/foreign-institution flows remain UNVERIFIED; '
                      'no investment score is authorized.')
           print('::notice::'+message)
+          diag = r.get('krx',{}).get('diagnostic',{})
+          safe_market = diag.get('market') if isinstance(diag,dict) else None
+          safe_reason = diag.get('reason') if isinstance(diag,dict) else None
+          safe_status = diag.get('http_status') if isinstance(diag,dict) else None
+          from official_probe.clients import KRXProbeError
+          safe_reasons = KRXProbeError.REASONS | {'response_validation_failed'}
+          if krx == 'failed':
+              print('::warning::KRX safe diagnostic market='+
+                    (safe_market if safe_market in ('KOSPI','KOSDAQ') else 'unknown')+
+                    ' reason='+(safe_reason if safe_reason in safe_reasons else 'unknown')+
+                    ' http_status='+(str(safe_status) if type(safe_status) is int
+                                      and 100 <= safe_status <= 599 else 'unavailable'))
           if 'companies_sampled' in r.get('dart', {}):
               for c in r['dart']['companies_sampled']:
                   if 'annual_receipt_discovery' in c:
@@ -229,3 +242,12 @@ jobs:
           path: evidence/official_probe/*.json
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Fail the workflow if requested live KRX observation failed
+        if: always()
+        env:
+          ASOF: ${{ inputs.asof }}
+          MODE: ${{ inputs.mode }}
+          PROVIDER: ${{ inputs.provider }}
+        run: |
+          python -m official_probe.ci_gate --asof "$ASOF" --mode "$MODE" --provider "$PROVIDER"
