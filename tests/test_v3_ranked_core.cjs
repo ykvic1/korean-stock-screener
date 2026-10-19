@@ -29,6 +29,41 @@ const research={status:'exploratory',asof:'2026-10-16',stocks:[{
 }]};
 const recs={asof:'2026-10-16',research_source_matched:true,
   dossiers:[{code:'111111',qualification:'needs_deeper_evidence'}]};
+const completeCoverage={
+ schema:'v22-full-market-accounting-0.1',asof:'2026-10-16',
+ complete_batch_census:true,market_listing_size:2498,
+ priced_current_session_count:2369,price_failure_count:106,
+ insufficient_price_history_count:23,unattempted_batch_count:0,
+ flow_confirmed_count:0,pbr_observed_count:0
+};
+const partialCoverage={
+ schema:'v22-current-listed-partial-daily-60to159-v0.1',
+ asof:'2026-10-16',listed_insufficient_history_count:23,
+ full_v22_score_allowed:false,confirmed_buy_signal:false,
+ partial_observed_count:13
+};
+const quality=m.sourceCompleteness(m.prepare(snap,research,recs),
+ completeCoverage,partialCoverage);
+assert.equal(quality.total,2498);
+assert.equal(quality.priced,2369);
+assert.equal(quality.partial,13);
+assert.equal(quality.flow,0);
+assert.equal(quality.pbr,0);
+const statusLine=m.sourceCompletenessText(quality);
+assert.ok(statusLine.includes('정상 가격 분석 2,369종목 (94.8%)'));
+assert.ok(statusLine.includes('부분 관측 13종목, 정식 점수 제외'));
+assert.ok(statusLine.includes('자료 미확보'));
+assert.equal(m.sourceCompleteness(m.prepare(snap,research,recs),
+ {...completeCoverage,asof:'2026-10-15'},partialCoverage),null);
+assert.equal(m.sourceCompleteness(m.prepare(snap,research,recs),
+ {...completeCoverage,priced_current_session_count:2499},partialCoverage),null);
+assert.equal(m.sourceCompleteness(m.prepare(snap,research,recs),
+ {...completeCoverage,flow_confirmed_count:-1},partialCoverage),null);
+assert.equal(m.sourceCompleteness(m.prepare(snap,research,recs),
+ completeCoverage,{...partialCoverage,asof:'2026-10-15'}).partial,null);
+assert.ok(m.sourceCompletenessText(null).includes('확인 대기'));
+const statusPage=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
+assert.ok(statusPage.includes('rankSourceQuality'));
 assert.equal(m.observedScore(stocks[0],w),true);
 assert.equal(m.stopDistance(stocks[0]),10);
 assert.equal(m.stopDistance(stocks[2]),null);
