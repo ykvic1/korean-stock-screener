@@ -310,8 +310,9 @@ assert.equal(m.watchEvidence({...watchBase,divergence:false,
  patterns:[],phase:'중립/기타'}),null,
  'no structure or lag implies no watchlist entry');
 const flagNoObv={...watchBase,obv_rising:false,divergence:false,
- patterns:[],phase:'중립/기타',pattern_research:{
- schema:'v3-pattern-first-daily-research-0.1',status:'heuristic_unverified',
+ price_date:'2026-10-16',patterns:[],phase:'중립/기타',pattern_research:{
+ schema:'v3-pattern-first-daily-research-0.1',asof:'2026-10-16',
+ status:'heuristic_unverified',
  timeframe:'daily',official_regular_session_verified:false,
  scoring_allowed:false,buy_signal:false,rsi14:43,
  rsi30_cross_recent:false,rsi_bullish_divergence_recent:false,
