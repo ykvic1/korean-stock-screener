@@ -102,10 +102,44 @@ def _market_source(market):
         and math.isfinite(x["relative20"]) and math.isfinite(x["relative60"])
         for x in rows
     )
+    daily_observed = sum(
+        isinstance(x.get("pattern_research"), dict)
+        and x["pattern_research"].get("asof") == day.isoformat()
+        and x["pattern_research"].get("timeframe") == "daily"
+        and x["pattern_research"].get("status") == "heuristic_unverified"
+        and x["pattern_research"].get("scoring_allowed") is False
+        for x in rows
+    )
+    completed_week_observed = sum(
+        isinstance(x.get("pattern_weekly_research"), dict)
+        and x["pattern_weekly_research"].get("timeframe") == "weekly"
+        and x["pattern_weekly_research"].get("completed_week_only") is True
+        and x["pattern_weekly_research"].get("status") == "heuristic_unverified"
+        and x["pattern_weekly_research"].get("scoring_allowed") is False
+        for x in rows
+    )
+    ma120_observed = sum(
+        type(x.get("ma120w_gap")) in (int, float)
+        and math.isfinite(x["ma120w_gap"])
+        for x in rows
+    )
+    structural_stop_observed = sum(
+        type(x.get("price")) in (int, float)
+        and type(x.get("stop_line")) in (int, float)
+        and type(x.get("stop_pct")) in (int, float)
+        and all(math.isfinite(x[k]) for k in ("price", "stop_line", "stop_pct"))
+        and 0 < x["stop_line"] < x["price"]
+        and x["stop_pct"] < 0
+        for x in rows
+    )
     return day, codes, {
         "priced_screened_issuer_count": total,
         "v2_legacy_flow_confirmed_count_not_v3_ias_certified": observed_flow,
         "research_technical25_observed_issuer_count_not_trade_certified": technical,
+        "current_snapshot_daily_pattern_observation_count": daily_observed,
+        "current_snapshot_completed_week_pattern_observation_count": completed_week_observed,
+        "legacy_120week_ma_reference_count_not_official": ma120_observed,
+        "structural_stop_reference_count_not_executable": structural_stop_observed,
         "v2_relative_strength_pair_count_not_official_v3_momentum": paired_relative_strength,
         "reported_full_six_pillar_sort_count":
             len(market.get("six_pillar_research_sort") or []),
@@ -124,6 +158,10 @@ def audit(market, catalog, book):
     book_day = _day(book.get("asof"))
     if catalog_day != market_day:
         raise ReadinessError("market_catalog_source_date_mismatch")
+    sector_label_count = sum(
+        isinstance(r.get("sector"), str) and bool(r["sector"].strip())
+        for r in catalog["rows"]
+    )
     if book_day > market_day:
         raise ReadinessError("future_dart_reference_source")
     attempts = _count(book.get("attempted_reference_count"), listed)
@@ -159,6 +197,7 @@ def audit(market, catalog, book):
         "observed_counts": {
             "current_market_listed": listed,
             **price_counts,
+            "listed_sector_label_count_not_PIT_membership": sector_label_count,
             "dart_issuer_attempts": attempts,
             "dart_annual_issuer_observed_not_3y": annuals,
             "dart_simple_pb_references_not_official_pbr": pbr,
