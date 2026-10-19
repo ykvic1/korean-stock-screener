@@ -536,6 +536,10 @@ def build_rows(day,cfg):
         if i%10==0:logging.info('수급 조회 %s/%s',i,len(attempts))
         time.sleep(cfg['request_sleep_seconds'])
     for r in valid:score_one(r,cfg)
+    # Separate source-verified technical RESEARCH ranking, not v2.2 rank/score
+    # and not the unreleased six-pillar fundamental v3 score.
+    from v3_pattern_composite_score import rank_eligible_rows
+    rank_eligible_rows(valid)
     valid.sort(key=lambda x:(x['decision']=='정밀 검토 우선',x['decision']=='관찰',x['score'] or 0,x['coverage_pct'] or 0),reverse=True)
     return valid,errors,datetime.fromisoformat(freshest),{
       'eligible':total,'examined':history_attempted,
@@ -693,6 +697,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'pbr':r['pbr'],'patterns':r['patterns'],'signals':r['signals'],
           'pattern_research':r.get('pattern_research'),
           'pattern_weekly_research':r.get('pattern_weekly_research'),
+          'pattern_composite':r.get('pattern_composite'),
           'stop_line':r['stop_line'],'stop_pct':r['stop_pct'],
           'reference_resistance':r['reference_resistance'],
           'reference_target_pct':r['reference_target_pct'],
@@ -707,6 +712,21 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
          'flow_confirmed_count':sum(x['flows_confirmed'] for x in view),
          'fundamental_count':sum(x['pbr'] is not None for x in view),
          'index_available':meta['index_markets'],
+         'pattern_ranking':[
+            {'code':r['code'],
+             'rank':r['pattern_composite']['rank'],
+             'research_priority_score':r['pattern_composite']['research_priority_score']}
+            for r in sorted(rows,key=lambda x:x.get('pattern_composite',{}).get('rank') or 999999)
+            if r.get('pattern_composite',{}).get('ready_for_ranking') is True],
+         'pattern_scoring_status':{
+            'schema':'v3-pattern-first-composite-research-0.1',
+            'status':'research_only_not_six_pillar',
+            'score_valid_count':sum(r.get('pattern_composite',{}).get('research_priority_score') is not None for r in rows),
+            'rank_eligible_count':sum(r.get('pattern_composite',{}).get('ready_for_ranking') is True for r in rows),
+            'unscored_missing_count':sum(r.get('pattern_composite',{}).get('status')=='incomplete_unscored' for r in rows),
+            'risk_excluded_count':sum(r.get('pattern_composite',{}).get('status')=='risk_excluded' for r in rows),
+            'v2_score_and_buy_decision_unchanged':True,
+            'official_v3_score_verified':False},
          'error_count':len(errors),'collection_errors':errors,'history_exclusions':meta.get('excluded',[]),
          'flow_attempted_count':meta.get('flow_attempted'),
          'flow_deferred_count':meta.get('flow_deferred'),
