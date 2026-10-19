@@ -78,6 +78,53 @@ assert.equal(m.prepare(snap,oldBroad,recs,undefined,
  {...priorityFeed,asof:'2026-10-15'}).recommendationQuantCount,0);
 assert.equal(m.prepare(snap,oldBroad,recs,undefined,
  {...priorityFeed,verified_predictive_accuracy:true}).recommendationQuantCount,0);
+// Current, published dossiers are displayed even when a name is caution-only.
+// A higher *observed* v2 score must never override a current risk warning.
+const riskDossiers={asof:'2026-10-16',research_source_matched:false,dossiers:[
+ {code:'222222',qualification:'separate_caution_research_only'},
+ {code:'111111',qualification:'needs_deeper_evidence'}]};
+const mixed=m.prepare(snap,oldBroad,riskDossiers,undefined,priorityFeed);
+assert.equal(mixed.recommendationCount,2,'show all published research dossiers, including cautions');
+assert.equal(mixed.recommendationCautionCount,1);
+assert.equal(mixed.recommendationQuantCount,1);
+assert.equal(mixed.recommendationUsableQuantCount,1);
+assert.equal(mixed.recommendationInsufficientCount,0);
+assert.deepEqual(m.select(mixed,'recommended').map(x=>x.r.code),['111111','222222'],
+ 'risk-reviewed shortlist first; cautionary scored names still visible separately');
+assert.equal(mixed.rows.find(x=>x.r.code==='222222').decision.label,'매수 보류');
+assert.equal(mixed.priorityQuantRequested,40);
+assert.equal(mixed.priorityQuantValid,29);
+const real120={...priorityFeed,peer_cohort_requested:120,peer_cohort_valid:75,
+ stocks:priorityFeed.stocks.map(x=>({...x,peer_cohort_requested:120,peer_cohort_valid:75}))};
+const expanded=m.prepare(snap,oldBroad,riskDossiers,undefined,real120);
+assert.equal(expanded.priorityQuantRequested,120);
+assert.equal(expanded.priorityQuantValid,75);
+assert.ok(expanded.rows.find(x=>x.r.code==='111111').quantSource.includes('120종목 요청 / 75종목'));
+assert.ok(m.quantGlance(real120.stocks[0]).includes('1개월 평균 +5.2%'));
+// Real 2026-10-19 Avatec-like risk mix: a weakly positive 3m analogue
+// does not outweigh consistently >=40% stop-first readings.
+const avatecRisk={status:'exploratory',periods:{}};
+for(const [key,mean,stop] of [
+ ['스윙 1개월',-0.12,44.8],['스윙 2개월',-0.47,48.8],
+ ['중기 3개월',0.77,46.2],['중기 6개월',-0.65,55.1]]){
+ avatecRisk.periods[key]={status:'exploratory',sample_n:181,symbol_n:23,quarter_n:26,
+  mean_net_return_pct:mean,stop_first_pct:stop,max_adverse_p75_pct:12};
+}
+assert.equal(m.decision(stocks[0],avatecRisk).label,'매수 보류',
+ 'do not buy a 70-plus point candidate when observed stop-first risks dominate');
+assert.ok(m.quantGlance(avatecRisk).includes('1개월 평균 -0.1%'));
+const insufficientStudy={status:'insufficient',periods:{}};
+const insufficientPriority={...real120,stocks:[
+ {...real120.stocks[0],code:'222222',status:'insufficient',periods:{}},
+ real120.stocks[0]
+]};
+const insufficientView=m.prepare(snap,oldBroad,riskDossiers,undefined,insufficientPriority);
+assert.equal(insufficientView.recommendationInsufficientCount,1);
+assert.equal(insufficientView.recommendationAwaitingCount,0);
+assert.equal(insufficientView.rows.find(x=>x.r.code==='222222').decision.label,'매수 보류');
+assert.equal(m.prepare(snap,oldBroad,riskDossiers,undefined,
+ {...insufficientPriority,asof:'2026-10-15'}).recommendationQuantCount,0,
+ 'never attach stale studied outcomes to a current-day shortlisted name');
 const result=m.prepare(snap,research,recs);
 assert.equal(result.marketEligible,2498);
 assert.equal(result.rows.length,3);
@@ -141,4 +188,11 @@ assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 �
 assert.ok(home.includes('v3-manual.html'));
 assert.ok(home.includes('rankCandidateQuant'));
 assert.ok(!home.includes('수익률 100% 보장'));
+const uiSource=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+assert.ok(!uiSource.includes('40종목 대상 탐색 통계'),
+ 'never label a 120-peer live result as the old one-shot 40-peer pilot');
+assert.ok(uiSource.includes('model.priorityQuantRequested')&&uiSource.includes('model.priorityQuantValid'),
+ 'display actual source peer count from published JSON');
+assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)'),
+ 'make downside tier and historical stop-first metrics visible on candidate card');
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
