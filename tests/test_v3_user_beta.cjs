@@ -89,6 +89,32 @@ assert.equal(x.eligible(limited,{kind:'all',risk:'all',status:'priced',market:'a
 assert.equal(x.eligible(rows[0],{kind:'all',risk:'all',status:'priced',market:'KOSDAQ',search:'043370'}),true);
 assert.equal(x.eligible(rows[0],{kind:'all',risk:'all',status:'all',market:'KOSPI',search:''}),false);
 assert.deepEqual(x.rankRows(merged.stocks).slice(-2).map(z=>z.code),['333333','444444']);
+const annotatedCatalog={
+ ...c,
+ rows:c.rows.map(r=>{
+   if(r.code==='444444')return {...r,listing_zero_volume_reference:true,
+     reference_trading_value_eok:0};
+   if(r.code==='333333')return {...r,listing_zero_volume_reference:false,
+     reference_trading_value_eok:0};
+   if(r.code==='043370')return {...r,listing_zero_volume_reference:false};
+   return {...r,listing_zero_volume_reference:null};
+ })
+};
+const withListingVolume=x.mergeCatalog(p,annotatedCatalog);
+assert.ok(withListingVolume);
+assert.equal(withListingVolume.stocks.find(r=>r.code==='444444').listing_zero_volume_reference,true);
+assert.equal(withListingVolume.stocks.find(r=>r.code==='333333').listing_zero_volume_reference,false);
+assert.equal(withListingVolume.stocks.find(r=>r.code==='005930').listing_zero_volume_reference,null);
+assert.equal(x.makeRecord({...rows[0],listing_zero_volume_reference:true},'2026-10-16'),null,
+ 'even a separately scored price must never trigger simulated purchase if listing has zero-volume warning');
+assert.ok(x.makeRecord({...rows[0],listing_zero_volume_reference:false},'2026-10-16'));
+assert.equal(x.mergeCatalog(p,{...annotatedCatalog,rows:annotatedCatalog.rows.map(r=>
+ r.code==='333333'?{...r,listing_zero_volume_reference:'0'}:r)}),null,
+ 'string zero must not be coerced to a confirmed no-trade day');
+const client=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.js'),'utf8');
+assert.ok(client.includes('상장 목록 참고 거래량 0주'));
+assert.ok(client.includes('거래대금이 0.00억원으로 반올림됨'),
+ 'positive observed shares with rounded-zero money must be explained');
 assert.equal(x.mergeCatalog(p,{...c,date:'2026-10-15'}),null,'stale catalog rejected');
 assert.equal(x.mergeCatalog(p,{...c,listed_total:4}),null,'truncated market rejected');
 assert.equal(x.mergeCatalog(p,{...c,rows:[...catalogRows.slice(0,4),catalogRows[0]]}),null,
