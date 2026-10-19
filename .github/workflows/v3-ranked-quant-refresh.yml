@@ -89,12 +89,20 @@ jobs:
               raise ValueError('quant_does_not_cover_prioritized_universe')
           print('quant_valid=',q['available_symbols'],'requested=',q['requested_symbols'])
           PY
+      - name: Refresh V3 ranked priority quant for the same market-date study
+        run: |
+          set -euo pipefail
+          python v3_priority_quant_feed.py \
+            --market docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant docs/quant.json \
+            --output docs/v3-priority-quant.json
       - name: Publish derived quant summaries ONLY (never raw 9-year prices)
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/quant.json docs/recommendations.json docs/recommendation_history.json docs/v3-quant-coverage.json
+          git add docs/quant.json docs/recommendations.json docs/recommendation_history.json docs/v3-quant-coverage.json docs/v3-priority-quant.json
           if ! git diff --cached --quiet; then
             git commit -m "Refresh candidate-priority exploratory quant research"
             git pull --rebase origin main
@@ -112,6 +120,10 @@ jobs:
               raise ValueError('failed_live_recommendation_quant_reconciliation')
           if published != fresh:
               raise ValueError('quant_research_document_and_market_mismatch')
+          from v3_priority_quant_feed import build_priority_feed
+          candidate=json.load(open('docs/v3-priority-quant.json',encoding='utf-8'))
+          if candidate != build_priority_feed(market,rec,study):
+              raise ValueError('stale_ranked_priority_quant_after_rebase')
           PY
             git push origin HEAD:main
           fi

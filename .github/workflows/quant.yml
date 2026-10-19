@@ -89,13 +89,24 @@ jobs:
             --quant docs/quant.json \
             --output docs/v3-quant-coverage.json \
             --assert-study-candidates
+      - name: Refresh V3 ranked-candidate quant from SAME-DAY observed cohort
+        if: steps.engine.outcome == 'success'
+        run: |
+          set -euo pipefail
+          # Derived source-day quant for actual ranked candidates only.
+          # Zero second market fetch; source history stays in private job cache.
+          python v3_priority_quant_feed.py \
+            --market docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant docs/quant.json \
+            --output docs/v3-priority-quant.json
       - name: Commit dashboard and study results
         if: steps.engine.outcome == 'success'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/ docs/recommendations.json docs/recommendation_history.json docs/v3-quant-coverage.json
+          git add docs/quant.json docs/official.json docs/history.json docs/archive/ docs/reports/ docs/recommendations.json docs/recommendation_history.json docs/v3-quant-coverage.json docs/v3-priority-quant.json
           git diff --cached --stat
           git add docs/reports/quant_*.xlsx 2>/dev/null || true
           if ! git diff --cached --quiet; then
@@ -115,6 +126,14 @@ jobs:
               raise ValueError('failed_live_recommendation_quant_reconciliation')
           if published != fresh:
               raise ValueError('quant_research_document_and_market_mismatch')
+          # Git may have rebased against another market data update.
+          # Recheck that the exact committed V3 shortlist quant feed still
+          # derives from the FINAL source-date files before any push.
+          from v3_priority_quant_feed import build_priority_feed
+          candidate=json.load(open('docs/v3-priority-quant.json',encoding='utf-8'))
+          regenerated=build_priority_feed(market,rec,study)
+          if candidate!=regenerated:
+              raise ValueError('stale_ranked_priority_quant_after_rebase')
           PY
             git push origin HEAD:main
           fi
