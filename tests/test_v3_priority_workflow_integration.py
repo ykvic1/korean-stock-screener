@@ -38,7 +38,7 @@ class V3RankedQuantWorkflowTests(unittest.TestCase):
         self.assertIn("- Full-Market 100-Stock Batches",nightly)
         self.assertIn("github.event.workflow_run.conclusion == 'success'",nightly)
         self.assertIn("if: steps.engine.outcome == 'success'",nightly)
-        self.assertIn("Quant v2.1",nightly)
+        self.assertIn("Korean Stock Quant Study v2.1",nightly)
         self.assertIn("docs/v3-quant-coverage.json",nightly)
 
     def test_no_public_raw_ohlcv_or_fake_validation_in_publishing_steps(self):
