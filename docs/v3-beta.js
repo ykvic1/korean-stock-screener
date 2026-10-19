@@ -47,13 +47,19 @@
     for(const x of catalog.rows){
       if(!x||!ID.test(clean(x.code))||seen.has(x.code)||!validStatuses.has(x.price_history_status)||
           typeof x.name!=='string'||!x.name.trim()||!['KOSPI','KOSDAQ'].includes(x.market))return null;
+      if(x.listing_zero_volume_reference!==undefined&&
+         x.listing_zero_volume_reference!==null&&
+         typeof x.listing_zero_volume_reference!=='boolean')return null;
       seen.add(x.code);counts[x.price_history_status]++;
+      const zeroVolumeReference=x.listing_zero_volume_reference===undefined?
+        null:x.listing_zero_volume_reference;
       const raw=existing.get(x.code);
       if(x.price_history_status==='priced'){
         if(!raw||raw.market!==x.market||raw.name!==x.name||raw.price!==x.published_price)return null;
         rows.push({...raw,price_history_status:'priced',
           reference_market_cap_eok:fin(x.reference_market_cap_eok)?x.reference_market_cap_eok:null,
           reference_trading_value_eok:fin(x.reference_trading_value_eok)?x.reference_trading_value_eok:null,
+          listing_zero_volume_reference:zeroVolumeReference,
           pbr_observed:fin(x.pbr_observed)?x.pbr_observed:null,
           pbr_source:clean(x.pbr_source),flow_reference:x.flow_reference||null});
       }else{
@@ -62,6 +68,7 @@
           price:null,price_history_status:x.price_history_status,
           reference_market_cap_eok:fin(x.reference_market_cap_eok)?x.reference_market_cap_eok:null,
           reference_trading_value_eok:fin(x.reference_trading_value_eok)?x.reference_trading_value_eok:null,
+          listing_zero_volume_reference:zeroVolumeReference,
           pbr_observed:fin(x.pbr_observed)?x.pbr_observed:null,
           pbr_source:clean(x.pbr_source),flow_reference:null,
           patterns:[],signals:[],flows_confirmed:false});
@@ -178,7 +185,8 @@
     };
   }
   function makeRecord(r,day){
-    if(!validDay(day)||!r||!ID.test(clean(r.code))||!fin(r.price)||r.price<=0) return null;
+    if(!validDay(day)||!r||!ID.test(clean(r.code))||!fin(r.price)||r.price<=0||
+       r.listing_zero_volume_reference===true) return null;
     const stop=priceRisk(r)!==null?r.stop_line:null;
     return safeRecord({date:day,code:r.code,name:r.name,entry:r.price,stop});
   }
@@ -235,9 +243,13 @@
           unattempted_batch:'해당 배치 미시도'}[r.price_history_status]||'가격 분석 불가';
         // The listing's 0.00억원 is rounded (can include small positive
         // transactions), so never claim confirmed suspension or exact zero.
-        const lowTurnoverNote=r.price_history_status==='price_source_or_validation_error'&&
-          trade===0?
-          ' · 상장 목록 참고 거래대금 0.00억원(반올림). 원 단위 무거래·거래정지 여부는 미확인.':'';
+        const lowTurnoverNote=r.listing_zero_volume_reference===true?
+          ' · 상장 목록 참고 거래량 0주. 별도 시장·정규장 검증 전이므로 거래정지로 단정하지 않으며 매수 검토 제외.':
+          r.price_history_status==='price_source_or_validation_error'&&trade===0?
+          (r.listing_zero_volume_reference===false?
+            ' · 상장 목록에는 거래량이 있으나 거래대금이 0.00억원으로 반올림됨. 정확한 거래금액 및 매매 적합성 미확인.':
+            ' · 상장 목록 참고 거래대금 0.00억원(반올림). 원 단위 무거래·거래정지 여부는 미확인.'):'';
+
         const partial=r.partialObservation?.status==='partial_technical_observed'?
           '<p class="note"><b>일봉 부분 관측 ('+r.partialObservation.bars+'개)</b> · 기준일 종가 '+
           money(r.partialObservation.close_reference)+' · 20일 MA '+

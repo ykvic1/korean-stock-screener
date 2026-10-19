@@ -84,6 +84,46 @@ class ActiveListedMarketCatalogTests(unittest.TestCase):
         self.assertIsNone(row["published_price"])
         self.assertEqual(row["price_history_status"],"price_source_or_validation_error")
 
+    def test_listing_volume_exact_zero_separate_from_rounded_zero_money(self):
+        snap,listing=fixture()
+        # Error C is exactly zero shares by listing source. Error source
+        # remains unconfirmed; do not promote into price-valid denominator.
+        listing["300003"]["snapshot_volume"]=0.0
+        listing["300003"]["trading_eok"]=0.001
+        # Insufficient history D had small positive activity, rounded money
+        # still 0.00 eok; it is NOT a no-trade stock.
+        listing["300004"]["snapshot_volume"]=27.0
+        listing["300004"]["trading_eok"]=0.001
+        # Priced rows may carry a positive snapshot volume reference.
+        listing["005930"]["snapshot_volume"]=1542.0
+        catalog=build_active_catalog(snap,listing)
+        self.assertEqual(catalog["listed_total"],7)
+        self.assertEqual(catalog["priced_count"],2)
+        self.assertEqual(catalog["price_error_rounded_zero_turnover_reference_count"],1)
+        self.assertEqual(catalog["price_error_with_listing_zero_volume_reference_count"],1)
+        self.assertEqual(catalog["listing_zero_volume_reference_count"],1)
+        self.assertEqual(catalog["listing_volume_reference_missing_count"],4)
+        rows={row["code"]:row for row in catalog["rows"]}
+        self.assertTrue(rows["300003"]["listing_zero_volume_reference"])
+        self.assertFalse(rows["300004"]["listing_zero_volume_reference"])
+        self.assertIsNone(rows["300005"]["listing_zero_volume_reference"])
+        self.assertFalse(rows["005930"]["listing_zero_volume_reference"])
+        self.assertIsNone(rows["300003"]["published_price"])
+        self.assertIsNone(rows["300003"]["v3_confirmed_score"])
+        self.assertFalse(catalog["official_v3_six_pillar_score_ready"])
+        self.assertIn("not independently",catalog["reference_volume_note"])
+        self.assertNotIn("1542",json.dumps(catalog),
+                         "raw listing share count must not be published")
+
+    def test_invalid_or_fractional_snapshot_volume_is_unknown_not_zero(self):
+        from v22_active_market_catalog import _listing_zero_volume
+        for bad in (None,True,-1,0.001,float("nan"),float("inf"),"0"):
+            with self.subTest(value=str(bad)):
+                self.assertIsNone(_listing_zero_volume(bad))
+        self.assertTrue(_listing_zero_volume(0.0))
+        self.assertFalse(_listing_zero_volume(1.0))
+        self.assertFalse(_listing_zero_volume(123456.0))
+
     def test_incomplete_flow_is_nullable_without_blocking_entire_market(self):
         snap,listing=fixture()
         snap["stocks"][0]["foreign_shares"]=None
