@@ -192,6 +192,21 @@ def store_pair(*, database_path=DEFAULT_DB, asof, kospi_raw, kosdaq_raw,
         conn.close()
 
 
+def archived_trade_dates(*, database_path=DEFAULT_DB):
+    """Read-only verified list of paired market dates; never expose raw bytes.
+
+    Used solely for an append-only local backfill planner. Returns only
+    YYYY-MM-DD strings; validates entire private archive and hash chain.
+    """
+    path = _validate_path(database_path, create=False)
+    conn = _connect(path, read_only=True)
+    try:
+        manifest, _ = _read_verified_pairs(conn)
+        return [entry["asof"] for entry in manifest["entries"]]
+    finally:
+        conn.close()
+
+
 def inspect_private_store(*, database_path=DEFAULT_DB):
     """Rehash and verify all stored bytes without returning or printing them."""
     path = _validate_path(database_path, create=False)
