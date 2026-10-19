@@ -209,8 +209,15 @@ def main(argv=None):
         if args.output:
             dest = Path(args.output)
             project = Path(__file__).resolve().parent
-            if dest.resolve() == project or project in dest.resolve().parents:
-                raise HistoryCollectionError("private_summary_must_not_be_public_repo")
+            # Summarized counts/digests only may be a private Actions
+            # artifact. Vendor RAW bytes remain forbidden in the repository.
+            artifact_root = project / "evidence" / "krx_history"
+            resolved = dest.resolve()
+            if (resolved == project or
+                    (project in resolved.parents
+                     and artifact_root != resolved
+                     and artifact_root not in resolved.parents)):
+                raise HistoryCollectionError("summary_location_not_approved")
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(json.dumps(result, ensure_ascii=False,
                                        sort_keys=True), encoding="utf-8")
