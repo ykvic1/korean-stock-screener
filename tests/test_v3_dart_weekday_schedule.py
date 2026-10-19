@@ -16,12 +16,19 @@ class RollingDartWeekdayScheduleContract(unittest.TestCase):
     def test_korea_weekday_slots_with_utc_sunday_rollover(self):
         content = WORKFLOW.read_text(encoding="utf-8")
         crons = re.findall(r"^\s+- cron: '([^']+)'", content, flags=re.M)
-        # GitHub Actions cron runs in UTC. Sunday UTC 22:00 is Monday KST 07:00.
+        # UTC Sunday-Thursday 16/19/22 => following KST weekday 01/04/07.
+        # Later UTC weekdays 01/04/07/12/14 => KST 10/13/16/21/23.
         self.assertEqual(crons, [
-            "0 22 * * 0-4",  # M-F 07:00 Korea
-            "0 4 * * 1-5",   # M-F 13:00 Korea
-            "0 12 * * 1-5",  # M-F 21:00 Korea
+            "17 16 * * 0-4",
+            "17 19 * * 0-4",
+            "17 22 * * 0-4",
+            "17 1 * * 1-5",
+            "17 4 * * 1-5",
+            "17 7 * * 1-5",
+            "17 12 * * 1-5",
+            "17 14 * * 1-5",
         ])
+        self.assertEqual(len(set(crons)), 8)
         self.assertNotIn("cancel-in-progress: true", content)
         self.assertIn("group: korea-stock-screener-publication", content)
         self.assertIn("cancel-in-progress: false", content)
