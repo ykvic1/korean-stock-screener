@@ -67,7 +67,7 @@ function decision(row,q){
    return {label:'조건부 모의 검토',reason:'과거 연구 일부 우호적; 차트·수급·실적 추가 확인',level:'review'};
  return {label:'관망·추가 확인',reason:'과거 유사조건의 위험과 수익이 혼재',level:'review'};
 }
-function prepare(data,quant,recs,official){
+function prepare(data,quant,recs,official,priorityQuant){
  if(!data||data.version!=='2.0'||data.status!=='success'||!/^\d{4}-\d{2}-\d{2}$/.test(data.date)||
     !Array.isArray(data.stocks)||data.stocks.length<1||data.stocks.length>6000)
     throw Error('invalid_daily_observations');
@@ -77,14 +77,32 @@ function prepare(data,quant,recs,official){
  const matchedRec=!!recs&&recs.asof===data.date&&recs.research_source_matched===true&&
    Array.isArray(recs.dossiers);
  const rmap=new Map((matchedRec?recs.dossiers:[]).map(r=>[r.code,r]));
+ const priorityMatched=!!priorityQuant&&
+   priorityQuant.schema==='v3-targeted-live-shortlist-quant-v1'&&
+   priorityQuant.asof===data.date&&priorityQuant.status==='exploratory'&&
+   priorityQuant.raw_ohlcv_copied===false&&
+   priorityQuant.verified_predictive_accuracy===false&&
+   finite(priorityQuant.peer_cohort_valid)&&priorityQuant.peer_cohort_valid>=20&&
+   Array.isArray(priorityQuant.stocks)&&priorityQuant.stocks.length<=20;
+ const pmap=new Map((priorityMatched?priorityQuant.stocks:[]).filter(x=>
+    x&&x.reference_price_date===data.date&&
+    (x.status==='exploratory'||x.status==='insufficient')&&
+    /^[0-9]{6}$/.test(String(x.code))&&rmap.has(x.code)&&
+    finite(x.peer_cohort_requested)&&x.peer_cohort_requested>=20).map(x=>[x.code,x]));
  const financials=observedAnnuals(official,data.date);
  const rows=[],seen=new Set();
  for(const r of data.stocks){
    if(!r||!/^\d{6}$/.test(String(r.code))||seen.has(r.code)||!finite(r.price)||r.price<=0||
       !['KOSPI','KOSDAQ'].includes(r.market)||!observedScore(r,data.weights))continue;
    seen.add(r.code);
-   const q=qmap.get(r.code)||null,rec=rmap.get(r.code)||null;
-   rows.push({r,q,rec,financialRef:financials.get(r.code)||null,quant:!!q,
+   const rec=rmap.get(r.code)||null;
+   const standard=qmap.get(r.code)||null,priority=pmap.get(r.code)||null;
+   const standardUsable=standard&&['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월']
+     .some(k=>period(standard,k));
+   const q=standardUsable?standard:(priority||standard);
+   const quantSource=q===priority?'추천 우선 연구 '+priority.peer_cohort_requested+'종목 표본':
+                     q===standard?'일반 연구 최대 120종목 표본':'연구 자료 없음';
+   rows.push({r,q,rec,quantSource,financialRef:financials.get(r.code)||null,quant:!!q,
      qualified:!!rec&&rec.qualification==='needs_deeper_evidence'&&!highRisk(r),
      risk:stopDistance(r),highRisk:highRisk(r),decision:decision(r,q)});
  }
@@ -194,7 +212,9 @@ function init(){
          x.financialRef.values.debt_to_equity_pct.toFixed(1)+'%':'미확인')+
       '</b></div></div>':
      '<p class="note">해당 종목의 접수일 확인 가능한 연간 공시 재무 참고자료가 아직 연결되지 않았습니다. 미확인 값을 임의 점수로 채우지 않습니다.</p>')+
-   '<h3>④ 과거 유사조건 퀀트 연구</h3>'+quant+
+   '<h3>④ 과거 유사조건 퀀트 연구</h3>'+
+   '<p class="note">통계 모집단: '+esc(x.quantSource)+
+   '. 서로 다른 연구 모집단의 수익률을 직접 동일 조건으로 비교할 수 없습니다.</p>'+quant+
    '<p class="note">연구 통계는 유사한 과거 사례의 기술적 분포일 뿐 미래 상승 확률이 아닙니다. 수익률은 왕복비용 0.4%p 가정, 과거 상장폐지 제외·미수정 가격/시장 동조성 등 한계가 있습니다. 표본외 수익률이 미검증이면 절대로 검증됐다고 표시하지 않습니다.</p>'+
    '<h3>⑤ 매수 판단 가설</h3><p>매수 검토: 패턴 돌파·거래량 지속·주봉 안착, 재무와 수급 개선 확인.<br>'+
    '관망: 과거 퀀트의 손절빈도 상승 또는 재무·수급 부재.<br>'+
@@ -207,7 +227,7 @@ function init(){
  async function load(){
   status.textContent='전 시장 점수와 퀀트 자료 조회 중…';
   try{
-   const urls=['data.json','quant.json','recommendations.json','official.json'];
+   const urls=['data.json','quant.json','recommendations.json','official.json','v3-priority-quant.json'];
    const src=await Promise.all(urls.map(async name=>{
     try{const r=await root.fetch(name+'?rank='+Date.now(),{cache:'no-store'});return r.ok?await r.json():null}
     catch(_){return null;}
