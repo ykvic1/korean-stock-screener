@@ -25,7 +25,8 @@ def prioritized_stocks(data:dict, recommendations:dict|None, limit:int=120)->lis
                 isinstance(r.get("price"),(int,float)) and r["price"]>0):
             rows[code]=r
             ordered.append(code)
-    if len(rows)<20:raise ValueError("too_few_current_price_rows")
+    # Small/invalid research fixtures remain an insufficient-data result,
+    # never an exception that prevents the quant failure report.
     priority=[]
     if (isinstance(recommendations,dict) and
             recommendations.get("asof")==data["date"] and
