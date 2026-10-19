@@ -87,7 +87,10 @@ function prepare(data,quant,recs,official,priorityQuant){
    priorityQuant.asof===data.date&&priorityQuant.status==='exploratory'&&
    priorityQuant.raw_ohlcv_copied===false&&
    priorityQuant.verified_predictive_accuracy===false&&
+   finite(priorityQuant.peer_cohort_requested)&&priorityQuant.peer_cohort_requested>=20&&
+   priorityQuant.peer_cohort_requested<=120&&
    finite(priorityQuant.peer_cohort_valid)&&priorityQuant.peer_cohort_valid>=20&&
+   priorityQuant.peer_cohort_valid<=priorityQuant.peer_cohort_requested&&
    Array.isArray(priorityQuant.stocks)&&priorityQuant.stocks.length<=20;
  const pmap=new Map((priorityMatched?priorityQuant.stocks:[]).filter(x=>
     x&&x.reference_price_date===data.date&&
