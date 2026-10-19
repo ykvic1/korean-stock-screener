@@ -93,7 +93,7 @@
   }
   function eligible(r,filter) {
     if(filter.market&&filter.market!=='all'&&filter.market!==r.market)return false;
-    if(filter.status==='priced'&&r.price_history_status!=='priced')return false;
+    if(filter.status==='priced'&&r.price_history_status&&r.price_history_status!=='priced')return false;
     if(filter.status==='missing'&&(!r.price_history_status||r.price_history_status==='priced'))return false;
     if(filter.kind==='early'&&!early(r))return false;
     if(filter.kind==='weekly'&&!((r.signals||[]).includes('주봉 120주선 회복')||
@@ -110,6 +110,9 @@
   }
   function rankRows(rows) {
     return rows.slice().sort((a,b)=>{
+      const am=a.price_history_status&&a.price_history_status!=='priced';
+      const bm=b.price_history_status&&b.price_history_status!=='priced';
+      if(am!==bm)return am?1:-1;
       const ar=priceRisk(a),br=priceRisk(b);
       if(ar!==null&&br===null)return -1;
       if(ar===null&&br!==null)return 1;
