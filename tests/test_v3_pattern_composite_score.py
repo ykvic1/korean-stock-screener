@@ -1,207 +1,182 @@
-"""Offline, source-date-safe daily+weekly technical priority ranking regressions."""
+"""Regression: day/week patterns belong to TECHNICAL 15 of original six pillars."""
 import copy
 import unittest
-from datetime import date, timedelta
 
 from v3_pattern_composite_score import (
-    SCHEMA, WEIGHTS, evaluate, rank_eligible_rows,
+    SCHEMA, TECHNICAL_WEIGHTS, evaluate, compute_candidates,
 )
+from v3_score_contract import PILLAR_POINTS
+from v3_research_factor_engine import PILLAR_METRICS
 
 DAY = "2026-10-20"
 FRIDAY = "2026-10-16"
 
 
-def observed(tf, *, date_=DAY, typ="bull_flag", stage="forming",
-             rsi=39.0, crossing=False, bullish=False, geometry=None):
+def research(tf, *, source_date=DAY, kind="bull_flag",
+             stage="forming", crossing=False, bullish=False, wedge=False):
     data = {
         "schema": "v3-pattern-first-daily-research-0.1",
-        "asof": date_, "timeframe": tf,
-        "status": "heuristic_unverified",
-        "patterns": [] if typ is None else [{"type": typ, "stage": stage}],
-        "rsi14": rsi, "rsi30_cross_recent": crossing,
-        "rsi_bullish_divergence_recent": bullish,
-        "scoring_allowed": False, "buy_signal": False,
+        "asof": source_date, "timeframe": tf,
+        "status": "heuristic_unverified", "buy_signal": False,
+        "scoring_allowed": False,
         "official_regular_session_verified": False,
-    }
-    if tf == "weekly":
-        data["completed_week_only"] = True
-        data["pattern_geometry"] = {
+        "patterns": [] if kind is None else [{"type": kind, "stage": stage}],
+        "rsi14": 38.5, "rsi30_cross_recent": crossing,
+        "rsi_bullish_divergence_recent": bullish,
+        "pattern_geometry": {
             "status": "heuristic_unvalidated",
-            "falling_wedge_candidate": False,
+            "falling_wedge_candidate": wedge,
             "inverse_head_shoulders_breakout_candidate": False,
             "triangle_candidate": False,
             "post_rise_consolidation_candidate": False,
-        }
-        data["pattern_geometry"].update(geometry or {})
+        },
+    }
+    if tf == "weekly":
+        data["completed_week_only"] = True
+        data["weekly_ma120_gap_pct"] = 4.0
     return data
 
 
 def stock(code="005930"):
     return {
-        "code": code, "price_date": DAY, "price_latest": 100.0,
-        "stop_line": 92.0, "stop_pct": -8.0,
+        "code": code, "price_date": DAY,
+        "price_latest": 100.0, "stop_line": 92.0, "stop_pct": -8.0,
         "price20": 5.0, "price60": 12.0,
-        "patterns": [], "is_wedge": False, "is_ihs": False,
-        "is_triangle": False,
-        "pattern_research": observed("daily", typ="bull_flag",
-            stage="breakout_observed", crossing=True, bullish=True),
-        "pattern_weekly_research": observed("weekly", date_=FRIDAY,
-            typ="bull_flag", stage="forming", bullish=True,
-            geometry={"falling_wedge_candidate": True}),
+        "risk_flags": [],
+        "pattern_research": research(
+            "daily", stage="breakout_observed", crossing=True, bullish=True),
+        "pattern_weekly_research": research(
+            "weekly", source_date=FRIDAY, wedge=True, bullish=True),
         "one_day_volume_ratio": 1.7,
         "obv_rising": True, "obv_divergence": True,
-        "ma120w_gap": 6.0, "weekly_turn": False,
-        "weekly_aligned": True, "risk_flags": [],
-        "score": 77.7, "coverage_pct": 70.0,
-        "decision": "추가 검증 필요",
+        "score": 77.7, "decision": "추가 검증 필요",
     }
 
 
-class CompositeContract(unittest.TestCase):
-    def test_fixed_points_and_pattern_dominance(self):
-        self.assertEqual(WEIGHTS, {
-            "daily_pattern": 25, "weekly_pattern": 25,
-            "daily_rsi": 10, "weekly_rsi": 10,
-            "volume_obv": 10, "weekly_trend": 10, "downside": 10})
-        x = stock()
-        out = evaluate(x)
-        self.assertEqual(out["schema"], SCHEMA)
-        self.assertEqual(out["components"], {
-            "daily_pattern": 25,
-            "weekly_pattern": 20,  # Wedge > Bull Flag forming; no stacking!
-            "daily_rsi": 10,
-            "weekly_rsi": 7,
-            "volume_obv": 10,
-            "weekly_trend": 8,
-            "downside": 10,
-        })
-        self.assertEqual(out["research_priority_score"], 90)
-        self.assertEqual(out["daily_top_pattern"]["type"], "bull_flag")
-        self.assertEqual(out["weekly_top_pattern"]["type"], "falling_wedge_candidate")
-        self.assertEqual(out["observed_weight"], 100)
-        self.assertEqual(out["status"], "rank_eligible")
-        self.assertTrue(out["ready_for_ranking"])
-        self.assertFalse(out["buy_certified"])
-        self.assertFalse(out["v2_score_changed"])
-        self.assertIsNone(out["v3_six_pillar_score"])
-        self.assertIsNone(out["historical_success_probability"])
-        self.assertEqual(x["score"], 77.7, "v2 score remains unchanged")
-        self.assertEqual(x["decision"], "추가 검증 필요")
+class PatternWithinOriginalSixPillars(unittest.TestCase):
+    def test_fixed_six_pillar_contract_and_15_technical_points(self):
+        self.assertEqual(dict(PILLAR_POINTS), {
+            "ias": 25, "financial": 20, "valuation": 15,
+            "technical": 15, "industry": 15, "momentum": 10})
+        self.assertEqual(TECHNICAL_WEIGHTS, {
+            "daily_pattern": 3, "weekly_pattern": 4,
+            "daily_rsi": 1, "weekly_rsi": 2,
+            "weekly_ma120": 3, "volume_confirmation": 2})
+        self.assertEqual(sum(TECHNICAL_WEIGHTS.values()), 15)
+        self.assertEqual([x[1] for x in PILLAR_METRICS["technical"]], [3, 3, 7, 2])
 
-    def test_stop_price_uses_analysed_ohlcv_not_old_listing_snapshot(self):
-        x = stock()
-        x["price"] = 70  # stale raw-listing value, not the price_latest day
-        out = evaluate(x)
-        self.assertEqual(out["components"]["downside"], 10)
-        self.assertTrue(out["ready_for_ranking"])
+    def test_pattern_weight_both_timeframes_without_double_count(self):
+        r = stock()
+        x = evaluate(r)
+        self.assertEqual(x["schema"], SCHEMA)
+        self.assertEqual(x["technical_parts"], {
+            "daily_pattern": 3.0,  # Bull Flag observed breakout
+            "weekly_pattern": 3.52,  # wedge .88 beats forming flag .72
+            "daily_rsi": 1, "weekly_rsi": 2,
+            "weekly_ma120": 3, "volume_confirmation": 2})
+        self.assertAlmostEqual(x["technical_research_candidate"], 14.52)
+        self.assertEqual(x["technical_observed_maximum"], 15)
+        self.assertEqual(x["six_pillar_coverage_pct"], 15.0)
+        self.assertIsNone(x["six_pillar_full_candidate_only"])
+        self.assertEqual(set(x["missing_pillars"]), {
+            "ias", "financial", "valuation", "industry", "momentum"})
+        self.assertFalse(x["provisional_full_six_pillar_sort_eligible"])
+        self.assertFalse(x["buy_certified"])
+        self.assertFalse(x["v3_release_ready"])
+        self.assertIsNone(x["investable_score"])
+        self.assertIsNone(x["confirmed_rank"])
+        self.assertEqual(r["score"], 77.7)
+        self.assertEqual(r["decision"], "추가 검증 필요")
 
-    def test_missing_weekly_evidence_must_not_fake_full_100(self):
-        x = stock()
-        del x["pattern_weekly_research"]
-        out = evaluate(x)
-        self.assertIsNone(out["components"]["weekly_pattern"])
-        self.assertIsNone(out["components"]["weekly_rsi"])
-        self.assertEqual(out["observed_weight"], 65)
-        self.assertIsNone(out["research_priority_score"])
-        self.assertEqual(out["status"], "incomplete_unscored")
-        self.assertFalse(out["ready_for_ranking"])
+    def test_obv_not_required_or_double_scored_inside_technical(self):
+        r = stock()
+        a = evaluate(r)
+        r["obv_rising"] = False
+        r["obv_divergence"] = False
+        b = evaluate(r)
+        self.assertEqual(a["technical_research_candidate"],
+                         b["technical_research_candidate"])
 
-    def test_pattern_signal_does_not_require_obv(self):
-        x = stock()
-        x["obv_rising"] = False
-        x["obv_divergence"] = False
-        result = evaluate(x)
-        self.assertEqual(result["components"]["volume_obv"], 6)
-        self.assertEqual(result["research_priority_score"], 86)
-        self.assertTrue(result["ready_for_ranking"])
-        self.assertEqual(result["components"]["daily_pattern"], 25)
-        self.assertEqual(result["components"]["weekly_pattern"], 20)
+    def test_missed_weekly_candles_never_mint_100(self):
+        r = stock()
+        r.pop("pattern_weekly_research")
+        x = evaluate(r)
+        self.assertIsNone(x["technical_research_candidate"])
+        self.assertEqual(x["technical_observed_maximum"], 6)
+        self.assertIsNone(x["six_pillar_full_candidate_only"])
+        self.assertFalse(x["provisional_full_six_pillar_sort_eligible"])
+        self.assertIn("technical", x["missing_pillars"])
 
-    def test_rsi_is_only_counted_if_observed_and_bullish(self):
-        x = stock()
-        for key in ("pattern_research", "pattern_weekly_research"):
-            x[key]["rsi30_cross_recent"] = False
-            x[key]["rsi_bullish_divergence_recent"] = False
-        result = evaluate(x)
-        self.assertEqual(result["components"]["daily_rsi"], 0)
-        self.assertEqual(result["components"]["weekly_rsi"], 0)
-        self.assertEqual(result["research_priority_score"], 73)
+    def test_stale_future_or_unclosed_candle_fails_closed(self):
+        operations = (
+            lambda x: x["pattern_research"].update(asof="2026-10-19"),
+            lambda x: x["pattern_weekly_research"].update(asof="2026-10-23"),
+            lambda x: x["pattern_weekly_research"].update(asof="2026-10-02"),
+            lambda x: x["pattern_weekly_research"].update(asof="2026-10-19"),
+            lambda x: x["pattern_weekly_research"].update(completed_week_only=False),
+            lambda x: x["pattern_weekly_research"].update(buy_signal=True),
+            lambda x: x["pattern_research"].update(scoring_allowed=True),
+            lambda x: x["pattern_weekly_research"].pop("pattern_geometry"),
+            lambda x: x["pattern_research"]["pattern_geometry"].update(
+                triangle_candidate="yes"),
+            lambda x: x["pattern_weekly_research"].update(rsi14=110),
+            lambda x: x["pattern_weekly_research"].update(weekly_ma120_gap_pct=None),
+        )
+        for mutate in operations:
+            with self.subTest(op=str(mutate)):
+                r = stock()
+                mutate(r)
+                self.assertIsNone(evaluate(r)["technical_research_candidate"])
 
-    def test_very_high_pattern_cannot_override_risk_veto(self):
-        x = stock()
-        x["stop_line"] = 82
-        x["stop_pct"] = -18
-        x["risk_flags"] = ["예상 손절폭 과대"]
-        out = evaluate(x)
-        self.assertEqual(out["status"], "risk_excluded")
-        self.assertIsNotNone(out["research_priority_score"])
-        self.assertFalse(out["ready_for_ranking"])
-        self.assertIsNone(out["rank"])
-        x = stock()
-        x["risk_flags"] = ["거래대금 부족 — 환금성·호가 스프레드 점검 필요"]
-        self.assertEqual(evaluate(x)["status"], "risk_excluded")
-        x = stock()
-        x["price60"] = 46
-        self.assertFalse(evaluate(x)["ready_for_ranking"])
+    def test_rsi_recovery_and_divergence_are_independent_evidence(self):
+        r = stock()
+        r["pattern_research"]["rsi30_cross_recent"] = False
+        r["pattern_research"]["rsi_bullish_divergence_recent"] = False
+        r["pattern_weekly_research"]["rsi_bullish_divergence_recent"] = False
+        r["pattern_weekly_research"]["rsi30_cross_recent"] = False
+        x = evaluate(r)
+        self.assertEqual(x["technical_parts"]["daily_rsi"], 0)
+        self.assertEqual(x["technical_parts"]["weekly_rsi"], 0)
+        self.assertAlmostEqual(x["technical_research_candidate"], 11.52)
 
-    def test_source_and_week_completeness_must_match_market_date(self):
-        x = stock()
-        for mutation in (
-            lambda z: z["pattern_research"].update(asof="2026-10-19"),
-            lambda z: z["pattern_weekly_research"].update(asof="2026-10-23"),
-            lambda z: z["pattern_weekly_research"].update(asof="2026-10-02"),
-            lambda z: z["pattern_weekly_research"].update(asof="2026-10-19"),
-            lambda z: z["pattern_weekly_research"].update(completed_week_only=False),
-            lambda z: z["pattern_weekly_research"].update(buy_signal=True),
-            lambda z: z["pattern_research"].update(scoring_allowed=True),
-            lambda z: z["pattern_weekly_research"].pop("pattern_geometry"),
-            lambda z: z["pattern_weekly_research"]["pattern_geometry"].update(
-                falling_wedge_candidate="yes"),
-            lambda z: z["pattern_weekly_research"].update(rsi14=105),
-        ):
-            r = stock()
-            mutation(r)
-            score = evaluate(r)
-            self.assertIsNone(score["research_priority_score"],
-                              f"source error should be unscored: {score}")
-            self.assertFalse(score["ready_for_ranking"])
+    def test_loss_risks_not_waived_by_good_pattern(self):
+        r = stock()
+        r["risk_flags"] = ["거래대금 부족 — 호가 스프레드"]
+        x = evaluate(r)
+        self.assertFalse(x["provisional_full_six_pillar_sort_eligible"])
+        self.assertTrue(x["risk_warnings"])
+        r = stock()
+        r["stop_line"] = 82
+        r["stop_pct"] = -18
+        self.assertTrue(evaluate(r)["risk_warnings"])
 
-    def test_identical_shape_different_timeframes_each_gets_credit(self):
-        x = stock()
-        x["pattern_weekly_research"]["pattern_geometry"]["falling_wedge_candidate"] = False
-        x["pattern_weekly_research"]["patterns"] = [{
-            "type": "bull_flag", "stage": "breakout_observed"}]
-        out = evaluate(x)
-        self.assertEqual(out["components"]["daily_pattern"], 25)
-        self.assertEqual(out["components"]["weekly_pattern"], 25)
+    def test_other_pillars_complete_candidate_not_real_buy_score(self):
+        r = stock()
+        full = evaluate(r, other_pillars={
+            "ias": 21, "financial": 17, "valuation": 11,
+            "industry": 13, "momentum": 9})
+        self.assertAlmostEqual(full["six_pillar_full_candidate_only"], 85.52)
+        self.assertEqual(full["six_pillar_coverage_pct"], 100)
+        self.assertTrue(full["provisional_full_six_pillar_sort_eligible"])
+        self.assertIsNone(full["investable_score"])
+        self.assertIsNone(full["confirmed_rank"])
+        self.assertFalse(full["buy_certified"])
+        with self.assertRaisesRegex(ValueError, "technical_pillar_double_count"):
+            evaluate(r, other_pillars={"technical": 14.0})
 
-    def test_full_market_rank_is_deterministic_and_preserves_original_order(self):
-        winner = stock("333333")
-        rival = stock("111111")
-        weak = stock("999999")
-        weak["pattern_research"]["patterns"] = []
-        weak["pattern_weekly_research"]["patterns"] = []
-        weak["pattern_weekly_research"]["pattern_geometry"]["falling_wedge_candidate"] = False
-        missing = stock("000001")
-        missing.pop("pattern_weekly_research")
-        unsafe = stock("000002")
-        unsafe["risk_flags"] = ["거래대금 부족"]
-        rows = [missing, weak, rival, unsafe, winner]
-        order_before = [r["code"] for r in rows]
-        ordered = rank_eligible_rows(rows)
-        self.assertEqual([r["code"] for r in ordered],
-                         ["111111", "333333", "999999"])
-        self.assertEqual([r["code"] for r in rows], order_before)
-        self.assertEqual([r["pattern_composite"]["rank"] for r in ordered], [1,2,3])
-        self.assertIsNone(missing["pattern_composite"]["rank"])
-        self.assertIsNone(unsafe["pattern_composite"]["rank"])
-        self.assertEqual(unsafe["pattern_composite"]["status"], "risk_excluded")
-
-    def test_no_future_price_to_backfill(self):
-        x = stock()
-        x["price_date"] = "2026-10-15"
-        self.assertIsNone(evaluate(x)["research_priority_score"])
-        self.assertTrue(any("incomplete" in m for m in evaluate(x)["risk_warnings"]))
+    def test_main_market_publication_does_not_fabricate_other_five(self):
+        rows = [stock("111111"), stock("222222")]
+        rows[0]["score"] = 90  # legacy score unrelated
+        original = [(r["code"], r["score"], r["decision"]) for r in rows]
+        self.assertEqual(compute_candidates(rows), [])
+        self.assertEqual(
+            [(r["code"], r["score"], r["decision"]) for r in rows], original)
+        self.assertTrue(all(
+            r["v3_pattern_integrated"]["six_pillar_full_candidate_only"] is None
+            for r in rows))
+        self.assertTrue(all(
+            r["v3_pattern_integrated"]["six_pillar_coverage_pct"] == 15.0
+            for r in rows))
 
 
 if __name__ == "__main__":
