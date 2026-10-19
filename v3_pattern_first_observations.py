@@ -4,7 +4,8 @@ These are fixed geometric heuristics, not chart recognition certifications.
 Never create investor flow, official-price evidence, or investment decisions.
 """
 import numpy as np
-from technical_v22 import rsi, divergence
+import pandas as pd
+from technical_v22 import rsi, divergence, pattern_snapshot
 
 SCHEMA = "v3-pattern-first-daily-research-0.1"
 
@@ -120,8 +121,65 @@ def observe(df):
                               _double_bottom(close, high, low, vol)) if p]
     out.update(asof=df.index[-1].date().isoformat(),
                status="heuristic_unverified",
+               pattern_geometry=pattern_snapshot(df),
                rsi14=round(float(rs[-1]), 2) if np.isfinite(rs[-1]) else None,
                rsi30_cross_recent=cross_recent,
                rsi_bullish_divergence_recent=bool(np.any(bull[-12:])),
                patterns=patterns)
     return out
+
+
+def observe_completed_weekly(daily):
+    """Independently inspect ONLY fully completed Friday-ending OHLCV weeks.
+
+    A Monday-Thursday partial week has artificially low cumulative volume,
+    so letting it form a flag or RSI cross would leak unfinished evidence.
+    A holiday-shortened week is included once its calendar Friday is reached.
+    """
+    result = {"schema": SCHEMA, "timeframe": "weekly",
+              "status": "insufficient", "asof": None,
+              "patterns": [], "rsi14": None,
+              "rsi30_cross_recent": False,
+              "rsi_bullish_divergence_recent": False,
+              "official_regular_session_verified": False,
+              "scoring_allowed": False, "buy_signal": False}
+    if daily is None or len(daily) < 90 or not isinstance(daily.index, pd.DatetimeIndex):
+        return result
+    if not daily.index.is_monotonic_increasing or daily.index.has_duplicates:
+        return result
+    keys = ["Open", "High", "Low", "Close", "Volume"]
+    if not all(k in daily.columns for k in keys):
+        return result
+    # Validate original daily bars first. A malformed OHLCV day must not be
+    # silently aggregated into a plausible-looking weekly bar.
+    d = daily[keys]
+    a = d.to_numpy(dtype=float)
+    if (not np.isfinite(a).all() or np.any(a[:, :4] <= 0) or
+        np.any(a[:, 4] < 0) or np.any(a[:, 1] < np.maximum(a[:, 0], a[:, 3])) or
+        np.any(a[:, 2] > np.minimum(a[:, 0], a[:, 3])) or
+        np.any(a[:, 2] > a[:, 1])):
+        return result
+    week = d.resample("W-FRI").agg({"Open": "first", "High": "max",
+                                    "Low": "min", "Close": "last",
+                                    "Volume": "sum"}).dropna()
+    # Weekend of the most recent daily candle may still be in the future.
+    # Drop that partial bin rather than using inflated/deflated week volume.
+    latest = daily.index[-1].normalize()
+    week = week.loc[week.index <= latest]
+    if len(week) < 90:
+        return result
+    study = observe(week)
+    if study["status"] != "heuristic_unverified":
+        return result
+    study["timeframe"] = "weekly"
+    # Same-price-source geometry: falling wedge, inverse H&S, triangle and
+    # post-rise compression. Each is only a *heuristic candidate*.
+    study["pattern_geometry"] = pattern_snapshot(week)
+    study["completed_week_only"] = True
+    study["weekly_ma120_gap_pct"] = (
+        round(100 * (float(week["Close"].iloc[-1]) /
+                     float(week["Close"].iloc[-120:].mean()) - 1), 4)
+        if len(week) >= 120 else None
+    )
+    study["asof"] = week.index[-1].date().isoformat()
+    return study

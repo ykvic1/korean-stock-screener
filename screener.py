@@ -299,8 +299,9 @@ def analyze_history(code,cfg,day):
     rr=(reward_pct / abs(stop_pct)) if reward_pct is not None and stop_pct is not None and stop_pct<0 else None
     pat=daily_patterns(df)
     # Independent unscored pattern/RSI observation. Legacy v2 weights unchanged.
-    from v3_pattern_first_observations import observe
+    from v3_pattern_first_observations import observe, observe_completed_weekly
     pattern_research=observe(df)
+    pattern_weekly_research=observe_completed_weekly(df)
     return {
       'price_date':last.isoformat(),'price_latest':p,'price20':round_or_none(price20),
       'price60':round_or_none(price60),'price120':round_or_none(price120),
@@ -316,7 +317,8 @@ def analyze_history(code,cfg,day):
       'stop_pct':round_or_none(stop_pct),'reference_resistance':round_or_none(high52,0),
       'reference_target_pct':round_or_none(reward_pct),'reward_risk':round_or_none(rr,2),
       'close_vs_ma60_pct':round_or_none(pct(p,m60)),
-      'pattern_research':pattern_research,**pat}
+      'pattern_research':pattern_research,
+      'pattern_weekly_research':pattern_weekly_research,**pat}
 
 
 def load_indexes(day,cfg):
@@ -534,6 +536,10 @@ def build_rows(day,cfg):
         if i%10==0:logging.info('수급 조회 %s/%s',i,len(attempts))
         time.sleep(cfg['request_sleep_seconds'])
     for r in valid:score_one(r,cfg)
+    # Embed daily+completed-week patterns within existing six-pillar
+    # TECHNICAL 15 points. Missing IAS/finance/value/industry/momentum remain null.
+    from v3_pattern_composite_score import compute_candidates
+    compute_candidates(valid)
     valid.sort(key=lambda x:(x['decision']=='정밀 검토 우선',x['decision']=='관찰',x['score'] or 0,x['coverage_pct'] or 0),reverse=True)
     return valid,errors,datetime.fromisoformat(freshest),{
       'eligible':total,'examined':history_attempted,
@@ -690,6 +696,8 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'flow_start_date':r.get('flow_start_date'),'flow_end_date':r.get('flow_end_date'),
           'pbr':r['pbr'],'patterns':r['patterns'],'signals':r['signals'],
           'pattern_research':r.get('pattern_research'),
+          'pattern_weekly_research':r.get('pattern_weekly_research'),
+          'v3_pattern_integrated':r.get('v3_pattern_integrated'),
           'stop_line':r['stop_line'],'stop_pct':r['stop_pct'],
           'reference_resistance':r['reference_resistance'],
           'reference_target_pct':r['reference_target_pct'],
@@ -704,6 +712,28 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
          'flow_confirmed_count':sum(x['flows_confirmed'] for x in view),
          'fundamental_count':sum(x['pbr'] is not None for x in view),
          'index_available':meta['index_markets'],
+         'six_pillar_research_sort':[
+            {'code':r['code'],
+             'provisional_rank':r['v3_pattern_integrated']['provisional_rank'],
+             'candidate_100':r['v3_pattern_integrated']['six_pillar_full_candidate_only']}
+            for r in sorted(rows,
+              key=lambda x:x.get('v3_pattern_integrated',{}).get('provisional_rank') or 999999)
+            if r.get('v3_pattern_integrated',{}).get('provisional_full_six_pillar_sort_eligible') is True],
+         'v3_technical_pattern_status':{
+            'schema':'v3-pattern-within-six-pillars-research-0.2',
+            'status':'six_pillar_framework_technical_15_only',
+            'six_pillar_max':{
+              'ias':25,'financial':20,'valuation':15,
+              'technical':15,'industry':15,'momentum':10},
+            'technical_observed_15_count':sum(
+                r.get('v3_pattern_integrated',{}).get('technical_research_candidate') is not None
+                for r in rows),
+            'candidate_full_six_pillar_count':sum(
+                r.get('v3_pattern_integrated',{}).get('six_pillar_full_candidate_only') is not None
+                for r in rows),
+            'ranking_without_verified_other_five_pillars':False,
+            'legacy_v2_score_and_buy_decision_unchanged':True,
+            'v3_investable_score_certified':False},
          'error_count':len(errors),'collection_errors':errors,'history_exclusions':meta.get('excluded',[]),
          'flow_attempted_count':meta.get('flow_attempted'),
          'flow_deferred_count':meta.get('flow_deferred'),
