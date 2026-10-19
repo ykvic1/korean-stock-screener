@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from datetime import datetime
+
+import pandas as pd
 
 import full_market_batch
 import screener
@@ -20,6 +24,8 @@ class PriceTriageTests(unittest.TestCase):
             (ValueError("필수 OHLCV 누락"),"price_missing_ohlcv_columns"),
             (ValueError("OHLCV 결측 데이터"),"price_null_ohlcv"),
             (ValueError("현재가/거래량 오류"),"price_zero_last_volume_or_close"),
+            (ValueError("현재 거래량 0이하"),"price_zero_latest_volume"),
+            (ValueError("현재 종가 0이하"),"price_zero_latest_close"),
             (ValueError("가격 이력 최신성 오류"),"price_stale_history"),
             (ValueError("could not convert string to float: 'xxxx'"),"price_numeric_conversion"),
             (ValueError("https://provider.invalid?AUTH_KEY=secret"),"price_other_value_error"),
@@ -33,6 +39,29 @@ class PriceTriageTests(unittest.TestCase):
                 self.assertIn(expected,REASONS)
                 self.assertNotIn("secret",public_reason(error).lower())
         self.assertEqual(public_reason(ValueError("cannot convert string to float")), "price_other_value_error")
+
+    def test_same_screener_price_gate_still_rejects_zero_latest_volume(self):
+        idx=pd.date_range(end=DAY,periods=200,freq="B")
+        baseline=pd.DataFrame({
+            "Open":[100]*200, "High":[103]*200,
+            "Low":[99]*200, "Close":[101]*200,
+            "Volume":[500]*200},index=idx)
+        cfg=screener.cfg_read()
+        day=datetime.fromisoformat(DAY)
+        with patch.object(screener.fdr,"DataReader",return_value=baseline.copy()):
+            df,last=screener.last_series(None,"100001",cfg,day)
+            self.assertEqual(last.isoformat(),DAY)
+            self.assertEqual(df["Volume"].iloc[-1],500)
+        for field,expected in (
+                ("Volume","price_zero_latest_volume"),
+                ("Close","price_zero_latest_close")):
+            bad=baseline.copy()
+            bad.loc[bad.index[-1],field]=0
+            with self.subTest(field=field),patch.object(
+                    screener.fdr,"DataReader",return_value=bad):
+                with self.assertRaises(ValueError) as raised:
+                    screener.last_series(None,"100001",cfg,day)
+                self.assertEqual(public_reason(raised.exception),expected)
 
     def test_real_scan_keeps_exception_secret_absent_and_price_count_exact(self):
         listing={}
