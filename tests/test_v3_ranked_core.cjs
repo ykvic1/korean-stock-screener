@@ -343,38 +343,6 @@ assert.equal(m.watchEvidence({...flagNoObv,pattern_research:{
 assert.equal(m.watchEvidence({...flagNoObv,risk_flags:['거래대금 부족']}),null,
  'Bull Flag must not bypass the liquidity risk exclusion');
 assert.equal(m.watchEvidence({...flagNoObv,stop_line:null}),null);
-const weeklyBase={...flagNoObv,price_date:'2026-10-20',
-  pattern_research:undefined,
-  pattern_weekly_research:{
-   ...flagNoObv.pattern_research,asof:'2026-10-16',
-   timeframe:'weekly',completed_week_only:true,
-   rsi30_cross_recent:true,rsi_bullish_divergence_recent:false}};
-assert.equal(m.validatedPatternResearch(weeklyBase,'weekly')?.timeframe,'weekly');
-assert.equal(m.watchEvidence(weeklyBase)?.weeklySignal,true,
- 'completed-week Bull Flag & RSI independently qualify without OBV');
-assert.ok(m.watchEvidence(weeklyBase).labels.some(k=>k.includes('주봉 Bull Flag')));
-assert.ok(m.watchEvidence(weeklyBase).labels.some(k=>k.includes('주봉 RSI 30')));
-const weeklyModel=m.prepare({...snap,stocks:[weeklyBase]},null,null);
-assert.equal(weeklyModel.watchCount,1);
-assert.equal(weeklyModel.weeklyWatchCount,1);
-assert.deepEqual(m.select(weeklyModel,'weekly').map(x=>x.r.code),['111111']);
-assert.deepEqual(m.select(weeklyModel,'pattern').map(x=>x.r.code),['111111']);
-assert.deepEqual(m.select(weeklyModel,'rsi').map(x=>x.r.code),['111111']);
-assert.equal(m.watchEvidence({...weeklyBase,pattern_weekly_research:{
- ...weeklyBase.pattern_weekly_research,completed_week_only:false}}),null,
- 'current incomplete weekly bar must not be considered a real pattern');
-assert.equal(m.watchEvidence({...weeklyBase,pattern_weekly_research:{
- ...weeklyBase.pattern_weekly_research,asof:'2026-10-23'}}),null,
- 'future weekly Friday cannot be used for earlier market price');
-assert.equal(m.watchEvidence({...weeklyBase,pattern_weekly_research:{
- ...weeklyBase.pattern_weekly_research,asof:'2026-10-02'}}),null,
- 'outdated completed-week pattern must not backfill current screen');
-assert.equal(m.watchEvidence({...weeklyBase,pattern_weekly_research:{
- ...weeklyBase.pattern_weekly_research,scoring_allowed:true}}),null,
- 'weekly pattern must never promote itself to scored buy');
-assert.equal(m.watchEvidence({...weeklyBase,pattern_weekly_research:{
- ...weeklyBase.pattern_weekly_research,asof:'2026-10-19'}}),null,
- 'weekly source must be Friday-ending not an arbitrary weekday');
 assert.equal(m.select(result,'recommended').length,1);
 assert.equal(m.select(result,'quant').length,1);
 assert.equal(m.select(result,'early').length,1);
@@ -431,7 +399,7 @@ assert.ok(home.includes('폴링 웻지')&&home.includes('역헤드앤숄더')&&h
 assert.ok(home.includes('v3-ranking.js')&&home.includes('v3-ranking.css'));
 assert.ok(home.includes('심층 선별 후보')&&home.includes('퀀트 자료 있는 종목'));
 assert.ok(home.includes('data-mode="watch" aria-pressed="true"')&&
- home.includes('data-mode="weekly"')&&home.includes('data-mode="pattern"')&&home.includes('data-mode="rsi"')&&
+ home.includes('data-mode="pattern"')&&home.includes('data-mode="rsi"')&&
  home.includes('data-mode="obv"')&&home.includes('Bull Flag')&&
  home.includes('매수 미인증'),
  'user-facing first view must expose observable technical research without buy claim');
@@ -458,8 +426,6 @@ assert.ok(liveWatch.watchCount<=liveWatch.rows.length);
 assert.ok(liveWatch.obvLagCount<=liveWatch.rows.length);
 assert.ok(liveWatch.patternWatchCount<=liveWatch.watchCount);
 assert.ok(liveWatch.rsiWatchCount<=liveWatch.watchCount);
-assert.ok(liveWatch.weeklyWatchCount<=liveWatch.watchCount);
-assert.ok(m.select(liveWatch,'weekly').every(x=>x.watch?.weeklySignal));
 assert.ok(m.select(liveWatch,'watch').every(x=>x.watch&&!x.highRisk&&
  x.risk>=3&&x.risk<=15));
 assert.ok(m.select(liveWatch,'pattern').every(x=>x.watch?.pattern));
