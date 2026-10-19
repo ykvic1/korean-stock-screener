@@ -8,7 +8,7 @@ import re
 from time import perf_counter
 from pathlib import Path
 
-from .clients import KRXClient, DARTClient, ProbeError, canonical_date, code6
+from .clients import KRXClient, DARTClient, ProbeError, KRXProbeError, canonical_date, code6
 from .validation import inspect_krx, filter_visible_filings, public_safety_summary
 from .financial import sample_annual_financial
 from .history import sample_history
@@ -170,9 +170,11 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 groups = {market: {c for c in codes if markets[c] == market}
                           for market in ('KOSPI','KOSDAQ')}
                 observed = []
+                active_market = None
                 for market, group in groups.items():
                     if not group:
                         continue
+                    active_market = market
                     rows, raw = client.daily_market(market, args.asof)
                     info = inspect_krx(rows, market, args.asof, group, raw)
                     observed.append({**{k:v for k,v in info.items() if k!='symbol_data'},
@@ -180,8 +182,27 @@ def run(argv=None, *, krx_session=None, dart_session=None):
                 out['krx'] = {'status': ('observed_unverified' if any(m['found_symbols'] for m in observed)
                                      else 'requested_symbols_not_found'),
                               'markets': observed, 'approved_endpoint_scope_needs_confirmation': True}
+            except KRXProbeError as exc:
+                out['krx'] = {
+                    'status': 'failed',
+                    'error': 'KRX official endpoint did not return usable market data',
+                    'diagnostic': {
+                        'market': exc.market, 'reason': exc.reason,
+                        'http_status': exc.http_status,
+                    },
+                }
             except (ProbeError, ValueError):
-                out['krx'] = {'status': 'failed', 'error': 'KRX authorization, transport or response schema not confirmed'}
+                # All exception messages/response bodies are untrusted and may
+                # contain submitted credentials; never echo the exception.
+                out['krx'] = {
+                    'status': 'failed',
+                    'error': 'KRX validation or client input not confirmed',
+                    'diagnostic': {
+                        'market': active_market if 'active_market' in locals() else None,
+                        'reason': 'response_validation_failed',
+                        'http_status': None,
+                    },
+                }
     if args.provider in ('dart','both'):
         key = os.getenv('DART_API_KEY')
         if not args.live:
