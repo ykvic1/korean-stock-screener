@@ -52,6 +52,42 @@ jobs:
           # No --private-db: ephemeral GitHub runner is not durable KRX archive.
           # No scheduled event and no public docs/ file modifications.
           python -m v3_krx_history_collection "${args[@]}"
+      - name: Report sanitized result or failure context without raw vendor data
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          path=Path('evidence/krx_history/summary.json')
+          if not path.is_file():
+              print('::warning::KRX history pilot did not create a diagnostic summary.')
+              raise SystemExit(0)
+          try:
+              d=json.loads(path.read_text(encoding='utf-8'))
+          except (OSError, ValueError, UnicodeError):
+              print('::warning::KRX history pilot summary unreadable.')
+              raise SystemExit(0)
+          if d.get('status') == 'blocked':
+              market=d.get('failed_market')
+              day=d.get('failed_date')
+              reason=d.get('reason')
+              market=market if market in ('KOSPI','KOSDAQ') else 'unavailable'
+              reason=(reason if isinstance(reason,str) and
+                      re.fullmatch(r'[a-z0-9_]{1,100}',reason) else 'unknown')
+              day=(day if isinstance(day,str) and
+                   re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',day) else 'unavailable')
+              n=d.get('completed_pairs_before_failure')
+              n=n if type(n) is int and 0 <= n <= 5 else 0
+              print('::warning::KRX history blocked: date='+day+' market='+market+
+                    ' reason='+reason+' prior_complete_days='+str(n))
+          else:
+              n=d.get('observed_days')
+              n=n if type(n) is int and 0 <= n <= 5 else 0
+              print('::notice::KRX paired-day pilot finished, paired_days='+str(n)+
+                    '; investment eligibility remains false.')
+          PY
       - name: Keep research-only counts and SHA manifest as a private seven-day artifact
         if: always()
         uses: actions/upload-artifact@v4
