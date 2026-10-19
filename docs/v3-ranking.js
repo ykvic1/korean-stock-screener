@@ -200,6 +200,51 @@ function simpleAnnualOfsBookReference(row,annual){
  return finite(ratio)&&ratio>0&&ratio<10000?
    Math.round(ratio*100)/100:null;
 }
+function sourceCompleteness(model,coverage,partial){
+ // Validate source date and accounting before showing aggregate completeness.
+ // Distinguish unavailable *measurements* from observed zero shares/PBR.
+ if(!model||!coverage||coverage.schema!=='v22-full-market-accounting-0.1'||
+    coverage.asof!==model.date||coverage.complete_batch_census!==true||
+    !Number.isInteger(coverage.market_listing_size)||
+    coverage.market_listing_size!==model.marketEligible)return null;
+ const nums=['priced_current_session_count','price_failure_count',
+  'insufficient_price_history_count','unattempted_batch_count',
+  'flow_confirmed_count','pbr_observed_count'];
+ if(nums.some(k=>!Number.isInteger(coverage[k])||coverage[k]<0||
+       coverage[k]>coverage.market_listing_size))return null;
+ const n=coverage.market_listing_size;
+ if(coverage.priced_current_session_count+coverage.price_failure_count+
+    coverage.insufficient_price_history_count+coverage.unattempted_batch_count!==n||
+    coverage.priced_current_session_count<model.rows.length)return null;
+ let partialN=null;
+ if(partial&&partial.schema==='v22-current-listed-partial-daily-60to159-v0.1'&&
+   partial.asof===model.date&&partial.full_v22_score_allowed===false&&
+   partial.confirmed_buy_signal===false&&
+   Number.isInteger(partial.listed_insufficient_history_count)&&
+   partial.listed_insufficient_history_count===coverage.insufficient_price_history_count&&
+   Number.isInteger(partial.partial_observed_count)&&
+   partial.partial_observed_count>=0&&
+   partial.partial_observed_count<=coverage.insufficient_price_history_count)
+   partialN=partial.partial_observed_count;
+ return {date:model.date,total:n,priced:coverage.priced_current_session_count,
+  errors:coverage.price_failure_count,
+  short:coverage.insufficient_price_history_count,partial:partialN,
+  flow:coverage.flow_confirmed_count,pbr:coverage.pbr_observed_count};
+}
+function sourceCompletenessText(summary){
+ if(!summary)return '전 종목 자료 확보 현황 확인 대기 — 공개 자료 기준일·집계 일치 여부 미확인';
+ const n=summary.total.toLocaleString('ko-KR'),
+  priced=summary.priced.toLocaleString('ko-KR');
+ return '실제 전 종목 자료 확보 현황 ('+summary.date+'): 상장 대상 '+n+
+  '종목 · 정상 가격 분석 '+priced+'종목 ('+
+  (100*summary.priced/summary.total).toFixed(1)+'%) · 가격 오류 '+
+  summary.errors+'종목 · 일봉 이력 부족 '+summary.short+'종목'+
+  (summary.partial===null?' (부분 관측 미검증)':
+   ' (부분 관측 '+summary.partial+'종목, 정식 점수 제외)')+
+  ' · 기관/외국인 수급 확인 '+summary.flow+'종목 / '+n+
+  ' · 정식 PBR 관측 '+summary.pbr+'종목 / '+n+
+  '. 0건은 수급·PBR이 실제 0이라는 뜻이 아니라 자료 미확보일 수 있습니다.';
+}
 function quantGlance(q){
  if(!q)return '당일 퀀트 미확보';
  const items=[['스윙 1개월','1개월'],['중기 3개월','3개월'],['중기 6개월','6개월']]
@@ -208,7 +253,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
@@ -330,12 +375,14 @@ function init(){
  async function load(){
   status.textContent='전 시장 점수와 퀀트 자료 조회 중…';
   try{
-   const urls=['data.json','quant.json','recommendations.json','official.json','v3-priority-quant.json'];
+   const urls=['data.json','quant.json','recommendations.json','official.json','v3-priority-quant.json','v22-coverage.json','v22-partial-history.json'];
    const src=await Promise.all(urls.map(async name=>{
     try{const r=await root.fetch(name+'?rank='+Date.now(),{cache:'no-store'});return r.ok?await r.json():null}
     catch(_){return null;}
    }));
-   model=prepare(...src);
+   model=prepare(...src.slice(0,5));
+   $('rankSourceQuality').textContent=sourceCompletenessText(
+     sourceCompleteness(model,src[5],src[6]));
    status.textContent='기준일 '+model.date+' · 점수 산출 '+model.rows.length+
      '종목 / 전체 분석 대상 '+(model.marketEligible||'미확인')+
      '종목 · 심층 선별 '+model.recommendationCount+
@@ -362,6 +409,7 @@ function init(){
    model=null;status.className='status error';
    status.textContent='정상 전 종목 점수 자료 미확보. 허위 추천을 표시하지 않습니다.';
    $('rankCandidateQuant').textContent='추천 후보 및 퀀트 연계 검증 불가';
+   $('rankSourceQuality').textContent='전 종목 품질 현황도 데이터 불일치로 확인 대기';
    cards.innerHTML='<p class="empty">유효한 전시장 데이터가 필요합니다.</p>';
   }
  }
