@@ -185,7 +185,7 @@
       const cap=fin(r.reference_market_cap_eok)?r.reference_market_cap_eok:r.market_cap_eok;
       const trade=fin(r.reference_trading_value_eok)?r.reference_trading_value_eok:r.trading_eok;
       const pbr=fin(r.pbr_observed)?r.pbr_observed:r.pbr;
-      const sourceNote=fin(pbr)?'PBR '+pbr.toFixed(2)+'배 (참고·검증 전)':'PBR 미확인';
+      const sourceNote=fin(pbr)?'PBR '+pbr.toFixed(2)+'배 (출처: '+clean(r.pbr_source||'v2 공개 종목자료')+' · 추가 검증 전)':'PBR 미확인';
       const firm='시가총액 '+(fin(cap)?cap.toLocaleString('ko-KR')+'억원':'미확인')+
         ' · 거래대금 '+(fin(trade)?trade.toLocaleString('ko-KR')+'억원':'미확인');
       if(missing){
@@ -221,7 +221,7 @@
           Number.isInteger(r.flow_reference.institution_20d_shares_observed)?
           '외국인 '+r.flow_reference.foreign_20d_shares_observed.toLocaleString('ko-KR')+
           '주 / 기관 '+r.flow_reference.institution_20d_shares_observed.toLocaleString('ko-KR')+
-          '주 ('+escapeHtml(r.flow_reference.end||'기간 미확인')+' 기준, 참고자료)':
+          '주 ('+escapeHtml(r.flow_reference.end||'기간 미확인')+' 기준 · 출처: '+escapeHtml(r.flow_reference.source||'기준 미확인')+' · 참고자료)':
           r.flows_confirmed===true?'v2 관측 있음 (독립 검증 전)':'미확인')+'</p>'+
         '<div class="v3-bottom"><span>'+escapeHtml(riskDescription(r))+
         (Array.isArray(r.risk_flags)&&r.risk_flags.length?' · '+escapeHtml(r.risk_flags.slice(0,2).join(' · ')):'')+
