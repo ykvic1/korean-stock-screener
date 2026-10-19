@@ -29,7 +29,8 @@ class HistoryCollectionError(ValueError):
     """Public-safe fixed code and bounded context, never vendor messages."""
 
     def __init__(self, reason, *, market=None, trade_date=None,
-                 completed_pairs=0, http_status=None):
+                 completed_pairs=0, http_status=None,
+                 code_anomaly_counts=None):
         safe = (reason if type(reason) is str
                 and re.fullmatch(r"[a-z0-9_]{1,100}", reason)
                 else "unclassified_collection_error")
@@ -44,6 +45,20 @@ class HistoryCollectionError(ValueError):
                                                     and 0 <= completed_pairs <= MAX_DATES_PER_BATCH) else 0
         self.http_status = http_status if (type(http_status) is int
                                            and 100 <= http_status <= 599) else None
+        # Fixed-size numerical aggregate only. Never include source codes,
+        # issuer names, untrusted vendor strings, response body or auth key.
+        allowed = ("missing_code", "non_string_code", "non_six_digit_code",
+                   "duplicate_six_digit_code", "prefixed_six_digit_pattern",
+                   "twelve_character_pattern")
+        if (isinstance(code_anomaly_counts, dict)
+                and set(code_anomaly_counts) == set(allowed)
+                and all(type(code_anomaly_counts[key]) is int
+                        and 0 <= code_anomaly_counts[key] <= 20000
+                        for key in allowed)):
+            self.code_anomaly_counts = {
+                key: code_anomaly_counts[key] for key in allowed}
+        else:
+            self.code_anomaly_counts = None
         super().__init__(safe)
 
 
@@ -75,6 +90,49 @@ def validate_dates(dates):
     return accepted
 
 
+def _inspect_market_code_shapes(rows):
+    """Inspect every code before rejection; return only privacy-safe counts.
+
+    KRX docs name ISU_CD a market security code but do not mandate six digits
+    for all historical security types. Never guess identity or dedupe by name.
+    """
+    counts = {
+        "missing_code": 0, "non_string_code": 0,
+        "non_six_digit_code": 0, "duplicate_six_digit_code": 0,
+        "prefixed_six_digit_pattern": 0,
+        "twelve_character_pattern": 0,
+    }
+    seen = set()
+    for record in rows:
+        if not isinstance(record, dict):
+            raise HistoryCollectionError("invalid_market_member")
+        code = record.get("ISU_CD")
+        if code is None or code == "":
+            counts["missing_code"] += 1
+        elif type(code) is not str:
+            counts["non_string_code"] += 1
+        elif not re.fullmatch(r"[0-9]{6}", code):
+            counts["non_six_digit_code"] += 1
+            if re.fullmatch(r"A[0-9]{6}", code):
+                counts["prefixed_six_digit_pattern"] += 1
+            if len(code) == 12:
+                counts["twelve_character_pattern"] += 1
+        elif code in seen:
+            counts["duplicate_six_digit_code"] += 1
+        else:
+            seen.add(code)
+    kinds = [
+        name for name in ("missing_code", "non_string_code",
+                          "non_six_digit_code", "duplicate_six_digit_code")
+        if counts[name] > 0
+    ]
+    if kinds:
+        reason = (kinds[0] if len(kinds) == 1
+                  else "multiple_market_code_identity_anomalies")
+        raise HistoryCollectionError(reason, code_anomaly_counts=counts)
+    return counts
+
+
 def _snapshot_market(rows, raw, *, market, asof):
     """Internal market rows and OHLC quarantine, never print price values."""
     if (not isinstance(rows, list) or not 0 < len(rows) <= 20000
@@ -86,6 +144,7 @@ def _snapshot_market(rows, raw, *, market, asof):
             raise ValueError()
     except (ValueError, TypeError, UnicodeError):
         raise HistoryCollectionError("market_rows_disagree_with_raw_source") from None
+    _inspect_market_code_shapes(rows)
     seen = set()
     usable = []
     quarantined = 0
@@ -186,7 +245,8 @@ def collect_krx_history(dates, *, live=False, key=None,
                 # retain; previously this was mistaken for a transport error.
                 raise HistoryCollectionError(
                     str(err), market=market, trade_date=day,
-                    completed_pairs=len(completed)) from None
+                    completed_pairs=len(completed),
+                    code_anomaly_counts=err.code_anomaly_counts) from None
             except Exception:
                 # Never echo third-party exceptions; they can contain a
                 # request URL, header or token. Unknown failures stay unknown.
@@ -288,6 +348,7 @@ def main(argv=None):
             "failed_date": exc.trade_date,
             "completed_pairs_before_failure": exc.completed_pairs,
             "http_status": exc.http_status,
+            "code_anomaly_counts": exc.code_anomaly_counts,
             "v3_release_ready": False,
             "verified_history_250_sessions": False,
             "confirmed_buy": False,
