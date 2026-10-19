@@ -1,240 +1,224 @@
-"""Pattern-first, loss-gated, source-observed 100-point RESEARCH ranking.
+"""Pattern-heavy TECHNICAL 15/100 research adapter for the existing six pillars.
 
-This is NOT the existing v2 observed score or the unreleased six-pillar v3
-official score. It cannot certify a buy, forecast a return or infer investors.
-Missing components are None, never zero or renormalized into a full score.
+Preserve IAS25, finance20, valuation15, technical15, industry15, momentum10.
+This module never substitutes a technical-only 100-point ranking for six-pillar
+evidence or generates buy recommendations. Weekly candles must be completed.
 """
-import math
 from datetime import date
+import math
 
-SCHEMA = "v3-pattern-first-composite-research-0.1"
+from v3_score_contract import PILLAR_POINTS, research_scorecard
+
+SCHEMA = "v3-pattern-within-six-pillars-research-0.2"
 SOURCE = "v3-pattern-first-daily-research-0.1"
-WEIGHTS = {
-    "daily_pattern": 25, "weekly_pattern": 25,
-    "daily_rsi": 10, "weekly_rsi": 10,
-    "volume_obv": 10, "weekly_trend": 10, "downside": 10,
+
+# All of these are WITHIN the original 15-point technical pillar.
+TECHNICAL_WEIGHTS = {
+    "daily_pattern": 3, "weekly_pattern": 4,
+    "daily_rsi": 1, "weekly_rsi": 2,
+    "weekly_ma120": 3, "volume_confirmation": 2,
 }
-assert sum(WEIGHTS.values()) == 100
-PATTERN_POINTS = {
-    "bull_flag": {"forming": 18, "breakout_observed": 25},
-    "double_bottom": {"forming": 17, "breakout_observed": 24},
+assert dict(PILLAR_POINTS) == {
+    "ias": 25, "financial": 20, "valuation": 15,
+    "technical": 15, "industry": 15, "momentum": 10,
 }
-GEOMETRY_POINTS = {
-    "falling_wedge_candidate": 20,
-    "inverse_head_shoulders_breakout_candidate": 22,
-    "triangle_candidate": 15,
-    "post_rise_consolidation_candidate": 14,
+assert sum(TECHNICAL_WEIGHTS.values()) == PILLAR_POINTS["technical"]
+
+PATTERNS = {
+    "bull_flag": {"forming": .72, "breakout_observed": 1.0},
+    "double_bottom": {"forming": .70, "breakout_observed": .96},
 }
-DAILY_LEGACY = {
-    "is_wedge": 20,
-    "is_ihs": 22,
-    "is_triangle": 15,
+GEOMETRY = {
+    "falling_wedge_candidate": .88,
+    "inverse_head_shoulders_breakout_candidate": .92,
+    "triangle_candidate": .7,
+    "post_rise_consolidation_candidate": .65,
 }
-RISK_WARNINGS = (
+RISK_MARKERS = (
     "예상 손절폭 과대", "손절선 과도하게 근접", "구조적 손절선 미산출",
     "단기 급등", "장기 추세 취약", "거래대금 부족",
     "급격한 거래량 집중", "52주 고점권",
 )
 
 
-def _number(v):
-    if isinstance(v, bool) or not isinstance(v, (int, float)):
+def _num(value):
+    if type(value) not in (int, float) or not math.isfinite(value):
         return None
-    return float(v) if math.isfinite(v) else None
+    return float(value)
 
 
-def _source(r, timeframe):
-    p = r.get("pattern_research" if timeframe == "daily"
-              else "pattern_weekly_research")
-    if not isinstance(p, dict) or p.get("schema") != SOURCE or (
-            p.get("timeframe") != timeframe or
-            p.get("status") != "heuristic_unverified" or
-            p.get("buy_signal") is not False or
-            p.get("scoring_allowed") is not False or
-            p.get("official_regular_session_verified") is not False):
+def _observed(row, timeframe):
+    p = row.get("pattern_research" if timeframe == "daily"
+                else "pattern_weekly_research")
+    if not isinstance(p, dict) or any((
+        p.get("schema") != SOURCE,
+        p.get("timeframe") != timeframe,
+        p.get("status") != "heuristic_unverified",
+        p.get("scoring_allowed") is not False,
+        p.get("buy_signal") is not False,
+        p.get("official_regular_session_verified") is not False,
+    )):
         return None
     try:
-        market_day = date.fromisoformat(r["price_date"])
-        observed = date.fromisoformat(p["asof"])
-    except (KeyError, TypeError, ValueError):
+        asof = date.fromisoformat(row["price_date"])
+        source_day = date.fromisoformat(p["asof"])
+    except (TypeError, ValueError, KeyError):
         return None
-    if timeframe == "daily":
-        if market_day != observed:
-            return None
-    elif not (p.get("completed_week_only") is True and
-              observed.weekday() == 4 and
-              0 <= (market_day - observed).days <= 13):
+    if timeframe == "daily" and source_day != asof:
+        return None
+    if timeframe == "weekly" and not (
+        p.get("completed_week_only") is True and source_day.weekday() == 4
+        and 0 <= (asof - source_day).days <= 13
+    ):
         return None
     if not isinstance(p.get("patterns"), list) or len(p["patterns"]) > 5:
         return None
-    found = set()
-    for q in p["patterns"]:
-        if not isinstance(q, dict) or q.get("type") not in PATTERN_POINTS or (
-            q.get("stage") not in ("forming", "breakout_observed") or
-            q["type"] in found):
+    seen = set()
+    for pattern in p["patterns"]:
+        if (not isinstance(pattern, dict) or pattern.get("type") not in PATTERNS
+            or pattern.get("stage") not in PATTERNS[pattern["type"]]
+            or pattern["type"] in seen):
             return None
-        found.add(q["type"])
-    rsi = p.get("rsi14")
-    if _number(rsi) is None or not 0 <= rsi <= 100:
+        seen.add(pattern["type"])
+    geometry = p.get("pattern_geometry")
+    if not isinstance(geometry, dict) or geometry.get("status") != "heuristic_unvalidated":
         return None
-    if type(p.get("rsi30_cross_recent")) is not bool or (
-            type(p.get("rsi_bullish_divergence_recent")) is not bool):
+    if any(type(geometry.get(k)) is not bool for k in GEOMETRY):
         return None
-    if timeframe == "weekly":
-        geom = p.get("pattern_geometry")
-        if not isinstance(geom, dict) or geom.get("status") != "heuristic_unvalidated":
-            return None
-        if any(type(geom.get(key)) is not bool for key in GEOMETRY_POINTS):
-            return None
+    rsi = _num(p.get("rsi14"))
+    if rsi is None or not 0 <= rsi <= 100:
+        return None
+    if (type(p.get("rsi30_cross_recent")) is not bool or
+        type(p.get("rsi_bullish_divergence_recent")) is not bool):
+        return None
     return p
 
 
-def _pattern_score(p, r=None):
-    ranked = [(PATTERN_POINTS[q["type"]][q["stage"]], q["type"], q["stage"])
-              for q in p["patterns"]]
-    if r is None:
-        for key, value in GEOMETRY_POINTS.items():
-            if p["pattern_geometry"][key]:
-                ranked.append((value, key, "heuristic_unvalidated"))
-    else:
-        for key, value in DAILY_LEGACY.items():
-            if r.get(key) is True:
-                ranked.append((value, key, "legacy_heuristic"))
-        if "상승 후 횡보·수렴 후보" in (r.get("patterns") or []):
-            ranked.append((14, "post_rise_consolidation_candidate", "legacy_heuristic"))
-    # Overlapping wedge, triangle, flag and reversal definitions must not be
-    # stacked on the same timeframe; highest independently observed one wins.
-    if not ranked:
-        return 0, None
-    ranked.sort(key=lambda x: (-x[0], x[1]))
-    value, kind, stage = ranked[0]
-    return value, {"type": kind, "stage": stage}
+def _pattern(p, limit):
+    candidates = [(limit * PATTERNS[x["type"]][x["stage"]],
+                   x["type"], x["stage"]) for x in p["patterns"]]
+    candidates += [(limit * value, k, "geometric_candidate")
+                   for k, value in GEOMETRY.items() if p["pattern_geometry"][k]]
+    # Multiple overlapping patterns on one timeframe are not additive.
+    if not candidates:
+        return 0.0, None
+    best = sorted(candidates, key=lambda x: (-x[0], x[1]))[0]
+    return round(best[0], 4), {"type": best[1], "stage": best[2]}
 
 
-def _rsi_score(p):
-    # RSI under 30 is not a positive signal by itself. A crossing and an
-    # independently confirmed bullish pivot may reinforce each other.
-    return min(10, (7 if p["rsi_bullish_divergence_recent"] else 0) +
-               (6 if p["rsi30_cross_recent"] else 0))
-
-
-def _volume_score(r):
-    vr = _number(r.get("one_day_volume_ratio"))
-    if vr is None or vr < 0:
+def _weekly_trend(p):
+    gap = _num(p.get("weekly_ma120_gap_pct"))
+    if gap is None or gap <= -100:
         return None
-    # OBV can add at most 2 points; never mandatory for inclusion.
-    volume = 6 if 1.5 <= vr <= 5 else 4 if 1.2 <= vr < 1.5 else 1 if vr < 1.2 else 0
-    obv = 2 if r.get("obv_rising") is True else 0
-    divergence = 2 if r.get("obv_rising") is True and r.get("obv_divergence") is True else 0
-    return min(10, volume + obv + divergence)
-
-
-def _trend_score(r):
-    gap = _number(r.get("ma120w_gap"))
-    if gap is None:
-        return None
-    if r.get("weekly_turn") is True:
-        return 10
-    if r.get("weekly_aligned") is True and gap >= 0:
-        return 8
-    if -7 <= gap <= 15:
-        return 5
-    if -15 <= gap < -7:
+    if 0 <= gap <= 15:
+        return 3
+    if -7 <= gap < 0:
         return 2
+    if -15 <= gap < -7:
+        return 1
+    # Very extended or deeply below MA120 is not a favorable trend.
     return 0
 
 
-def _downside_score(r):
-    stop = _number(r.get("stop_pct"))
-    level = _number(r.get("stop_line"))
-    # Structural stop_pct is calculated against analysed price_latest,
-    # NOT potentially stale KRX listing snapshot price.
-    close = _number(r.get("price_latest"))
-    if close is None:
-        close = _number(r.get("price"))
-    if stop is None or level is None or close is None or close <= 0:
-        return None
-    if not (-100 < stop < 0) or not 0 < level < close:
-        return None
-    if abs(100 * (level / close - 1) - stop) > 1.5:
-        return None
-    distance = -stop
-    if 5 <= distance <= 9:
-        return 10
-    if 3 <= distance < 5:
-        return 8
-    if 9 < distance <= 12:
-        return 7
-    if 12 < distance <= 15:
-        return 4
-    return 0
+def _risks(row):
+    reasons = []
+    current = _num(row.get("price_latest"))
+    stop = _num(row.get("stop_line"))
+    pct = _num(row.get("stop_pct"))
+    if current is None or current <= 0 or stop is None or not 0 < stop < current:
+        reasons.append("structural_stop_unverified")
+    elif pct is None or abs(100 * (stop / current - 1) - pct) > 1.5:
+        reasons.append("structural_stop_mismatch")
+    elif not -15 <= pct <= -3:
+        reasons.append("stop_distance_outside_3_to_15")
+    recent20, recent60 = _num(row.get("price20")), _num(row.get("price60"))
+    if recent20 is None or recent60 is None:
+        reasons.append("recent_return_missing")
+    elif recent20 > 18 or recent60 > 40:
+        reasons.append("price_extension_chase_risk")
+    for flag in (row.get("risk_flags") if isinstance(row.get("risk_flags"), list) else []):
+        if isinstance(flag, str) and any(marker in flag for marker in RISK_MARKERS):
+            reasons.append(flag)
+    return list(dict.fromkeys(reasons))
 
 
-def evaluate(r):
-    """Calculate a strictly research-only score without changing any old grade."""
-    day = _source(r, "daily")
-    week = _source(r, "weekly")
-    components = {
-        "daily_pattern": _pattern_score(day, r)[0] if day else None,
-        "weekly_pattern": _pattern_score(week)[0] if week else None,
-        "daily_rsi": _rsi_score(day) if day else None,
-        "weekly_rsi": _rsi_score(week) if week else None,
-        "volume_obv": _volume_score(r),
-        "weekly_trend": _trend_score(r),
-        "downside": _downside_score(r),
+def evaluate(row, *, other_pillars=None):
+    """Use only source-observed technical evidence; never fabricate five pillars.
+
+    other_pillars is a future independent candidate from the existing v3
+    factor engine, not populated by this module or legacy v2 technical score.
+    """
+    daily = _observed(row, "daily")
+    weekly = _observed(row, "weekly")
+    d_pattern, d_label = _pattern(daily, 3) if daily else (None, None)
+    w_pattern, w_label = _pattern(weekly, 4) if weekly else (None, None)
+    d_rsi = (1 if daily["rsi30_cross_recent"] or
+             daily["rsi_bullish_divergence_recent"] else 0) if daily else None
+    w_rsi = (2 if weekly["rsi30_cross_recent"] or
+             weekly["rsi_bullish_divergence_recent"] else 0) if weekly else None
+    ma120 = _weekly_trend(weekly) if weekly else None
+    vol = _num(row.get("one_day_volume_ratio"))
+    vol_score = (2 if 1.2 <= vol <= 5 else 0) if vol is not None and vol >= 0 else None
+    parts = {
+        "daily_pattern": d_pattern, "weekly_pattern": w_pattern,
+        "daily_rsi": d_rsi, "weekly_rsi": w_rsi,
+        "weekly_ma120": ma120, "volume_confirmation": vol_score,
     }
-    observed = sum(WEIGHTS[k] for k, v in components.items() if v is not None)
-    notes = []
-    flags = r.get("risk_flags")
-    flags = flags if isinstance(flags, list) else []
-    warnings = [x for x in flags if isinstance(x, str) and
-                any(reason in x for reason in RISK_WARNINGS)]
-    if warnings:
-        notes.extend(warnings)
-    recent = _number(r.get("price60"))
-    recent20 = _number(r.get("price20"))
-    if recent is None or recent20 is None:
-        notes.append("recent_price_return_missing")
-    elif recent >= 40 or recent20 > 18:
-        notes.append("price_extension_chase_risk")
-    stop = _number(r.get("stop_pct"))
-    if stop is None or not -15 <= stop <= -3:
-        notes.append("stop_distance_outside_3_to_15")
-    if observed != 100:
-        notes.append("incomplete_observed_components")
-    complete = observed == 100
-    score = int(sum(components.values())) if complete else None
-    ready = bool(complete and not [x for x in notes if x != "incomplete_observed_components"])
-    daily_top = _pattern_score(day, r)[1] if day else None
-    weekly_top = _pattern_score(week)[1] if week else None
+    available = sum(TECHNICAL_WEIGHTS[k] for k, v in parts.items() if v is not None)
+    technical = round(sum(parts.values()), 4) if available == 15 else None
+    supplied = {} if other_pillars is None else dict(other_pillars)
+    if "technical" in supplied:
+        raise ValueError("technical_pillar_double_count_forbidden")
+    if set(supplied) - (set(PILLAR_POINTS) - {"technical"}):
+        raise ValueError("unknown_six_pillar")
+    try:
+        asof = date.fromisoformat(row["price_date"]).isoformat()
+    except (TypeError, ValueError, KeyError):
+        raise ValueError("invalid_market_date") from None
+    pillars = {**supplied, "technical": technical}
+    card = research_scorecard(asof=asof, pillars=pillars)
+    reasons = _risks(row)
+    # The full-six-pillar candidate is only populated when all six
+    # independent values exist, and still never certified as a live ranking.
+    full = card["candidate_full_total_research_only"]
     return {
-        "schema": SCHEMA, "asof": r.get("price_date"),
-        "status": "rank_eligible" if ready else (
-            "risk_excluded" if complete else "incomplete_unscored"),
-        "weights": dict(WEIGHTS), "components": components,
-        "observed_weight": observed, "coverage_pct": observed,
-        "research_priority_score": score,
-        "rank": None, "ready_for_ranking": ready,
-        "daily_top_pattern": daily_top, "weekly_top_pattern": weekly_top,
-        "risk_warnings": list(dict.fromkeys(notes)),
-        "v2_score_changed": False,
-        "v3_six_pillar_score": None,
+        "schema": SCHEMA, "asof": asof,
+        "six_pillar_maximum": dict(PILLAR_POINTS),
+        "technical_maximum": 15,
+        "technical_weights": dict(TECHNICAL_WEIGHTS),
+        "technical_parts": parts,
+        "technical_observed_maximum": available,
+        "technical_research_candidate": technical,
+        "daily_top_pattern": d_label, "weekly_top_pattern": w_label,
+        "six_pillar_candidates": {
+            k: card["pillars"][k]["candidate_points"] for k in PILLAR_POINTS
+        },
+        "six_pillar_coverage_pct": card["candidate_coverage_pct"],
+        "missing_pillars": card["unscored_pillars"],
+        "six_pillar_full_candidate_only": full,
+        "provisional_full_six_pillar_sort_eligible": full is not None and not reasons,
+        "risk_warnings": reasons,
+        "investable_score": None, "confirmed_rank": None,
         "historical_success_probability": None,
-        "buy_certified": False,
+        "buy_certified": False, "v3_release_ready": False,
     }
 
 
-def rank_eligible_rows(rows):
-    """Set deterministic total-market research rank, risk-excluded rows unranked."""
-    if not isinstance(rows, list):
-        raise ValueError("rows must be a list")
-    for r in rows:
-        r["pattern_composite"] = evaluate(r)
-    eligible = [r for r in rows if r["pattern_composite"]["ready_for_ranking"]]
-    eligible.sort(key=lambda r: (-r["pattern_composite"]["research_priority_score"],
-                                 -(r["pattern_composite"]["components"]["weekly_pattern"] or 0),
-                                 -(r["pattern_composite"]["components"]["daily_pattern"] or 0),
-                                 str(r.get("code", ""))))
+def compute_candidates(rows):
+    """Attach technical+six-pillar evidence, retaining legacy order and grade.
+
+    With no verified five external pillars, the provisional six-pillar sort
+    correctly stays empty. Do not rank technical 15/15 as if it were 100.
+    """
+    for row in rows:
+        row["v3_pattern_integrated"] = evaluate(row)
+    eligible = [row for row in rows
+                if row["v3_pattern_integrated"]["provisional_full_six_pillar_sort_eligible"]]
+    eligible.sort(key=lambda row: (
+        -row["v3_pattern_integrated"]["six_pillar_full_candidate_only"],
+        -float(row["v3_pattern_integrated"]["technical_research_candidate"]),
+        str(row.get("code", "")),
+    ))
     for index, row in enumerate(eligible, 1):
-        row["pattern_composite"]["rank"] = index
+        row["v3_pattern_integrated"]["provisional_rank"] = index
     return eligible
