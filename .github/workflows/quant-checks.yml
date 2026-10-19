@@ -25,6 +25,10 @@ jobs:
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: OCI installer syntax only (no cloud access, no secrets)
         run: bash -n deploy/oci_prepare.sh
+      - name: KRX real daily two-market history bounded offline contracts only
+        run: |
+          python -m py_compile v3_krx_history_collection.py
+          python -m unittest discover -s tests -p 'test_v3_krx_history_collection.py' -v
       - name: KRX website investor flow offline contract (no network or keys)
         run: python -m unittest discover -s tests -p 'test_v3_krx_website_flow_pilot.py' -v
       - name: KRX official two-market private staging offline contract (no keys or network)
