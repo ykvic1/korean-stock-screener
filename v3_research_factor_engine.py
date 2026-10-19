@@ -230,6 +230,43 @@ def research_factor_batch(rows, *, asof, min_peers=MIN_PEERS):
                     return None
                 values.append(max_pts * _midrank(value, peers, direction))
             return round(sum(values), 6)
+        # Optional technical reference: preserve the *original* 15-point
+        # budget while reporting only observed same-market research points.
+        # Missing weekly 120-MA never becomes a synthetic zero, receives a
+        # bonus, or gets reweighted to other technical metrics.
+        technical_components = {}
+        for metric, possible, direction, _ in PILLAR_METRICS["technical"]:
+            metric_value = row["features"][metric]
+            comparable = baseline[metric]
+            technical_components[metric] = (
+                round(possible * _midrank(metric_value, comparable, direction), 6)
+                if metric_value is not None and len(comparable) >= min_peers
+                else None
+            )
+        technical_possible = sum(
+            weight for metric, weight, _, _ in PILLAR_METRICS["technical"]
+            if technical_components[metric] is not None
+        )
+        technical_partial = {
+            "research_points_unscaled": (
+                round(sum(v for v in technical_components.values() if v is not None), 6)
+                if technical_possible else None
+            ),
+            "observed_maximum_points": technical_possible,
+            "unavailable_maximum_points": PILLAR_POINTS["technical"] - technical_possible,
+            "observed_metrics": sorted(
+                name for name, value in technical_components.items()
+                if value is not None),
+            "missing_or_insufficient_peer_metrics": sorted(
+                name for name, value in technical_components.items()
+                if value is None),
+            "individual_research_points": technical_components,
+            "missing_120week_is_not_zero_or_reweighted": True,
+            "equal_to_complete_technical_pillar": (
+                technical_possible == PILLAR_POINTS["technical"]),
+            "confirmed_technical_score": None,
+            "v3_release_ready": False,
+        }
         ias_parts = {
             name: score_component(spec) for name, spec in IAS_METRICS.items()
         }
@@ -250,6 +287,7 @@ def research_factor_batch(rows, *, asof, min_peers=MIN_PEERS):
                 name: scorecard["pillars"][name]["candidate_points"]
                 for name in PILLAR_POINTS
             },
+            "technical_subfactor_partial_research_only": technical_partial,
             "per_metric_valid_peer_count": {
                 name: len(baseline[name])
                 for name in FIELD_SPECS
