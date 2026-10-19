@@ -147,10 +147,11 @@ def _trend_score(r):
 def _downside_score(r):
     stop = _number(r.get("stop_pct"))
     level = _number(r.get("stop_line"))
-    close = _number(r.get("price"))
-    # During score_one, only price_latest exists; published snapshots use price.
+    # Structural stop_pct is calculated against analysed price_latest,
+    # NOT potentially stale KRX listing snapshot price.
+    close = _number(r.get("price_latest"))
     if close is None:
-        close = _number(r.get("price_latest"))
+        close = _number(r.get("price"))
     if stop is None or level is None or close is None or close <= 0:
         return None
     if not (-100 < stop < 0) or not 0 < level < close:
