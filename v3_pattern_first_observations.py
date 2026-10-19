@@ -118,7 +118,8 @@ def observe(df):
                         30 <= rs[-1] <= 60)
     patterns = [p for p in (_bull_flag(close, high, low, vol),
                               _double_bottom(close, high, low, vol)) if p]
-    out.update(status="heuristic_unverified",
+    out.update(asof=df.index[-1].date().isoformat(),
+               status="heuristic_unverified",
                rsi14=round(float(rs[-1]), 2) if np.isfinite(rs[-1]) else None,
                rsi30_cross_recent=cross_recent,
                rsi_bullish_divergence_recent=bool(np.any(bull[-12:])),
