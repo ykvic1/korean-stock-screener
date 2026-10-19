@@ -21,7 +21,7 @@ function observedAnnuals(official,asof){
     x.year<=Number(asof.slice(0,4))&&x.year>=2010&&
     (x.fs_div==='CFS'||x.fs_div==='OFS')&&x.currency==='KRW'&&
     typeof x.values==='object'&&x.values!==null&&
-    typeof x.receipt_id==='string'&&/^\\d{14}$/.test(x.receipt_id)&&
+    typeof x.receipt_id==='string'&&/^\d{14}$/.test(x.receipt_id)&&
     x.receipt_id.slice(0,8)<=asof.replaceAll('-',''))
     .sort((a,b)=>b.year-a.year||(a.fs_div==='CFS'?-1:1));
   const annual=candidates[0];
