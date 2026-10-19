@@ -101,7 +101,7 @@ def _read_verified_pairs(con):
     try:
         rows = con.execute(
             "SELECT asof,chain_entry_json,kospi_raw,kosdaq_raw "
-            "FROM source_pairs ORDER BY asof ASC").fetchall()
+            "FROM source_pairs ORDER BY asof ASC")
     except sqlite3.Error:
         raise PrivateStoreError("private_archive_unreadable") from None
     manifest = empty_manifest()
