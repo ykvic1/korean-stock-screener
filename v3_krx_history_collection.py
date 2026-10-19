@@ -8,7 +8,8 @@ Default mode does not call KRX and does not save vendor data. Live is opt-in.
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, time
+from zoneinfo import ZoneInfo
 from hashlib import sha256
 import json
 import os
@@ -45,9 +46,11 @@ def validate_dates(dates):
         # CANDIDATES, never independently certified exchange sessions.
         if day.weekday() >= 5:
             raise HistoryCollectionError("non_session_weekend_date")
-        if day > datetime.now(timezone.utc).date():
-            # Future UTC day is always in the future in KST as well.
+        now_kst = datetime.now(ZoneInfo("Asia/Seoul"))
+        if day > now_kst.date():
             raise HistoryCollectionError("future_trade_date_not_allowed")
+        if day == now_kst.date() and now_kst.time() < time(15, 30):
+            raise HistoryCollectionError("session_not_yet_completed")
         if accepted and item <= accepted[-1]:
             raise HistoryCollectionError("duplicate_or_unsorted_dates")
         accepted.append(item)
@@ -59,6 +62,12 @@ def _snapshot_market(rows, raw, *, market, asof):
     if (not isinstance(rows, list) or not 0 < len(rows) <= 20000
             or type(raw) is not bytes or not raw):
         raise HistoryCollectionError("invalid_market_snapshot")
+    try:
+        body = json.loads(raw)
+        if not isinstance(body, dict) or body.get("OutBlock_1") != rows:
+            raise ValueError()
+    except (ValueError, TypeError, UnicodeError):
+        raise HistoryCollectionError("market_rows_disagree_with_raw_source") from None
     seen = set()
     usable = []
     quarantined = 0
