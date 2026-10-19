@@ -156,9 +156,12 @@ class AppendOnlyPlanningTests(unittest.TestCase):
     def test_wrong_schedule_and_invalid_limits_fail_closed(self):
         for start,end in (("2026-10-17","2026-10-18"),
                           ("2026-10-16","2026-10-15"),
-                          ("2025-01-01","2026-10-16")):
+                          ("1990-01-01","2026-10-16")):
             with self.subTest(start=start,end=end),self.assertRaises(BackfillPlanError):
                 calendar_weekday_candidates(start,end)
+        # The old 560-calendar-day cap was only a pilot limit.
+        self.assertGreater(
+            len(calendar_weekday_candidates("2025-01-01","2026-10-16")), 400)
         with self.assertRaises(BackfillPlanError):
             plan_next_batch(["2026-10-16","2026-10-15"])
         with self.assertRaises(BackfillPlanError):
