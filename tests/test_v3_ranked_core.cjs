@@ -352,6 +352,9 @@ assert.equal(nowResearched.recommendationUsableQuantCount,1,
 const badRec={...recs,asof:'2026-10-15'};
 assert.equal(m.prepare(snap,research,badRec).recommendationCount,0);
 assert.equal(m.esc('<img src=x>'),'&lt;img src=x&gt;');
+assert.equal(m.stockPage('005930'),'https://finance.naver.com/item/main.naver?code=005930');
+assert.equal(m.stockPage('005930?x=1'),null,'do not allow user-supplied external link injection');
+assert.equal(m.stockPage('<script>'),null);
 const home=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
 assert.ok(home.includes('자동 종목 추천 · 퀀트 검증'));
 assert.ok(home.includes('v3-ranking.js')&&home.includes('v3-ranking.css'));
@@ -370,6 +373,8 @@ assert.ok(uiSource.includes('model.priorityQuantRequested')&&uiSource.includes('
 assert.ok(uiSource.includes('v3-dart-book-reference.json')&&
  uiSource.includes('model.rollingBookCount'),
  'rolling multi-company annual accounts should appear on ranked user view without scoring');
+assert.ok(uiSource.includes('rel="noopener noreferrer"')&&uiSource.includes('종목 차트'),
+ 'validated per-ticker chart navigation should work without new quote scraping');
 assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)'),
  'make downside tier and historical stop-first metrics visible on candidate card');
 // Also exercise the *published* actual market source. Do not assert a minimum
