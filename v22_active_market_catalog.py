@@ -28,6 +28,17 @@ def _amount(value):
 def _six_code(value):
     return type(value) is str and re.fullmatch(r"\d{6}",value) is not None
 
+def _listing_zero_volume(value):
+    """Boolean-only single-session listing reference; never the source volume.
+
+    Missing, fractional, negative, NaN and infinity cannot be recoded as
+    'zero trades'. This FDR KRX-MARCAP listing is *not* an independently
+    certified exchange-specific 09:00–15:30 session observation.
+    """
+    if not _finite(value) or value < 0 or value != int(value):
+        return None
+    return value == 0
+
 def build_active_catalog(snapshot:dict, listing:dict)->dict:
     audit=audit_published_universe(snapshot)
     if not isinstance(listing,dict) or len(listing)!=audit["market_listing_size"]:
@@ -51,6 +62,9 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
     pbr_observed=0;flow_observed=0
     price_failed_rounded_zero_turnover=0
     insufficient_nonzero_rounded_turnover=0
+    listing_zero_volume_reference_count=0
+    price_failed_with_listing_zero_volume_reference_count=0
+    listing_volume_reference_missing_count=0
     for code in sorted(listing_codes):
         item=listing[code]
         if not isinstance(item,dict) or item.get("code")!=code:
@@ -71,6 +85,16 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
         else:
             status="unattempted_batch"
         status_counts[status]+=1
+        # Unlike rounded turnover, the listing's share count can distinguish
+        # an observed exact zero from 0.00 eok with a small positive trade.
+        # Publish ONLY the tri-state indicator, not the raw share count.
+        listing_zero_volume=_listing_zero_volume(item.get("snapshot_volume"))
+        if listing_zero_volume is None:
+            listing_volume_reference_missing_count+=1
+        if listing_zero_volume is True:
+            listing_zero_volume_reference_count+=1
+            if status=="price_source_or_validation_error":
+                price_failed_with_listing_zero_volume_reference_count+=1
         # FDR listing reports turnover in eok units, rounded to 0.01 eok.
         # Thus 0.00 eok is NOT proof of exactly zero executed shares.
         turnover_reference=_amount(item.get("trading_eok"))
@@ -110,6 +134,7 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
             "published_price":existing["price"] if existing else None,
             "reference_market_cap_eok":_amount(item.get("market_cap_eok")),
             "reference_trading_value_eok":turnover_reference,
+            "listing_zero_volume_reference":listing_zero_volume,
             "pbr_observed":pbr,
             "pbr_source": (item.get("valuation_source") or "v2_observed_unknown_provider") if pbr is not None else None,
             "flow_reference":flow,
@@ -134,6 +159,10 @@ def build_active_catalog(snapshot:dict, listing:dict)->dict:
                           "insufficient_history","unattempted_batch")},
         "price_error_rounded_zero_turnover_reference_count":price_failed_rounded_zero_turnover,
         "insufficient_history_nonzero_turnover_reference_count":insufficient_nonzero_rounded_turnover,
+        "listing_zero_volume_reference_count":listing_zero_volume_reference_count,
+        "price_error_with_listing_zero_volume_reference_count":price_failed_with_listing_zero_volume_reference_count,
+        "listing_volume_reference_missing_count":listing_volume_reference_missing_count,
+        "reference_volume_note":"Single KRX-MARCAP listing share-count ZERO only; not independently confirmed KRX regular-session activity or suspension",
         "reference_turnover_rounding_note":"0.00 eok is rounded, not proof of zero actual won or suspension",
         "pbr_observed_count":pbr_observed,
         "flow_reference_count":flow_observed,
