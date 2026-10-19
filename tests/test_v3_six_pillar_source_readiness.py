@@ -18,7 +18,7 @@ def fixture():
              "ma120w_gap": 2.1,
              "pattern_research": {"asof":"2026-10-19", "timeframe":"daily",
                                   "status":"heuristic_unverified", "scoring_allowed":False},
-             "pattern_weekly_research": {"timeframe":"weekly",
+             "pattern_weekly_research": {"asof":"2026-10-16", "timeframe":"weekly",
                   "completed_week_only":True,"status":"heuristic_unverified",
                   "scoring_allowed":False},
              "relative20": 2.1, "relative60": -3.4,
