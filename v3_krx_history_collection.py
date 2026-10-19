@@ -17,7 +17,8 @@ from pathlib import Path
 import re
 
 from official_probe.clients import KRXClient, KRXProbeError, ProbeError
-from official_probe.validation import inspect_krx, _numeric
+from official_probe.validation import inspect_krx
+from v3_krx_daily_anomaly_triage import classify_row, new_counts, validate_quality_counts
 from v3_local_private_store import store_pair, PrivateStoreError, inspect_private_store
 
 MAX_DATES_PER_BATCH = 5
@@ -152,6 +153,8 @@ def _snapshot_market(rows, raw, *, market, asof):
     seen = set()
     usable = []
     quarantined = 0
+    reason_counts = new_counts()
+    zero_aggregate_volume_rows = 0
     for item in rows:
         if not isinstance(item, dict):
             raise HistoryCollectionError("invalid_market_member")
@@ -162,20 +165,21 @@ def _snapshot_market(rows, raw, *, market, asof):
         seen.add(code)
         if str(item.get("BAS_DD", "")).replace("-", "") != asof.replace("-", ""):
             raise HistoryCollectionError("cross_date_market_data")
-        try:
-            op, hi, lo, cl = (
-                _numeric(item.get(f), f, positive=True)
-                for f in ("TDD_OPNPRC", "TDD_HGPRC", "TDD_LWPRC", "TDD_CLSPRC")
-            )
-            vol = _numeric(item.get("ACC_TRDVOL"), "ACC_TRDVOL")
-            if lo > min(op, cl) or hi < max(op, cl) or lo > hi:
-                raise ProbeError("invalid OHLC bounds")
-        except ProbeError:
-            # Suspended/unpriced issuer cannot be silently filled. Preserve
-            # RAW bytes privately and count quarantined candidates.
+        reason, zero_vol = classify_row(item)
+        reason_counts[reason] += 1
+        if reason != "valid_numeric_observation":
+            # Invalid OHLC cannot be fabricated or silently repaired.
+            # No evidence yet whether a halt, corporate action or vendor
+            # missing value was responsible.
             quarantined += 1
             continue
+        if zero_vol:
+            zero_aggregate_volume_rows += 1
         usable.append(item)
+    try:
+        validate_quality_counts(reason_counts, len(rows), zero_aggregate_volume_rows)
+    except ValueError:
+        raise HistoryCollectionError("daily_anomaly_accounting_invalid") from None
     if not usable:
         raise HistoryCollectionError("no_usable_ohlcv_market_rows")
     numeric_codes = [r for r in usable if re.fullmatch(r"[0-9]{6}", r["ISU_CD"])]
@@ -202,6 +206,9 @@ def _snapshot_market(rows, raw, *, market, asof):
         "six_character_alphanumeric_code_rows": len(alphanumeric_codes),
         "opaque_alphanumeric_identity_reconciled_with_official_master": False,
         "quarantined_unpriced_candidates": quarantined,
+        "price_volume_anomaly_reason_counts": reason_counts,
+        "zero_accumulated_volume_on_numeric_rows": zero_aggregate_volume_rows,
+        "halt_or_delisting_cause_verified": False,
         "source_sha256": sha256(raw).hexdigest(),
         "regular_session_volume_verified": False,
         "corporate_actions_verified": False,
