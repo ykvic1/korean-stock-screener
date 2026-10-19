@@ -1,6 +1,6 @@
 """Pattern-heavy TECHNICAL 25/100 research adapter for the six pillars.
 
-IAS25, financial15, valuation15, technical25, industry15, momentum5.
+IAS20, financial15, valuation15, technical25, industry15, momentum10.
 This module never substitutes a technical-only 100-point ranking for six-pillar
 evidence or generates buy recommendations. Weekly candles must be completed.
 """
@@ -9,7 +9,7 @@ import math
 
 from v3_score_contract import PILLAR_POINTS, research_scorecard
 
-SCHEMA = "v3-pattern-within-six-pillars-research-0.3"
+SCHEMA = "v3-pattern-within-six-pillars-research-0.4"
 SOURCE = "v3-pattern-first-daily-research-0.1"
 
 # All items fit strictly WITHIN the user-updated 25-point technical pillar.
@@ -20,8 +20,8 @@ TECHNICAL_WEIGHTS = {
     "weekly_ma120": 3, "volume_confirmation": 2,
 }
 assert dict(PILLAR_POINTS) == {
-    "ias": 25, "financial": 15, "valuation": 15,
-    "technical": 25, "industry": 15, "momentum": 5,
+    "ias": 20, "financial": 15, "valuation": 15,
+    "technical": 25, "industry": 15, "momentum": 10,
 }
 assert sum(TECHNICAL_WEIGHTS.values()) == PILLAR_POINTS["technical"]
 
