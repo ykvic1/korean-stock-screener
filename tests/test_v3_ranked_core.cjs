@@ -372,4 +372,15 @@ assert.ok(uiSource.includes('v3-dart-book-reference.json')&&
  'rolling multi-company annual accounts should appear on ranked user view without scoring');
 assert.ok(uiSource.includes('rank-caution')&&uiSource.includes('quantGlance(x.q)'),
  'make downside tier and historical stop-first metrics visible on candidate card');
+// Also exercise the *published* actual market source. Do not assert a minimum
+// count: legitimate weak-market periods may yield zero safe watch candidates.
+const liveDaily=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
+const liveWatch=m.prepare(liveDaily,null,null);
+assert.ok(liveWatch.watchCount<=liveWatch.rows.length);
+assert.ok(liveWatch.obvLagCount<=liveWatch.watchCount);
+assert.ok(m.select(liveWatch,'watch').every(x=>x.watch&&!x.highRisk&&
+ x.r.obv_rising===true&&x.risk>=3&&x.risk<=15));
+console.log('Published actual market technical watch evidence:',liveDaily.date,
+  'scored=',liveWatch.rows.length,'watch=',liveWatch.watchCount,
+  'OBV-price-lag=',liveWatch.obvLagCount);
 console.log('v3 ranked beta: weighted legacy points, structural downside, quant date and no fake V3 promotion tests passed');
