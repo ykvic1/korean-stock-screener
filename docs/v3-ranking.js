@@ -101,6 +101,7 @@ function validatedPatternResearch(r){
  const p=r?.pattern_research;
  if(!p||p.schema!=='v3-pattern-first-daily-research-0.1'||
     p.timeframe!=='daily'||p.status!=='heuristic_unverified'||
+    p.asof!==r.price_date||
     p.scoring_allowed!==false||p.buy_signal!==false||
     p.official_regular_session_verified!==false||
     !Array.isArray(p.patterns)||p.patterns.length>6||
