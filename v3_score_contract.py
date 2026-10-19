@@ -14,17 +14,17 @@ from numbers import Real
 from types import MappingProxyType
 from typing import Mapping
 
-VERSION = "v3-six-pillar-contract-0.2-research-only"
-# User-directed tech 25 / financial 15. The original other four weights
-# would sum to 105, so provisional overlap reduction: momentum 10 -> 5.
-# Investment score remains unverified until source/PIT tests approve it.
+VERSION = "v3-six-pillar-contract-0.3-research-only"
+# User-approved whole-model weights, exactly 100 points.
+# IAS internal 100-point evidence weights remain unchanged; scaled to 20/100.
+# Values remain research-only until provenance and PIT calibration are verified.
 PILLAR_POINTS = MappingProxyType({
-    "ias": 25,
+    "ias": 20,
     "financial": 15,
     "valuation": 15,
     "technical": 25,
     "industry": 15,
-    "momentum": 5,
+    "momentum": 10,
 })
 IAS_POINTS = MappingProxyType({
     "long_term_holding": 20,
@@ -49,8 +49,8 @@ class ScoreContractError(ValueError):
 def _check_design() -> None:
     if (sum(PILLAR_POINTS.values()) != MODEL_MAX
             or dict(PILLAR_POINTS) != {
-                "ias": 25, "financial": 15, "valuation": 15,
-                "technical": 25, "industry": 15, "momentum": 5,
+                "ias": 20, "financial": 15, "valuation": 15,
+                "technical": 25, "industry": 15, "momentum": 10,
             }
             or sum(IAS_POINTS.values()) != IAS_MAX
             or set(NET_BUY_PERIOD_WEIGHT) != {20, 60, 120, 250}
