@@ -56,6 +56,8 @@ class ActiveListedMarketCatalogTests(unittest.TestCase):
         self.assertEqual(len(c["rows"]),7)
         self.assertEqual({x["code"] for x in c["rows"]},set(listing))
         self.assertEqual(c["pbr_observed_count"],1)
+        self.assertEqual(c["price_error_rounded_zero_turnover_reference_count"],0)
+        self.assertEqual(c["insufficient_history_nonzero_turnover_reference_count"],2)
         self.assertEqual(c["flow_reference_count"],1)
         self.assertFalse(c["historical_delisted_stocks_included"])
         self.assertTrue(c["historical_backtest_has_survivorship_bias"])
