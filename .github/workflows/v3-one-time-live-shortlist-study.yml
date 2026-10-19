@@ -1,0 +1,107 @@
+name: V3 One-Time Live Shortlist Quant Pilot
+
+on:
+  push:
+    branches: [v3-live-shortlist-quant-pilot]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-one-time-live-shortlist-study
+  cancel-in-progress: false
+
+jobs:
+  shortlist-actual-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install only existing research dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify source listing and the three featured candidates are selected first
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          from datetime import date
+          from pathlib import Path
+          import json
+          from quant_priority_universe import prioritized_stocks
+          from v3_ranked_quant_coverage import audit_recommended_quant
+          d=json.loads(Path('docs/data.json').read_text())
+          r=json.loads(Path('docs/recommendations.json').read_text())
+          today=date.today()
+          asof=date.fromisoformat(d['date'])
+          if (today-asof).days not in range(0,8):
+              raise ValueError('source_market_snapshot_not_recent')
+          shortlist=[x['code'] for x in r['dossiers']]
+          chosen=[x['code'] for x in prioritized_stocks(d,r,40)]
+          if not shortlist or chosen[:len(shortlist)]!=shortlist:
+              raise ValueError('actual_shortlist_not_first_in_study')
+          print('day='+d['date'])
+          print('candidate_count='+str(len(shortlist)))
+          PY
+      - name: Fetch nine-year OHLCV in private job cache (40 actual current-day targets max)
+        id: prices
+        continue-on-error: true
+        shell: bash
+        run: |
+          python quant_fetch_history.py \
+            --signals docs/data.json \
+            --cache-dir cache/quant_history \
+            --asof "${{ steps.source.outputs.day }}" \
+            --years 9 \
+            --max-stocks 40 \
+            --recommendations docs/recommendations.json
+      - name: Compute actual exploratory nearest-case quant, not future prediction
+        if: steps.prices.outcome == 'success'
+        id: quant
+        continue-on-error: true
+        run: |
+          python quant_engine.py \
+            --signals docs/data.json \
+            --history-dir cache/quant_history \
+            --output docs/quant.json \
+            --asof "${{ steps.source.outputs.day }}" \
+            --max-stocks 40 \
+            --recommendations docs/recommendations.json
+      - name: Check real recommended-candidate evidence, without publishing raw stock prices
+        if: steps.quant.outcome == 'success'
+        id: coverage
+        continue-on-error: true
+        run: |
+          python v3_ranked_quant_coverage.py \
+            --screen docs/data.json \
+            --recommendations docs/recommendations.json \
+            --quant docs/quant.json \
+            --output docs/v3-quant-coverage.json \
+            --assert-study-candidates
+      - name: Upload only derived evidence and safe aggregate fetch status, never raw OHLCV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-live-shortlist-research-${{ github.run_id }}
+          path: |
+            docs/v3-quant-coverage.json
+            cache/quant_history/cache_status.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Report verified study status
+        if: always()
+        env:
+          PRICES_OUTCOME: ${{ steps.prices.outcome }}
+          STUDY_OUTCOME: ${{ steps.quant.outcome }}
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
+        run: |
+          echo "Price source: $PRICES_OUTCOME"
+          echo "Quant engine: $STUDY_OUTCOME"
+          echo "Recommended-candidate coverage: $COVERAGE_OUTCOME"
+          if [ "$COVERAGE_OUTCOME" != "success" ]; then
+            echo "Live FDR OHLCV and/or requested historical data not validated. Do not promote score/returns." >&2
+            exit 1
+          fi
