@@ -98,6 +98,57 @@ class PatternFirstObservations(unittest.TestCase):
         with patch.object(mod, "divergence", return_value=(stale, np.zeros(120, dtype=bool))):
             self.assertFalse(mod.observe(d)["rsi_bullish_divergence_recent"])
 
+    def test_completed_week_only_never_uses_current_partial_bar(self):
+        c = np.ones(130) * 100
+        c[-36:-12] = np.linspace(100, 132, 24)
+        c[-12:-1] = np.linspace(130, 126, 11)
+        c[-1] = 128
+        v = np.ones(130) * 100
+        v[-30:-13] = 330
+        v[-12:] = 90
+        weekly_source = make_df(c, v)
+        weekly_source.index = pd.date_range("2023-01-06", periods=130, freq="W-FRI")
+        base = mod.observe_completed_weekly(weekly_source)
+        self.assertEqual(base["status"], "heuristic_unverified")
+        self.assertEqual(base["timeframe"], "weekly")
+        self.assertTrue(base["completed_week_only"])
+        self.assertEqual(base["asof"], weekly_source.index[-1].date().isoformat())
+        self.assertTrue(any(p["type"] == "bull_flag" for p in base["patterns"]))
+        self.assertFalse(base["scoring_allowed"])
+        self.assertFalse(base["buy_signal"])
+
+        # Very bullish high-volume next Tuesday cannot trigger a new
+        # incomplete Friday bar; last observed Friday signals must be equal.
+        tuesday = weekly_source.index[-1] + pd.Timedelta(days=4)
+        appended = weekly_source.copy()
+        appended.loc[tuesday] = [150, 182, 148, 180, 100000]
+        held = mod.observe_completed_weekly(appended)
+        self.assertEqual(held, base,
+                         "unfinished weekly OHLCV must not contaminate signals")
+        new_friday = weekly_source.index[-1] + pd.Timedelta(days=7)
+        appended.loc[new_friday] = [132, 140, 127, 135, 220]
+        completed = mod.observe_completed_weekly(appended)
+        self.assertEqual(completed["asof"], new_friday.date().isoformat())
+        self.assertEqual(completed["timeframe"], "weekly")
+
+    def test_completed_week_fail_closed_invalid_dates_and_daily_bar(self):
+        c = np.ones(110)*100
+        d = make_df(c)
+        d.index = pd.date_range("2023-01-06", periods=len(d), freq="W-FRI")
+        duplicate = d.copy()
+        ix = duplicate.index.to_list()
+        ix[-1] = ix[-2]
+        duplicate.index = pd.DatetimeIndex(ix)
+        self.assertEqual(mod.observe_completed_weekly(duplicate)["status"],
+                         "insufficient")
+        malformed = d.copy()
+        malformed.iloc[-1, malformed.columns.get_loc("High")] = 1
+        self.assertEqual(mod.observe_completed_weekly(malformed)["status"],
+                         "insufficient")
+        short = d.iloc[-80:]
+        self.assertEqual(mod.observe_completed_weekly(short)["status"],
+                         "insufficient")
+
     def test_missing_invalid_ohlcv_remains_unconfirmed(self):
         self.assertEqual(mod.observe(make_df(np.ones(70) * 100))["status"], "insufficient")
         invalid = make_df(np.ones(120) * 100)
