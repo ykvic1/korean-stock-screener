@@ -132,7 +132,8 @@ def _inputs(market,catalog):
         members[code]={"code":code,"market_cap_eok":cap,
                        "market":row["market"],"score":price.get("score") if price else None,
                        "coverage_pct":price.get("coverage_pct") if price else None,
-                       "priced":price is not None}
+                       "priced":price is not None,
+                       "price_status":row.get("price_history_status")}
     if len(members)!=audit["market_listing_size"]:
         raise ValueError("incomplete_listed_members")
     return day,members
@@ -158,6 +159,7 @@ def plan(market,catalog,*,prior=None,official=None,limit=MAX_PER_RUN):
     # A failure is attempted, NOT a zero PBR. Retry only after fresh names.
     ordered=sorted(members.values(),key=lambda s:(
         s["code"] in history,not s["priced"],
+        s["price_status"]=="price_source_or_validation_error",
         -(_num(s["score"]) or 0),-(_num(s["coverage_pct"]) or 0),s["code"]))
     targets=[x for x in ordered if x["code"] not in history][:limit]
     if not targets:
