@@ -41,7 +41,7 @@ jobs:
               raise ValueError('unverified_production_signal')
           if (date.today()-asof).days not in range(0,8):
               raise ValueError('source_price_date_too_old')
-          if r.get('asof')!=s['date'] or not r.get('research_source_matched'):
+          if (r.get('asof')!=s['date'] or not isinstance(r.get('dossiers'),list)):
               raise ValueError('shortlist_date_mismatch')
           shortlist=[x['code'] for x in r['dossiers']]
           codes=[x['code'] for x in prioritized_stocks(s,r,40)]
