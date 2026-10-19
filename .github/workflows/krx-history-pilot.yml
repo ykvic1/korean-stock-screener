@@ -1,0 +1,62 @@
+name: KRX two-market historical daily pilot (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: '1-5 ascending COMPLETE KRX weekdays YYYY-MM-DD, separated by commas (holidays rejected by source)'
+        required: true
+        type: string
+        default: '2026-10-15,2026-10-16'
+      mode:
+        description: 'Dry-run without any KRX calls (default), or live bounded KRX pair requests'
+        required: true
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: krx-historical-pilot
+  cancel-in-progress: false
+
+jobs:
+  two-market-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install KRX read-only client dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Offline history validation and privacy regression (no key/network)
+        run: python -m unittest discover -s tests -p 'test_v3_krx_history_collection.py' -v
+      - name: Run bounded historical pair pilot; raw source NOT saved on runner
+        env:
+          PILOT_DATES: ${{ inputs.dates }}
+          PILOT_MODE: ${{ inputs.mode }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--dates "$PILOT_DATES" --output evidence/krx_history/summary.json)
+          if [[ "$PILOT_MODE" == live ]]; then
+            args+=(--live)
+          fi
+          # No --private-db: ephemeral GitHub runner is not durable KRX archive.
+          # No scheduled event and no public docs/ file modifications.
+          python -m v3_krx_history_collection "${args[@]}"
+      - name: Keep research-only counts and SHA manifest as a private seven-day artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: krx-historical-pilot-${{ github.run_id }}
+          path: evidence/krx_history/summary.json
+          if-no-files-found: warn
+          retention-days: 7
