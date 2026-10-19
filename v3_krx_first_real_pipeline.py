@@ -110,10 +110,9 @@ def run_five_day_evidence(*, live=False, key=None, client=None):
                 "real_market_quarantined_row_counts": {
                     m: market_counts[m]["quarantined_rows"] for m in market_counts
                 },
-                "observed_valid_target_price_rows":
-                    researched["summary"]["target_count"] * 0
-                    + sum(x["contiguous_ending_bars"] for x in
-                          researched["private_results"].values()),
+                "observed_valid_target_price_rows": sum(
+                    x["contiguous_ending_bars"]
+                    for x in researched["private_results"].values()),
                 "real_target_daily_ma5_available": sum(
                     "daily_ma5" in x["available"]
                     for x in researched["private_results"].values()
