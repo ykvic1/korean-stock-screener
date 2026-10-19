@@ -11,6 +11,7 @@ import re
 REASONS = frozenset({
     "price_empty_history", "price_missing_ohlcv_columns",
     "price_null_ohlcv", "price_stale_history", "price_zero_last_volume_or_close",
+    "price_zero_latest_close", "price_zero_latest_volume",
     "price_numeric_conversion", "price_other_value_error",
     "price_network_timeout", "price_network_connection",
     "price_unexpected_exception",
