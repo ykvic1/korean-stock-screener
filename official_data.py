@@ -9,6 +9,13 @@ from xml.etree import ElementTree as ET
 from datetime import datetime
 
 
+class DartStopCollectionError(Exception):
+    """Stop this batch on account-limit, invalid-key, or service-wide DART errors.
+
+    Deliberately not a RuntimeError: the per-symbol missing-data handler must
+    not swallow this and continue sending additional paid/provider requests.
+    """
+
 
 def receipt_visible(row, asof):
     receipt=str(row.get('rcept_no',''))
@@ -21,7 +28,12 @@ def dart_json(session, endpoint, key, **params):
         r=session.get('https://opendart.fss.or.kr/api/'+endpoint,params={'crtfc_key':key,**params},timeout=30)
         r.raise_for_status(); data=r.json()
     except Exception:raise RuntimeError('OpenDART transport/JSON failure (credentials redacted)') from None
-    if data.get('status') not in ('000','013'):raise RuntimeError('OpenDART status '+str(data.get('status')))
+    status = data.get('status')
+    # HTTP 200 is not proof of an accepted call. Never loop across every issuer
+    # after a provider-wide throttle/account/service failure.
+    if status in ('010', '011', '012', '020', '800', '900', '901'):
+        raise DartStopCollectionError('OpenDART stop status '+str(status)+' (credentials redacted)')
+    if status not in ('000','013'):raise RuntimeError('OpenDART status '+str(status))
     return data.get('list',[])
 
 
