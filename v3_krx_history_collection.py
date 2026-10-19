@@ -26,7 +26,25 @@ MARKETS = ("KOSPI", "KOSDAQ")
 
 
 class HistoryCollectionError(ValueError):
-    """Public-safe fixed code; no raw market data, file paths or keys."""
+    """Public-safe fixed code and bounded context, never vendor messages."""
+
+    def __init__(self, reason, *, market=None, trade_date=None,
+                 completed_pairs=0, http_status=None):
+        safe = (reason if type(reason) is str
+                and re.fullmatch(r"[a-z0-9_]{1,100}", reason)
+                else "unclassified_collection_error")
+        if market not in MARKETS:
+            market = None
+        if (type(trade_date) is not str
+                or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", trade_date)):
+            trade_date = None
+        self.market = market
+        self.trade_date = trade_date
+        self.completed_pairs = completed_pairs if (type(completed_pairs) is int
+                                                    and 0 <= completed_pairs <= MAX_DATES_PER_BATCH) else 0
+        self.http_status = http_status if (type(http_status) is int
+                                           and 100 <= http_status <= 599) else None
+        super().__init__(safe)
 
 
 def validate_dates(dates):
@@ -159,12 +177,23 @@ def collect_krx_history(dates, *, live=False, key=None,
                     rows, raw, market=market, asof=day)
             except KRXProbeError as err:
                 raise HistoryCollectionError(
-                    "krx_" + err.market.lower() + "_" + err.reason) from None
-            except Exception:
-                # Do not emit arbitrary provider exceptions: a transport
-                # exception can contain authorization headers or URLs.
+                    "krx_" + market.lower() + "_" + err.reason,
+                    market=market, trade_date=day,
+                    completed_pairs=len(completed),
+                    http_status=err.http_status) from None
+            except HistoryCollectionError as err:
+                # Exact, internally coded market-schema reason is safe to
+                # retain; previously this was mistaken for a transport error.
                 raise HistoryCollectionError(
-                    "krx_" + market.lower() + "_schema_or_transport_rejected") from None
+                    str(err), market=market, trade_date=day,
+                    completed_pairs=len(completed)) from None
+            except Exception:
+                # Never echo third-party exceptions; they can contain a
+                # request URL, header or token. Unknown failures stay unknown.
+                raise HistoryCollectionError(
+                    "unclassified_market_processing_error",
+                    market=market, trade_date=day,
+                    completed_pairs=len(completed)) from None
             raws[market] = raw
             received[market] = datetime.now(timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ")
@@ -177,7 +206,9 @@ def collect_krx_history(dates, *, live=False, key=None,
                     kosdaq_received_at_utc=received["KOSDAQ"])
             except PrivateStoreError:
                 raise HistoryCollectionError(
-                    "private_two_market_atomic_archive_rejected") from None
+                    "private_two_market_atomic_archive_rejected",
+                    market=None, trade_date=day,
+                    completed_pairs=len(completed)) from None
         completed.append({
             "asof": day,
             "markets": [inspections[m] for m in MARKETS],
