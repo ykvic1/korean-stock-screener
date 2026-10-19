@@ -37,8 +37,12 @@ jobs:
           python -m unittest discover -s tests -p 'test_v22_price_error_triage.py' -v
       - name: v2.2 recent-listing limited 60-159-day MA and OBV with NO unearned stock score (offline)
         run: |
-          python -m py_compile v22_short_history_observations.py
+          python -m py_compile v22_short_history_validation.py v22_short_history_observations.py
           python -m unittest discover -s tests -p 'test_v22_short_history_observations.py' -v
+      - name: V3 manual research page short-history previews, source-date and no-order safety (offline)
+        run: |
+          node --check docs/v3-beta.js
+          node tests/test_v22_short_history_ui.cjs
       - name: v2.2 full-market stock-by-stock accounting and quality safeguards (offline)
         run: |
           python -m py_compile v22_full_universe_audit.py
