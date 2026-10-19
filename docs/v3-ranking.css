@@ -41,6 +41,7 @@ select,input{display:block;width:100%;margin-top:5px;min-height:42px;padding:9px
 .rank-metrics b{display:block;font-size:13px;overflow-wrap:anywhere}
 .rank-caution{background:#fff5eb;border:1px solid #edcf9a;border-radius:7px;padding:8px 10px;font-size:12px;color:#86551e;margin:10px 0}
 .rank-quant-line{padding:9px 11px;margin:9px 0;border-radius:7px;background:#f0f6f9;color:#2b516c;font-weight:700;font-size:12px;line-height:1.8}
+.rank-finance-reference{margin:7px 0 12px;font-size:12px;line-height:1.7;color:#52677a;overflow-wrap:anywhere}
 .rank-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid #e3eaf0;padding-top:10px}
 .rank-foot span{font-size:12px;color:#5a6c7e}
 .rank-foot button{flex-shrink:0}

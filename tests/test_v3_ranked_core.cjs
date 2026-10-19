@@ -100,6 +100,23 @@ assert.equal(m.simpleAnnualOfsBookReference(
  {market_cap_eok:500},{fs_div:'OFS',values:{equity:null}}),null);
 assert.equal(m.simpleAnnualOfsBookReference(
  {market_cap_eok:500},{fs_div:'OFS',values:{equity:-1}}),null);
+const annualCardUI=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+assert.ok(annualCardUI.includes('rank-finance-reference'));
+assert.ok(annualCardUI.includes('bookReference.toFixed(2)'));
+assert.ok(annualCardUI.includes('정식 PBR 점수 제외'));
+assert.ok(annualCardUI.includes('비공식 간이 P/B 미산출'));
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:336.96},{fs_div:'OFS',values:{equity:49_629_200_916}}),0.68,
+ 'verified-formula rounded annual equity reference; no exchange-reported PBR claim');
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:1517.12},{fs_div:'OFS',values:{equity:152_012_858_334}}),1.0,
+ 'separately observed OFS book-value reference is not an investment score');
+const plainScore=m.prepare(snap,research,recs);
+const bookReferenceScore=m.prepare(snap,research,recs,scopedOfficial);
+assert.equal(bookReferenceScore.rows[0].r.score,plainScore.rows[0].r.score,
+ 'historical annual P/B reference cannot silently revise v2 score');
+assert.equal(bookReferenceScore.rows[0].decision.label,plainScore.rows[0].decision.label,
+ 'a low annual book reference cannot independently cause a buy decision');
 assert.equal(m.eok(12000000000),'120억원');
 assert.equal(m.eok(null),'미확인');
 assert.equal(m.prepare(snap,research,recs,{...official,asof:'2026-10-15'}).financialReferenceCount,0,
