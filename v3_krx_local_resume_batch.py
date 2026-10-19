@@ -25,7 +25,7 @@ def run_one_local_batch(*, start, end, database_path, batch_size=5, live=False,
                         consent=False, key=None, client=None):
     if (live is True and consent is not True):
         raise LocalBatchError("private_storage_contract_ack_required")
-    if live is True and (type(database_path) not in (str,Path)
+    if live is True and (not isinstance(database_path, (str, Path))
                          or not str(database_path)):
         raise LocalBatchError("explicit_private_database_path_required")
     if live is True:
