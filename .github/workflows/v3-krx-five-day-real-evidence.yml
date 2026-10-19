@@ -1,12 +1,8 @@
 name: v3 KRX Five-Day Real Evidence (private transient / manual afterwards)
 
 on:
-  # This one-time branch-scoped bootstrap runs on creation of THIS workflow
-  # only. Subsequent code edits/PR CI/merges cannot retrigger live calls.
-  push:
-    branches: [v3-step12-real-krx-five-session-probe]
-    paths:
-      - '.github/workflows/v3-krx-five-day-real-evidence.yml'
+  # Bootstrap live probe succeeded once in Actions run 39206004718.
+  # Manual only from now on. No automatic secret-backed runs.
   workflow_dispatch:
     inputs:
       mode:
@@ -41,13 +37,12 @@ jobs:
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           SELECTED_MODE: ${{ inputs.mode }}
-          EVENT_KIND: ${{ github.event_name }}
           TMPDIR: ${{ runner.temp }}
         run: |
           set -euo pipefail
           # This workflow never uploads artifacts or modifies public files.
           # The provider API key must never be printed or supplied in args.
-          if [[ "$EVENT_KIND" == "push" || "$SELECTED_MODE" == "live" ]]; then
+          if [[ "$SELECTED_MODE" == "live" ]]; then
             python v3_krx_first_real_pipeline.py --live
           else
             python v3_krx_first_real_pipeline.py
