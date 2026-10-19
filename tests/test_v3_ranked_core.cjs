@@ -70,7 +70,7 @@ const oldBroad={status:'exploratory',asof:'2026-10-15',stocks:[]};
 const targeted=m.prepare(snap,oldBroad,recs,undefined,priorityFeed);
 assert.equal(targeted.recommendationQuantCount,1);
 assert.equal(targeted.recommendationUsableQuantCount,1);
-assert.equal(targeted.rows[0].quantSource,'추천 우선 연구 40종목 표본');
+assert.equal(targeted.rows[0].quantSource,'추천 우선 연구 40종목 요청 / 미확인종목 실제 이력 확보');
 assert.equal(targeted.rows[0].decision.label,'조건부 모의 검토');
 assert.equal(m.prepare(snap,research,recs,undefined,priorityFeed).rows[0].quantSource,
  '일반 연구 최대 120종목 표본','prefer same-day full 120 peer study when usable');
