@@ -110,7 +110,7 @@ function select(data,mode,market='all',search=''){
   (mode==='recommended'?x.qualified:mode==='quant'?x.quant:
    mode==='early'?(!x.highRisk&&x.risk!==null&&x.risk>=3&&x.risk<=15&&/초기|전환|수렴|바닥/.test(String(x.r.phase))&&x.r.coverage_pct>=55):true));
 }
-const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,esc,money,pct};
+const core={PERIODS,stopDistance,highRisk,observedScore,period,decision,prepare,select,observedAnnuals,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
