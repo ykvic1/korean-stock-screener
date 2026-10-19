@@ -720,12 +720,12 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
               key=lambda x:x.get('v3_pattern_integrated',{}).get('provisional_rank') or 999999)
             if r.get('v3_pattern_integrated',{}).get('provisional_full_six_pillar_sort_eligible') is True],
          'v3_technical_pattern_status':{
-            'schema':'v3-pattern-within-six-pillars-research-0.2',
-            'status':'six_pillar_framework_technical_15_only',
+            'schema':'v3-pattern-within-six-pillars-research-0.3',
+            'status':'six_pillar_framework_technical_25_only',
             'six_pillar_max':{
-              'ias':25,'financial':20,'valuation':15,
-              'technical':15,'industry':15,'momentum':10},
-            'technical_observed_15_count':sum(
+              'ias':25,'financial':15,'valuation':15,
+              'technical':25,'industry':15,'momentum':5},
+            'technical_observed_25_count':sum(
                 r.get('v3_pattern_integrated',{}).get('technical_research_candidate') is not None
                 for r in rows),
             'candidate_full_six_pillar_count':sum(
