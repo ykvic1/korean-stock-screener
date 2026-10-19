@@ -1,0 +1,94 @@
+name: KRX session-calendar challenge (manual research only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: '1–5 ascending complete weekdays; e.g. 2026-09-23,2026-09-24'
+        required: true
+        type: string
+        default: '2026-09-23,2026-09-24'
+      mode:
+        description: 'dry_run has no official API call; live checks both market endpoints per date'
+        required: true
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: krx-session-calendar-manual
+  cancel-in-progress: false
+
+jobs:
+  manual-calendar-challenge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install read-only official client and pinned third-party research calendar
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Offline synthetic KRX vs XKRX contradiction tests
+        run: python -m unittest discover -s tests -p 'test_v3_krx_session_challenge.py' -v
+      - name: Bounded manual official-API calendar observation
+        shell: bash
+        env:
+          CHALLENGE_DATES: ${{ inputs.dates }}
+          CHALLENGE_MODE: ${{ inputs.mode }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: |
+          set -euo pipefail
+          args=(--dates "$CHALLENGE_DATES" --output evidence/krx_history/calendar_challenge.json)
+          if [[ "$CHALLENGE_MODE" == "live" ]]; then
+            args+=(--live)
+          fi
+          python -m v3_krx_session_challenge "${args[@]}"
+      - name: Report bounded calendar challenge result without codes, prices or keys
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('evidence/krx_history/calendar_challenge.json')
+          if not p.is_file():
+              print('::warning::No KRX calendar diagnostic artifact created')
+              raise SystemExit(0)
+          try:
+              d=json.loads(p.read_text(encoding='utf-8'))
+          except (ValueError,OSError):
+              print('::warning::KRX calendar diagnostic could not be parsed')
+              raise SystemExit(0)
+          if d.get('status')=='blocked':
+              print('::warning::KRX candidate challenge rejected (see private summary)')
+          elif d.get('mode')=='live':
+              for item in d.get('results',[])[:5]:
+                  day=item.get('asof')
+                  state=item.get('comparison')
+                  allowed=('paired_date_observed_in_krx','xkrx_exclusion_and_krx_empty_unverified',
+                           'xkrx_excluded_day_has_two_market_observations',
+                           'xkrx_session_but_two_market_empty_unverified',
+                           'two_markets_disagree_or_partial_day','source_error_or_unverified_response')
+                  if isinstance(day,str) and len(day)==10 and state in allowed:
+                      print('::notice::KRX day='+day+' comparison='+state+
+                            ' (250-day official calendar NOT certified)')
+              if d.get('calendar_challenge_discrepancy_or_error'):
+                  print('::warning::XKRX candidate differs from observed KRX day evidence')
+          else:
+              print('::notice::KRX calendar challenge dry run: zero live API calls')
+          PY
+      - name: Upload private seven-day calendar research summary only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: krx-calendar-challenge-${{ github.run_id }}
+          path: evidence/krx_history/calendar_challenge.json
+          if-no-files-found: warn
+          retention-days: 7
