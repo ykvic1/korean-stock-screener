@@ -36,7 +36,9 @@ def prioritized_stocks(data:dict, recommendations:dict|None, limit:int=120)->lis
             if not isinstance(d,dict):continue
             code=d.get("code")
             if code in rows and code not in priority and (
-                    d.get("qualification")=="needs_deeper_evidence"):
+                    d.get("qualification") in ("needs_deeper_evidence",
+                                                "separate_caution_research_only",
+                                                "verified_recommendation")):
                 priority.append(code)
     codes=(priority+[c for c in ordered if c not in priority])[:limit]
     return [rows[c] for c in codes]
