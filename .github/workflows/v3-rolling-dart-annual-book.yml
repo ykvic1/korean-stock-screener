@@ -1,0 +1,114 @@
+name: Rolling OpenDART Annual Book Reference - Current Listed
+
+on:
+  schedule:
+    - cron: '0 12 * * 1-5'  # 21:00 Korea, after 18:30 full-market scan
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'New companies per run, 20 or 40'
+        required: false
+        default: '40'
+        type: choice
+        options: ['20', '40']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  current-listed-annual-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing OpenDART HTTP dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Offline completeness, receipt, market, no-secret and ratio tests
+        run: |
+          python -m py_compile v3_dart_rolling_book_reference.py
+          python -m unittest discover -s tests -p 'test_v3_dart_rolling_book_reference.py' -v
+      - name: Enrich source-dated live listed names without touching scores
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          REQUESTED_LIMIT: ${{ inputs.limit }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from datetime import datetime,date
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+          import json,os
+          from v22_full_universe_audit import audit_published_universe
+          from v3_dart_rolling_book_reference import write
+          market=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          catalog=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
+          day=market['date']
+          age=(datetime.now(ZoneInfo('Asia/Seoul')).date()-date.fromisoformat(day)).days
+          if age not in range(0,10):
+              raise ValueError('stale_dart_source_date')
+          census=audit_published_universe(market)
+          if catalog['date']!=day or catalog['listed_total']!=census['market_listing_size']:
+              raise ValueError('current_market_census_changed')
+          prior_path=Path('docs/v3-dart-book-reference.json')
+          official_path=Path('docs/official.json')
+          prior=json.loads(prior_path.read_text(encoding='utf8')) if prior_path.exists() else None
+          official=json.loads(official_path.read_text(encoding='utf8')) if official_path.exists() else None
+          quota=int(os.getenv('REQUESTED_LIMIT') or '40')
+          result=write(market,catalog,output=prior_path,prior=prior,official=official,
+                       key=os.environ.get('DART_API_KEY'),limit=quota)
+          if result['asof']!=day or result['market_listed_total']!=census['market_listing_size']:
+              raise ValueError('derived_accounts_bad_scope')
+          for k in ('official_exchange_pbr_verified','historical_point_in_time_verified',
+                    'stock_buy_certified','score_weight_changed',
+                    'raw_dart_account_rows_published'):
+              if result[k] is not False:
+                  raise ValueError('unearned_financial_certification')
+          print('listed=',result['market_listed_total'],
+                'annual_observed=',result['observed_annual_count'],
+                'simple_book_PB_available=',result['pbr_simple_reference_count'],
+                'new_attempts=',result['new_attempts_this_run'],
+                'official_exchange_pbr_or_trade_certified=False')
+          PY
+      - name: Commit after no-stale post-rebase source-day verification
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-book-reference.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Current-listed DART annual equity and simple non-scoring book reference"
+            git pull --rebase origin main
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          market=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          catalog=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
+          book=json.loads(Path('docs/v3-dart-book-reference.json').read_text(encoding='utf8'))
+          listed={r['code'] for r in catalog['rows']}
+          codes=[r['code'] for r in book['records']]
+          observed=[r['code'] for r in book['observations']]
+          if (market['date']!=catalog['date'] or book['asof']!=market['date']
+              or len(listed)!=book['market_listed_total']
+              or not set(codes)<=listed or len(set(codes))!=len(codes)
+              or not set(observed)<=set(codes)
+              or len(codes)!=book['attempted_reference_count']
+              or book['official_exchange_pbr_verified'] is not False
+              or book['raw_dart_account_rows_published'] is not False
+              or book['score_weight_changed'] is not False):
+              raise ValueError('post_rebase_book_census_changed')
+          print('Final same-date market and financial reference publication validated')
+          PY
+            git push origin HEAD:main
+          fi
+      - name: No original filings or stock history artifact
+        if: always()
+        run: echo 'Only bounded annual derived fields; no raw OHLCV, score certification, or investment orders.'
