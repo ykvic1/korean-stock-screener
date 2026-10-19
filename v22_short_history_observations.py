@@ -13,8 +13,8 @@ import math
 import re
 import time
 
-from v22_short_history_23_probe_once import (
-    selection, source_day_diagnostics, MIN_SHORT_RESEARCH_BARS,
+from v22_short_history_validation import (
+    source_day_diagnostics, MIN_SHORT_RESEARCH_BARS,
 )
 
 SCHEMA="v22-current-listed-partial-daily-60to159-v0.1"
