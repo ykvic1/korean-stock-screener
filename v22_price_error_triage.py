@@ -31,6 +31,8 @@ def reason(exc: Exception) -> str:
             "필수 OHLCV 누락": "price_missing_ohlcv_columns",
             "OHLCV 결측 데이터": "price_null_ohlcv",
             "현재가/거래량 오류": "price_zero_last_volume_or_close",
+            "현재 종가 0이하": "price_zero_latest_close",
+            "현재 거래량 0이하": "price_zero_latest_volume",
             "가격 이력 최신성 오류": "price_stale_history",
         }
         if msg in literal:
