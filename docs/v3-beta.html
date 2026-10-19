@@ -33,6 +33,20 @@
     <label>종목명·코드·업종
       <input id="v3Search" type="search" placeholder="예: 삼성, 피에이치에이, 005930" autocomplete="off">
     </label>
+    <label>시장
+      <select id="v3Market">
+        <option value="all">코스피 + 코스닥 전체</option>
+        <option value="KOSPI">코스피</option>
+        <option value="KOSDAQ">코스닥</option>
+      </select>
+    </label>
+    <label>자료 확보 상태
+      <select id="v3Coverage">
+        <option value="all">현재 상장 전 종목</option>
+        <option value="priced">가격 분석 가능</option>
+        <option value="missing">가격 이력 부족·오류·미시도</option>
+      </select>
+    </label>
     <label>차트/수급 패턴 후보
       <select id="v3Pattern">
         <option value="all">전체 분석 종목</option>
