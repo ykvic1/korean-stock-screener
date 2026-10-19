@@ -7,6 +7,8 @@ const finite=x=>typeof x==='number'&&Number.isFinite(x);
 const money=x=>finite(x)?Math.round(x).toLocaleString('ko-KR')+'원':'미확인';
 const pct=x=>finite(x)?(x>=0?'+':'')+x.toFixed(1)+'%':'미산출';
 const eok=x=>finite(x)?(x/100000000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'억원':'미확인';
+const stockPage=code=>/^[0-9]{6}$/.test(String(code))?
+  'https://finance.naver.com/item/main.naver?code='+code:null;
 function observedAnnuals(official,asof){
  const byCode=new Map();
  if(!official||official.asof!==asof||!['observed','completed'].includes(official.dart?.status)
@@ -335,7 +337,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,watchEvidence,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,watchEvidence,stockPage,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;
@@ -379,7 +381,8 @@ function init(){
        '비공식 간이 P/B 미산출 · 동일 기준일 재무/시가총액 자료 확인 필요. 정식 PBR 점수 제외.')+
      '</p>'+
      '<div class="rank-foot"><span>'+esc(x.decision.reason)+'</span>'+
-     '<button type="button" data-show="'+esc(r.code)+'">점수·퀀트 검증 보기</button></div></article>';
+     '<div class="rank-actions"><a class="rank-external" target="_blank" rel="noopener noreferrer" href="'+esc(stockPage(r.code))+'">종목 차트 ↗</a>'+ 
+     '<button type="button" data-show="'+esc(r.code)+'">점수·퀀트 검증 보기</button></div></div></article>';
   }).join(''):'<p class="empty">조건에 해당하는 연구 후보가 없습니다. 추천 수를 억지로 채우지 않았습니다.</p>';
   $('rankMore').hidden=rows.length<=limit;
   D.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
