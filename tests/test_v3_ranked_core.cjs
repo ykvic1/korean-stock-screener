@@ -51,6 +51,41 @@ assert.equal(withFinance.financialReferenceCount,1);
 assert.equal(withFinance.recommendationFinancialCount,1);
 assert.equal(withFinance.rows[0].financialRef.year,2025);
 assert.equal(withFinance.rows[0].financialRef.values.revenue,12000000000);
+const scopedOfficial={...official,dart:{...official.dart,stocks:[{
+ code:'111111',status:'observed',reports:[
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2025,
+   values:{revenue:13000000000,operating_income:4100000000,
+    operating_cashflow:6200000000,operating_margin_pct:31.5,
+    debt_to_equity_pct:6.6}},
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2024,
+   receipt_id:'20250320001234',
+   values:{revenue:12000000000,operating_income:3400000000,
+    operating_cashflow:3000000000,operating_margin_pct:28.3,debt_to_equity_pct:6.1}},
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2023,
+   receipt_id:'20240320001234',
+   values:{revenue:14000000000,operating_income:4300000000,
+    operating_cashflow:3600000000,operating_margin_pct:30.7,debt_to_equity_pct:9.1}},
+  {...official.dart.stocks[0].reports[0],fs_div:'CFS',year:2024,
+   receipt_id:'20250320001234',
+   values:{revenue:999999999999}},
+  {...official.dart.stocks[0].reports[0],fs_div:'OFS',year:2026,
+   receipt_id:'20271111001234',values:{revenue:888888888888}},
+ ]}]}};
+const historical=m.observedAnnuals(scopedOfficial,'2026-10-16').get('111111');
+assert.deepEqual(historical.history.map(x=>x.year),[2025,2024,2023]);
+assert.ok(historical.history.every(x=>x.fs_div==='OFS'),
+ 'never mix different statement scopes in a growth trend');
+assert.ok(m.financialHistoryTable(historical).includes('2023년'));
+assert.ok(m.financialHistoryTable(historical).includes('130억원'));
+assert.ok(!m.financialHistoryTable(historical).includes('9,999억원'));
+assert.ok(!m.financialHistoryTable(historical).includes('2026년'));
+assert.equal(m.observedAnnuals({...scopedOfficial,asof:'2026-10-15'},'2026-10-16').size,0,
+ 'a future or prior matching annual feed must not be used without asof consistency');
+const spoofReceipt=structuredClone(scopedOfficial);
+spoofReceipt.dart.stocks[0].reports=spoofReceipt.dart.stocks[0].reports.map(t=>(
+ {...t,receipt_id:'20271019001234'}));
+assert.equal(m.observedAnnuals(spoofReceipt,'2026-10-16').size,0,
+ 'later-published accounts cannot leak into an earlier stock signal date');
 assert.equal(m.eok(12000000000),'120억원');
 assert.equal(m.eok(null),'미확인');
 assert.equal(m.prepare(snap,research,recs,{...official,asof:'2026-10-15'}).financialReferenceCount,0,
