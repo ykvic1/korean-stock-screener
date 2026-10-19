@@ -139,6 +139,14 @@ jobs:
             python full_market_batch.py merge \
               --manifest batch-plan/manifest.json --parts batch-parts
           fi
+      - name: Reconcile every stock outcome before public v2.2 publication
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
+        run: |
+          set -euo pipefail
+          # Generated report is ONLY aggregate coverage and error categories;
+          # fail-closed if any attempted stock has no accountably distinct outcome.
+          python v22_full_universe_audit.py \
+            --daily docs/data.json --output docs/v22-coverage.json
       - name: Publish ONE final v2 Pages/Excel snapshot after complete union
         if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         shell: bash
