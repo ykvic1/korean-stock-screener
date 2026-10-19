@@ -1,0 +1,47 @@
+name: v3 KRX Historical 2016 2021 Reach (one-time live / manual later)
+
+on:
+  # One-time branch-scoped live smoke passed (Actions run 39206460086).
+  # Future runs are explicitly manual only.
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Live is opt-in; dry_run is zero KRX calls'
+        required: true
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-historic-reach-limited
+  cancel-in-progress: false
+
+jobs:
+  historic-three-day-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install minimum official client requirements
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Verify offline tests prior to live access
+        run: python -m unittest discover -s tests -p 'test_v3_krx_historical_reach_probe.py' -v
+      - name: Query only historic 2016, 2021, 2026 KRX official two-market dates
+        shell: bash
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          # No bytes saved to disk; only non-sensitive aggregate counts printed.
+          if [[ "$MODE" == "live" ]]; then
+            python v3_krx_historical_reach_probe.py --live
+          else
+            python v3_krx_historical_reach_probe.py
+          fi
