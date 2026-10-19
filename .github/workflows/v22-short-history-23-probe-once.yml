@@ -1,0 +1,27 @@
+name: One-Time V2.2 Short-Listed 23 Daily Bar Feasibility
+
+on:
+  push:
+    branches: [v22-short-history-23-actual-coverage-research-20261019]
+
+permissions:
+  contents: read
+
+jobs:
+  short-history-observation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing bounded market data reader
+        run: pip install -r requirements.txt
+      - name: Read 23 asof-matched short daily histories without price export or scoring
+        run: |
+          python -m py_compile v22_short_history_23_probe_once.py
+          python v22_short_history_23_probe_once.py
+      - name: No production mutation
+        if: always()
+        run: echo 'Read-only; no vendor bars, positions, or invented signals published.'
