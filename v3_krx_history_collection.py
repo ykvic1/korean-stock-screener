@@ -19,6 +19,8 @@ import re
 from official_probe.clients import KRXClient, KRXProbeError, ProbeError
 from official_probe.validation import inspect_krx
 from v3_krx_daily_anomaly_triage import classify_row, new_counts, validate_quality_counts
+from v3_krx_zero_price_detail import (
+    empty_zero_details, observe_zero_price_row, validate_zero_details)
 from v3_local_private_store import store_pair, PrivateStoreError, inspect_private_store
 
 MAX_DATES_PER_BATCH = 5
@@ -154,6 +156,7 @@ def _snapshot_market(rows, raw, *, market, asof):
     usable = []
     quarantined = 0
     reason_counts = new_counts()
+    zero_price_details = empty_zero_details()
     zero_aggregate_volume_rows = 0
     for item in rows:
         if not isinstance(item, dict):
@@ -167,6 +170,11 @@ def _snapshot_market(rows, raw, *, market, asof):
             raise HistoryCollectionError("cross_date_market_data")
         reason, zero_vol = classify_row(item)
         reason_counts[reason] += 1
+        if reason == "zero_or_negative_price":
+            try:
+                observe_zero_price_row(item, zero_price_details)
+            except ValueError:
+                raise HistoryCollectionError("zero_detail_accounting_invalid") from None
         if reason != "valid_numeric_observation":
             # Invalid OHLC cannot be fabricated or silently repaired.
             # No evidence yet whether a halt, corporate action or vendor
@@ -178,6 +186,7 @@ def _snapshot_market(rows, raw, *, market, asof):
         usable.append(item)
     try:
         validate_quality_counts(reason_counts, len(rows), zero_aggregate_volume_rows)
+        validate_zero_details(zero_price_details, reason_counts["zero_or_negative_price"])
     except ValueError:
         raise HistoryCollectionError("daily_anomaly_accounting_invalid") from None
     if not usable:
@@ -207,6 +216,7 @@ def _snapshot_market(rows, raw, *, market, asof):
         "opaque_alphanumeric_identity_reconciled_with_official_master": False,
         "quarantined_unpriced_candidates": quarantined,
         "price_volume_anomaly_reason_counts": reason_counts,
+        "zero_price_ohlc_field_counts": zero_price_details,
         "zero_accumulated_volume_on_numeric_rows": zero_aggregate_volume_rows,
         "halt_or_delisting_cause_verified": False,
         "source_sha256": sha256(raw).hexdigest(),
