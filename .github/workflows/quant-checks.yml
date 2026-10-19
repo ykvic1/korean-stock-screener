@@ -27,6 +27,10 @@ jobs:
         run: ./scripts/kiwoom_pagination_probe.ps1 -OfflineSelfTest
       - name: OCI installer syntax only (no cloud access, no secrets)
         run: bash -n deploy/oci_prepare.sh
+      - name: v3 optional partial daily and weekly technical research (no mandatory MA120)
+        run: |
+          python -m py_compile v3_optional_technical_research.py
+          python -m unittest discover -s tests -p 'test_v3_optional_technical_research.py' -v
       - name: v3 KRX private 100-ticker price panel bridge (offline, no score promotion)
         run: |
           python -m py_compile v3_krx_private_price_bridge.py
