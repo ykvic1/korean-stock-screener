@@ -105,8 +105,12 @@ function prepare(data,quant,recs,official,priorityQuant){
    const standardUsable=standard&&['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월']
      .some(k=>period(standard,k));
    const q=standardUsable?standard:(priority||standard);
+   // Validated top-level peer coverage backs a sparse per-ticker pilot.
+   // Never render "undefined" as an observed market sample size.
+   const peerCount=priority&&finite(priority.peer_cohort_valid)?
+     priority.peer_cohort_valid:priorityMatched?priorityQuant.peer_cohort_valid:null;
    const quantSource=priority&&q===priority?
-     '추천 우선 연구 '+priority.peer_cohort_requested+'종목 요청 / '+priority.peer_cohort_valid+'종목 실제 이력 확보':
+     '추천 우선 연구 '+priority.peer_cohort_requested+'종목 요청 / '+peerCount+'종목 실제 이력 확보':
      standard&&q===standard?'일반 연구 최대 120종목 표본':'연구 자료 없음';
    const qualified=!!rec&&rec.qualification==='needs_deeper_evidence'&&!highRisk(r);
    const caution=!!rec&&!qualified;
