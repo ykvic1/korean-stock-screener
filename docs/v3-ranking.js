@@ -100,8 +100,9 @@ function prepare(data,quant,recs,official,priorityQuant){
    const standardUsable=standard&&['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월']
      .some(k=>period(standard,k));
    const q=standardUsable?standard:(priority||standard);
-   const quantSource=q===priority?'추천 우선 연구 '+priority.peer_cohort_requested+'종목 표본':
-                     q===standard?'일반 연구 최대 120종목 표본':'연구 자료 없음';
+   const quantSource=priority&&q===priority?
+     '추천 우선 연구 '+priority.peer_cohort_requested+'종목 표본':
+     standard&&q===standard?'일반 연구 최대 120종목 표본':'연구 자료 없음';
    rows.push({r,q,rec,quantSource,financialRef:financials.get(r.code)||null,quant:!!q,
      qualified:!!rec&&rec.qualification==='needs_deeper_evidence'&&!highRisk(r),
      risk:stopDistance(r),highRisk:highRisk(r),decision:decision(r,q)});
