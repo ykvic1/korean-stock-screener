@@ -300,6 +300,14 @@ def publish(*, manifest: dict, parts_dir: Path,
         attempted, deferred, planned = flow_after_merge(current, day, cfg, errors)
     for r in current:
         screener.score_one(r, cfg)
+    # Scheduled 18:30 uses THIS full-market merger, not build_rows() in
+    # screener.py. Connect the research-only daily + completed-week technical
+    # adapter here too. Otherwise new fields never reach docs/data.json and
+    # every stock incorrectly remains V3-technical-unobserved.
+    # Other five pillars stay explicitly null and the existing v2.2 order,
+    # decision, scoring and recommendation logic are NOT replaced.
+    from v3_pattern_composite_score import compute_candidates
+    compute_candidates(current)
     current.sort(key=lambda r: (
         r["decision"] == "정밀 검토 우선", r["decision"] == "관찰",
         r["score"] or 0, r["coverage_pct"] or 0), reverse=True)
