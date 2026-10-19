@@ -86,6 +86,20 @@ spoofReceipt.dart.stocks[0].reports=spoofReceipt.dart.stocks[0].reports.map(t=>(
  {...t,receipt_id:'20271019001234'}));
 assert.equal(m.observedAnnuals(spoofReceipt,'2026-10-16').size,0,
  'later-published accounts cannot leak into an earlier stock signal date');
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:500},{fs_div:'OFS',values:{equity:50_000_000_000}}),1,
+ 'observed latest OFS year-end total book equity can form a plainly unverified simple P/B reference');
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:1000},{fs_div:'OFS',values:{equity:50_000_000_000}}),2);
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:500},{fs_div:'CFS',values:{equity:50_000_000_000}}),null,
+ 'consolidated equity includes noncontrolling stakes so no simplified official PBR can be inferred');
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:null},{fs_div:'OFS',values:{equity:50_000_000_000}}),null);
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:500},{fs_div:'OFS',values:{equity:null}}),null);
+assert.equal(m.simpleAnnualOfsBookReference(
+ {market_cap_eok:500},{fs_div:'OFS',values:{equity:-1}}),null);
 assert.equal(m.eok(12000000000),'120억원');
 assert.equal(m.eok(null),'미확인');
 assert.equal(m.prepare(snap,research,recs,{...official,asof:'2026-10-15'}).financialReferenceCount,0,
