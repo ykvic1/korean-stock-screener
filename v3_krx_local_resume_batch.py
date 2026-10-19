@@ -28,6 +28,16 @@ def run_one_local_batch(*, start, end, database_path, batch_size=5, live=False,
     if live is True and (type(database_path) not in (str,Path)
                          or not str(database_path)):
         raise LocalBatchError("explicit_private_database_path_required")
+    if live is True:
+        # Fail BEFORE any vendor request if the proposed durable destination
+        # is inside the public GitHub repository, a link or a wrong extension.
+        path = Path(database_path).expanduser()
+        repo_root = Path(__file__).resolve().parent
+        absolute = path.resolve()
+        if (path.suffix != ".sqlite3" or path.is_symlink()
+                or path.parent.is_symlink()
+                or absolute == repo_root or repo_root in absolute.parents):
+            raise LocalBatchError("private_storage_path_not_safe")
     try:
         plan=plan_private_history(start,end,db_path=database_path,
                                   batch_size=batch_size)
