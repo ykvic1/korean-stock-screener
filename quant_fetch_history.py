@@ -11,16 +11,18 @@ from pathlib import Path
 
 import pandas as pd
 import FinanceDataReader as fdr
+from quant_priority_universe import prioritized_stocks, optional_recommendations
 
 NEEDED = ["Open","High","Low","Close","Volume"]
 
 
 def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
-            max_stocks:int=120, sleep:float=.35, force:bool=False):
+            max_stocks:int=120, sleep:float=.35, force:bool=False,
+            recommendations:Path|None=Path('docs/recommendations.json')):
     data=json.loads(signals.read_text(encoding="utf-8"))
     if data.get("status")!="success" or data.get("date")!=asof:
         raise RuntimeError("시세 기준일과 신호 기준일 다름: 과거 신호값 오염 방지")
-    stocks=data.get("stocks",[])[:max_stocks]
+    stocks=prioritized_stocks(data,optional_recommendations(recommendations),max_stocks)
     cache_dir.mkdir(parents=True,exist_ok=True)
     saved=0; fail=[]; fresh=0
     for i,stock in enumerate(stocks,1):
@@ -70,8 +72,10 @@ if __name__=='__main__':
     p.add_argument('--years',type=int,default=9)
     p.add_argument('--max-stocks',type=int,default=120)
     p.add_argument('--force',action='store_true')
+    p.add_argument('--recommendations',default='docs/recommendations.json')
     a=p.parse_args()
     logging.basicConfig(level=logging.INFO)
-    result=collect(Path(a.signals),Path(a.cache_dir),a.asof,a.years,a.max_stocks,force=a.force)
+    result=collect(Path(a.signals),Path(a.cache_dir),a.asof,a.years,a.max_stocks,
+                   force=a.force,recommendations=Path(a.recommendations))
     print(json.dumps(result,ensure_ascii=False))
     if result['fetched']+result['reused']<20:raise SystemExit(2)
