@@ -84,6 +84,21 @@ def _valid_technical_candidate(item, asof):
             and 0 <= score <= PILLAR_POINTS["technical"])
 
 
+def _recent_complete_week(item, market_day):
+    if not isinstance(item, dict) or (
+        item.get("timeframe") != "weekly"
+        or item.get("completed_week_only") is not True
+        or item.get("status") != "heuristic_unverified"
+        or item.get("scoring_allowed") is not False
+    ):
+        return False
+    try:
+        day = _day(item.get("asof"))
+    except ReadinessError:
+        return False
+    return day.weekday() == 4 and 0 <= (market_day-day).days <= 13
+
+
 def _market_source(market):
     if market.get("status") != "success":
         raise ReadinessError("market_run_not_successful")
@@ -111,11 +126,7 @@ def _market_source(market):
         for x in rows
     )
     completed_week_observed = sum(
-        isinstance(x.get("pattern_weekly_research"), dict)
-        and x["pattern_weekly_research"].get("timeframe") == "weekly"
-        and x["pattern_weekly_research"].get("completed_week_only") is True
-        and x["pattern_weekly_research"].get("status") == "heuristic_unverified"
-        and x["pattern_weekly_research"].get("scoring_allowed") is False
+        _recent_complete_week(x.get("pattern_weekly_research"), day)
         for x in rows
     )
     ma120_observed = sum(
