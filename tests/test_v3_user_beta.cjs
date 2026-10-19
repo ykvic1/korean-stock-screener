@@ -54,4 +54,48 @@ assert.ok(page.includes('기존 v2.2 공개 일별 분석값'));
 assert.ok(page.includes('브라우저'));
 assert.ok(page.includes('v3-beta.js')&&page.includes('v3-beta.css'));
 assert.ok(!page.includes('실전 종목 추천 확정'));
+
+const catalogRows=rows.map(r=>({
+  code:r.code,name:r.name,market:r.market,
+  price_history_status:'priced',published_price:r.price,
+  pbr_observed:r.code==='043370'?1.23:null,
+  reference_market_cap_eok:1500,
+  reference_trading_value_eok:2.5,
+  flow_reference:null,
+}));
+catalogRows.push({code:'333333',name:'자료부족기업',market:'KOSPI',
+  price_history_status:'insufficient_history',published_price:null,
+  pbr_observed:0.85,reference_market_cap_eok:600,
+  reference_trading_value_eok:0.5,flow_reference:null});
+catalogRows.push({code:'444444',name:'수집오류기업',market:'KOSDAQ',
+  price_history_status:'price_source_or_validation_error',published_price:null,
+  pbr_observed:null,reference_market_cap_eok:20,
+  reference_trading_value_eok:0.1,flow_reference:null});
+const c={schema:'v22-current-listed-catalog-0.1',date:'2026-10-16',
+  listed_total:5,priced_count:3,
+  status_counts:{priced:3,price_source_or_validation_error:1,
+    insufficient_history:1,unattempted_batch:0},rows:catalogRows};
+const merged=x.mergeCatalog(p,c);
+assert.ok(merged,'all-current-listing catalog should match observed prices');
+assert.equal(merged.catalogLoaded,true);
+assert.equal(merged.stocks.length,5);
+assert.equal(merged.missingCount,2);
+const limited=merged.stocks.find(z=>z.code==='333333');
+assert.equal(limited.price,null);
+assert.equal(limited.pbr_observed,0.85);
+assert.equal(x.makeRecord(limited,'2026-10-16'),null,'cannot paper buy unavailable price history');
+assert.equal(x.eligible(limited,{kind:'all',risk:'all',status:'missing',market:'KOSPI',search:'자료부족'}),true);
+assert.equal(x.eligible(limited,{kind:'all',risk:'all',status:'priced',market:'all',search:''}),false);
+assert.equal(x.eligible(rows[0],{kind:'all',risk:'all',status:'priced',market:'KOSDAQ',search:'043370'}),true);
+assert.equal(x.eligible(rows[0],{kind:'all',risk:'all',status:'all',market:'KOSPI',search:''}),false);
+assert.deepEqual(x.rankRows(merged.stocks).slice(-2).map(z=>z.code),['333333','444444']);
+assert.equal(x.mergeCatalog(p,{...c,date:'2026-10-15'}),null,'stale catalog rejected');
+assert.equal(x.mergeCatalog(p,{...c,listed_total:4}),null,'truncated market rejected');
+assert.equal(x.mergeCatalog(p,{...c,rows:[...catalogRows.slice(0,4),catalogRows[0]]}),null,
+ 'duplicate ticker rejected');
+assert.equal(x.mergeCatalog(p,{...c,rows:catalogRows.map(z=>z.code==='043370'?{...z,published_price:0}:z)}),null,
+ 'price inconsistent with existing public day rejected');
+assert.ok(page.includes('v3Market')&&page.includes('v3Coverage'),
+ 'full KOSPI/KOSDAQ and missing-price filters present');
+console.log('v3 listed-market catalog + reference PBR/flow fallback: all offline tests passed');
 console.log('v3 paper beta: all offline source, risk, filtering, PIT-date and security assertions passed');
