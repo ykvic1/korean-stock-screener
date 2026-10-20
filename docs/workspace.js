@@ -84,25 +84,79 @@ function evidence(r,kind){
  }
  return out;
 }
-function technicalCandidate(r){
+const TECH_PARTS=Object.freeze([
+ ['daily_pattern',7],['weekly_pattern',8],['daily_rsi',2],
+ ['weekly_rsi',3],['weekly_ma120',3],['volume_confirmation',2]
+]);
+function technicalEvidence(r){
  const z=r?.v3_pattern_integrated;
  if(!z||z.schema!=='v3-pattern-within-six-pillars-research-0.4'||
-    z.asof!==r.price_date||z.technical_maximum!==25||
-    z.buy_certified!==false||z.v3_release_ready!==false||
-    z.investable_score!==null)return null;
- const score=z.technical_research_candidate;
- return finite(score)&&score>=0&&score<=25?score:null;
+    !validDate(r.price_date)||z.asof!==r.price_date||
+    z.technical_maximum!==25||z.buy_certified!==false||
+    z.v3_release_ready!==false||z.investable_score!==null)return null;
+ if(z.technical_weights&&TECH_PARTS.some(([k,w])=>z.technical_weights[k]!==w))return null;
+ const full=z.technical_research_candidate;
+ if(full!==null&&full!==undefined&&(!finite(full)||full<0||full>25))return null;
+ const parts=z.technical_parts;
+ if(parts&&typeof parts==='object'&&!Array.isArray(parts)){
+  let earned=0,available=0;
+  for(const [k,max] of TECH_PARTS){
+   if(!Object.prototype.hasOwnProperty.call(parts,k))return null;
+   const value=parts[k];
+   if(value===null)continue;
+   if(!finite(value)||value<0||value>max)return null;
+   earned+=value;available+=max;
+  }
+  if(z.technical_observed_maximum!==undefined&&
+     z.technical_observed_maximum!==available)return null;
+  if(full!==null&&full!==undefined&&
+     (available!==25||Math.abs(earned-full)>0.01))return null;
+  return available>0?{earned:Math.round(earned*10000)/10000,
+   available,fullyObserved:available===25}:null;
+ }
+ return finite(full)?{earned:full,available:25,fullyObserved:true}:null;
+}
+// Returns the full 25-point technical candidate only; partial parts are
+// available separately for the user's unverified, inspectable scorecard.
+function technicalCandidate(r){
+ const x=technicalEvidence(r);
+ return x&&x.fullyObserved?x.earned:null;
 }
 function pillarState(r){
  const z=r?.v3_pattern_integrated;
- const ok=z&&z.schema==='v3-pattern-within-six-pillars-research-0.4'&&
-   z.asof===r.price_date&&z.investable_score===null&&z.buy_certified===false;
+ const tech=technicalEvidence(r);
+ const valid=z&&z.schema==='v3-pattern-within-six-pillars-research-0.4'&&
+   z.asof===r.price_date&&validDate(r.price_date)&&
+   z.buy_certified===false&&z.v3_release_ready===false&&
+   z.investable_score===null;
+ const supplied=valid&&z.six_pillar_candidates&&
+   typeof z.six_pillar_candidates==='object'&&!Array.isArray(z.six_pillar_candidates)?
+   z.six_pillar_candidates:null;
+ const maxima=valid&&z.six_pillar_maximum;
+ const matchingMaxima=!maxima||PILLARS.every(([key])=>maxima[key]===WEIGHTS[key]);
  return PILLARS.map(([key,label])=>{
-  // Only date-valid technical evidence is available at this stage.
-  // Do not present historical legacy v2.2 sub-scores as V3 pillar values.
-  const candidate=key==='technical'?technicalCandidate(r):null;
-  return {key,label,max:WEIGHTS[key],candidate,status:candidate===null?'미산출':'연구 관측'};
+  const maximum=WEIGHTS[key];
+  let candidate=null,available=0;
+  if(key==='technical'&&tech){candidate=tech.earned;available=tech.available;}
+  else if(key!=='technical'&&supplied&&matchingMaxima){
+   const value=supplied[key];
+   // Independently supplied V3 research candidates only; never legacy factors.
+   if(finite(value)&&value>=0&&value<=maximum){
+    candidate=value;available=maximum;
+   }
+  }
+  return {key,label,max:maximum,candidate,available,
+   status:available>0?'미검증 연구점수':'자료 미확보'};
  });
+}
+function researchComposite(r){
+ const pillars=pillarState(r);
+ const available=pillars.reduce((n,p)=>n+p.available,0);
+ const earned=pillars.reduce((n,p)=>n+(p.candidate===null?0:p.candidate),0);
+ return {earned:available>0?Math.round(earned*10000)/10000:null,
+  available,missing:100-available,asof:r.price_date,
+  observedPillars:pillars.filter(p=>p.available>0).length,
+  complete:available===100,provisional:true,pillars};
 }
 function riskState(x,core){
  const r=x.r;
@@ -115,67 +169,58 @@ function riskState(x,core){
    distance<3?'손절선 과도하게 근접':distance>15?'손절 위험 과대':'손실 경계 검토 가능',
    reasons};
 }
-// Global rank is a comparison of the score ACTUALLY shown on each card.
-// It is the old v2.2 observed score (coverage separately disclosed), not
-// the not-yet-verified V3 six-pillar investment total.
-function observedDisplayScore(x){
- return finite(x.r?.score)?Math.round(x.r.score*10)/10:-1;
-}
-function compareObservedScores(a,b){
- const av=observedDisplayScore(a), bv=observedDisplayScore(b);
- const ac=finite(a.r?.coverage_pct)?a.r.coverage_pct:-1;
- const bc=finite(b.r?.coverage_pct)?b.r.coverage_pct:-1;
- return bv-av||bc-ac||String(a.r?.code||'').localeCompare(String(b.r?.code||''));
+// Do not rank using V2.2 legacy points. Research-only ordering prioritizes
+// observed V3 coverage, then observed point sum; unlike a real 100-point
+// investment ranking, comparisons across different coverage are not final.
+function compareResearchScores(a,b){
+ const ac=researchComposite(a.r),bc=researchComposite(b.r);
+ return bc.available-ac.available||
+   (bc.earned??-1)-(ac.earned??-1)||
+   String(a.r?.code||'').localeCompare(String(b.r?.code||''));
 }
 function rankItems(model,core,tab='discover',market='all',query='',sort='score',safeOnly=false,top100Only=false){
  if(!model?.rows||!core)return [];
- const globallyOrdered=model.rows.slice().sort(compareObservedScores);
- let previousScore=null,tieRank=0;
- const scoreRanks=new Map(globallyOrdered.map((x,i)=>{
-   const score=observedDisplayScore(x);
-   if(score!==previousScore){previousScore=score;tieRank=i+1;}
-   return [x.r.code,tieRank];
- }));
+ const ordered=model.rows.slice().sort(compareResearchScores);
+ const candidatePositions=new Map();
+ let next=0;
+ for(const x of ordered)
+  if(researchComposite(x.r).earned!==null)candidatePositions.set(x.r.code,++next);
  const search=String(query).trim().toLocaleLowerCase('ko-KR');
- // A direct ticker lookup is ALWAYS global, never restricted to TOP100,
- // tabs, market or safety filter. Risk warnings remain visible on cards.
- // Retain global legacy rank for comparability without fake V3 rank.
  const rows=model.rows.map(x=>{
   const daily=evidence(x.r,'daily'),weekly=evidence(x.r,'weekly');
   const signals=[...weekly,...daily];
   const risk=riskState(x,core);
   const patterns=signals.filter(z=>z.kind==='pattern');
   const rsi=signals.filter(z=>z.kind==='rsi');
+  const composite=researchComposite(x.r);
   const tech=technicalCandidate(x.r);
   const priority=signals.reduce((acc,z)=>acc+(z.kind==='pattern'?
     (z.timeframe==='weekly'?4:3)+(z.stage==='돌파 관측'?1:0):1),0);
-  return {...x,daily,weekly,signals,patterns,rsi,risk,tech,priority,
-    scoreRank:scoreRanks.get(x.r.code)};
+  return {...x,daily,weekly,signals,patterns,rsi,risk,tech,priority,composite,
+    candidatePosition:candidatePositions.get(x.r.code)??null};
  }).filter(x=>{
   const r=x.r;
+  // Direct ticker lookup is always global. Never suppress a ticker because
+  // its provisional research score is missing or an optional tab is selected.
   if(search)return (r.name+' '+r.code+' '+(r.sector||''))
-     .toLocaleLowerCase('ko-KR').includes(search);
-  if(top100Only&&scoreRanks.get(r.code)>100)return false;
+    .toLocaleLowerCase('ko-KR').includes(search);
+  if(top100Only&&(x.candidatePosition===null||x.candidatePosition>100))return false;
   if(market!=='all'&&r.market!==market)return false;
   if(safeOnly&&x.risk.unsafe)return false;
   if(tab==='patterns')return x.patterns.length>0;
   if(tab==='rsi')return x.rsi.length>0;
   if(tab==='quant')return x.quant;
-  // A high score must never disappear silently. Display the explicit
-  // downside warning; users can apply the separate safer-only filter.
   if(tab==='discover')return x.patterns.length>0||x.rsi.length>0||
     (x.watch!==null&&x.watch!==undefined);
   return true;
  });
  rows.sort((a,b)=>{
-  if(sort==='score')return compareObservedScores(a,b);
+  if(sort==='score')return compareResearchScores(a,b);
   if(sort==='risk')return Number(a.risk.unsafe)-Number(b.risk.unsafe)||
-     (a.risk.distance??1e4)-(b.risk.distance??1e4)||
-     compareObservedScores(a,b);
+   (a.risk.distance??1e4)-(b.risk.distance??1e4)||
+   compareResearchScores(a,b);
   return Number(a.risk.unsafe)-Number(b.risk.unsafe)||
-    b.priority-a.priority||
-    Number(b.researchCandidate)-Number(a.researchCandidate)||
-    compareObservedScores(a,b);
+   b.priority-a.priority||compareResearchScores(a,b);
  });
  return rows;
 }
@@ -184,16 +229,15 @@ function sampleQuant(x,core){
  return core.quantGlance(x.q);
 }
 function technicalParts(r){
- const score=technicalCandidate(r),source=r?.v3_pattern_integrated?.technical_parts;
- if(score===null||!source||typeof source!=='object')return '';
+ const evidence=technicalEvidence(r),source=r?.v3_pattern_integrated?.technical_parts;
+ if(!evidence||!source||typeof source!=='object')return '';
  const items=[['daily_pattern','일봉 패턴',7],['weekly_pattern','주봉 패턴',8],
   ['daily_rsi','일봉 RSI',2],['weekly_rsi','주봉 RSI',3],
   ['weekly_ma120','120주선',3],['volume_confirmation','거래량',2]];
- if(items.some(([k,,max])=>source[k]!==null&&
-    (!finite(source[k])||source[k]<0||source[k]>max)))return '';
  return '<div class="u-parts">'+items.map(([k,label,max])=>
-  '<div><span>'+label+'</span><b>'+(finite(source[k])?source[k].toFixed(1):'미확인')+
-  ' / '+max+'</b></div>').join('')+'</div>';
+  '<div class="'+(finite(source[k])?'u-factor-unverified':'u-legacy-unverified')+'"><span>'+
+   label+'</span><b>'+(finite(source[k])?source[k].toFixed(1):'미산출')+
+   ' / '+max+'</b></div>').join('')+'</div>';
 }
 function quantTable(x,core){
  if(!x.q)return '';
@@ -211,19 +255,19 @@ function summary(model,core){
  return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
   discover:discover.length,pattern:rankItems(model,core,'patterns').length,
   rsi:rankItems(model,core,'rsi').length,
-  technical:model.rows.filter(x=>technicalCandidate(x.r)!==null).length,
-  officialFullScore:0,rollingBook:model.rollingBookCount,
-  quant:model.quantCount};
+  technical:model.rows.filter(x=>technicalEvidence(x.r)!==null).length,
+  provisional:model.rows.filter(x=>researchComposite(x.r).earned!==null).length,
+  officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
 const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalCandidate,pillarState,riskState,rankItems,compareObservedScores,observedDisplayScore,
+ technicalEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
-let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=true,selected=null,limit=20;
+let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,selected=null,limit=20;
 function label(item){return item.stage==='형상 후보'?'형상 후보':item.stage;}
 function patternPill(item){
  const weekly=item.timeframe==='weekly';
