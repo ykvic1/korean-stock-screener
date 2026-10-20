@@ -62,6 +62,21 @@ assert.ok(source.includes('4개년 연간공시 연구 참고')&&
  'four-year metrics cannot silently become a certified 30 point ranking');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+assert.equal(unified.PILLARS[0][0],'ias');
+assert.equal(unified.PILLARS[0][1],'IAS·수급',
+ 'IAS must remain visibly identified as a distinct /20 pillar on every ticker');
+assert.equal(unified.IAS_COMPONENTS.reduce((total,entry)=>total+entry[1],0),100,
+ 'six internal IAS evidence weights must still sum to IAS 100, scaled to V3 20');
+assert.deepEqual(unified.IAS_COMPONENTS.map(entry=>entry[1]),[20,25,15,10,15,15]);
+assert.ok(unified.iasParts().includes('IAS 내부 100점'));
+assert.ok(unified.iasParts().includes('20·60·120·250일 누적 순매수'));
+assert.ok(unified.iasParts().includes('미검증'));
+assert.ok(source.includes('data-pillar="ias"')&&
+ source.includes('IAS 원장 미검증')&&
+ source.includes('IAS(수급) /20'),
+ 'IAS missing numeric value must display as identifiable 20pt unverified investor ledger, not disappear');
+assert.ok(css.includes('.u-scoresix span[data-pillar="ias"] small'),
+ 'mobile IAS identity must remain legible');
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
 assert.deepEqual(unified.marketFreshness('2026-10-20',new Date('2026-10-19T15:10:00Z')),
  {status:'current',calendarDays:0},'KST midnight boundary');
@@ -155,6 +170,29 @@ assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 상승다이버�
 assert.equal(unified.technicalCandidate(row),22.8);
 assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
  [null,22.8,null,null,null,null]);
+const missingIAS=unified.pillarState(row)[0];
+assert.equal(missingIAS.label,'IAS·수급');
+assert.equal(missingIAS.max,20);
+assert.equal(missingIAS.candidate,null);
+assert.equal(missingIAS.available,0);
+assert.ok(unified.iasStatus(missingIAS).includes('결측은 0점이 아닙니다'));
+assert.equal(unified.researchComposite(row).pillars.length,6,
+ 'unverified IAS still occupies one of six visible domain cells');
+const observedResearchIAS={...row,v3_pattern_integrated:{
+ ...row.v3_pattern_integrated,
+ six_pillar_maximum:unified.WEIGHTS,
+ six_pillar_candidates:{ias:7.5,technical:null,financial:null,
+                        valuation:null,industry:null,momentum:null}
+}};
+assert.equal(unified.pillarState(observedResearchIAS)[0].candidate,7.5,
+ 'a separately supplied same-date bounded provisional IAS may be shown as such');
+assert.equal(unified.researchComposite(observedResearchIAS).available,45,
+ 'IAS candidate /20 must contribute 20 available, not old 25 or fabricated amount');
+assert.ok(unified.iasStatus(unified.pillarState(observedResearchIAS)[0])
+ .includes('연구용 잠정값'));
+assert.equal(unified.pillarState({...row,score:100})[0].candidate,null,
+ 'old v2.2 overall score must never be promoted into IAS');
+
 assert.ok(!unified.riskState({r:row},legacy).unsafe);
 assert.equal(unified.riskState({r:{...row,stop_line:60,stop_pct:-40}},legacy).unsafe,true);
 assert.equal(unified.technicalCandidate({...row,v3_pattern_integrated:{
