@@ -18,6 +18,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Check deployed mobile site
         run: |
+          python verify_unified_mobile.py
           python verify_mobile.py
           python verify_quant_mobile.py
       - name: Save mobile verification evidence

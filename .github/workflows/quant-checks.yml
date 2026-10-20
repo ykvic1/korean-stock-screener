@@ -68,6 +68,10 @@ jobs:
         run: |
           node --check docs/v3-ranking.js
           node tests/test_v3_ranked_core.cjs
+      - name: Unified single-screen V3 research workspace and mobile layout with live saved data (offline)
+        run: |
+          node --check docs/workspace.js
+          node tests/test_v3_unified_workspace.cjs
       - name: v3 user-facing paper-beta page and browser logic (offline)
         run: |
           node --check docs/v3-beta.js

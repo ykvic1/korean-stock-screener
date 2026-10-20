@@ -1,0 +1,116 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const unified=require('../docs/workspace.js');
+const legacy=require('../docs/v3-ranking.js');
+const html=fs.readFileSync(path.join(__dirname,'../docs/workspace.html'),'utf8');
+const css=fs.readFileSync(path.join(__dirname,'../docs/workspace.css'),'utf8');
+const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
+const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
+const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
+const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
+assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+assert.ok(html.includes('id="unifiedApp"'));
+assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
+for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
+ 'id="tabs"','id="saferOnly"','id="reload"','id="statV3"',
+ '일봉은 스윙, 주봉은 중기·장기','Bull Flag','폴링 웻지','역헤드앤숄더','더블바텀'])
+ assert.ok(html.includes(s),'single screen missing '+s);
+assert.ok(html.includes('workspace.js')&&html.includes('v3-ranking.js'));
+assert.ok(/meta http-equiv="refresh" content="0;url=workspace.html"/.test(entry),'homepage must lead into single workspace');
+assert.ok(backup.includes('통합 스크리너로 돌아가기'),'archived previous UI must be available');
+assert.ok(!backup.includes('http-equiv="refresh"'),'old research UI should not auto-redirect');
+assert.ok(ranking.includes("if(root.document.getElementById('rankStatus'))init();"),
+ 'legacy beta mounting cannot crash the new unified main app');
+assert.ok(css.includes('@media(max-width:860px)')&&css.includes('@media(max-width:480px)'),
+ 'mobile stacked research UI is required');
+assert.ok(html.includes("script-src 'self'")&&html.includes("connect-src 'self'"),
+ 'CSP must disallow untrusted JS/data imports');
+assert.ok(source.includes('six_pillar_full_candidate_only')===false,
+ 'never build a full v3 investment ranking in a front-end shortcut');
+assert.ok(!source.includes('localStorage')&&!source.includes('github_token'),
+ 'UI must not require credentials or persistent private trade settings');
+
+const shape={
+ schema:'v3-pattern-first-daily-research-0.1',status:'heuristic_unverified',
+ timeframe:'daily',asof:'2026-10-20',completed_week_only:undefined,
+ rsi14:44,rsi30_cross_recent:true,rsi_bullish_divergence_recent:true,
+ patterns:[{type:'bull_flag',stage:'forming'}],
+ pattern_geometry:{status:'heuristic_unvalidated',
+  falling_wedge_candidate:false,inverse_head_shoulders_breakout_candidate:false,
+  triangle_candidate:false,post_rise_consolidation_candidate:false},
+ scoring_allowed:false,buy_signal:false,official_regular_session_verified:false
+};
+const row={
+ code:'005930',name:'샘플회사',market:'KOSPI',
+ price:100,stop_line:91,stop_pct:-9,score:70,coverage_pct:70,
+ price20:1,price60:-7,risk_flags:[],price_date:'2026-10-20',
+ patterns:[],obv_rising:false,divergence:false,phase:'조정 중',
+ pattern_research:shape,
+ pattern_weekly_research:{...shape,timeframe:'weekly',asof:'2026-10-16',
+  completed_week_only:true,rsi30_cross_recent:false,rsi_bullish_divergence_recent:false,
+  patterns:[{type:'double_bottom',stage:'breakout_observed'}]},
+ v3_pattern_integrated:{schema:'v3-pattern-within-six-pillars-research-0.4',
+  asof:'2026-10-20',technical_maximum:25,
+  technical_research_candidate:22.8,investable_score:null,
+  buy_certified:false,v3_release_ready:false}
+};
+assert.ok(unified.validPattern(row,'daily'));
+assert.ok(unified.validPattern(row,'weekly'));
+assert.ok(unified.evidence(row,'daily').some(x=>x.label==='Bull Flag'));
+assert.ok(unified.evidence(row,'weekly').some(x=>x.label==='더블바텀'));
+assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 30 재돌파'));
+assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 상승다이버전스'));
+assert.equal(unified.technicalCandidate(row),22.8);
+assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
+ [null,22.8,null,null,null,null]);
+assert.ok(!unified.riskState({r:row},legacy).unsafe);
+assert.equal(unified.riskState({r:{...row,stop_line:60,stop_pct:-40}},legacy).unsafe,true);
+assert.equal(unified.technicalCandidate({...row,v3_pattern_integrated:{
+ ...row.v3_pattern_integrated,investable_score:70}}),null,
+ 'forged completed trade score invalidates display');
+assert.equal(unified.technicalCandidate({...row,v3_pattern_integrated:{
+ ...row.v3_pattern_integrated,technical_research_candidate:26}}),null);
+for(const item of [
+ {...row,pattern_research:{...shape,asof:'2026-10-21'}},
+ {...row,pattern_research:{...shape,buy_signal:true}},
+ {...row,pattern_research:{...shape,patterns:[{type:'invented',stage:'forming'}]}},
+ {...row,pattern_research:{...shape,scoring_allowed:true}},
+])assert.equal(unified.validPattern(item,'daily'),null,'invalid daily source must fail closed');
+for(const item of [
+ {...row,pattern_weekly_research:{...row.pattern_weekly_research,completed_week_only:false}},
+ {...row,pattern_weekly_research:{...row.pattern_weekly_research,asof:'2026-10-23'}},
+ {...row,pattern_weekly_research:{...row.pattern_weekly_research,asof:'2026-10-17'}},
+ {...row,pattern_weekly_research:{...row.pattern_weekly_research,asof:'2026-10-02'}}
+])assert.equal(unified.validPattern(item,'weekly'),null,'incomplete/stale/future week must fail closed');
+assert.equal(unified.esc('<script>"/&'), '&lt;script&gt;&quot;/&amp;');
+const row2={...row,code:'000001',name:'위험 예시',stop_line:70,stop_pct:-30,score:95,
+ pattern_research:null,pattern_weekly_research:null,v3_pattern_integrated:null};
+const safe={r:row,q:null,watch:null,quant:false,researchCandidate:false};
+const unsafe={r:row2,q:null,watch:null,quant:false,researchCandidate:false};
+const model={date:'2026-10-20',rows:[unsafe,safe],marketEligible:2,
+ rollingBookCount:0,quantCount:0};
+const picked=unified.rankItems(model,legacy,'discover');
+assert.deepEqual(picked.map(x=>x.r.code),['005930'],'discovery cannot promote high-risk higher legacy score');
+assert.equal(unified.rankItems(model,legacy,'all').length,2);
+assert.equal(unified.rankItems(model,legacy,'patterns').length,1);
+assert.equal(unified.rankItems(model,legacy,'rsi').length,1);
+assert.equal(unified.rankItems(model,legacy,'quant').length,0);
+assert.equal(unified.rankItems(model,legacy,'all','all','위험').length,1);
+assert.equal(unified.rankItems(model,legacy,'all','all','','score')[0].r.code,'000001',
+ 'user explicitly requested legacy score sort can still display unsafe rows with warning');
+assert.deepEqual(unified.rankItems(model,legacy,'all','all','','research',true)
+ .map(x=>x.r.code),['005930']);
+assert.equal(unified.summary(model,legacy).officialFullScore,0,
+ 'no V3 final 100 or investment rank until all six pillars are certified');
+
+const actual=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
+const dailyModel=legacy.prepare(actual,null,null,null,null,null);
+const actualAll=unified.rankItems(dailyModel,legacy,'all');
+assert.equal(actualAll.length,dailyModel.rows.length);
+assert.ok(actualAll.every(x=>x.r.score>=0&&x.r.score<=100));
+assert.ok(actualAll.every(x=>x.tech===null||x.tech<=25));
+assert.equal(unified.summary(dailyModel,legacy).officialFullScore,0);
+console.log('Unified workspace: source-safe chart/day/week, source completeness, risk, legacy fallback, responsive layout, real-market compatibility PASS; records='+actualAll.length);
