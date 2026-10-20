@@ -266,7 +266,7 @@ class KRXHistoricalCollectorTests(unittest.TestCase):
     def test_invalid_dates_weekend_unsorted_and_oversized_batches_rejected(self):
         for days in ([],["2026-10-16"]*2,["2026-10-17"],
                      ["2026-10-16","2026-10-15"],
-                     ["2026-10-20"], ["2026-10-14"]*6,
+                     ["2099-10-20"], ["2026-10-14"]*6,
                      ["2026-02-30"]):
             with self.subTest(days=days),self.assertRaises(HistoryCollectionError):
                 validate_dates(days)

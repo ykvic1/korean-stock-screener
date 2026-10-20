@@ -1,17 +1,20 @@
-"""Guard manually opted-in four-year provider calls; preserve daily API budget."""
+"""Guard capped automatic 4-year DART and manual dry-run; preserve API budget."""
 from pathlib import Path
 import re
 import unittest
 
 
-class FourYearManualWorkflowSafety(unittest.TestCase):
-    def test_manual_only_with_dry_run_default_and_hard_four_issuer_cap(self):
+class FourYearRollingWorkflowSafety(unittest.TestCase):
+    def test_scheduled_four_issuer_daily_limit_and_manual_dry_run_default(self):
         wf=Path(".github/workflows/v3-fouryear-dart-financial-reference.yml").read_text(encoding="utf8")
         annual=Path(".github/workflows/v3-rolling-dart-annual-book.yml").read_text(encoding="utf8")
         source=Path("v3_dart_four_year_reference.py").read_text(encoding="utf8")
         provider=Path("official_data.py").read_text(encoding="utf8")
         self.assertIn("workflow_dispatch:",wf)
-        self.assertNotIn("schedule:",wf)
+        self.assertIn("schedule:",wf)
+        self.assertIn("43 17 * * 0-4",wf)
+        self.assertEqual(len(re.findall(r"^\s+- cron:",wf,flags=re.M)),1)
+        self.assertIn("github.event_name == 'schedule' && '4'",wf)
         self.assertNotIn("push:",wf)
         self.assertIn("default: 'dry-run'",wf)
         self.assertIn("options: ['dry-run', 'live']",wf)
@@ -20,7 +23,7 @@ class FourYearManualWorkflowSafety(unittest.TestCase):
         self.assertIn("years=4,budget_seconds=420",source)
         self.assertIn("inputs.mode == 'live'",wf)
         self.assertIn("if os.environ['REQUESTED_MODE']=='live':",wf)
-        self.assertIn("if: ${{ inputs.mode == 'live' }}",wf)
+        self.assertIn("if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}",wf)
         self.assertIn("stale_fouryear_market_snapshot",wf)
         self.assertIn("stale_rebased_fouryear_not_publishable",wf)
         self.assertIn("group: korea-stock-screener-publication",wf)
