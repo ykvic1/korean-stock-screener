@@ -1,0 +1,53 @@
+name: V3 KRX Derived-Only Historical Cohort Boundary Join
+
+on:
+  # Complete 5-session factor job starts 22:11 KST. Bridge missing close-to-close
+  # interval of adjacent buckets at 22:47 KST AFTER the existing source job.
+  schedule:
+    - cron: '47 13 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Manual derived-only source bridge, never KRX raw archiving'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+
+jobs:
+  bridge:
+    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install KRX open API transport and candidate calendar
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Check genuine source integrity, lossless provenance and private-only boundary regression
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_derived_bridges.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_bridges.py' -v
+      - name: Save up to eight cross-cohort return links from actual KRX sessions
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Each link reads two adjacent official days x two markets.
+          # Only compressed log-return evidence (never raw close) goes private.
+          python v3_krx_derived_bridges.py
