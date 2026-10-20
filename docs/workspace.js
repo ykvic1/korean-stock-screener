@@ -242,8 +242,14 @@ function renderDetails(x){
  const stockLink=core.stockPage(r.code);
  const risk=x.risk;
  const quant=sampleQuant(x,core);
- const part=pillars.map(i=>'<div class="u-pillar"><span>'+esc(i.label)+' <small>/'+i.max+'</small></span>'+
-  '<b>'+(i.candidate===null?'미확인':i.candidate.toFixed(1)+'점')+'</b></div>').join('');
+ const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+' <small>/'+i.max+'</small></span>'+
+  '<b>'+(i.candidate===null?'미검증':i.candidate.toFixed(1)+'점 <em class="u-factor-mark">미검증</em>')+'</b></div>').join('');
+ const legacyParts=Object.entries(model.weights||{}).map(([name,max])=>{
+  const value=r.components?.[name];
+  const calculated=finite(max)&&max>0&&finite(value)&&value>=0&&value<=max;
+  return '<div class="'+(calculated?'':'u-legacy-unverified')+'"><span>'+esc(name)+'</span><b>'+
+   (calculated?value.toFixed(1):'미검증')+' / '+esc(max)+'</b></div>';
+ }).join('');
  view.hidden=false;
  view.innerHTML='<div class="u-detail-top"><div><small>종목별 분석 · '+esc(model.date)+'</small>'+
  '<h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
@@ -254,6 +260,10 @@ function renderDetails(x){
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
  '<div><small>기존 관측 점수</small><strong>'+r.score.toFixed(1)+'점</strong></div></div>'+
+ '<h3>기존 V2.2 점수 산출근거 (별도 체계)</h3>'+
+ '<p class="u-muted">확보된 항목의 획득점수 ÷ 확보된 배점 × 100. 자료 확보 '+
+ r.coverage_pct.toFixed(0)+'% · V3 6영역 점수가 아닌 기존 관측점수입니다.</p>'+
+ '<div class="u-parts u-legacy-parts">'+legacyParts+'</div>'+
  '<h3>일봉 · 스윙 관찰</h3>'+
  (x.daily.length?'<div class="u-signals">'+x.daily.map(patternPill).join('')+'</div>':
  '<p class="u-muted">확인된 선호 패턴·RSI 관측 없음 또는 당일 자료 미확보</p>')+
@@ -306,13 +316,14 @@ function draw(){
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
    '<span><b>'+r.score.toFixed(1)+'</b><small>기존 관측점수 · 확보 '+r.coverage_pct.toFixed(0)+'%</small></span></div>'+
-   '<div class="u-scoresix" aria-label="6영역 V3 점수: 검증된 값만 표시">'+pillarState(r).map(i=>
-     '<span><small>'+esc(i.label)+' /'+i.max+'</small><b>'+
+   '<div class="u-scoresix" aria-label="6영역 V3 점수: 미검증은 빨간 테두리로 표시">'+pillarState(r).map(i=>
+     '<span class="u-factor-unverified"><small>'+esc(i.label)+' /'+i.max+'</small><b>'+
      (i.candidate===null?'미검증':i.candidate.toFixed(1))+
-     '</b></span>').join('')+
+     '</b>'+(i.candidate===null?'':'<em class="u-factor-mark">미검증</em>')+'</span>').join('')+
      '<span><small>V3 합계 /100</small><b>미산출</b></span></div>'+
-   '<p class="u-score-hint">6영역 점수는 검증 자료가 확보된 항목만 표시됩니다. 위 '+ 
-   '기존 관측점수 '+r.score.toFixed(1)+'점은 V3 종합점수가 아닙니다.</p>'+
+   '<p class="u-score-hint">빨간 테두리 = V3 미검증. 실제 계산된 연구 후보만 숫자로 표시하며, '+
+   '근거가 없는 항목은 미검증으로 유지합니다. 위 기존 관측점수 '+
+   r.score.toFixed(1)+'점은 V3 종합점수가 아닙니다.</p>'+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
    '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+

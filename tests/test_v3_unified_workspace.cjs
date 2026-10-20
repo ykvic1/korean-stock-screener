@@ -39,6 +39,15 @@ assert.ok(html.includes('<option value="score" selected>기존 관측점수순</
 assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
 assert.ok(css.includes('color-scheme:dark')&&css.includes('.u-scoresix'),
  'approved dark-green rank concept and 6-pillar unknown table must be present');
+assert.ok(css.includes('.u-scoresix span.u-factor-unverified')&&
+ css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),
+ 'each unverified factor card should have a red inner outline');
+assert.ok(source.includes('<span class="u-factor-unverified">')&&
+ source.includes("i.candidate===null?'미검증':i.candidate.toFixed(1)"),
+ 'calculated candidate scores remain visible with explicit unverified status');
+assert.ok(source.includes('legacyParts=Object.entries(model.weights||{})')&&
+ source.includes('확보된 항목의 획득점수 ÷ 확보된 배점 × 100'),
+ 'old 78.6-style score must be explainable by its 8 original components');
 assert.ok(source.includes('V3 합계')&&source.includes('미산출'),
  'do not label old observed ranking as official V3 composite');
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
