@@ -37,7 +37,7 @@ def dart_json(session, endpoint, key, **params):
     return data.get('list',[])
 
 
-def dart_collect(stocks, asof, key, years=3, budget_seconds=360):
+def dart_collect(stocks, asof, key, years=3, budget_seconds=360, annual_seed_by_code=None):
     """Latest historical annual reported values for *bounded active candidates*.
 
     Keep a 6-minute optional enrichment budget so a slow DART endpoint cannot
@@ -52,6 +52,31 @@ def dart_collect(stocks, asof, key, years=3, budget_seconds=360):
     # four-year pilot may request 4 annual fiscal reports, never more.
     if not 1 <= years <= 4 or not 30 <= budget_seconds <= 900:
         raise ValueError("invalid_financial_probe_budget")
+    # The four-year collector may reuse a previously validated *same-asof*
+    # latest DART annual receipt. Other production collectors stay unchanged.
+    if annual_seed_by_code is not None:
+        if years != 4 or type(annual_seed_by_code) is not dict or (
+                not set(annual_seed_by_code).issubset(
+                    {row.get('code') for row in stocks})):
+            raise ValueError("invalid_annual_seed_scope")
+        from v3_dart_four_year_reference import _record
+        normalized_seeds={}
+        for code,seed in annual_seed_by_code.items():
+            try:
+                checked=_record(code,[seed],asof)['reports'][0]
+            except (ValueError, TypeError, KeyError, IndexError):
+                raise ValueError("invalid_annual_seed_receipt") from None
+            if checked['year'] != int(asof[:4])-1:
+                raise ValueError("invalid_annual_seed_fiscal_year")
+            required=('revenue','operating_income','operating_cashflow',
+                      'liabilities','equity','owners_equity')
+            if (checked['values']['revenue'] is None or
+                    checked['values']['revenue'] <= 0 or
+                    any(checked['values'][field] is None
+                        for field in required)):
+                raise ValueError("incomplete_annual_seed_values")
+            normalized_seeds[code]=checked
+        annual_seed_by_code=normalized_seeds
     session=requests.Session()
     started=time.monotonic()
     try:
@@ -76,9 +101,15 @@ def dart_collect(stocks, asof, key, years=3, budget_seconds=360):
             result.append({'code':code,'status':'unconfirmed',
                            'reason':'corp_code_not_mapped'})
             continue
-        records=[]
+        seed=(annual_seed_by_code or {}).get(code)
+        records=[dict(seed)] if seed is not None else []
         errors=[]
         for y in range(year-1,year-years-1,-1):
+            if seed is not None and y == year-1:
+                # Proven current annual values already in official DART book:
+                # save 1-2 official statement requests per seeded company.
+                # This is NOT a historic revision/PIT certification.
+                continue
             if time.monotonic()-started>=budget_seconds:
                 errors.append('time_budget_exceeded')
                 break
