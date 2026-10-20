@@ -104,7 +104,7 @@ def research_scorecard(*, asof: str,
     """Build research-only scored candidates; never certify readiness.
 
     Full six-pillar framework includes finance/valuation/industry/momentum.
-    IAS subscore is normalized 100 => pillar max25 ONLY when all six IAS
+    IAS subscore is normalized 100 => pillar max20 ONLY when all six IAS
     candidate sub-scores exist. When IAS is missing, no computed IAS or 0
     is inserted. Do not pass both an externally supplied IAS score and
     separate internal IAS components; avoids double counting.
