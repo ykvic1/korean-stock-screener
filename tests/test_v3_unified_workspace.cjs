@@ -26,6 +26,40 @@ assert.equal(unified.weeklyCoverageText({...weekly,source_collection_calls:6},
  '2026-10-20'),'');
 assert.equal(unified.weeklyCoverageText({...weekly,processed_this_cycle:400},
  '2026-10-20'),'');
+// Four-year DART source is read by primary V3; reference CAGR/margin
+// remains informational until revisions/PIT and full 15+15 scoring pass.
+const fourRecords=[2022,2023,2024,2025].map(yr=>({
+ year:yr,fs_div:'CFS',currency:'KRW',
+ receipt_id:String(yr+1)+'0318001162',values:{revenue:1000+yr}
+}));
+const annualFour={schema:'v3-four-year-dart-financial-evidence-0.1',
+ asof:'2026-10-19',listed_total:2497,pilot_issuer_count:1,
+ four_years_all_financial_pillars_certified:false,full_v3_ready:false,
+ raw_account_rows_stored:false,confirmed_six_pillar_ranks:null,
+ records:[{code:'005930',v3_full100_investable_score:null,
+ financial15_confirmed_points:null,valuation15_confirmed_points:null,
+ four_year_financial_pit_authenticated:false,
+ historical_revisions_authenticated:false,buy_certified:false,
+ same_scope_four_years:true,accounting_scope:'CFS',
+ reports:fourRecords,annual_revenue_cagr3_reference_pct:12.3,
+ three_year_operating_margin_mean_reference_pct:9.2,
+ fcf_assets_reference_pct:null,net_debt_equity_reference_pct:null,
+ valuation_official_pbr:null}]};
+const dated=legacy.observedFourYearEvidence(annualFour,'2026-10-20',2497);
+assert.equal(dated.get('005930').cagr,12.3);
+assert.equal(dated.get('005930').margin,9.2);
+assert.equal(dated.get('005930').authenticated,false);
+assert.equal(legacy.observedFourYearEvidence(
+ {...annualFour,asof:'2026-10-21'},'2026-10-20',2497).size,0,
+ 'future source date cannot be used');
+assert.equal(legacy.observedFourYearEvidence(
+ annualFour,'2026-11-25',2497).size,0,'stale fiscal source must expire');
+assert.ok(source.includes('v3-dart-four-year-reference.json')&&
+ source.includes('core.prepare(...responses.slice(0,6),responses[8])'),
+ 'primary workspace must ingest separate four-year DART evidence');
+assert.ok(source.includes('4개년 연간공시 연구 참고')&&
+ source.includes('공시 정정/PIT 검증 전으로 재무 15점 및 밸류 15점은 미산출'),
+ 'four-year metrics cannot silently become a certified 30 point ranking');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
