@@ -29,7 +29,7 @@ from v3_krx_derived_corporate_action_risk import (
 SCHEMA="v3-private-krx-incremental-price-risk-v1"
 CHECKPOINT="derived/quality/incremental-checkpoint.json"
 BASELINE_COHORTS=9
-MAX_DELTA_COHORTS=8
+MAX_DELTA_COHORTS=16
 MAX_FILE_BYTES=200000
 MAX_ISSUE_RECORDS=15000
 MAX_CUMULATIVE_BYTES=30*1024*1024
