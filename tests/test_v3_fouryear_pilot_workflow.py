@@ -5,7 +5,7 @@ import unittest
 
 
 class FourYearRollingWorkflowSafety(unittest.TestCase):
-    def test_scheduled_four_issuer_daily_limit_and_manual_dry_run_default(self):
+    def test_scheduled_adaptive_cap_and_manual_dry_run_default(self):
         wf=Path(".github/workflows/v3-fouryear-dart-financial-reference.yml").read_text(encoding="utf8")
         annual=Path(".github/workflows/v3-rolling-dart-annual-book.yml").read_text(encoding="utf8")
         source=Path("v3_dart_four_year_reference.py").read_text(encoding="utf8")
@@ -14,12 +14,15 @@ class FourYearRollingWorkflowSafety(unittest.TestCase):
         self.assertIn("schedule:",wf)
         self.assertIn("43 17 * * 0-4",wf)
         self.assertEqual(len(re.findall(r"^\s+- cron:",wf,flags=re.M)),1)
-        self.assertIn("github.event_name == 'schedule' && '4'",wf)
+        self.assertIn("automatic_daily_limit(prior)",wf)
+        self.assertIn("AUTO_BATCH:",wf)
+        self.assertIn("four['requested_this_run']>12",wf)
         self.assertNotIn("push:",wf)
         self.assertIn("default: 'dry-run'",wf)
         self.assertIn("options: ['dry-run', 'live']",wf)
         self.assertIn("options: ['1', '2', '4']",wf)
-        self.assertIn("MAX_COMPANIES = 4",source)
+        self.assertIn("MAX_COMPANIES = 12",source)
+        self.assertIn("MIN_HEALTHY_FRACTION = .75",source)
         self.assertIn("years=4,budget_seconds=420",source)
         self.assertIn("inputs.mode == 'live'",wf)
         self.assertIn("if os.environ['REQUESTED_MODE']=='live':",wf)
