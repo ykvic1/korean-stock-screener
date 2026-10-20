@@ -1,5 +1,11 @@
 """No-provider seven-day V3 cohort execution regression tests."""
 import unittest
+import copy
+from contextlib import redirect_stdout
+import io
+import json
+from pathlib import Path
+import tempfile
 from datetime import date, timedelta
 
 from v3_weekly_rotation import (
@@ -175,6 +181,60 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(report["processed_this_cycle"],5)
         self.assertIn(new,second["records"])
         self.assertEqual(second["records"][new]["available_weight"],0)
+
+
+    def test_source_fingerprints_are_order_independent_but_value_sensitive(self):
+        from v3_weekly_rotation import source_input_fingerprints
+        market,catalog,book=fixture(14)
+        first=source_input_fingerprints(market,catalog,book)
+        self.assertEqual(first,source_input_fingerprints(
+            {k:market[k] for k in reversed(list(market))},
+            {k:catalog[k] for k in reversed(list(catalog))},
+            {k:book[k] for k in reversed(list(book))}))
+        self.assertIsNone(first["four_year"])
+        updated=copy.deepcopy(book)
+        updated["records"][0]["annual"]["values"]["equity"]+=1
+        newer=source_input_fingerprints(market,catalog,updated)
+        self.assertNotEqual(first["annual"],newer["annual"])
+        self.assertEqual(first["market"],newer["market"])
+
+    def test_post_rebase_verify_blocks_same_date_dart_and_price_edits(self):
+        from v3_weekly_rotation import main
+        market,catalog,book=fixture(14)
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            def save(name,data):
+                path=root/name
+                path.write_text(json.dumps(data,ensure_ascii=False),encoding="utf8")
+                return str(path)
+            m=save("market.json",market)
+            c=save("catalog.json",catalog)
+            a=save("annual.json",book)
+            args=["--market",m,"--catalog",c,"--annual",a,
+                  "--four",str(root/"missing-four.json"),
+                  "--state",str(root/"state.json"),
+                  "--report",str(root/"coverage.json"),
+                  "--when",EPOCH.isoformat()]
+            with redirect_stdout(io.StringIO()):
+                main(args+["--mode","publish"])
+                main(args+["--mode","verify"])
+            original_state=(root/"state.json").read_bytes()
+            original_report=(root/"coverage.json").read_bytes()
+            changed=copy.deepcopy(book)
+            changed["records"][0]["annual"]["values"]["equity"]+=1
+            save("annual.json",changed)
+            with self.assertRaisesRegex(RotationError,"post_rebase_source_inputs_changed"):
+                with redirect_stdout(io.StringIO()):
+                    main(args+["--mode","verify"])
+            save("annual.json",book)
+            changed_market=copy.deepcopy(market)
+            changed_market["stocks"][0]["price20"]=9.9
+            save("market.json",changed_market)
+            with self.assertRaisesRegex(RotationError,"post_rebase_source_inputs_changed"):
+                with redirect_stdout(io.StringIO()):
+                    main(args+["--mode","verify"])
+            self.assertEqual(original_state,(root/"state.json").read_bytes())
+            self.assertEqual(original_report,(root/"coverage.json").read_bytes())
 
 
 if __name__ == "__main__":
