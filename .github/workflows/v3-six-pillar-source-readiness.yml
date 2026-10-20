@@ -95,7 +95,7 @@ jobs:
           }
           Path('reports').mkdir(exist_ok=True)
           Path('reports/v3-fouryear-offline-plan.json').write_text(
-              json.dumps(data,indent=2,sort_keys=True)+'\\n',encoding='utf8')
+              json.dumps(data,indent=2,sort_keys=True),encoding='utf8')
           print('Four-year offline pilot viability:',json.dumps(data))
           PY
       - name: Preserve reports even if severe source-quality issue trips CI
