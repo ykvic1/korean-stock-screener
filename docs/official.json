@@ -1,37 +1,37 @@
 {
-  "asof": "2026-10-19",
+  "asof": "2026-10-20",
   "dart": {
     "status": "observed",
-    "requested": 2,
     "universe": 2368,
-    "observed": 2,
+    "requested": 20,
+    "observed": 7,
     "unconfirmed": 0,
-    "deferred": 0,
-    "source": "OpenDART fnlttSinglAcntAll annual (bounded ranked candidates)",
-    "audit_basis": "receipt dated no later than screen, revisions and PIT not validated",
+    "deferred": 13,
+    "source": "OpenDART reported annual accounts (research reference)",
+    "audit_basis": "filing receipt not newer than source day; historical revisions not verified",
     "stocks": [
       {
-        "code": "131090",
+        "code": "134380",
         "status": "observed",
         "reports": [
           {
             "year": 2025,
             "fs_div": "OFS",
             "values": {
-              "revenue": 13438054169,
-              "operating_income": 4313922657,
-              "operating_cashflow": 6324541140,
-              "liabilities": 3323461394,
-              "equity": 49629200916,
+              "revenue": 284512419024,
+              "operating_income": 29153781514,
+              "operating_cashflow": 20682914653,
+              "liabilities": 22181951392,
+              "equity": 173551942637,
               "owners_equity": null,
               "owners_profit": null,
-              "operating_margin_pct": 32.1023,
-              "debt_to_equity_pct": 6.6966,
-              "sales_to_market_cap": 0.3988,
+              "operating_margin_pct": 10.2469,
+              "debt_to_equity_pct": 12.7812,
+              "sales_to_market_cap": 1.187,
               "pbr_annual_reference": null,
               "per_annual_reference": null
             },
-            "receipt_id": "20260323001582",
+            "receipt_id": "20260309001317",
             "source": "OpenDART fnlttSinglAcntAll annual",
             "currency": "KRW",
             "revision_history_verified": false,
@@ -41,20 +41,20 @@
             "year": 2024,
             "fs_div": "OFS",
             "values": {
-              "revenue": 12075656393,
-              "operating_income": 3420835998,
-              "operating_cashflow": 3116198231,
-              "liabilities": 2634226873,
-              "equity": 45897760141,
+              "revenue": 256110289517,
+              "operating_income": 28634790078,
+              "operating_cashflow": 38194020812,
+              "liabilities": 24781683343,
+              "equity": 162371006938,
               "owners_equity": null,
               "owners_profit": null,
-              "operating_margin_pct": 28.3284,
-              "debt_to_equity_pct": 5.7393,
-              "sales_to_market_cap": 0.3583,
+              "operating_margin_pct": 11.1806,
+              "debt_to_equity_pct": 15.2624,
+              "sales_to_market_cap": 1.0685,
               "pbr_annual_reference": null,
               "per_annual_reference": null
             },
-            "receipt_id": "20250318001347",
+            "receipt_id": "20250310000394",
             "source": "OpenDART fnlttSinglAcntAll annual",
             "currency": "KRW",
             "revision_history_verified": false,
@@ -64,20 +64,20 @@
             "year": 2023,
             "fs_div": "OFS",
             "values": {
-              "revenue": 14445671814,
-              "operating_income": 4453118488,
-              "operating_cashflow": 3577777059,
-              "liabilities": 4069633650,
-              "equity": 44845315325,
+              "revenue": 232615760275,
+              "operating_income": 24913393981,
+              "operating_cashflow": 33463685333,
+              "liabilities": 20282131251,
+              "equity": 144488827195,
               "owners_equity": null,
               "owners_profit": null,
-              "operating_margin_pct": 30.8267,
-              "debt_to_equity_pct": 9.0748,
-              "sales_to_market_cap": 0.4287,
+              "operating_margin_pct": 10.7101,
+              "debt_to_equity_pct": 14.0372,
+              "sales_to_market_cap": 0.9704,
               "pbr_annual_reference": null,
               "per_annual_reference": null
             },
-            "receipt_id": "20240320001823",
+            "receipt_id": "20240311000340",
             "source": "OpenDART fnlttSinglAcntAll annual",
             "currency": "KRW",
             "revision_history_verified": false,
@@ -88,27 +88,104 @@
         "backtest_included": false
       },
       {
-        "code": "149950",
+        "code": "026960",
+        "status": "observed",
+        "reports": [
+          {
+            "year": 2025,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 532878500925,
+              "operating_income": 45337393517,
+              "operating_cashflow": 106243502438,
+              "liabilities": 61087988594,
+              "equity": 1737278347482,
+              "owners_equity": 1722043323436,
+              "owners_profit": 144876386111,
+              "operating_margin_pct": 8.508,
+              "debt_to_equity_pct": 3.5163,
+              "sales_to_market_cap": 0.1885,
+              "pbr_annual_reference": 1.6414,
+              "per_annual_reference": 19.5097
+            },
+            "receipt_id": "20260312000207",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2024,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 488860392545,
+              "operating_income": 44476967156,
+              "operating_cashflow": 113240689853,
+              "liabilities": 69670001190,
+              "equity": 1709476549885,
+              "owners_equity": 1694360738168,
+              "owners_profit": 157251142776,
+              "operating_margin_pct": 9.0981,
+              "debt_to_equity_pct": 4.0755,
+              "sales_to_market_cap": 0.173,
+              "pbr_annual_reference": 1.6682,
+              "per_annual_reference": 17.9744
+            },
+            "receipt_id": "20251210000195",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2023,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 489695541569,
+              "operating_income": 43752486840,
+              "operating_cashflow": 118090904703,
+              "liabilities": 71145079813,
+              "equity": 1622874727791,
+              "owners_equity": 1607953382608,
+              "owners_profit": 144859290393,
+              "operating_margin_pct": 8.9346,
+              "debt_to_equity_pct": 4.3839,
+              "sales_to_market_cap": 0.1733,
+              "pbr_annual_reference": 1.7578,
+              "per_annual_reference": 19.512
+            },
+            "receipt_id": "20240314000472",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          }
+        ],
+        "error_codes": [],
+        "backtest_included": false
+      },
+      {
+        "code": "033790",
         "status": "observed",
         "reports": [
           {
             "year": 2025,
             "fs_div": "OFS",
             "values": {
-              "revenue": 80944405170,
-              "operating_income": 6148093789,
-              "operating_cashflow": 9871276263,
-              "liabilities": 11271716690,
-              "equity": 152012858334,
+              "revenue": 264760884474,
+              "operating_income": 8847177396,
+              "operating_cashflow": -11112118716,
+              "liabilities": 65401839213,
+              "equity": 98275917816,
               "owners_equity": null,
               "owners_profit": null,
-              "operating_margin_pct": 7.5955,
-              "debt_to_equity_pct": 7.415,
-              "sales_to_market_cap": 0.5336,
+              "operating_margin_pct": 3.3416,
+              "debt_to_equity_pct": 66.5492,
+              "sales_to_market_cap": 0.4003,
               "pbr_annual_reference": null,
               "per_annual_reference": null
             },
-            "receipt_id": "20260312001140",
+            "receipt_id": "20260323001684",
             "source": "OpenDART fnlttSinglAcntAll annual",
             "currency": "KRW",
             "revision_history_verified": false,
@@ -118,20 +195,20 @@
             "year": 2024,
             "fs_div": "OFS",
             "values": {
-              "revenue": 84545739299,
-              "operating_income": 5797381978,
-              "operating_cashflow": 16211039759,
-              "liabilities": 9463511764,
-              "equity": 145205339840,
+              "revenue": 30676302081,
+              "operating_income": 7608133,
+              "operating_cashflow": -677132751,
+              "liabilities": 60204326678,
+              "equity": 56072283756,
               "owners_equity": null,
               "owners_profit": null,
-              "operating_margin_pct": 6.8571,
-              "debt_to_equity_pct": 6.5173,
-              "sales_to_market_cap": 0.5573,
+              "operating_margin_pct": 0.0248,
+              "debt_to_equity_pct": 107.3691,
+              "sales_to_market_cap": 0.0464,
               "pbr_annual_reference": null,
               "per_annual_reference": null
             },
-            "receipt_id": "20250404003533",
+            "receipt_id": "20250709000309",
             "source": "OpenDART fnlttSinglAcntAll annual",
             "currency": "KRW",
             "revision_history_verified": false,
@@ -141,20 +218,20 @@
             "year": 2023,
             "fs_div": "OFS",
             "values": {
-              "revenue": 75771249556,
-              "operating_income": 2199978697,
-              "operating_cashflow": 8439557261,
-              "liabilities": 7808788601,
-              "equity": 142394564864,
+              "revenue": 6967041262,
+              "operating_income": -2124130241,
+              "operating_cashflow": -2499571535,
+              "liabilities": 2424233703,
+              "equity": 21540992762,
               "owners_equity": null,
               "owners_profit": null,
-              "operating_margin_pct": 2.9034,
-              "debt_to_equity_pct": 5.4839,
-              "sales_to_market_cap": 0.4995,
+              "operating_margin_pct": -30.4883,
+              "debt_to_equity_pct": 11.254,
+              "sales_to_market_cap": 0.0105,
               "pbr_annual_reference": null,
               "per_annual_reference": null
             },
-            "receipt_id": "20240312000754",
+            "receipt_id": "20240320000260",
             "source": "OpenDART fnlttSinglAcntAll annual",
             "currency": "KRW",
             "revision_history_verified": false,
@@ -163,12 +240,347 @@
         ],
         "error_codes": [],
         "backtest_included": false
+      },
+      {
+        "code": "052860",
+        "status": "observed",
+        "reports": [
+          {
+            "year": 2025,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 36878556322,
+              "operating_income": 4050146283,
+              "operating_cashflow": 8441824762,
+              "liabilities": 17241195987,
+              "equity": 35681190456,
+              "owners_equity": 35284093656,
+              "owners_profit": 4565765003,
+              "operating_margin_pct": 10.9824,
+              "debt_to_equity_pct": 48.3201,
+              "sales_to_market_cap": 0.2888,
+              "pbr_annual_reference": 3.6192,
+              "per_annual_reference": 27.969
+            },
+            "receipt_id": "20260318001683",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2024,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 23374281444,
+              "operating_income": -10673994878,
+              "operating_cashflow": 1069969392,
+              "liabilities": 20808353151,
+              "equity": 30480555064,
+              "owners_equity": 29802135531,
+              "owners_profit": -11937656459,
+              "operating_margin_pct": -45.6656,
+              "debt_to_equity_pct": 68.2676,
+              "sales_to_market_cap": 0.183,
+              "pbr_annual_reference": 4.2849,
+              "per_annual_reference": null
+            },
+            "receipt_id": "20250319000980",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2023,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 64285596112,
+              "operating_income": 1433685935,
+              "operating_cashflow": 5649919338,
+              "liabilities": 22747496214,
+              "equity": 44505586945,
+              "owners_equity": 43775079381,
+              "owners_profit": -297366949,
+              "operating_margin_pct": 2.2302,
+              "debt_to_equity_pct": 51.1116,
+              "sales_to_market_cap": 0.5034,
+              "pbr_annual_reference": 2.9172,
+              "per_annual_reference": null
+            },
+            "receipt_id": "20240320001858",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          }
+        ],
+        "error_codes": [],
+        "backtest_included": false
+      },
+      {
+        "code": "066670",
+        "status": "observed",
+        "reports": [
+          {
+            "year": 2025,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 188618668917,
+              "operating_income": -1764737678,
+              "operating_cashflow": 19388743662,
+              "liabilities": 56241221272,
+              "equity": 248771521313,
+              "owners_equity": 166108970527,
+              "owners_profit": 3772583771,
+              "operating_margin_pct": -0.9356,
+              "debt_to_equity_pct": 22.6076,
+              "sales_to_market_cap": 3.087,
+              "pbr_annual_reference": 0.3678,
+              "per_annual_reference": 16.1958
+            },
+            "receipt_id": "20260805000204",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2024,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 11884203638,
+              "operating_income": 2438222634,
+              "operating_cashflow": 2519403254,
+              "liabilities": 5995316909,
+              "equity": 162151584222,
+              "owners_equity": 162151584222,
+              "owners_profit": 2168541382,
+              "operating_margin_pct": 20.5165,
+              "debt_to_equity_pct": 3.6974,
+              "sales_to_market_cap": 0.1945,
+              "pbr_annual_reference": 0.3768,
+              "per_annual_reference": 28.1756
+            },
+            "receipt_id": "20250723000318",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2023,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 34642468435,
+              "operating_income": 1995972667,
+              "operating_cashflow": 14656714197,
+              "liabilities": 5201266974,
+              "equity": 160769044466,
+              "owners_equity": 160769044466,
+              "owners_profit": 3652036386,
+              "operating_margin_pct": 5.7616,
+              "debt_to_equity_pct": 3.2352,
+              "sales_to_market_cap": 0.567,
+              "pbr_annual_reference": 0.38,
+              "per_annual_reference": 16.7304
+            },
+            "receipt_id": "20240320000332",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          }
+        ],
+        "error_codes": [],
+        "backtest_included": false
+      },
+      {
+        "code": "096760",
+        "status": "observed",
+        "reports": [
+          {
+            "year": 2025,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 969565285593,
+              "operating_income": 167899328921,
+              "operating_cashflow": 163666846617,
+              "liabilities": 636558553198,
+              "equity": 594627233516,
+              "owners_equity": 266962289857,
+              "owners_profit": 58504802638,
+              "operating_margin_pct": 17.317,
+              "debt_to_equity_pct": 107.0517,
+              "sales_to_market_cap": 3.259,
+              "pbr_annual_reference": 1.1144,
+              "per_annual_reference": 5.0851
+            },
+            "receipt_id": "20260318001363",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2024,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 887710032227,
+              "operating_income": 146522860164,
+              "operating_cashflow": 97892441774,
+              "liabilities": 729213687628,
+              "equity": 521394976830,
+              "owners_equity": 229541382041,
+              "owners_profit": 62617686454,
+              "operating_margin_pct": 16.5057,
+              "debt_to_equity_pct": 139.8582,
+              "sales_to_market_cap": 2.9839,
+              "pbr_annual_reference": 1.2961,
+              "per_annual_reference": 4.7511
+            },
+            "receipt_id": "20250318001204",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          },
+          {
+            "year": 2023,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 928071670924,
+              "operating_income": 144899316626,
+              "operating_cashflow": 112317545771,
+              "liabilities": 827511707972,
+              "equity": 348754719955,
+              "owners_equity": 123964559384,
+              "owners_profit": 19026282331,
+              "operating_margin_pct": 15.6129,
+              "debt_to_equity_pct": 237.2761,
+              "sales_to_market_cap": 3.1196,
+              "pbr_annual_reference": 2.3999,
+              "per_annual_reference": 15.6363
+            },
+            "receipt_id": "20240318000802",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          }
+        ],
+        "error_codes": [],
+        "backtest_included": false
+      },
+      {
+        "code": "017890",
+        "status": "observed",
+        "reports": [
+          {
+            "year": 2025,
+            "fs_div": "CFS",
+            "values": {
+              "revenue": 423883457380,
+              "operating_income": 31816924771,
+              "operating_cashflow": 54399234792,
+              "liabilities": 108828778711,
+              "equity": 594752912232,
+              "owners_equity": 535436810436,
+              "owners_profit": 30644100318,
+              "operating_margin_pct": 7.5061,
+              "debt_to_equity_pct": 18.2981,
+              "sales_to_market_cap": 1.4379,
+              "pbr_annual_reference": 0.5506,
+              "per_annual_reference": 9.6201
+            },
+            "receipt_id": "20260318001201",
+            "source": "OpenDART fnlttSinglAcntAll annual",
+            "currency": "KRW",
+            "revision_history_verified": false,
+            "point_in_time_historical_price_verified": false
+          }
+        ],
+        "error_codes": [
+          "time_budget_exceeded"
+        ],
+        "backtest_included": false
+      },
+      {
+        "code": "149950",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "300080",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "004080",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "010950",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "089860",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "131090",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "217590",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "001120",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "004440",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "005180",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "005830",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "052460",
+        "status": "deferred",
+        "reason": "time_budget"
+      },
+      {
+        "code": "089790",
+        "status": "deferred",
+        "reason": "time_budget"
       }
     ]
   },
   "krx": {
-    "status": "key_required",
-    "secret": "KRX_API_KEY"
+    "status": "unconfirmed",
+    "asof": "2026-10-20",
+    "series": {},
+    "errors": [
+      "kospi_dd_trd: official index request/schema failed (credentials redacted)",
+      "kosdaq_dd_trd: official index request/schema failed (credentials redacted)"
+    ],
+    "membership_status": "historical stock-sector membership not implemented"
   },
   "backtest_included": false,
   "financial_reference_not_automatically_scored": true
