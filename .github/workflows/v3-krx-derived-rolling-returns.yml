@@ -1,0 +1,48 @@
+name: V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
+
+on:
+  schedule:
+    - cron: '11 14 * * *' # 23:11 KST, after 22:11 factors and 22:47 boundaries
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Dry-run by default; live reads PRIVATE derived evidence only'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+
+jobs:
+  research:
+    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install calendar and imported source validation dependencies (no live KRX calls)
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Test raw-source-free rolling transformed return verification
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_derived_rolling_returns.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_rolling_returns.py' -v
+      - name: Compound private 20-60-120-250-session approximations without a single KRX request
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          python v3_krx_derived_rolling_returns.py
