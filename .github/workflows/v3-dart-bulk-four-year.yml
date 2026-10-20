@@ -1,0 +1,96 @@
+name: V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
+
+on:
+  # One initial cohort after vetted main merge, then 3*100 firms per hour.
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_bulk_history.py
+      - .github/workflows/v3-dart-bulk-four-year.yml
+  schedule:
+    - cron: '29 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        description: "dry-run has zero provider calls; live fetches bounded years"
+        options: [dry-run, live]
+        default: dry-run
+        required: true
+      groups:
+        type: choice
+        description: "100-company cohorts per run; max 3"
+        options: ['1', '2', '3']
+        default: '1'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  bulk-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline source identity and four-year score safety tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_bulk_history.py
+          python -m unittest discover -s tests -p 'test_v3_dart_bulk_history.py' -v
+      - name: Resolve one legitimate close-date census and preflight DART book
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from datetime import date, datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+          from v3_dart_bulk_history import plan
+          market=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
+          catalog=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
+          annual=json.loads(Path('docs/v3-dart-book-reference.json').read_text(encoding='utf8'))
+          asof,members,_,years,groups=plan(market,catalog)
+          lag=(datetime.now(ZoneInfo('Asia/Seoul')).date()-date.fromisoformat(asof)).days
+          if (lag not in range(0,10) or annual.get('asof')!=asof
+                or annual.get('market_listed_total')!=len(members)):
+              raise ValueError('stale_bulk_market_or_dart_annual_reference')
+          print('source_day=',asof,'listed=',len(members),
+                'fiscal_years=',years,'next_100_groups=',len(groups))
+          PY
+      - name: Read or collect exactly bounded 100-company fiscal batches
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          REQUESTED_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'live' }}
+          REQUESTED_GROUPS: ${{ github.event_name == 'workflow_dispatch' && inputs.groups || '3' }}
+        run: |
+          set -euo pipefail
+          python v3_dart_bulk_history.py \
+             --mode "$REQUESTED_MODE" --groups "$REQUESTED_GROUPS"
+      - name: Publish only derived 4-year annual values and provisional points
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Bounded official 100-company annual 4-year DART batch (derived source)"
+            git pull --rebase origin main
+            python v3_dart_bulk_history.py --mode verify
+            git push origin HEAD:main
+          fi
+      - name: Source integrity and no certified 100-point release notice
+        if: always()
+        run: |
+          echo 'No IAS20, investment score, PBR official verification or historical PIT claim.'
+          echo 'Bulk endpoint provides BS/IS core fields, not verified CF/CAPEX.'

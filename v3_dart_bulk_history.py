@@ -1,0 +1,516 @@
+"""Bulk past-year DART major accounts for EVERY currently listed stock.
+
+DART fnlttMultiAcnt accepts up to 100 company IDs/year. Four 100-company
+calls cover four FYs; missing CF/CAPEX MUST remain unknown, not zero. Public
+derived annual reference only, no source account rows, keys, or market OHLCV.
+Not a historical-PIT or 100-point investment-grade score.
+"""
+from __future__ import annotations
+
+import argparse
+from bisect import bisect_left, bisect_right
+from datetime import date, datetime
+from io import BytesIO
+from pathlib import Path
+from zipfile import ZipFile
+from xml.etree import ElementTree as ET
+import json
+import math
+import re
+
+from v3_dart_rolling_book_reference import _inputs
+
+SCHEMA = "v3-dart-multi-company-four-year-major-account-0.1"
+SCORE_SCHEMA = "v3-dart-multi-year-research-parts-0.1"
+MAX_CORPS = 100
+MAX_GROUPS = 3
+YEARS_BACK = 4
+LABELS = {
+    ("IS","매출액"): "revenue",
+    ("IS","영업수익"): "revenue",
+    ("IS","수익(매출액)"): "revenue",
+    ("IS","매출액(수익)"): "revenue",
+    ("IS","영업이익"): "operating_income",
+    ("IS","영업이익(손실)"): "operating_income",
+    ("BS","자산총계"): "assets",
+    ("BS","부채총계"): "liabilities",
+    ("BS","자본총계"): "equity",
+}
+FIELDS = ("revenue","operating_income","assets","liabilities","equity")
+CODE = re.compile(r"[0-9]{6}\Z")
+CORP = re.compile(r"[0-9]{8}\Z")
+RECEIPT = re.compile(r"[0-9]{14}\Z")
+
+class BulkHistoryError(ValueError):
+    """Fixed, non-provider, non-sensitive exceptions."""
+
+
+def _day(raw):
+    if type(raw) is not str:
+        raise BulkHistoryError("invalid_bulk_asof")
+    try:
+        d=date.fromisoformat(raw)
+    except ValueError:
+        raise BulkHistoryError("invalid_bulk_asof") from None
+    if d.isoformat()!=raw:
+        raise BulkHistoryError("invalid_bulk_asof")
+    return d
+
+
+def _amount(raw):
+    if type(raw) is not str or len(raw)>32:
+        return None
+    value=raw.strip()
+    if not re.fullmatch(r"-?(?:0|[1-9]\d{0,17}|[1-9]\d{0,2}(?:,\d{3}){1,5})",value):
+        return None
+    amount=int(value.replace(",",""))
+    return amount if abs(amount)<=10**18 else None
+
+
+def _valid_receipt(raw, year, cutoff):
+    if type(raw) is not str or not RECEIPT.fullmatch(raw):
+        return False
+    try:
+        d=date.fromisoformat(raw[:4]+"-"+raw[4:6]+"-"+raw[6:8])
+    except ValueError:
+        return False
+    return date(year,12,31)<d<=cutoff
+
+
+def _empty_year():
+    return {}
+
+
+def _normalize_year(rows, year, asof, requested, corp_to_stock):
+    """Reject unknown issuers, year/scope mismatch and ambiguous account rows.
+
+    A response can legitimately omit stocks; that becomes a documented missing
+    year, not a fabricated financial zero.
+    """
+    cutoff=_day(asof)
+    if type(rows) is not list or len(rows)>120_000:
+        raise BulkHistoryError("invalid_bulk_dart_row_count")
+    data={code:{} for code in requested}
+    observed={}
+    for row in rows:
+        if type(row) is not dict:
+            raise BulkHistoryError("invalid_bulk_dart_row")
+        code=row.get("stock_code")
+        corp=row.get("corp_code")
+        if (code not in data or
+                (corp is not None and (
+                    not CORP.fullmatch(corp) or corp_to_stock.get(corp)!=code)) or
+                str(row.get("bsns_year"))!=str(year) or
+                row.get("reprt_code")!="11011" or
+                row.get("fs_div") not in ("CFS","OFS") or
+                row.get("currency")!="KRW" or
+                not _valid_receipt(row.get("rcept_no"),year,cutoff)):
+            raise BulkHistoryError("invalid_bulk_dart_identity_or_receipt")
+        scope=row["fs_div"]
+        key=(code,scope)
+        receipt=row["rcept_no"]
+        if key in observed and observed[key]!=receipt:
+            raise BulkHistoryError("mixed_receipts_in_one_annual_scope")
+        observed[key]=receipt
+        acct=LABELS.get((row.get("sj_div"),row.get("account_nm")))
+        if acct is None:
+            continue
+        value=_amount(row.get("thstrm_amount"))
+        doc=data[code].setdefault(scope,{"receipt_id":receipt,
+                                         "values":{},"ambiguous":[]})
+        if acct in doc["values"]:
+            # Two aliases in the same statement cannot be safely resolved.
+            doc["ambiguous"].append(acct)
+            doc["values"][acct]=None
+        else:
+            doc["values"][acct]=value
+    for code in requested:
+        for scope,ref in list(data[code].items()):
+            for key in FIELDS:
+                ref["values"].setdefault(key,None)
+            if (ref["values"]["assets"] is not None and
+                ref["values"]["liabilities"] is not None and
+                ref["values"]["equity"] is not None and
+                abs(ref["values"]["assets"]-ref["values"]["liabilities"]-
+                    ref["values"]["equity"])>
+                max(1,abs(ref["values"]["assets"])*0.01)):
+                # Some equity variants may have misunderstood account labels.
+                # Quarantine rather than treating a broken statement as true.
+                ref["values"]["assets"]=None
+                ref["values"]["liabilities"]=None
+                ref["values"]["equity"]=None
+            ref["ambiguous"]=sorted(set(ref["ambiguous"]))
+    return data
+
+
+def _validate_prior(prior, asof, members):
+    if prior is None:
+        return {}
+    if (type(prior) is not dict or prior.get("schema")!=SCHEMA
+            or _day(prior.get("asof"))>_day(asof)
+            or type(prior.get("records")) is not dict):
+        raise BulkHistoryError("untrusted_bulk_previous_snapshot")
+    keep={}
+    for code,row in prior["records"].items():
+        if (code not in members or type(row) is not dict or
+            type(row.get("years")) is not dict or
+            not all(str(y).isdigit() and 2015<=int(y)<_day(asof).year
+                    for y in row["years"])):
+            continue  # delisted, or unusable old year isolated
+        keep[code]=row
+    return keep
+
+
+def plan(market,catalog,*,prior=None,groups=MAX_GROUPS):
+    asof,members=_inputs(market,catalog)
+    if type(groups) is not int or not 1<=groups<=MAX_GROUPS:
+        raise BulkHistoryError("invalid_bulk_max_groups")
+    retained=_validate_prior(prior,asof,members)
+    fiscal=list(range(_day(asof).year-YEARS_BACK,_day(asof).year))
+    eligible=[]
+    for code in sorted(members):
+        years=retained.get(code,{}).get("years",{})
+        if any(str(y) not in years for y in fiscal):
+            eligible.append(code)
+    selected=eligible[:groups*MAX_CORPS]
+    cohorts=[selected[i:i+MAX_CORPS] for i in range(0,len(selected),MAX_CORPS)]
+    return asof,members,retained,fiscal,cohorts
+
+
+def _mapping(blob, requested_codes):
+    if type(blob) is not bytes or not 0<len(blob)<6_000_000:
+        raise BulkHistoryError("invalid_company_mapping_payload")
+    try:
+        with ZipFile(BytesIO(blob)) as z:
+            if "CORPCODE.xml" not in z.namelist():
+                raise ValueError()
+            with z.open("CORPCODE.xml") as fd:
+                body=fd.read(25_000_001)
+        if len(body)>25_000_000:
+            raise ValueError()
+        xml=ET.fromstring(body)
+        mapped={}
+        for item in xml.findall("list"):
+            code=item.findtext("stock_code")
+            corp=item.findtext("corp_code")
+            if code in requested_codes:
+                if not CORP.fullmatch(corp or "") or code in mapped:
+                    raise ValueError()
+                mapped[code]=corp
+        if not mapped:
+            raise ValueError()
+    except Exception:
+        raise BulkHistoryError("invalid_company_mapping_payload") from None
+    return mapped
+
+
+def fetch_group(session,key,asof,years,code_cohort,corp_map):
+    """One batched request per year, never one request per issuer."""
+    found={code:{} for code in code_cohort}
+    available=[c for c in code_cohort if c in corp_map]
+    if not available:
+        return {c:{str(y):{} for y in years} for c in code_cohort},0
+    lookup={corp_map[code]:code for code in available}
+    requests_made=0
+    for year in years:
+        try:
+            response=session.get("https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
+                params={"crtfc_key":key,"corp_code":",".join(lookup),
+                        "bsns_year":str(year),"reprt_code":"11011"},timeout=55)
+            requests_made+=1
+            response.raise_for_status()
+            payload=response.json()
+        except Exception:
+            raise BulkHistoryError("dart_bulk_transport_unavailable") from None
+        if not isinstance(payload,dict):
+            raise BulkHistoryError("dart_bulk_unexpected_response")
+        status=payload.get("status")
+        if status=="013":
+            rows=[]
+        elif status=="000":
+            rows=payload.get("list")
+            if not isinstance(rows,list) or not rows:
+                raise BulkHistoryError("dart_bulk_empty_success_response")
+        else:
+            # Quota exhaustion (020), unavailable service, invalid key etc.
+            # Never keep issuing requests on global provider failure.
+            raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
+        extracted=_normalize_year(rows,year,asof,set(available),lookup)
+        for code in code_cohort:
+            found[code][str(year)]=extracted.get(code,{})
+    return found,requests_made
+
+
+def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
+    asof,members,retained,fiscal,cohorts=plan(
+        market,catalog,prior=prior,groups=groups)
+    expected=set(code for cohort in cohorts for code in cohort)
+    if type(results) is not dict or set(results)!=expected:
+        raise BulkHistoryError("partial_or_unexpected_bulk_cohort")
+    for code,years in results.items():
+        if type(years) is not dict or set(years)!=set(map(str,fiscal)):
+            raise BulkHistoryError("missing_bulk_fiscal_year")
+        for year,scope in years.items():
+            if type(scope) is not dict or not set(scope)<= {"CFS","OFS"}:
+                raise BulkHistoryError("bad_bulk_scope")
+        previous=retained.get(code,{"years":{}})
+        new_years=dict(previous["years"])
+        new_years.update(years)
+        retained[code]={"years":new_years}
+    completed=sum(all(str(y) in rec["years"] for y in fiscal)
+                  for rec in retained.values())
+    four_income=0
+    for code in retained:
+        if _best_income_window(retained[code],fiscal) is not None:
+            four_income+=1
+    return {
+       "schema":SCHEMA,"asof":asof,"listed_total":len(members),
+       "fiscal_years":fiscal,
+       "attempted_company_count":completed,
+       "four_year_income_observed_count":four_income,
+       "unattempted_company_count":len(members)-completed,
+       "last_run_new_companies":len(expected),
+       "historical_PIT_source_certified":False,
+       "four_year_complete_financial15_certified":False,
+       "cfo_capex_and_net_debt_from_bulk_api_available":False,
+       "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
+       "raw_source_rows_published":False,
+       "records":{code:retained[code] for code in sorted(retained)}
+    }
+
+
+def _best_income_window(record, fiscal):
+    if not record or any(str(y) not in record["years"] for y in fiscal):
+        return None
+    years=record["years"]
+    for scope in ("CFS","OFS"):
+        vals=[years[str(y)].get(scope,{}).get("values",{}) for y in fiscal]
+        if all(type(v.get("revenue")) is int and v["revenue"]>0 and
+               type(v.get("operating_income")) is int for v in vals):
+            cagr=100*((vals[-1]["revenue"]/vals[0]["revenue"])**(1/3)-1)
+            margin=sum(100*v["operating_income"]/v["revenue"] for v in vals[-3:])/3
+            if all(math.isfinite(x) and abs(x)<1e7 for x in (cagr,margin)):
+                return {"accounting_scope":scope,
+                        "revenue_cagr_3y_pct":round(cagr,6),
+                        "operating_margin_3y_pct":round(margin,6)}
+    return None
+
+
+def _midrank(value, ordered, direction):
+    left=bisect_left(ordered,value);right=bisect_right(ordered,value)
+    pct=(left+right)/(2*len(ordered))
+    return pct if direction>0 else 1-pct
+
+
+def research_parts(data,catalog,book,*,minimum_peers=30):
+    """Produce observed 4+4 financial and 5+5 valuation research points.
+
+    Only observed, date-linked inputs with >=30 same-market peers contribute.
+    Missing FCF, flow, PIT or other factors stay unavailable, never zero.
+    """
+    if (type(data) is not dict or data.get("schema")!=SCHEMA or
+        type(minimum_peers) is not int or minimum_peers<8 or
+        catalog.get("date")!=data.get("asof") or
+        book.get("asof")!=data.get("asof") or
+        catalog.get("listed_total")!=data.get("listed_total") or
+        book.get("market_listed_total")!=data.get("listed_total")):
+        raise BulkHistoryError("incompatible_bulk_scoring_asof")
+    fiscal=data["fiscal_years"]
+    market={row["code"]:row["market"] for row in catalog["rows"]}
+    selected={}
+    for code,record in data["records"].items():
+        if code in market:
+            selected[code]=_best_income_window(record,fiscal)
+    book_annual={r["code"]:r for r in book["records"]}
+    pbr={}
+    earnings_yield={}
+    cap_by_code={r["code"]:r.get("reference_market_cap_eok")
+                 for r in catalog["rows"]}
+    for o in book.get("observations",[]):
+        code=o.get("code");v=o.get("pbr_simple_annual_reference")
+        a=book_annual.get(code,{}).get("annual",{})
+        if (code in market and type(v) in (int,float) and math.isfinite(v)
+            and 0<v<1000 and o.get("market_cap_reference_day")==data["asof"]
+            and o.get("receipt_id")==a.get("receipt_id") and
+            o.get("fs_div")==a.get("fs_div") and o.get("year")==a.get("year")
+            and o.get("official_exchange_pbr_verified") is False
+            and code not in pbr):
+            pbr[code]=float(v)
+            profit=a.get("values",{}).get("owners_profit")
+            cap=cap_by_code.get(code)
+            if (type(profit) in (int,float) and math.isfinite(profit)
+                and type(cap) in (int,float) and math.isfinite(cap)
+                and 0<cap<1e12 and abs(profit)<1e19
+                and a.get("year")==fiscal[-1]
+                and a.get("currency")=="KRW"):
+                earnings_yield[code]=round(100*profit/(cap*1e8),6)
+    series={}
+    for m in ("KOSPI","KOSDAQ"):
+        members=[c for c in market if market[c]==m]
+        series[m]={k:sorted(
+            (pbr.get(c) if k=="pbr" else earnings_yield.get(c) if
+             k=="earnings_yield_pct" else (selected.get(c) or {}).get(k))
+            for c in members if
+            (pbr.get(c) if k=="pbr" else earnings_yield.get(c) if
+             k=="earnings_yield_pct" else (selected.get(c) or {}).get(k)) is not None
+        ) for k in ("revenue_cagr_3y_pct","operating_margin_3y_pct",
+                    "pbr","earnings_yield_pct")}
+    output=[]
+    count_fin=0;count_pb=0;count_earnings=0
+    for code in sorted(market):
+        src=selected.get(code) or {}
+        benchmark=series[market[code]]
+        pts={};available=0
+        for metric,weight,direction in (("revenue_cagr_3y_pct",4,1),
+                                        ("operating_margin_3y_pct",4,1),
+                                        ("pbr",5,-1),
+                                        ("earnings_yield_pct",5,1)):
+            v=(pbr.get(code) if metric=="pbr" else
+               earnings_yield.get(code) if metric=="earnings_yield_pct"
+               else src.get(metric))
+            peer=benchmark[metric]
+            earned=round(weight*_midrank(v,peer,direction),6) if (
+                v is not None and len(peer)>=minimum_peers) else None
+            pts[metric]={"observed_value":v,"candidate_points":earned,
+                         "max_points":weight if earned is not None else 0,
+                         "peer_count":len(peer)}
+            available+=weight if earned is not None else 0
+        if pts["revenue_cagr_3y_pct"]["candidate_points"] is not None:
+            count_fin+=1
+        if pts["pbr"]["candidate_points"] is not None:
+            count_pb+=1
+        if pts["earnings_yield_pct"]["candidate_points"] is not None:
+            count_earnings+=1
+        if available:
+            output.append({
+                "code":code,"market":market[code],
+                "asof":data["asof"],
+                "source_fiscal_years":fiscal,
+                "unverified_components":pts,
+                "financial_candidate_points":(
+                    round(sum(pts[k]["candidate_points"] or 0 for k in (
+                        "revenue_cagr_3y_pct","operating_margin_3y_pct")),6)
+                    if any(pts[k]["candidate_points"] is not None for k in (
+                        "revenue_cagr_3y_pct","operating_margin_3y_pct")) else None),
+                "financial_available_max":sum(pts[k]["max_points"] for k in (
+                    "revenue_cagr_3y_pct","operating_margin_3y_pct")),
+                "valuation_candidate_points":(
+                    round(sum(pts[k]["candidate_points"] or 0 for k in
+                              ("pbr","earnings_yield_pct")),6)
+                    if any(pts[k]["candidate_points"] is not None
+                           for k in ("pbr","earnings_yield_pct")) else None),
+                "valuation_available_max":sum(pts[k]["max_points"] for k in
+                                            ("pbr","earnings_yield_pct")),
+                "combined_provisional_points":round(
+                    sum(z["candidate_points"] or 0 for z in pts.values()),6),
+                "combined_available_max":available,
+                "confirmed_v3_score":None,
+                "scoring_certified":False,
+            })
+    return {
+        "schema":SCORE_SCHEMA,"asof":data["asof"],
+        "listed_total":len(market),
+        "four_year_income_observed":data["four_year_income_observed_count"],
+        "companies_with_computable_4y_income_scores":count_fin,
+        "companies_with_computable_pb_scores":count_pb,
+        "companies_with_computable_earnings_yield_scores":count_earnings,
+        "model_financial_full_points":15,"model_valuation_full_points":15,
+        "financial_partial_max_possible":8,
+        "valuation_partial_max_possible":10,
+        "other_four_pillar_points_claimed":0,
+        "coverage_peer_minimum":minimum_peers,
+        "historical_PIT_certified":False,
+        "fully_verified_six_pillar_count":0,
+        "all_scores_provisional_unverified":True,
+        "rows":output,
+    }
+
+
+def write_json(path,value):
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    encoded=json.dumps(value,ensure_ascii=False,sort_keys=True,
+                       separators=(",",":"),allow_nan=False)
+    if len(encoded.encode("utf8"))>10_000_000:
+        raise BulkHistoryError("bulk_derived_archive_too_large")
+    tmp=path.with_suffix(".tmp")
+    tmp.write_text(encoded+"\n",encoding="utf8")
+    tmp.replace(path)
+
+
+def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS):
+    asof,members,_,years,cohorts=plan(market,catalog,prior=prior,groups=groups)
+    if not cohorts:
+        return combine(market,catalog,prior,{},groups=groups),0
+    if type(key) is not str or len(key)<20:
+        raise BulkHistoryError("missing_dart_bulk_key")
+    requested={code for group in cohorts for code in group}
+    try:
+        resp=session.get("https://opendart.fss.or.kr/api/corpCode.xml",
+                         params={"crtfc_key":key},timeout=55)
+        resp.raise_for_status()
+        mapping=_mapping(resp.content,requested)
+    except BulkHistoryError:
+        raise
+    except Exception:
+        raise BulkHistoryError("dart_company_mapping_failure") from None
+    complete={}
+    calls=1
+    for cohort in cohorts:
+        row,n=fetch_group(session,key,asof,years,cohort,mapping)
+        complete.update(row);calls+=n
+    return combine(market,catalog,prior,complete,groups=groups),calls
+
+
+def main(argv=None):
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--market",default="docs/data.json")
+    p.add_argument("--catalog",default="docs/v22-market-catalog.json")
+    p.add_argument("--annual",default="docs/v3-dart-book-reference.json")
+    p.add_argument("--state",default="docs/v3-dart-bulk-history.json")
+    p.add_argument("--scores",default="docs/v3-dart-bulk-provisional.json")
+    p.add_argument("--groups",type=int,default=3)
+    p.add_argument("--mode",choices=("dry-run","live","verify"),default="dry-run")
+    args=p.parse_args(argv)
+    market=json.loads(Path(args.market).read_text(encoding="utf8"))
+    catalog=json.loads(Path(args.catalog).read_text(encoding="utf8"))
+    annual=json.loads(Path(args.annual).read_text(encoding="utf8"))
+    state=Path(args.state)
+    prior=json.loads(state.read_text(encoding="utf8")) if state.is_file() else None
+    asof,members,_,years,cohorts=plan(market,catalog,prior=prior,groups=args.groups)
+    if args.mode=="verify":
+        if (prior is None or prior["asof"]!=asof or
+            prior["listed_total"]!=len(members) or
+            prior["fiscal_years"]!=years):
+            raise BulkHistoryError("rebase_bulk_market_changed")
+        score=json.loads(Path(args.scores).read_text(encoding="utf8"))
+        if (score.get("asof")!=asof or score.get("listed_total")!=len(members)):
+            raise BulkHistoryError("rebase_bulk_scoring_invalid")
+        # Recalculate all provisional parts from the post-rebase DART book.
+        if research_parts(prior,catalog,annual)!=score:
+            raise BulkHistoryError("rebase_bulk_source_or_scores_changed")
+        print("bulk_post_rebase_provenance_verified")
+        return
+    if args.mode=="dry-run":
+        print(json.dumps({"asof":asof,"listed":len(members),
+             "unprocessed_today":sum(map(len,cohorts)),
+             "next_groups":len(cohorts),"years":years,
+             "API_calls":0,"saved_data":False}))
+        return
+    import os, requests
+    key=os.getenv("DART_API_KEY","")
+    archive,calls=collect(market,catalog,prior,key=key,
+                          session=requests.Session(),groups=args.groups)
+    research=research_parts(archive,catalog,annual)
+    write_json(args.state,archive)
+    write_json(args.scores,research)
+    print(json.dumps({"asof":asof,"listed":len(members),
+        "completed":archive["attempted_company_count"],
+        "complete_income_4y":archive["four_year_income_observed_count"],
+        "financial_partial_scored":research["companies_with_computable_4y_income_scores"],
+        "pbr_partial_scored":research["companies_with_computable_pb_scores"],
+        "earnings_yield_partial_scored":research["companies_with_computable_earnings_yield_scores"],
+        "source_calls":calls,"full_v3_ready":False},sort_keys=True))
+
+
+if __name__=="__main__":
+    main()

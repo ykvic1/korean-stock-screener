@@ -161,6 +161,14 @@ function pillarState(r){
    z.asof===r.price_date&&validDate(r.price_date)&&
    z.buy_certified===false&&z.v3_release_ready===false&&
    z.investable_score===null;
+ const bulk=r?.v3_dart_bulk_provisional;
+ const bulkReady=bulk&&bulk.scoring_certified===false&&
+  bulk.confirmed_v3_score===null&&bulk.asof===r.price_date&&
+  bulk.market===r.market&&
+  Number.isInteger(bulk.financial_available_max)&&
+  [0,4,8].includes(bulk.financial_available_max)&&
+  Number.isInteger(bulk.valuation_available_max)&&
+  [0,5,10].includes(bulk.valuation_available_max);
  const supplied=valid&&z.six_pillar_candidates&&
    typeof z.six_pillar_candidates==='object'&&!Array.isArray(z.six_pillar_candidates)?
    z.six_pillar_candidates:null;
@@ -172,6 +180,15 @@ function pillarState(r){
   if(key==='technical'&&tech){candidate=tech.earned;available=tech.available;}
   else if(key==='momentum'&&momentum){
    candidate=momentum.earned;available=momentum.available;
+  }
+  else if((key==='financial'||key==='valuation')&&bulkReady){
+   const points=key==='financial'?bulk.financial_candidate_points:
+    bulk.valuation_candidate_points;
+   const max=key==='financial'?bulk.financial_available_max:
+    bulk.valuation_available_max;
+   if(max>0&&finite(points)&&points>=0&&points<=max){
+    candidate=points;available=max;
+   }
   }
   else if(key!=='technical'&&key!=='momentum'&&supplied&&matchingMaxima){
    const value=supplied[key];
@@ -369,6 +386,52 @@ function applyRotationTechnicalBackfill(model, state){
  }
  return accepted;
 }
+function applyBulkFinancialPreview(model,report){
+ if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
+    !report||report.schema!=='v3-dart-multi-year-research-parts-0.1'||
+    report.asof!==model.date||report.historical_PIT_certified!==false||
+    report.fully_verified_six_pillar_count!==0||
+    report.all_scores_provisional_unverified!==true||
+    report.model_financial_full_points!==15||
+    report.model_valuation_full_points!==15||
+    report.financial_partial_max_possible!==8||
+    report.valuation_partial_max_possible!==10||
+    !Array.isArray(report.rows)||
+    !Number.isInteger(report.listed_total)||report.listed_total<model.rows.length||
+    report.rows.length>report.listed_total)return 0;
+ const index=new Map();
+ for(const row of report.rows){
+  if(!row||!TODAY_CODE.test(row.code)||!validDate(row.asof)||
+     row.asof!==model.date||
+     !['KOSPI','KOSDAQ'].includes(row.market)||
+     row.confirmed_v3_score!==null||row.scoring_certified!==false||
+     !Number.isInteger(row.financial_available_max)||
+     ![0,4,8].includes(row.financial_available_max)||
+     !Number.isInteger(row.valuation_available_max)||
+     ![0,5,10].includes(row.valuation_available_max)||
+     !finite(row.combined_provisional_points)||
+     row.combined_available_max!==
+        row.financial_available_max+row.valuation_available_max||
+     row.combined_provisional_points<0||
+     row.combined_provisional_points>row.combined_available_max||
+     index.has(row.code))return 0;
+  for(const [p,max] of [
+    ['financial_candidate_points','financial_available_max'],
+    ['valuation_candidate_points','valuation_available_max']]){
+   if(row[max]===0&&row[p]!==null||
+      row[max]>0&&(!finite(row[p])||row[p]<0||row[p]>row[max]))return 0;
+  }
+  index.set(row.code,row);
+ }
+ let accepted=0;
+ for(const x of model.rows){
+  const r=x.r,ref=index.get(r.code);
+  if(!ref||ref.market!==r.market||r.price_date!==model.date)continue;
+  r.v3_dart_bulk_provisional=ref;
+  accepted++;
+ }
+ return accepted;
+}
 function summary(model,core){
  const discover=rankItems(model,core,'discover');
  return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
@@ -380,7 +443,7 @@ function summary(model,core){
 }
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,applyRotationTechnicalBackfill};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -553,7 +616,8 @@ async function load(){
  const s=$('state');s.className='u-state';s.textContent='장마감 분석 자료 확인 중…';
  const files=['data.json','quant.json','recommendations.json','official.json',
   'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json',
-  'v3-weekly-rotation.json','v3-dart-four-year-reference.json'];
+  'v3-weekly-rotation.json','v3-dart-four-year-reference.json',
+  'v3-dart-bulk-provisional.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -564,6 +628,7 @@ async function load(){
   model=core.prepare(...responses.slice(0,6),responses[8]);
   weeklyCoverage=responses[6];
   applyRotationTechnicalBackfill(model,responses[7]);
+  applyBulkFinancialPreview(model,responses[9]);
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
