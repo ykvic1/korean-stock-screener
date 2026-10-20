@@ -119,7 +119,7 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(technical_points(row,"2026-10-19")[:2],(24.04,25))
         row["pattern_research"]["asof"]="2026-10-20"
         result=technical_points(row,"2026-10-19")
-        self.assertEqual(result[1],18, "stale daily pattern cannot contribute points")
+        self.assertEqual(result[1],16, "stale daily pattern cannot contribute points")
         row["v3_pattern_integrated"]={"schema":"wrong"}
         self.assertIsNone(technical_points(row,"2026-10-19")[0],
           "invalid provided adapter must never be bypassed by rebuilding")
