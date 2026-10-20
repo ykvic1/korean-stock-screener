@@ -31,8 +31,9 @@ def confirm_operator_approval(environment, *, today=None):
     if environment.get("V3_KRX_STORAGE_SCOPE") != "private-github-noncommercial-research":
         raise PermissionGateError("krx_approved_storage_scope_not_confirmed")
     ref = environment.get("V3_KRX_APPROVAL_REFERENCE")
-    if (type(ref) is not str or not 8 <= len(ref) <= 128 or
-        not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{7,127}", ref)):
+    if (type(ref) is not str or not 12 <= len(ref) <= 128 or
+        not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{11,127}", ref)
+        or re.search(r"[0-9]{4}", ref) is None):
         raise PermissionGateError("written_krx_permission_reference_required")
     review_day = environment.get("V3_KRX_LICENSE_RECHECK_BY")
     if type(review_day) is not str:
