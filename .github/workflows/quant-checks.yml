@@ -235,6 +235,10 @@ jobs:
         run: |
           python -m py_compile v3_dart_event_filing_research.py
           python -m unittest discover -s tests -p 'test_v3_dart_event_filing_research.py' -v
+      - name: Historical OpenDART real-receipt private resume and ten-issuer range limits
+        run: |
+          python -m py_compile v3_dart_event_filing_batches.py
+          python -m unittest discover -s tests -p 'test_v3_dart_event_filing_batches.py' -v
       - name: KRX archived five-session actual delayed Contents GET recovery
         run: |
           python -m unittest discover -s tests -p 'test_v3_krx_delayed_contents.py' -v
