@@ -255,9 +255,23 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         existing[code]=derived
     output=[existing[c] for c in sorted(existing)]
     observed_in_run=sum(bool(x.get("reports")) for x in results)
-    # Using ANY truly received dated annual filing as a responsiveness probe,
-    # NOT claiming 4 consecutive years or a certified financial score.
-    healthy=(bool(requested) and observed_in_run/len(requested)>=MIN_HEALTHY_FRACTION
+    # A previously observed (seeded) annual filing is valid evidence for
+    # the company, but NOT proof that the DART provider responded today.
+    # Synthetic custom collectors without freshness metadata retain legacy
+    # semantics; production official_data.dart_collect always supplies it.
+    freshly_observed=0
+    for row in results:
+        count=row.get("newly_fetched_annual_years")
+        if count is None:
+            fresh=bool(row.get("reports"))
+        else:
+            if (type(count) is not int or not 0<=count<=4
+                    or count>len(row.get("reports") or [])):
+                raise FourYearEvidenceError("invalid_fresh_dart_report_count")
+            fresh=count>0
+        freshly_observed+=int(fresh)
+    healthy=(bool(requested) and
+             freshly_observed/len(requested)>=MIN_HEALTHY_FRACTION
              and all(x.get("status")!="deferred" for x in results))
     previous_streak=prior.get("consecutive_healthy_batches",0) if prior else 0
     if type(previous_streak) is not int or not 0<=previous_streak<=1000:
@@ -267,6 +281,7 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         "schema":SCHEMA,"asof":day,"listed_total":len(members),
         "pilot_issuer_count":len(output),"requested_this_run":len(requested),
         "observed_filings_issuers_this_run":observed_in_run,
+        "newly_fetched_filings_issuers_this_run":freshly_observed,
         "consecutive_healthy_batches":streak,
         "next_schedule_max_issuers":automatic_daily_limit({
             "schema":SCHEMA,"consecutive_healthy_batches":streak}),
