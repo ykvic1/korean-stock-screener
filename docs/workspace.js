@@ -98,9 +98,10 @@ function pillarState(r){
  const ok=z&&z.schema==='v3-pattern-within-six-pillars-research-0.4'&&
    z.asof===r.price_date&&z.investable_score===null&&z.buy_certified===false;
  return PILLARS.map(([key,label])=>{
-  // Technical is an observed research input, not a certified investment pillar.
+  // Only date-valid technical evidence is available at this stage.
+  // Do not present historical legacy v2.2 sub-scores as V3 pillar values.
   const candidate=key==='technical'?technicalCandidate(r):null;
-  return {key,label,max:WEIGHTS[key],candidate,status:candidate===null?'미확인':'연구 관측'};
+  return {key,label,max:WEIGHTS[key],candidate,status:candidate===null?'미산출':'연구 관측'};
  });
 }
 function riskState(x,core){
@@ -136,6 +137,9 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
    return [x.r.code,tieRank];
  }));
  const search=String(query).trim().toLocaleLowerCase('ko-KR');
+ // A direct ticker lookup is ALWAYS global, never restricted to TOP100,
+ // tabs, market or safety filter. Risk warnings remain visible on cards.
+ // Retain global legacy rank for comparability without fake V3 rank.
  const rows=model.rows.map(x=>{
   const daily=evidence(x.r,'daily'),weekly=evidence(x.r,'weekly');
   const signals=[...weekly,...daily];
@@ -149,9 +153,10 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
     scoreRank:scoreRanks.get(x.r.code)};
  }).filter(x=>{
   const r=x.r;
+  if(search)return (r.name+' '+r.code+' '+(r.sector||''))
+     .toLocaleLowerCase('ko-KR').includes(search);
   if(top100Only&&scoreRanks.get(r.code)>100)return false;
   if(market!=='all'&&r.market!==market)return false;
-  if(search&&!(r.name+' '+r.code+' '+(r.sector||'')).toLocaleLowerCase('ko-KR').includes(search))return false;
   if(safeOnly&&x.risk.unsafe)return false;
   if(tab==='patterns')return x.patterns.length>0;
   if(tab==='rsi')return x.rsi.length>0;
@@ -281,9 +286,13 @@ function renderDetails(x){
 }
 function draw(){
  if(!model)return;
- const rows=rankItems(model,core,tab,$('market').value,$('stockSearch').value,sort,safeOnly,top100Only);
+ const query=$('stockSearch').value.trim();
+ const rows=rankItems(model,core,tab,$('market').value,query,sort,safeOnly,top100Only);
+ $('filterNotice').textContent=query?
+   '전체 시장 검색 결과 · TOP100·선택 탭·위험 필터 제한 없음':
+   '종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.';
  $('resultCount').textContent=rows.length.toLocaleString('ko-KR')+
-   '종목 · '+(top100Only?'기존 점수 상위 100개 중 ':'전체 시장 중 ')+
+   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'기존 점수 상위 100개 중 ':'전체 시장 중 ')+
    (sort==='score'?'기존 관측점수순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
    ' · 정식 V3 종합순위 아님';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
@@ -297,11 +306,13 @@ function draw(){
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
    '<span><b>'+r.score.toFixed(1)+'</b><small>기존 관측점수 · 확보 '+r.coverage_pct.toFixed(0)+'%</small></span></div>'+
-   '<div class="u-scoresix">'+pillarState(r).map(i=>
-     '<span><small>'+esc(i.label)+'</small><b>'+
-     (i.candidate===null?'—':i.candidate.toFixed(1))+
+   '<div class="u-scoresix" aria-label="6영역 V3 점수: 검증된 값만 표시">'+pillarState(r).map(i=>
+     '<span><small>'+esc(i.label)+' /'+i.max+'</small><b>'+
+     (i.candidate===null?'미검증':i.candidate.toFixed(1))+
      '</b></span>').join('')+
-     '<span><small>V3 합계</small><b>미산출</b></span></div>'+
+     '<span><small>V3 합계 /100</small><b>미산출</b></span></div>'+
+   '<p class="u-score-hint">6영역 점수는 검증 자료가 확보된 항목만 표시됩니다. 위 '+ 
+   '기존 관측점수 '+r.score.toFixed(1)+'점은 V3 종합점수가 아닙니다.</p>'+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
    '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+

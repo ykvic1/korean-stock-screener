@@ -22,9 +22,9 @@
  </div>
 </header>
 <main class="u-wrap">
- <section class="u-intro" aria-labelledby="sourceTitle">
-  <div class="u-intro-top"><h2 id="sourceTitle">오늘의 시장 관찰</h2>
-  <span id="state" class="u-state" role="status" aria-live="polite">데이터 연결 중…</span></div>
+ <details class="u-intro" id="marketSummary">
+  <summary class="u-intro-top"><span class="u-section-heading" id="sourceTitle">오늘의 시장 관찰 <small>자세히 보기</small></span>
+  <span id="state" class="u-state" role="status" aria-live="polite">데이터 연결 중…</span></summary>
   <div class="u-stats">
    <div><span>가격 분석 종목</span><strong id="statAnalyzed">—</strong></div>
    <div><span>패턴·전환 관찰</span><strong id="statWatch">—</strong></div>
@@ -32,9 +32,12 @@
    <div><span>V3 6영역 종합점수</span><strong id="statV3">미완성</strong></div>
   </div>
   <p id="sourceNotes" class="u-source">검증된 관측자료만 표시합니다. 실제 수급·재무·섹터 등 미확인 영역은 임의로 채우지 않습니다.</p>
- </section>
+ </details>
  <section class="u-controls" aria-label="종목 발굴 조건">
-  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="true">TOP100 · 기존 점수</button><span>순위는 현재 공개된 관측점수 기준이며 V3 정식 종합순위는 미산출</span></div>
+  <label class="u-quick-search" for="stockSearch">종목 검색
+    <input id="stockSearch" type="search" placeholder="전체 종목에서 이름 또는 6자리 코드 검색" autocomplete="off" spellcheck="false">
+   </label>
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="true">TOP100 · 기존 점수</button><span id="filterNotice">종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.</span></div>
   <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
    <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
    <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
@@ -42,9 +45,8 @@
    <button data-tab="quant" type="button" aria-pressed="false">퀀트 자료</button>
    <button data-tab="all" type="button" aria-pressed="false">전 종목</button>
   </div>
+  <details class="u-extra-filters" id="advancedFilters"><summary>시장 · 정렬 · 손절 위험 상세 설정</summary>
   <div class="u-filters">
-   <label class="u-search">종목 검색
-    <input id="stockSearch" type="search" placeholder="종목명 또는 6자리 코드" autocomplete="off"></label>
    <label>시장
     <select id="market"><option value="all">코스피 + 코스닥</option>
      <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
@@ -53,8 +55,7 @@
      <option value="research">패턴·위험 우선</option>
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
-  </div>
-  <p class="u-control-note">패턴: 폴링 웻지 · 역헤드앤숄더 · 더블바텀 · Bull Flag · 상승삼각형 · 상승 후 수렴. <b>일봉은 스윙, 주봉은 중기·장기</b>로 개별 확인합니다. 순위는 <b>기존 관측점수 높은 순</b>이 기본입니다. 일봉·주봉 패턴과 하방 위험은 별도 표시하며, V3 6영역 검증 전에는 정식 종합점수·투자순위를 발표하지 않습니다.</p>
+  </div></details>
  </section>
  <section class="u-results" aria-label="통합 종목 분석">
   <div class="u-results-head"><div><h2>종목 발굴 및 분석</h2><p id="resultCount" role="status" aria-live="polite">자료 로드 중…</p></div>

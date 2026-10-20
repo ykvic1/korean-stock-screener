@@ -22,6 +22,17 @@ assert.deepEqual(unified.marketFreshness('2026-10-19',new Date('2026-10-26T00:00
 assert.deepEqual(unified.marketFreshness('2026-10-21',new Date('2026-10-20T00:00:00Z')),
  {status:'future',calendarDays:-1});
 assert.ok(html.includes('id="unifiedApp"'));
+assert.ok(html.includes('<details class="u-intro" id="marketSummary">'),
+ 'market observation details must be collapsed on initial mobile load');
+assert.ok(!html.includes('<details class="u-intro" id="marketSummary" open'),
+ 'default market observation must be closed');
+assert.ok(html.includes('<details class="u-extra-filters" id="advancedFilters">'),
+ 'oversized search filter area must be optional, not fixed');
+assert.ok(html.indexOf('id="stockSearch"')<html.indexOf('id="tabs"'),
+ 'global ticker search must be above secondary chart and RSI tabs');
+assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab scopes');
+assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
+assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
 assert.ok(html.includes('<option value="score" selected>기존 관측점수순</option>'),
  'default screen must NOT silently promote pattern-only priority above displayed score');
@@ -33,7 +44,7 @@ assert.ok(source.includes('V3 합계')&&source.includes('미산출'),
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
 for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
  'id="tabs"','id="saferOnly"','id="reload"','id="statV3"',
- '일봉은 스윙, 주봉은 중기·장기','Bull Flag','폴링 웻지','역헤드앤숄더','더블바텀'])
+ '시장 · 정렬 · 손절 위험 상세 설정','V3 6영역 종합점수','차트 패턴'])
  assert.ok(html.includes(s),'single screen missing '+s);
 assert.ok(html.includes('workspace.js')&&html.includes('v3-ranking.js'));
 assert.ok(entry.includes('id="unifiedApp"')&&entry.includes('workspace.js'),
@@ -174,6 +185,17 @@ assert.equal(top.length,100);
 assert.equal(top[0].scoreRank,1);
 assert.equal(top[99].scoreRank,100);
 assert.ok(top.every((x,i)=>x.scoreRank===i+1));
+const outsideTop=many.rows[0].r; // after reversing 106 stocks, this is global rank #106
+const globalSearch=unified.rankItems(
+ many,legacy,'rsi','KOSDAQ',outsideTop.code,'score',true,true);
+assert.deepEqual(globalSearch.map(x=>x.r.code),[outsideTop.code],
+ 'direct code search must find stock #120 with TOP100 on, RSI tab and safety filter');
+assert.ok(globalSearch[0].scoreRank>100,
+ 'global search must still show real global legacy rank and risk disclosure');
+const matchName=unified.rankItems(
+ many,legacy,'quant','KOSDAQ',outsideTop.name,'score',true,true);
+assert.ok(matchName.some(x=>x.r.code===outsideTop.code),
+ 'direct name lookup must search across whole market, not selected quant tab');
 assert.ok(top.every(x=>unified.pillarState(x.r).find(z=>z.key==='ias').candidate===null),
  'market ranking must not fill missing investor flow to force complete V3 total');
 
