@@ -23,10 +23,12 @@ class SimulatedPrivateGithub:
         if method=="GET":
             self.read_count+=1
             raw=self.blobs.get(name)
+
+            if raw is None:
+                return None
             return {"type":"file","encoding":"base64",
                     "content":base64.b64encode(raw).decode(),
                     "sha":"synthetic-"+str(hash(raw))}
-                    if raw is not None else None
         if method=="PUT":
             raw=base64.b64decode(payload["content"])
             if name in self.blobs and "sha" not in payload:
