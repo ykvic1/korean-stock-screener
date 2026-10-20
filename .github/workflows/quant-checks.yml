@@ -231,6 +231,14 @@ jobs:
         run: |
           python -m py_compile v3_evidence_chain.py
           python -m unittest discover -s tests -p 'test_v3_evidence_chain.py' -v
+      - name: KRX final four-session candidate tail kept as verified private partial evidence
+        run: |
+          python -m py_compile v3_krx_derived_four_session_tail.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_four_session_tail.py' -v
+      - name: DART four-year cohort audit never promotes stale market and annual census
+        run: |
+          python -m py_compile v3_dart_offline_lag_plan.py
+          python -m unittest discover -s tests -p 'test_v3_dart_offline_lag_plan.py' -v
       - name: KRX private 20-60-120-250 research approximate returns without official source calls
         run: |
           python -m py_compile v3_krx_derived_rolling_returns.py
