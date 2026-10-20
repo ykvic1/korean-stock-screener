@@ -16,6 +16,7 @@ import json
 import math
 import os
 import re
+import time
 
 from v3_krx_derived_backfill import (history_candidates, CHECKPOINT as HISTORY_CHECKPOINT,
                                      _manifest as _history_manifest, DerivedBackfillError)
@@ -149,6 +150,21 @@ def _read_link(blob,prev_day,next_day):
         raise BoundaryError("private_existing_boundary_derived_invalid") from None
 
 
+def _readback_with_retry(storage,path,expected):
+    """GitHub's new Contents blob may be briefly stale after a successful PUT.
+
+    Never repeat the PUT or official provider calls; instead verify the saved
+    immutable bytes with a finite 4-read retry window and fail closed.
+    """
+    for attempt in range(4):
+        observed,_=storage.get_content(path)
+        if observed==expected:
+            return True
+        if attempt<3:
+            time.sleep(0.7*(attempt+1))
+    raise BoundaryError("private_derived_write_not_visible_after_retry")
+
+
 def _link_path(older,newer):
     return f"derived/boundaries/{older}_{newer}.json.gz"
 
@@ -239,9 +255,7 @@ def run(*,storage,client,dates,calendar_hash,max_links=MAX_LINKS_PER_RUN):
             fact,blob=derive_link(client,prev,last)
             # Ingest only a derived factor file. Original KRX responses die in RAM.
             storage.put_new(path,blob,"Store private cross-bucket KRX derived "+last)
-            confirmed,_=storage.get_content(path)
-            if confirmed!=blob:
-                raise BoundaryError("private_boundary_write_readback_mismatch")
+            _readback_with_retry(storage,path,blob)
             new_calls+=4
         else:
             blob=original
@@ -272,9 +286,7 @@ def run(*,storage,client,dates,calendar_hash,max_links=MAX_LINKS_PER_RUN):
                 "message":"Advance private KRX derived boundary checkpoint",
                 "content":base64.b64encode(raw).decode("ascii"),
                 "sha":checkpoint_sha})
-        saved,_=storage.get_content(CHECKPOINT)
-        if saved!=raw:
-            raise BoundaryError("derived_boundary_checkpoint_not_verified")
+        _readback_with_retry(storage,CHECKPOINT,raw)
         progress=output
     return {
         "status":"derived_krx_bucket_boundaries_stored_and_verified",
