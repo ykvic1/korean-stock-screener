@@ -185,7 +185,7 @@ assert.equal(top.length,100);
 assert.equal(top[0].scoreRank,1);
 assert.equal(top[99].scoreRank,100);
 assert.ok(top.every((x,i)=>x.scoreRank===i+1));
-const outsideTop=many.rows[119].r;
+const outsideTop=many.rows[0].r; // after reversing 106 stocks, this is global rank #106
 const globalSearch=unified.rankItems(
  many,legacy,'rsi','KOSDAQ',outsideTop.code,'score',true,true);
 assert.deepEqual(globalSearch.map(x=>x.r.code),[outsideTop.code],
