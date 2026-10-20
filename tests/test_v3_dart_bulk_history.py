@@ -137,7 +137,8 @@ class BulkHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(bulk.BulkHistoryError,"partial_or_unexpected"):
             bulk.combine(market,catalog,None,{},groups=3)
         with self.assertRaisesRegex(bulk.BulkHistoryError,"missing_bulk_fiscal"):
-            bulk.combine(market,catalog,None,{CODES[0]:{"2025":{}}},groups=1)
+            bulk.combine(market,catalog,None,
+                         {c:{"2025":{}} for c in CODES},groups=1)
         self.assertEqual(years,[2022,2023,2024,2025])
         self.assertEqual(len(cohorts[0]),5)
 
