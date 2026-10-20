@@ -379,6 +379,43 @@ assert.equal(unified.rankItems(noEvidence,legacy,'all','all','','score',false,tr
 assert.equal(unified.rankItems(noEvidence,legacy,'all').length,1,
  'the full list retains unavailable-source tickers for direct inspection');
 
+// Historical OpenDART BS/IS partial 8+5 points integrate into six-area UI
+// only when same-market date, separately verified research provenance matches.
+const funded={...row,market:'KOSPI'};
+const display={date:'2026-10-20',rows:[{r:funded}]};
+const bulkParts={
+ schema:'v3-dart-multi-year-research-parts-0.1',
+ asof:'2026-10-20',listed_total:2497,model_financial_full_points:15,
+ model_valuation_full_points:15,financial_partial_max_possible:8,
+ valuation_partial_max_possible:5,
+ historical_PIT_certified:false,fully_verified_six_pillar_count:0,
+ all_scores_provisional_unverified:true,
+ rows:[{code:funded.code,market:'KOSPI',asof:'2026-10-20',
+   confirmed_v3_score:null,scoring_certified:false,
+   financial_candidate_points:6,financial_available_max:8,
+   valuation_candidate_points:3.5,valuation_available_max:5,
+   combined_provisional_points:9.5,combined_available_max:13}]
+};
+assert.equal(unified.applyBulkFinancialPreview(display,bulkParts),1);
+assert.equal(unified.pillarState(funded)[2].candidate,6);
+assert.equal(unified.pillarState(funded)[2].available,8);
+assert.equal(unified.pillarState(funded)[3].candidate,3.5);
+assert.equal(unified.pillarState(funded)[3].available,5);
+assert.equal(unified.pillarState(funded)[0].available,0);
+assert.equal(unified.researchComposite(funded).earned,32.3);
+assert.equal(unified.researchComposite(funded).available,38);
+const forged={...bulkParts,rows:[{...bulkParts.rows[0],
+  financial_candidate_points:15,financial_available_max:8}]};
+assert.equal(unified.applyBulkFinancialPreview(display,forged),0,
+ 'overweight financial research score should be blocked');
+assert.equal(unified.applyBulkFinancialPreview(display,
+ {...bulkParts,asof:'2026-10-21'}),0);
+assert.equal(unified.applyBulkFinancialPreview(display,
+ {...bulkParts,all_scores_provisional_unverified:false}),0);
+assert.equal(unified.applyBulkFinancialPreview(display,
+ {...bulkParts,rows:[bulkParts.rows[0],bulkParts.rows[0]]}),0,
+ 'a duplicate score row should invalidate the whole import');
+
 const actual=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
 const dailyModel=legacy.prepare(actual,null,null,null,null,null);
 const actualAll=unified.rankItems(dailyModel,legacy,'all');
