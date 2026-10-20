@@ -14,6 +14,7 @@ import json
 import math
 import os
 import re
+import time
 from hashlib import sha256
 
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
@@ -200,6 +201,28 @@ def validate_derived_blob(blob,start,end):
         raise DerivedSourceError("existing_derived_archive_invalid") from None
 
 
+def _private_new_blob_readback(storage,path,expected):
+    """Verify a successful immutable GitHub Contents PUT despite short read lag.
+
+    GET may temporarily report missing/stale bytes immediately after PUT.
+    Retry bounded READ operations only: NEVER issue another file PUT, never
+    re-call KRX for this observation and never treat mismatched bytes as valid.
+    A later scheduled run reuses the already written file by its verified hash.
+    """
+    if type(expected) is not bytes or not expected:
+        raise DerivedSourceError("private_derived_expected_blob_invalid")
+    for attempt in range(4):
+        try:
+            received,_=storage.get_content(path)
+        except PrivateHistoryError:
+            received=None  # temporary GitHub HTTP trouble, no provider request
+        if received==expected:
+            return received
+        if attempt<3:
+            time.sleep(.7*(attempt+1))
+    raise DerivedSourceError("private_derived_archive_readback_failed")
+
+
 def store_five_day_factors(storage,client,days=FIXED_FIRST_SAMPLE,progress=None):
     days=_check_days(days)
     # Explicit location controls so an accidental token cannot publish results.
@@ -223,9 +246,7 @@ def store_five_day_factors(storage,client,days=FIXED_FIRST_SAMPLE,progress=None)
     if progress:progress("writing_private_derived_factor_file")
     storage.put_new(path,blob,"Archive five-session KRX derived research "+days[-1])
     if progress:progress("verifying_private_factor_write")
-    actual,_=storage.get_content(path)
-    if actual!=blob:
-        raise DerivedSourceError("private_derived_archive_readback_failed")
+    actual=_private_new_blob_readback(storage,path,blob)
     saved=validate_derived_blob(actual,days[0],days[-1])
     return {"status":"persisted_and_readback_verified_derived",
             "source_api_calls":10,
