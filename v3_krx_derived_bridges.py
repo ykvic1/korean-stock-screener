@@ -18,6 +18,7 @@ import os
 import re
 
 from v3_krx_derived_backfill import history_candidates, CHECKPOINT as HISTORY_CHECKPOINT, _manifest as _history_manifest
+from v3_krx_derived_5day import validate_derived_blob
 from v3_krx_history_collection import _snapshot_market
 from v3_krx_daily_anomaly_triage import classify_row
 from official_probe.validation import _numeric
@@ -213,6 +214,19 @@ def run(*,storage,client,dates,calendar_hash,max_links=MAX_LINKS_PER_RUN):
     new_calls=0;resumed=0;count=0;new_bytes=0;last_digest=progress["last_boundary_sha256"]
     for idx in range(pointer,last_end):
         prev,last=dates[idx*5-1],dates[idx*5]
+        # The linkage is only valid between TWO real completed and validated
+        # derived cohorts. Check the actual immutable factor files, not merely
+        # an optimistic checkpoint counter.
+        for begin in ((idx-1)*5,idx*5):
+            cohort=dates[begin:begin+5]
+            factor_path=f"derived/five-session/{cohort[0]}_{cohort[-1]}.json.gz"
+            saved_factor,_=storage.get_content(factor_path)
+            if saved_factor is None:
+                raise BoundaryError("missing_source_derived_cohort_file")
+            try:
+                validate_derived_blob(saved_factor,cohort[0],cohort[-1])
+            except Exception:
+                raise BoundaryError("invalid_source_derived_cohort_file") from None
         path=_link_path(prev,last)
         original,_=storage.get_content(path)
         if original is None:
