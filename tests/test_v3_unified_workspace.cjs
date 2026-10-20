@@ -245,9 +245,9 @@ const partial3={...partial,v3_pattern_integrated:{
  six_pillar_candidates:{ias:null,technical:null,financial:6,
    valuation:null,industry:null,momentum:4}
 }};
-assert.equal(unified.researchComposite(partial3).earned,16.5);
-assert.equal(unified.researchComposite(partial3).available,36,
- 'other V3 candidates may join when already independently supplied for the same date');
+assert.equal(unified.researchComposite(partial3).earned,12.5);
+assert.equal(unified.researchComposite(partial3).available,26,
+ 'previously supplied momentum data cannot enter a V3 subtotal without independently checked 8-point benchmark research');
 assert.equal(unified.researchComposite({...partial3,
  v3_pattern_integrated:{...partial3.v3_pattern_integrated,
  six_pillar_maximum:{...unified.WEIGHTS,financial:25}}
