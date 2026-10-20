@@ -30,7 +30,8 @@ def fixture(n=2497):
         if i == 3:
             v3["technical_parts"] = {k: None for k in v3["technical_parts"]}
             v3["technical_observed_maximum"] = 0
-        stock.append({"code": code, "price_date": "2026-10-19",
+        stock.append({"code": code,"market":"KOSPI" if i%2 else "KOSDAQ",
+                      "price_date": "2026-10-19",
                       "price20": 3.4, "price60": 7.2,
                       "relative20": i / 100, "relative60": -i / 200,
                       "flows_confirmed": False,
