@@ -34,22 +34,22 @@ assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab
 assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
 assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
-assert.ok(html.includes('<option value="score" selected>기존 관측점수순</option>'),
- 'default screen must NOT silently promote pattern-only priority above displayed score');
+assert.ok(html.includes('<option value="score" selected>V3 잠정점수순</option>'),
+ 'default selection must explicitly use V3 provisional observations');
 assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
 assert.ok(css.includes('color-scheme:dark')&&css.includes('.u-scoresix'),
- 'approved dark-green rank concept and 6-pillar unknown table must be present');
-assert.ok(css.includes('.u-scoresix span.u-factor-unverified')&&
+ 'approved dark-green theme and 6 V3 pillar boxes must remain');
+assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
  css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),
  'each unverified factor card should have a red inner outline');
-assert.ok(source.includes('<span class="u-factor-unverified">')&&
- source.includes("i.candidate===null?'미검증':i.candidate.toFixed(1)"),
- 'calculated candidate scores remain visible with explicit unverified status');
-assert.ok(source.includes('legacyParts=Object.entries(model.weights||{})')&&
- source.includes('확보된 항목의 획득점수 ÷ 확보된 배점 × 100'),
- 'old 78.6-style score must be explainable by its 8 original components');
-assert.ok(source.includes('V3 합계')&&source.includes('미산출'),
- 'do not label old observed ranking as official V3 composite');
+assert.ok(source.includes('x.composite.pillars.map')&&
+ source.includes("i.candidate===null?'—':i.candidate.toFixed(1)"),
+ 'calculated provisional research candidates remain visible');
+assert.ok(source.includes('researchComposite(r)')&&
+ source.includes('산출 가능 배점'),
+ 'V3 score coverage must accompany any available research sum');
+assert.ok(source.includes('잠정 합계')&&source.includes('미검증'),
+ 'do not treat research aggregate as a verified investment decision');
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
 for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
  'id="tabs"','id="saferOnly"','id="reload"','id="statV3"',
@@ -125,88 +125,109 @@ for(const item of [
  {...row,pattern_weekly_research:{...row.pattern_weekly_research,asof:'2026-10-02'}}
 ])assert.equal(unified.validPattern(item,'weekly'),null,'incomplete/stale/future week must fail closed');
 assert.equal(unified.esc('<script>"/&'), '&lt;script&gt;&quot;/&amp;');
-const row2={...row,code:'000001',name:'위험 예시',stop_line:70,stop_pct:-30,score:95,
- pattern_research:null,pattern_weekly_research:null,v3_pattern_integrated:null};
+
+// Only calculable same-date research candidates can be shown, even if
+// the source has not yet certified them for trading. Never insert missing=0.
+const partial={...row,v3_pattern_integrated:{
+ ...row.v3_pattern_integrated,
+ technical_research_candidate:null,
+ technical_observed_maximum:11,
+ technical_parts:{
+  daily_pattern:3.5,weekly_pattern:null,daily_rsi:1,weekly_rsi:null,
+  weekly_ma120:null,volume_confirmation:2
+ }
+}};
+assert.equal(unified.technicalCandidate(partial),null,
+ 'incomplete technical factor cannot masquerade as fully scored 25-point factor');
+assert.deepEqual(unified.technicalEvidence(partial),
+ {earned:6.5,available:11,fullyObserved:false});
+assert.equal(unified.researchComposite(partial).earned,6.5);
+assert.equal(unified.researchComposite(partial).available,11);
+assert.equal(unified.researchComposite(partial).missing,89);
+assert.deepEqual(unified.pillarState(partial).map(p=>p.candidate),
+ [null,6.5,null,null,null,null]);
+const missing={...row,v3_pattern_integrated:null};
+assert.equal(unified.researchComposite(missing).earned,null,
+ 'missing factor must not appear as 0.0/100');
+assert.equal(unified.researchComposite(missing).available,0);
+const zero={...partial,v3_pattern_integrated:{
+ ...partial.v3_pattern_integrated,
+ technical_parts:{daily_pattern:0,weekly_pattern:null,daily_rsi:0,
+  weekly_rsi:null,weekly_ma120:null,volume_confirmation:0}
+}};
+assert.equal(unified.researchComposite(zero).earned,0,
+ 'legitimate calculated zero stays a numeric zero');
+assert.equal(unified.researchComposite(zero).available,11);
+const timeMismatch={...partial,v3_pattern_integrated:{
+ ...partial.v3_pattern_integrated,asof:'2026-10-19'}};
+assert.equal(unified.researchComposite(timeMismatch).earned,null,
+ 'mismatched source date blocks numeric aggregate');
+const partial3={...partial,v3_pattern_integrated:{
+ ...partial.v3_pattern_integrated,
+ six_pillar_maximum:unified.WEIGHTS,
+ six_pillar_candidates:{ias:null,technical:null,financial:6,
+   valuation:null,industry:null,momentum:4}
+}};
+assert.equal(unified.researchComposite(partial3).earned,16.5);
+assert.equal(unified.researchComposite(partial3).available,36,
+ 'other V3 candidates may join when already independently supplied for the same date');
+assert.equal(unified.researchComposite({...partial3,
+ v3_pattern_integrated:{...partial3.v3_pattern_integrated,
+ six_pillar_maximum:{...unified.WEIGHTS,financial:25}}
+}).earned,6.5,'out-of-contract candidate maxima cannot inflate a total');
+
+const highLegacy={...row,code:'000001',name:'높은 구형점수',
+ score:98,v3_pattern_integrated:null};
 const safe={r:row,q:null,watch:null,quant:false,researchCandidate:false};
-const unsafe={r:row2,q:null,watch:null,quant:false,researchCandidate:false};
+const unsafe={r:highLegacy,q:null,watch:null,quant:false,researchCandidate:false};
 const model={date:'2026-10-20',rows:[unsafe,safe],marketEligible:2,
  rollingBookCount:0,quantCount:0};
-const picked=unified.rankItems(model,legacy,'discover');
-assert.deepEqual(picked.map(x=>x.r.code),['005930'],'discovery cannot promote high-risk higher legacy score');
-assert.equal(unified.rankItems(model,legacy,'all').length,2);
+assert.deepEqual(unified.rankItems(model,legacy,'all').map(x=>x.r.code),
+ ['005930','000001'],'V2.2 98 points cannot outrank V3 research evidence');
+assert.equal(unified.rankItems(model,legacy,'all')[0].composite.earned,22.8);
+assert.equal(unified.rankItems(model,legacy,'all')[1].composite.earned,null);
 assert.equal(unified.rankItems(model,legacy,'patterns').length,1);
 assert.equal(unified.rankItems(model,legacy,'rsi').length,1);
 assert.equal(unified.rankItems(model,legacy,'quant').length,0);
-assert.equal(unified.rankItems(model,legacy,'all','all','위험').length,1);
-assert.equal(unified.rankItems(model,legacy,'all','all','','score')[0].r.code,'000001',
- 'user explicitly requested legacy score sort can still display unsafe rows with warning');
-assert.deepEqual(unified.rankItems(model,legacy,'all','all','','research',true)
- .map(x=>x.r.code),['005930']);
+assert.deepEqual(unified.rankItems(model,legacy,'all','all','높은').map(x=>x.r.code),
+ ['000001']);
 assert.equal(unified.summary(model,legacy).officialFullScore,0,
- 'no V3 final 100 or investment rank until all six pillars are certified');
+ 'provisional sum is not a final investment ranking');
+assert.equal(unified.summary(model,legacy).provisional,1);
+const safeHighRisk={...row,code:'111111',name:'손절위험',stop_line:60,
+ stop_pct:-40,v3_pattern_integrated:{...row.v3_pattern_integrated,
+ technical_research_candidate:24}};
+const risks={...model,rows:[safe,{...safe,r:safeHighRisk}]};
+assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'111111',
+ 'risk warnings should not silently mutate the visible observed-score ordering');
+assert.equal(unified.rankItems(risks,legacy,'all','all','','score',true).length,1);
+assert.ok(unified.rankItems(risks,legacy,'all')[0].risk.unsafe);
 
-// The reference mock visibly placed 65.7 (3rd), 51.4 (1st), 48.6 (2nd).
-// With score-desc ranking it MUST instead be 65.7 -> 51.4 -> 48.6.
-const designRows=[
- {r:{...row,code:'004490',name:'세방전지',score:65.7}},
- {r:{...row,code:'004370',name:'농심',score:51.4}},
- {r:{...row,code:'025860',name:'남해화학',score:48.6}},
-].map(x=>({...safe,...x}));
-const designModel={...model,rows:[designRows[1],designRows[2],designRows[0]]};
-const ranked=unified.rankItems(designModel,legacy,'all');
-assert.deepEqual(ranked.map(x=>x.r.name),['세방전지','농심','남해화학'],
- 'always sort by the actual visible score, not input order or favorite pattern');
-assert.deepEqual(ranked.map(x=>x.scoreRank),[1,2,3]);
-assert.deepEqual(ranked.map(x=>unified.observedDisplayScore(x)),
- [65.7,51.4,48.6]);
-// Rank numbers remain global within the same dated market regardless of
-// RSI/pattern/market filters; do not relabel the #8 score as #1 when filtered.
-const onlyNong=unified.rankItems(designModel,legacy,'all','all','농심');
-assert.equal(onlyNong[0].scoreRank,2);
-assert.deepEqual(
- unified.rankItems(designModel,legacy,'all','KOSPI').map(x=>x.scoreRank),
- [1,2,3]);
-const tied={...safe,r:{...row,code:'000888',name:'점수동률',score:65.71,coverage_pct:63}};
-const tiedModel={...designModel,rows:[...designRows,tied]};
-const tiedRanks=unified.rankItems(tiedModel,legacy,'all');
-assert.equal(tiedRanks[0].scoreRank,1);
-assert.equal(tiedRanks[1].scoreRank,1,
- 'same rendered one-decimal score gets the same visible competition rank');
-assert.equal(tiedRanks[2].scoreRank,3);
-// Explicit risk is disclosed, rather than silently re-ranking riskier
-// high-score symbols; optional safer-only filter excludes them.
-const riskSignals={...safe,r:{...row,code:'111111',name:'리스크종목',score:98,
- stop_line:60,stop_pct:-40}};
-const riskyModel={...designModel,rows:[riskSignals,...designRows]};
-const risky=unified.rankItems(riskyModel,legacy,'discover');
-assert.equal(risky[0].r.code,'111111','do not hide high-score risk while calling list score-ranked');
-assert.equal(risky[0].scoreRank,1);
-assert.ok(risky[0].risk.unsafe,'high rank is NOT a buy signal');
-assert.ok(!unified.rankItems(riskyModel,legacy,'discover','all','','score',true)
- .some(x=>x.r.code==='111111'),'downside-only filter works');
-// TOP100 selects market-global score ranks, not the first 100 array entries.
-const all106=Array.from({length:106},(_,i)=>({...safe,
- r:{...row,code:String(i).padStart(6,'0'),name:'합성'+i,
- score:100-i*0.2,coverage_pct:70}}));
-const many={...designModel,rows:all106.reverse()};
+// A 100-candidate browse filter operates ONLY on stocks with research values.
+const candidates=Array.from({length:106},(_,i)=>({
+ ...safe,r:{...row,code:String(i).padStart(6,'0'),name:'모의'+i,
+  score:i, // old 2.2 points deliberately run in opposite direction
+  v3_pattern_integrated:{...row.v3_pattern_integrated,
+   technical_research_candidate:Math.round((25-i*0.1)*10)/10}}
+}));
+const many={...model,rows:candidates.reverse()};
 const top=unified.rankItems(many,legacy,'all','all','','score',false,true);
 assert.equal(top.length,100);
-assert.equal(top[0].scoreRank,1);
-assert.equal(top[99].scoreRank,100);
-assert.ok(top.every((x,i)=>x.scoreRank===i+1));
-const outsideTop=many.rows[0].r; // after reversing 106 stocks, this is global rank #106
-const globalSearch=unified.rankItems(
- many,legacy,'rsi','KOSDAQ',outsideTop.code,'score',true,true);
+assert.equal(top[0].r.code,'000000');
+assert.equal(top[99].r.code,'000099');
+assert.equal(top[0].candidatePosition,1);
+assert.equal(top[99].candidatePosition,100);
+const outsideTop=many.rows[0].r;
+const globalSearch=unified.rankItems(many,legacy,'rsi','KOSDAQ',
+ outsideTop.code,'score',true,true);
 assert.deepEqual(globalSearch.map(x=>x.r.code),[outsideTop.code],
- 'direct code search must find stock #120 with TOP100 on, RSI tab and safety filter');
-assert.ok(globalSearch[0].scoreRank>100,
- 'global search must still show real global legacy rank and risk disclosure');
-const matchName=unified.rankItems(
- many,legacy,'quant','KOSDAQ',outsideTop.name,'score',true,true);
-assert.ok(matchName.some(x=>x.r.code===outsideTop.code),
- 'direct name lookup must search across whole market, not selected quant tab');
-assert.ok(top.every(x=>unified.pillarState(x.r).find(z=>z.key==='ias').candidate===null),
- 'market ranking must not fill missing investor flow to force complete V3 total');
+ 'search always bypasses the optional top100 and tab filter');
+assert.equal(globalSearch[0].candidatePosition,106);
+const noEvidence={...model,rows:[unsafe]};
+assert.equal(unified.rankItems(noEvidence,legacy,'all','all','','score',false,true).length,0,
+ 'TOP100 does not fabricate observed stock candidates');
+assert.equal(unified.rankItems(noEvidence,legacy,'all').length,1,
+ 'the full list retains unavailable-source tickers for direct inspection');
 
 const actual=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
 const dailyModel=legacy.prepare(actual,null,null,null,null,null);
@@ -215,4 +236,4 @@ assert.equal(actualAll.length,dailyModel.rows.length);
 assert.ok(actualAll.every(x=>x.r.score>=0&&x.r.score<=100));
 assert.ok(actualAll.every(x=>x.tech===null||x.tech<=25));
 assert.equal(unified.summary(dailyModel,legacy).officialFullScore,0);
-console.log('Unified workspace: source-safe chart/day/week, source completeness, risk, legacy fallback, responsive layout, real-market compatibility PASS; records='+actualAll.length);
+console.log('Unified workspace: V3 provisional sum, missing-data safety, refreshed research scoring, mobile source handling, real-market compatibility PASS; records='+actualAll.length);
