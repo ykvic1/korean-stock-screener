@@ -231,6 +231,13 @@ jobs:
         run: |
           python -m py_compile v3_evidence_chain.py
           python -m unittest discover -s tests -p 'test_v3_evidence_chain.py' -v
+      - name: Official OpenDART receipt-category source validation, private unconfirmed corporate action only
+        run: |
+          python -m py_compile v3_dart_event_filing_research.py
+          python -m unittest discover -s tests -p 'test_v3_dart_event_filing_research.py' -v
+      - name: KRX archived five-session actual delayed Contents GET recovery
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_krx_delayed_contents.py' -v
       - name: KRX actual private derived action-risk screen, zero vendor call and no certified split claims
         run: |
           python -m py_compile v3_krx_derived_corporate_action_risk.py v3_krx_corporate_risk_incremental.py
