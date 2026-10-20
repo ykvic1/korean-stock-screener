@@ -117,8 +117,11 @@ function riskState(x,core){
 // Global rank is a comparison of the score ACTUALLY shown on each card.
 // It is the old v2.2 observed score (coverage separately disclosed), not
 // the not-yet-verified V3 six-pillar investment total.
+function observedDisplayScore(x){
+ return finite(x.r?.score)?Math.round(x.r.score*10)/10:-1;
+}
 function compareObservedScores(a,b){
- const av=finite(a.r?.score)?a.r.score:-1, bv=finite(b.r?.score)?b.r.score:-1;
+ const av=observedDisplayScore(a), bv=observedDisplayScore(b);
  const ac=finite(a.r?.coverage_pct)?a.r.coverage_pct:-1;
  const bc=finite(b.r?.coverage_pct)?b.r.coverage_pct:-1;
  return bv-av||bc-ac||String(a.r?.code||'').localeCompare(String(b.r?.code||''));
@@ -126,7 +129,12 @@ function compareObservedScores(a,b){
 function rankItems(model,core,tab='discover',market='all',query='',sort='score',safeOnly=false,top100Only=false){
  if(!model?.rows||!core)return [];
  const globallyOrdered=model.rows.slice().sort(compareObservedScores);
- const scoreRanks=new Map(globallyOrdered.map((x,i)=>[x.r.code,i+1]));
+ let previousScore=null,tieRank=0;
+ const scoreRanks=new Map(globallyOrdered.map((x,i)=>{
+   const score=observedDisplayScore(x);
+   if(score!==previousScore){previousScore=score;tieRank=i+1;}
+   return [x.r.code,tieRank];
+ }));
  const search=String(query).trim().toLocaleLowerCase('ko-KR');
  const rows=model.rows.map(x=>{
   const daily=evidence(x.r,'daily'),weekly=evidence(x.r,'weekly');
@@ -148,8 +156,10 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
   if(tab==='patterns')return x.patterns.length>0;
   if(tab==='rsi')return x.rsi.length>0;
   if(tab==='quant')return x.quant;
-  if(tab==='discover')return !x.risk.unsafe&&
-    (x.patterns.length>0||x.rsi.length>0||x.watch!==null);
+  // A high score must never disappear silently. Display the explicit
+  // downside warning; users can apply the separate safer-only filter.
+  if(tab==='discover')return x.patterns.length>0||x.rsi.length>0||
+    (x.watch!==null&&x.watch!==undefined);
   return true;
  });
  rows.sort((a,b)=>{
@@ -201,7 +211,7 @@ function summary(model,core){
   quant:model.quantCount};
 }
 const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalCandidate,pillarState,riskState,rankItems,compareObservedScores,
+ technicalCandidate,pillarState,riskState,rankItems,compareObservedScores,observedDisplayScore,
  sampleQuant,summary,marketFreshness};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -282,8 +292,8 @@ function draw(){
   const state=x.risk.unsafe?'위험 주의':x.risk.distance===null?'손절선 미확인':'구조적 위험 검토';
   return '<button class="u-stock '+(selected===r.code?'selected':'')+
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
-   '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number">'+
-   x.scoreRank+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
+   '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="전체 종목 기존 관측점수 순위">'+
+   x.scoreRank+'위</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
    '<span><b>'+r.score.toFixed(1)+'</b><small>기존 관측점수 · 확보 '+r.coverage_pct.toFixed(0)+'%</small></span></div>'+
