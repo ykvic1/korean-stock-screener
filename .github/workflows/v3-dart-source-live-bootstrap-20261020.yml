@@ -1,0 +1,81 @@
+name: One-time V3 DART real four-year source bootstrap
+
+on:
+  push:
+    branches: [v3-real-krx-dart-history-backfill-20261020]
+    paths:
+      - '.github/workflows/v3-dart-source-live-bootstrap-20261020.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  bounded-real-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v3-real-krx-dart-history-backfill-20261020
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install DART transport only
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Four-year source exact-day test (offline first)
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_four_year_reference.py' -v
+      - name: Pull max two actual issuer 2022-2025 historical annual receipts
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from datetime import date,datetime
+          from zoneinfo import ZoneInfo
+          import json,os
+          from v3_dart_four_year_reference import plan,write
+          a=json.loads(Path("docs/data.json").read_text(encoding="utf8"))
+          b=json.loads(Path("docs/v22-market-catalog.json").read_text(encoding="utf8"))
+          c=json.loads(Path("docs/v3-dart-book-reference.json").read_text(encoding="utf8"))
+          source=date.fromisoformat(a["date"])
+          if (datetime.now(ZoneInfo("Asia/Seoul")).date()-source).days not in range(0,6):
+              raise ValueError("stale_dart_live_bootstrap_market")
+          out=Path("docs/v3-dart-four-year-reference.json")
+          prior=json.loads(out.read_text(encoding="utf8")) if out.exists() else None
+          day,all_members,previous,targets=plan(a,b,c,prior=prior,limit=2)
+          if not targets:
+              print("real_bootstrap_no_unattempted_symbols")
+              raise SystemExit(0)
+          if not os.getenv("DART_API_KEY","").strip():
+              raise ValueError("missing_github_dart_secret")
+          outcome=write(a,b,c,output=out,prior=prior,
+                        key=os.environ["DART_API_KEY"],limit=2)
+          if (outcome["requested_this_run"]>2
+              or outcome["full_v3_ready"] is not False
+              or outcome["raw_account_rows_stored"] is not False):
+              raise ValueError("unsafe_source_claim")
+          print("DART genuine live requested=",outcome["requested_this_run"],
+                "actual observed filings=",outcome["observed_filings_issuers_this_run"],
+                "four year complete=",outcome["four_consecutive_years_observed_count"],
+                "current core usable=",outcome["current_core_financial_research_observed_count"],
+                "source trading day=",day)
+          PY
+      - name: Commit only derived report records to development branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -f docs/v3-dart-four-year-reference.json ]]; then
+            git add docs/v3-dart-four-year-reference.json
+            if ! git diff --cached --quiet; then
+              git commit -m "Save two actual DART four-year source research records"
+              git pull --rebase origin v3-real-krx-dart-history-backfill-20261020
+              git push origin HEAD:v3-real-krx-dart-history-backfill-20261020
+            fi
+          fi
