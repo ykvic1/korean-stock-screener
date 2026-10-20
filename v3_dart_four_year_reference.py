@@ -17,6 +17,7 @@ from v3_dart_rolling_book_reference import _inputs
 
 SCHEMA = "v3-four-year-dart-financial-evidence-0.1"
 MAX_COMPANIES = 4
+RETRY_COOLDOWN_DAYS = 7
 FIELDS = ("revenue", "operating_income", "operating_cashflow",
           "liabilities", "equity", "owners_equity", "owners_profit")
 CODE = re.compile(r"[0-9]{6}\Z")
@@ -185,14 +186,31 @@ def plan(market, catalog, annual_book, *, prior=None, limit=MAX_COMPANIES):
             if (not isinstance(record,dict) or record.get("code") in existing
                     or record.get("code") not in members):
                 raise FourYearEvidenceError("invalid_cached_fouryear_code")
-            existing[record["code"]]=_record(record["code"],record.get("reports"),day)
+            past_attempt=_day(record.get("last_attempted_day",prior["asof"]))
+            if past_attempt>_day(day):
+                raise FourYearEvidenceError("future_previous_fouryear_attempt")
+            rebuilt=_record(record["code"],record.get("reports"),day)
+            rebuilt["last_attempted_day"]=past_attempt.isoformat()
+            existing[record["code"]]=rebuilt
     price={x["code"]:x for x in market["stocks"]}
-    candidates=sorted(
-        (c for c in observed if c in price and
-         not existing.get(c,{}).get("current_core_financial_research_observed",False)),
-        key=lambda c:(-price[c].get("score",0), c)
-    )
-    selected=candidates[:limit]
+    # Cohort fairness: never repeatedly query a high-ranked issuer with
+    # partial/no filings while another listed issuer has never been sampled.
+    # This is a SOURCE collection queue, not a V2.2 or V3 investment ranking.
+    eligible=sorted(c for c in observed if c in price and
+                    not existing.get(c,{}).get("current_core_financial_research_observed",False))
+    never_attempted=[c for c in eligible if c not in existing]
+    # A failed/partial receipt is retried after cooling off at least seven
+    # calendar days and only after every still-unattempted issuer is served.
+    # Old 2022-24 evidence can legitimately be refreshed as FY2025 matures.
+    retry=[]
+    for c in eligible:
+        if c not in existing:
+            continue
+        checked=_day(existing[c]["last_attempted_day"])
+        if (_day(day)-checked).days>=RETRY_COOLDOWN_DAYS:
+            retry.append((checked,c))
+    retry.sort(key=lambda pair:(pair[0],pair[1]))
+    selected=(never_attempted+[c for _,c in retry])[:limit]
     return day, members, existing, selected
 
 
@@ -211,11 +229,19 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         seen.add(code)
         # Explicitly incomplete responses become missing evidence, not 0 score.
         reports=row.get("reports") or []
-        existing[code]=_record(code,reports,day)
+        derived=_record(code,reports,day)
+        derived["last_attempted_day"]=day
+        existing[code]=derived
     output=[existing[c] for c in sorted(existing)]
     return {
         "schema":SCHEMA,"asof":day,"listed_total":len(members),
         "pilot_issuer_count":len(output),"requested_this_run":len(requested),
+        "unverified_issuer_count":sum(
+            not x["current_core_financial_research_observed"] for x in output),
+        "consecutive_missing_or_mixed_scope_count":sum(
+            not x["same_scope_four_years"] for x in output),
+        "source_request_scope":"four_annual_years_bounded",
+        "historical_PIT_source_certified":False,
         "four_consecutive_years_observed_count":sum(
             r["same_scope_four_years"] for r in output),
         "four_year_income_values_observed_count":sum(
