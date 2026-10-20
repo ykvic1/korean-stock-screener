@@ -231,6 +231,10 @@ jobs:
         run: |
           python -m py_compile v3_evidence_chain.py
           python -m unittest discover -s tests -p 'test_v3_evidence_chain.py' -v
+      - name: KRX adjacent historical derived cohorts gap closure (private logreturn only)
+        run: |
+          python -m py_compile v3_krx_derived_bridges.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_bridges.py' -v
       - name: KRX genuine source five-session private derived research factor and idempotence tests
         run: |
           python -m py_compile v3_krx_derived_5day.py v3_krx_derived_backfill.py
