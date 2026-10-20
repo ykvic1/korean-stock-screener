@@ -33,7 +33,7 @@ https://openapi.krx.co.kr/contents/OPP/DATA/OPPDATA003.jsp
 - Actions Variables `V3_KRX_PRIVATE_STORAGE_AUTHORIZED=true`: 사용자 수집·저장 의사 명시
 - `V3_KRX_CLOUD_STORAGE_WRITTEN_APPROVED=true`: **실제 서면 승인 수령 후에만**, Private GitHub/장기 보관 허용이 명확하게 기재돼야 함
 - `V3_KRX_STORAGE_SCOPE=private-github-noncommercial-research`: 목적과 위치가 서면 승인 범위와 일치해야 함
-- `V3_KRX_APPROVAL_REFERENCE=<실제 KRX 이메일/회신 참조번호>`: 감사용 식별자(8~128자, 알파벳·숫자·기호 제한), **가짜 값 입력 금지**, GitHub Actions 로그에는 미노출
+- `V3_KRX_APPROVAL_REFERENCE=<실제 KRX 이메일/회신 참조번호>`: 감사용 식별자(12~128자, 날짜 또는 공식 참조번호 숫자 4자리 이상 포함, 알파벳·숫자·기호 제한), **가짜 값 입력 금지**, GitHub Actions 로그에는 미노출
 - `V3_KRX_LICENSE_RECHECK_BY=YYYY-MM-DD`: 당일~90일 내 권리·이용기간 재확인일, 만료되면 중단
 
 5개 중 하나라도 없거나 틀리면 KRX GitHub 정기 워크플로는 시작하지 않음. 수동 `dry_run`은 실 API 요청·저장 없이 허용. 수동 `live`를 누른 경우에도 **CLI가 재검증 후 차단**.
