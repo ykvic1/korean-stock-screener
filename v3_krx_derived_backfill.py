@@ -100,9 +100,15 @@ def _save_checkpoint(storage,new,sha):
         storage.transport("PUT","contents/"+CHECKPOINT,{
             "message":"Advance compact private derived KRX checkpoint",
             "content":base64.b64encode(payload).decode("ascii"),"sha":sha})
-    observed,_=storage.get_content(CHECKPOINT)
-    if observed!=payload:
-        raise DerivedBackfillError("derived_checkpoint_readback_failed")
+    import time
+    observed=None
+    for attempt in range(5):
+        observed,_=storage.get_content(CHECKPOINT)
+        if observed==payload:
+            return
+        if attempt<4:
+            time.sleep((attempt+1)*0.7)
+    raise DerivedBackfillError("derived_checkpoint_readback_failed")
 
 
 def collect(*,storage,client,dates,checksum,windows=1,progress=None):
@@ -138,7 +144,16 @@ def collect(*,storage,client,dates,checksum,windows=1,progress=None):
         calls+=result["source_api_calls"]
         saved_records+=result["complete_issuer_pairs"]
         bytes_written+=result["derived_file_bytes"]
-        verified,_=storage.get_content(_path(window))
+        verified=None
+        for attempt in range(5):
+            verified,_=storage.get_content(_path(window))
+            if verified is not None:
+                break
+            if attempt<4:
+                import time
+                time.sleep((attempt+1)*0.7)
+        if verified is None:
+            raise DerivedBackfillError("new_private_derived_window_not_visible")
         last=sha256(verified).hexdigest()
     if end>next_index:
         upd={
