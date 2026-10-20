@@ -1,3 +1,4 @@
+# Canonical private repository URL corrected before this replay.
 # Third attempt diagnostic prints only allowlisted stage labels, never data.
 # Safe one-time retry to expose only allowlisted error categories.
 name: One-time 5-session KRX derived factors private write (no raw source)
