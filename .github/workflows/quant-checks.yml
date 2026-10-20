@@ -190,6 +190,25 @@ jobs:
         run: |
           python -m py_compile v3_weekly_rotation.py
           python -m unittest discover -s tests -p 'test_v3_weekly_rotation.py' -v
+      - name: V3 real published all-listed sources read-only rotating rehearsal
+        run: |
+          DAY="$(python - <<'PY'
+          import json
+          from datetime import date
+          from pathlib import Path
+          snapshot=json.loads(Path('docs/data.json').read_text(encoding='utf-8'))
+          print(max(date(2026,10,20), date.fromisoformat(snapshot['date'])).isoformat())
+          PY
+          )"
+          python v3_weekly_rotation.py --when "$DAY" --mode audit
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('reports/v3-weekly-rotation-audit.json').read_text(encoding='utf-8'))
+          assert r['source_collection_calls']==0 and not r['all_issuers_updated_this_cycle']
+          assert r['processed_today'] <= (r['listed_total']+6)//7
+          print('Real saved 2497-ish source census rehearsed without provider calls:',r['processed_today'])
+          PY
       - name: v3 complete six-factor and IAS scoring contract offline checks
         run: python -m unittest discover -s tests -p 'test_v3_score_contract.py' -v
       - name: v3 walk-forward historical loss/target research and lookahead guard (synthetic only)
