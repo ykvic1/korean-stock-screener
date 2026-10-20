@@ -29,6 +29,10 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
                               market_day: date) -> dict:
     """Count revalidated source observations, never extrapolate 15-point scores."""
     absent = {"status": "not_published", "four_year_observed": 0,
+              "four_year_core_financial_research_observed": 0,
+              "four_year_income_values_observed": 0,
+              "last_three_years_operating_cashflow_observed": 0,
+              "latest_year_balance_values_observed": 0,
               "pilot_issuer_count": 0, "source_date": None}
     if four is None:
         return absent
@@ -54,6 +58,10 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
     listed = {x["code"] for x in catalog["rows"]}
     unique = set()
     observed = 0
+    income_observed = 0
+    cashflow_observed = 0
+    balance_observed = 0
+    core_observed = 0
     for row in records:
         if not isinstance(row, dict) or type(row.get("code")) is not str:
             raise ReadinessError("invalid_four_year_issuer_row")
@@ -74,16 +82,35 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
                 or row.get("three_year_operating_margin_mean_reference_pct") !=
                     rebuilt["three_year_operating_margin_mean_reference_pct"]):
             raise ReadinessError("unverified_four_year_evidence_flag")
+        for flag in ("four_year_income_values_observed",
+                     "last_three_years_operating_cashflow_observed",
+                     "latest_year_balance_values_observed",
+                     "core_financial_observed_for_research"):
+            if row.get(flag) is not rebuilt[flag]:
+                raise ReadinessError("forged_four_year_account_coverage")
         for noncertified in ("financial15_confirmed_points",
                              "valuation15_confirmed_points",
                              "v3_full100_investable_score"):
             if row.get(noncertified) is not None or row.get("buy_certified") is not False:
                 raise ReadinessError("unearned_four_year_issuer_score")
         observed += int(rebuilt["same_scope_four_years"])
+        income_observed += int(rebuilt["four_year_income_values_observed"])
+        cashflow_observed += int(
+            rebuilt["last_three_years_operating_cashflow_observed"])
+        balance_observed += int(rebuilt["latest_year_balance_values_observed"])
+        core_observed += int(rebuilt["core_financial_observed_for_research"])
     if (four.get("pilot_issuer_count") != len(records)
-            or four.get("four_consecutive_years_observed_count") != observed):
+            or four.get("four_consecutive_years_observed_count") != observed
+            or four.get("four_year_income_values_observed_count") != income_observed
+            or four.get("last_three_years_operating_cashflow_observed_count") != cashflow_observed
+            or four.get("latest_year_balance_values_observed_count") != balance_observed
+            or four.get("four_year_core_financial_research_observed_count") != core_observed):
         raise ReadinessError("four_year_aggregated_count_mismatch")
     return {"status": "research_only", "four_year_observed": observed,
+            "four_year_core_financial_research_observed": core_observed,
+            "four_year_income_values_observed": income_observed,
+            "last_three_years_operating_cashflow_observed": cashflow_observed,
+            "latest_year_balance_values_observed": balance_observed,
             "pilot_issuer_count": len(records), "source_date": refday.isoformat(),
             "source_day_lag_calendar_days": (market_day-refday).days}
 
@@ -179,7 +206,8 @@ def markdown_summary(result: dict) -> str:
         ("완성 주봉 원천 관측", result.get("completed_weekly_pattern_observed_count", "미확인")),
         ("기술적 25점 연구 관측", result.get("technical25_research_observed_count", "미확인")),
         ("1개년 DART 참고", result.get("dart_one_year_observed_count", "미확인")),
-        ("4개년 DART 참고", result.get("dart_four_year", {}).get("four_year_observed", "미확인")),
+        ("4개년 DART 공시 연속 관측", result.get("dart_four_year", {}).get("four_year_observed", "미확인")),
+        ("4개년 핵심 재무수치 관측", result.get("dart_four_year", {}).get("four_year_core_financial_research_observed", "미확인")),
         ("정식 6영역 투자순위", "미인증"),
     ]
     table = "\n".join("| "+cell(k)+" | "+cell(v)+" |" for k,v in metrics)

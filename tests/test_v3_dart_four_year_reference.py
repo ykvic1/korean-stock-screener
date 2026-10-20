@@ -56,6 +56,10 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         m,c,b=inputs()
         result=f.merge(m,c,b,[reports("005930"),reports("247540",scope="OFS")],limit=2)
         self.assertEqual(result["four_consecutive_years_observed_count"],2)
+        self.assertEqual(result["four_year_income_values_observed_count"],2)
+        self.assertEqual(result["last_three_years_operating_cashflow_observed_count"],2)
+        self.assertEqual(result["latest_year_balance_values_observed_count"],2)
+        self.assertEqual(result["four_year_core_financial_research_observed_count"],2)
         self.assertFalse(result["full_v3_ready"])
         self.assertIsNone(result["confirmed_six_pillar_ranks"])
         first=result["records"][0]
@@ -79,6 +83,7 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         changed["reports"][0]["fs_div"]="CFS"
         result=f.merge(m,c,b,[missing,changed],limit=2)
         self.assertEqual(result["four_consecutive_years_observed_count"],0)
+        self.assertEqual(result["four_year_core_financial_research_observed_count"],0)
         for row in result["records"]:
             self.assertIsNone(row["annual_revenue_cagr3_reference_pct"])
             self.assertIsNone(row["three_year_operating_margin_mean_reference_pct"])
@@ -92,10 +97,42 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         d["reports"][-1]["values"]["operating_income"]=None
         results=f.merge(m,c,b,[a,d],limit=2)
         first,second=results["records"]
+        self.assertEqual(results["four_consecutive_years_observed_count"],2)
+        self.assertEqual(results["four_year_core_financial_research_observed_count"],0)
+        self.assertFalse(first["four_year_income_values_observed"])
+        self.assertFalse(second["four_year_income_values_observed"])
+        self.assertFalse(first["core_financial_observed_for_research"])
+        self.assertFalse(second["core_financial_observed_for_research"])
         self.assertIsNone(first["annual_revenue_cagr3_reference_pct"])
         self.assertAlmostEqual(first["three_year_operating_margin_mean_reference_pct"],10,places=3)
         self.assertAlmostEqual(second["annual_revenue_cagr3_reference_pct"],10,places=3)
         self.assertIsNone(second["three_year_operating_margin_mean_reference_pct"])
+
+    def test_four_filing_receipts_do_not_imply_complete_financial_statements(self):
+        m,c,b=inputs()
+        empty=reports("005930")
+        for record in empty["reports"]:
+            record["values"]={field:None for field in f.FIELDS}
+        weak=reports("247540")
+        weak["reports"][2]["values"]["operating_cashflow"]=None
+        weak["reports"][-1]["values"]["equity"]=None
+        result=f.merge(m,c,b,[empty,weak],limit=2)
+        self.assertEqual(result["four_consecutive_years_observed_count"],2)
+        self.assertEqual(result["four_year_income_values_observed_count"],1)
+        self.assertEqual(result["last_three_years_operating_cashflow_observed_count"],0)
+        self.assertEqual(result["latest_year_balance_values_observed_count"],0)
+        self.assertEqual(result["four_year_core_financial_research_observed_count"],0)
+        self.assertTrue(all(not r["core_financial_observed_for_research"]
+                            for r in result["records"]))
+        self.assertTrue(all(r["financial15_confirmed_points"] is None
+                            for r in result["records"]))
+        self.assertTrue(all(r["valuation15_confirmed_points"] is None
+                            for r in result["records"]))
+        # Both must remain selectable for a recheck. Once income/CF/balance
+        # evidence is present, a repeat request would no longer be justified.
+        _,_,cached,retry=f.plan(m,c,b,prior=result,limit=2)
+        self.assertEqual(set(retry),{"005930","247540"})
+        self.assertEqual(len(cached),2)
 
     def test_future_receipt_bad_scope_duplicates_nonKRW_and_bogus_amount_rejected(self):
         m,c,b=inputs()

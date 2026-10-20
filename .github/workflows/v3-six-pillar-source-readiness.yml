@@ -62,6 +62,42 @@ jobs:
             --four-year docs/v3-dart-four-year-reference.json \
             --output reports/v3-continuous-quality-watch.json \
             --summary "$GITHUB_STEP_SUMMARY"
+      - name: Offline bounded four-year DART cohort plan from actual published issuer list
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from v3_dart_four_year_reference import plan
+          inputs={}
+          for name,path in (
+              ('market','docs/data.json'),
+              ('catalog','docs/v22-market-catalog.json'),
+              ('book','docs/v3-dart-book-reference.json')):
+              inputs[name]=json.loads(Path(path).read_text(encoding='utf8'))
+          prior_path=Path('docs/v3-dart-four-year-reference.json')
+          prior=json.loads(prior_path.read_text(encoding='utf8')) if prior_path.exists() else None
+          day,members,cache,chosen=plan(
+              inputs['market'],inputs['catalog'],inputs['book'],prior=prior,limit=2)
+          data={
+              'schema':'v3-dart-four-year-offline-candidate-plan-0.1',
+              'asof':day,'listed_issuers':len(members),
+              'previously_piloted_issuers':len(cache),
+              'core_financial_research_issuers':sum(
+                  bool(x.get('core_financial_observed_for_research'))
+                  for x in cache.values()),
+              'next_manual_pilot_cohort_count':len(chosen),
+              'api_calls':0,
+              'auto_live_collection_enabled':False,
+              'full_financial15_verified':False
+          }
+          Path('reports').mkdir(exist_ok=True)
+          Path('reports/v3-fouryear-offline-plan.json').write_text(
+              json.dumps(data,indent=2,sort_keys=True),encoding='utf8')
+          print('Four-year offline pilot viability:',json.dumps(data))
+          PY
       - name: Preserve reports even if severe source-quality issue trips CI
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,5 +106,6 @@ jobs:
           path: |
             reports/v3-source-readiness.json
             reports/v3-continuous-quality-watch.json
+            reports/v3-fouryear-offline-plan.json
           if-no-files-found: warn
           retention-days: 14
