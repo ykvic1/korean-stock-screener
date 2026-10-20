@@ -231,6 +231,11 @@ jobs:
         run: |
           python -m py_compile v3_evidence_chain.py
           python -m unittest discover -s tests -p 'test_v3_evidence_chain.py' -v
+      - name: KRX actual private derived action-risk screen, zero vendor call and no certified split claims
+        run: |
+          python -m py_compile v3_krx_derived_corporate_action_risk.py v3_krx_corporate_risk_incremental.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_corporate_action_risk.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_corporate_risk_incremental.py' -v
       - name: KRX final four-session candidate tail kept as verified private partial evidence
         run: |
           python -m py_compile v3_krx_derived_four_session_tail.py

@@ -1,0 +1,52 @@
+name: V3 KRX Private Derived Corporate Action Risk Review (incremental)
+
+on:
+  schedule:
+    - cron: '43 14 * * *' # 23:43 KST, after 22:11 5d / 22:47 bridge / 23:11 returns
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Manual dry run does not read private or run live'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+
+jobs:
+  review:
+    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install calendar and existing KRX validator import dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Run private derived-only risk regression and no-false-corporate-action rules
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_derived_corporate_action_risk.py v3_krx_corporate_risk_incremental.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_corporate_action_risk.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_corporate_risk_incremental.py' -v
+      - name: Check only newly verified 5-session private issuer-return factors and gap links
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No KRX_API_KEY is provided. This job has ZERO vendor data requests.
+          # New blobs are private derived risk flags, not adjusted prices,
+          # official corporate-action claims, or 100-point V3 investor ranks.
+          python v3_krx_corporate_risk_incremental.py
