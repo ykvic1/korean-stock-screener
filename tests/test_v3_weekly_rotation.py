@@ -31,9 +31,12 @@ def fixture(n=2497):
             v3["technical_parts"] = {k: None for k in v3["technical_parts"]}
             v3["technical_observed_maximum"] = 0
         stock.append({"code": code, "price_date": "2026-10-19",
-                      "price20": 3.4, "price60": 7.2, "flows_confirmed": False,
+                      "price20": 3.4, "price60": 7.2,
+                      "relative20": i / 100, "relative60": -i / 200,
+                      "flows_confirmed": False,
                       "v3_pattern_integrated": v3})
-    market = {"status": "success", "date": "2026-10-19", "stocks": stock}
+    market = {"status": "success", "date": "2026-10-19",
+              "index_available":["KOSPI","KOSDAQ"], "stocks": stock}
     catalog = {"schema": "v22-current-listed-catalog-0.1",
                "date": "2026-10-19", "listed_total": n, "rows": rows}
     book = {"schema": "v3-dart-current-listed-annual-book-reference-0.1",
@@ -73,6 +76,10 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(state["records"]["000000"]["available_weight"], 0)
         self.assertEqual(state["records"]["000001"]["research_score_points"], 8)
         self.assertEqual(state["records"]["000001"]["available_weight"], 11)
+        self.assertEqual(state["records"]["000001"]["momentum_available_weight"], 8)
+        self.assertTrue(0 < state["records"]["000001"]["momentum_research_points"] <= 8)
+        self.assertEqual(state["records"]["000001"]["research_provisional_available_weight"],19)
+        self.assertEqual(report["source_reference_counts_this_cycle"]["momentum_partial"],2496)
         self.assertEqual(state["records"]["000003"]["research_score_points"], None)
         self.assertTrue(state["records"]["000001"]["source_observed"]["annual_receipt"])
         self.assertFalse(state["records"]["000001"]["six_pillar_research_score_confirmed"])
