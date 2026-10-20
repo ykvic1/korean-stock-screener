@@ -1,0 +1,40 @@
+name: One-time KRX derived history bridge and 60-session proof
+on:
+  push:
+    branches: [v3-real-dart-event-crosscheck-20261020]
+    paths:
+      - .github/workflows/v3-krx-bridge-60day-live-once.yml
+permissions:
+  contents: read
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 27
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v3-real-dart-event-crosscheck-20261020
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install source calendar and archive dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Assert private derived bridges and exact interval proof
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_bridges.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_rolling_returns.py' -v
+      - name: Fill real 2016 return gap links with in-memory official KRX (up to 32 reads)
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_derived_bridges.py
+      - name: Compose private approximate 20 and 60 trading-session factors (0 KRX calls)
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_derived_rolling_returns.py
