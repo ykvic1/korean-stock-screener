@@ -14,7 +14,8 @@ with sync_playwright() as p:
     context=browser.new_context(viewport={'width':390,'height':844},device_scale_factor=2,is_mobile=True,has_touch=True,accept_downloads=True)
     page=context.new_page();errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto(URL,wait_until='domcontentloaded',timeout=60000)
+    # Legacy full-feature regression stays intact after root routes to workspace.
+    page.goto(URL+'legacy.html',wait_until='domcontentloaded',timeout=60000)
     page.locator('article.stock').first.wait_for(timeout=30000)
     data=context.request.get(URL+'data.json').json()
     assert data['version']=='2.0' and data['status']=='success'
