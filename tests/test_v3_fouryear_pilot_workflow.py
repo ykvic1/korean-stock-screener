@@ -13,7 +13,7 @@ class FourYearRollingWorkflowSafety(unittest.TestCase):
         self.assertIn("workflow_dispatch:",wf)
         self.assertIn("schedule:",wf)
         self.assertIn("43 17 * * 0-4",wf)
-        self.assertEqual(len(re.findall(r"^\\s+- cron:",wf,flags=re.M)),1)
+        self.assertEqual(len(re.findall(r"^\s+- cron:",wf,flags=re.M)),1)
         self.assertIn("github.event_name == 'schedule' && '4'",wf)
         self.assertNotIn("push:",wf)
         self.assertIn("default: 'dry-run'",wf)
