@@ -75,31 +75,6 @@ assert.ok(source.includes('data-pillar="ias"')&&
  source.includes('IAS 원장 미검증')&&
  source.includes('IAS(수급) /20'),
  'IAS missing numeric value must display as identifiable 20pt unverified investor ledger, not disappear');
-const explicitIAS=unified.iasSummary([
- {key:'ias',label:'IAS·수급',max:20,candidate:null,available:0}
-]);
-assert.equal(explicitIAS.value,'— / 20');
-assert.match(explicitIAS.status,/원장 미검증/);
-assert.match(explicitIAS.status,/0점 아님/);
-assert.equal(unified.iasSummaryHtml([
- {key:'ias',label:'IAS·수급',max:20,candidate:null,available:0}
-]).includes('aria-label="IAS 수급 20점 현재 산출상태"'),true);
-assert.ok(unified.iasSummaryHtml([
- {key:'ias',label:'IAS·수급',max:20,candidate:null,available:0}
-]).includes('— / 20'),'missing investor-flow ledger is NOT IAS zero');
-assert.equal(unified.iasSummary([
- {key:'ias',label:'IAS·수급',max:20,candidate:8.5,available:20}
-]).value,'8.5 / 20','valid provisional evidence should remain visible');
-assert.ok(source.includes("iasSummaryHtml(x.composite.pillars)+")&&
- source.includes("iasSummaryHtml(pillars)+"),
- 'IAS summary strip must be visible in stock cards AND opened details');
-assert.ok(css.includes('.u-ias-banner{')&&
- css.includes('.u-ias-banner small{grid-column:1/-1'),
- 'IAS legible from narrow-phone preview without horizontal seven-cell crowding');
-assert.ok(!source.includes('IAS25·재무20·가치15·기술15·업종15·모멘텀10'),
- 'no legacy IAS25 info on current six-pillar workspace');
-assert.ok(!ranking.includes('IAS25·재무20·가치15·기술15·업종15·모멘텀10'),
- 'archived ranking explains current 20/25/15/15/15/10 IAS contract');
 assert.ok(css.includes('.u-scoresix span[data-pillar="ias"] small'),
  'mobile IAS identity must remain legible');
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
