@@ -1,0 +1,40 @@
+name: One-time real private 20-session return composition proof
+
+on:
+  push:
+    branches: [v3-private-20-60-120-250-return-research-20261020]
+    paths:
+      - .github/workflows/v3-krx-composed-returns-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v3-private-20-60-120-250-return-research-20261020
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline XKRX candidate calendar only (no market HTTP)
+        run: python -m pip install 'exchange-calendars==4.13.1'
+      - name: Validate source-only derived composition and no source download
+        run: |
+          python -m py_compile v3_krx_derived_rolling_returns.py
+          python -m unittest discover -s tests -p 'test_v3_krx_derived_rolling_returns.py' -v
+      - name: Compose private returns from existing 2016 real provider-derived snapshots (zero KRX calls)
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          python v3_krx_derived_rolling_returns.py
