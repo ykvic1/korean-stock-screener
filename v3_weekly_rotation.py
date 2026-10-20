@@ -127,7 +127,9 @@ def existing_evidence_adapter(row, market_asof):
     if z is not None:
         return z, False
     if not (isinstance(row.get("pattern_research"), dict) or
-            isinstance(row.get("pattern_weekly_research"), dict)):
+            isinstance(row.get("pattern_weekly_research"), dict) or
+            (number(row.get("one_day_volume_ratio")) and
+             0 <= row["one_day_volume_ratio"] <= 100)):
         return None, False
     try:
         from v3_pattern_composite_score import evaluate
