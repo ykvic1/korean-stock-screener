@@ -1,0 +1,63 @@
+name: V3 Unified Mobile Browser CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/workspace.html'
+      - 'docs/workspace.js'
+      - 'docs/workspace.css'
+      - 'docs/v3-ranking.js'
+      - 'docs/data.json'
+      - 'verify_unified_mobile.py'
+      - '.github/workflows/v3-unified-mobile-browser-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chromium browser test runtime
+        run: |
+          python -m pip install 'playwright>=1.48,<2'
+          python -m playwright install --with-deps chromium
+      - name: Launch checked-in production-data Pages mirror
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 --directory docs > /tmp/v3-ui-server.log 2>&1 &
+          python - <<'PY'
+          from urllib.request import urlopen
+          from time import sleep
+          for attempt in range(25):
+              try:
+                  with urlopen('http://127.0.0.1:8765/',timeout=2) as conn:
+                      if conn.status == 200:
+                          print('Local real-market static Pages ready')
+                          break
+              except Exception:
+                  sleep(1)
+          else:
+              raise RuntimeError('local_pages_server_unavailable')
+          PY
+      - name: Exercise real mobile Chromium against actual published market snapshot
+        env:
+          V3_UNIFIED_URL: http://127.0.0.1:8765/
+        run: python verify_unified_mobile.py
+      - name: Save screenshot and source-validated interaction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-unified-mobile-browser-${{ github.run_id }}
+          path: |
+            verification/unified-mobile.png
+            verification/unified-mobile-result.json
+            verification/unified-mobile-export.xlsx
+          if-no-files-found: warn
+          retention-days: 14
