@@ -180,7 +180,7 @@ class DerivedHistoricalBridgeTests(unittest.TestCase):
             bridge.run(storage=p,client=client,dates=calendar,
                        calendar_hash=HASH)
         p.repository="ykvic1/korean-stock-private-data"
-        for max_links in (0,9,True):
+        for max_links in (0,17,True):
             with self.subTest(max_links=max_links),self.assertRaises(bridge.BoundaryError):
                 bridge.run(storage=p,client=client,dates=calendar,
                            calendar_hash=HASH,max_links=max_links)
