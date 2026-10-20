@@ -10,6 +10,22 @@ const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+// A weekly group is evidence replay, NOT full verification or a fresh API response.
+assert.equal(unified.weeklyCoverageText(null,'2026-10-20'),'');
+const weekly={schema:'v3-seven-day-research-coverage-0.1',
+ market_asof:'2026-10-19',run_kst:'2026-10-20',cycle_start:'2026-10-20',
+ listed_total:2497,processed_this_cycle:357,unprocessed_this_cycle:2140,
+ cohort_counts:[357,357,357,357,357,356,356],
+ source_collection_calls:0,verified_full_six_pillar_issuer_count:0,
+ source_reference_counts_this_cycle:{technical_parts:321}};
+assert.ok(unified.weeklyCoverageText(weekly,'2026-10-20')
+ .includes('357/2497종목'));
+assert.ok(unified.weeklyCoverageText(weekly,'2026-10-20')
+ .includes('기존 원본 재계산'));
+assert.equal(unified.weeklyCoverageText({...weekly,source_collection_calls:6},
+ '2026-10-20'),'');
+assert.equal(unified.weeklyCoverageText({...weekly,processed_this_cycle:400},
+ '2026-10-20'),'');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
