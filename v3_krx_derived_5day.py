@@ -223,7 +223,14 @@ def store_five_day_factors(storage,client,days=FIXED_FIRST_SAMPLE,progress=None)
     if progress:progress("writing_private_derived_factor_file")
     storage.put_new(path,blob,"Archive five-session KRX derived research "+days[-1])
     if progress:progress("verifying_private_factor_write")
-    actual,_=storage.get_content(path)
+    import time
+    actual=None
+    for attempt in range(5):
+        actual,_=storage.get_content(path)
+        if actual==blob:
+            break
+        if attempt<4:
+            time.sleep((attempt+1)*0.7)
     if actual!=blob:
         raise DerivedSourceError("private_derived_archive_readback_failed")
     saved=validate_derived_blob(actual,days[0],days[-1])
