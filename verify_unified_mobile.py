@@ -2,9 +2,12 @@
 from pathlib import Path
 from zipfile import ZipFile
 import json
+import os
 from playwright.sync_api import sync_playwright
 
-URL = "https://ykvic1.github.io/korean-stock-screener/"
+# Production by default; CI also tests real checked-in market snapshots
+# through a local static server, avoiding any external API calls.
+URL = os.environ.get("V3_UNIFIED_URL", "https://ykvic1.github.io/korean-stock-screener/")
 OUT = Path("verification")
 OUT.mkdir(exist_ok=True)
 
@@ -18,7 +21,7 @@ with sync_playwright() as p:
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_url("**/workspace.html", timeout=30000)
+    assert page.url.rstrip("/") == URL.rstrip("/"), "root should serve unified UI directly"
     page.locator("#statAnalyzed").wait_for()
     page.get_by_role("button", name="전 종목", exact=True).click()
     page.locator(".u-stock").first.wait_for(timeout=45000)

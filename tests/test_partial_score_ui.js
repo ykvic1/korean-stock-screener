@@ -1,3 +1,5 @@
+// The historic v2.2 UI remains fully regression-tested on legacy.html;
+// the homepage now directly serves the unified V3 workspace.
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -44,7 +46,7 @@ assert.equal(sparse.normalized,90);
 assert.equal(sparse.coverage,20);
 assert.equal(sparse.missing.length,5);
 // High normalized/low coverage must be visibly qualified on website.
-const html = fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
+const html = fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 assert.ok(html.includes('확보율이 낮으면 환산점수가 높아도 신뢰하기 어렵습니다'));
 assert.ok(html.includes('rating.coverage'));
 assert.ok(html.includes('미취득 평가항목'));

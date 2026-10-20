@@ -160,7 +160,10 @@ if(frozen.status==='success'&&frozen.stocks?.length) {
  for(let i=1;i<sample.rows.length;i++)
    assert.ok(watch.compare(sample.rows[i-1],sample.rows[i])<=0);
 }
-const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
+// Legacy v2 screen is intentionally preserved under legacy.html now that
+// index.html directly serves the unified V3 workspace. Keep testing the
+// exact old interpretation and risk labels on its archived functional page.
+const html=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 for(const phrase of ['손절선 거리 (추격·환금성은 별도 표시)','적합 접근기간 (잠정)',
   '단기 접근 · 약 1개월','중기 접근 · 약 3개월','장기 검토 · 6개월 이상',
   '과거 유사조건 순수익:','미래 기대수익률 미산출',

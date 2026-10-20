@@ -12,6 +12,15 @@ const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8')
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
+assert.deepEqual(unified.marketFreshness('2026-10-20',new Date('2026-10-19T15:10:00Z')),
+ {status:'current',calendarDays:0},'KST midnight boundary');
+assert.deepEqual(unified.marketFreshness('2026-10-19',new Date('2026-10-19T15:10:00Z')),
+ {status:'current',calendarDays:1});
+assert.deepEqual(unified.marketFreshness('2026-10-19',new Date('2026-10-26T00:00:00Z')),
+ {status:'stale',calendarDays:7});
+assert.deepEqual(unified.marketFreshness('2026-10-21',new Date('2026-10-20T00:00:00Z')),
+ {status:'future',calendarDays:-1});
 assert.ok(html.includes('id="unifiedApp"'));
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
 for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
@@ -19,7 +28,9 @@ for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
  '일봉은 스윙, 주봉은 중기·장기','Bull Flag','폴링 웻지','역헤드앤숄더','더블바텀'])
  assert.ok(html.includes(s),'single screen missing '+s);
 assert.ok(html.includes('workspace.js')&&html.includes('v3-ranking.js'));
-assert.ok(/meta http-equiv="refresh" content="0;url=workspace.html"/.test(entry),'homepage must lead into single workspace');
+assert.ok(entry.includes('id="unifiedApp"')&&entry.includes('workspace.js'),
+ 'homepage itself must serve unified V3 without a redirect');
+assert.ok(!entry.includes('http-equiv="refresh"'),'avoid legacy intermediate page or double navigation');
 assert.ok(backup.includes('통합 스크리너로 돌아가기'),'archived previous UI must be available');
 assert.ok(!backup.includes('http-equiv="refresh"'),'old research UI should not auto-redirect');
 assert.ok(ranking.includes("if(root.document.getElementById('rankStatus'))init();"),
