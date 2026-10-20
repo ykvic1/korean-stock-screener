@@ -377,6 +377,7 @@ function renderDetails(x){
  const annualReference=core.simpleAnnualOfsBookReference(r,annual);
  const book=annualReference!==null?annualReference:x.rollingBook?.value??null;
  const yearly=annual?.values||{};
+ const four=x.fourYearRef;
  const stockLink=core.stockPage(r.code);
  const risk=x.risk;
  const quant=sampleQuant(x,core);
@@ -423,6 +424,13 @@ function renderDetails(x){
   ' / 영업이익 '+eok(yearly.operating_income)+
   ' / 영업현금흐름 '+eok(yearly.operating_cashflow):
   '동일 기준일에 검증 가능한 연간 공시 실적 미연결')+'</p>'+
+ '<p class="u-muted">4개년 연간공시 연구 참고: '+(four?
+  esc(four.years.join('~'))+'년 '+esc(four.scope)+' · 매출 3년 CAGR '+
+  (finite(four.cagr)?four.cagr.toFixed(2)+'%':'미확보')+
+  ' · 3년 평균 영업이익률 '+
+  (finite(four.margin)?four.margin.toFixed(2)+'%':'미확보'):
+  '미수집 또는 연도·회계범위 정합성 미충족')+
+  ' · 공시 정정/PIT 검증 전으로 재무 15점 및 밸류 15점은 미산출.</p>'+
  '<p class="u-muted">비공식 간이 P/B '+(book!==null?book.toFixed(2)+'배':'미산출')+
  ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+
@@ -506,7 +514,8 @@ function present(data){
   '종목 · V3 잠정 합계 '+metrics.provisional+
   '종목. 실시간 투자등급이 아닌 관측 기준일별 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
-  '주간 순환 연구는 기존 수집 자료 재계산이며 6개 영역의 전체 원천 데이터 확보는 아직 진행 중입니다.'+
+  '4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
+  '종목 (재무 15점 확정 아님). 주간 순환 연구는 기존 원천 자료 재계산이며 6개 영역의 데이터 확보는 진행 중입니다.'+
   weeklyCoverageText(weeklyCoverage,model.date);
  draw();
 }
@@ -514,7 +523,7 @@ async function load(){
  const s=$('state');s.className='u-state';s.textContent='장마감 분석 자료 확인 중…';
  const files=['data.json','quant.json','recommendations.json','official.json',
   'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json',
-  'v3-weekly-rotation.json'];
+  'v3-weekly-rotation.json','v3-dart-four-year-reference.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -522,7 +531,7 @@ async function load(){
   }));
   core=root.V3RankedCore;
   if(!core)throw Error('missing_research_core');
-  model=core.prepare(...responses.slice(0,6));
+  model=core.prepare(...responses.slice(0,6),responses[8]);
   weeklyCoverage=responses[6];
   applyRotationTechnicalBackfill(model,responses[7]);
   selected=null;$('detail').hidden=true;
