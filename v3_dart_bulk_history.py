@@ -303,10 +303,10 @@ def _midrank(value, ordered, direction):
 
 
 def research_parts(data,catalog,book,*,minimum_peers=30):
-    """Produce REAL calculable unverified 4+4 financial and 5 PBR max points.
+    """Produce observed 4+4 financial and 5+5 valuation research points.
 
-    Only independent observed inputs with >=30 same-market peers contribute.
-    Missing other 87 possible points is never promoted to zero or reweighted.
+    Only observed, date-linked inputs with >=30 same-market peers contribute.
+    Missing FCF, flow, PIT or other factors stay unavailable, never zero.
     """
     if (type(data) is not dict or data.get("schema")!=SCHEMA or
         type(minimum_peers) is not int or minimum_peers<8 or
@@ -323,6 +323,9 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
             selected[code]=_best_income_window(record,fiscal)
     book_annual={r["code"]:r for r in book["records"]}
     pbr={}
+    earnings_yield={}
+    cap_by_code={r["code"]:r.get("reference_market_cap_eok")
+                 for r in catalog["rows"]}
     for o in book.get("observations",[]):
         code=o.get("code");v=o.get("pbr_simple_annual_reference")
         a=book_annual.get(code,{}).get("annual",{})
@@ -333,23 +336,38 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
             and o.get("official_exchange_pbr_verified") is False
             and code not in pbr):
             pbr[code]=float(v)
+            profit=a.get("values",{}).get("owners_profit")
+            cap=cap_by_code.get(code)
+            if (type(profit) in (int,float) and math.isfinite(profit)
+                and type(cap) in (int,float) and math.isfinite(cap)
+                and 0<cap<1e12 and abs(profit)<1e19
+                and a.get("year")==fiscal[-1]
+                and a.get("currency")=="KRW"):
+                earnings_yield[code]=round(100*profit/(cap*1e8),6)
     series={}
     for m in ("KOSPI","KOSDAQ"):
         members=[c for c in market if market[c]==m]
         series[m]={k:sorted(
-            (selected.get(c) or {}).get(k) if k!="pbr" else pbr.get(c)
-            for c in members if ((selected.get(c) or {}).get(k) if k!="pbr" else pbr.get(c)) is not None
-        ) for k in ("revenue_cagr_3y_pct","operating_margin_3y_pct","pbr")}
+            (pbr.get(c) if k=="pbr" else earnings_yield.get(c) if
+             k=="earnings_yield_pct" else (selected.get(c) or {}).get(k))
+            for c in members if
+            (pbr.get(c) if k=="pbr" else earnings_yield.get(c) if
+             k=="earnings_yield_pct" else (selected.get(c) or {}).get(k)) is not None
+        ) for k in ("revenue_cagr_3y_pct","operating_margin_3y_pct",
+                    "pbr","earnings_yield_pct")}
     output=[]
-    count_fin=0;count_pb=0
+    count_fin=0;count_pb=0;count_earnings=0
     for code in sorted(market):
         src=selected.get(code) or {}
         benchmark=series[market[code]]
         pts={};available=0
         for metric,weight,direction in (("revenue_cagr_3y_pct",4,1),
                                         ("operating_margin_3y_pct",4,1),
-                                        ("pbr",5,-1)):
-            v=(pbr.get(code) if metric=="pbr" else src.get(metric))
+                                        ("pbr",5,-1),
+                                        ("earnings_yield_pct",5,1)):
+            v=(pbr.get(code) if metric=="pbr" else
+               earnings_yield.get(code) if metric=="earnings_yield_pct"
+               else src.get(metric))
             peer=benchmark[metric]
             earned=round(weight*_midrank(v,peer,direction),6) if (
                 v is not None and len(peer)>=minimum_peers) else None
@@ -361,6 +379,8 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
             count_fin+=1
         if pts["pbr"]["candidate_points"] is not None:
             count_pb+=1
+        if pts["earnings_yield_pct"]["candidate_points"] is not None:
+            count_earnings+=1
         if available:
             output.append({
                 "code":code,"market":market[code],
@@ -374,8 +394,13 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
                         "revenue_cagr_3y_pct","operating_margin_3y_pct")) else None),
                 "financial_available_max":sum(pts[k]["max_points"] for k in (
                     "revenue_cagr_3y_pct","operating_margin_3y_pct")),
-                "valuation_candidate_points":pts["pbr"]["candidate_points"],
-                "valuation_available_max":pts["pbr"]["max_points"],
+                "valuation_candidate_points":(
+                    round(sum(pts[k]["candidate_points"] or 0 for k in
+                              ("pbr","earnings_yield_pct")),6)
+                    if any(pts[k]["candidate_points"] is not None
+                           for k in ("pbr","earnings_yield_pct")) else None),
+                "valuation_available_max":sum(pts[k]["max_points"] for k in
+                                            ("pbr","earnings_yield_pct")),
                 "combined_provisional_points":round(
                     sum(z["candidate_points"] or 0 for z in pts.values()),6),
                 "combined_available_max":available,
@@ -388,9 +413,10 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
         "four_year_income_observed":data["four_year_income_observed_count"],
         "companies_with_computable_4y_income_scores":count_fin,
         "companies_with_computable_pb_scores":count_pb,
+        "companies_with_computable_earnings_yield_scores":count_earnings,
         "model_financial_full_points":15,"model_valuation_full_points":15,
         "financial_partial_max_possible":8,
-        "valuation_partial_max_possible":5,
+        "valuation_partial_max_possible":10,
         "other_four_pillar_points_claimed":0,
         "coverage_peer_minimum":minimum_peers,
         "historical_PIT_certified":False,
@@ -482,6 +508,7 @@ def main(argv=None):
         "complete_income_4y":archive["four_year_income_observed_count"],
         "financial_partial_scored":research["companies_with_computable_4y_income_scores"],
         "pbr_partial_scored":research["companies_with_computable_pb_scores"],
+        "earnings_yield_partial_scored":research["companies_with_computable_earnings_yield_scores"],
         "source_calls":calls,"full_v3_ready":False},sort_keys=True))
 
 
