@@ -9,6 +9,7 @@ factor, but missing remains null and explicit in its coverage record.
 from __future__ import annotations
 
 import argparse
+from hashlib import sha256
 from datetime import date, timedelta
 import json
 import math
@@ -112,6 +113,31 @@ def source_tables(market, catalog, book, four=None):
                 raise RotationError("duplicate_or_unlisted_four_year_source")
             four_source[c] = row
     return asof, members, prices, annual, four_source
+
+
+def source_input_fingerprints(market, catalog, book, four=None):
+    """Prove the exact same published inputs survive git rebase.
+
+    Daily OpenDART evidence may change within the SAME market date. A date-only
+    check would silently release a partial cohort calculated from an older book.
+    Fingerprint canonical data instead of file bytes so formatting alone does
+    not invalidate a valid result. Missing four-year evidence is meaningful.
+    """
+    result = {}
+    for label, source in (
+        ("market", market), ("catalog", catalog), ("annual", book),
+        ("four_year", four),
+    ):
+        if source is None:
+            result[label] = None
+            continue
+        try:
+            content = json.dumps(source, sort_keys=True, separators=(",", ":"),
+                                 ensure_ascii=False, allow_nan=False)
+        except (TypeError, ValueError, OverflowError):
+            raise RotationError("unhashable_rotation_source_snapshot") from None
+        result[label] = sha256(content.encode("utf-8")).hexdigest()
+    return result
 
 
 def existing_evidence_adapter(row, market_asof):
@@ -276,6 +302,7 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
     if when < EPOCH:
         raise RotationError("rotation_not_started")
     asof, members, prices, annual, four_source = source_tables(market, catalog, book, four)
+    input_sha256 = source_input_fingerprints(market, catalog, book, four)
     momentum_by_code = market_momentum(market)
     age = (when - day(asof)).days
     if age < 0 or age > 9:
@@ -334,7 +361,8 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
                            for r in current)
     groups = [sum(i % GROUPS == k for i in range(len(roster))) for k in range(GROUPS)]
     result = {
-        "schema": SCHEMA, "cycle_start": cycle, "run_kst": when.isoformat(),
+        "schema": SCHEMA, "source_input_sha256": input_sha256,
+        "cycle_start": cycle, "run_kst": when.isoformat(),
         "market_asof": asof, "listed_total": len(roster), "cohort_counts": groups,
         "cohort_index_today": position, "processed_today": len(targets),
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster) - updated,
@@ -350,7 +378,8 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "v3_live_full_six_pillar_score_claimed": False,
     }
     report = {
-        "schema": REPORT_SCHEMA, "cycle_start": cycle, "run_kst": when.isoformat(),
+        "schema": REPORT_SCHEMA, "source_input_sha256": input_sha256,
+        "cycle_start": cycle, "run_kst": when.isoformat(),
         "market_asof": asof, "listed_total": len(roster), "cohort_counts": groups,
         "cohort_index_today": position, "processed_today": len(targets),
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster)-updated,
@@ -420,10 +449,19 @@ def main(argv=None):
             raise RotationError("post_rebase_rotation_run_changed")
         source_tables(market, catalog, book, four)
         report = read_json(args.report)
+        expected = source_input_fingerprints(market, catalog, book, four)
+        if (prior.get("source_input_sha256") != expected or
+                report.get("source_input_sha256") != expected):
+            raise RotationError("post_rebase_source_inputs_changed")
         if (report.get("schema") != REPORT_SCHEMA or
-            report.get("processed_this_cycle") != prior.get("processed_this_cycle")):
+            report.get("cycle_start") != prior.get("cycle_start") or
+            report.get("run_kst") != prior.get("run_kst") or
+            report.get("listed_total") != prior.get("listed_total") or
+            report.get("processed_this_cycle") != prior.get("processed_this_cycle") or
+            report.get("source_reference_counts_this_cycle") !=
+                prior.get("source_reference_counts_this_cycle")):
             raise RotationError("post_rebase_coverage_mismatch")
-        print("V3 rotation source day and published count preserved after rebase")
+        print("V3 rotation source data hash and coverage preserved after rebase")
         return
     state, coverage = recalculate(market, catalog, book, when=args.when,
                                   prior=prior, four=four)
