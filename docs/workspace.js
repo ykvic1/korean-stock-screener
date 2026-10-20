@@ -168,7 +168,7 @@ function pillarState(r){
   Number.isInteger(bulk.financial_available_max)&&
   [0,4,8].includes(bulk.financial_available_max)&&
   Number.isInteger(bulk.valuation_available_max)&&
-  [0,5].includes(bulk.valuation_available_max);
+  [0,5,10].includes(bulk.valuation_available_max);
  const supplied=valid&&z.six_pillar_candidates&&
    typeof z.six_pillar_candidates==='object'&&!Array.isArray(z.six_pillar_candidates)?
    z.six_pillar_candidates:null;
@@ -395,7 +395,7 @@ function applyBulkFinancialPreview(model,report){
     report.model_financial_full_points!==15||
     report.model_valuation_full_points!==15||
     report.financial_partial_max_possible!==8||
-    report.valuation_partial_max_possible!==5||
+    report.valuation_partial_max_possible!==10||
     !Array.isArray(report.rows)||
     !Number.isInteger(report.listed_total)||report.listed_total<model.rows.length||
     report.rows.length>report.listed_total)return 0;
@@ -408,7 +408,7 @@ function applyBulkFinancialPreview(model,report){
      !Number.isInteger(row.financial_available_max)||
      ![0,4,8].includes(row.financial_available_max)||
      !Number.isInteger(row.valuation_available_max)||
-     ![0,5].includes(row.valuation_available_max)||
+     ![0,5,10].includes(row.valuation_available_max)||
      !finite(row.combined_provisional_points)||
      row.combined_available_max!==
         row.financial_available_max+row.valuation_available_max||
