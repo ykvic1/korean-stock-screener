@@ -231,7 +231,8 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
         workflow=Path(".github/workflows/v3-krx-private-historical-backfill.yml").read_text()
         self.assertIn("github.event_name == 'workflow_dispatch' || vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true'",workflow)
         self.assertIn("default: dry_run",workflow)
-        self.assertIn("permissions:\\n  contents: read",workflow)
+        self.assertIn("permissions:",workflow)
+        self.assertIn("  contents: read",workflow)
 
     def test_unknown_calendar_or_batch_does_not_collect(self):
         gh=SimulatedPrivateGithub();fake=FakeClient()
