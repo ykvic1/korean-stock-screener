@@ -92,7 +92,8 @@ jobs:
                     'four_year_fiscal_windows=',result['four_consecutive_years_observed_count'],
                     'current_core_usable=',result['current_core_financial_research_observed_count'],
                     'incomplete_cohort=',result['unverified_issuer_count'],
-                    'real_filing_issuers_this_run=',result['observed_filings_issuers_this_run'],
+                    'cached_or_fresh_filing_issuers=',result['observed_filings_issuers_this_run'],
+                    'fresh_provider_filing_issuers=',result['newly_fetched_filings_issuers_this_run'],
                     'current_FY_DART_reused=',result['same_day_valid_annual_report_reused'],
                     'healthy_batches=',result['consecutive_healthy_batches'],
                     'next_schedule_limit=',result['next_schedule_max_issuers'],
@@ -123,6 +124,7 @@ jobs:
               or four['confirmed_six_pillar_ranks'] is not None
               or four.get('historical_PIT_source_certified') is not False
               or four['requested_this_run']>12
+              or not 0<=four['newly_fetched_filings_issuers_this_run']<=four['observed_filings_issuers_this_run']
               or four['next_schedule_max_issuers'] not in (4,8,12)
               or not 0<=four['observed_filings_issuers_this_run']<=four['requested_this_run']):
               raise ValueError('stale_rebased_fouryear_not_publishable')
