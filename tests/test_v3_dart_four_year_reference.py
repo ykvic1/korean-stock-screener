@@ -60,6 +60,8 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertEqual(result["last_three_years_operating_cashflow_observed_count"],2)
         self.assertEqual(result["latest_year_balance_values_observed_count"],2)
         self.assertEqual(result["four_year_core_financial_research_observed_count"],2)
+        self.assertEqual(result["recent_four_year_window_observed_count"],2)
+        self.assertEqual(result["current_core_financial_research_observed_count"],2)
         self.assertFalse(result["full_v3_ready"])
         self.assertIsNone(result["confirmed_six_pillar_ranks"])
         first=result["records"][0]
@@ -75,6 +77,48 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertFalse(first["historical_revisions_authenticated"])
         self.assertFalse(first["buy_certified"])
         self.assertFalse(result["raw_account_rows_stored"])
+
+    def test_old_four_annual_filings_are_historical_not_current_company_financials(self):
+        m,c,b=inputs()
+        older=reports("005930")
+        # 2021-2024 is a real consecutive four-fiscal-year window, but at
+        # Oct 2026 its core financials are old. It cannot be considered a
+        # current financial15 input or dropped from the next pilot cohort.
+        for idx, item in enumerate(older["reports"]):
+            yr=2021+idx
+            item["year"]=yr
+            item["receipt_id"]=f"{yr+1}0318001162"
+        recent=reports("247540")
+        result=f.merge(m,c,b,[older,recent],limit=2)
+        self.assertEqual(result["four_consecutive_years_observed_count"],2)
+        self.assertEqual(result["four_year_core_financial_research_observed_count"],2)
+        self.assertEqual(result["recent_four_year_window_observed_count"],1)
+        self.assertEqual(result["current_core_financial_research_observed_count"],1)
+        r_old,r_new=result["records"]
+        self.assertTrue(r_old["core_financial_observed_for_research"])
+        self.assertFalse(r_old["recent_four_year_window_observed"])
+        self.assertFalse(r_old["current_core_financial_research_observed"])
+        self.assertEqual(r_old["minimum_current_annual_fiscal_year"],2025)
+        self.assertEqual(r_old["latest_annual_fiscal_year_observed"],2024)
+        self.assertTrue(r_new["current_core_financial_research_observed"])
+        # Only the stale issuer remains eligible for a bounded refresh.
+        self.assertEqual(f.plan(m,c,b,prior=result,limit=2)[3],["005930"])
+        self.assertFalse(result["full_v3_ready"])
+
+    def test_march_year_end_grace_avoids_unnecessary_stale_flags(self):
+        older=reports("005930")["reports"]
+        for idx, item in enumerate(older):
+            yr=2021+idx
+            item["year"]=yr
+            item["receipt_id"]=f"{yr+1}0318001162"
+        march=f._record("005930",older,"2026-03-30")
+        april=f._record("005930",older,"2026-04-01")
+        self.assertEqual(march["minimum_current_annual_fiscal_year"],2024)
+        self.assertTrue(march["recent_four_year_window_observed"])
+        self.assertEqual(april["minimum_current_annual_fiscal_year"],2025)
+        self.assertFalse(april["recent_four_year_window_observed"])
+        self.assertTrue(march["current_core_financial_research_observed"])
+        self.assertFalse(april["current_core_financial_research_observed"])
 
     def test_partial_history_or_mixed_cfs_ofs_never_graduates(self):
         m,c,b=inputs()

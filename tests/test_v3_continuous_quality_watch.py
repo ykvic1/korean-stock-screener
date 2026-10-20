@@ -32,6 +32,8 @@ def valid_four(m, c):
             "last_three_years_operating_cashflow_observed_count":1,
             "latest_year_balance_values_observed_count":1,
             "four_year_core_financial_research_observed_count":1,
+            "recent_four_year_window_observed_count":1,
+            "current_core_financial_research_observed_count":1,
             "full_v3_ready":False,"four_years_all_financial_pillars_certified":False,
             "raw_account_rows_stored":False,"confirmed_six_pillar_ranks":None}
 
@@ -105,6 +107,8 @@ class QualityWatchUnitTests(unittest.TestCase):
         self.assertEqual(x["dart_four_year"]["four_year_observed"],1)
         self.assertEqual(
             x["dart_four_year"]["four_year_core_financial_research_observed"],1)
+        self.assertEqual(x["dart_four_year"]["recent_four_year_window_observed"],1)
+        self.assertEqual(x["dart_four_year"]["current_core_financial_research_observed"],1)
         self.assertEqual(x["dart_four_year"]["pilot_issuer_count"],1)
         self.assertFalse(x["full_investment_rank_certified"])
         self.assertFalse(x["published_data_modified"])
@@ -115,6 +119,9 @@ class QualityWatchUnitTests(unittest.TestCase):
         tampered=[
             lambda a:a.update({"four_consecutive_years_observed_count":3}),
             lambda a:a.update({"four_year_core_financial_research_observed_count":3}),
+            lambda a:a.update({"current_core_financial_research_observed_count":3}),
+            lambda a:a["records"][0].update({"recent_four_year_window_observed":False}),
+            lambda a:a["records"][0].update({"minimum_current_annual_fiscal_year":2022}),
             lambda a:a["records"][0].update(
                 {"core_financial_observed_for_research":False}),
             lambda a:a["records"][0].update({"financial15_confirmed_points":15}),
@@ -130,6 +137,25 @@ class QualityWatchUnitTests(unittest.TestCase):
                 break_it(four)
                 with self.assertRaises(ValueError):
                     q.assess_sources(m,c,b,four,today=date(2026,10,20))
+
+    def test_watch_distinguishes_complete_but_stale_financial_years(self):
+        m,c,b=fixture()
+        four=valid_four(m,c)
+        row=four["records"][0]
+        for idx, account in enumerate(row["reports"]):
+            yr=2021+idx
+            account["year"]=yr
+            account["receipt_id"]=f"{yr+1}0318001162"
+        rebuilt=_record("000001",row["reports"],m["date"])
+        four["records"]=[rebuilt]
+        four["four_consecutive_years_observed_count"]=1
+        four["four_year_core_financial_research_observed_count"]=1
+        four["recent_four_year_window_observed_count"]=0
+        four["current_core_financial_research_observed_count"]=0
+        result=q.assess_sources(m,c,b,four,today=date(2026,10,20))
+        self.assertEqual(result["dart_four_year"]["four_year_observed"],1)
+        self.assertEqual(result["dart_four_year"]["current_core_financial_research_observed"],0)
+        self.assertFalse(result["full_investment_rank_certified"])
 
     def test_cli_failure_still_writes_diagnostic_artifact(self):
         m,c,b=fixture()

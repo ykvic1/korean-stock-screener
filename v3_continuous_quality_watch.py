@@ -30,6 +30,8 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
     """Count revalidated source observations, never extrapolate 15-point scores."""
     absent = {"status": "not_published", "four_year_observed": 0,
               "four_year_core_financial_research_observed": 0,
+              "recent_four_year_window_observed": 0,
+              "current_core_financial_research_observed": 0,
               "four_year_income_values_observed": 0,
               "last_three_years_operating_cashflow_observed": 0,
               "latest_year_balance_values_observed": 0,
@@ -62,6 +64,8 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
     cashflow_observed = 0
     balance_observed = 0
     core_observed = 0
+    recent_observed = 0
+    current_core_observed = 0
     for row in records:
         if not isinstance(row, dict) or type(row.get("code")) is not str:
             raise ReadinessError("invalid_four_year_issuer_row")
@@ -85,7 +89,9 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
         for flag in ("four_year_income_values_observed",
                      "last_three_years_operating_cashflow_observed",
                      "latest_year_balance_values_observed",
-                     "core_financial_observed_for_research"):
+                     "core_financial_observed_for_research",
+                     "recent_four_year_window_observed",
+                     "current_core_financial_research_observed"):
             if row.get(flag) is not rebuilt[flag]:
                 raise ReadinessError("forged_four_year_account_coverage")
         for noncertified in ("financial15_confirmed_points",
@@ -99,15 +105,27 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
             rebuilt["last_three_years_operating_cashflow_observed"])
         balance_observed += int(rebuilt["latest_year_balance_values_observed"])
         core_observed += int(rebuilt["core_financial_observed_for_research"])
+        recent_observed += int(rebuilt["recent_four_year_window_observed"])
+        current_core_observed += int(
+            rebuilt["current_core_financial_research_observed"])
+        if (row.get("minimum_current_annual_fiscal_year") !=
+                rebuilt["minimum_current_annual_fiscal_year"]
+                or row.get("latest_annual_fiscal_year_observed") !=
+                   rebuilt["latest_annual_fiscal_year_observed"]):
+            raise ReadinessError("forged_financial_fiscal_freshness")
     if (four.get("pilot_issuer_count") != len(records)
             or four.get("four_consecutive_years_observed_count") != observed
             or four.get("four_year_income_values_observed_count") != income_observed
             or four.get("last_three_years_operating_cashflow_observed_count") != cashflow_observed
             or four.get("latest_year_balance_values_observed_count") != balance_observed
-            or four.get("four_year_core_financial_research_observed_count") != core_observed):
+            or four.get("four_year_core_financial_research_observed_count") != core_observed
+            or four.get("recent_four_year_window_observed_count") != recent_observed
+            or four.get("current_core_financial_research_observed_count") != current_core_observed):
         raise ReadinessError("four_year_aggregated_count_mismatch")
     return {"status": "research_only", "four_year_observed": observed,
             "four_year_core_financial_research_observed": core_observed,
+            "recent_four_year_window_observed": recent_observed,
+            "current_core_financial_research_observed": current_core_observed,
             "four_year_income_values_observed": income_observed,
             "last_three_years_operating_cashflow_observed": cashflow_observed,
             "latest_year_balance_values_observed": balance_observed,
