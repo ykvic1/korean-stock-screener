@@ -94,6 +94,38 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(next_cycle["records"]["000001"]["cycle"],
                          state["cycle_start"])
 
+    def test_backfill_real_saved_pattern_without_v2_score_imputation(self):
+        from test_v3_pattern_composite_score import stock
+        from v3_weekly_rotation import existing_evidence_adapter, inspect_issuer
+        row = stock("000001")
+        row["price_date"] = "2026-10-19"
+        row["pattern_research"]["asof"] = "2026-10-19"
+        row["score"] = 0.0  # legacy score MUST NOT affect technical research.
+        self.assertIsNone(row.get("v3_pattern_integrated"))
+        adapter, rebuilt = existing_evidence_adapter(row,"2026-10-19")
+        self.assertTrue(rebuilt)
+        self.assertAlmostEqual(adapter["technical_research_candidate"],24.04)
+        self.assertEqual(technical_points(row,"2026-10-19")[:2],(24.04,25))
+        listed={"code":"000001","name":"시험","market":"KOSPI","sector":"IT"}
+        record=inspect_issuer("000001",market_asof="2026-10-19",
+            catalog_row=listed,price_row=row,annual_row=None,four_row=None,
+            inspected_on="2026-10-20")
+        self.assertTrue(record["technical_rebuilt_from_saved_source"])
+        self.assertEqual(record["research_score_points"],24.04)
+        self.assertEqual(record["available_weight"],25)
+        self.assertIsNone(record["technical_research_backfill"]["investable_score"])
+        self.assertFalse(record["six_pillar_research_score_confirmed"])
+        row["score"]=99
+        self.assertEqual(technical_points(row,"2026-10-19")[:2],(24.04,25))
+        row["pattern_research"]["asof"]="2026-10-20"
+        result=technical_points(row,"2026-10-19")
+        self.assertEqual(result[1],18, "stale daily pattern cannot contribute points")
+        row["v3_pattern_integrated"]={"schema":"wrong"}
+        self.assertIsNone(technical_points(row,"2026-10-19")[0],
+          "invalid provided adapter must never be bypassed by rebuilding")
+        row["price_date"]="2026-10-18"
+        self.assertIsNone(technical_points(row,"2026-10-19")[0])
+
     def test_mismatch_dates_negative_or_stale_rejected(self):
         market,catalog,book = fixture(13)
         bad = {**catalog, "date": "2026-10-18"}
