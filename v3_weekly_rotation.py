@@ -140,6 +140,37 @@ def source_input_fingerprints(market, catalog, book, four=None):
     return result
 
 
+def observed_simple_pb_codes(book, annual, market_asof):
+    """Use only actual same-date, receipt-matched nonofficial P/B observations.
+
+    An annual statement receipt alone is not a derived price-to-book ratio:
+    market-cap reference, positive ratio and the matching dated filing must
+    all be present. Official-exchange PBR remains independently unverified.
+    """
+    codes = set()
+    observations = book.get("observations", [])
+    if not isinstance(observations, list):
+        raise RotationError("invalid_dart_valuation_observations")
+    for row in observations:
+        if not isinstance(row, dict):
+            raise RotationError("invalid_dart_valuation_observation")
+        c = row.get("code")
+        record = annual.get(c)
+        filing = record.get("annual") if isinstance(record, dict) else None
+        value = row.get("pbr_simple_annual_reference")
+        if (not isinstance(filing, dict) or not number(value) or value <= 0 or
+            row.get("market_cap_reference_day") != market_asof or
+            row.get("official_exchange_pbr_verified") is not False or
+            row.get("receipt_id") != filing.get("receipt_id") or
+            row.get("fs_div") != filing.get("fs_div") or
+            row.get("year") != filing.get("year")):
+            continue
+        if c in codes:
+            raise RotationError("duplicate_matched_dart_valuation_reference")
+        codes.add(c)
+    return codes
+
+
 def existing_evidence_adapter(row, market_asof):
     """Rebuild research adapter only from existing dated inputs, with no API.
 
@@ -208,7 +239,7 @@ def technical_points(row, market_asof):
         None, 0, "technical_factors_unavailable")
 
 
-def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, four_row, inspected_on, momentum_row=None):
+def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, four_row, inspected_on, momentum_row=None, simple_pb_observed=False):
     tech, weight, note = technical_points(price_row, market_asof)
     research, backfilled = existing_evidence_adapter(price_row, market_asof)
     # Publish only small verified-contract research subparts, NOT original OHLCV
@@ -242,7 +273,7 @@ def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, fou
         "technical": note,
         "financial": "four_year_core_reference_not_PIT" if core else (
             "annual_statement_reference_only" if receipt_valid else "four_year_financial_missing"),
-        "valuation": "simple_book_reference_only" if receipt_valid else "official_PBR_missing",
+        "valuation": "simple_book_reference_only" if simple_pb_observed else "official_PBR_missing",
         "industry": "sector_label_only" if sector else "sector_cohort_not_available",
         "momentum": "raw_20_60_relative_reference_only" if relative else "benchmark_momentum_missing",
     }
@@ -280,7 +311,7 @@ def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, fou
             "momentum_partial": mom_weight > 0,
             "annual_receipt": receipt_valid,
             "current_four_year_core": core,
-            "simple_pb_unverified": receipt_valid,
+            "simple_pb_unverified": bool(simple_pb_observed),
             "sector_label": sector,
             "price_20_60_relative_pair": relative,
             "legacy_flow_not_ias": flow_ref,
@@ -303,6 +334,7 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         raise RotationError("rotation_not_started")
     asof, members, prices, annual, four_source = source_tables(market, catalog, book, four)
     input_sha256 = source_input_fingerprints(market, catalog, book, four)
+    pb_codes = observed_simple_pb_codes(book, annual, asof)
     momentum_by_code = market_momentum(market)
     age = (when - day(asof)).days
     if age < 0 or age > 9:
@@ -329,7 +361,8 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
                                catalog_row=members[c], price_row=prices.get(c),
                                annual_row=annual.get(c), four_row=four_source.get(c),
                                inspected_on=when.isoformat(),
-                               momentum_row=momentum_by_code.get(c))
+                               momentum_row=momentum_by_code.get(c),
+                               simple_pb_observed=(c in pb_codes))
         record["cycle"] = cycle
         records[c] = record
     current = [r for r in records.values() if r.get("cycle") == cycle]
@@ -342,6 +375,21 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
                              "price_20_60_relative_pair", "legacy_flow_not_ias")}
     points = sum(r.get("research_score_points") is not None for r in current)
     provisional = sum(r.get("research_provisional_sum") is not None for r in current)
+    # Source references are NOT computed 100-point pillar scores. The values
+    # below count actual, separately qualified available references only.
+    research_reference_by_pillar = {
+        "ias": 0,  # No certified stock-level institutional ledger.
+        "technical": breakdown["technical_parts"],
+        "financial": breakdown["current_four_year_core"],  # Not PIT certified.
+        "valuation": breakdown["simple_pb_unverified"],  # NOT exchange PBR.
+        "industry": breakdown["sector_label"],  # NOT a historical cohort.
+        "momentum": breakdown["momentum_partial"],
+    }
+    provisional_numeric_by_pillar = {
+        "ias": 0, "technical": points, "financial": 0,
+        "valuation": 0, "industry": 0,
+        "momentum": breakdown["momentum_partial"],
+    }
     # Aggregate only fixed diagnostic codes, never raw market rows/API data.
     # This distinguishes no-data from an accidentally strict source-date
     # gate, so a legitimate research signal is not silently discarded.
@@ -367,6 +415,8 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "cohort_index_today": position, "processed_today": len(targets),
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster) - updated,
         "source_reference_counts_this_cycle": breakdown,
+        "six_pillar_reference_counts_this_cycle": research_reference_by_pillar,
+        "six_pillar_numeric_partial_counts_this_cycle": provisional_numeric_by_pillar,
         "numeric_technical_candidates_this_cycle": points,
         "numeric_technical_or_momentum_candidates_this_cycle": provisional,
         "technical_unverified_reason_counts": technical_blockers,
@@ -384,6 +434,8 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "cohort_index_today": position, "processed_today": len(targets),
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster)-updated,
         "source_reference_counts_this_cycle": breakdown,
+        "six_pillar_reference_counts_this_cycle": research_reference_by_pillar,
+        "six_pillar_numeric_partial_counts_this_cycle": provisional_numeric_by_pillar,
         "numeric_technical_candidates_this_cycle": points,
         "numeric_technical_or_momentum_candidates_this_cycle": provisional,
         "technical_unverified_reason_counts": technical_blockers,
