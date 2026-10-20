@@ -89,8 +89,15 @@ function observedRollingBook(rolling,asof,eligible){
 }
 function observedFourYearEvidence(source,asof,eligible){
  const empty=new Map();
+ // Annual reports do not change on every trading day. Do not hide a valid
+ // four-year reference merely because the price snapshot rolled forward.
+ // Reject future or old references rather than silently recycling stale FYs.
+ const sourceDate=Date.parse(String(source?.asof||'')+'T00:00:00Z');
+ const targetDate=Date.parse(String(asof||'')+'T00:00:00Z');
+ const sourceAge=Math.round((targetDate-sourceDate)/86400000);
  if(!source||source.schema!=='v3-four-year-dart-financial-evidence-0.1'||
-   source.asof!==asof||source.listed_total!==eligible||
+   !Number.isFinite(sourceAge)||sourceAge<0||sourceAge>30||
+   source.listed_total!==eligible||
    source.four_years_all_financial_pillars_certified!==false||
    source.full_v3_ready!==false||
    source.raw_account_rows_stored!==false||
