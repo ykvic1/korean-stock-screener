@@ -229,7 +229,9 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
 
     def test_no_scheduled_action_minutes_before_private_opt_in(self):
         workflow=Path(".github/workflows/v3-krx-private-historical-backfill.yml").read_text()
-        self.assertIn("github.event_name == 'workflow_dispatch' || vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true'",workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch' || (vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true'",workflow)
+        self.assertIn("vars.V3_KRX_CLOUD_STORAGE_WRITTEN_APPROVED == 'true'",workflow)
+        self.assertIn("vars.V3_KRX_APPROVAL_REFERENCE != ''",workflow)
         self.assertIn("default: dry_run",workflow)
         self.assertIn("permissions:",workflow)
         self.assertIn("  contents: read",workflow)

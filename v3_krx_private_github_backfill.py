@@ -360,12 +360,23 @@ def main():
                           "private_history_archived":False}))
         return 0
     try:
-        if (os.getenv("V3_KRX_PRIVATE_STORAGE_AUTHORIZED")!="true"
-            or not os.getenv("KRX_API_KEY")
+        # Lasting KRX cloud retention requires explicit written clarification.
+        # A previously advised boolean toggle alone is NOT legal approval.
+        from v3_krx_permission_gate import (
+            PermissionGateError, confirm_operator_approval)
+        try:
+            confirm_operator_approval(os.environ)
+        except PermissionGateError:
+            print(json.dumps({"status":"blocked",
+                              "reason":"official_krx_cloud_storage_permission_unconfirmed",
+                              "provider_calls":0,
+                              "private_archive_files_written":0}))
+            return 0
+        if (not os.getenv("KRX_API_KEY")
             or not os.getenv("V3_PRIVATE_ARCHIVE_REPO")
             or not os.getenv("V3_PRIVATE_ARCHIVE_TOKEN")):
             print(json.dumps({"status":"blocked",
-                              "reason":"private_archive_storage_or_permission_not_configured",
+                              "reason":"private_archive_storage_or_api_credentials_not_configured",
                               "provider_calls":0}))
             return 0
         if args.start!=START or args.end!=END:

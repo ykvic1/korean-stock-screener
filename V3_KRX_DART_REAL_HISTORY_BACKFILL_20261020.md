@@ -35,7 +35,7 @@ PUBLIC 스크리너 저장소 → Settings → Secrets and variables → Actions
 - **Secrets** `V3_PRIVATE_ARCHIVE_TOKEN`: 해당 비공개 저장소 Contents 읽기/쓰기만 가능한 토큰
 - **Variables** `V3_KRX_PRIVATE_STORAGE_AUTHORIZED`: 실제 이용조건을 확인한 뒤 `true`로 명시
 
-세 조건과 기존 `KRX_API_KEY`가 모두 충족된 경우에만 이후 예약 실행에서 실제 과거 5일씩 원본을 받아 누적한다. **현재 위 세 가지가 준비돼 있다고 가정하지 않는다.** API 키 자체·토큰·등록 IP를 공유하지 않는다.
+**2026-10-20 KRX 공식 약관 재검토 이후:** 위 세 조건만으로는 공식 KRX 제3자 클라우드 보관 허용을 증명할 수 없으므로 **예약 보관이 자동 활성화되지 않는다.** GitHub Private 장기 보관에 대한 KRX 서면 확인, `V3_KRX_CLOUD_STORAGE_WRITTEN_APPROVED`, `V3_KRX_STORAGE_SCOPE`, `V3_KRX_APPROVAL_REFERENCE`, `V3_KRX_LICENSE_RECHECK_BY`까지 유효해야 수집 가능. 상세 조건은 `V3_KRX_OPENAPI_TERMS_LICENSE_GATE_20261020.md` 참고. **현재 위 세 가지가 준비돼 있다고 가정하지 않는다.** API 키 자체·토큰·등록 IP를 공유하지 않는다.
 
 실제 수집 진행률은 `durably_archived_pair_days` (두 시장 실원본까지 비공개로 영구 보관) 기준으로 관리하고, DART는 기업별 4연도 공시 및 핵심 계정 관측수를 별도로 관리한다. **수집 요청 수만으로 확보율을 주장하지 않는다.**
 
