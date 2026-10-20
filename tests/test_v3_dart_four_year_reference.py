@@ -188,6 +188,19 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertEqual(set(f.plan(m,c,b,prior=back,limit=2)[3]),
                          {"005930","247540"})
 
+    def test_live_weekday_workflow_remains_capped_and_dry_run_safely_manual(self):
+        workflow=Path(".github/workflows/v3-fouryear-dart-financial-reference.yml").read_text()
+        self.assertIn("43 17 * * 0-4",workflow,
+                      "02:43 KST follows 01:17 KST single-year DART snapshot")
+        self.assertIn("github.event_name == 'schedule' && '4'",workflow)
+        self.assertIn("github.event_name == 'schedule' && 'live'",workflow)
+        self.assertIn("default: 'dry-run'",workflow)
+        self.assertIn("group: korea-stock-screener-publication",workflow)
+        self.assertIn("stale_fouryear_market_snapshot",workflow)
+        self.assertIn("source_request_scope",Path("v3_dart_four_year_reference.py").read_text())
+        self.assertNotIn("os.environ['DART_API_KEY']",workflow,
+                         "never dump an API key in source output")
+
     def test_unattempted_issuer_beats_repeated_partial_even_if_old_score_high(self):
         m,c,b=inputs()
         # An incomplete first attempt at a high old-score stock must NOT
