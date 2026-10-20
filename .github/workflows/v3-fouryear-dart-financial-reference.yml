@@ -1,6 +1,11 @@
-name: V3 Four-Year DART Financial Reference (manual pilot)
+name: V3 Four-Year DART Financial Evidence (bounded daily rotation)
 
 on:
+  # Capped live source enrichment: four issuers per weekday at 19:43 KST.
+  # The price scan starts 18:30, annual-book fetch follows at 21:17;
+  # all share a publication lock, so concurrent outputs cannot overwrite.
+  schedule:
+    - cron: '43 10 * * 1-5'
   workflow_dispatch:
     inputs:
       mode:
@@ -10,7 +15,7 @@ on:
         type: choice
         options: ['dry-run', 'live']
       max_issuers:
-        description: 'Maximum issuers / 4 annual fiscal years each'
+        description: 'Manual run cap; scheduled live is always at most 4 issuers'
         required: true
         default: '2'
         type: choice
@@ -35,7 +40,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install official DART HTTP transport (only live mode uses network)
-        if: ${{ inputs.mode == 'live' }}
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
       - name: Verify source-date and four-year research constraints (no network)
         run: |
@@ -43,9 +48,9 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_dart_four_year_reference.py' -v
       - name: Plan bounded four-year cohort and optionally request real receipts
         env:
-          DART_API_KEY: ${{ inputs.mode == 'live' && secrets.DART_API_KEY || '' }}
-          REQUESTED_MODE: ${{ inputs.mode }}
-          ISSUER_LIMIT: ${{ inputs.max_issuers }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          REQUESTED_MODE: ${{ github.event_name == 'schedule' && 'live' || inputs.mode }}
+          ISSUER_LIMIT: ${{ github.event_name == 'schedule' && '4' || inputs.max_issuers }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -71,18 +76,22 @@ jobs:
                 'pilot_target_count=',len(targets),
                 'mode=',os.environ['REQUESTED_MODE'])
           if os.environ['REQUESTED_MODE']=='live':
+              if not os.environ.get('DART_API_KEY','').strip() and targets:
+                  raise ValueError('live_fouryear_dart_key_unavailable')
               result=write(market,catalog,book,output=output,prior=prior,
                            key=os.environ.get('DART_API_KEY'),limit=limit)
               for field in ('full_v3_ready','four_years_all_financial_pillars_certified',
                             'raw_account_rows_stored'):
                   if result[field] is not False:
                       raise ValueError('unearned_fouryear_certification')
-              print('live_pilot_four_years_observed=',
-                    result['four_consecutive_years_observed_count'],
+              print('bounded_live_fouryear_targets=',result['requested_this_run'],
+                    'four_year_fiscal_windows=',result['four_consecutive_years_observed_count'],
+                    'current_core_usable=',result['current_core_financial_research_observed_count'],
+                    'incomplete_cohort=',result['unverified_issuer_count'],
                     'full_financial15_scoring=False')
           PY
       - name: Publish only completed derived four-year annual references
-        if: ${{ inputs.mode == 'live' }}
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -103,7 +112,9 @@ jobs:
               or annual['market_listed_total']!=four['listed_total']
               or four['full_v3_ready'] is not False
               or four['raw_account_rows_stored'] is not False
-              or four['confirmed_six_pillar_ranks'] is not None):
+              or four['confirmed_six_pillar_ranks'] is not None
+              or four.get('historical_PIT_source_certified') is not False
+              or four['requested_this_run']>4):
               raise ValueError('stale_rebased_fouryear_not_publishable')
           print('Validated no-stale four-year research-only publication')
           PY
