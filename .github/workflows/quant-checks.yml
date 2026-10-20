@@ -186,6 +186,10 @@ jobs:
         run: |
           python -m py_compile v3_research_factor_engine.py
           python -m unittest discover -s tests -p 'test_v3_research_factor_engine.py' -v
+      - name: V3 seven-calendar-day rotating all-listed research recalculation and coverage audit
+        run: |
+          python -m py_compile v3_weekly_rotation.py
+          python -m unittest discover -s tests -p 'test_v3_weekly_rotation.py' -v
       - name: v3 complete six-factor and IAS scoring contract offline checks
         run: python -m unittest discover -s tests -p 'test_v3_score_contract.py' -v
       - name: v3 walk-forward historical loss/target research and lookahead guard (synthetic only)
