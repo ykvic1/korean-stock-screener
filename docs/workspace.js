@@ -297,7 +297,7 @@ function renderDetails(x){
  '<h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
  '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
- '<span>참고 대응: '+esc(x.decision.label)+' (매수 신호 미인증)</span></div>'+
+ '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
@@ -333,7 +333,7 @@ function renderDetails(x){
  ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+
  quantTable(x,core)+
- '<h3>손실 위험 · 가설 무효화</h3><p class="u-muted">'+esc(x.decision.reason)+
+ '<h3>손실 위험 · 가설 무효화</h3><p class="u-muted">연구점수와 별도로 위험요인을 점검해야 합니다'+
  ' · '+esc(risk.reasons.join(' / ')||'추가 위험 경고 관측 없음')+
  '. 구조선 이탈 시 재검토. 실제 체결 손실은 더 클 수 있습니다.</p>'+
  '<div class="u-actions"><a href="'+esc(stockLink)+'" target="_blank" rel="noopener noreferrer">종목 차트 ↗</a>'+
