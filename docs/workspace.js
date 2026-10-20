@@ -315,9 +315,18 @@ function weeklyCoverageText(report, marketDate){
  const data=report.source_reference_counts_this_cycle;
  const p=data&&Number.isInteger(data.technical_parts)&&data.technical_parts>=0&&
   data.technical_parts<=report.processed_this_cycle?data.technical_parts:null;
+ const six=report.six_pillar_reference_counts_this_cycle;
+ const keys=['ias','technical','financial','valuation','industry','momentum'];
+ const validSix=six&&keys.every(k=>Number.isInteger(six[k])&&six[k]>=0&&
+   six[k]<=report.processed_this_cycle);
+ const sixText=validSix?
+  ' · 6영역 참고관측(확정점수 아님): 수급 '+six.ias+
+  ' / 기술 '+six.technical+' / 4년재무 '+six.financial+
+  ' / PBR추정 '+six.valuation+' / 업종명 '+six.industry+
+  ' / 모멘텀 '+six.momentum:'';
  return ' · V3 주간 순환 연구 '+report.processed_this_cycle+'/'+
   report.listed_total+'종목 · 자료기준 '+report.market_asof+
-  (p===null?'':' · 기술점수 근거 '+p+'종목')+
+  (p===null?'':' · 기술점수 근거 '+p+'종목')+sixText+
   ' (기존 원본 재계산, 별도 실시간 API 수집 아님)';
 }
 function applyRotationTechnicalBackfill(model, state){
