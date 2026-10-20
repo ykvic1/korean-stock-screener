@@ -2,8 +2,12 @@ name: V3 Six-Pillar Source Readiness Audit (offline)
 
 on:
   workflow_dispatch:
-  # One read-only live-source audit immediately after first merge. Later
-  # routine market data commits do NOT trigger this diagnostic run.
+  # Recheck current saved evidence after the real weekday 18:30 full-market
+  # publisher completes. Runs zero extra exchange/DART API calls.
+  workflow_run:
+    workflows: ['Full-Market 100-Stock Batches']
+    types: [completed]
+  # Recheck read-only whenever the diagnostic itself changes on main.
   push:
     branches: [main]
     paths:
@@ -13,8 +17,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: v3-offline-source-readiness-audit
+  cancel-in-progress: false
+
 jobs:
   audited-source-inventory:
+    # An audit-only manual market run or an upstream failed/unfinished scan
+    # cannot certify that there is a new market snapshot. Never mislabel it.
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
