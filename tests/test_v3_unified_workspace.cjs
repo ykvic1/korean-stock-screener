@@ -194,6 +194,35 @@ for(const bad of [
  assert.equal(unified.applyRotationTechnicalBackfill(shadow,bad),0,
   'source/date/score mismatches must never turn into V3 user scores');
 }
+const momentumReference={
+ schema:'v3-observed-market-momentum-8of10-research-0.1',
+ asof:'2026-10-20',market:'KOSPI',momentum_maximum:10,
+ momentum_parts:{relative20:3,relative60:2,positive_days20:null},
+ momentum_observed_maximum:8,momentum_research_candidate:5,
+ peer20_count:100,peer60_count:100,
+ buy_certified:false,investable_score:null,
+ market_benchmark_date_independently_verified:false,
+ source_unadjusted_corporate_events_verified:false,
+ positive_days20_observed:false
+};
+const partialMomentum={...row,v3_pattern_integrated:null};
+const stateWithMomentum={...backState,records:{
+ '005930':{...backedRec,technical_rebuilt_from_saved_source:false,
+ technical_research_backfill:null,momentum_research_reference:momentumReference,
+ momentum_research_points:5,momentum_available_weight:8}
+}};
+assert.equal(unified.applyRotationTechnicalBackfill(
+ {date:'2026-10-20',rows:[{r:partialMomentum}]},stateWithMomentum),1);
+assert.equal(unified.researchComposite(partialMomentum).earned,5);
+assert.equal(unified.researchComposite(partialMomentum).available,8);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,
+ market_benchmark_date_independently_verified:true}}),null);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,peer20_count:2}}),null);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,
+ momentum_parts:{...momentumReference.momentum_parts,positive_days20:2}}}),null);
 const missing={...row,v3_pattern_integrated:null};
 assert.equal(unified.researchComposite(missing).earned,null,
  'missing factor must not appear as 0.0/100');
