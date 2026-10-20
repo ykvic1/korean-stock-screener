@@ -255,9 +255,23 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         existing[code]=derived
     output=[existing[c] for c in sorted(existing)]
     observed_in_run=sum(bool(x.get("reports")) for x in results)
-    # Using ANY truly received dated annual filing as a responsiveness probe,
-    # NOT claiming 4 consecutive years or a certified financial score.
-    healthy=(bool(requested) and observed_in_run/len(requested)>=MIN_HEALTHY_FRACTION
+    # A previously observed (seeded) annual filing is valid evidence for
+    # the company, but NOT proof that the DART provider responded today.
+    # Synthetic custom collectors without freshness metadata retain legacy
+    # semantics; production official_data.dart_collect always supplies it.
+    freshly_observed=0
+    for row in results:
+        count=row.get("newly_fetched_annual_years")
+        if count is None:
+            fresh=bool(row.get("reports"))
+        else:
+            if (type(count) is not int or not 0<=count<=4
+                    or count>len(row.get("reports") or [])):
+                raise FourYearEvidenceError("invalid_fresh_dart_report_count")
+            fresh=count>0
+        freshly_observed+=int(fresh)
+    healthy=(bool(requested) and
+             freshly_observed/len(requested)>=MIN_HEALTHY_FRACTION
              and all(x.get("status")!="deferred" for x in results))
     previous_streak=prior.get("consecutive_healthy_batches",0) if prior else 0
     if type(previous_streak) is not int or not 0<=previous_streak<=1000:
@@ -267,6 +281,7 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         "schema":SCHEMA,"asof":day,"listed_total":len(members),
         "pilot_issuer_count":len(output),"requested_this_run":len(requested),
         "observed_filings_issuers_this_run":observed_in_run,
+        "newly_fetched_filings_issuers_this_run":freshly_observed,
         "consecutive_healthy_batches":streak,
         "next_schedule_max_issuers":automatic_daily_limit({
             "schema":SCHEMA,"consecutive_healthy_batches":streak}),
@@ -300,11 +315,48 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
     }
 
 
+def latest_verified_annual_seeds(annual_book, targets, asof):
+    """Reuse actually published same-day OpenDART latest FY; never infer years.
+
+    A valid filing alone does NOT mean every required core money account exists.
+    Incomplete latest-year accounts are intentionally queried normally.
+    """
+    requested={row["code"] for row in targets}
+    result={}
+    if annual_book.get("asof") != asof:
+        raise FourYearEvidenceError("annual_seed_snapshot_date_mismatch")
+    for row in annual_book.get("records", []):
+        if not isinstance(row,dict) or row.get("code") not in requested:
+            continue
+        if row.get("status") != "observed" or not isinstance(row.get("annual"),dict):
+            continue
+        a=row["annual"]
+        if a.get("year") != _day(asof).year-1:
+            continue
+        try:
+            normalized=_record(row["code"],[{
+                "year":a["year"],"fs_div":a["fs_div"],
+                "receipt_id":a["receipt_id"],"currency":a["currency"],
+                "values":a["values"],
+            }],asof)["reports"][0]
+        except (FourYearEvidenceError,KeyError,TypeError):
+            continue
+        values=normalized["values"]
+        needed=("revenue","operating_income","operating_cashflow",
+                "liabilities","equity","owners_equity")
+        if (values["revenue"] is None or values["revenue"]<=0 or
+                any(values[k] is None for k in needed)):
+            continue
+        result[row["code"]]=normalized
+    return result
+
+
 def write(market,catalog,annual_book,*,output,prior=None,key=None,
           collector=None,limit=MAX_COMPANIES):
     day,members,cached,selected=plan(
         market,catalog,annual_book,prior=prior,limit=limit)
-    if collector is None:
+    use_real_collector=collector is None
+    if use_real_collector:
         from official_data import dart_collect
         collector=dart_collect
     if selected and (type(key) is not str or not key.strip()):
@@ -315,7 +367,13 @@ def write(market,catalog,annual_book,*,output,prior=None,key=None,
     # Give 4/8/12 issuer scheduled cohorts proportionally more time, while
     # remaining under both the provider contract (<=900s) and 20m job limit.
     budget=min(900,max(420,150*limit))
-    replies=collector(targets,day,key,years=4,budget_seconds=budget) if targets else []
+    seeds=(latest_verified_annual_seeds(annual_book,targets,day)
+           if use_real_collector else {})
+    if targets and use_real_collector:
+        replies=collector(targets,day,key,years=4,budget_seconds=budget,
+                          annual_seed_by_code=seeds)
+    else:
+        replies=collector(targets,day,key,years=4,budget_seconds=budget) if targets else []
     if not isinstance(replies,list):
         raise FourYearEvidenceError("unexpected_collector_response")
     report=merge(market,catalog,annual_book,replies,prior=prior,limit=limit)
@@ -328,4 +386,7 @@ def write(market,catalog,annual_book,*,output,prior=None,key=None,
     tmp=output.with_suffix(".tmp")
     tmp.write_text(payload+"\n",encoding="utf8")
     tmp.replace(output)
-    return {k:v for k,v in report.items() if k!="records"}
+    summary={k:v for k,v in report.items() if k!="records"}
+    summary["same_day_valid_annual_report_reused"]=len(seeds)
+    summary["original_annual_statement_api_calls_saved_estimate"]=len(seeds)
+    return summary
