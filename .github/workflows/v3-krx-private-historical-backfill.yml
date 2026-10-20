@@ -1,0 +1,59 @@
+name: V3 KRX Historical Private Archive (5 pairs max)
+
+on:
+  # No public storage: run only after explicit private repo, token and retention
+  # authorization are configured. Up to 5 days * 2 markets per scheduled run.
+  schedule:
+    - cron: '23 10 * * 1-5'  # 19:23 KST weekdays, after market close
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Default read-only dry_run. Live requires a PRIVATE destination and explicit consent'
+        required: true
+        default: dry_run
+        type: choice
+        options: [dry_run, live]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-historical-source-archive
+  cancel-in-progress: false
+
+jobs:
+  historical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate private-only immutable KRX history contract
+        run: |
+          python -m py_compile v3_krx_private_github_backfill.py
+          python -m unittest discover -s tests -p 'test_v3_krx_private_github_backfill.py' -v
+      - name: Install only required historical research packages
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+        run: |
+          python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Five-date maximum official KRX paired market archival
+        env:
+          REQUESTED_MODE: ${{ github.event_name == 'schedule' && 'live' || inputs.mode }}
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          V3_KRX_PRIVATE_STORAGE_AUTHORIZED: ${{ vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Public GitHub job contains no source-output file, caches, raw
+          # artifacts, private dataset commit, or unmasked credentials.
+          if [[ "$REQUESTED_MODE" == "live" ]]; then
+            python v3_krx_private_github_backfill.py --live
+          else
+            python v3_krx_private_github_backfill.py
+          fi
