@@ -23,7 +23,7 @@ SCHEMA="v3-krx-private-derived-backfill-checkpoint-v1"
 START="2016-10-17"
 END="2026-10-16"
 CHECKPOINT="derived/historical-checkpoint.json"
-MAX_WINDOWS_PER_RUN=8
+MAX_WINDOWS_PER_RUN=16
 MAX_DERIVED_BYTES=80*1024*1024  # abort before any large private Git growth
 MAX_SOURCE_CALLS=MAX_WINDOWS_PER_RUN*10
 
