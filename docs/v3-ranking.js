@@ -559,5 +559,9 @@ function init(){
  $('rankReload').addEventListener('click',load);
  load();
 }
-root.document.addEventListener('DOMContentLoaded',init);
+root.document.addEventListener('DOMContentLoaded',()=>{
+ // The exported research core also powers the unified primary workspace.
+ // Mount the legacy beta UI only when its own controls exist.
+ if(root.document.getElementById('rankStatus'))init();
+});
 })(typeof window!=='undefined'?window:globalThis);
