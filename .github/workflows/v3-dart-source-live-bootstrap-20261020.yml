@@ -1,3 +1,4 @@
+# Exactly one additional guarded retry after correcting the updated source queue tests.
 name: One-time V3 DART real four-year source bootstrap
 
 on:
