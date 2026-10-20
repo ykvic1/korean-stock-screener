@@ -2,14 +2,16 @@ name: V3 KRX historical derived-only backfill
 
 on:
   schedule:
-    - cron: '11 13 * * *'  # 22:11 KST daily, outside main market workflow
+    - cron: '11 22 * * *'  # 07:11 KST, derived private backlog only
+    - cron: '11 5 * * *'   # 14:11 KST
+    - cron: '11 13 * * *'  # 22:11 KST, outside main market workflow
   workflow_dispatch:
     inputs:
       max_windows:
-        description: 'Max 5-session transformed cohorts this run (1/4/8)'
+        description: 'Max 5-session transformed cohorts this run (1/4/8/16)'
         type: choice
-        options: ['1', '4', '8']
-        default: '8'
+        options: ['1', '4', '8', '16']
+        default: '16'
         required: true
 
 permissions:
@@ -22,7 +24,7 @@ concurrency:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,12 +41,12 @@ jobs:
           python -m py_compile v3_krx_derived_5day.py v3_krx_derived_backfill.py
           python -m unittest discover -s tests -p 'test_v3_krx_derived_backfill.py' -v
           python -m unittest discover -s tests -p 'test_v3_krx_derived_5day.py' -v
-      - name: Resume up to eight historical five-session derived cohorts
+      - name: Resume up to sixteen historical five-session derived cohorts
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'schedule' && '8' || inputs.max_windows }}
+          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'schedule' && '16' || inputs.max_windows }}
         run: |
           set -euo pipefail
           python v3_krx_derived_backfill.py
