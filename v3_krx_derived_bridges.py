@@ -17,7 +17,8 @@ import math
 import os
 import re
 
-from v3_krx_derived_backfill import history_candidates, CHECKPOINT as HISTORY_CHECKPOINT, _manifest as _history_manifest
+from v3_krx_derived_backfill import (history_candidates, CHECKPOINT as HISTORY_CHECKPOINT,
+                                     _manifest as _history_manifest, DerivedBackfillError)
 from v3_krx_derived_5day import validate_derived_blob
 from v3_krx_history_collection import _snapshot_market
 from v3_krx_daily_anomaly_triage import classify_row
@@ -195,7 +196,10 @@ def run(*,storage,client,dates,calendar_hash,max_links=MAX_LINKS_PER_RUN):
     data,_=storage.get_content(HISTORY_CHECKPOINT)
     if data is None:
         raise BoundaryError("derived_source_checkpoint_not_available")
-    checkpoint=_history_manifest(data,dates,calendar_hash)
+    try:
+        checkpoint=_history_manifest(data,dates,calendar_hash)
+    except DerivedBackfillError:
+        raise BoundaryError("historical_derived_source_checkpoint_invalid") from None
     complete=checkpoint["next_window_index"]
     if complete<2:
         return {"status":"waiting_for_second_5session_derived_window",
