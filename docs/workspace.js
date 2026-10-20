@@ -11,7 +11,22 @@ const pct=x=>finite(x)?(x>0?'+':'')+x.toFixed(1)+'%':'미확인';
 const eok=x=>finite(x)?(x/1e8).toLocaleString('ko-KR',{maximumFractionDigits:1})+'억':'미확인';
 const TODAY_CODE=/^[0-9]{6}$/;
 const datePattern=/^\d{4}-\d{2}-\d{2}$/;
-function validDate(v){return typeof v==='string'&&datePattern.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));}
+function validDate(v){
+ if(typeof v!=='string'||!datePattern.test(v))return false;
+ const parsed=new Date(v+'T00:00:00Z');
+ return !Number.isNaN(parsed.getTime())&&parsed.toISOString().slice(0,10)===v;
+}
+function marketFreshness(asof,now=new Date()){
+ if(!validDate(asof)||!(now instanceof Date)||!Number.isFinite(now.getTime()))
+   return {status:'invalid',calendarDays:null};
+ const dateParts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',
+   year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const field=name=>dateParts.find(x=>x.type===name)?.value;
+ const local=field('year')+'-'+field('month')+'-'+field('day');
+ const days=Math.round((Date.parse(local+'T00:00:00Z')-
+   Date.parse(asof+'T00:00:00Z'))/86400000);
+ return {status:days<0?'future':days>5?'stale':'current',calendarDays:days};
+}
 function validPattern(r,kind){
  const p=r?.[kind==='weekly'?'pattern_weekly_research':'pattern_research'];
  if(!p||p.schema!=='v3-pattern-first-daily-research-0.1'||
@@ -174,7 +189,7 @@ function summary(model,core){
   quant:model.quantCount};
 }
 const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validPattern,evidence,
- technicalCandidate,pillarState,riskState,rankItems,sampleQuant,summary};
+ technicalCandidate,pillarState,riskState,rankItems,sampleQuant,summary,marketFreshness};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -268,8 +283,14 @@ function draw(){
 }
 function present(data){
  const metrics=summary(data,core);
- $('state').textContent='자료 기준 '+metrics.date+' · 실제 장마감 관측 (실시간 시세 아님)';
- $('state').className='u-state';
+ const freshness=marketFreshness(metrics.date);
+ if(freshness.status==='invalid'||freshness.status==='future')
+   throw Error('invalid_or_future_market_snapshot');
+ $('state').textContent='자료 기준 '+metrics.date+
+   (freshness.status==='stale'?
+     ' · 5일 이상 지난 분석: 현재 투자판단에 사용 주의':
+     ' · 실제 장마감 관측 (실시간 시세 아님)');
+ $('state').className=freshness.status==='stale'?'u-state warning':'u-state';
  $('statAnalyzed').textContent=metrics.total.toLocaleString('ko-KR');
  $('statWatch').textContent=metrics.discover.toLocaleString('ko-KR');
  $('statTechnical').textContent=metrics.technical.toLocaleString('ko-KR');
