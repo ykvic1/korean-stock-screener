@@ -28,6 +28,10 @@ def valid_four(m, c):
     return {"schema":SCHEMA,"asof":day,"listed_total":c["listed_total"],
             "records":[row],"pilot_issuer_count":1,
             "four_consecutive_years_observed_count":1,
+            "four_year_income_values_observed_count":1,
+            "last_three_years_operating_cashflow_observed_count":1,
+            "latest_year_balance_values_observed_count":1,
+            "four_year_core_financial_research_observed_count":1,
             "full_v3_ready":False,"four_years_all_financial_pillars_certified":False,
             "raw_account_rows_stored":False,"confirmed_six_pillar_ranks":None}
 
@@ -99,6 +103,8 @@ class QualityWatchUnitTests(unittest.TestCase):
         four=valid_four(m,c)
         x=q.assess_sources(m,c,b,four,today=date(2026,10,20))
         self.assertEqual(x["dart_four_year"]["four_year_observed"],1)
+        self.assertEqual(
+            x["dart_four_year"]["four_year_core_financial_research_observed"],1)
         self.assertEqual(x["dart_four_year"]["pilot_issuer_count"],1)
         self.assertFalse(x["full_investment_rank_certified"])
         self.assertFalse(x["published_data_modified"])
@@ -108,6 +114,9 @@ class QualityWatchUnitTests(unittest.TestCase):
         correct=valid_four(m,c)
         tampered=[
             lambda a:a.update({"four_consecutive_years_observed_count":3}),
+            lambda a:a.update({"four_year_core_financial_research_observed_count":3}),
+            lambda a:a["records"][0].update(
+                {"core_financial_observed_for_research":False}),
             lambda a:a["records"][0].update({"financial15_confirmed_points":15}),
             lambda a:a["records"][0].update({"annual_revenue_cagr3_reference_pct":999}),
             lambda a:a["records"][0]["reports"][0].update({"receipt_id":"20300318001162"}),
