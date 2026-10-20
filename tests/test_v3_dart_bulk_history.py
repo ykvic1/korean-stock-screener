@@ -104,6 +104,7 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(scored["rows"],[])
         self.assertEqual(scored["model_financial_full_points"],15)
         self.assertEqual(scored["financial_partial_max_possible"],8)
+        self.assertEqual(scored["valuation_partial_max_possible"],10)
 
     def test_stock_code_only_response_as_official_docs_and_strict_identity(self):
         rows=payload_rows(2025)
@@ -152,7 +153,8 @@ class BulkHistoryTests(unittest.TestCase):
         for i in range(n):
             code=f"{i:06d}"
             market="KOSPI" if i<20 else "KOSDAQ"
-            rows.append({"code":code,"market":market})
+            rows.append({"code":code,"market":market,
+                         "reference_market_cap_eok":2000+i})
             record={"years":{}}
             for year in years:
                 record["years"][str(year)]={"CFS":{
@@ -163,7 +165,8 @@ class BulkHistoryTests(unittest.TestCase):
                               "assets":4000000,"liabilities":2000000,"equity":2000000}}}
             records[code]=record
             annual.append({"code":code,"annual":{
-                "receipt_id":"20260318000001","fs_div":"CFS","year":2025}})
+                "receipt_id":"20260318000001","fs_div":"CFS","year":2025,
+                "currency":"KRW","values":{"owners_profit":3000000000+i*1000000}}})
             observed.append({"code":code,"receipt_id":"20260318000001",
                  "fs_div":"CFS","year":2025,
                  "market_cap_reference_day":DAY,
@@ -179,9 +182,10 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(score["companies_with_computable_4y_income_scores"],n)
         self.assertEqual(score["companies_with_computable_pb_scores"],n)
         self.assertEqual(len(score["rows"]),n)
+        self.assertEqual(score["companies_with_computable_earnings_yield_scores"],n)
         self.assertTrue(all(x["financial_available_max"]==8 and
-                            x["valuation_available_max"]==5 and
-                            x["combined_available_max"]==13 and
+                            x["valuation_available_max"]==10 and
+                            x["combined_available_max"]==18 and
                             x["confirmed_v3_score"] is None and
                             not x["scoring_certified"]
                             for x in score["rows"]))
