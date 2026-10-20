@@ -122,9 +122,36 @@ function technicalCandidate(r){
  const x=technicalEvidence(r);
  return x&&x.fullyObserved?x.earned:null;
 }
+function momentumEvidence(r){
+ const z=r?.v3_momentum_research;
+ if(!z||z.schema!=='v3-observed-market-momentum-8of10-research-0.1'||
+    z.asof!==r.price_date||!validDate(r.price_date)||
+    z.market!==r.market||z.momentum_maximum!==10||
+    z.buy_certified!==false||z.investable_score!==null||
+    z.market_benchmark_date_independently_verified!==false||
+    z.source_unadjusted_corporate_events_verified!==false||
+    z.positive_days20_observed!==false||
+    !Number.isInteger(z.peer20_count)||!Number.isInteger(z.peer60_count))return null;
+ const parts=z.momentum_parts;
+ if(!parts||typeof parts!=='object'||Array.isArray(parts)||
+    parts.positive_days20!==null)return null;
+ let total=0,available=0;
+ for(const [name,max,peer] of [['relative20',4,z.peer20_count],
+                                ['relative60',4,z.peer60_count]]){
+  const value=parts[name];
+  if(value===null)continue;
+  if(!finite(value)||value<0||value>max||peer<80)return null;
+  total+=value;available+=max;
+ }
+ if(!available||available!==z.momentum_observed_maximum||
+    !finite(z.momentum_research_candidate)||
+    Math.abs(total-z.momentum_research_candidate)>0.001)return null;
+ return {earned:Math.round(total*10000)/10000,available};
+}
 function pillarState(r){
  const z=r?.v3_pattern_integrated;
  const tech=technicalEvidence(r);
+ const momentum=momentumEvidence(r);
  const valid=z&&z.schema==='v3-pattern-within-six-pillars-research-0.4'&&
    z.asof===r.price_date&&validDate(r.price_date)&&
    z.buy_certified===false&&z.v3_release_ready===false&&
@@ -138,7 +165,10 @@ function pillarState(r){
   const maximum=WEIGHTS[key];
   let candidate=null,available=0;
   if(key==='technical'&&tech){candidate=tech.earned;available=tech.available;}
-  else if(key!=='technical'&&supplied&&matchingMaxima){
+  else if(key==='momentum'&&momentum){
+   candidate=momentum.earned;available=momentum.available;
+  }
+  else if(key!=='technical'&&key!=='momentum'&&supplied&&matchingMaxima){
    const value=supplied[key];
    // Independently supplied V3 research candidates only; never legacy factors.
    if(finite(value)&&value>=0&&value<=maximum){
@@ -286,20 +316,28 @@ function applyRotationTechnicalBackfill(model, state){
  let accepted=0;
  for(const x of model.rows){
   const r=x.r,rec=state.records[r.code];
-  if(r.v3_pattern_integrated!==null&&r.v3_pattern_integrated!==undefined)continue;
   if(!rec||rec.code!==r.code||rec.market_source_asof!==model.date||
-     r.price_date!==model.date||rec.technical_rebuilt_from_saved_source!==true||
-     !validDate(rec.last_recalculated_kst)||
+     r.price_date!==model.date||!validDate(rec.last_recalculated_kst)||
      rec.last_recalculated_kst>state.run_kst||
-     rec.six_pillar_research_score_confirmed!==false||
+     rec.six_pillar_research_score_confirmed!==false)continue;
+  const mom=rec.momentum_research_reference;
+  if(r.v3_momentum_research===undefined&&mom&&
+     finite(rec.momentum_research_points)&&
+     momentumEvidence({...r,v3_momentum_research:mom})?.earned===
+       Math.round(rec.momentum_research_points*10000)/10000 &&
+     momentumEvidence({...r,v3_momentum_research:mom})?.available===
+       rec.momentum_available_weight){
+    r.v3_momentum_research=mom;
+    accepted++;
+  }
+  if(r.v3_pattern_integrated!==null&&r.v3_pattern_integrated!==undefined)continue;
+  if(rec.technical_rebuilt_from_saved_source!==true||
      !rec.technical_research_backfill)continue;
   const shadow={...r,v3_pattern_integrated:rec.technical_research_backfill};
   const observed=technicalEvidence(shadow);
   if(!observed||!finite(rec.research_score_points)||
      rec.available_weight!==observed.available||
      Math.abs(rec.research_score_points-observed.earned)>0.01)continue;
-  // Only a proven research adapter with the same market date and identical
-  // scored subparts can replace the absent optional adapter on this page.
   r.v3_pattern_integrated=rec.technical_research_backfill;
   accepted++;
  }
@@ -315,7 +353,7 @@ function summary(model,core){
   officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
 const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,applyRotationTechnicalBackfill};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
