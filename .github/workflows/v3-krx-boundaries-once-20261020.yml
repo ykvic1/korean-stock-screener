@@ -1,3 +1,4 @@
+# Retry saved orphan links with GitHub eventual read-after-write handling.
 # Test exception guard adjusted; source not queried by failed prior run.
 # Rerun after syntax validation fix, no prior vendor calls or writes.
 name: One-time real KRX historical boundary-derived research probe
