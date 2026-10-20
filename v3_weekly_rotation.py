@@ -246,6 +246,21 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
                              "simple_pb_unverified", "sector_label",
                              "price_20_60_relative_pair", "legacy_flow_not_ias")}
     points = sum(r.get("research_score_points") is not None for r in current)
+    # Aggregate only fixed diagnostic codes, never raw market rows/API data.
+    # This distinguishes no-data from an accidentally strict source-date
+    # gate, so a legitimate research signal is not silently discarded.
+    technical_blockers = {}
+    market_asof_mismatch = 0
+    valid_adapter_same_stock_date = 0
+    for rec in current:
+        reason = rec["source_reference_status"]["technical"]
+        technical_blockers[reason] = technical_blockers.get(reason, 0) + 1
+        price = prices.get(rec["code"])
+        if price is not None and price.get("price_date") != asof:
+            market_asof_mismatch += 1
+        z = price.get("v3_pattern_integrated") if price else None
+        if isinstance(z, dict) and z.get("asof") == price.get("price_date"):
+            valid_adapter_same_stock_date += 1
     groups = [sum(i % GROUPS == k for i in range(len(roster))) for k in range(GROUPS)]
     result = {
         "schema": SCHEMA, "cycle_start": cycle, "run_kst": when.isoformat(),
@@ -254,6 +269,9 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster) - updated,
         "source_reference_counts_this_cycle": breakdown,
         "numeric_technical_candidates_this_cycle": points,
+        "technical_unverified_reason_counts": technical_blockers,
+        "individual_price_date_vs_market_mismatch_count": market_asof_mismatch,
+        "technical_adapter_same_stock_date_count": valid_adapter_same_stock_date,
         "records": records, "source_collection_calls": 0,
         "legacy_v22_score_used": False, "new_provider_calls_made": False,
         "v3_live_full_six_pillar_score_claimed": False,
@@ -265,6 +283,9 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster)-updated,
         "source_reference_counts_this_cycle": breakdown,
         "numeric_technical_candidates_this_cycle": points,
+        "technical_unverified_reason_counts": technical_blockers,
+        "individual_price_date_vs_market_mismatch_count": market_asof_mismatch,
+        "technical_adapter_same_stock_date_count": valid_adapter_same_stock_date,
         "verified_full_six_pillar_issuer_count": 0,
         "all_issuers_updated_this_cycle": updated == len(roster),
         "calendar_age_days": age,
