@@ -97,8 +97,9 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock):
             raise BulkHistoryError("invalid_bulk_dart_row")
         code=row.get("stock_code")
         corp=row.get("corp_code")
-        if (code not in data or not CORP.fullmatch(corp or "") or
-                corp_to_stock.get(corp)!=code or
+        if (code not in data or
+                (corp is not None and (
+                    not CORP.fullmatch(corp) or corp_to_stock.get(corp)!=code)) or
                 str(row.get("bsns_year"))!=str(year) or
                 row.get("reprt_code")!="11011" or
                 row.get("fs_div") not in ("CFS","OFS") or
@@ -334,8 +335,8 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
     for m in ("KOSPI","KOSDAQ"):
         members=[c for c in market if market[c]==m]
         series[m]={k:sorted(
-            (selected[c] or {}).get(k) if k!="pbr" else pbr.get(c)
-            for c in members if ((selected[c] or {}).get(k) if k!="pbr" else pbr.get(c)) is not None
+            (selected.get(c) or {}).get(k) if k!="pbr" else pbr.get(c)
+            for c in members if ((selected.get(c) or {}).get(k) if k!="pbr" else pbr.get(c)) is not None
         ) for k in ("revenue_cagr_3y_pct","operating_margin_3y_pct","pbr")}
     output=[]
     count_fin=0;count_pb=0
@@ -364,9 +365,11 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
                 "asof":data["asof"],
                 "source_fiscal_years":fiscal,
                 "unverified_components":pts,
-                "financial_candidate_points":round(
-                    sum(pts[k]["candidate_points"] or 0 for k in (
-                        "revenue_cagr_3y_pct","operating_margin_3y_pct")),6),
+                "financial_candidate_points":(
+                    round(sum(pts[k]["candidate_points"] or 0 for k in (
+                        "revenue_cagr_3y_pct","operating_margin_3y_pct")),6)
+                    if any(pts[k]["candidate_points"] is not None for k in (
+                        "revenue_cagr_3y_pct","operating_margin_3y_pct")) else None),
                 "financial_available_max":sum(pts[k]["max_points"] for k in (
                     "revenue_cagr_3y_pct","operating_margin_3y_pct")),
                 "valuation_candidate_points":pts["pbr"]["candidate_points"],
