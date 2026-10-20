@@ -286,14 +286,12 @@ function renderDetails(x){
  const stockLink=core.stockPage(r.code);
  const risk=x.risk;
  const quant=sampleQuant(x,core);
- const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+' <small>/'+i.max+'</small></span>'+
-  '<b>'+(i.candidate===null?'미검증':i.candidate.toFixed(1)+'점 <em class="u-factor-mark">미검증</em>')+'</b></div>').join('');
- const legacyParts=Object.entries(model.weights||{}).map(([name,max])=>{
-  const value=r.components?.[name];
-  const calculated=finite(max)&&max>0&&finite(value)&&value>=0&&value<=max;
-  return '<div class="'+(calculated?'':'u-legacy-unverified')+'"><span>'+esc(name)+'</span><b>'+
-   (calculated?value.toFixed(1):'미검증')+' / '+esc(max)+'</b></div>';
- }).join('');
+ const composite=researchComposite(r);
+ const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+
+  ' <small>/'+i.max+'</small></span><b>'+
+  (i.candidate===null?'— · 자료 미확보':i.candidate.toFixed(1)+'점')+
+  '<em class="u-factor-mark">'+(i.candidate===null?'미산출 · 미검증':
+   '미검증 · 확보 '+i.available+'/'+i.max)+'</em></b></div>').join('');
  view.hidden=false;
  view.innerHTML='<div class="u-detail-top"><div><small>종목별 분석 · '+esc(model.date)+'</small>'+
  '<h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
@@ -303,11 +301,14 @@ function renderDetails(x){
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
- '<div><small>기존 관측 점수</small><strong>'+r.score.toFixed(1)+'점</strong></div></div>'+
- '<h3>기존 V2.2 점수 산출근거 (별도 체계)</h3>'+
- '<p class="u-muted">확보된 항목의 획득점수 ÷ 확보된 배점 × 100. 자료 확보 '+
- r.coverage_pct.toFixed(0)+'% · V3 6영역 점수가 아닌 기존 관측점수입니다.</p>'+
- '<div class="u-parts u-legacy-parts">'+legacyParts+'</div>'+
+ '<div class="u-factor-unverified"><small>V3 잠정 종합점수 (미검증)</small><strong>'+
+ (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
+ '</strong><small>산출 가능 배점 '+composite.available+'/100 · 기준 '+esc(composite.asof)+
+ '</small></div></div>'+
+ '<h3>잠정 합계 산출근거</h3>'+
+ '<p class="u-muted">아래 연구점수 중 실제로 계산된 값만 더한 합계입니다. '+
+ '미확보 영역을 0점으로 처리하거나 100점으로 환산하지 않습니다. '+
+ '모든 점수는 새 관측 기준일마다 갱신되는 값이며 매수 추천이 아닙니다.</p>'+
  '<h3>일봉 · 스윙 관찰</h3>'+
  (x.daily.length?'<div class="u-signals">'+x.daily.map(patternPill).join('')+'</div>':
  '<p class="u-muted">확인된 선호 패턴·RSI 관측 없음 또는 당일 자료 미확보</p>')+
@@ -315,7 +316,10 @@ function renderDetails(x){
  (x.weekly.length?'<div class="u-signals">'+x.weekly.map(patternPill).join('')+'</div>':
  '<p class="u-muted">완성 주봉의 패턴·RSI 관측 미확인 (진행 중인 주봉 제외)</p>')+
  '<h3>V3 통합 100점 · 영역별 검증 상태</h3>'+
- '<p class="u-muted">확정 투자 종합점수: <b>미산출</b> · 6개 영역의 검증 자료가 충족될 때만 확정 가능. 기존 관측점수와 혼동 금지.</p>'+
+ '<p class="u-muted">V3 잠정 합계: <b>'+
+ (composite.earned===null?'자료 미확보':composite.earned.toFixed(1)+' / 100')+
+ ' · 미검증</b> · 산출 가능 '+composite.available+'/100 · 미확보 '+
+ composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
  '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
  technicalParts(r)+
@@ -346,28 +350,35 @@ function draw(){
    '전체 시장 검색 결과 · TOP100·선택 탭·위험 필터 제한 없음':
    '종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.';
  $('resultCount').textContent=rows.length.toLocaleString('ko-KR')+
-   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'기존 점수 상위 100개 중 ':'전체 시장 중 ')+
-   (sort==='score'?'기존 관측점수순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
-   ' · 정식 V3 종합순위 아님';
+  '종목 · '+(query?'전체시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체시장 중 ')+
+  (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+  ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
   const tags=x.signals.slice(0,3).map(patternPill).join('');
   const state=x.risk.unsafe?'위험 주의':x.risk.distance===null?'손절선 미확인':'구조적 위험 검토';
   return '<button class="u-stock '+(selected===r.code?'selected':'')+
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
-   '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="전체 종목 기존 관측점수 순위">'+
-   x.scoreRank+'위</b><strong>'+esc(r.name)+'</strong></span><small>'+
+   '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="정식 투자 순위가 아닌 V3 연구 상태">'+
+   (x.composite.earned===null?'대기':'연구')+
+   '</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
-   '<span><b>'+r.score.toFixed(1)+'</b><small>기존 관측점수 · 확보 '+r.coverage_pct.toFixed(0)+'%</small></span></div>'+
-   '<div class="u-scoresix" aria-label="6영역 V3 점수: 미검증은 빨간 테두리로 표시">'+pillarState(r).map(i=>
-     '<span class="u-factor-unverified"><small>'+esc(i.label)+' /'+i.max+'</small><b>'+
-     (i.candidate===null?'미검증':i.candidate.toFixed(1))+
-     '</b>'+(i.candidate===null?'':'<em class="u-factor-mark">미검증</em>')+'</span>').join('')+
-     '<span><small>V3 합계 /100</small><b>미산출</b></span></div>'+
-   '<p class="u-score-hint">빨간 테두리 = V3 미검증. 실제 계산된 연구 후보만 숫자로 표시하며, '+
-   '근거가 없는 항목은 미검증으로 유지합니다. 위 기존 관측점수 '+
-   r.score.toFixed(1)+'점은 V3 종합점수가 아닙니다.</p>'+
+   '<span class="u-provisional-total"><b>'+
+   (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
+   '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
+   x.composite.available+'/100</small></span></div>'+
+   '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
+     '<span class="u-factor-unverified"><small>'+esc(i.label)+' /'+i.max+
+     '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
+     '</b><em class="u-factor-mark">'+(i.available===0?'자료없음 · 미검증':
+      '미검증')+'</em></span>').join('')+
+     '<span class="u-factor-unverified u-total-factor"><small>잠정 합계 /100</small><b>'+
+     (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
+     '</b><em class="u-factor-mark">미검증</em></span></div>'+
+   '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
+   x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
+   '서로 다른 확보 배점은 직접 비교할 수 없습니다.</p>'+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
    '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+
@@ -394,12 +405,14 @@ function present(data){
  $('statAnalyzed').textContent=metrics.total.toLocaleString('ko-KR');
  $('statWatch').textContent=metrics.discover.toLocaleString('ko-KR');
  $('statTechnical').textContent=metrics.technical.toLocaleString('ko-KR');
- $('statV3').textContent='미완성';
+ $('statV3').textContent=metrics.provisional.toLocaleString('ko-KR')+'종목';
  $('sourceNotes').textContent='전체 '+(metrics.eligible||'미확인')+
   '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
-  '종목 · V3 기술 연구값 '+metrics.technical+
-  '종목 · 연간/간이 장부 참고 '+metrics.rollingBook+
-  '종목 · 같은 날 퀀트 '+metrics.quant+'종목. 수급·재무·섹터 검증 전 종합100점 미산출.';
+  '종목 · V3 기술 세부항목 점수 '+metrics.technical+
+  '종목 · V3 잠정 합계 '+metrics.provisional+
+  '종목. 실시간 투자등급이 아닌 관측 기준일별 미검증 점수입니다. '+
+  '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
+  '전시장 주 1회 정기 전체 갱신은 개발 완료 후 운영 예정이며 현재 보장되지 않습니다.';
  draw();
 }
 async function load(){
