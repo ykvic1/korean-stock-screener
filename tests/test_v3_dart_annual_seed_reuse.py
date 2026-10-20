@@ -96,6 +96,8 @@ class SeedReuseTests(unittest.TestCase):
         self.assertEqual(len(session.calls),1)  # company mapping once
         self.assertEqual(rows[0]["status"],"observed")
         self.assertEqual(len(rows[0]["reports"]),4)
+        self.assertEqual(rows[0]["newly_fetched_annual_years"],3)
+        self.assertTrue(rows[0]["latest_year_reused_from_prior_dart"])
         self.assertEqual({r["year"] for r in rows[0]["reports"]},
                          {2022,2023,2024,2025})
         self.assertEqual(rows[0]["reports"][0]["receipt_id"],seed["receipt_id"])
@@ -151,6 +153,28 @@ class SeedReuseTests(unittest.TestCase):
             self.assertEqual(called,[1])
             self.assertEqual(next_out["same_day_valid_annual_report_reused"],0)
             unused.assert_not_called()
+
+
+    def test_cached_latest_filing_does_not_fake_provider_health(self):
+        m,c,book=inputs()
+        first=reports("005930")
+        second=reports("247540")
+        for item in (first,second):
+            item["newly_fetched_annual_years"]=0
+            item["latest_year_reused_from_prior_dart"]=True
+        merged=four.merge(m,c,book,[first,second],limit=2)
+        self.assertEqual(merged["observed_filings_issuers_this_run"],2)
+        self.assertEqual(merged["newly_fetched_filings_issuers_this_run"],0)
+        self.assertEqual(merged["consecutive_healthy_batches"],0)
+        self.assertEqual(merged["next_schedule_max_issuers"],4)
+        first["newly_fetched_annual_years"]=3
+        second["newly_fetched_annual_years"]=3
+        healthy=four.merge(m,c,book,[first,second],limit=2)
+        self.assertEqual(healthy["newly_fetched_filings_issuers_this_run"],2)
+        self.assertEqual(healthy["consecutive_healthy_batches"],1)
+        first["newly_fetched_annual_years"]=5
+        with self.assertRaisesRegex(four.FourYearEvidenceError,"invalid_fresh"):
+            four.merge(m,c,book,[first,second],limit=2)
 
 
 if __name__=="__main__":
