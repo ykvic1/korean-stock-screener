@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 
 from v3_score_contract import PILLAR_POINTS
+from v3_observed_momentum import market_momentum
 
 SCHEMA = "v3-seven-day-research-source-rotation-0.1"
 REPORT_SCHEMA = "v3-seven-day-research-coverage-0.1"
@@ -113,10 +114,38 @@ def source_tables(market, catalog, book, four=None):
     return asof, members, prices, annual, four_source
 
 
+def existing_evidence_adapter(row, market_asof):
+    """Rebuild research adapter only from existing dated inputs, with no API.
+
+    Old published market files predate the v3-pattern adapter even though
+    individual daily/weekly research observations and volume inputs exist.
+    Never bypass an existing but malformed adapter, and never infer a score
+    from legacy V2.2 points.
+    """
+    if not isinstance(row, dict) or row.get("price_date") != market_asof:
+        return None, False
+    z = row.get("v3_pattern_integrated")
+    if z is not None:
+        return z, False
+    if not (isinstance(row.get("pattern_research"), dict) or
+            isinstance(row.get("pattern_weekly_research"), dict) or
+            (number(row.get("one_day_volume_ratio")) and
+             0 <= row["one_day_volume_ratio"] <= 100)):
+        return None, False
+    try:
+        from v3_pattern_composite_score import evaluate
+        reconstructed = evaluate(row)
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return None, False
+    if reconstructed.get("asof") != market_asof:
+        return None, False
+    return reconstructed, True
+
+
 def technical_points(row, market_asof):
     if row is None:
         return None, 0, "price_not_observed"
-    z = row.get("v3_pattern_integrated")
+    z, _ = existing_evidence_adapter(row, market_asof)
     if not isinstance(z, dict) or z.get("schema") != "v3-pattern-within-six-pillars-research-0.4":
         return None, 0, "no_current_v3_technical_adapter"
     if (row.get("price_date") != market_asof or z.get("asof") != market_asof or
@@ -153,8 +182,21 @@ def technical_points(row, market_asof):
         None, 0, "technical_factors_unavailable")
 
 
-def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, four_row, inspected_on):
+def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, four_row, inspected_on, momentum_row=None):
     tech, weight, note = technical_points(price_row, market_asof)
+    research, backfilled = existing_evidence_adapter(price_row, market_asof)
+    # Publish only small verified-contract research subparts, NOT original OHLCV
+    # or original DART statements. A new market date invalidates this cache.
+    reconstructed = ({
+        "schema": research["schema"], "asof": research["asof"],
+        "technical_maximum": research["technical_maximum"],
+        "technical_weights": research["technical_weights"],
+        "technical_parts": research["technical_parts"],
+        "technical_observed_maximum": research["technical_observed_maximum"],
+        "technical_research_candidate": research["technical_research_candidate"],
+        "buy_certified": False, "v3_release_ready": False,
+        "investable_score": None,
+    } if backfilled and weight > 0 and isinstance(research, dict) else None)
     annual = annual_row.get("annual") if isinstance(annual_row, dict) else None
     receipt_valid = (isinstance(annual, dict) and
                      isinstance(annual.get("receipt_id"), str) and
@@ -178,14 +220,38 @@ def inspect_issuer(code, *, market_asof, catalog_row, price_row, annual_row, fou
         "industry": "sector_label_only" if sector else "sector_cohort_not_available",
         "momentum": "raw_20_60_relative_reference_only" if relative else "benchmark_momentum_missing",
     }
+    mom_earned = (momentum_row.get("momentum_research_candidate")
+                  if isinstance(momentum_row,dict) else None)
+    mom_weight = (momentum_row.get("momentum_observed_maximum",0)
+                  if isinstance(momentum_row,dict) else 0)
+    valid_momentum = (isinstance(momentum_row,dict) and
+        momentum_row.get("schema")=="v3-observed-market-momentum-8of10-research-0.1"
+        and momentum_row.get("asof")==market_asof
+        and momentum_row.get("market")==catalog_row["market"]
+        and mom_weight in (4,8) and number(mom_earned)
+        and 0<=mom_earned<=mom_weight
+        and momentum_row.get("buy_certified") is False
+        and momentum_row.get("market_benchmark_date_independently_verified") is False)
+    if not valid_momentum:
+        momentum_row,mom_earned,mom_weight=None,None,0
+    combined_weight=weight+mom_weight
+    combined_score=round((tech or 0)+(mom_earned or 0),6) if combined_weight else None
     return {
         "code": code, "last_recalculated_kst": inspected_on,
         "market_source_asof": market_asof,
         "research_score_points": tech, "available_weight": weight,
+        "momentum_research_reference": momentum_row,
+        "momentum_research_points": mom_earned,
+        "momentum_available_weight": mom_weight,
+        "research_provisional_sum": combined_score,
+        "research_provisional_available_weight": combined_weight,
+        "technical_rebuilt_from_saved_source": reconstructed is not None,
+        "technical_research_backfill": reconstructed,
         "six_pillar_research_score_confirmed": False,
         "source_reference_status": reference,
         "source_observed": {
             "technical_parts": weight > 0,
+            "momentum_partial": mom_weight > 0,
             "annual_receipt": receipt_valid,
             "current_four_year_core": core,
             "simple_pb_unverified": receipt_valid,
@@ -210,6 +276,7 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
     if when < EPOCH:
         raise RotationError("rotation_not_started")
     asof, members, prices, annual, four_source = source_tables(market, catalog, book, four)
+    momentum_by_code = market_momentum(market)
     age = (when - day(asof)).days
     if age < 0 or age > 9:
         raise RotationError("future_or_stale_market_for_recalculation")
@@ -234,7 +301,8 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         record = inspect_issuer(c, market_asof=asof,
                                catalog_row=members[c], price_row=prices.get(c),
                                annual_row=annual.get(c), four_row=four_source.get(c),
-                               inspected_on=when.isoformat())
+                               inspected_on=when.isoformat(),
+                               momentum_row=momentum_by_code.get(c))
         record["cycle"] = cycle
         records[c] = record
     current = [r for r in records.values() if r.get("cycle") == cycle]
@@ -242,10 +310,28 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
     if updated > len(roster):
         raise RotationError("weekly_processed_exceeds_roster")
     breakdown = {key: sum(bool(row["source_observed"].get(key)) for row in current)
-                 for key in ("technical_parts", "annual_receipt", "current_four_year_core",
+                 for key in ("technical_parts", "momentum_partial", "annual_receipt", "current_four_year_core",
                              "simple_pb_unverified", "sector_label",
                              "price_20_60_relative_pair", "legacy_flow_not_ias")}
     points = sum(r.get("research_score_points") is not None for r in current)
+    provisional = sum(r.get("research_provisional_sum") is not None for r in current)
+    # Aggregate only fixed diagnostic codes, never raw market rows/API data.
+    # This distinguishes no-data from an accidentally strict source-date
+    # gate, so a legitimate research signal is not silently discarded.
+    technical_blockers = {}
+    market_asof_mismatch = 0
+    valid_adapter_same_stock_date = 0
+    for rec in current:
+        reason = rec["source_reference_status"]["technical"]
+        technical_blockers[reason] = technical_blockers.get(reason, 0) + 1
+        price = prices.get(rec["code"])
+        if price is not None and price.get("price_date") != asof:
+            market_asof_mismatch += 1
+        z, _ = existing_evidence_adapter(price, asof)
+        if isinstance(z, dict) and price and z.get("asof") == price.get("price_date"):
+            valid_adapter_same_stock_date += 1
+    backfilled_count = sum(r.get("technical_rebuilt_from_saved_source") is True
+                           for r in current)
     groups = [sum(i % GROUPS == k for i in range(len(roster))) for k in range(GROUPS)]
     result = {
         "schema": SCHEMA, "cycle_start": cycle, "run_kst": when.isoformat(),
@@ -254,6 +340,11 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster) - updated,
         "source_reference_counts_this_cycle": breakdown,
         "numeric_technical_candidates_this_cycle": points,
+        "numeric_technical_or_momentum_candidates_this_cycle": provisional,
+        "technical_unverified_reason_counts": technical_blockers,
+        "individual_price_date_vs_market_mismatch_count": market_asof_mismatch,
+        "technical_adapter_same_stock_date_count": valid_adapter_same_stock_date,
+        "technical_backfilled_candidate_count_this_cycle": backfilled_count,
         "records": records, "source_collection_calls": 0,
         "legacy_v22_score_used": False, "new_provider_calls_made": False,
         "v3_live_full_six_pillar_score_claimed": False,
@@ -265,6 +356,11 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
         "processed_this_cycle": updated, "unprocessed_this_cycle": len(roster)-updated,
         "source_reference_counts_this_cycle": breakdown,
         "numeric_technical_candidates_this_cycle": points,
+        "numeric_technical_or_momentum_candidates_this_cycle": provisional,
+        "technical_unverified_reason_counts": technical_blockers,
+        "individual_price_date_vs_market_mismatch_count": market_asof_mismatch,
+        "technical_adapter_same_stock_date_count": valid_adapter_same_stock_date,
+        "technical_backfilled_candidate_count_this_cycle": backfilled_count,
         "verified_full_six_pillar_issuer_count": 0,
         "all_issuers_updated_this_cycle": updated == len(roster),
         "calendar_age_days": age,

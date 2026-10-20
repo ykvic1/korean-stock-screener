@@ -162,6 +162,67 @@ assert.equal(unified.researchComposite(partial).available,11);
 assert.equal(unified.researchComposite(partial).missing,89);
 assert.deepEqual(unified.pillarState(partial).map(p=>p.candidate),
  [null,6.5,null,null,null,null]);
+// Backfilled V3 values from the bounded 7-day rotation require exact date,
+// same ticker, source counts, numeric parts and explicit noncertification.
+const missingAdapter={...partial,v3_pattern_integrated:null};
+const backedRec={
+ code:missingAdapter.code,market_source_asof:'2026-10-20',
+ last_recalculated_kst:'2026-10-20',available_weight:11,
+ research_score_points:6.5,technical_rebuilt_from_saved_source:true,
+ technical_research_backfill:partial.v3_pattern_integrated,
+ six_pillar_research_score_confirmed:false
+};
+const backState={schema:'v3-seven-day-research-source-rotation-0.1',
+ market_asof:'2026-10-20',cycle_start:'2026-10-20',run_kst:'2026-10-20',
+ source_collection_calls:0,legacy_v22_score_used:false,
+ v3_live_full_six_pillar_score_claimed:false,
+ records:{'005930':backedRec}};
+const backModel={date:'2026-10-20',rows:[{r:missingAdapter}]};
+assert.equal(unified.applyRotationTechnicalBackfill(backModel,backState),1);
+assert.equal(unified.researchComposite(missingAdapter).earned,6.5);
+assert.equal(unified.researchComposite(missingAdapter).available,11);
+assert.equal(unified.applyRotationTechnicalBackfill(backModel,backState),0,
+ 'proven adapter cannot be overwritten on subsequent replay');
+for(const bad of [
+ {...backState,market_asof:'2026-10-19'},
+ {...backState,source_collection_calls:4},
+ {...backState,records:{'005930':{...backedRec,research_score_points:100}}},
+ {...backState,records:{'005930':{...backedRec,technical_research_backfill:{
+  ...partial.v3_pattern_integrated,investable_score:99}}}},
+]){
+ const shadow={date:'2026-10-20',rows:[{r:{...missingAdapter,v3_pattern_integrated:null}}]};
+ assert.equal(unified.applyRotationTechnicalBackfill(shadow,bad),0,
+  'source/date/score mismatches must never turn into V3 user scores');
+}
+const momentumReference={
+ schema:'v3-observed-market-momentum-8of10-research-0.1',
+ asof:'2026-10-20',market:'KOSPI',momentum_maximum:10,
+ momentum_parts:{relative20:3,relative60:2,positive_days20:null},
+ momentum_observed_maximum:8,momentum_research_candidate:5,
+ peer20_count:100,peer60_count:100,
+ buy_certified:false,investable_score:null,
+ market_benchmark_date_independently_verified:false,
+ source_unadjusted_corporate_events_verified:false,
+ positive_days20_observed:false
+};
+const partialMomentum={...row,v3_pattern_integrated:null};
+const stateWithMomentum={...backState,records:{
+ '005930':{...backedRec,technical_rebuilt_from_saved_source:false,
+ technical_research_backfill:null,momentum_research_reference:momentumReference,
+ momentum_research_points:5,momentum_available_weight:8}
+}};
+assert.equal(unified.applyRotationTechnicalBackfill(
+ {date:'2026-10-20',rows:[{r:partialMomentum}]},stateWithMomentum),1);
+assert.equal(unified.researchComposite(partialMomentum).earned,5);
+assert.equal(unified.researchComposite(partialMomentum).available,8);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,
+ market_benchmark_date_independently_verified:true}}),null);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,peer20_count:2}}),null);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,
+ momentum_parts:{...momentumReference.momentum_parts,positive_days20:2}}}),null);
 const missing={...row,v3_pattern_integrated:null};
 assert.equal(unified.researchComposite(missing).earned,null,
  'missing factor must not appear as 0.0/100');
@@ -184,9 +245,9 @@ const partial3={...partial,v3_pattern_integrated:{
  six_pillar_candidates:{ias:null,technical:null,financial:6,
    valuation:null,industry:null,momentum:4}
 }};
-assert.equal(unified.researchComposite(partial3).earned,16.5);
-assert.equal(unified.researchComposite(partial3).available,36,
- 'other V3 candidates may join when already independently supplied for the same date');
+assert.equal(unified.researchComposite(partial3).earned,12.5);
+assert.equal(unified.researchComposite(partial3).available,26,
+ 'previously supplied momentum data cannot enter a V3 subtotal without independently checked 8-point benchmark research');
 assert.equal(unified.researchComposite({...partial3,
  v3_pattern_integrated:{...partial3.v3_pattern_integrated,
  six_pillar_maximum:{...unified.WEIGHTS,financial:25}}
