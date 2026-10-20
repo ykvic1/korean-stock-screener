@@ -1,0 +1,36 @@
+name: One-time KRX five-session in-memory size calibration
+
+on:
+  push:
+    branches:
+      - v3-krx-five-day-real-size-measure-20261020
+    paths:
+      - .github/workflows/v3-krx-one-shot-five-day-size.yml
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v3-krx-five-day-real-size-measure-20261020
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install read-only provider dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Offline ten-call bounded and non-persistence tests
+        run: |
+          python -m py_compile v3_krx_five_day_size_probe.py
+          python -m unittest discover -s tests -p 'test_v3_krx_five_day_size_probe.py' -v
+      - name: Fetch five genuine KRX sessions into runner memory ONLY
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: |
+          set -euo pipefail
+          python v3_krx_five_day_size_probe.py
