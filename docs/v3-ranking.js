@@ -87,6 +87,50 @@ function observedRollingBook(rolling,asof,eligible){
  }
  return found;
 }
+function observedFourYearEvidence(source,asof,eligible){
+ const empty=new Map();
+ if(!source||source.schema!=='v3-four-year-dart-financial-evidence-0.1'||
+   source.asof!==asof||source.listed_total!==eligible||
+   source.four_years_all_financial_pillars_certified!==false||
+   source.full_v3_ready!==false||
+   source.raw_account_rows_stored!==false||
+   source.confirmed_six_pillar_ranks!==null||
+   !Array.isArray(source.records)||source.records.length>eligible||
+   source.records.length!==source.pilot_issuer_count)return empty;
+ const result=new Map(),seen=new Set();
+ for(const item of source.records){
+  if(!item||typeof item.code!=='string'||!/^[0-9]{6}$/.test(item.code)||
+     seen.has(item.code)||item.v3_full100_investable_score!==null||
+     item.financial15_confirmed_points!==null||
+     item.valuation15_confirmed_points!==null||
+     item.four_year_financial_pit_authenticated!==false||
+     item.historical_revisions_authenticated!==false||
+     item.buy_certified!==false)return new Map();
+  seen.add(item.code);
+  if(item.same_scope_four_years!==true)continue;
+  const reports=item.reports;
+  if(!Array.isArray(reports)||reports.length!==4||
+      !['CFS','OFS'].includes(item.accounting_scope))return new Map();
+  const years=reports.map(x=>x?.year);
+  if(years.some((y,i)=>!Number.isInteger(y)||y<2015||
+       y>=Number(asof.slice(0,4))||(i>0&&y!==years[i-1]+1))||
+     !reports.every(x=>x?.fs_div===item.accounting_scope&&x.currency==='KRW'&&
+       typeof x.receipt_id==='string'&&/^[0-9]{14}$/.test(x.receipt_id)&&
+       x.receipt_id.slice(0,8)<=asof.replaceAll('-','')&&
+       x.receipt_id.slice(0,4)>String(x.year)))return new Map();
+  const growth=item.annual_revenue_cagr3_reference_pct;
+  const margin=item.three_year_operating_margin_mean_reference_pct;
+  if((growth!==null&&!finite(growth))||(margin!==null&&!finite(margin))||
+     item.fcf_assets_reference_pct!==null||item.net_debt_equity_reference_pct!==null||
+     item.valuation_official_pbr!==null)return new Map();
+  result.set(item.code,{
+    years,scope:item.accounting_scope,
+    cagr:growth,margin,authenticated:false,
+    originalReceiptsNotPITVerified:true
+  });
+ }
+ return result;
+}
 function stopDistance(r){
   if(!finite(r?.price)||!finite(r?.stop_line)||r.price<=0||r.stop_line<=0||r.stop_line>=r.price)return null;
   const p=100*(r.price-r.stop_line)/r.price;
@@ -189,7 +233,7 @@ function decision(row,q){
    return {label:'조건부 모의 검토',reason:'과거 연구 일부 우호적; 차트·수급·실적 추가 확인',level:'review'};
  return {label:'관망·추가 확인',reason:'과거 유사조건의 위험과 수익이 혼재',level:'review'};
 }
-function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
+function prepare(data,quant,recs,official,priorityQuant,rollingAnnual,fourYearAnnual){
  if(!data||data.version!=='2.0'||data.status!=='success'||!/^\d{4}-\d{2}-\d{2}$/.test(data.date)||
     !Array.isArray(data.stocks)||data.stocks.length<1||data.stocks.length>6000)
     throw Error('invalid_daily_observations');
@@ -219,6 +263,7 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
     finite(x.peer_cohort_requested)&&x.peer_cohort_requested>=20).map(x=>[x.code,x]));
  const financials=observedAnnuals(official,data.date);
  const books=observedRollingBook(rollingAnnual,data.date,data.eligible_count);
+ const fourYear=observedFourYearEvidence(fourYearAnnual,data.date,data.eligible_count);
  const rows=[],seen=new Set();
  for(const r of data.stocks){
    if(!r||!/^\d{6}$/.test(String(r.code))||seen.has(r.code)||!finite(r.price)||r.price<=0||
@@ -243,7 +288,8 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
      {label:'매수 보류',reason:'위험 경고·연구 전용 후보 — '+observedDecision.reason,level:'wait'}:
      observedDecision;
    rows.push({r,q,rec,watch:watchEvidence(r),quantSource,financialRef:financials.get(r.code)||null,
-     rollingBook:books.get(r.code)||null,quant:!!q,
+     rollingBook:books.get(r.code)||null,
+     fourYearRef:fourYear.get(r.code)||null,quant:!!q,
      researchCandidate:!!rec,qualified,caution,
      risk:stopDistance(r),highRisk:highRisk(r),decision:finalDecision});
  }
@@ -273,6 +319,7 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual){
   recommendationCautionCount:selected.filter(x=>x.caution).length,
   recommendationAwaitingCount:selected.length-withStudy,
   rollingBookCount:rows.filter(x=>x.rollingBook!==null).length,
+  fourYearObservedCount:rows.filter(x=>x.fourYearRef!==null).length,
   financialReferenceCount:rows.filter(x=>x.financialRef!==null).length,
   recommendationFinancialCount:selected.filter(x=>x.financialRef!==null).length};
 }
@@ -375,7 +422,7 @@ function quantGlance(q){
   }).filter(Boolean);
  return items.length?items.join(' · '):'유효 표본 미충족 — 매수 근거 불충분';
 }
-const core={PERIODS,stopDistance,highRisk,validatedPatternResearch,watchEvidence,stockPage,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
+const core={PERIODS,stopDistance,highRisk,validatedPatternResearch,watchEvidence,stockPage,observedScore,period,decision,prepare,select,observedAnnuals,observedRollingBook,observedFourYearEvidence,quantGlance,financialHistoryTable,simpleAnnualOfsBookReference,sourceCompleteness,sourceCompletenessText,esc,money,pct,eok};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.V3RankedCore=core;
 if(!root.document)return;

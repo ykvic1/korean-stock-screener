@@ -47,7 +47,10 @@ def dart_collect(stocks, asof, key, years=3, budget_seconds=360):
     from financial_metrics import metrics
     if not isinstance(stocks, list) or not 1 <= len(stocks) <= 20:
         raise ValueError("bounded_research_targets_required")
-    if not 1 <= years <= 3 or not 30 <= budget_seconds <= 900:
+    # Default existing shortlist still uses 3 years, rolling weekday
+    # annual reference still uses 1 year. A separate MANUAL-only bounded
+    # four-year pilot may request 4 annual fiscal reports, never more.
+    if not 1 <= years <= 4 or not 30 <= budget_seconds <= 900:
         raise ValueError("invalid_financial_probe_budget")
     session=requests.Session()
     started=time.monotonic()
