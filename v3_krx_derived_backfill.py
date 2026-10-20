@@ -12,8 +12,9 @@ from zoneinfo import ZoneInfo
 from hashlib import sha256
 import json
 import os
+import time as retry_clock
 
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_derived_5day import (
@@ -100,9 +101,19 @@ def _save_checkpoint(storage,new,sha):
         storage.transport("PUT","contents/"+CHECKPOINT,{
             "message":"Advance compact private derived KRX checkpoint",
             "content":base64.b64encode(payload).decode("ascii"),"sha":sha})
-    observed,_=storage.get_content(CHECKPOINT)
-    if observed!=payload:
-        raise DerivedBackfillError("derived_checkpoint_readback_failed")
+    # GitHub Contents PUT can succeed before the new immutable content is
+    # visible on GET. Retry ONLY reading; never repeat checkpoint PUT or KRX
+    # requests. Exact bytes matter: a stale/tampered read is never success.
+    for attempt in range(4):
+        try:
+            observed,_=storage.get_content(CHECKPOINT)
+        except PrivateHistoryError:
+            observed=None
+        if observed==payload:
+            return
+        if attempt<3:
+            retry_clock.sleep(.7*(attempt+1))
+    raise DerivedBackfillError("derived_checkpoint_readback_failed")
 
 
 def collect(*,storage,client,dates,checksum,windows=1,progress=None):

@@ -3,6 +3,7 @@ import hashlib
 import base64
 import json
 import unittest
+from unittest.mock import patch
 
 from v3_krx_derived_backfill import collect,DerivedBackfillError,_manifest,SCHEMA
 from test_v3_krx_derived_5day import FakeKRX,FakePrivate
@@ -114,6 +115,94 @@ class HistoricalDerivedTests(unittest.TestCase):
                 collect(storage=good,client=client,dates=DATES,
                         checksum=DIGEST,windows=value)
         self.assertEqual(client.calls,[])
+
+
+    def test_checkpoint_put_then_delayed_get_recovers_without_second_krx(self):
+        repo=FakeHistoryPrivate()
+        old_get=repo.get_content
+        misses={"remaining":2}
+        def pending(path):
+            if path=="derived/historical-checkpoint.json" and path in repo.blobs and misses["remaining"]:
+                misses["remaining"]-=1
+                return None,None
+            return old_get(path)
+        repo.get_content=pending
+        source=FakeKRX()
+        with patch("v3_krx_derived_backfill.retry_clock.sleep",return_value=None) as waits:
+            out=collect(storage=repo,client=source,dates=DATES,
+                        checksum=DIGEST,windows=1)
+        self.assertEqual(out["completed_five_session_cohorts"],1)
+        self.assertEqual(out["current_run_api_calls"],10)
+        self.assertEqual(len(source.calls),10)
+        self.assertEqual(repo.posts,2)  # exactly one derived blob + one checkpoint
+        self.assertEqual(waits.call_count,2)
+        self.assertEqual(misses["remaining"],0)
+
+    def test_checkpoint_invisible_four_gets_fail_then_next_run_reuses_data(self):
+        repo=FakeHistoryPrivate()
+        prior=repo.get_content
+        def never_visible(path):
+            if path=="derived/historical-checkpoint.json" and path in repo.blobs:
+                return None,None
+            return prior(path)
+        repo.get_content=never_visible
+        source=FakeKRX()
+        with patch("v3_krx_derived_backfill.retry_clock.sleep",return_value=None) as wait:
+            with self.assertRaisesRegex(DerivedBackfillError,
+                                        "derived_checkpoint_readback_failed"):
+                collect(storage=repo,client=source,dates=DATES,
+                        checksum=DIGEST,windows=1)
+        self.assertEqual(wait.call_count,3)
+        self.assertEqual(len(source.calls),10)
+        self.assertEqual(repo.posts,2)
+        # The successful checkpoint PUT stays in Private storage even when
+        # readback timed out. Later run validates and resumes at next cohort,
+        # making ZERO additional KRX calls for the first already-done window.
+        repo.get_content=prior
+        resumed=FakeKRX()
+        out=collect(storage=repo,client=resumed,dates=DATES,
+                    checksum=DIGEST,windows=1)
+        self.assertEqual(out["completed_five_session_cohorts"],2)
+        self.assertEqual(out["current_run_api_calls"],10)
+        self.assertEqual(len(resumed.calls),10)
+        self.assertEqual(repo.posts,4)
+
+    def test_stale_or_wrong_checkpoint_readback_must_not_false_succeed(self):
+        repo=FakeHistoryPrivate()
+        first=collect(storage=repo,client=FakeKRX(),dates=DATES,
+                      checksum=DIGEST,windows=1)
+        self.assertEqual(first["completed_five_session_cohorts"],1)
+        previous=repo.blobs["derived/historical-checkpoint.json"]
+        original=repo.get_content
+        misses={"remaining":2}
+        def stale_then_fresh(path):
+            if (path=="derived/historical-checkpoint.json" and
+                repo.blobs.get(path)!=previous and misses["remaining"]):
+                misses["remaining"]-=1
+                return previous,"sha"
+            return original(path)
+        repo.get_content=stale_then_fresh
+        source=FakeKRX()
+        with patch("v3_krx_derived_backfill.retry_clock.sleep",return_value=None) as wait:
+            out=collect(storage=repo,client=source,dates=DATES,
+                        checksum=DIGEST,windows=1)
+        self.assertEqual(out["completed_five_session_cohorts"],2)
+        self.assertEqual(wait.call_count,2)
+        self.assertEqual(len(source.calls),10)
+        self.assertEqual(repo.posts,4)
+        repo2=FakeHistoryPrivate()
+        actual=repo2.get_content
+        def corrupted(path):
+            if path=="derived/historical-checkpoint.json" and path in repo2.blobs:
+                return b"unexpected checkpoint","sha"
+            return actual(path)
+        repo2.get_content=corrupted
+        with patch("v3_krx_derived_backfill.retry_clock.sleep",return_value=None):
+            with self.assertRaisesRegex(DerivedBackfillError,
+                                        "derived_checkpoint_readback_failed"):
+                collect(storage=repo2,client=FakeKRX(),dates=DATES,
+                        checksum=DIGEST,windows=1)
+        self.assertEqual(repo2.posts,2)
 
 
 if __name__=="__main__":
