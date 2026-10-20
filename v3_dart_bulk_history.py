@@ -229,6 +229,8 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map):
             rows=[]
         elif status=="000":
             rows=payload.get("list")
+            if not isinstance(rows,list) or not rows:
+                raise BulkHistoryError("dart_bulk_empty_success_response")
         else:
             # Quota exhaustion (020), unavailable service, invalid key etc.
             # Never keep issuing requests on global provider failure.
