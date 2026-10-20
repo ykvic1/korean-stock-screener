@@ -250,6 +250,29 @@ function quantTable(x,core){
    '건</td><td>'+pct(z.mean_net_return_pct)+'</td><td>'+
    pct(z.stop_first_pct)+'</td></tr>').join('')+'</tbody></table></div>';
 }
+function weeklyCoverageText(report, marketDate){
+ if(!report||report.schema!=='v3-seven-day-research-coverage-0.1'||
+    !validDate(report.market_asof)||!validDate(report.run_kst)||
+    !validDate(report.cycle_start)||!validDate(marketDate)||
+    report.market_asof>marketDate||
+    typeof report.listed_total!=='number'||report.listed_total<1||
+    !Number.isInteger(report.processed_this_cycle)||
+    !Number.isInteger(report.unprocessed_this_cycle)||
+    report.processed_this_cycle<0||report.unprocessed_this_cycle<0||
+    report.processed_this_cycle+report.unprocessed_this_cycle!==report.listed_total||
+    !Array.isArray(report.cohort_counts)||report.cohort_counts.length!==7||
+    report.cohort_counts.some(n=>!Number.isInteger(n)||n<0)||
+    report.cohort_counts.reduce((a,b)=>a+b,0)!==report.listed_total||
+    report.source_collection_calls!==0||
+    report.verified_full_six_pillar_issuer_count!==0)return '';
+ const data=report.source_reference_counts_this_cycle;
+ const p=data&&Number.isInteger(data.technical_parts)&&data.technical_parts>=0&&
+  data.technical_parts<=report.processed_this_cycle?data.technical_parts:null;
+ return ' · V3 주간 순환 연구 '+report.processed_this_cycle+'/'+
+  report.listed_total+'종목 · 자료기준 '+report.market_asof+
+  (p===null?'':' · 기술점수 근거 '+p+'종목')+
+  ' (기존 원본 재계산, 별도 실시간 API 수집 아님)';
+}
 function summary(model,core){
  const discover=rankItems(model,core,'discover');
  return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
@@ -261,12 +284,13 @@ function summary(model,core){
 }
 const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
+let weeklyCoverage=null;
 let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,selected=null,limit=20;
 function label(item){return item.stage==='형상 후보'?'형상 후보':item.stage;}
 function patternPill(item){
@@ -412,12 +436,14 @@ function present(data){
   '종목 · V3 잠정 합계 '+metrics.provisional+
   '종목. 실시간 투자등급이 아닌 관측 기준일별 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
-  '전시장 주 1회 정기 전체 갱신은 개발 완료 후 운영 예정이며 현재 보장되지 않습니다.';
+  '주간 순환 연구는 기존 수집 자료 재계산이며 6개 영역의 전체 원천 데이터 확보는 아직 진행 중입니다.'+
+  weeklyCoverageText(weeklyCoverage,model.date);
  draw();
 }
 async function load(){
  const s=$('state');s.className='u-state';s.textContent='장마감 분석 자료 확인 중…';
- const files=['data.json','quant.json','recommendations.json','official.json','v3-priority-quant.json','v3-dart-book-reference.json'];
+ const files=['data.json','quant.json','recommendations.json','official.json',
+  'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -425,7 +451,8 @@ async function load(){
   }));
   core=root.V3RankedCore;
   if(!core)throw Error('missing_research_core');
-  model=core.prepare(...responses);
+  model=core.prepare(...responses.slice(0,6));
+  weeklyCoverage=responses[6];
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
