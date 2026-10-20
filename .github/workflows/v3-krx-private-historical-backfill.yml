@@ -23,6 +23,10 @@ concurrency:
 
 jobs:
   historical:
+    # No private repo or provider license authorization: do not even start
+    # a scheduled public Actions runner (saves installation/runtime budget).
+    # Explicit manual dry-runs remain accessible for operator inspection.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:

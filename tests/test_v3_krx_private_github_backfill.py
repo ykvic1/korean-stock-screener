@@ -1,6 +1,9 @@
 """Offline tests for bounded KRX official private-Git history acquisition."""
 import base64
 import json
+import gzip
+import hashlib
+from pathlib import Path
 import unittest
 
 import v3_krx_private_github_backfill as h
@@ -14,10 +17,12 @@ class SimulatedPrivateGithub:
         self.read_count=0
         self.put_count=0
         self.token="synthetic-token"
+        self.repo_size_kib=0
     def transport(self,method,path,payload=None):
         if path=="":
             return {"private":self.private,
-                    "full_name":"ykvic1/private-market-research"}
+                    "full_name":"ykvic1/private-market-research",
+                    "size":self.repo_size_kib}
         assert path.startswith("contents/")
         name=path[9:]
         if method=="GET":
@@ -58,8 +63,11 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
         self.assertEqual(outcome["durably_archived_pair_days"],5)
         self.assertEqual(outcome["new_official_market_calls"],10)
         self.assertEqual(len(fake.calls),10)
-        self.assertEqual(gh.put_count,10) # five compressed day + five manifest
+        self.assertEqual(gh.put_count,6) # five immutable gzip days + ONE tiny checkpoint
         self.assertFalse(outcome["market_raw_published"])
+        self.assertEqual(outcome["manifest_entry_count"],1)
+        self.assertGreater(outcome["source_compression_saving_pct"],0)
+        self.assertLess(len(gh.blobs["krx/manifest.json"]),400)
         self.assertFalse(outcome["historical_adjusted_prices_certified"])
         self.assertIn("krx/2026/2026-10-12.json.gz",gh.blobs)
         self.assertNotIn("docs",''.join(gh.blobs))
@@ -105,12 +113,13 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
         gh=SimulatedPrivateGithub()
         gh.blobs["krx/manifest.json"]=h._canonical({
             "schema":h.SCHEMA,"start":h.START,"end":h.END,
-            "completed":[{"day":"2026-10-14","pair_sha256":"a"*64}]})
+            "next_index":1,"last_day":"2026-10-14",
+            "last_pair_sha256":"a"*64,"compressed_bytes":100,"raw_bytes":1000})
         fake=FakeClient()
-        with self.assertRaisesRegex(h.PrivateHistoryError,"invalid_private_manifest"):
+        with self.assertRaisesRegex(h.PrivateHistoryError,"invalid_or_legacy_private_checkpoint"):
             h.run(storage=gh.store(),client=fake,dates=session_days())
         self.assertEqual(fake.calls,[])
-        self.assertFalse(h._check_manifest(None,session_days())["completed"])
+        self.assertEqual(h._check_manifest(None,session_days())["next_index"],0)
 
     def test_mismatched_or_changed_source_is_blocked(self):
         gh=SimulatedPrivateGithub()
@@ -134,6 +143,96 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
             h.run(storage=gh.store(),client=bad,dates=session_days(),limit=1)
         self.assertNotIn("krx/manifest.json",gh.blobs)
         self.assertFalse(gh.blobs)
+
+    def test_constant_size_checkpoint_across_many_batches(self):
+        # Each five-day batch should mutate the tiny pointer ONCE rather than
+        # rewriting ever-growing lists of previously stored day SHA hashes.
+        gh=SimulatedPrivateGithub()
+        from datetime import date,timedelta
+        days=[(date(2026,1,5)+timedelta(days=i)).isoformat()
+              for i in range(30) if (date(2026,1,5)+timedelta(days=i)).weekday()<5]
+        self.assertEqual(len(days),22)
+        lengths=[]
+        fake=FakeClient()
+        for n in range(5):
+            result=h.run(storage=gh.store(),client=fake,dates=days)
+            lengths.append(len(gh.blobs["krx/manifest.json"]))
+            self.assertEqual(result["durably_archived_pair_days"],min(5*(n+1),22))
+            self.assertLess(result["compressed_private_source_bytes"],
+                            h.MAX_PRIVATE_PAYLOAD_BYTES)
+        self.assertEqual(gh.put_count,22+5)
+        self.assertLess(max(lengths)-min(lengths),50,
+                        "checkpoint must be O(1) in number of completed days")
+        self.assertEqual(len(fake.calls),44)
+
+    def test_archive_requires_repo_size_and_rejects_near_budget(self):
+        gh=SimulatedPrivateGithub()
+        gh.repo_size_kib=h.MAX_REPO_SIZE_KIB
+        fake=FakeClient()
+        with self.assertRaisesRegex(h.PrivateHistoryError,
+                                    "private_repository_budget_exceeded"):
+            h.run(storage=gh.store(),client=fake,dates=session_days())
+        self.assertEqual(fake.calls,[])
+        gh.repo_size_kib=0
+        gh.blobs["krx/manifest.json"]=h._canonical({
+            "schema":h.SCHEMA,"start":h.START,"end":h.END,
+            "next_index":0,"last_day":None,"last_pair_sha256":None,
+            "compressed_bytes":h.MAX_PRIVATE_PAYLOAD_BYTES,
+            "raw_bytes":h.MAX_PRIVATE_PAYLOAD_BYTES})
+        with self.assertRaisesRegex(h.PrivateHistoryError,
+                                    "private_compressed_budget_limit"):
+            h.run(storage=gh.store(),client=fake,dates=session_days())
+        self.assertEqual(fake.calls,[])
+
+    def test_existing_checkpoint_tail_mutation_halts_before_api(self):
+        gh=SimulatedPrivateGithub()
+        first=h.run(storage=gh.store(),client=FakeClient(),dates=session_days(),limit=1)
+        self.assertEqual(first["durably_archived_pair_days"],1)
+        gh.blobs[h._pair_path(session_days()[0])]+=b"forged"
+        fake=FakeClient()
+        with self.assertRaisesRegex(h.PrivateHistoryError,
+                                    "private_checkpoint_missing_or_mismatched_day"):
+            h.run(storage=gh.store(),client=fake,dates=session_days())
+        self.assertFalse(fake.calls)
+
+    def test_legacy_growing_manifest_requires_explicit_migration(self):
+        old=h._canonical({
+            "schema":"v3-krx-private-git-history-0.1",
+            "start":h.START,"end":h.END,
+            "completed":[{"day":"2026-10-12","pair_sha256":"a"*64}]})
+        with self.assertRaisesRegex(h.PrivateHistoryError,
+                                    "invalid_or_legacy_private_checkpoint"):
+            h._check_manifest(old,session_days())
+
+    def test_benchmark_repetitive_market_json_vs_old_base64_gzip(self):
+        day="2026-10-16"
+        markets={}
+        for market,count in (("KOSPI",1350),("KOSDAQ",1147)):
+            rows=[{"BAS_DD":"20261016","ISU_CD":f"{i+10000:06d}",
+                   "TDD_OPNPRC":str(10000+i),"TDD_HGPRC":str(10100+i),
+                   "TDD_LWPRC":str(9900+i),"TDD_CLSPRC":str(10030+i),
+                   "ACC_TRDVOL":str(100000+i*17)}
+                  for i in range(count)]
+            markets[market]=json.dumps({"OutBlock_1":rows},
+                                       separators=(",",":")).encode()
+        packed,_=h._pack_pair(day,markets)
+        original_sum=sum(len(v) for v in markets.values())
+        self.assertLess(len(packed),original_sum*.5)
+        original_base64=h._canonical({
+            "schema":"v3-private-krx-two-market-raw-0.1","asof":day,
+            "raw_source_base64":{k:base64.b64encode(v).decode()
+                                 for k,v in markets.items()}})
+        old_packed=gzip.compress(original_base64,compresslevel=9,mtime=0)
+        self.assertLess(len(packed),len(old_packed),
+                        "binary frame must reduce private payload vs base64")
+        self.assertEqual(h._unpack_pair(day,packed)["KOSPI"]["source_rows"],1350)
+
+    def test_no_scheduled_action_minutes_before_private_opt_in(self):
+        workflow=Path(".github/workflows/v3-krx-private-historical-backfill.yml").read_text()
+        self.assertIn("github.event_name == 'workflow_dispatch' || vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true'",workflow)
+        self.assertIn("default: dry_run",workflow)
+        self.assertIn("permissions:",workflow)
+        self.assertIn("  contents: read",workflow)
 
     def test_unknown_calendar_or_batch_does_not_collect(self):
         gh=SimulatedPrivateGithub();fake=FakeClient()

@@ -21,8 +21,11 @@ from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_history_collection import _snapshot_market
 
-SCHEMA = "v3-krx-private-git-history-0.1"
-PAIR_SCHEMA = "v3-private-krx-two-market-raw-0.1"
+SCHEMA = "v3-krx-private-git-history-compact-0.2"
+PAIR_SCHEMA = "v3-private-krx-two-market-binary-frame-0.2"
+MAGIC = b"KRX2\0"
+MAX_REPO_SIZE_KIB = 750*1024    # stop before ~1 GiB Git repository size guidance
+MAX_PRIVATE_PAYLOAD_BYTES = 400*1024*1024  # cumulative, separate from Git overhead
 START = "2016-10-17"
 END = "2026-10-16"
 MAX_DAYS = 5
@@ -66,11 +69,16 @@ def _pack_pair(day, raw_by_market):
             "quarantined":inspected["quarantined_unpriced_candidates"],
             "sha256":sha256(raw).hexdigest(),"raw_bytes":len(raw),
         }
-    payload={"schema":PAIR_SCHEMA,"asof":day,
-             "raw_source_base64":{
-                 market:base64.b64encode(raw_by_market[market]).decode("ascii")
-                 for market in ("KOSPI","KOSDAQ")}}
-    packed=gzip.compress(_canonical(payload),compresslevel=9,mtime=0)
+    # Store the two exact official JSON byte streams in one compressed binary
+    # frame. Base64 *inside* gzip needlessly inflates intermediate payloads.
+    # Base64 exists only on GitHub's HTTP Contents API transport, not on disk.
+    raw_kospi,raw_kosdaq=raw_by_market["KOSPI"],raw_by_market["KOSDAQ"]
+    header=_canonical({"schema":PAIR_SCHEMA,"asof":day,
+                       "lengths":[len(raw_kospi),len(raw_kosdaq)],
+                       "hashes":[sha256(raw_kospi).hexdigest(),
+                                 sha256(raw_kosdaq).hexdigest()]})
+    frame=MAGIC+len(header).to_bytes(4,"big")+header+raw_kospi+raw_kosdaq
+    packed=gzip.compress(frame,compresslevel=9,mtime=0)
     if len(packed)>MAX_REMOTE_BYTES:
         raise PrivateHistoryError("oversized_private_history_day")
     return packed,metadata
@@ -84,11 +92,27 @@ def _unpack_pair(day,packed):
             uncompressed=handle.read(45_000_001)
         if len(uncompressed)>45_000_000:
             raise ValueError()
-        envelope=json.loads(uncompressed)
-        if envelope.get("schema")!=PAIR_SCHEMA or envelope.get("asof")!=day:
+        if not uncompressed.startswith(MAGIC) or len(uncompressed)<len(MAGIC)+4:
             raise ValueError()
-        raws={m:base64.b64decode(envelope["raw_source_base64"][m],validate=True)
-              for m in ("KOSPI","KOSDAQ")}
+        header_size=int.from_bytes(uncompressed[len(MAGIC):len(MAGIC)+4],"big")
+        if not 20<header_size<1000:
+            raise ValueError()
+        start=len(MAGIC)+4
+        header=json.loads(uncompressed[start:start+header_size])
+        if (header.get("schema")!=PAIR_SCHEMA or header.get("asof")!=day
+            or type(header.get("lengths")) is not list
+            or len(header["lengths"])!=2
+            or any(type(n) is not int or not 0<n<=20_000_000
+                   for n in header["lengths"])):
+            raise ValueError()
+        first,second=header["lengths"]
+        body=uncompressed[start+header_size:]
+        if len(body)!=first+second:
+            raise ValueError()
+        raws={"KOSPI":body[:first],"KOSDAQ":body[first:]}
+        if ([sha256(raws[x]).hexdigest() for x in ("KOSPI","KOSDAQ")]
+            !=header.get("hashes")):
+            raise ValueError()
         checked,stats=_pack_pair(day,raws)
         if checked!=packed:
             raise ValueError()
@@ -133,6 +157,13 @@ class PrivateGitStorage:
         if (type(info) is not dict or info.get("private") is not True
             or str(info.get("full_name","")).casefold()!=self.repository.casefold()):
             raise PrivateHistoryError("target_repo_not_confirmed_private")
+        # GitHub's size estimate is not a billing meter or instantaneous value.
+        # It is nonetheless useful as an additional fail-safe circuit breaker.
+        reported_kib=info.get("size")
+        if type(reported_kib) is not int or reported_kib<0:
+            raise PrivateHistoryError("private_repo_size_not_reported")
+        if reported_kib>=MAX_REPO_SIZE_KIB:
+            raise PrivateHistoryError("private_repository_budget_exceeded")
         return True
 
     def get_content(self,path):
@@ -141,7 +172,7 @@ class PrivateGitStorage:
         if (type(resp) is not dict or resp.get("type")!="file"
             or resp.get("encoding")!="base64" or type(resp.get("sha")) is not str):
             raise PrivateHistoryError("untrusted_private_blob")
-        try:return base64.b64decode(resp["content"],validate=False),resp["sha"]
+        try:return base64.b64decode("".join(resp["content"].split()),validate=True),resp["sha"]
         except Exception:raise PrivateHistoryError("invalid_private_blob_base64") from None
 
     def put_new(self,path,raw,comment):
@@ -163,82 +194,154 @@ class PrivateGitStorage:
 
 
 def _check_manifest(raw,days):
+    """A constant-size checkpoint, not O(ten-year-days) saved JSON history.
+
+    Legacy growing manifests require an explicit offline migration and are
+    deliberately not silently upgraded or overwritten.
+    """
+    empty={"schema":SCHEMA,"start":START,"end":END,"next_index":0,
+           "last_day":None,"last_pair_sha256":None,
+           "compressed_bytes":0,"raw_bytes":0}
     if raw is None:
-        return {"schema":SCHEMA,"start":START,"end":END,"completed":[]}
+        return empty
     try:
-        payload=json.loads(raw)
-        completed=payload["completed"]
-        if (payload["schema"]!=SCHEMA or payload["start"]!=START
-            or payload["end"]!=END or type(completed) is not list
-            or len(completed)>len(days)
-            or any(type(x) is not dict or x.get("day")!=days[i]
-                   or type(x.get("pair_sha256")) is not str
-                   or not re.fullmatch(r"[0-9a-f]{64}",x["pair_sha256"])
-                   for i,x in enumerate(completed))):
+        obj=json.loads(raw)
+        i=obj["next_index"]
+        if (type(obj) is not dict or obj.get("schema")!=SCHEMA
+            or obj.get("start")!=START or obj.get("end")!=END
+            or type(i) is not int or not 0<=i<=len(days)
+            or type(obj.get("compressed_bytes")) is not int
+            or not 0<=obj["compressed_bytes"]<=MAX_PRIVATE_PAYLOAD_BYTES
+            or type(obj.get("raw_bytes")) is not int
+            or obj["raw_bytes"]<obj["compressed_bytes"]
+            or obj["raw_bytes"]>50_000_000_000):
             raise ValueError()
-        return payload
+        if i==0:
+            if obj["last_day"] is not None or obj["last_pair_sha256"] is not None:
+                raise ValueError()
+        elif (obj.get("last_day")!=days[i-1]
+              or type(obj.get("last_pair_sha256")) is not str
+              or not re.fullmatch(r"[a-f0-9]{64}",obj["last_pair_sha256"])):
+            raise ValueError()
+        return obj
     except Exception:
-        raise PrivateHistoryError("invalid_private_manifest") from None
+        raise PrivateHistoryError("invalid_or_legacy_private_checkpoint") from None
+
+
+def _verify_checkpoint_tail(storage,days,manifest):
+    """Catch missing/corrupt last committed day BEFORE calling KRX."""
+    count=manifest["next_index"]
+    if not count:
+        return
+    day=days[count-1]
+    current,_=storage.get_content(_pair_path(day))
+    if (current is None or sha256(current).hexdigest()!=manifest["last_pair_sha256"]):
+        raise PrivateHistoryError("private_checkpoint_missing_or_mismatched_day")
+    _unpack_pair(day,current)
 
 
 def run(*,storage,client,dates,limit=MAX_DAYS):
-    """Only full KRX two-market pairs committed; manifest advances last.
+    """Immutable private blobs + ONE tiny checkpoint commit per batch.
 
-    If a previous crash left a complete per-day file, inspect and resume without
-    requesting KRX again. Never overwrite a conflicting immutable private pair.
+    A failed batch leaves only immutable orphan day blobs. The next batch
+    revalidates and adopts them without repeated provider requests. The
+    checkpoint is written only AFTER the complete requested cohort succeeds.
     """
     if type(limit) is not int or not 1<=limit<=MAX_DAYS:
         raise PrivateHistoryError("invalid_daily_limit")
-    if (type(dates) is not list or dates!=sorted(set(dates)) or
-        not 5<=len(dates)<=6000):
+    if (type(dates) is not list or dates!=sorted(set(dates))
+        or not 5<=len(dates)<=6000):
         raise PrivateHistoryError("invalid_candidate_calendar")
     storage.verify_private()
-    raw,manifest_sha=storage.get_content("krx/manifest.json")
-    manifest=_check_manifest(raw,dates)
-    completed=list(manifest["completed"])
-    requested=0;resumed=0
-    for day in dates[len(completed):len(completed)+limit]:
+    raw,checkpoint_sha=storage.get_content("krx/manifest.json")
+    checkpoint=_check_manifest(raw,dates)
+    _verify_checkpoint_tail(storage,dates,checkpoint)
+    index=checkpoint["next_index"]
+    window=dates[index:index+limit]
+    new_calls=0;resumed=0;compressed_this_run=0;raw_this_run=0
+    last_digest=checkpoint["last_pair_sha256"]
+    if not window:
+        return {
+            "schema":"v3-krx-private-backfill-coverage-0.2",
+            "status":"private_historical_source_stored",
+            "total_candidate_days":len(dates),
+            "durably_archived_pair_days":index,
+            "remaining_candidate_days":0,
+            "new_official_market_calls":0,
+            "orphaned_private_days_reconciled":0,
+            "compressed_private_source_bytes":checkpoint["compressed_bytes"],
+            "raw_private_source_bytes":checkpoint["raw_bytes"],
+            "source_compression_saving_pct":round(
+                100*(1-checkpoint["compressed_bytes"]/checkpoint["raw_bytes"]),2)
+                if checkpoint["raw_bytes"] else 0,
+            "manifest_entry_count":1,
+            "historical_adjusted_prices_certified":False,
+            "official_trading_calendar_independently_verified":False,
+            "market_raw_published":False,"ias_flow_scored":False,
+        }
+    for day in window:
         path=_pair_path(day)
-        prior,sha=storage.get_content(path)
+        prior,_=storage.get_content(path)
         if prior is not None:
-            _unpack_pair(day,prior)
+            meta=_unpack_pair(day,prior)
             blob=prior
             resumed+=1
         else:
+            # Both long-term private-file budget and reported Git repo cap
+            # are checked BEFORE a provider network call whenever possible.
+            if (checkpoint["compressed_bytes"]+compressed_this_run+MAX_REMOTE_BYTES
+                >MAX_PRIVATE_PAYLOAD_BYTES):
+                raise PrivateHistoryError("private_compressed_budget_limit")
             raws={}
             for market in ("KOSPI","KOSDAQ"):
                 try:
                     rows,returned=client.daily_market(market,day)
-                    # _pack_pair parses returned raw source against its rows.
-                    if json.loads(returned)["OutBlock_1"]!=rows:raise ValueError()
+                    if json.loads(returned)["OutBlock_1"]!=rows:
+                        raise ValueError()
                     raws[market]=returned
                 except Exception:
                     raise PrivateHistoryError("official_krx_market_request_or_shape_failed") from None
-                requested+=1
-            blob,stats=_pack_pair(day,raws)
+                new_calls+=1
+            blob,meta=_pack_pair(day,raws)
             storage.put_new(path,blob,"Store private observed KRX two-market "+day)
-        completed.append({"day":day,"pair_sha256":sha256(blob).hexdigest()})
-        # Publish manifest only after the durable private day blob is present.
-        next_manifest=_canonical({"schema":SCHEMA,"start":START,"end":END,
-                                  "completed":completed})
-        if manifest_sha is None:
-            storage.put_new("krx/manifest.json",next_manifest,
-                            "Create private KRX history manifest")
-        else:
-            storage.replace_manifest(next_manifest,manifest_sha)
-        # Read back manifest SHA to avoid pretending another concurrent writer
-        # did not commit a different head; isolated weekly job still locks.
-        written,manifest_sha=storage.get_content("krx/manifest.json")
-        if written!=next_manifest or not manifest_sha:
-            raise PrivateHistoryError("private_manifest_not_durably_verified")
+        compressed_this_run+=len(blob)
+        raw_this_run+=sum(x["raw_bytes"] for x in meta.values())
+        if checkpoint["compressed_bytes"]+compressed_this_run>MAX_PRIVATE_PAYLOAD_BYTES:
+            raise PrivateHistoryError("private_compressed_budget_limit")
+        index+=1
+        last_digest=sha256(blob).hexdigest()
+    compact=_canonical({
+        "schema":SCHEMA,"start":START,"end":END,
+        "next_index":index,"last_day":dates[index-1],
+        "last_pair_sha256":last_digest,
+        "compressed_bytes":checkpoint["compressed_bytes"]+compressed_this_run,
+        "raw_bytes":checkpoint["raw_bytes"]+raw_this_run,
+    })
+    # Only one replacement of a constant-size pointer, not five growing
+    # snapshots of the previous 2,500 days' SHA lists on each batch.
+    if checkpoint_sha is None:
+        storage.put_new("krx/manifest.json",compact,
+                        "Create bounded private KRX checkpoint")
+    else:
+        storage.replace_manifest(compact,checkpoint_sha)
+    written,_=storage.get_content("krx/manifest.json")
+    if written!=compact:
+        raise PrivateHistoryError("private_checkpoint_not_durably_verified")
+    total_compressed=checkpoint["compressed_bytes"]+compressed_this_run
+    total_raw=checkpoint["raw_bytes"]+raw_this_run
     return {
-        "schema":"v3-krx-private-backfill-coverage-0.1",
+        "schema":"v3-krx-private-backfill-coverage-0.2",
         "status":"private_historical_source_stored",
         "total_candidate_days":len(dates),
-        "durably_archived_pair_days":len(completed),
-        "remaining_candidate_days":len(dates)-len(completed),
-        "new_official_market_calls":requested,
+        "durably_archived_pair_days":index,
+        "remaining_candidate_days":len(dates)-index,
+        "new_official_market_calls":new_calls,
         "orphaned_private_days_reconciled":resumed,
+        "compressed_private_source_bytes":total_compressed,
+        "raw_private_source_bytes":total_raw,
+        "source_compression_saving_pct":round(
+            100*(1-total_compressed/total_raw),2) if total_raw else 0,
+        "manifest_entry_count":1,
         "historical_adjusted_prices_certified":False,
         "official_trading_calendar_independently_verified":False,
         "market_raw_published":False,"ias_flow_scored":False,
