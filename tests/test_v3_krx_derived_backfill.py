@@ -1,5 +1,6 @@
 """Synthetic KRX historical five-session derived-only resume regression."""
 import hashlib
+import base64
 import json
 import unittest
 
@@ -15,9 +16,21 @@ DATES=["2026-10-12","2026-10-13","2026-10-14",
 DIGEST="1"*64
 
 
+class FakeHistoryPrivate(FakePrivate):
+    def transport(self,method,path,payload=None):
+        if method!="PUT" or path!="contents/derived/historical-checkpoint.json":
+            raise RuntimeError("wrong private write")
+        raw=base64.b64decode(payload["content"])
+        if (path.removeprefix("contents/") not in self.blobs
+            or payload.get("sha") is None):
+            raise RuntimeError("must be existing version")
+        self.blobs["derived/historical-checkpoint.json"]=raw
+        self.posts+=1
+
+
 class HistoricalDerivedTests(unittest.TestCase):
     def test_real_source_shaped_two_5day_windows_20_calls_and_no_raw(self):
-        repo=FakePrivate()
+        repo=FakeHistoryPrivate()
         provider=FakeKRX()
         first=collect(storage=repo,client=provider,dates=DATES,
                       checksum=DIGEST,windows=1)
@@ -88,14 +101,14 @@ class HistoricalDerivedTests(unittest.TestCase):
         self.assertEqual(len(fine.calls),10)
 
     def test_failure_before_any_call_for_unexpected_repository_or_bad_schedule(self):
-        private=FakePrivate()
+        private=FakeHistoryPrivate()
         private.repository="ykvic1/korean-stock-screener"
         client=FakeKRX()
         with self.assertRaises(DerivedBackfillError):
             collect(storage=private,client=client,dates=DATES,
                     checksum=DIGEST,windows=1)
         self.assertEqual(client.calls,[])
-        good=FakePrivate()
+        good=FakeHistoryPrivate()
         for value in (0,9,True):
             with self.assertRaises(DerivedBackfillError):
                 collect(storage=good,client=client,dates=DATES,
