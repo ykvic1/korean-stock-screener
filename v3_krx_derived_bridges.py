@@ -178,7 +178,7 @@ def _check_progress(data,dates,calendar_hash,completed):
         or obj.get("original_source_files_stored")!=0
         or (n==1 and obj.get("last_boundary_sha256") is not None)
         or (n>1 and (type(obj.get("last_boundary_sha256")) is not str
-            or not re.fullmatch(r"[0-9a-f]{64}",obj["last_boundary_sha256"]))):
+            or not re.fullmatch(r"[0-9a-f]{64}",obj["last_boundary_sha256"])))):
         raise BoundaryError("invalid_derived_boundary_checkpoint")
     return obj
 
