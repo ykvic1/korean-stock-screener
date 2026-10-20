@@ -184,7 +184,7 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertEqual(len(cached),2)
         back=copy.deepcopy(result)
         for issuer in back["records"]:
-            issuer["last_attempted_day"]="2026-10-13"
+            issuer["last_attempted_day"]="2026-10-12"
         self.assertEqual(set(f.plan(m,c,b,prior=back,limit=2)[3]),
                          {"005930","247540"})
 
