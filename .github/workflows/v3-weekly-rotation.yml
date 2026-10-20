@@ -1,0 +1,86 @@
+name: V3 Seven-Day Rotating Research Coverage
+
+on:
+  # 20:43 KST every calendar day, including weekends. Group index cycles 0..6;
+  # 2497 listed issuers => five groups of 357 and two groups of 356.
+  # NEVER repeats 2497 live provider requests in a day. Research replay uses
+  # only previously published, actual source-dated market/DART references.
+  schedule:
+    - cron: '43 11 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'audit is read-only; publish saves covered issuer statuses'
+        required: true
+        default: audit
+        type: choice
+        options: [audit, publish]
+
+permissions:
+  contents: write
+
+# Keep publication from racing with the existing weekday 18:30 market job,
+# the eight bounded DART reference windows or manual four-year research.
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  rotate-safely:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prove seven-day bucket partition, missing-source and anti-stale contract
+        run: |
+          python -m py_compile v3_weekly_rotation.py
+          python -m unittest discover -s tests -p 'test_v3_weekly_rotation.py' -v
+      - name: Derive Asia/Seoul run day and select today's one-seven cohort
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          DAY="$(TZ=Asia/Seoul date +%F)"
+          echo "kst_day=$DAY" >> "$GITHUB_OUTPUT"
+          echo "KST calendar day: $DAY"
+      - name: Recalculate existing source evidence without extra provider calls
+        env:
+          KST_DAY: ${{ steps.prep.outputs.kst_day }}
+          MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python v3_weekly_rotation.py --when "$KST_DAY" --mode "$MODE"
+      - name: Publish only calculated research coverage, never a buy ranking
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
+        env:
+          KST_DAY: ${{ steps.prep.outputs.kst_day }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-weekly-rotation.json docs/v3-weekly-coverage.json
+          if ! git diff --cached --quiet; then
+            git commit -m "V3 rotating research source coverage (one seventh of market)"
+            git pull --rebase origin main
+            # Abort if post-rebase full market snapshot moved to a new trading
+            # date. Do NOT publish stale partially refreshed market totals.
+            python v3_weekly_rotation.py --when "$KST_DAY" --mode verify
+            git push origin HEAD:main
+          fi
+      - name: Keep source availability summary for operator review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-seven-day-rotation-${{ github.run_id }}
+          path: |
+            docs/v3-weekly-coverage.json
+            reports/v3-weekly-rotation-audit.json
+          retention-days: 30
+          if-no-files-found: warn
