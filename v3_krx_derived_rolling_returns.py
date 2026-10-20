@@ -147,9 +147,8 @@ def _estimate_one(storage,dates,horizon,end_bucket, factor_cache, bridge_cache):
                 portions.append(amount/1_000_000_000)
             # 4 internal intervals per bucket + 1 connecting interval
             # between each consecutive bucket => N-1 intervals.
-            if len(portions)!=(horizon-1)//4:
-                # Does not equal number of *daily* intervals; check below.
-                pass
+            if len(portions)!=(2*buckets-1):
+                raise ValueError()
             estimate=math.expm1(math.fsum(portions))
             if not math.isfinite(estimate) or abs(estimate)>10_000:
                 continue
