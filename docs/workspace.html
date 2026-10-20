@@ -34,6 +34,7 @@
   <p id="sourceNotes" class="u-source">검증된 관측자료만 표시합니다. 실제 수급·재무·섹터 등 미확인 영역은 임의로 채우지 않습니다.</p>
  </section>
  <section class="u-controls" aria-label="종목 발굴 조건">
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="true">TOP100 · 기존 점수</button><span>순위는 현재 공개된 관측점수 기준이며 V3 정식 종합순위는 미산출</span></div>
   <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
    <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
    <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
@@ -48,12 +49,12 @@
     <select id="market"><option value="all">코스피 + 코스닥</option>
      <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
    <label>정렬 기준
-    <select id="sort"><option value="research">패턴·위험 우선</option>
-     <option value="score">기존 관측점수순</option>
+    <select id="sort"><option value="score" selected>기존 관측점수순</option>
+     <option value="research">패턴·위험 우선</option>
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
   </div>
-  <p class="u-control-note">패턴: 폴링 웻지 · 역헤드앤숄더 · 더블바텀 · Bull Flag · 상승삼각형 · 상승 후 수렴. <b>일봉은 스윙, 주봉은 중기·장기</b>로 개별 확인합니다. 점수 정렬은 현재 기존 관측점수 기준이며 V3 정식 종합점수순은 아직 제공하지 않습니다.</p>
+  <p class="u-control-note">패턴: 폴링 웻지 · 역헤드앤숄더 · 더블바텀 · Bull Flag · 상승삼각형 · 상승 후 수렴. <b>일봉은 스윙, 주봉은 중기·장기</b>로 개별 확인합니다. 순위는 <b>기존 관측점수 높은 순</b>이 기본입니다. 일봉·주봉 패턴과 하방 위험은 별도 표시하며, V3 6영역 검증 전에는 정식 종합점수·투자순위를 발표하지 않습니다.</p>
  </section>
  <section class="u-results" aria-label="통합 종목 분석">
   <div class="u-results-head"><div><h2>종목 발굴 및 분석</h2><p id="resultCount" role="status" aria-live="polite">자료 로드 중…</p></div>
