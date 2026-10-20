@@ -177,7 +177,8 @@ assert.equal(unified.researchComposite({...partial3,
 }).earned,6.5,'out-of-contract candidate maxima cannot inflate a total');
 
 const highLegacy={...row,code:'000001',name:'높은 구형점수',
- score:98,v3_pattern_integrated:null};
+ score:98,v3_pattern_integrated:null,
+ pattern_research:null,pattern_weekly_research:null};
 const safe={r:row,q:null,watch:null,quant:false,researchCandidate:false};
 const unsafe={r:highLegacy,q:null,watch:null,quant:false,researchCandidate:false};
 const model={date:'2026-10-20',rows:[unsafe,safe],marketEligible:2,
