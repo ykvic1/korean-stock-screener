@@ -1,0 +1,41 @@
+name: One-time genuine OpenDART historical filing receipt research for private KRX risk
+
+on:
+  push:
+    branches: [v3-real-dart-event-crosscheck-20261020]
+    paths:
+      - .github/workflows/v3-dart-event-real-once.yml
+
+permissions:
+  contents: read
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+jobs:
+  event-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v3-real-dart-event-crosscheck-20261020
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded official filing adapter dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Validate safe filing-classification and date safeguards offline
+        run: |
+          python -m py_compile v3_dart_event_filing_research.py
+          python -m unittest discover -s tests -p 'test_v3_dart_event_filing_research.py' -v
+      - name: Cross-check 2016 KRX private flagged issuer codes with DART historical receipts
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Private derived metadata only, no raw vendor disclosure storage,
+          # no source close or volume, no score promotion or public ranking.
+          python v3_dart_event_filing_research.py
