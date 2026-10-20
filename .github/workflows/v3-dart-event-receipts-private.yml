@@ -1,0 +1,49 @@
+name: V3 private OpenDART historical corporate-filing receipt research
+
+on:
+  schedule:
+    - cron: '17 15 * * *'  # 00:17 KST, after 23:43 KRX derived risk scan
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+        description: Private-only corporate filing receipt evidence, no adjusted-price scoring
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-derived-history
+  cancel-in-progress: false
+
+jobs:
+  filings:
+    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent official disclosure adapter requirements
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Offline verify returned receipt categorization never upgrades V3 score
+        run: |
+          python -m py_compile v3_dart_event_filing_research.py v3_dart_event_filing_batches.py
+          python -m unittest discover -s tests -p 'test_v3_dart_event_filing_research.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_event_filing_batches.py' -v
+      - name: Resume ten 2016 KRX risk issuers using existing private DART receipts
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          python v3_dart_event_filing_batches.py
