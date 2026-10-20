@@ -1,3 +1,4 @@
+# Safe one-time retry to expose only allowlisted error categories.
 name: One-time 5-session KRX derived factors private write (no raw source)
 
 on:
