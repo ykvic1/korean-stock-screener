@@ -246,8 +246,16 @@ def main():
         result=store_five_day_factors(store,KRXClient(os.environ["KRX_API_KEY"]))
         print(json.dumps(result,sort_keys=True))
         return 0
-    except Exception:
-        print('{"status":"blocked","reason":"private_derived_research_or_provider_validation_failed","source_values_exposed":false}')
+    except (DerivedSourceError,PrivateHistoryError) as exc:
+        # Both exception classes only carry fixed, non-vendor error strings.
+        print(json.dumps({"status":"blocked",
+                          "category":str(exc),
+                          "source_values_exposed":False},sort_keys=True))
+        return 1
+    except Exception as exc:
+        # Exception class alone is safe; NEVER log third-party error messages.
+        print(json.dumps({"status":"blocked","category":"unknown_"+type(exc).__name__,
+                          "source_values_exposed":False},sort_keys=True))
         return 1
 
 
