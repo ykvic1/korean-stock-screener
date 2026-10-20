@@ -22,6 +22,14 @@ assert.deepEqual(unified.marketFreshness('2026-10-19',new Date('2026-10-26T00:00
 assert.deepEqual(unified.marketFreshness('2026-10-21',new Date('2026-10-20T00:00:00Z')),
  {status:'future',calendarDays:-1});
 assert.ok(html.includes('id="unifiedApp"'));
+assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
+assert.ok(html.includes('<option value="score" selected>기존 관측점수순</option>'),
+ 'default screen must NOT silently promote pattern-only priority above displayed score');
+assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
+assert.ok(css.includes('color-scheme:dark')&&css.includes('.u-scoresix'),
+ 'approved dark-green rank concept and 6-pillar unknown table must be present');
+assert.ok(source.includes('V3 합계')&&source.includes('미산출'),
+ 'do not label old observed ranking as official V3 composite');
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
 for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
  'id="tabs"','id="saferOnly"','id="reload"','id="statV3"',
@@ -116,6 +124,58 @@ assert.deepEqual(unified.rankItems(model,legacy,'all','all','','research',true)
  .map(x=>x.r.code),['005930']);
 assert.equal(unified.summary(model,legacy).officialFullScore,0,
  'no V3 final 100 or investment rank until all six pillars are certified');
+
+// The reference mock visibly placed 65.7 (3rd), 51.4 (1st), 48.6 (2nd).
+// With score-desc ranking it MUST instead be 65.7 -> 51.4 -> 48.6.
+const designRows=[
+ {r:{...row,code:'004490',name:'세방전지',score:65.7}},
+ {r:{...row,code:'004370',name:'농심',score:51.4}},
+ {r:{...row,code:'025860',name:'남해화학',score:48.6}},
+].map(x=>({...safe,...x}));
+const designModel={...model,rows:[designRows[1],designRows[2],designRows[0]]};
+const ranked=unified.rankItems(designModel,legacy,'all');
+assert.deepEqual(ranked.map(x=>x.r.name),['세방전지','농심','남해화학'],
+ 'always sort by the actual visible score, not input order or favorite pattern');
+assert.deepEqual(ranked.map(x=>x.scoreRank),[1,2,3]);
+assert.deepEqual(ranked.map(x=>unified.observedDisplayScore(x)),
+ [65.7,51.4,48.6]);
+// Rank numbers remain global within the same dated market regardless of
+// RSI/pattern/market filters; do not relabel the #8 score as #1 when filtered.
+const onlyNong=unified.rankItems(designModel,legacy,'all','all','농심');
+assert.equal(onlyNong[0].scoreRank,2);
+assert.deepEqual(
+ unified.rankItems(designModel,legacy,'all','KOSPI').map(x=>x.scoreRank),
+ [1,2,3]);
+const tied={...safe,r:{...row,code:'000888',name:'점수동률',score:65.71,coverage_pct:63}};
+const tiedModel={...designModel,rows:[...designRows,tied]};
+const tiedRanks=unified.rankItems(tiedModel,legacy,'all');
+assert.equal(tiedRanks[0].scoreRank,1);
+assert.equal(tiedRanks[1].scoreRank,1,
+ 'same rendered one-decimal score gets the same visible competition rank');
+assert.equal(tiedRanks[2].scoreRank,3);
+// Explicit risk is disclosed, rather than silently re-ranking riskier
+// high-score symbols; optional safer-only filter excludes them.
+const riskSignals={...safe,r:{...row,code:'111111',name:'리스크종목',score:98,
+ stop_line:60,stop_pct:-40}};
+const riskyModel={...designModel,rows:[riskSignals,...designRows]};
+const risky=unified.rankItems(riskyModel,legacy,'discover');
+assert.equal(risky[0].r.code,'111111','do not hide high-score risk while calling list score-ranked');
+assert.equal(risky[0].scoreRank,1);
+assert.ok(risky[0].risk.unsafe,'high rank is NOT a buy signal');
+assert.ok(!unified.rankItems(riskyModel,legacy,'discover','all','','score',true)
+ .some(x=>x.r.code==='111111'),'downside-only filter works');
+// TOP100 selects market-global score ranks, not the first 100 array entries.
+const all106=Array.from({length:106},(_,i)=>({...safe,
+ r:{...row,code:String(i).padStart(6,'0'),name:'합성'+i,
+ score:100-i*0.2,coverage_pct:70}}));
+const many={...designModel,rows:all106.reverse()};
+const top=unified.rankItems(many,legacy,'all','all','','score',false,true);
+assert.equal(top.length,100);
+assert.equal(top[0].scoreRank,1);
+assert.equal(top[99].scoreRank,100);
+assert.ok(top.every((x,i)=>x.scoreRank===i+1));
+assert.ok(top.every(x=>unified.pillarState(x.r).find(z=>z.key==='ias').candidate===null),
+ 'market ranking must not fill missing investor flow to force complete V3 total');
 
 const actual=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
 const dailyModel=legacy.prepare(actual,null,null,null,null,null);

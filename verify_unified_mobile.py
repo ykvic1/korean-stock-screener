@@ -25,6 +25,16 @@ with sync_playwright() as p:
     page.locator("#statAnalyzed").wait_for()
     page.get_by_role("button", name="전 종목", exact=True).click()
     page.locator(".u-stock").first.wait_for(timeout=45000)
+    assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "true"
+    # Stock rank is computed against the entire priced market, not
+    # an arbitrary upstream list or the order of filtered watch-candidates.
+    labels=page.locator(".u-rank-number").all_inner_texts()
+    initial_ranks=[int(v.rstrip("위")) for v in labels]
+    assert initial_ranks and initial_ranks == sorted(initial_ranks), initial_ranks
+    assert initial_ranks[0] == 1
+    assert page.locator(".u-scoresix").first.get_by_text("V3 합계").is_visible()
+    assert page.locator(".u-scoresix").first.get_by_text("미산출").is_visible()
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
     displayed = int(page.locator("#statAnalyzed").inner_text().replace(",", ""))
@@ -42,6 +52,11 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").count() == 0
     assert page.get_by_text("해당 조건을 만족하는 종목이 없습니다.", exact=False).is_visible()
     search.fill("")
+    page.locator("#top100Only").click()
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
+    assert "전체 시장" in page.locator("#resultCount").inner_text()
+    page.locator("#top100Only").click()
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "true"
     page.locator("#sort").select_option("score")
     scores = page.locator(".u-stock-main span:nth-child(2) b").all_inner_texts()
     scores = [float(x) for x in scores]
