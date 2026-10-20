@@ -4,6 +4,7 @@ from datetime import date,timedelta
 from hashlib import sha256
 import json
 import unittest
+from unittest.mock import patch
 
 import v3_krx_derived_bridges as bridge
 import v3_krx_derived_backfill as backfill
@@ -76,6 +77,35 @@ class DerivedHistoricalBridgeTests(unittest.TestCase):
         self.assertNotIn("raw_source_base64",str(content))
         self.assertTrue(all(k.startswith("derived/") for k in p.blobs))
         self.assertLess(len(p.blobs[bridge.CHECKPOINT]),1000)
+
+    def test_eventually_visible_private_blob_does_not_repeat_source_or_put(self):
+        p,calendar=fixture(complete=2)
+        p.write_delays={}
+        old_put=p.put_new
+        old_get=p.get_content
+
+        def stuttering_put(path,blob,message):
+            old_put(path,blob,message)
+            if path.startswith("derived/boundaries/") or path==bridge.CHECKPOINT:
+                p.write_delays[path]=1
+
+        def stuttering_read(path):
+            if p.write_delays.get(path,0)>0:
+                p.write_delays[path]-=1
+                return None,None
+            return old_get(path)
+
+        p.put_new=stuttering_put
+        p.get_content=stuttering_read
+        api=FakeKRX()
+        with patch.object(bridge.time,"sleep",return_value=None):
+            result=bridge.run(storage=p,client=api,dates=calendar,
+                              calendar_hash=HASH,max_links=1)
+        self.assertEqual(result["new_market_api_calls"],4)
+        self.assertEqual(len(api.calls),4)
+        self.assertEqual(result["cumulative_completed_derived_boundaries"],1)
+        self.assertEqual(sum(k.startswith("derived/boundaries/")
+                             for k in p.blobs),1)
 
     def test_existing_links_are_reused_without_krx_calls(self):
         p,calendar=fixture()
