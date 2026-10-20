@@ -1,11 +1,12 @@
 name: V3 Four-Year DART Financial Evidence (bounded daily rotation)
 
 on:
-  # Capped live source enrichment: four issuers per weekday at 19:43 KST.
-  # The price scan starts 18:30, annual-book fetch follows at 21:17;
-  # all share a publication lock, so concurrent outputs cannot overwrite.
+  # Capped live enrichment: four issuers per weekday at 02:43 KST.
+  # Runs AFTER the first single-year DART book pass at 01:17 KST, so
+  # annual-book and market snapshot source dates can match. Shared publication
+  # lock avoids all concurrent writes, even if GitHub schedules run late.
   schedule:
-    - cron: '43 10 * * 1-5'
+    - cron: '43 17 * * 0-4'
   workflow_dispatch:
     inputs:
       mode:
