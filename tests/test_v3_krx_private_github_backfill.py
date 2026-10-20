@@ -115,7 +115,7 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
             "next_index":1,"last_day":"2026-10-14",
             "last_pair_sha256":"a"*64,"compressed_bytes":100,"raw_bytes":1000})
         fake=FakeClient()
-        with self.assertRaisesRegex(h.PrivateHistoryError,"invalid_private_manifest"):
+        with self.assertRaisesRegex(h.PrivateHistoryError,"invalid_or_legacy_private_checkpoint"):
             h.run(storage=gh.store(),client=fake,dates=session_days())
         self.assertEqual(fake.calls,[])
         self.assertEqual(h._check_manifest(None,session_days())["next_index"],0)
