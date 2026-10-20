@@ -1,7 +1,7 @@
 name: V3 Four-Year DART Financial Evidence (bounded daily rotation)
 
 on:
-  # Capped live enrichment: four issuers per weekday at 02:43 KST.
+  # Receipt-validated capped automatic live batch: 4 initial, 8/12 only after healthy runs.
   # Runs AFTER the first single-year DART book pass at 01:17 KST, so
   # annual-book and market snapshot source dates can match. Shared publication
   # lock avoids all concurrent writes, even if GitHub schedules run late.
@@ -16,7 +16,7 @@ on:
         type: choice
         options: ['dry-run', 'live']
       max_issuers:
-        description: 'Manual run cap; scheduled live is always at most 4 issuers'
+        description: 'Manual run cap 1-4; scheduled adapts from 4 to 8 then 12 on observed filings'
         required: true
         default: '2'
         type: choice
@@ -52,6 +52,7 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           REQUESTED_MODE: ${{ github.event_name == 'schedule' && 'live' || inputs.mode }}
           ISSUER_LIMIT: ${{ github.event_name == 'schedule' && '4' || inputs.max_issuers }}
+          AUTO_BATCH: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -59,7 +60,7 @@ jobs:
           from datetime import date,datetime
           from zoneinfo import ZoneInfo
           import json,os
-          from v3_dart_four_year_reference import plan,write
+          from v3_dart_four_year_reference import plan,write,automatic_daily_limit
           market=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
           catalog=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
           book=json.loads(Path('docs/v3-dart-book-reference.json').read_text(encoding='utf8'))
@@ -69,11 +70,13 @@ jobs:
               raise ValueError('stale_fouryear_market_snapshot')
           output=Path('docs/v3-dart-four-year-reference.json')
           prior=json.loads(output.read_text(encoding='utf8')) if output.is_file() else None
-          limit=int(os.environ['ISSUER_LIMIT'])
+          limit=(automatic_daily_limit(prior) if os.environ['AUTO_BATCH']=='true'
+                 else int(os.environ['ISSUER_LIMIT']))
           snapshot,members,existing,targets=plan(
               market,catalog,book,prior=prior,limit=limit)
           print('market_source=',snapshot,'current_listed=',len(members),
                 'four_year_cached=',sum(x['same_scope_four_years'] for x in existing.values()),
+                'adaptive_live_limit=',limit,
                 'pilot_target_count=',len(targets),
                 'mode=',os.environ['REQUESTED_MODE'])
           if os.environ['REQUESTED_MODE']=='live':
@@ -89,6 +92,9 @@ jobs:
                     'four_year_fiscal_windows=',result['four_consecutive_years_observed_count'],
                     'current_core_usable=',result['current_core_financial_research_observed_count'],
                     'incomplete_cohort=',result['unverified_issuer_count'],
+                    'real_filing_issuers_this_run=',result['observed_filings_issuers_this_run'],
+                    'healthy_batches=',result['consecutive_healthy_batches'],
+                    'next_schedule_limit=',result['next_schedule_max_issuers'],
                     'full_financial15_scoring=False')
           PY
       - name: Publish only completed derived four-year annual references
@@ -115,7 +121,9 @@ jobs:
               or four['raw_account_rows_stored'] is not False
               or four['confirmed_six_pillar_ranks'] is not None
               or four.get('historical_PIT_source_certified') is not False
-              or four['requested_this_run']>4):
+              or four['requested_this_run']>12
+              or four['next_schedule_max_issuers'] not in (4,8,12)
+              or not 0<=four['observed_filings_issuers_this_run']<=four['requested_this_run']):
               raise ValueError('stale_rebased_fouryear_not_publishable')
           print('Validated no-stale four-year research-only publication')
           PY
