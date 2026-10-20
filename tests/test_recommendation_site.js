@@ -1,9 +1,11 @@
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
+// The full legacy deep-research surface is retained at legacy.html;
+// the real index.html now serves the unified V3 home directly.
+const html=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>'));
-assert.doesNotThrow(()=>new vm.Script(source,{filename:'docs/index.html inline JS'}));
+assert.doesNotThrow(()=>new vm.Script(source,{filename:'docs/legacy.html inline JS'}));
 
 for(const marker of [
  'id="deepResearch"','id="deepResearchStatus"','id="deepChanges"',
