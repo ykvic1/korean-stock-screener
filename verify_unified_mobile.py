@@ -66,7 +66,7 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").count() == 1
     assert other in page.locator(".u-stock").first.inner_text()
     assert "전체 시장 검색" in page.locator("#resultCount").inner_text()
-    assert page.locator("#top100Only").get_attribute("aria-pressed") == "true"
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     page.get_by_role("button", name="전 종목", exact=True).click()
     search.fill("__unknown_stock__")
     assert page.locator(".u-stock").count() == 0
