@@ -62,8 +62,7 @@ class RotationTests(unittest.TestCase):
                 report["cohort_counts"][:n+1]))
             self.assertEqual(report["cohort_counts"], [357,357,357,357,357,356,356])
             self.assertEqual(report["verified_full_six_pillar_issuer_count"], 0)
-            self.assertFalse(report["all_issuers_updated_this_cycle"] if n < 6
-                             else not report["all_issuers_updated_this_cycle"])
+            self.assertEqual(report["all_issuers_updated_this_cycle"], n == 6)
             self.assertEqual(report["source_collection_calls"], 0)
         self.assertEqual(len(state["records"]), 2497)
         self.assertEqual(report["processed_this_cycle"], 2497)
@@ -90,9 +89,9 @@ class RotationTests(unittest.TestCase):
                                               prior=state)
         self.assertEqual(next_report["processed_today"], 357)
         self.assertEqual(next_report["processed_this_cycle"], 357)
-        self.assertEqual(next_cycle["records"]["000001"]["cycle"],
+        self.assertEqual(next_cycle["records"]["000000"]["cycle"],
                          next_cycle["cycle_start"])
-        self.assertEqual(next_cycle["records"]["000002"]["cycle"],
+        self.assertEqual(next_cycle["records"]["000001"]["cycle"],
                          state["cycle_start"])
 
     def test_mismatch_dates_negative_or_stale_rejected(self):
