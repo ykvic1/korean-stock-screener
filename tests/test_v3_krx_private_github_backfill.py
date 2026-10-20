@@ -3,6 +3,7 @@ import base64
 import json
 import gzip
 import hashlib
+from pathlib import Path
 import unittest
 
 import v3_krx_private_github_backfill as h
@@ -225,6 +226,12 @@ class HistoricalPrivateGithubTests(unittest.TestCase):
         self.assertLess(len(packed),len(old_packed),
                         "binary frame must reduce private payload vs base64")
         self.assertEqual(h._unpack_pair(day,packed)["KOSPI"]["source_rows"],1350)
+
+    def test_no_scheduled_action_minutes_before_private_opt_in(self):
+        workflow=Path(".github/workflows/v3-krx-private-historical-backfill.yml").read_text()
+        self.assertIn("github.event_name == 'workflow_dispatch' || vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true'",workflow)
+        self.assertIn("default: dry_run",workflow)
+        self.assertIn("permissions:\\n  contents: read",workflow)
 
     def test_unknown_calendar_or_batch_does_not_collect(self):
         gh=SimulatedPrivateGithub();fake=FakeClient()
