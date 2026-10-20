@@ -311,7 +311,11 @@ def write(market,catalog,annual_book,*,output,prior=None,key=None,
         raise FourYearEvidenceError("missing_manual_pilot_key")
     targets=[{"code":code,"market_cap_eok":members[code]["market_cap_eok"]}
              for code in selected]
-    replies=collector(targets,day,key,years=4,budget_seconds=420) if targets else []
+    # Real two-issuer OpenDART bootstrap needed about four minutes.
+    # Give 4/8/12 issuer scheduled cohorts proportionally more time, while
+    # remaining under both the provider contract (<=900s) and 20m job limit.
+    budget=min(900,max(420,150*limit))
+    replies=collector(targets,day,key,years=4,budget_seconds=budget) if targets else []
     if not isinstance(replies,list):
         raise FourYearEvidenceError("unexpected_collector_response")
     report=merge(market,catalog,annual_book,replies,prior=prior,limit=limit)
