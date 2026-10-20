@@ -102,7 +102,11 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertEqual(r_old["latest_annual_fiscal_year_observed"],2024)
         self.assertTrue(r_new["current_core_financial_research_observed"])
         # Only the stale issuer remains eligible for a bounded refresh.
-        self.assertEqual(f.plan(m,c,b,prior=result,limit=2)[3],["005930"])
+        self.assertEqual(f.plan(m,c,b,prior=result,limit=2)[3],[],
+                         "same-day partial collection must not loop forever")
+        old=copy.deepcopy(result)
+        old["records"][0]["last_attempted_day"]="2026-10-10"
+        self.assertEqual(f.plan(m,c,b,prior=old,limit=2)[3],["005930"])
         self.assertFalse(result["full_v3_ready"])
 
     def test_march_year_end_grace_avoids_unnecessary_stale_flags(self):
@@ -175,8 +179,35 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         # Both must remain selectable for a recheck. Once income/CF/balance
         # evidence is present, a repeat request would no longer be justified.
         _,_,cached,retry=f.plan(m,c,b,prior=result,limit=2)
-        self.assertEqual(set(retry),{"005930","247540"})
+        self.assertEqual(retry,[],
+                         "same-day partial CFS/OFS cannot starve untouched issuers")
         self.assertEqual(len(cached),2)
+        back=copy.deepcopy(result)
+        for issuer in back["records"]:
+            issuer["last_attempted_day"]="2026-10-13"
+        self.assertEqual(set(f.plan(m,c,b,prior=back,limit=2)[3]),
+                         {"005930","247540"})
+
+    def test_unattempted_issuer_beats_repeated_partial_even_if_old_score_high(self):
+        m,c,b=inputs()
+        # An incomplete first attempt at a high old-score stock must NOT
+        # monopolize the live annual collector for an unattempted ticker.
+        first=f.merge(m,c,b,[reports("005930",omit=(2023,))],limit=1)
+        self.assertEqual(first["requested_this_run"],1)
+        self.assertEqual(first["records"][0]["last_attempted_day"],DAY)
+        self.assertEqual(f.plan(m,c,b,prior=first,limit=1)[3],["247540"])
+        # Cooldown expires but unattempted stock still has first priority.
+        past=copy.deepcopy(first)
+        past["records"][0]["last_attempted_day"]="2026-10-10"
+        self.assertEqual(f.plan(m,c,b,prior=past,limit=1)[3],["247540"])
+        second=f.merge(m,c,b,[reports("247540")],prior=first,limit=1)
+        self.assertEqual(second["pilot_issuer_count"],2)
+        self.assertEqual(f.plan(m,c,b,prior=second,limit=1)[3],[],
+                         "only failures inside cooldown; do not retry before 7d")
+        past=copy.deepcopy(second)
+        past["records"][0]["last_attempted_day"]="2026-10-10"
+        self.assertEqual(f.plan(m,c,b,prior=past,limit=1)[3],["005930"])
+        self.assertFalse(second["historical_PIT_source_certified"])
 
     def test_future_receipt_bad_scope_duplicates_nonKRW_and_bogus_amount_rejected(self):
         m,c,b=inputs()
