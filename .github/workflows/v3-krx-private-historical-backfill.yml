@@ -23,10 +23,10 @@ concurrency:
 
 jobs:
   historical:
-    # No private repo or provider license authorization: do not even start
+    # No documented KRX written permission for private-cloud retention: do not start
     # a scheduled public Actions runner (saves installation/runtime budget).
     # Explicit manual dry-runs remain accessible for operator inspection.
-    if: ${{ github.event_name == 'workflow_dispatch' || vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED == 'true' && vars.V3_KRX_CLOUD_STORAGE_WRITTEN_APPROVED == 'true' && vars.V3_KRX_APPROVAL_REFERENCE != '' && vars.V3_KRX_LICENSE_RECHECK_BY != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
@@ -51,6 +51,10 @@ jobs:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_KRX_PRIVATE_STORAGE_AUTHORIZED: ${{ vars.V3_KRX_PRIVATE_STORAGE_AUTHORIZED }}
+          V3_KRX_CLOUD_STORAGE_WRITTEN_APPROVED: ${{ vars.V3_KRX_CLOUD_STORAGE_WRITTEN_APPROVED }}
+          V3_KRX_STORAGE_SCOPE: ${{ vars.V3_KRX_STORAGE_SCOPE }}
+          V3_KRX_APPROVAL_REFERENCE: ${{ vars.V3_KRX_APPROVAL_REFERENCE }}
+          V3_KRX_LICENSE_RECHECK_BY: ${{ vars.V3_KRX_LICENSE_RECHECK_BY }}
         shell: bash
         run: |
           set -euo pipefail
