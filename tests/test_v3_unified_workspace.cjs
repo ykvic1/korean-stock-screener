@@ -162,6 +162,38 @@ assert.equal(unified.researchComposite(partial).available,11);
 assert.equal(unified.researchComposite(partial).missing,89);
 assert.deepEqual(unified.pillarState(partial).map(p=>p.candidate),
  [null,6.5,null,null,null,null]);
+// Backfilled V3 values from the bounded 7-day rotation require exact date,
+// same ticker, source counts, numeric parts and explicit noncertification.
+const missingAdapter={...partial,v3_pattern_integrated:null};
+const backedRec={
+ code:missingAdapter.code,market_source_asof:'2026-10-20',
+ last_recalculated_kst:'2026-10-20',available_weight:11,
+ research_score_points:6.5,technical_rebuilt_from_saved_source:true,
+ technical_research_backfill:partial.v3_pattern_integrated,
+ six_pillar_research_score_confirmed:false
+};
+const backState={schema:'v3-seven-day-research-source-rotation-0.1',
+ market_asof:'2026-10-20',cycle_start:'2026-10-20',run_kst:'2026-10-20',
+ source_collection_calls:0,legacy_v22_score_used:false,
+ v3_live_full_six_pillar_score_claimed:false,
+ records:{'005930':backedRec}};
+const backModel={date:'2026-10-20',rows:[{r:missingAdapter}]};
+assert.equal(unified.applyRotationTechnicalBackfill(backModel,backState),1);
+assert.equal(unified.researchComposite(missingAdapter).earned,6.5);
+assert.equal(unified.researchComposite(missingAdapter).available,11);
+assert.equal(unified.applyRotationTechnicalBackfill(backModel,backState),0,
+ 'proven adapter cannot be overwritten on subsequent replay');
+for(const bad of [
+ {...backState,market_asof:'2026-10-19'},
+ {...backState,source_collection_calls:4},
+ {...backState,records:{'005930':{...backedRec,research_score_points:100}}},
+ {...backState,records:{'005930':{...backedRec,technical_research_backfill:{
+  ...partial.v3_pattern_integrated,investable_score:99}}}},
+]){
+ const shadow={date:'2026-10-20',rows:[{r:{...missingAdapter,v3_pattern_integrated:null}}]};
+ assert.equal(unified.applyRotationTechnicalBackfill(shadow,bad),0,
+  'source/date/score mismatches must never turn into V3 user scores');
+}
 const missing={...row,v3_pattern_integrated:null};
 assert.equal(unified.researchComposite(missing).earned,null,
  'missing factor must not appear as 0.0/100');
