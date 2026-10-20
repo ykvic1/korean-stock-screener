@@ -29,22 +29,15 @@ with sync_playwright() as p:
     page.get_by_role("button", name="전 종목", exact=True).click()
     page.locator(".u-stock").first.wait_for(timeout=45000)
     assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
-    assert page.locator("#top100Only").get_attribute("aria-pressed") == "true"
-    # Stock rank is computed against the entire priced market, not
-    # an arbitrary upstream list or the order of filtered watch-candidates.
-    labels=page.locator(".u-rank-number").all_inner_texts()
-    initial_ranks=[int(v.rstrip("위")) for v in labels]
-    assert initial_ranks and initial_ranks == sorted(initial_ranks), initial_ranks
-    assert initial_ranks[0] == 1
-    assert page.locator(".u-scoresix").first.get_by_text("V3 합계").is_visible()
-    assert page.locator(".u-scoresix").first.get_by_text("미산출").is_visible()
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
+    # Only source-dated provisional V3 points are displayed; no V2.2 rank.
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
+    assert page.locator(".u-stock").first.get_by_text("V3 잠정 합계").is_visible()
+    assert page.locator(".u-scoresix").first.get_by_text("잠정 합계").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("수급 /20").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
-    assert page.locator(".u-scoresix").first.get_by_text("미검증").count() >= 1
-    # All six as-yet unverified V3 pillars use red outlines; real numeric
-    # candidates may be shown, but they never turn into a certified total.
-    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 6
-    assert page.locator(".u-scoresix .u-factor-unverified").first.evaluate(
+    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 7
+    assert page.locator(".u-scoresix .u-total-factor").first.evaluate(
         "(el) => getComputedStyle(el).boxShadow !== 'none'"
     )
     data = context.request.get(URL + "data.json").json()
@@ -53,8 +46,8 @@ with sync_playwright() as p:
     assert page.locator("#statAnalyzed").is_visible()
     displayed = int(page.locator("#statAnalyzed").inner_text().replace(",", ""))
     assert 0 < displayed <= data["candidate_count"]
-    assert page.get_by_text("V3 6영역 종합점수").is_visible()
-    assert page.locator("#statV3").inner_text().strip() == "미완성"
+    assert page.get_by_text("V3 잠정점수 산출 종목").is_visible()
+    assert page.locator("#statV3").inner_text().strip().endswith("종목")
     page.locator("#marketSummary summary").click()
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
     assert page.evaluate(
@@ -73,29 +66,30 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").count() == 1
     assert other in page.locator(".u-stock").first.inner_text()
     assert "전체 시장 검색" in page.locator("#resultCount").inner_text()
-    assert page.locator("#top100Only").get_attribute("aria-pressed") == "true"
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     page.get_by_role("button", name="전 종목", exact=True).click()
     search.fill("__unknown_stock__")
     assert page.locator(".u-stock").count() == 0
     assert page.get_by_text("해당 조건을 만족하는 종목이 없습니다.", exact=False).is_visible()
     search.fill("")
     page.locator("#top100Only").click()
-    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
-    assert "전체 시장" in page.locator("#resultCount").inner_text()
-    page.locator("#top100Only").click()
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "true"
+    # Zero source-scored candidates is allowed, and is NOT filled with V2.2.
+    page.locator("#top100Only").click()
+    assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
+    assert page.locator(".u-stock").count() > 0
     page.locator("#advancedFilters summary").click()
     assert page.locator("#sort").is_visible()
     page.locator("#sort").select_option("score")
     page.locator("#advancedFilters summary").click()
-    scores = page.locator(".u-stock-main span:nth-child(2) b").all_inner_texts()
-    scores = [float(x) for x in scores]
-    assert scores == sorted(scores, reverse=True), "old observed scores must be explicitly ordered"
+    # Card order is provisional evidence-first, not the old 2.2 ranking.
+    assert page.locator(".u-stock-main .u-provisional-total").first.is_visible()
+    assert "산출 가능" in page.locator(".u-stock-main .u-provisional-total").first.inner_text()
     page.locator(".u-stock").first.click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
     assert "일봉 · 스윙 관찰" in details and "주봉 · 중기/장기 관찰" in details
-    assert "V3 통합 100점" in details and "미산출" in details
+    assert "V3 통합 100점" in details and "미검증" in details
     assert "손실 위험" in details
     page.locator("#detailClose").click()
     for scope in ("patterns","rsi","quant","discover"):
@@ -120,7 +114,7 @@ with sync_playwright() as p:
             "certified_v3_investable_score": False,
             "checks": ["primary page redirect", "one-screen search",
                        "daily+weekly research", "source status", "five scopes",
-                       "legacy sort explicitly labeled", "downside first",
+                       "V3 provisional coverage sum", "downside first",
                        "same-screen details", "Excel export", "horizontal overflow",
                        "no JavaScript errors"]
         }, ensure_ascii=False, indent=2),

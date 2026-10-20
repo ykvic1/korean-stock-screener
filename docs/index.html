@@ -28,8 +28,8 @@
   <div class="u-stats">
    <div><span>가격 분석 종목</span><strong id="statAnalyzed">—</strong></div>
    <div><span>패턴·전환 관찰</span><strong id="statWatch">—</strong></div>
-   <div><span>기술 25점 연구 관측</span><strong id="statTechnical">—</strong></div>
-   <div><span>V3 6영역 종합점수</span><strong id="statV3">미완성</strong></div>
+   <div><span>기술항목 점수 산출</span><strong id="statTechnical">—</strong></div>
+   <div><span>V3 잠정점수 산출 종목</span><strong id="statV3">확인 중</strong></div>
   </div>
   <p id="sourceNotes" class="u-source">검증된 관측자료만 표시합니다. 실제 수급·재무·섹터 등 미확인 영역은 임의로 채우지 않습니다.</p>
  </details>
@@ -37,7 +37,7 @@
   <label class="u-quick-search" for="stockSearch">종목 검색
     <input id="stockSearch" type="search" placeholder="전체 종목에서 이름 또는 6자리 코드 검색" autocomplete="off" spellcheck="false">
    </label>
-  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="true">TOP100 · 기존 점수</button><span id="filterNotice">종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.</span></div>
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · V3 잠정</button><span id="filterNotice">종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.</span></div>
   <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
    <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
    <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
@@ -51,7 +51,7 @@
     <select id="market"><option value="all">코스피 + 코스닥</option>
      <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
    <label>정렬 기준
-    <select id="sort"><option value="score" selected>기존 관측점수순</option>
+    <select id="sort"><option value="score" selected>V3 잠정점수순</option>
      <option value="research">패턴·위험 우선</option>
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
