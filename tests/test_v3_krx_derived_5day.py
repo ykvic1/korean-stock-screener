@@ -2,6 +2,7 @@
 import json
 import unittest
 from unittest.mock import patch
+from unittest.mock import patch
 
 import v3_krx_derived_5day as d
 
@@ -106,6 +107,63 @@ class FiveDayDerivativeTests(unittest.TestCase):
         self.assertEqual(rerun["source_api_calls"],0)
         self.assertEqual(second.calls,[])
         self.assertEqual(private.posts,1)
+
+    def test_private_put_get_briefly_missing_never_recollects_or_rewrites(self):
+        archive=FakePrivate()
+        old_get=archive.get_content
+        state={"after_put_misses":2}
+        def delayed_get(path):
+            if path in archive.blobs and state["after_put_misses"]>0:
+                state["after_put_misses"]-=1
+                return None,None
+            return old_get(path)
+        archive.get_content=delayed_get
+        provider=FakeKRX()
+        with patch.object(d.time,"sleep",return_value=None) as wait:
+            result=d.store_five_day_factors(archive,provider)
+        self.assertEqual(result["status"],"persisted_and_readback_verified_derived")
+        self.assertEqual(len(provider.calls),10)
+        self.assertEqual(archive.posts,1)
+        self.assertEqual(wait.call_count,2)
+        self.assertEqual(state["after_put_misses"],0)
+
+    def test_readback_never_visible_fails_without_duplicate_api_or_put(self):
+        archive=FakePrivate()
+        prior=archive.get_content
+        def never_visible(path):
+            if path in archive.blobs:
+                return None,None
+            return prior(path)
+        archive.get_content=never_visible
+        provider=FakeKRX()
+        with patch.object(d.time,"sleep",return_value=None):
+            with self.assertRaisesRegex(d.DerivedSourceError,
+                                        "^private_derived_archive_readback_failed$"):
+                d.store_five_day_factors(archive,provider)
+        self.assertEqual(len(provider.calls),10)
+        self.assertEqual(archive.posts,1)
+        # Next independent run (orphan source) will use the existing immutable
+        # file rather than call official KRX again.
+        archive.get_content=prior
+        resumed=FakeKRX()
+        saved=d.store_five_day_factors(archive,resumed)
+        self.assertEqual(saved["status"],"verified_existing_derived")
+        self.assertEqual(resumed.calls,[])
+        self.assertEqual(archive.posts,1)
+
+    def test_wrong_readback_bytes_are_not_accepted_as_success(self):
+        archive=FakePrivate()
+        prior=archive.get_content
+        def wrong_bytes(path):
+            if path in archive.blobs:
+                return b"wrong", "sha"
+            return prior(path)
+        archive.get_content=wrong_bytes
+        with patch.object(d.time,"sleep",return_value=None):
+            with self.assertRaisesRegex(d.DerivedSourceError,
+                                        "private_derived_archive_readback_failed"):
+                d.store_five_day_factors(archive,FakeKRX())
+        self.assertEqual(archive.posts,1)
 
     def test_bad_provider_never_uploads_or_reveals_error(self):
         private=FakePrivate()
