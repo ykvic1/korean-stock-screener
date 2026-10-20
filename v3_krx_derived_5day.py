@@ -200,13 +200,15 @@ def validate_derived_blob(blob,start,end):
         raise DerivedSourceError("existing_derived_archive_invalid") from None
 
 
-def store_five_day_factors(storage,client,days=FIXED_FIRST_SAMPLE):
+def store_five_day_factors(storage,client,days=FIXED_FIRST_SAMPLE,progress=None):
     days=_check_days(days)
     # Explicit location controls so an accidental token cannot publish results.
     if storage.repository!="ykvic1/korean-stock-private-data":
         raise DerivedSourceError("unexpected_destination_for_derived_research")
+    if progress:progress("checking_private_repo_metadata")
     storage.verify_private()
     path=f"derived/five-session/{days[0]}_{days[-1]}.json.gz"
+    if progress:progress("checking_private_derived_file")
     existing,_=storage.get_content(path)
     if existing is not None:
         saved=validate_derived_blob(existing,days[0],days[-1])
@@ -215,9 +217,12 @@ def store_five_day_factors(storage,client,days=FIXED_FIRST_SAMPLE):
                 "complete_issuer_pairs":saved["complete_five_session_issuer_market_pairs"],
                 "existing_file_sha256":sha256(existing).hexdigest()[:16],
                 "raw_source_retained":False}
+    if progress:progress("collecting_and_deriving_in_memory")
     obj,blob,raw_bytes=derive(client,days)
     # All calls and validation completed before the only private Git file write.
+    if progress:progress("writing_private_derived_factor_file")
     storage.put_new(path,blob,"Archive five-session KRX derived research "+days[-1])
+    if progress:progress("verifying_private_factor_write")
     actual,_=storage.get_content(path)
     if actual!=blob:
         raise DerivedSourceError("private_derived_archive_readback_failed")
@@ -243,7 +248,8 @@ def main():
         from official_probe.clients import KRXClient
         store=PrivateGitStorage(os.environ["V3_PRIVATE_ARCHIVE_REPO"],
                                 os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
-        result=store_five_day_factors(store,KRXClient(os.environ["KRX_API_KEY"]))
+        result=store_five_day_factors(store,KRXClient(os.environ["KRX_API_KEY"]),
+                                      progress=lambda stage:print("safe_stage="+stage,flush=True))
         print(json.dumps(result,sort_keys=True))
         return 0
     except (DerivedSourceError,PrivateHistoryError) as exc:
