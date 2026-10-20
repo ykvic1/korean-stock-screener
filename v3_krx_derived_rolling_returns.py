@@ -31,7 +31,7 @@ from v3_krx_private_github_backfill import PrivateGitStorage
 SCHEMA="v3-krx-private-bucket-composed-unadjusted-return-v1"
 CHECKPOINT_SCHEMA="v3-krx-private-rolling-cohort-return-progress-v1"
 HORIZONS=(20,60,120,250)
-MAX_PER_HORIZON=8
+MAX_PER_HORIZON=16
 MAX_BLOB=250_000
 MAX_HISTORY_BYTES=40*1024*1024
 
