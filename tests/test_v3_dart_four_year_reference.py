@@ -135,11 +135,14 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertEqual(r_old["minimum_current_annual_fiscal_year"],2025)
         self.assertEqual(r_old["latest_annual_fiscal_year_observed"],2024)
         self.assertTrue(r_new["current_core_financial_research_observed"])
-        # Only the stale issuer remains eligible for a bounded refresh.
-        self.assertEqual(f.plan(m,c,b,prior=result,limit=2)[3],[],
-                         "same-day partial collection must not loop forever")
+        # Untouched listed issuers must be served before repeated old filings.
+        untouched=sorted(set(f.plan(m,c,b,limit=2)[1])-{"005930","247540"})
+        self.assertEqual(f.plan(m,c,b,prior=result,limit=2)[3],untouched[:2])
         old=copy.deepcopy(result)
         old["records"][0]["last_attempted_day"]="2026-10-10"
+        self.assertEqual(f.plan(m,c,b,prior=old,limit=2)[3],untouched[:2])
+        for code in untouched:
+            old["records"].append(f._record(code,[],DAY))
         self.assertEqual(f.plan(m,c,b,prior=old,limit=2)[3],["005930"])
         self.assertFalse(result["full_v3_ready"])
 
@@ -213,12 +216,16 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         # Both must remain selectable for a recheck. Once income/CF/balance
         # evidence is present, a repeat request would no longer be justified.
         _,_,cached,retry=f.plan(m,c,b,prior=result,limit=2)
-        self.assertEqual(retry,[],
-                         "same-day partial CFS/OFS cannot starve untouched issuers")
+        untouched=sorted(set(f.plan(m,c,b,limit=2)[1])-{"005930","247540"})
+        self.assertEqual(retry,untouched[:2],
+                         "unattempted firms must precede incomplete retrials")
         self.assertEqual(len(cached),2)
         back=copy.deepcopy(result)
         for issuer in back["records"]:
             issuer["last_attempted_day"]="2026-10-12"
+        self.assertEqual(f.plan(m,c,b,prior=back,limit=2)[3],untouched[:2])
+        for code in untouched:
+            back["records"].append(f._record(code,[],DAY))
         self.assertEqual(set(f.plan(m,c,b,prior=back,limit=2)[3]),
                          {"005930","247540"})
 
@@ -249,10 +256,14 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         self.assertEqual(f.plan(m,c,b,prior=past,limit=1)[3],["247540"])
         second=f.merge(m,c,b,[reports("247540")],prior=first,limit=1)
         self.assertEqual(second["pilot_issuer_count"],2)
-        self.assertEqual(f.plan(m,c,b,prior=second,limit=1)[3],[],
-                         "only failures inside cooldown; do not retry before 7d")
+        untouched=sorted(set(f.plan(m,c,b,limit=1)[1])-{"005930","247540"})
+        self.assertEqual(f.plan(m,c,b,prior=second,limit=1)[3],untouched[:1],
+                         "must cover unattempted firms before retries")
         past=copy.deepcopy(second)
         past["records"][0]["last_attempted_day"]="2026-10-10"
+        self.assertEqual(f.plan(m,c,b,prior=past,limit=1)[3],untouched[:1])
+        for code in untouched:
+            past["records"].append(f._record(code,[],DAY))
         self.assertEqual(f.plan(m,c,b,prior=past,limit=1)[3],["005930"])
         self.assertFalse(second["historical_PIT_source_certified"])
 
