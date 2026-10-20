@@ -53,7 +53,7 @@ assert.ok(source.includes('잠정 합계')&&source.includes('미검증'),
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
 for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
  'id="tabs"','id="saferOnly"','id="reload"','id="statV3"',
- '시장 · 정렬 · 손절 위험 상세 설정','V3 6영역 종합점수','차트 패턴'])
+ '시장 · 정렬 · 손절 위험 상세 설정','V3 잠정점수 산출 종목','차트 패턴'])
  assert.ok(html.includes(s),'single screen missing '+s);
 assert.ok(html.includes('workspace.js')&&html.includes('v3-ranking.js'));
 assert.ok(entry.includes('id="unifiedApp"')&&entry.includes('workspace.js'),
