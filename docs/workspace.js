@@ -350,7 +350,7 @@ function draw(){
    '전체 시장 검색 결과 · TOP100·선택 탭·위험 필터 제한 없음':
    '종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.';
  $('resultCount').textContent=rows.length.toLocaleString('ko-KR')+
-  '종목 · '+(query?'전체시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체시장 중 ')+
+  '종목 · '+(query?'전체 시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체 시장 중 ')+
   (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
