@@ -113,12 +113,29 @@ def _record(code, reports, asof):
     )
     core_observed = (revenue_op_observed and cashflow_3y_observed
                      and latest_balance_observed)
+    # A perfectly complete *old* 4-year sample is not current financial
+    # evidence for today's investment screening. The prior fiscal-year
+    # annual report is normally due around Q1; until April 1 allow the
+    # previous available fiscal-year cohort. The exact issuer filing
+    # receipt-date gate above still prevents lookahead and this threshold
+    # is a conservative freshness heuristic, NOT receipt authentication.
+    required_latest_year = cutoff.year - (
+        1 if (cutoff.month, cutoff.day) >= (4, 1) else 2)
+    latest_year = valid[-1]["year"] if valid else None
+    recent_four_years = bool(
+        is_four and latest_year is not None and
+        latest_year >= required_latest_year)
+    current_core_observed = bool(core_observed and recent_four_years)
     return {
         "code":code,
         "four_year_income_values_observed":revenue_op_observed,
         "last_three_years_operating_cashflow_observed":cashflow_3y_observed,
         "latest_year_balance_values_observed":latest_balance_observed,
         "core_financial_observed_for_research":core_observed,
+        "minimum_current_annual_fiscal_year":required_latest_year,
+        "latest_annual_fiscal_year_observed":latest_year,
+        "recent_four_year_window_observed":recent_four_years,
+        "current_core_financial_research_observed":current_core_observed,
         "status":"four_consecutive_years_observed" if is_four
                  else "insufficient_consecutive_single_scope_years",
         "reports":valid,
@@ -172,7 +189,7 @@ def plan(market, catalog, annual_book, *, prior=None, limit=MAX_COMPANIES):
     price={x["code"]:x for x in market["stocks"]}
     candidates=sorted(
         (c for c in observed if c in price and
-         not existing.get(c,{}).get("core_financial_observed_for_research",False)),
+         not existing.get(c,{}).get("current_core_financial_research_observed",False)),
         key=lambda c:(-price[c].get("score",0), c)
     )
     selected=candidates[:limit]
@@ -209,6 +226,10 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
             r["latest_year_balance_values_observed"] for r in output),
         "four_year_core_financial_research_observed_count":sum(
             r["core_financial_observed_for_research"] for r in output),
+        "recent_four_year_window_observed_count":sum(
+            r["recent_four_year_window_observed"] for r in output),
+        "current_core_financial_research_observed_count":sum(
+            r["current_core_financial_research_observed"] for r in output),
         "four_years_all_financial_pillars_certified":False,
         "unverified_financial_pit_receipts":True,
         "raw_account_rows_stored":False,
