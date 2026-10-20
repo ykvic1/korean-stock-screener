@@ -1,3 +1,5 @@
+// The historic v2.2 UI remains fully regression-tested on legacy.html;
+// the homepage now directly serves the unified V3 workspace.
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -47,7 +49,7 @@ assert.equal(model.quant('654321',quantSource,date).state,'not-studied');
 assert.equal(model.quant(code,quantSource,'2026-10-17').state,'outdated');
 assert.equal(model.quant(code,null,date).state,'unavailable');
 
-const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const order=['id="practicalWatchlist"','id="screenList"','id="quantPanel"',
  'id="marketSummary"','최근 엑셀 보고서','patch-notes.html'];
 let previous=-1;
