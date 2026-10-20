@@ -103,6 +103,7 @@ def dart_collect(stocks, asof, key, years=3, budget_seconds=360, annual_seed_by_
             continue
         seed=(annual_seed_by_code or {}).get(code)
         records=[dict(seed)] if seed is not None else []
+        newly_fetched_annual_years=0
         errors=[]
         for y in range(year-1,year-years-1,-1):
             if seed is not None and y == year-1:
@@ -140,6 +141,7 @@ def dart_collect(stocks, asof, key, years=3, budget_seconds=360, annual_seed_by_
                         'revision_history_verified':False,
                         'point_in_time_historical_price_verified':False,
                     })
+                    newly_fetched_annual_years+=1
                     break
                 except RuntimeError as exc:
                     errors.append(str(exc)[:90])
@@ -151,6 +153,10 @@ def dart_collect(stocks, asof, key, years=3, budget_seconds=360, annual_seed_by_
                      'deferred' if 'time_budget_exceeded' in errors else
                      'unconfirmed',
             'reports':records,
+            # Source freshness matters: a cached seed is NOT a successful
+            # provider response in THIS run, even if it has a real receipt.
+            'newly_fetched_annual_years':newly_fetched_annual_years,
+            'latest_year_reused_from_prior_dart':seed is not None,
             'error_codes':errors[:3],
             'backtest_included':False,
         })
