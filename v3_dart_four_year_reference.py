@@ -96,8 +96,29 @@ def _record(code, reports, asof):
                               v["revenue"] is not None and v["revenue"]>0 else None)
         if all(x is not None for x in margins):
             margin=round(sum(margins)/3,6)
+    # Four successive filings are NOT the same thing as four consecutive
+    # years with usable income, cash flow and balance-sheet numbers.
+    revenue_op_observed = is_four and all(
+        r["values"]["revenue"] is not None and r["values"]["revenue"] > 0
+        and r["values"]["operating_income"] is not None
+        for r in valid
+    )
+    cashflow_3y_observed = is_four and all(
+        r["values"]["operating_cashflow"] is not None
+        for r in valid[-3:]
+    )
+    latest_balance_observed = is_four and all(
+        valid[-1]["values"][name] is not None
+        for name in ("liabilities", "equity", "owners_equity")
+    )
+    core_observed = (revenue_op_observed and cashflow_3y_observed
+                     and latest_balance_observed)
     return {
         "code":code,
+        "four_year_income_values_observed":revenue_op_observed,
+        "last_three_years_operating_cashflow_observed":cashflow_3y_observed,
+        "latest_year_balance_values_observed":latest_balance_observed,
+        "core_financial_observed_for_research":core_observed,
         "status":"four_consecutive_years_observed" if is_four
                  else "insufficient_consecutive_single_scope_years",
         "reports":valid,
@@ -151,7 +172,7 @@ def plan(market, catalog, annual_book, *, prior=None, limit=MAX_COMPANIES):
     price={x["code"]:x for x in market["stocks"]}
     candidates=sorted(
         (c for c in observed if c in price and
-         not existing.get(c,{}).get("same_scope_four_years",False)),
+         not existing.get(c,{}).get("core_financial_observed_for_research",False)),
         key=lambda c:(-price[c].get("score",0), c)
     )
     selected=candidates[:limit]
@@ -180,6 +201,14 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         "pilot_issuer_count":len(output),"requested_this_run":len(requested),
         "four_consecutive_years_observed_count":sum(
             r["same_scope_four_years"] for r in output),
+        "four_year_income_values_observed_count":sum(
+            r["four_year_income_values_observed"] for r in output),
+        "last_three_years_operating_cashflow_observed_count":sum(
+            r["last_three_years_operating_cashflow_observed"] for r in output),
+        "latest_year_balance_values_observed_count":sum(
+            r["latest_year_balance_values_observed"] for r in output),
+        "four_year_core_financial_research_observed_count":sum(
+            r["core_financial_observed_for_research"] for r in output),
         "four_years_all_financial_pillars_certified":False,
         "unverified_financial_pit_receipts":True,
         "raw_account_rows_stored":False,
