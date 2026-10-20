@@ -141,6 +141,29 @@ function sampleQuant(x,core){
  if(!x.q)return '동일 기준일 퀀트 연구 없음';
  return core.quantGlance(x.q);
 }
+function technicalParts(r){
+ const score=technicalCandidate(r),source=r?.v3_pattern_integrated?.technical_parts;
+ if(score===null||!source||typeof source!=='object')return '';
+ const items=[['daily_pattern','일봉 패턴',7],['weekly_pattern','주봉 패턴',8],
+  ['daily_rsi','일봉 RSI',2],['weekly_rsi','주봉 RSI',3],
+  ['weekly_ma120','120주선',3],['volume_confirmation','거래량',2]];
+ if(items.some(([k,,max])=>source[k]!==null&&
+    (!finite(source[k])||source[k]<0||source[k]>max)))return '';
+ return '<div class="u-parts">'+items.map(([k,label,max])=>
+  '<div><span>'+label+'</span><b>'+(finite(source[k])?source[k].toFixed(1):'미확인')+
+  ' / '+max+'</b></div>').join('')+'</div>';
+}
+function quantTable(x,core){
+ if(!x.q)return '';
+ const periods=['스윙 1개월','스윙 2개월','중기 3개월','중기 6개월','장기 1년'];
+ const found=periods.map(name=>[name,core.period(x.q,name)]).filter(a=>a[1]);
+ if(!found.length)return '';
+ return '<div class="u-scroller"><table><thead><tr><th>기간</th><th>표본</th>'+
+  '<th>평균 수익</th><th>손절 먼저</th></tr></thead><tbody>'+
+  found.map(([name,z])=>'<tr><th>'+esc(name)+'</th><td>'+z.sample_n+
+   '건</td><td>'+pct(z.mean_net_return_pct)+'</td><td>'+
+   pct(z.stop_first_pct)+'</td></tr>').join('')+'</tbody></table></div>';
+}
 function summary(model,core){
  const discover=rankItems(model,core,'discover');
  return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
@@ -165,8 +188,9 @@ function patternPill(item){
   (weekly?'주봉 ':'일봉 ')+esc(item.label)+' · '+esc(label(item))+'</span>';
 }
 function renderDetails(x){
- const view=$('detail'),r=x.r;
+ const view=$('detail');
  if(!x){view.innerHTML='';view.hidden=true;return;}
+ const r=x.r;
  const pillars=pillarState(r);
  const annual=x.financialRef;
  const annualReference=core.simpleAnnualOfsBookReference(r,annual);
@@ -196,6 +220,8 @@ function renderDetails(x){
  '<h3>V3 통합 100점 · 영역별 검증 상태</h3>'+
  '<p class="u-muted">확정 투자 종합점수: <b>미산출</b> · 6개 영역의 검증 자료가 충족될 때만 확정 가능. 기존 관측점수와 혼동 금지.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
+ '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
+ technicalParts(r)+
  '<h3>재무 · 밸류 참고</h3>'+
  '<p class="u-muted">'+(annual?
   esc(annual.year)+'년 '+esc(annual.fs_div)+' 재무: 매출 '+eok(yearly.revenue)+
@@ -205,6 +231,7 @@ function renderDetails(x){
  '<p class="u-muted">비공식 간이 P/B '+(book!==null?book.toFixed(2)+'배':'미산출')+
  ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+
+ quantTable(x,core)+
  '<h3>손실 위험 · 가설 무효화</h3><p class="u-muted">'+esc(x.decision.reason)+
  ' · '+esc(risk.reasons.join(' / ')||'추가 위험 경고 관측 없음')+
  '. 구조선 이탈 시 재검토. 실제 체결 손실은 더 클 수 있습니다.</p>'+
@@ -226,7 +253,7 @@ function draw(){
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
    '<div class="u-stock-name"><strong>'+esc(r.name)+'</strong><small>'+esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
-   '<span><b>'+r.score.toFixed(1)+'</b><small>기존 관측점수 / 100</small></span></div>'+
+   '<span><b>'+r.score.toFixed(1)+'</b><small>기존 점수 · 확보 '+r.coverage_pct.toFixed(0)+'%</small></span></div>'+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
    '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+
