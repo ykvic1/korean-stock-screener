@@ -19,7 +19,9 @@ for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
  '일봉은 스윙, 주봉은 중기·장기','Bull Flag','폴링 웻지','역헤드앤숄더','더블바텀'])
  assert.ok(html.includes(s),'single screen missing '+s);
 assert.ok(html.includes('workspace.js')&&html.includes('v3-ranking.js'));
-assert.ok(/meta http-equiv="refresh" content="0;url=workspace.html"/.test(entry),'homepage must lead into single workspace');
+assert.ok(entry.includes('id="unifiedApp"')&&entry.includes('workspace.js'),
+ 'homepage itself must serve unified V3 without a redirect');
+assert.ok(!entry.includes('http-equiv="refresh"'),'avoid legacy intermediate page or double navigation');
 assert.ok(backup.includes('통합 스크리너로 돌아가기'),'archived previous UI must be available');
 assert.ok(!backup.includes('http-equiv="refresh"'),'old research UI should not auto-redirect');
 assert.ok(ranking.includes("if(root.document.getElementById('rankStatus'))init();"),
