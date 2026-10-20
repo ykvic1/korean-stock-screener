@@ -35,6 +35,16 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").first.get_by_text("V3 잠정 합계").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("잠정 합계").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("수급 /20").is_visible()
+    # The previous seven-column phone grid buried IAS numerics. Keep an
+    # explicit readable IAS strip instead of silently omitting the domain.
+    ias_strip = page.locator(".u-stock").first.locator(".u-ias-banner")
+    assert ias_strip.is_visible(), "IAS 20-point domain must not disappear"
+    assert "IAS" in ias_strip.inner_text() and "/ 20" in ias_strip.inner_text()
+    assert "0점 아님" in ias_strip.inner_text() or "미검증 연구값" in ias_strip.inner_text()
+    assert ias_strip.evaluate(
+        "(el) => el.getBoundingClientRect().width > 190 && "
+        "getComputedStyle(el).display === 'grid'"
+    ), "IAS status band should remain legible at a 390px mobile viewport"
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
     assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 7
     assert page.locator(".u-scoresix .u-total-factor").first.evaluate(
@@ -90,6 +100,9 @@ with sync_playwright() as p:
     details = page.locator("#detail").inner_text()
     assert "일봉 · 스윙 관찰" in details and "주봉 · 중기/장기 관찰" in details
     assert "V3 통합 100점" in details and "미검증" in details
+    assert page.locator("#detail .u-ias-banner").is_visible()
+    assert "IAS" in page.locator("#detail .u-ias-banner").inner_text()
+    assert "IAS(수급) /20" in details
     assert "손실 위험" in details
     page.locator("#detailClose").click()
     for scope in ("patterns","rsi","quant","discover"):
@@ -114,7 +127,7 @@ with sync_playwright() as p:
             "certified_v3_investable_score": False,
             "checks": ["primary page redirect", "one-screen search",
                        "daily+weekly research", "source status", "five scopes",
-                       "V3 provisional coverage sum", "downside first",
+                       "V3 provisional coverage sum", "IAS 20p mobile visibility", "downside first",
                        "same-screen details", "Excel export", "horizontal overflow",
                        "no JavaScript errors"]
         }, ensure_ascii=False, indent=2),

@@ -517,7 +517,7 @@ function init(){
    esc(x.decision.reason)+'</p></div>'+
    '<h3>① 기존 가중치 점수 분해</h3>'+
    '<p>기존 v2.2 점수 '+r.score.toFixed(1)+' / 100 · 관측된 가중치 '+
-   r.coverage_pct.toFixed(0)+'%. <b>v3의 IAS25·재무20·가치15·기술15·업종15·모멘텀10 점수와 다릅니다.</b></p>'+
+   r.coverage_pct.toFixed(0)+'%. <b>v3의 IAS20·기술25·재무15·가치15·산업15·모멘텀10 점수와 다릅니다.</b></p>'+
    '<div class="factor-grid">'+parts+'</div>'+
    '<h3>② 매수 무효화 기준과 하락 위험</h3><div class="rank-metrics">'+
    '<div><small>종가</small><b>'+money(r.price)+'</b></div>'+

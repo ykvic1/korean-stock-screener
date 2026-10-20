@@ -1,7 +1,7 @@
 /* Unified single-surface Korean-stock research. Source-aware, no fabricated V3 totals. */
 (function(root){
 'use strict';
-const VERSION='v3-unified-research-workspace-0.2-ias20-visibility';
+const VERSION='v3-unified-research-workspace-0.3-ias20-mobile-summary';
 const WEIGHTS=Object.freeze({ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
 const PILLARS=Object.freeze([['ias','IAS·수급'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['industry','산업·섹터'],['momentum','모멘텀']]);
 const IAS_COMPONENTS=Object.freeze([
@@ -269,6 +269,25 @@ function iasStatus(pillar){
    ?'IAS 수급 20점: 외국인·기관·연기금의 종목별 정규장 20·60·120·250일 원장과 정체성·기간 검증이 부족하여 점수를 산출하지 않습니다. 결측은 0점이 아닙니다.'
    :'IAS 수급 20점: 연구용 잠정값이며 공식 정규장 수급·연기금 포함관계·기간 검증 전에는 투자판단 점수가 아닙니다.';
 }
+// IAS is shown in its own readable surface on every ticker, not only as
+// the first tiny cell in a seven-column score grid on narrow phones.
+// Missing coverage is "unobserved" and NEVER a numeric zero.
+function iasSummary(pillars){
+ const p=Array.isArray(pillars)?pillars.find(x=>x&&x.key==='ias'):null;
+ if(!p||p.max!==WEIGHTS.ias)return {label:'IAS · 수급',value:'— / 20',status:'IAS 근거 미확보 · 0점 아님'};
+ if(p.candidate===null||p.available===0)return {
+  label:'IAS · 수급',value:'— / 20',
+  status:'기관·외국인·연기금 원장 미검증 · 0점 아님'};
+ return {
+  label:'IAS · 수급',value:p.candidate.toFixed(1)+' / 20',
+  status:'미검증 연구값 · 확정 투자점수 아님 · 확보 '+p.available+'/20'};
+}
+function iasSummaryHtml(pillars){
+ const x=iasSummary(pillars);
+ return '<div class="u-ias-banner u-factor-unverified" aria-label="IAS 수급 20점 현재 산출상태">'+
+  '<strong>'+esc(x.label)+'</strong><b>'+esc(x.value)+'</b>'+
+  '<small>'+esc(x.status)+'</small></div>';
+}
 function iasParts(){
  return '<div class="u-parts u-ias-parts" aria-label="IAS 내부 100점 배점·데이터 검증상태">'+
   IAS_COMPONENTS.map(([label,max])=>
@@ -369,7 +388,7 @@ function summary(model,core){
   provisional:model.rows.filter(x=>researchComposite(x.r).earned!==null).length,
   officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
-const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasSummary,iasSummaryHtml,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,applyRotationTechnicalBackfill};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -434,6 +453,7 @@ function renderDetails(x){
  composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
  '<h3>IAS(수급) /20 · 내부 100점 평가구조</h3>'+
+ iasSummaryHtml(pillars)+
  '<p class="u-muted">'+esc(iasStatus(pillars.find(p=>p.key==='ias')))+'</p>'+
  iasParts()+
  '<p class="u-muted">IAS 내부 배점 100점은 전체 V3의 20점 영역으로 환산합니다. 종목별 공식 수급 원장과 기업행사 보정이 검증되지 않아 이전 v2.2 수급 추정점수를 IAS 숫자로 대신 표시하지 않습니다.</p>'+
@@ -491,6 +511,7 @@ function draw(){
    (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
    x.composite.available+'/100</small></span></div>'+
+   iasSummaryHtml(x.composite.pillars)+
    '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
      '<span class="u-factor-unverified"'+(i.key==='ias'?' data-pillar="ias"':'')+'><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
