@@ -16,8 +16,25 @@ import re
 from v3_dart_rolling_book_reference import _inputs
 
 SCHEMA = "v3-four-year-dart-financial-evidence-0.1"
-MAX_COMPANIES = 4
+MAX_COMPANIES = 12
 RETRY_COOLDOWN_DAYS = 7
+MIN_HEALTHY_FRACTION = .75
+
+
+def automatic_daily_limit(prior):
+    """Expand live DART cautiously after real, source-validated healthy batches.
+
+    A source window counts healthy only with actual dated annual receipts, not
+    because an API call returned HTTP 200. Reverting to the 4-issuer base is
+    deliberate if observed responsiveness weakens.
+    """
+    if not isinstance(prior, dict) or prior.get("schema") != SCHEMA:
+        return 4
+    healthy=prior.get("consecutive_healthy_batches", 0)
+    if type(healthy) is not int or not 0<=healthy<=1000:
+        raise FourYearEvidenceError("invalid_automatic_batch_health")
+    return 12 if healthy>=10 else 8 if healthy>=3 else 4
+
 FIELDS = ("revenue", "operating_income", "operating_cashflow",
           "liabilities", "equity", "owners_equity", "owners_profit")
 CODE = re.compile(r"[0-9]{6}\Z")
@@ -196,9 +213,13 @@ def plan(market, catalog, annual_book, *, prior=None, limit=MAX_COMPANIES):
     # Cohort fairness: never repeatedly query a high-ranked issuer with
     # partial/no filings while another listed issuer has never been sampled.
     # This is a SOURCE collection queue, not a V2.2 or V3 investment ranking.
-    eligible=sorted(c for c in observed if c in price and
+    # First use the annual filing universe; AFTER it is exhausted, include
+    # the remaining listed issuers. Otherwise the collector can NEVER reach
+    # firms not yet represented in the separate 1-year DART backlog.
+    eligible=sorted(c for c in members if
                     not existing.get(c,{}).get("current_core_financial_research_observed",False))
-    never_attempted=[c for c in eligible if c not in existing]
+    never_attempted=([c for c in eligible if c in observed and c not in existing]+
+                     [c for c in eligible if c not in observed and c not in existing])
     # A failed/partial receipt is retried after cooling off at least seven
     # calendar days and only after every still-unattempted issuer is served.
     # Old 2022-24 evidence can legitimately be refreshed as FY2025 matures.
@@ -233,9 +254,22 @@ def merge(market,catalog,annual_book,results, *,prior=None,limit=MAX_COMPANIES):
         derived["last_attempted_day"]=day
         existing[code]=derived
     output=[existing[c] for c in sorted(existing)]
+    observed_in_run=sum(bool(x.get("reports")) for x in results)
+    # Using ANY truly received dated annual filing as a responsiveness probe,
+    # NOT claiming 4 consecutive years or a certified financial score.
+    healthy=(bool(requested) and observed_in_run/len(requested)>=MIN_HEALTHY_FRACTION
+             and all(x.get("status")!="deferred" for x in results))
+    previous_streak=prior.get("consecutive_healthy_batches",0) if prior else 0
+    if type(previous_streak) is not int or not 0<=previous_streak<=1000:
+        raise FourYearEvidenceError("invalid_automatic_batch_health")
+    streak=min(1000,previous_streak+1) if healthy else 0
     return {
         "schema":SCHEMA,"asof":day,"listed_total":len(members),
         "pilot_issuer_count":len(output),"requested_this_run":len(requested),
+        "observed_filings_issuers_this_run":observed_in_run,
+        "consecutive_healthy_batches":streak,
+        "next_schedule_max_issuers":automatic_daily_limit({
+            "schema":SCHEMA,"consecutive_healthy_batches":streak}),
         "unverified_issuer_count":sum(
             not x["current_core_financial_research_observed"] for x in output),
         "consecutive_missing_or_mixed_scope_count":sum(
