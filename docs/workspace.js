@@ -188,7 +188,7 @@ function summary(model,core){
   officialFullScore:0,rollingBook:model.rollingBookCount,
   quant:model.quantCount};
 }
-const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalCandidate,pillarState,riskState,rankItems,sampleQuant,summary,marketFreshness};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
