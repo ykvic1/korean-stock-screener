@@ -41,6 +41,12 @@ with sync_playwright() as p:
     assert page.locator(".u-scoresix").first.get_by_text("수급 /20").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("미검증").count() >= 1
+    # All six as-yet unverified V3 pillars use red outlines; real numeric
+    # candidates may be shown, but they never turn into a certified total.
+    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 6
+    assert page.locator(".u-scoresix .u-factor-unverified").first.evaluate(
+        "(el) => getComputedStyle(el).boxShadow !== 'none'"
+    )
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
     page.locator("#marketSummary summary").click()
