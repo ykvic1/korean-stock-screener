@@ -237,5 +237,61 @@ class RotationTests(unittest.TestCase):
             self.assertEqual(original_report,(root/"coverage.json").read_bytes())
 
 
+    def test_six_pillar_pbr_reference_requires_real_matching_observation(self):
+        market,catalog,book=fixture(14)
+        checked=(EPOCH+timedelta(days=1)).isoformat()
+        # Filing alone must not claim any computed book valuation.
+        baseline,base_report=recalculate(market,catalog,book,when=checked)
+        self.assertTrue(baseline["records"]["000001"]["source_observed"]["annual_receipt"])
+        self.assertFalse(baseline["records"]["000001"]["source_observed"]["simple_pb_unverified"])
+        self.assertEqual(base_report["six_pillar_reference_counts_this_cycle"]["valuation"],0)
+        self.assertEqual(base_report["six_pillar_numeric_partial_counts_this_cycle"]["valuation"],0)
+        # Only the official DART receipt joined to a real market-date reference.
+        book["observations"]=[{
+            "code":"000001","year":2025,"fs_div":"OFS",
+            "receipt_id":"20260331000001",
+            "market_cap_reference_day":"2026-10-19",
+            "pbr_simple_annual_reference":0.85,
+            "official_exchange_pbr_verified":False,
+        },{
+            "code":"000002","year":2025,"fs_div":"OFS",
+            "receipt_id":"20260331000001",
+            "market_cap_reference_day":"2026-10-19",
+            "pbr_simple_annual_reference":1.1,
+            "official_exchange_pbr_verified":False,
+        }]
+        state,coverage=recalculate(market,catalog,book,when=checked)
+        self.assertTrue(state["records"]["000001"]["source_observed"]["simple_pb_unverified"])
+        self.assertEqual(state["records"]["000001"]["source_reference_status"]["valuation"],
+                         "simple_book_reference_only")
+        self.assertEqual(coverage["six_pillar_reference_counts_this_cycle"]["valuation"],1)
+        self.assertEqual(coverage["six_pillar_numeric_partial_counts_this_cycle"]["valuation"],0)
+        self.assertEqual(coverage["six_pillar_reference_counts_this_cycle"]["ias"],0)
+        self.assertEqual(set(coverage["six_pillar_reference_counts_this_cycle"]),
+                         {"ias","technical","financial","valuation","industry","momentum"})
+        self.assertEqual(coverage["verified_full_six_pillar_issuer_count"],0)
+        # A plausible positive P/B with the wrong issuer filing is NOT sourced.
+        book["observations"][0]["receipt_id"]="20260331000002"
+        _,wrong=recalculate(market,catalog,book,when=checked)
+        self.assertEqual(wrong["six_pillar_reference_counts_this_cycle"]["valuation"],0)
+        # Same-day but unverified exchange flag likewise remains missing.
+        book["observations"][0]["receipt_id"]="20260331000001"
+        book["observations"][0]["official_exchange_pbr_verified"]=None
+        _,unknown=recalculate(market,catalog,book,when=checked)
+        self.assertEqual(unknown["six_pillar_reference_counts_this_cycle"]["valuation"],0)
+
+    def test_duplicate_matched_valuation_observation_fails_closed(self):
+        market,catalog,book=fixture(14)
+        row={"code":"000001","year":2025,"fs_div":"OFS",
+             "receipt_id":"20260331000001",
+             "market_cap_reference_day":"2026-10-19",
+             "pbr_simple_annual_reference":0.85,
+             "official_exchange_pbr_verified":False}
+        book["observations"]=[row,dict(row)]
+        with self.assertRaisesRegex(RotationError,
+                                    "duplicate_matched_dart_valuation_reference"):
+            recalculate(market,catalog,book,when=EPOCH.isoformat())
+
+
 if __name__ == "__main__":
     unittest.main()
