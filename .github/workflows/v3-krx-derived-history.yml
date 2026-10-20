@@ -8,8 +8,8 @@ on:
       max_windows:
         description: 'Max 5-session transformed cohorts this run (1/4/8)'
         type: choice
-        options: ['1', '4', '8']
-        default: '8'
+        options: ['1', '4', '8', '16']
+        default: '16'
         required: true
 
 permissions:
@@ -44,7 +44,7 @@ jobs:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'schedule' && '8' || inputs.max_windows }}
+          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'schedule' && '16' || inputs.max_windows }}
         run: |
           set -euo pipefail
           python v3_krx_derived_backfill.py
