@@ -273,6 +273,38 @@ function weeklyCoverageText(report, marketDate){
   (p===null?'':' · 기술점수 근거 '+p+'종목')+
   ' (기존 원본 재계산, 별도 실시간 API 수집 아님)';
 }
+function applyRotationTechnicalBackfill(model, state){
+ if(!model||!Array.isArray(model.rows)||!state||
+    state.schema!=='v3-seven-day-research-source-rotation-0.1'||
+    !validDate(model.date)||state.market_asof!==model.date||
+    !validDate(state.run_kst)||!validDate(state.cycle_start)||
+    state.run_kst<state.cycle_start||
+    !state.records||typeof state.records!=='object'||
+    Array.isArray(state.records)||Object.keys(state.records).length>6000||
+    state.source_collection_calls!==0||state.legacy_v22_score_used!==false||
+    state.v3_live_full_six_pillar_score_claimed!==false)return 0;
+ let accepted=0;
+ for(const x of model.rows){
+  const r=x.r,rec=state.records[r.code];
+  if(r.v3_pattern_integrated!==null&&r.v3_pattern_integrated!==undefined)continue;
+  if(!rec||rec.code!==r.code||rec.market_source_asof!==model.date||
+     r.price_date!==model.date||rec.technical_rebuilt_from_saved_source!==true||
+     !validDate(rec.last_recalculated_kst)||
+     rec.last_recalculated_kst>state.run_kst||
+     rec.six_pillar_research_score_confirmed!==false||
+     !rec.technical_research_backfill)continue;
+  const shadow={...r,v3_pattern_integrated:rec.technical_research_backfill};
+  const observed=technicalEvidence(shadow);
+  if(!observed||!finite(rec.research_score_points)||
+     rec.available_weight!==observed.available||
+     Math.abs(rec.research_score_points-observed.earned)>0.01)continue;
+  // Only a proven research adapter with the same market date and identical
+  // scored subparts can replace the absent optional adapter on this page.
+  r.v3_pattern_integrated=rec.technical_research_backfill;
+  accepted++;
+ }
+ return accepted;
+}
 function summary(model,core){
  const discover=rankItems(model,core,'discover');
  return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
@@ -284,7 +316,7 @@ function summary(model,core){
 }
 const api={VERSION,WEIGHTS,PILLARS,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,applyRotationTechnicalBackfill};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -443,7 +475,8 @@ function present(data){
 async function load(){
  const s=$('state');s.className='u-state';s.textContent='장마감 분석 자료 확인 중…';
  const files=['data.json','quant.json','recommendations.json','official.json',
-  'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json'];
+  'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json',
+  'v3-weekly-rotation.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -453,6 +486,7 @@ async function load(){
   if(!core)throw Error('missing_research_core');
   model=core.prepare(...responses.slice(0,6));
   weeklyCoverage=responses[6];
+  applyRotationTechnicalBackfill(model,responses[7]);
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
