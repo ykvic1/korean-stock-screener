@@ -387,7 +387,7 @@ const bulkParts={
  schema:'v3-dart-multi-year-research-parts-0.1',
  asof:'2026-10-20',listed_total:2497,model_financial_full_points:15,
  model_valuation_full_points:15,financial_partial_max_possible:8,
- valuation_partial_max_possible:5,
+ valuation_partial_max_possible:10,
  historical_PIT_certified:false,fully_verified_six_pillar_count:0,
  all_scores_provisional_unverified:true,
  rows:[{code:funded.code,market:'KOSPI',asof:'2026-10-20',
