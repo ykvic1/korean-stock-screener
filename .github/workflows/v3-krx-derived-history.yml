@@ -1,6 +1,13 @@
 name: V3 KRX historical derived-only backfill
 
 on:
+  # Immediately start the approved older-data-only replay on this first
+  # vetted main merge, then continue through the three daily windows.
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_derived_backfill.py
+      - .github/workflows/v3-krx-derived-history.yml
   schedule:
     - cron: '11 22 * * *'  # 07:11 KST, derived private backlog only
     - cron: '11 5 * * *'   # 14:11 KST
