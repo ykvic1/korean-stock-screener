@@ -12,6 +12,15 @@ const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8')
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
+assert.deepEqual(unified.marketFreshness('2026-10-20',new Date('2026-10-19T15:10:00Z')),
+ {status:'current',calendarDays:0},'KST midnight boundary');
+assert.deepEqual(unified.marketFreshness('2026-10-19',new Date('2026-10-19T15:10:00Z')),
+ {status:'current',calendarDays:1});
+assert.deepEqual(unified.marketFreshness('2026-10-19',new Date('2026-10-26T00:00:00Z')),
+ {status:'stale',calendarDays:7});
+assert.deepEqual(unified.marketFreshness('2026-10-21',new Date('2026-10-20T00:00:00Z')),
+ {status:'future',calendarDays:-1});
 assert.ok(html.includes('id="unifiedApp"'));
 assert.equal((html.match(/id="stockSearch"/g)||[]).length,1);
 for(const s of ['id="stockList"','id="detail"','id="market"','id="sort"',
