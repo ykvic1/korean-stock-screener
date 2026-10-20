@@ -132,7 +132,7 @@ class PrivateGitStorage:
         self.transport=transport or self._http
 
     def _http(self,method,path,body=None):
-        url=f"https://api.github.com/repos/{self.repository}/{path}"
+        url=f"https://api.github.com/repos/{self.repository}"+("/"+path if path else "")
         headers={"Authorization":"Bearer "+self.token,
                  "Accept":"application/vnd.github+json",
                  "X-GitHub-Api-Version":"2022-11-28",
