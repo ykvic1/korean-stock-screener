@@ -221,6 +221,50 @@ class BulkHistoryTests(unittest.TestCase):
                              session=provider)
         self.assertEqual(provider.calls,[])
 
+    def test_local_budget_saves_real_years_and_resumes_without_requery(self):
+        market,catalog=fixture()
+        checkpoints=[]
+        first_source=FakeDART()
+        with patch.object(bulk,"MAX_SOURCE_FISCAL_CALLS",2):
+            partial,calls=bulk.collect(
+                market,catalog,None,key="synthetic-key-not-secret-123",
+                session=first_source,groups=3,
+                on_progress=lambda state,year:
+                    checkpoints.append((year,copy.deepcopy(state))))
+        self.assertEqual(calls,3)  # one mapping, TWO official fiscal queries
+        self.assertEqual([year for year,_ in checkpoints],[2022,2023])
+        self.assertEqual([params["bsns_year"] for _,params
+                          in first_source.calls[1:]],["2022","2023"])
+        self.assertEqual(partial["completed_source_company_years"],10)
+        self.assertEqual(partial["attempted_company_count"],0)
+        self.assertFalse(partial["four_year_complete_financial15_certified"])
+        for code in CODES:
+            self.assertEqual(set(partial["records"][code]["years"]),
+                             {"2022","2023"})
+        second_source=FakeDART()
+        with patch.object(bulk,"MAX_SOURCE_FISCAL_CALLS",2):
+            finished,more=bulk.collect(
+                market,catalog,partial,key="synthetic-key-not-secret-123",
+                session=second_source,groups=3)
+        self.assertEqual(more,3)
+        self.assertEqual([params["bsns_year"] for _,params
+                          in second_source.calls[1:]],["2024","2025"])
+        self.assertEqual(finished["attempted_company_count"],5)
+        self.assertEqual(finished["four_year_income_observed_count"],5)
+        self.assertEqual(finished["completed_source_company_years"],20)
+        stopped=FakeDART(fail_year=2023)
+        with patch.object(bulk,"MAX_SOURCE_FISCAL_CALLS",2):
+            with self.assertRaisesRegex(
+                bulk.BulkHistoryError,"dart_bulk_provider_stop_or_schema"
+            ):
+                bulk.collect(
+                    market,catalog,None,
+                    key="synthetic-key-not-secret-123",
+                    session=stopped,groups=3)
+        self.assertEqual([p["bsns_year"] for _,p in stopped.calls[1:]],
+                         ["2022","2023"],
+                         "provider quota errors must never look like a safe budget stop")
+
     def test_one_mapping_four_year_requests_cover_every_listed_even_unpriced(self):
         market,catalog=fixture()
         session=FakeDART()

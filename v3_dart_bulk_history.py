@@ -820,19 +820,40 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
     complete={}
     calls=master_calls
     checkpoint=prior
+    source_successful_batches=0
     def save_year(updates,year):
-        nonlocal checkpoint
+        nonlocal checkpoint,source_successful_batches
+        # The capped runner must checkpoint even when no external callback
+        # was supplied; otherwise a valid 25-company response is discarded
+        # merely because a later cohort reaches the official call budget.
+        checkpoint=partial_year_checkpoint(
+            market,catalog,checkpoint,updates)
+        source_successful_batches+=1
         if on_progress:
-            checkpoint=partial_year_checkpoint(
-                market,catalog,checkpoint,updates)
             on_progress(checkpoint,year)
     for cohort in cohorts:
-        row,n=fetch_group(
-            session,key,asof,years,cohort,mapping,
-            prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
-            on_year=save_year if on_progress else None,
-            max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-master_calls),
-            deadline=deadline)
+        try:
+            row,n=fetch_group(
+                session,key,asof,years,cohort,mapping,
+                prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
+                on_year=save_year,
+                max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-master_calls),
+                deadline=deadline)
+        except BulkHistoryError as exc:
+            # A known *local* request/time budget is normal bounded work,
+            # not a provider error. Do not swallow quota status 020, invalid
+            # responses, conflicting receipts, or network failures.
+            if str(exc) in (
+                "dart_bulk_safe_source_call_budget_reached",
+                "dart_bulk_safe_elapsed_time_budget_reached"
+            ) and source_successful_batches:
+                print(json.dumps({
+                    "source_budget_stop":"saved_verified_partial_checkpoint",
+                    "official_fiscal_calls":source_successful_batches,
+                    "full_financial_score_certified":False,
+                },sort_keys=True),flush=True)
+                return checkpoint,master_calls+source_successful_batches
+            raise
         complete.update(row)
         calls+=n
     return combine(market,catalog,prior,complete,groups=groups),calls
