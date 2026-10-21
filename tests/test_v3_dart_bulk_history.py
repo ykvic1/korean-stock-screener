@@ -207,7 +207,7 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(len(saved),4)
         with self.assertRaisesRegex(bulk.BulkHistoryError,"seed_asof"):
             bulk.verified_current_annual_book_year(
-                market,catalog,{**book,"asof":"2026-10-19"},None)
+                market,catalog,{**book,"asof":"1999-01-01"},None)
         altered=copy.deepcopy(book)
         altered["records"][0]["annual"]["receipt_id"]="20271018000001"
         self.assertNotIn("005930",
