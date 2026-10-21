@@ -34,7 +34,15 @@ with sync_playwright() as p:
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     assert page.locator(".u-stock").first.get_by_text("V3 잠정 합계").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("잠정 합계").is_visible()
-    assert page.locator(".u-scoresix").first.get_by_text("수급 /20").is_visible()
+    assert page.locator(".u-scoresix").first.get_by_text("거래량·OBV /20").is_visible()
+    volume = context.request.get(URL + "v3-volume-obv-observed.json").json()
+    assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
+    assert volume["observed_volume_candidate_issuers"] > 0
+    assert volume["asof"] == context.request.get(URL + "data.json").json()["date"]
+    # The main scorecard must actually SHOW the sourced 16/20 partial score.
+    # A renamed but empty IAS card is an erroneous rollout.
+    shown = page.locator('.u-scoresix span[data-pillar="volume"] b').first.inner_text()
+    assert shown.strip() != "—", "real observed volume candidate not applied"
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
     assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 7
     assert page.locator(".u-scoresix .u-total-factor").first.evaluate(
