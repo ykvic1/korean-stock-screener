@@ -17,6 +17,7 @@ from xml.etree import ElementTree as ET
 import json
 import math
 import re
+import time
 
 from v3_dart_rolling_book_reference import _inputs
 
@@ -25,6 +26,8 @@ SCORE_SCHEMA = "v3-dart-multi-year-research-parts-0.1"
 MAX_CORPS = 100
 MAX_GROUPS = 3
 YEARS_BACK = 4
+MAX_SOURCE_FISCAL_CALLS = 8
+MAX_SOURCE_RUN_SECONDS = 1200
 LABELS = {
     ("IS","매출액"): "revenue",
     ("IS","영업수익"): "revenue",
@@ -253,65 +256,82 @@ def _mapping(blob, requested_codes):
 
 
 def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
-                prior_years=None,on_year=None):
-    """Skip verified historical years and checkpoint each complete annual GET."""
+                prior_years=None,on_year=None,max_requests=None,
+                deadline=None):
+    """Query ≤25 actual issuers per annual request; checkpoint every batch.
+
+    The official 100-company API allows *at most* 100 names, but repeated
+    real-world 100-name large filings had dropped the HTTP connection.
+    Smaller groups bound response volume and preserve independently valid
+    company-years without replaying previously saved years.
+    """
     prior_years=prior_years or {}
     found={c:dict(prior_years.get(c,{})) for c in code_cohort}
     available=[c for c in code_cohort if c in corp_map]
     requests_made=0
     for year in years:
         needed=[c for c in available if str(year) not in found[c]]
-        if not needed:
-            for code in code_cohort:
-                found[code].setdefault(str(year),{})
-            continue
-        lookup={corp_map[c]:c for c in needed}
-        try:
-            response=session.get(
-                "https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
-                params={"crtfc_key":key,"corp_code":",".join(lookup),
-                        "bsns_year":str(year),"reprt_code":"11011"},
-                timeout=55)
-            requests_made+=1
-            response.raise_for_status()
-            payload=response.json()
-        except Exception as exc:
-            name=type(exc).__name__
-            reason=("dart_bulk_http_timeout"
-                    if name in ("ReadTimeout","ConnectTimeout","Timeout")
-                    else "dart_bulk_http_connection_failed"
-                    if name=="ConnectionError" else "dart_bulk_http_status_failed"
-                    if name=="HTTPError" else "dart_bulk_invalid_json"
-                    if name=="JSONDecodeError" else "dart_bulk_transport_unavailable")
-            raise BulkHistoryError(reason) from None
-        if not isinstance(payload,dict):
-            raise BulkHistoryError("dart_bulk_unexpected_response")
-        status=payload.get("status")
-        if status=="013":
-            rows=[]
-        elif status=="000":
-            rows=payload.get("list")
-            if not isinstance(rows,list) or not rows:
-                raise BulkHistoryError("dart_bulk_empty_success_response")
-        else:
-            raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
-        diagnostics={}
-        try:
-            extracted=_normalize_year(rows,year,asof,set(needed),lookup,
-                                      diagnostics=diagnostics)
-        finally:
-            print(json.dumps({
-                "dart_bulk_fiscal_year":year,
-                "batch_requested_companies":len(needed),
-                "source_validation":diagnostics,
-                "raw_dart_rows_logged":False,
-            },sort_keys=True),flush=True)
+        for offset in range(0,len(needed),25):
+            if max_requests is not None and requests_made>=max_requests:
+                raise BulkHistoryError("dart_bulk_safe_source_call_budget_reached")
+            if deadline is not None and time.monotonic()>=deadline:
+                raise BulkHistoryError("dart_bulk_safe_elapsed_time_budget_reached")
+            batch=needed[offset:offset+25]
+            lookup={corp_map[c]:c for c in batch}
+            try:
+                response=session.get(
+                    "https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
+                    params={"crtfc_key":key,"corp_code":",".join(lookup),
+                            "bsns_year":str(year),"reprt_code":"11011"},
+                    timeout=55)
+                requests_made+=1
+                response.raise_for_status()
+                payload=response.json()
+            except Exception as exc:
+                kind=type(exc).__name__
+                reason=("dart_bulk_http_timeout"
+                        if kind in ("ReadTimeout","ConnectTimeout","Timeout")
+                        else "dart_bulk_http_connection_failed"
+                        if kind=="ConnectionError" else "dart_bulk_http_status_failed"
+                        if kind=="HTTPError" else "dart_bulk_invalid_json"
+                        if kind=="JSONDecodeError" else "dart_bulk_transport_unavailable")
+                raise BulkHistoryError(reason) from None
+            if not isinstance(payload,dict):
+                raise BulkHistoryError("dart_bulk_unexpected_response")
+            status=payload.get("status")
+            if status=="013":
+                rows=[]
+            elif status=="000":
+                rows=payload.get("list")
+                if not isinstance(rows,list) or not rows:
+                    raise BulkHistoryError("dart_bulk_empty_success_response")
+            else:
+                # A status such as 020 (quota) must pause the run.
+                raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
+            diagnostics={}
+            try:
+                extracted=_normalize_year(
+                    rows,year,asof,set(batch),lookup,diagnostics=diagnostics)
+            finally:
+                print(json.dumps({
+                    "dart_bulk_fiscal_year":year,
+                    "batch_requested_companies":len(batch),
+                    "source_validation":diagnostics,
+                    "raw_dart_rows_logged":False,
+                },sort_keys=True),flush=True)
+            for code in batch:
+                found[code][str(year)]=extracted.get(code,{})
+            if on_year:
+                on_year({c:{str(year):found[c][str(year)]}
+                         for c in batch},year)
+        # Keep 'no corporation mapping' distinct from real observed accounts;
+        # annual observations are never invented, and unmatched firms remain
+        # an empty researched source for any year in this completed cohort.
         for code in code_cohort:
-            found[code].setdefault(str(year),extracted.get(code,{}))
-        if on_year:
-            on_year({c:{str(year):found[c][str(year)]}
-                     for c in code_cohort},year)
+            if code not in available:
+                found[code].setdefault(str(year),{})
     return found,requests_made
+
 
 def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
     asof,members,retained,fiscal,cohorts=plan(
@@ -340,15 +360,75 @@ def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
        "fiscal_years":fiscal,
        "attempted_company_count":completed,
        "four_year_income_observed_count":four_income,
+       "completed_source_company_years":sum(
+           len(x["years"]) for x in retained.values()),
+       "observed_nonempty_company_years":sum(
+           sum(bool(v) for v in x["years"].values())
+           for x in retained.values()),
        "unattempted_company_count":len(members)-completed,
        "last_run_new_companies":len(expected),
        "historical_PIT_source_certified":False,
        "four_year_complete_financial15_certified":False,
        "cfo_capex_and_net_debt_from_bulk_api_available":False,
-       "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
+       "source":"Official OpenDART multi-company BS/IS plus already observed annual book",
        "raw_source_rows_published":False,
        "records":{code:retained[code] for code in sorted(retained)}
     }
+
+
+def verified_current_annual_book_year(market,catalog,annual_book,prior):
+    """Reuse only same-asof, real published DART FY receipts and exact accounts.
+
+    This is already collected official derived evidence, not a fabricated
+    multi-company statement or proof of historic PIT. It contains only fields
+    truly observed in the annual book; notably, assets remain unknown.
+    """
+    asof,members=_inputs(market,catalog)
+    if (type(annual_book) is not dict or annual_book.get("asof")!=asof or
+            annual_book.get("market_listed_total")!=len(members) or
+            type(annual_book.get("records")) is not list):
+        raise BulkHistoryError("incompatible_observed_annual_seed_asof")
+    current_year=_day(asof).year-1
+    retained=_validate_prior(prior,asof,members)
+    seeded={}
+    seen=set()
+    for row in annual_book["records"]:
+        if type(row) is not dict:
+            raise BulkHistoryError("invalid_observed_annual_seed_row")
+        code=row.get("code")
+        if code not in members or row.get("status")!="observed":
+            continue
+        if code in seen:
+            raise BulkHistoryError("duplicate_observed_annual_seed_issuer")
+        seen.add(code)
+        annual=row.get("annual")
+        if type(annual) is not dict:
+            continue
+        scope=annual.get("fs_div")
+        v=annual.get("values")
+        if (annual.get("year")!=current_year or scope not in ("CFS","OFS") or
+                annual.get("currency")!="KRW" or type(v) is not dict or
+                not _valid_receipt(annual.get("receipt_id"),current_year,_day(asof))):
+            continue
+        revenue=v.get("revenue")
+        income=v.get("operating_income")
+        if (type(revenue) is not int or not 0<revenue<=10**18 or
+                type(income) is not int or abs(income)>10**18):
+            continue
+        if str(current_year) in retained.get(code,{}).get("years",{}):
+            continue
+        values={"revenue":revenue,"operating_income":income,"assets":None,
+                "liabilities":None,"equity":None}
+        for key in ("liabilities","equity"):
+            entry=v.get(key)
+            if type(entry) is int and abs(entry)<=10**18:
+                values[key]=entry
+        seeded[code]={str(current_year):{scope:{
+            "receipt_id":annual["receipt_id"],
+            "values":values,"ambiguous":[],
+            "source_origin":"previously_observed_dart_annual_book",
+        }}}
+    return seeded
 
 
 def partial_year_checkpoint(market,catalog,prior,updates):
@@ -383,10 +463,13 @@ def partial_year_checkpoint(market,catalog,prior,updates):
         "unattempted_company_count":len(members)-completed,
         "last_run_new_companies":len(updates),
         "completed_source_company_years":sum(len(v["years"]) for v in retained.values()),
+        "observed_nonempty_company_years":sum(
+            sum(bool(v) for v in row["years"].values())
+            for row in retained.values()),
         "historical_PIT_source_certified":False,
         "four_year_complete_financial15_certified":False,
         "cfo_capex_and_net_debt_from_bulk_api_available":False,
-        "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
+        "source":"Official OpenDART multi-company BS/IS plus already observed annual book",
         "raw_source_rows_published":False,
         "records":{code:retained[code] for code in sorted(retained)},
     }
@@ -551,7 +634,16 @@ def write_json(path,value):
 
 
 def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
-            on_progress=None):
+            on_progress=None,annual_book=None):
+    # Enrich from ALREADY VERIFIED 2025 DART annual filings before any
+    # additional source request. Independently persist this observed evidence.
+    if annual_book is not None:
+        reuse=verified_current_annual_book_year(
+            market,catalog,annual_book,prior)
+        if reuse:
+            prior=partial_year_checkpoint(market,catalog,prior,reuse)
+            if on_progress:
+                on_progress(prior,_day(prior["asof"]).year-1)
     asof,members,retained,years,cohorts=plan(
         market,catalog,prior=prior,groups=groups)
     if not cohorts:
@@ -559,6 +651,9 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
     if type(key) is not str or len(key)<20:
         raise BulkHistoryError("missing_dart_bulk_key")
     requested={code for group in cohorts for code in group}
+    # Include corporate-master download/parse in the total scheduled run
+    # budget so that the job finishes before GitHub's hard 35 min timeout.
+    deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
     try:
         resp=session.get("https://opendart.fss.or.kr/api/corpCode.xml",
                          params={"crtfc_key":key},timeout=55)
@@ -581,10 +676,13 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         row,n=fetch_group(
             session,key,asof,years,cohort,mapping,
             prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
-            on_year=save_year if on_progress else None)
+            on_year=save_year if on_progress else None,
+            max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-1),
+            deadline=deadline)
         complete.update(row)
         calls+=n
     return combine(market,catalog,prior,complete,groups=groups),calls
+
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
@@ -632,7 +730,8 @@ def main(argv=None):
     try:
         archive,calls=collect(
             market,catalog,prior,key=key,session=requests.Session(),
-            groups=args.groups,on_progress=save_verified_year)
+            groups=args.groups,on_progress=save_verified_year,
+            annual_book=annual)
     except BulkHistoryError as err:
         if not checkpoints:
             raise
