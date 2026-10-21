@@ -1,4 +1,4 @@
-name: V3 Current Close All-Listed Observed Partial CSV (49/100 Max)
+name: V3 Current Close All-Listed Observed Partial CSV (49 or 67/100 Max)
 
 on:
   push:
@@ -11,6 +11,10 @@ on:
       - docs/v22-market-catalog.json
       - docs/v3-volume-obv-observed.json
       - docs/v3-current-price-technical-momentum.json
+      - docs/v3-dart-bulk-history.json
+      - docs/v3-dart-bulk-provisional.json
+      - docs/v3-dart-book-reference.json
+      - docs/v3-real-source-six-area-coverage.json
       - .github/workflows/v3-current-observed-scorecard.yml
   schedule:
     # Saved research replay, not official API source acquisition.
@@ -93,7 +97,7 @@ jobs:
           path=Path("docs/v3-current-observed-all-listed-summary.json")
           lines=[
             "### V3 당일 기준 전종목 실측 잠정 CSV",
-            "DART 결산 연간자료/업종이 전일이어도 현재 종가에 맞춘 거래량/기술/모멘텀은 따로 표시",
+            "최신 DART FY2022-25 공시 근거가 같은 시장일이면 재무8/가치10을 추가; 아니면 가격 3영역만 표시",
             "완성 100점 투자 인증은 0개. 매수·기관 순매수 추정이 아님.",
           ]
           if path.exists():
@@ -103,7 +107,8 @@ jobs:
                 "전종목: "+str(a["listed_total"]),
                 "한개 이상 관측: "+str(a["observed_any_factor_issuers"]),
                 "영역별 관측종목: "+str(a["observed_issuer_counts"]),
-                "현재 관측 가능 최대배점: 49/100",
+                "현재 관측 가능 최대배점: "+str(a["highest_currently_observable_weight"])+"/100",
+                "DART FY 근거 상태: "+a["fiscal_reference_join_status"],
               ])
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
               "\n".join(lines)+"\n",encoding="utf8")
