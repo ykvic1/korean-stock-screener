@@ -113,6 +113,7 @@ def coverage(catalog,history,parts,weekly):
         "companies_with_computable_3y_margin_scores" in parts)
     if parts.get("companies_with_computable_4y_income_scores")!=len(complete4):
         raise CoverageAuditError("source_vs_research_financial_mismatch")
+    seen_partial_codes=set()
     for row in parts["rows"]:
         code=row.get("code")
         if (code not in members or row.get("market")!=members[code]["market"]
@@ -122,6 +123,38 @@ def coverage(catalog,history,parts,weekly):
             row.get("financial_available_max") not in (0,4,8) or
             row.get("valuation_available_max") not in (0,5,10)):
             raise CoverageAuditError("untrusted_provisional_pillar_row")
+        if code in seen_partial_codes:
+            raise CoverageAuditError("duplicate_research_issuer")
+        seen_partial_codes.add(code)
+        comp=row.get("unverified_components")
+        if type(comp) is not dict:
+            raise CoverageAuditError("invalid_financial_component_records")
+        weighted={
+            "revenue_cagr_3y_pct":4,"operating_margin_3y_pct":4,
+            "pbr":5,"earnings_yield_pct":5,
+        }
+        for metric,maximum in weighted.items():
+            component=comp.get(metric)
+            if type(component) is not dict:
+                raise CoverageAuditError("invalid_financial_component_records")
+            earned=component.get("candidate_points")
+            expected=(maximum if earned is not None else 0)
+            if (component.get("max_points")!=expected or
+                (earned is not None and
+                 (not _number(earned) or not 0<=earned<=maximum))):
+                raise CoverageAuditError("invented_partial_component_points")
+        expected_fin=sum(comp[k]["max_points"] for k in
+                         ("revenue_cagr_3y_pct","operating_margin_3y_pct"))
+        expected_val=sum(comp[k]["max_points"] for k in
+                         ("pbr","earnings_yield_pct"))
+        if (row["financial_available_max"]!=expected_fin or
+            row["valuation_available_max"]!=expected_val or
+            row.get("combined_available_max")!=expected_fin+expected_val or
+            not _number(row.get("combined_provisional_points")) or
+            abs(row["combined_provisional_points"]-sum(
+                comp[k]["candidate_points"] or 0 for k in weighted))>0.00001 or
+            not 0<expected_fin+expected_val<=18):
+            raise CoverageAuditError("invented_partial_coverage_or_total")
         for key,prefix in (("financial","financial"),("valuation","valuation")):
             amount=row.get(prefix+"_candidate_points")
             possible=row.get(prefix+"_available_max")
@@ -130,8 +163,7 @@ def coverage(catalog,history,parts,weekly):
                 raise CoverageAuditError("untrusted_partial_pillar_points")
         if code in financial or code in valuation:
             raise CoverageAuditError("duplicate_research_issuer")
-        comp=row.get("unverified_components",{})
-        growth=(comp.get("revenue_cagr_3y_pct") or {}).get("candidate_points")
+        growth=comp["revenue_cagr_3y_pct"]["candidate_points"]
         margin=(comp.get("operating_margin_3y_pct") or {}).get("candidate_points")
         if growth is not None:
             if code not in complete4:
