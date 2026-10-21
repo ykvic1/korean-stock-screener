@@ -1,9 +1,11 @@
 """Same-close all-listed provisional scorecard, never blocked by older DART.
 
-Only independently replayed saved market evidence:
+Only independent current-close price evidence is always replayed:
 volume/OBV <=16/20, technical <=25/25, momentum <=8/10.
-Financial15, valuation15, industry15 remain EMPTY until same-day, verified
-official sources have actually supplied them. No rescaling or score certification.
+When independently verified current-close DART filing evidence EXISTS, its
+derived financial <=8/15 and simple valuation <=10/15 are also displayed.
+Stale, conflicting or uncertified filings NEVER become new-day points. Industry
+remains EMPTY; no 100-point rescaling or official investment certification.
 """
 from __future__ import annotations
 import argparse
@@ -16,9 +18,10 @@ from v3_volume_participation import build as volume_build
 from v3_current_price_replay import build as price_build
 from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points
-from v3_dart_bulk_history import _stable_digest
+from v3_dart_bulk_history import _stable_digest, research_parts, BulkHistoryError
+from v3_real_six_pillar_coverage_audit import _canonical_hash
 
-SCHEMA="v3-current-day-all-listed-three-source-provisional-0.1"
+SCHEMA="v3-current-day-all-listed-observed-plus-same-date-dart-0.2"
 POINT_BUDGET={"volume":20,"technical":25,"financial":15,
               "valuation":15,"industry":15,"momentum":10}
 
@@ -26,7 +29,57 @@ class LivePartialScorecardError(ValueError):
     """Never include raw provider data in failures."""
 
 
-def generate(market,catalog,volume,price):
+def finance_source(catalog,history,parts,annual,audit):
+    """Use ONLY the already-public audited DART files from this market close.
+
+    If the yearly collector is behind today's close, leave its weights blank;
+    never copy yesterday's 4-year financial rank to today's price row.
+    Recompute from real stored fiscal receipts rather than trust a score CSV.
+    """
+    today=catalog["date"]
+    docs=(history,parts,annual,audit)
+    if any(type(x) is not dict for x in docs):
+        return None
+    days=(history.get("asof"),parts.get("asof"),
+          annual.get("asof"),audit.get("market_asof"))
+    if any(day!=today for day in days):
+        return None
+    if (history.get("historical_PIT_source_certified") is not False or
+        history.get("raw_source_rows_published") is not False or
+        parts.get("historical_PIT_certified") is not False or
+        parts.get("all_scores_provisional_unverified") is not True or
+        parts.get("fully_verified_six_pillar_count")!=0 or
+        annual.get("official_exchange_pbr_verified") is not False or
+        annual.get("historical_point_in_time_verified") is not False or
+        audit.get("six_pillar_official_complete_100pt_issuer_count")!=0 or
+        audit.get("investment_grade_scores_confirmed") is not False or
+        audit.get("official_pbr_verified_count")!=0):
+        raise LivePartialScorecardError("forged_dart_source_or_certification")
+    hashrefs=audit.get("source_sha256_canonical") or {}
+    if (hashrefs.get("market_catalog")!=_canonical_hash(catalog) or
+        hashrefs.get("dart_four_year_archive")!=_canonical_hash(history) or
+        hashrefs.get("dart_partial_score")!=_canonical_hash(parts)):
+        return None   # collector changed before coverage report was re-audited
+    try:
+        expected=research_parts(history,catalog,annual)
+    except (BulkHistoryError,ValueError,TypeError,KeyError):
+        return None
+    if expected!=parts:
+        return None   # receipt/annual book rebase changed; resync first
+    rows={r["code"]:r for r in parts["rows"]}
+    if len(rows)!=len(parts["rows"]):
+        raise LivePartialScorecardError("duplicate_dart_financial_issuer")
+    area=audit.get("six_pillar_numeric_provisional_issuer_counts") or {}
+    actual_fin=sum(x.get("financial_available_max",0)>0 for x in rows.values())
+    actual_val=sum(x.get("valuation_available_max",0)>0 for x in rows.values())
+    if (area.get("financial")!=actual_fin or
+        area.get("valuation")!=actual_val or
+        audit.get("listed_total")!=catalog["listed_total"]):
+        return None
+    return rows
+
+
+def generate(market,catalog,volume,price,financial=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
     true_volume=volume_build(market,catalog)
     true_price=price_build(market,catalog)
@@ -37,7 +90,8 @@ def generate(market,catalog,volume,price):
         raise LivePartialScorecardError("different_market_date")
     observed={r["code"]:r for r in market["stocks"]}
     output=[]
-    counts={"volume":0,"technical":0,"momentum":0}
+    counts={"volume":0,"technical":0,"momentum":0,
+            "financial":0,"valuation":0}
     nonblank=0
     for listed in sorted(catalog["rows"],key=lambda r:r["code"]):
         code=listed["code"]
@@ -73,12 +127,25 @@ def generate(market,catalog,volume,price):
                     wrapper,asof,listed["market"])
                 if coverage["momentum"]==0:
                     raise LivePartialScorecardError("invalid_replayed_momentum")
+        if financial is not None and code in financial:
+            fiscal=financial[code]
+            if (fiscal.get("code")!=code or
+                fiscal.get("market")!=listed["market"] or
+                fiscal.get("asof")!=asof or
+                fiscal.get("confirmed_v3_score") is not None or
+                fiscal.get("scoring_certified") is not False):
+                raise LivePartialScorecardError("fiscal_price_join_identity_invalid")
+            for group in ("financial","valuation"):
+                points=fiscal.get(group+"_candidate_points")
+                available=fiscal.get(group+"_available_max")
+                values[group],coverage[group]=_contribution(
+                    points,available,POINT_BUDGET[group])
         for area in counts:
             if coverage[area]>0:
                 counts[area]+=1
         available=sum(coverage.values())
         earned=sum(v for v in values.values() if v is not None)
-        if not 0<=earned<=available<=49:
+        if not 0<=earned<=available<=(67 if financial is not None else 49):
             raise LivePartialScorecardError("invented_current_day_score")
         if available:
             nonblank+=1
@@ -97,9 +164,12 @@ def generate(market,catalog,volume,price):
     summary={
         "schema":SCHEMA,"asof":asof,"listed_total":len(output),
         "observed_any_factor_issuers":nonblank,
-        "observed_issuer_counts":{**counts,"financial":0,"valuation":0,"industry":0},
+        "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
-        "highest_currently_observable_weight":49,
+        "highest_currently_observable_weight":67 if financial is not None else 49,
+        "fiscal_reference_join_status":(
+            "same_day_saved_receipts_replayed" if financial is not None
+            else "not_ready_or_unverified_annual_source"),
         "official_investor_flows_inferred":False,
         "same_day_financial_and_sector_qualification":False,
         "missing_weight_is_not_zero":True,
@@ -131,7 +201,8 @@ def to_csv(rows,summary):
             row["code"],row["name"],row["market"],row["asof"],
             "" if v["volume"] is None else v["volume"],a["volume"] or "",
             "" if v["technical"] is None else v["technical"],a["technical"] or "",
-            "","","",
+            "" if v["financial"] is None else v["financial"],
+            "" if v["valuation"] is None else v["valuation"],"",
             "" if v["momentum"] is None else v["momentum"],a["momentum"] or "",
             "" if row["earned"] is None else row["earned"],
             row["available"] or "",row["unavailable"],"","미검증 연구용"
@@ -147,10 +218,20 @@ def main(argv=None):
     root=Path(args.docs)
     def read(name):
         return json.loads((root/name).read_text(encoding="utf8"))
+    catalog=read("v22-market-catalog.json")
+    try:
+        financial=finance_source(
+            catalog,read("v3-dart-bulk-history.json"),
+            read("v3-dart-bulk-provisional.json"),
+            read("v3-dart-book-reference.json"),
+            read("v3-real-source-six-area-coverage.json"))
+    except (OSError,ValueError,KeyError):
+        financial=None
     rows,summary=generate(
-        read("data.json"),read("v22-market-catalog.json"),
+        read("data.json"),catalog,
         read("v3-volume-obv-observed.json"),
-        read("v3-current-price-technical-momentum.json"))
+        read("v3-current-price-technical-momentum.json"),
+        financial=financial)
     new_csv=to_csv(rows,summary)
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"
@@ -169,7 +250,7 @@ def main(argv=None):
         "listed":summary["listed_total"],
         "observed":summary["observed_any_factor_issuers"],
         "by_area":summary["observed_issuer_counts"],
-        "available_points_ceiling":49,"certified_100point":0,
+        "available_points_ceiling":summary["highest_currently_observable_weight"],"certified_100point":0,
     },sort_keys=True))
 
 
