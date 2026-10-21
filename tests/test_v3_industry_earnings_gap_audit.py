@@ -8,7 +8,8 @@ import tempfile
 import unittest
 
 from v3_industry_earnings_gap_audit import (
-    SCHEMA,CATEGORIES,missing_reason,build,missing_csv,main,IndustryGapError,
+    SCHEMA,CATEGORIES,missing_reason,verified_operating_income_pair_without_revenue,
+    build,missing_csv,main,IndustryGapError,
 )
 from v3_dart_industry_earnings_sample import build as sample_build,source_join_ready
 
@@ -73,6 +74,32 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
                 self.assertEqual(
                     missing_reason(rec,first,last,d),label)
 
+    def test_profit_only_independent_proof_does_not_infer_revenue(self):
+        d="2026-10-21"
+        valid=issuer(old=statement(2024,op=0,revenue=None),
+                     new=statement(2025,op=-15,revenue=0))
+        proven=verified_operating_income_pair_without_revenue(valid,2024,2025,d)
+        self.assertEqual(proven,("CFS",0,-15))
+        self.assertEqual(missing_reason(valid,2024,2025,d),
+                         "annual_revenue_missing_or_nonpositive")
+        no_receipt=issuer(old=statement(2024,revenue=0),
+                          new=statement(2025,receipt="20210318001162"))
+        self.assertIsNone(verified_operating_income_pair_without_revenue(
+            no_receipt,2024,2025,d))
+        ambiguous=issuer(old=statement(2024,ambiguous=["operating_income"]))
+        self.assertIsNone(verified_operating_income_pair_without_revenue(
+            ambiguous,2024,2025,d))
+        absent=issuer(old=statement(2024,op=None))
+        self.assertIsNone(verified_operating_income_pair_without_revenue(
+            absent,2024,2025,d))
+        mismatch={"years":{"2024":{"CFS":statement(2024)},
+                           "2025":{"OFS":statement(2025)}}}
+        self.assertIsNone(verified_operating_income_pair_without_revenue(
+            mismatch,2024,2025,d))
+        invalid=issuer(old=statement(2024,op=True))
+        self.assertIsNone(verified_operating_income_pair_without_revenue(
+            invalid,2024,2025,d))
+
     def test_current_saved_real_source_reconciles_all_groups(self):
         market,catalog,industry,bulk=saved()
         if not source_join_ready(market,catalog,industry,bulk):
@@ -88,6 +115,17 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
             sample["observed_2digit_code_market_groups"])
         self.assertEqual(sum(result["missing_reason_counts"].values()),
                          len(missing))
+        rescued=result["verified_operating_profit_only_pair_among_missing"]
+        self.assertEqual(rescued,
+            sum(row["operating_profit_pair_without_revenue_verified"] for row in missing))
+        self.assertEqual(rescued,
+            sum(result["profit_only_among_missing_by_reason"].values()))
+        self.assertEqual(rescued,
+            sum(result["profit_only_among_missing_by_market"].values()))
+        self.assertLessEqual(rescued,len(missing))
+        self.assertTrue(result["profit_only_verified_but_full_pair_still_missing"])
+        self.assertEqual(result["actual_saved_annual_profit_pairs"]+
+                         result["saved_profit_pair_unavailable"],len(catalog["rows"]))
         self.assertEqual(result["source_calls"],0)
         self.assertFalse(result["actual_industry_15_points_authorized"])
         self.assertFalse(result["official_krx_sector_membership_pit_verified"])
@@ -98,10 +136,17 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
             missing_csv(missing,result).lstrip("\ufeff"))))
         self.assertEqual(len(output),len(missing))
         self.assertTrue(all(x["산업15점투자점수"]==""
-                            and x["과거KRX업종확인"]=="미확인" for x in output))
+                            and x["과거KRX업종확인"]=="미확인"
+                            and x["매출포함_엄격비교"]=="미확보"
+                            and x["영업이익_2개년_매출무관_별도검증"] in
+                               ("검증","미검증") for x in output))
+        self.assertEqual(sum(x["영업이익_2개년_매출무관_별도검증"]=="검증"
+                             for x in output),rescued)
         for group in result["groups"]:
             self.assertEqual(group["classified"],group["compared"]+group["missing"])
             self.assertEqual(group["missing"],sum(group["gap_reason_counts"].values()))
+        self.assertEqual(sum(x["verified_profit_only_gap_count"]
+                             for x in result["groups"]),rescued)
 
     def test_forged_current_company_profile_and_future_history_fail(self):
         market,catalog,industry,bulk=saved()
