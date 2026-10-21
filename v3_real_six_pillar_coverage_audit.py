@@ -13,7 +13,8 @@ import math
 from pathlib import Path
 
 from v3_dart_bulk_history import (
-    SCHEMA as HISTORY_SCHEMA, SCORE_SCHEMA, _best_income_window, write_json
+    SCHEMA as HISTORY_SCHEMA, SCORE_SCHEMA, _best_income_window,
+    _three_year_margin, write_json
 )
 
 SCHEMA = "v3-real-saved-source-six-pillar-coverage-0.1"
@@ -82,7 +83,7 @@ def coverage(catalog,history,parts,weekly):
         raise CoverageAuditError("untrusted_four_fiscal_years")
     observed_years={str(y):0 for y in fiscal}
     attempted_years={str(y):0 for y in fiscal}
-    complete4=set()
+    complete4=set();valid3margin=set()
     book_rows=history["records"]
     if set(book_rows)-set(members):
         raise CoverageAuditError("unexpected_historical_issuer")
@@ -100,11 +101,16 @@ def coverage(catalog,history,parts,weekly):
                 observed_years[year]+=1
         if _best_income_window(record,fiscal) is not None:
             complete4.add(code)
+        if _three_year_margin(record,fiscal) is not None:
+            valid3margin.add(code)
     if (history.get("four_year_income_observed_count")!=len(complete4) or
         history.get("completed_source_company_years")!=sum(attempted_years.values()) or
         history.get("observed_nonempty_company_years")!=sum(observed_years.values())):
         raise CoverageAuditError("historical_coverage_claim_mismatch")
     financial=set();valuation=set();pbr=set();earnings=set()
+    margin_provisional=set();growth_provisional=set()
+    has_independent_margin_parts=(
+        "companies_with_computable_3y_margin_scores" in parts)
     if parts.get("companies_with_computable_4y_income_scores")!=len(complete4):
         raise CoverageAuditError("source_vs_research_financial_mismatch")
     for row in parts["rows"]:
@@ -124,18 +130,33 @@ def coverage(catalog,history,parts,weekly):
                 raise CoverageAuditError("untrusted_partial_pillar_points")
         if code in financial or code in valuation:
             raise CoverageAuditError("duplicate_research_issuer")
-        if row["financial_available_max"]>0:
+        comp=row.get("unverified_components",{})
+        growth=(comp.get("revenue_cagr_3y_pct") or {}).get("candidate_points")
+        margin=(comp.get("operating_margin_3y_pct") or {}).get("candidate_points")
+        if growth is not None:
             if code not in complete4:
-                raise CoverageAuditError("financial_score_without_four_year_evidence")
+                raise CoverageAuditError("growth_score_without_four_year_evidence")
+            growth_provisional.add(code)
+        if margin is not None:
+            if code not in valid3margin:
+                raise CoverageAuditError("margin_score_without_three_year_evidence")
+            margin_provisional.add(code)
+        if row["financial_available_max"]>0:
+            if (code not in growth_provisional and
+                code not in margin_provisional):
+                raise CoverageAuditError("financial_score_without_source_component")
             financial.add(code)
         if row["valuation_available_max"]>0:
             valuation.add(code)
-        comp=row.get("unverified_components",{})
         if (comp.get("pbr") or {}).get("candidate_points") is not None:
             pbr.add(code)
         if (comp.get("earnings_yield_pct") or {}).get("candidate_points") is not None:
             earnings.add(code)
-    if (len(financial)!=len(complete4) or
+    if (len(growth_provisional)!=len(complete4) or
+        (has_independent_margin_parts and
+         parts.get("companies_with_computable_3y_margin_scores")!=
+             len(margin_provisional)) or
+        len(financial)!=(len(growth_provisional|margin_provisional)) or
         parts.get("companies_with_computable_pb_scores")!=len(pbr) or
         parts.get("companies_with_computable_earnings_yield_scores")!=len(earnings)):
         raise CoverageAuditError("research_component_evidence_count_mismatch")
@@ -198,6 +219,8 @@ def coverage(catalog,history,parts,weekly):
         "historical_dart_company_years_attempted_by_fiscal":attempted_years,
         "historical_dart_company_years_with_accounts_by_fiscal":observed_years,
         "verified_four_year_income_reference_issuers":len(complete4),
+        "three_year_actual_margin_source_issuers":len(valid3margin),
+        "three_year_margin_provisional_score_issuers":len(margin_provisional),
         "official_pbr_verified_count":0,
         "simple_pbr_reference_provisional_issuers":len(pbr),
         "earnings_yield_reference_provisional_issuers":len(earnings),
