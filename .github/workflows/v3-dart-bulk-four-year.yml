@@ -138,7 +138,7 @@ jobs:
           else:
             lines.append('- 유효한 과거 공시 파일 미확인: 완료 아님')
           lines.append('공식 수급 IAS, 기업행사·과거 PIT, 6영역 확정점수 없음.')
-          summary.write_text('\\n'.join(lines)+'\\n',encoding='utf8')
+          summary.write_text('\n'.join(lines)+'\n',encoding='utf8')
           PY
       - name: Source integrity and no certified 100-point release notice
         if: always()
