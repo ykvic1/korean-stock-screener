@@ -1,0 +1,59 @@
+name: V3 OpenDART Company Industry Codes
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_industry_codes.py
+      - .github/workflows/v3-dart-industry-codes.yml
+  schedule:
+    - cron: '12 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Verify source and null-handling offline
+        run: |
+          python -m py_compile v3_dart_industry_codes.py
+          python -m unittest discover -s tests -p 'test_v3_dart_industry_codes.py' -v
+      - name: Install requests for live source
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Official company.json industry code source
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          MODE=dry-run
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then MODE=live; fi
+          python v3_dart_industry_codes.py --mode "$MODE" --limit 96
+      - name: Save only observed industry classifications
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-industry-classification.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Save observed company industry codes"
+            git pull --rebase origin main
+            python v3_dart_industry_codes.py --mode rebind
+            git add docs/v3-dart-industry-classification.json
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+            python v3_dart_industry_codes.py --mode verify
+            git push origin HEAD:main
+          fi
