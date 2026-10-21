@@ -9,7 +9,8 @@ on:
       - .github/workflows/v3-dart-cashflow.yml
   # Thirty-two source-qualified issuers x three annual reports per hour.
   # At most 96 provider calls/run; 47 past the hour avoids the 29-minute
-  # bulk-history slot. Shared publication concurrency serializes commits.
+  # bulk-history slot. Dedicated concurrency avoids displacement by the
+  # 18:30 full-market queue; source commits rebase on the latest main.
   # The existing bulk major-account collector remains independent.
   schedule:
     - cron: '47 * * * *'
@@ -25,7 +26,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: korea-stock-screener-publication
+  group: korea-stock-screener-dart-cashflow
   cancel-in-progress: false
 
 jobs:
@@ -72,19 +73,29 @@ jobs:
           fi
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official FY2023-2025 cashflow/CAPEX observations (no scores)"
-            git pull --rebase origin main
-            # A concurrent major-account backfill may append new firms. Rebind
-            # the reference hash only if every existing cashflow issuer/year/
-            # scope/receipt still matches; never silently certify a revision.
-            python v3_dart_cashflow_enrichment.py --mode rebind
-            python v3_dart_cashflow_factor_preview.py --mode write
-            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json
-            if ! git diff --cached --quiet; then
-              git commit --amend --no-edit
-            fi
-            python v3_dart_cashflow_enrichment.py --mode verify
-            python v3_dart_cashflow_factor_preview.py --mode verify
-            git push origin HEAD:main
+            # Three bounded compare/rebase retries; not a second DART fetch.
+            # Source revisions, stale market days or file conflicts fail closed.
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              # A concurrent major-account backfill may append new firms.
+              # Rebind only when each same issuer/year/scope/receipt matches.
+              python v3_dart_cashflow_enrichment.py --mode rebind
+              python v3_dart_cashflow_factor_preview.py --mode write
+              git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json
+              if ! git diff --cached --quiet; then
+                git commit --amend --no-edit
+              fi
+              python v3_dart_cashflow_enrichment.py --mode verify
+              python v3_dart_cashflow_factor_preview.py --mode verify
+              if git push origin HEAD:main; then
+                echo "verified_cashflow_checkpoint_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::cashflow_publish_retries_exhausted"
+                exit 1
+              fi
+            done
           fi
       - name: Report real cashflow sources and missingness, never buy signals
         if: always()
