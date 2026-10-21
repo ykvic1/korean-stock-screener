@@ -1,6 +1,8 @@
 """Publish an ALL-LISTED, observed-only six-pillar V3 research score CSV.
 
-No foreign/institutional IAS or industry score is inferred from a chart,
+Investor IAS is replaced in this NEW scorecard by research-only volume/OBV
+candidate observations (at most 16 of the 20-point budget initially).
+No foreign/institutional accumulation or sector score is inferred from a chart,
 legacy v2.2 score, name, sector label or a blank. FCF is an independently
 validated 4/5-point subfactor, not an additional 15-point category.
 Historical PIT, corporate actions, full investment score remain unverified.
@@ -20,16 +22,17 @@ from v3_real_six_pillar_coverage_audit import coverage, CoverageAuditError
 from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
 from v3_dart_industry_codes import prior_records, IndustrySourceError
+from v3_volume_participation import build as observed_volume, OBSERVABLE_MAX
 
-AREAS=("ias","technical","financial","valuation","industry","momentum")
+AREAS=("volume","technical","financial","valuation","industry","momentum")
 # The user approved the six-domain 100-point contract and industry 5/4/3/3.
 # No five-domain 85-point alternative or rescaling is used.
 INDUSTRY_PARTS=dict(INDUSTRY_POINTS)
-WEIGHTS={"ias":20,"technical":25,"financial":15,
+WEIGHTS={"volume":20,"technical":25,"financial":15,
          "valuation":15,"industry":15,"momentum":10}
-NAMES={"ias":"수급","technical":"기술","financial":"재무",
+NAMES={"volume":"거래량·OBV","technical":"기술","financial":"재무",
        "valuation":"가치","industry":"산업","momentum":"모멘텀"}
-SCHEMA="v3-all-current-listed-observed-partial-scorecard-0.1"
+SCHEMA="v3-all-current-listed-observed-partial-scorecard-0.2-volume-replaces-ias"
 
 
 class FullMarketScorecardError(ValueError):
@@ -93,6 +96,10 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
     listed=audit["listed_total"]
     members={r["code"]:r for r in catalog["rows"]}
     raw_parts={r["code"]:r for r in parts["rows"]}
+    # Reuse only same-day v2.2 price-derived volume/OBV fields.
+    # An independent live investor-identity API is NOT required.
+    volume_source=observed_volume(market,catalog)
+    volume_rows=volume_source["records"]
     industry_codes={}
     industry_ref_status="source_not_available"
     if industry_source is not None:
@@ -160,6 +167,10 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
     for code in sorted(members):
         member=members[code]
         values={k:(None,0) for k in AREAS}
+        volume=volume_rows.get(code)
+        if volume:
+            values["volume"]=_contribution(
+                volume["observed_points"],volume["observed_available_max"],20)
         part=raw_parts.get(code)
         if part:
             for area in ("financial","valuation"):
@@ -207,7 +218,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                          industry_codes.get(code,{}).get("industry_code")),
                      "factors":values,"earned":round(earned,4) if available else None,
                      "available":available,"unavailable":100-available})
-    if (len(rows)!=listed or count["ias"]!=0 or count["industry"]!=0 or
+    if (len(rows)!=listed or count["volume"]!=len(volume_rows) or count["industry"]!=0 or
         any(r["available"]>100 for r in rows)):
         raise FullMarketScorecardError("false_full_score_or_missing_listed_issuer")
     summary={
@@ -220,6 +231,11 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
         "industry_approved_subweights":dict(INDUSTRY_PARTS),
         "industry_numeric_score_requires_real_verified_inputs":True,
         "industry_labels_descriptive_unverified":known_industry_labels,
+        "volume20_replaces_unavailable_investor_IAS20":True,
+        "legacy_foreign_institutional_IAS_verified_count":0,
+        "volume20_observed_maximum_per_issuer":OBSERVABLE_MAX,
+        "volume20_unobserved_absorption_points":4,
+        "technical_one_day_volume_not_double_counted":True,
         "industry_current_company_source_status":industry_ref_status,
         "industry_code_source_attempted":len(industry_codes),
         "industry_code_source_observed":sum(
@@ -252,12 +268,13 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
             "dart_major":_stable_digest(history),
             "dart_partial":_stable_digest(parts),
             "weekly":_stable_digest(weekly),
+            "volume_observed":_stable_digest(volume_source),
             "fcf":_stable_digest(fcf_effective) if fcf_accepted else None,
             "industry_company_profile":_stable_digest(industry_source)
                 if industry_ref_status=="verified_current_company_classification_only"
                 else None,
         },
-        "notice":"Missing factor columns are blank, never 0. No official IAS20, sector15, historical PIT or verified buy ranking."
+        "notice":"Investor IAS is replaced by observed price-volume/OBV candidates up to 16/20, not identified net buying. Unobserved 4 volume points remain missing. No sector15, corporate-action PIT or certified trading score."
     }
     return rows,summary
 
