@@ -61,27 +61,15 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
           python -m unittest discover -s tests -p 'test_v3_real_source_progress_ledger.py' -v
           python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
-      - name: Resolve one legitimate close-date census and preflight DART book
+      - name: Verify market census and defer bounded previous-day DART annual references
+        id: date_gate
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import json
-          from datetime import date, datetime
-          from pathlib import Path
-          from zoneinfo import ZoneInfo
-          from v3_dart_bulk_history import plan
-          market=json.loads(Path('docs/data.json').read_text(encoding='utf8'))
-          catalog=json.loads(Path('docs/v22-market-catalog.json').read_text(encoding='utf8'))
-          annual=json.loads(Path('docs/v3-dart-book-reference.json').read_text(encoding='utf8'))
-          asof,members,_,years,groups=plan(market,catalog)
-          lag=(datetime.now(ZoneInfo('Asia/Seoul')).date()-date.fromisoformat(asof)).days
-          if (lag not in range(0,10) or annual.get('asof')!=asof
-                or annual.get('market_listed_total')!=len(members)):
-              raise ValueError('stale_bulk_market_or_dart_annual_reference')
-          print('source_day=',asof,'listed=',len(members),
-                'fiscal_years=',years,'next_100_groups=',len(groups))
-          PY
+          python v3_dart_source_day_preflight.py --kind annual
+          # Future/expired annual source dates fail; a normal lag is merely
+          # deferred until the separately scheduled annual collector catches up.
       - name: Read or collect exactly bounded 100-company fiscal batches
+        if: ${{ steps.date_gate.outputs.ready == 'true' }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           REQUESTED_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'live' }}
@@ -91,7 +79,7 @@ jobs:
           python v3_dart_bulk_history.py \
              --mode "$REQUESTED_MODE" --groups "$REQUESTED_GROUPS"
       - name: Publish only derived 4-year annual values and provisional points
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') && steps.date_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -121,6 +109,8 @@ jobs:
           fi
       - name: Historical source acquisition results (audit only)
         if: always()
+        env:
+          DAY_READY: ${{ steps.date_gate.outputs.ready }}
         run: |
           python - <<'PY'
           import json, os
@@ -133,6 +123,8 @@ jobs:
             '이 표는 체크아웃된 결과 파일의 숫자입니다. '
             '당일 저장 성공 여부는 Publish 단계의 GitHub push를 별도 확인해야 합니다.',
           ]
+          if os.getenv("DAY_READY")!="true":
+              lines.append('새 장마감일 연간 DART 단일 원장 대기: 금회 API 호출 0, 신규 4개년 공시 0. 아래는 과거 체크포인트 값입니다.')
           if archive.is_file() and parts.is_file():
             a=json.loads(archive.read_text(encoding='utf8'))
             p=json.loads(parts.read_text(encoding='utf8'))
