@@ -61,6 +61,77 @@ class FakeDART:
         return FakeResponse({"status":"000","list":payload_rows(year)})
 
 class BulkHistoryTests(unittest.TestCase):
+    def test_official_corp_map_cached_only_on_matching_issuer_census_and_date(self):
+        market,catalog=fixture()
+        written=[]
+        source=FakeDART()
+        state,first_calls=bulk.collect(
+            market,catalog,None,key="synthetic-key-not-secret-123",
+            session=source,groups=1,
+            on_company_cache=lambda value:written.append(value))
+        self.assertEqual(first_calls,5)
+        self.assertEqual(len(written),1)
+        mapping=written[0]
+        self.assertEqual(mapping["schema"],bulk.CORP_CACHE_SCHEMA)
+        self.assertEqual(mapping["asof"],DAY)
+        self.assertEqual(mapping["issuer_codes"],CORPS)
+        self.assertEqual(len(mapping["mapping_sha256"]),64)
+        cached_session=FakeDART()
+        with_cache,cache_calls=bulk.collect(
+            market,catalog,None,key="synthetic-key-not-secret-123",
+            session=cached_session,groups=1,company_cache=mapping)
+        self.assertEqual(cache_calls,4) # no redundant full DART XML master
+        self.assertEqual(len(cached_session.calls),4)
+        self.assertTrue(all(
+            u.endswith("fnlttMultiAcnt.json") for u,_ in cached_session.calls))
+        self.assertEqual(with_cache["records"],state["records"])
+        stale=copy.deepcopy(mapping)
+        stale["asof"]="2025-10-19"
+        renewed=FakeDART()
+        _,fresh_calls=bulk.collect(market,catalog,None,
+            key="synthetic-key-not-secret-123",session=renewed,
+            company_cache=stale)
+        self.assertEqual(fresh_calls,5)
+        self.assertTrue(renewed.calls[0][0].endswith("corpCode.xml"))
+        corrupt=copy.deepcopy(mapping)
+        corrupt["issuer_codes"]["005930"]="00000000"
+        blocked=FakeDART()
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                    "unsafe_dart_company_mapping_cache"):
+            bulk.collect(market,catalog,None,key="synthetic-key-not-secret-123",
+                         session=blocked,company_cache=corrupt)
+        self.assertEqual(blocked.calls,[])
+        other_census=copy.deepcopy(mapping)
+        other_census["listed_sha256"]="bad"
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                    "unsafe_dart_company_mapping_cache"):
+            bulk.verified_company_mapping_cache(other_census,DAY,set(CODES))
+        spoofed=copy.deepcopy(mapping)
+        spoofed["issuer_codes"]["247540"]=mapping["issuer_codes"]["005930"]
+        spoofed["mapping_sha256"]=bulk._stable_digest(
+            spoofed["issuer_codes"])
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                    "unsafe_dart_company_mapping_cache"):
+            bulk.verified_company_mapping_cache(spoofed,DAY,set(CODES))
+
+    def test_official_corporation_identity_collisions_not_randomly_assigned(self):
+        xml=BytesIO()
+        values=[
+            ("005930","00100000"),
+            ("247540","00100000"), # two tickers one DART corporation
+            ("300003","00100003"),
+        ]
+        with ZipFile(xml,"w") as z:
+            z.writestr("CORPCODE.xml","<result>"+
+                "".join("<list><stock_code>"+code+"</stock_code>"+
+                        "<corp_code>"+corp+"</corp_code></list>"
+                        for code,corp in values)+"</result>")
+        safe=bulk._mapping(xml.getvalue(),set(CODES))
+        self.assertEqual(safe,{"300003":"00100003"})
+        cache=bulk.make_company_mapping_cache(safe,DAY,set(CODES))
+        self.assertEqual(bulk.verified_company_mapping_cache(
+            cache,DAY,set(CODES)),safe)
+
     def test_one_mapping_four_year_requests_cover_every_listed_even_unpriced(self):
         market,catalog=fixture()
         session=FakeDART()
