@@ -54,11 +54,22 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
                 self.assertIsNone(item[
                     "observed_earnings_improving_issuer_ratio_sample_only"])
                 self.assertIsNone(item[
+                    "improvement_breadth_lower_bound_known_classified_only"])
+                self.assertIsNone(item[
+                    "improvement_breadth_upper_bound_known_classified_only"])
+                self.assertIsNone(item[
                     "sample_aggregate_operating_profit_growth_pct"])
             else:
                 ratio=item["observed_earnings_improving_issuer_ratio_sample_only"]
                 self.assertGreaterEqual(ratio,0)
                 self.assertLessEqual(ratio,1)
+                lo=item["improvement_breadth_lower_bound_known_classified_only"]
+                hi=item["improvement_breadth_upper_bound_known_classified_only"]
+                self.assertLessEqual(lo,ratio+0.000002)
+                self.assertGreaterEqual(hi+0.000002,ratio)
+                self.assertEqual(item["classified_sample_earnings_coverage_ratio"],
+                                 round(item["issuer_year_pair_observed"]/
+                                     item["current_classified_issuers"],6))
                 if not item["observed_pair_scope_uniform"]:
                     self.assertIsNone(item[
                         "sample_aggregate_operating_profit_growth_pct"])
