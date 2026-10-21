@@ -346,6 +346,30 @@ function weeklyCoverageText(report, marketDate){
   (p===null?'':' · 기술점수 근거 '+p+'종목')+sixText+
   ' (기존 원본 재계산, 별도 실시간 API 수집 아님)';
 }
+function realSourceCoverageText(report,marketDate){
+ if(!report||report.schema!=='v3-real-saved-source-six-pillar-coverage-0.1'||
+    !validDate(marketDate)||report.market_asof!==marketDate||
+    !Number.isInteger(report.listed_total)||report.listed_total<1||
+    report.buy_recommendations_authorized!==false||
+    report.investment_grade_scores_confirmed!==false||
+    report.six_pillar_official_complete_100pt_issuer_count!==0||
+    report.official_investor_IAS_source_issuer_count!==0||
+    report.industry_scored_rotation_issuer_count!==0)return '';
+ const n=report.six_pillar_numeric_provisional_issuer_counts;
+ const keys=['ias','technical','financial','valuation','industry','momentum'];
+ if(!n||keys.some(k=>!Number.isInteger(n[k])||n[k]<0||
+                    n[k]>report.listed_total)||
+    n.ias!==0||n.industry!==0||
+    !Number.isInteger(report.four_numerical_areas_same_date_overlap_count)||
+    report.four_numerical_areas_same_date_overlap_count<0||
+    report.four_numerical_areas_same_date_overlap_count>
+      Math.min(n.technical,n.financial,n.valuation,n.momentum))return '';
+ return ' · 출처기준 6영역 계산가능 연구점수 (확정점수 아님): 수급 '+n.ias+
+   ' / 기술 '+n.technical+' / 재무 '+n.financial+
+   ' / 가치 '+n.valuation+' / 산업 '+n.industry+
+   ' / 모멘텀 '+n.momentum+'종목'+
+   ' · 4영역 데이터 검증 시험군 '+report.four_numerical_areas_same_date_overlap_count+'종목';
+}
 function applyRotationTechnicalBackfill(model, state){
  if(!model||!Array.isArray(model.rows)||!state||
     state.schema!=='v3-seven-day-research-source-rotation-0.1'||
@@ -443,13 +467,13 @@ function summary(model,core){
 }
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
-let weeklyCoverage=null;
+let weeklyCoverage=null,realSavedCoverage=null;
 let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,selected=null,limit=20;
 function label(item){return item.stage==='형상 후보'?'형상 후보':item.stage;}
 function patternPill(item){
@@ -609,7 +633,8 @@ function present(data){
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
   '4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
   '종목 (재무 15점 확정 아님). 주간 순환 연구는 기존 원천 자료 재계산이며 6개 영역의 데이터 확보는 진행 중입니다.'+
-  weeklyCoverageText(weeklyCoverage,model.date);
+  weeklyCoverageText(weeklyCoverage,model.date)+
+  realSourceCoverageText(realSavedCoverage,model.date);
  draw();
 }
 async function load(){
@@ -617,7 +642,7 @@ async function load(){
  const files=['data.json','quant.json','recommendations.json','official.json',
   'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json',
   'v3-weekly-rotation.json','v3-dart-four-year-reference.json',
-  'v3-dart-bulk-provisional.json'];
+  'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -629,6 +654,7 @@ async function load(){
   weeklyCoverage=responses[6];
   applyRotationTechnicalBackfill(model,responses[7]);
   applyBulkFinancialPreview(model,responses[9]);
+  realSavedCoverage=responses[10];
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){

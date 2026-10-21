@@ -416,6 +416,26 @@ assert.equal(unified.applyBulkFinancialPreview(display,
  {...bulkParts,rows:[bulkParts.rows[0],bulkParts.rows[0]]}),0,
  'a duplicate score row should invalidate the whole import');
 
+const savedCoverage=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-real-source-six-area-coverage.json'),'utf8'));
+const actualSixText=unified.realSourceCoverageText(
+ savedCoverage,savedCoverage.market_asof);
+assert.ok(actualSixText.includes('6영역 계산가능 연구점수'));
+assert.ok(actualSixText.includes('4영역 데이터 검증 시험군'));
+assert.ok(actualSixText.includes('수급 0'));
+assert.ok(actualSixText.includes(
+ '재무 '+savedCoverage.six_pillar_numeric_provisional_issuer_counts.financial));
+assert.equal(unified.realSourceCoverageText(
+ savedCoverage,'2026-10-19'),'','old/future coverage source cannot blend into a market day');
+assert.equal(unified.realSourceCoverageText(
+ {...savedCoverage,six_pillar_official_complete_100pt_issuer_count:1},
+ savedCoverage.market_asof),'','fabricated full V3 availability is rejected');
+assert.equal(unified.realSourceCoverageText(
+ {...savedCoverage,six_pillar_numeric_provisional_issuer_counts:{
+  ...savedCoverage.six_pillar_numeric_provisional_issuer_counts,ias:25}},
+ savedCoverage.market_asof),'','IAS cannot be inferred from other research evidence');
+assert.equal(unified.realSourceCoverageText(null,savedCoverage.market_asof),'');
+
 const actual=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
 const dailyModel=legacy.prepare(actual,null,null,null,null,null);
 const actualAll=unified.rankItems(dailyModel,legacy,'all');
