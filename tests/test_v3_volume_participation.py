@@ -1,11 +1,14 @@
 """Offline price-volume factor tests: zero investor-flow assumptions."""
 import copy
+import json
+import tempfile
+from pathlib import Path
 import unittest
 from datetime import date,timedelta
 
 from test_v3_dart_rolling_book_reference import fixture,DAY
 from v3_volume_participation import (
-    observed,build,VolumeEvidenceError,SUBMAX,
+    observed,build,main,VolumeEvidenceError,SUBMAX,
 )
 
 
@@ -71,6 +74,32 @@ class ObservedVolumeTests(unittest.TestCase):
         self.assertEqual(
             observed(stock(price60=35),asof=DAY,market="KOSPI")
             ["subpoints"]["obv_price_not_reflected"],0)
+
+    def test_cli_write_then_verify_readback_from_docs_without_double_prefix(self):
+        market,catalog=fixture()
+        for row in catalog["rows"]:
+            for stock in market["stocks"]:
+                if row["code"]==stock["code"]:
+                    row["name"]=stock["name"]
+        market["stocks"][0].update({
+            "volume_ratio":1.5,"obv_rising":True,
+            "price60":3.0,"divergence":True,
+        })
+        with tempfile.TemporaryDirectory() as place:
+            root=Path(place)
+            (root/"data.json").write_text(json.dumps(market),encoding="utf8")
+            (root/"v22-market-catalog.json").write_text(
+                json.dumps(catalog),encoding="utf8")
+            main(["--docs",str(root),"--mode","write"])
+            path=root/"v3-volume-obv-observed.json"
+            self.assertTrue(path.is_file())
+            main(["--docs",str(root),"--mode","verify"])
+            self.assertFalse((root/"docs").exists())
+            altered=json.loads(path.read_text(encoding="utf8"))
+            altered["observed_volume_candidate_issuers"]+=1
+            path.write_text(json.dumps(altered),encoding="utf8")
+            with self.assertRaises(VolumeEvidenceError):
+                main(["--docs",str(root),"--mode","verify"])
 
     def test_full_listed_catalog_missing_is_not_zero_score(self):
         market,catalog=fixture()
