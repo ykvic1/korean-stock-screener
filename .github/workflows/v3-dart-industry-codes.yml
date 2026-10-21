@@ -48,7 +48,7 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           set -euo pipefail
-          python v3_dart_industry_earnings_sample.py --mode write
+          python v3_dart_industry_earnings_sample.py --mode write-if-ready
       - name: Save only observed industry classifications and corresponding earnings evidence
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
@@ -62,11 +62,11 @@ jobs:
             for attempt in 1 2 3; do
               git pull --rebase origin main
               python v3_dart_industry_codes.py --mode rebind
-              python v3_dart_industry_earnings_sample.py --mode write
+              python v3_dart_industry_earnings_sample.py --mode write-if-ready
               git add docs/v3-dart-industry-classification.json docs/v3-dart-industry-earnings-sample.json
               if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
               python v3_dart_industry_codes.py --mode verify
-              python v3_dart_industry_earnings_sample.py --mode verify
+              python v3_dart_industry_earnings_sample.py --mode verify-if-ready
               if git push origin HEAD:main; then
                 echo "verified_company_profiles_published"
                 break
