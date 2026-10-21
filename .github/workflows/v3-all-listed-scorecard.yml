@@ -5,13 +5,12 @@ on:
     branches: [main]
     paths:
       - v3_all_listed_scorecard.py
-      - v3_dart_industry_earnings_sample.py
       - .github/workflows/v3-all-listed-scorecard.yml
   # Two research-only replays per hour at :24 and :54 KST. This bounds
   # public scorecard staleness during the live four-year/DART cashflow backfill.
-  # The shared publication lock queues behind source collectors rather than
-  # competing with or interrupting the weekday 18:30 V2.2 market scan.
-  # Every replay reads saved, source-checked facts: zero new DART/KRX calls.
+  # This publisher uses a distinct lock, so many small scorecard jobs cannot
+  # displace pending market-close and DART ingestion jobs from their queue.
+  # Each retry regenerates from latest saved sources: zero DART/KRX calls.
   schedule:
     - cron: '24,54 * * * *'
   workflow_dispatch:
@@ -25,8 +24,10 @@ on:
 permissions:
   contents: write
 
+# Isolated from the ingestion queue: publishes ONLY its own two output files.
+# Source-collection work keeps its original lock and priority unchanged.
 concurrency:
-  group: korea-stock-screener-publication
+  group: korea-stock-screener-scorecard-publisher
   cancel-in-progress: false
 
 jobs:
@@ -50,36 +51,42 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
           python v3_all_listed_scorecard.py --mode write
-          python v3_dart_industry_earnings_sample.py --mode write
       - name: Publish current-listed score CSV and source-readiness summary only
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json docs/v3-dart-industry-earnings-sample.json
+          # Never commit a shared DART/industry-source file from this job.
+          git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish observed-only all-listed V3 six-area scorecard"
-            git pull --rebase origin main
-            # Other DART or 7-day research jobs may have appended verified
-            # source data while this action queued. Recalculate from the
-            # rebased current data, replace only our generated CSV/summary,
-            # and persist the exact source fingerprints we actually used.
-            python v3_all_listed_scorecard.py --mode write
-            python v3_dart_industry_earnings_sample.py --mode write
-            git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json docs/v3-dart-industry-earnings-sample.json
-            if ! git diff --cached --quiet; then
-              git commit --amend --no-edit
-            fi
-            python v3_all_listed_scorecard.py --mode verify
-            python v3_dart_industry_earnings_sample.py --mode verify
-            git push origin HEAD:main
+            # The source collectors may publish while this lightweight job
+            # computes. Rebase, recompute against the NEW exact inputs and
+            # verify their hashes before each bounded non-force push attempt.
+            # No source file is staged or overwritten, even after a retry.
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_all_listed_scorecard.py --mode write
+              git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+              if ! git diff --cached --quiet; then
+                git commit --amend --no-edit
+              fi
+              python v3_all_listed_scorecard.py --mode verify
+              if git push origin HEAD:main; then
+                echo "scorecard_source_reconciled"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::scorecard_publish_retries_exhausted"
+                exit 1
+              fi
+            done
           fi
       - name: Read-only consistency check (manual)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: |
           python v3_all_listed_scorecard.py --mode verify
-          python v3_dart_industry_earnings_sample.py --mode verify
       - name: Publish source/coverage summary, not investment advice
         if: always()
         run: |
