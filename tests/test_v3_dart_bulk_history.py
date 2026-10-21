@@ -171,6 +171,41 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(bulk.verified_company_mapping_cache(
             cache,DAY,set(CODES)),safe)
 
+    def test_balanced_two_market_historical_backfill_and_partial_priority(self):
+        all_codes=[f"{i:06d}" for i in range(240)]
+        all_members={code:{"market":"KOSPI" if i<180 else "KOSDAQ"}
+                     for i,code in enumerate(all_codes)}
+        near_complete=["000175","000176","000177","000235","000236",
+                       "000237"]
+        prior={"schema":bulk.SCHEMA,"asof":DAY,
+               "records":{c:{"years":{"2022":{},"2023":{},"2024":{}}}
+                          for c in near_complete}}
+        with patch("v3_dart_bulk_history._inputs",
+                   return_value=(DAY,all_members)):
+            asof,members,retained,years,cohorts=bulk.plan(
+                {},{},prior=prior,groups=1)
+            self.assertEqual(len(cohorts),1)
+            self.assertEqual(len(cohorts[0]),100)
+            self.assertEqual(sum(members[c]["market"]=="KOSPI"
+                                 for c in cohorts[0]),50)
+            self.assertEqual(sum(members[c]["market"]=="KOSDAQ"
+                                 for c in cohorts[0]),50)
+            self.assertTrue(set(near_complete).issubset(cohorts[0]))
+            # Source iteration count/availability must not change merely
+            # because issuer research cohorts are balanced.
+            _,_,_,_,three=bulk.plan({},{},prior=prior,groups=3)
+            flat=[c for group in three for c in group]
+            self.assertEqual([len(c) for c in three],[100,100,40])
+            self.assertEqual(len(flat),240)
+            self.assertEqual(len(set(flat)),240)
+            self.assertEqual(set(flat),set(all_members))
+            self.assertEqual(years,[2022,2023,2024,2025])
+            finished=copy.deepcopy(prior)
+            finished["records"][near_complete[0]]["years"]["2025"]={}
+            _,_,_,_,second=bulk.plan({}, {},prior=finished,groups=1)
+            self.assertNotIn(near_complete[0],second[0])
+            self.assertTrue(all(c in all_members for c in second[0]))
+
     def test_one_mapping_four_year_requests_cover_every_listed_even_unpriced(self):
         market,catalog=fixture()
         session=FakeDART()
