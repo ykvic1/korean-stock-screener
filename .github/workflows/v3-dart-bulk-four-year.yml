@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - v3_dart_bulk_history.py
+      - v3_real_six_pillar_coverage_audit.py
       - .github/workflows/v3-dart-bulk-four-year.yml
   schedule:
     - cron: '29 * * * *'
@@ -55,8 +56,9 @@ jobs:
       - name: Offline source identity and four-year score safety tests
         run: |
           set -euo pipefail
-          python -m py_compile v3_dart_bulk_history.py
+          python -m py_compile v3_dart_bulk_history.py v3_real_six_pillar_coverage_audit.py
           python -m unittest discover -s tests -p 'test_v3_dart_bulk_history.py' -v
+          python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
       - name: Resolve one legitimate close-date census and preflight DART book
         run: |
           set -euo pipefail
@@ -92,11 +94,13 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json
+          python v3_real_six_pillar_coverage_audit.py --mode write
+          git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json docs/v3-real-source-six-area-coverage.json
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official 100-company annual 4-year DART batch (derived source)"
             git pull --rebase origin main
             python v3_dart_bulk_history.py --mode verify
+            python v3_real_six_pillar_coverage_audit.py --mode verify
             git push origin HEAD:main
           fi
       - name: Historical source acquisition results (audit only)
@@ -137,6 +141,15 @@ jobs:
                 lines.append('- '+str(name)+': **'+str(count)+'**')
           else:
             lines.append('- 유효한 과거 공시 파일 미확인: 완료 아님')
+          audit=Path('docs/v3-real-source-six-area-coverage.json')
+          if audit.is_file():
+            a=json.loads(audit.read_text(encoding='utf8'))
+            numeric=a.get('six_pillar_numeric_provisional_issuer_counts',{})
+            lines.append('- 6영역 미검증 점수 계산 기업: '+
+                ', '.join(str(k)+' '+str(numeric.get(k,0))
+                 for k in ('ias','technical','financial','valuation','industry','momentum')))
+            lines.append('- 4개 영역 연구점수 중복 보유 기업: **'+
+              str(a.get('four_numerical_areas_same_date_overlap_count',0))+'**')
           lines.append('공식 수급 IAS, 기업행사·과거 PIT, 6영역 확정점수 없음.')
           summary.write_text('\n'.join(lines)+'\n',encoding='utf8')
           PY
