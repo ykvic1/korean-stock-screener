@@ -99,6 +99,35 @@ class CashflowSourceTests(unittest.TestCase):
         self.assertEqual(n,4) # the fifth issuer's 3 fiscal years + master
         self.assertEqual(resumed["metrics"]["three_year_fcf_receipt_matched_issuers"],5)
 
+    def test_major_archive_growth_reuses_receipts_but_revision_fails_closed(self):
+        market,catalog,bulk=live_inputs()
+        saved,_=cf.collect(
+            market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=2)
+        grown=copy.deepcopy(bulk)
+        # A new independent FY report observation should not invalidate
+        # historical cashflow already tied to its own genuine receipt.
+        grown["records"]["300005"]["years"]["2022"]["CFS"]["values"]["revenue"]+=3
+        self.assertTrue(cf.verify_state(
+            saved,market,catalog,grown,strict_fingerprint=False))
+        with self.assertRaisesRegex(cf.CashflowError,
+                                    "cashflow_source_changed_after_rebase"):
+            cf.verify_state(saved,market,catalog,grown)
+        changed=copy.deepcopy(grown)
+        changed["records"]["005930"]["years"]["2025"]["CFS"]["receipt_id"]=(
+            "20260318000002")
+        with self.assertRaisesRegex(cf.CashflowError,
+                                    "cashflow_major_receipt_changed"):
+            cf.verify_state(saved,market,catalog,changed,
+                            strict_fingerprint=False)
+        source=FakeSession()
+        with self.assertRaisesRegex(cf.CashflowError,
+                                    "cashflow_major_receipt_changed"):
+            cf.collect(market,catalog,changed,saved,
+                key="synthetic-non-sensitive-DART-api-key",session=source)
+        self.assertEqual(source.calls,[], "reject conflicting source before HTTP")
+
     def test_partial_checkpoint_after_real_http_failure_and_no_retry_of_saved_year(self):
         market,catalog,bulk=live_inputs()
         snapshots=[]
