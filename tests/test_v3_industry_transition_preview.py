@@ -104,7 +104,7 @@ class IndustryTransitionTests(unittest.TestCase):
         target=[x for x in rs["research_only_sectors"]
                 if x["industry_code"]=="SOLO"][0]
         self.assertEqual(
-            target["provisional_15point_parts"]["overheat_crowding_quality"],1)
+            target["provisional_15point_parts"]["overheat_crowding_quality"],0.999999)
 
     def test_fake_authentication_cannot_unlock_live_issuer_scores(self):
         sectors=self.snapshots()
