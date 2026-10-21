@@ -82,6 +82,26 @@ class AllListedScorecardTests(unittest.TestCase):
         # stored annual receipts are still aligned with the moving major book.
         self.assertEqual(real["full_six_pillar_certified_count"],0)
 
+    def test_older_fcf_preview_recalculated_from_saved_real_receipts(self):
+        market,catalog,history,parts,weekly,cash,_=sources()
+        current=score_preview(market,catalog,history,cash,
+                              minimum_peers=30)
+        stale=copy.deepcopy(current)
+        stale["major_history_sha256"]="0"*64
+        rows,report=m.generate(
+            market,catalog,history,parts,weekly,cash,stale)
+        self.assertTrue(report["fcf_source_added"])
+        self.assertEqual(report["fcf_source_state"],
+                         "recomputed_from_saved_verified_cashflow")
+        self.assertEqual(report["source_sha256"]["fcf"],
+                         m._stable_digest(current))
+        self.assertEqual(len(rows),catalog["listed_total"])
+        self.assertEqual(report["full_six_pillar_certified_count"],0)
+        unsafe=copy.deepcopy(stale)
+        unsafe["rows"][0]["scoring_certified"]=True
+        _,blocked=m.generate(market,catalog,history,parts,weekly,cash,unsafe)
+        self.assertFalse(blocked["fcf_source_added"])
+
     def test_missing_and_invalid_factors_do_not_become_zero(self):
         self.assertEqual(m._contribution(None,0,15),(None,0))
         self.assertEqual(m._contribution(0,5,15),(0.0,5))
