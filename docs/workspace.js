@@ -370,6 +370,37 @@ function realSourceCoverageText(report,marketDate){
    ' / 모멘텀 '+n.momentum+'종목'+
    ' · 4영역 데이터 검증 시험군 '+report.four_numerical_areas_same_date_overlap_count+'종목';
 }
+function actualCashflowCoverageText(report,marketDate,listed){
+ // Separate actual DART receipts from any unverified financial 15-point score.
+ // A missing, future, mismatched or untrusted derived file is not displayed.
+ if(!report||report.schema!=='v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1'||
+    !validDate(marketDate)||report.asof!==marketDate||
+    !Number.isInteger(listed)||listed<1||report.listed_total!==listed||
+    report.source_same_filing_scope_receipt_checked!==true||
+    report.hist_PIT_verified!==false||
+    report.four_year_financial15_complete!==false||
+    report.valuation15_complete!==false||
+    report.joined_to_main_v3_ranking!==false||
+    report.buy_recommendations_authorized!==false||
+    report.six_pillar_confirmed_100pt!==null||
+    !Number.isInteger(report.minimum_same_market_peers)||
+    report.minimum_same_market_peers<30||
+    report.financial_fcf_weight_available_max!==4||
+    report.valuation_fcf_weight_available_max!==5)return '';
+ const counts=[
+  report.real_fcf_assets_three_year_raw_issuer_count,
+  report.real_latest_fcf_yield_raw_issuer_count,
+  report.financial_fcf4_research_candidate_issuer_count,
+  report.valuation_fcf5_research_candidate_issuer_count];
+ if(counts.some(n=>!Number.isInteger(n)||n<0||n>listed)||
+    counts[2]>counts[0]||counts[3]>counts[1]||
+    !Array.isArray(report.rows)||report.rows.length>listed)return '';
+ return ' · 공식 DART 실제 FCF 3년 자료 '+counts[0]+
+  '종목 / 최근연도 FCF수익률 원천 '+counts[1]+
+  '종목 · 재무 FCF 4점 잠정계산 '+counts[2]+
+  '종목 / 가치 FCF 5점 잠정계산 '+counts[3]+
+  '종목 (연결/별도·동일 접수번호 검증, PIT·투자용 확정점수 아님)';
+}
 function applyRotationTechnicalBackfill(model, state){
  if(!model||!Array.isArray(model.rows)||!state||
     state.schema!=='v3-seven-day-research-source-rotation-0.1'||
@@ -467,13 +498,13 @@ function summary(model,core){
 }
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
-let weeklyCoverage=null,realSavedCoverage=null;
+let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null;
 let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,selected=null,limit=20;
 function label(item){return item.stage==='형상 후보'?'형상 후보':item.stage;}
 function patternPill(item){
@@ -634,7 +665,8 @@ function present(data){
   '4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
   '종목 (재무 15점 확정 아님). 주간 순환 연구는 기존 원천 자료 재계산이며 6개 영역의 데이터 확보는 진행 중입니다.'+
   weeklyCoverageText(weeklyCoverage,model.date)+
-  realSourceCoverageText(realSavedCoverage,model.date);
+  realSourceCoverageText(realSavedCoverage,model.date)+
+  actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);
  draw();
 }
 async function load(){
@@ -642,7 +674,8 @@ async function load(){
  const files=['data.json','quant.json','recommendations.json','official.json',
   'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json',
   'v3-weekly-rotation.json','v3-dart-four-year-reference.json',
-  'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json'];
+  'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json',
+  'v3-dart-fcf-research-preview.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -655,6 +688,7 @@ async function load(){
   applyRotationTechnicalBackfill(model,responses[7]);
   applyBulkFinancialPreview(model,responses[9]);
   realSavedCoverage=responses[10];
+  actualCashflowCoverage=responses[11];
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
