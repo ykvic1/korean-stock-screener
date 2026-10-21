@@ -581,6 +581,29 @@ def _best_income_window(record, fiscal):
     return None
 
 
+
+def _three_year_margin(record,fiscal):
+    """Three actual annual margins, same reporting scope, even if FY-3 absent.
+
+    3-year average operating margin uses the last three complete income
+    years, NOT four. This component is worth 4/15, never a substituted
+    3-year CAGR or an authenticated full financial score.
+    """
+    years=(record or {}).get("years") or {}
+    if len(fiscal)!=4 or any(str(y) not in years for y in fiscal[-3:]):
+        return None
+    for scope in ("CFS","OFS"):
+        vals=[years[str(y)].get(scope,{}).get("values",{})
+              for y in fiscal[-3:]]
+        if all(type(v.get("revenue")) is int and v["revenue"]>0 and
+               type(v.get("operating_income")) is int for v in vals):
+            margin=sum(100*v["operating_income"]/v["revenue"]
+                       for v in vals)/3
+            if math.isfinite(margin) and abs(margin)<1e7:
+                return round(margin,6)
+    return None
+
+
 def _midrank(value, ordered, direction):
     left=bisect_left(ordered,value);right=bisect_right(ordered,value)
     pct=(left+right)/(2*len(ordered))
@@ -605,7 +628,16 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
     selected={}
     for code,record in data["records"].items():
         if code in market:
-            selected[code]=_best_income_window(record,fiscal)
+            four=_best_income_window(record,fiscal)
+            # The 3-year average can be calculated from actual FY2023-25
+            # without mislabeling the 4-year revenue CAGR as observed.
+            margin=(four["operating_margin_3y_pct"] if four is not None
+                    else _three_year_margin(record,fiscal))
+            selected[code]={
+                "revenue_cagr_3y_pct":(
+                    four["revenue_cagr_3y_pct"] if four is not None else None),
+                "operating_margin_3y_pct":margin,
+            }
     book_annual={r["code"]:r for r in book["records"]}
     pbr={}
     earnings_yield={}
@@ -641,7 +673,7 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
         ) for k in ("revenue_cagr_3y_pct","operating_margin_3y_pct",
                     "pbr","earnings_yield_pct")}
     output=[]
-    count_fin=0;count_pb=0;count_earnings=0
+    count_fin=0;count_margin=0;count_pb=0;count_earnings=0
     for code in sorted(market):
         src=selected.get(code) or {}
         benchmark=series[market[code]]
@@ -662,6 +694,8 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
             available+=weight if earned is not None else 0
         if pts["revenue_cagr_3y_pct"]["candidate_points"] is not None:
             count_fin+=1
+        if pts["operating_margin_3y_pct"]["candidate_points"] is not None:
+            count_margin+=1
         if pts["pbr"]["candidate_points"] is not None:
             count_pb+=1
         if pts["earnings_yield_pct"]["candidate_points"] is not None:
@@ -697,6 +731,7 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
         "listed_total":len(market),
         "four_year_income_observed":data["four_year_income_observed_count"],
         "companies_with_computable_4y_income_scores":count_fin,
+        "companies_with_computable_3y_margin_scores":count_margin,
         "companies_with_computable_pb_scores":count_pb,
         "companies_with_computable_earnings_yield_scores":count_earnings,
         "model_financial_full_points":15,"model_valuation_full_points":15,
@@ -883,6 +918,7 @@ def main(argv=None):
         "completed":archive["attempted_company_count"],
         "complete_income_4y":archive["four_year_income_observed_count"],
         "financial_partial_scored":research["companies_with_computable_4y_income_scores"],
+        "margin_3y_partial_scored":research["companies_with_computable_3y_margin_scores"],
         "pbr_partial_scored":research["companies_with_computable_pb_scores"],
         "earnings_yield_partial_scored":research["companies_with_computable_earnings_yield_scores"],
         "source_calls":calls,"full_v3_ready":False},sort_keys=True))
