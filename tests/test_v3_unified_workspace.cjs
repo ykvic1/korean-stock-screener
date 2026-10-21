@@ -125,22 +125,16 @@ assert.ok(source.includes('4개년 연간공시 연구 참고')&&
  source.includes('공시 정정/PIT 검증 전으로 재무 15점 및 밸류 15점은 미산출'),
  'four-year metrics cannot silently become a certified 30 point ranking');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
-assert.deepEqual(unified.WEIGHTS,{ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
-assert.equal(unified.PILLARS[0][0],'ias');
-assert.equal(unified.PILLARS[0][1],'IAS·수급',
- 'IAS must remain visibly identified as a distinct /20 pillar on every ticker');
-assert.equal(unified.IAS_COMPONENTS.reduce((total,entry)=>total+entry[1],0),100,
- 'six internal IAS evidence weights must still sum to IAS 100, scaled to V3 20');
-assert.deepEqual(unified.IAS_COMPONENTS.map(entry=>entry[1]),[20,25,15,10,15,15]);
-assert.ok(unified.iasParts().includes('IAS 내부 100점'));
-assert.ok(unified.iasParts().includes('20·60·120·250일 누적 순매수'));
-assert.ok(unified.iasParts().includes('미검증'));
-assert.ok(source.includes('data-pillar="ias"')&&
- source.includes('IAS 원장 미검증')&&
- source.includes('IAS(수급) /20'),
- 'IAS missing numeric value must display as identifiable 20pt unverified investor ledger, not disappear');
-assert.ok(css.includes('.u-scoresix span[data-pillar="ias"] small'),
- 'mobile IAS identity must remain legible');
+assert.deepEqual(unified.WEIGHTS,
+ {volume:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+assert.equal(unified.PILLARS[0][0],'volume');
+assert.equal(unified.PILLARS[0][1],'거래량·OBV');
+assert.deepEqual(unified.VOLUME_COMPONENTS.map(([label,w])=>w),[6,6,4,4]);
+assert.ok(source.includes("v3-volume-obv-observed.json"));
+assert.ok(source.includes("applyObservedVolume(model,responses[13])"));
+assert.ok(source.includes('data-pillar="volume"'));
+assert.ok(source.includes('거래량·OBV /20'));
+assert.ok(css.includes('.u-scoresix span[data-pillar="volume"] small'));
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
 assert.deepEqual(unified.marketFreshness('2026-10-20',new Date('2026-10-19T15:10:00Z')),
  {status:'current',calendarDays:0},'KST midnight boundary');
@@ -240,29 +234,45 @@ assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
 assert.equal(unified.researchComposite(row).pillars.length,6);
 assert.ok(source.includes('산업 15점 내부 배점 (승인 5·4·3·3)'));
 assert.equal(typeof unified.fiveAreaResearchView,'undefined');
-const missingIAS=unified.pillarState(row)[0];
-assert.equal(missingIAS.label,'IAS·수급');
-assert.equal(missingIAS.max,20);
-assert.equal(missingIAS.candidate,null);
-assert.equal(missingIAS.available,0);
-assert.ok(unified.iasStatus(missingIAS).includes('결측은 0점이 아닙니다'));
-assert.equal(unified.researchComposite(row).pillars.length,6,
- 'unverified IAS still occupies one of six visible domain cells');
-const observedResearchIAS={...row,v3_pattern_integrated:{
- ...row.v3_pattern_integrated,
- six_pillar_maximum:unified.WEIGHTS,
- six_pillar_candidates:{ias:7.5,technical:null,financial:null,
-                        valuation:null,industry:null,momentum:null}
-}};
-assert.equal(unified.pillarState(observedResearchIAS)[0].candidate,7.5,
- 'a separately supplied same-date bounded provisional IAS may be shown as such');
-assert.equal(unified.researchComposite(observedResearchIAS).available,45,
- 'IAS candidate /20 must contribute 20 available, not old 25 or fabricated amount');
-assert.ok(unified.iasStatus(unified.pillarState(observedResearchIAS)[0])
- .includes('연구용 잠정값'));
+const missingVolume=unified.pillarState(row)[0];
+assert.equal(missingVolume.label,'거래량·OBV');
+assert.equal(missingVolume.max,20);
+assert.equal(missingVolume.candidate,null);
+assert.equal(missingVolume.available,0);
+assert.ok(unified.volumeStatus(missingVolume).includes('결측은 0점이 아닙니다'));
+const volumeRow={asof:'2026-10-20',market:'KOSPI',observed_points:13,
+ observed_available_max:16,unobserved_max:4,
+ subpoints:{sustained_volume:3,obv_60_direction:6,
+            obv_price_not_reflected:4,post_spike_absorption:null},
+ risk_flags:[],source_history_adjusted_verified:false,
+ source_exchange_regular_only_verified:false,
+ foreign_institutional_net_buy_inferred:false,
+ investable_score_certified:false,trading_signal_authorized:false};
+const withVolume={...row,v3_volume_observed:volumeRow};
+assert.deepEqual(unified.observedVolumeEvidence(withVolume),
+ {earned:13,available:16,fullyObserved:false});
+assert.equal(unified.researchComposite(withVolume).earned,35.8);
+assert.equal(unified.researchComposite(withVolume).available,41);
+assert.ok(unified.volumeStatus(unified.pillarState(withVolume)[0])
+ .includes('매집 증거 또는 매수 신호가 아닙니다'));
+assert.ok(unified.volumeParts(withVolume).includes('매물 소화'));
+assert.ok(unified.volumeParts(withVolume).includes('미확보'));
+for(const malformed of [
+ {...volumeRow,asof:'2026-10-21'},
+ {...volumeRow,observed_points:99},
+ {...volumeRow,foreign_institutional_net_buy_inferred:true},
+ {...volumeRow,subpoints:{...volumeRow.subpoints,post_spike_absorption:4}},
+ {...volumeRow,investable_score_certified:true}
+])assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:malformed}),null);
 assert.equal(unified.pillarState({...row,score:100})[0].candidate,null,
- 'old v2.2 overall score must never be promoted into IAS');
-
+ 'old v2.2 score cannot be inserted into observed V3 volume points');
+assert.equal(unified.pillarState({...row,v3_pattern_integrated:{
+ ...row.v3_pattern_integrated,
+ six_pillar_maximum:{volume:20,technical:25,financial:15,
+                     valuation:15,industry:15,momentum:10},
+ six_pillar_candidates:{volume:20,ias:20}
+}})[0].candidate,null,
+ 'synthetic old IAS candidate cannot masquerade as actual observed volume');
 assert.ok(!unified.riskState({r:row},legacy).unsafe);
 assert.equal(unified.riskState({r:{...row,stop_line:60,stop_pct:-40}},legacy).unsafe,true);
 assert.equal(unified.technicalCandidate({...row,v3_pattern_integrated:{
@@ -384,7 +394,7 @@ assert.equal(unified.researchComposite(timeMismatch).earned,null,
 const partial3={...partial,v3_pattern_integrated:{
  ...partial.v3_pattern_integrated,
  six_pillar_maximum:unified.WEIGHTS,
- six_pillar_candidates:{ias:null,technical:null,financial:6,
+ six_pillar_candidates:{volume:null,technical:null,financial:6,
    valuation:null,industry:null,momentum:4}
 }};
 assert.equal(unified.researchComposite(partial3).earned,12.5);
@@ -553,7 +563,7 @@ const actualSixText=unified.realSourceCoverageText(
  savedCoverage,savedCoverage.market_asof);
 assert.ok(actualSixText.includes('6영역 계산가능 연구점수'));
 assert.ok(actualSixText.includes('4영역 데이터 검증 시험군'));
-assert.ok(actualSixText.includes('수급 0'));
+assert.ok(actualSixText.includes('공식 투자자별 수급 0'));
 assert.ok(actualSixText.includes(
  '재무 '+savedCoverage.six_pillar_numeric_provisional_issuer_counts.financial));
 assert.equal(unified.realSourceCoverageText(
@@ -566,6 +576,33 @@ assert.equal(unified.realSourceCoverageText(
   ...savedCoverage.six_pillar_numeric_provisional_issuer_counts,ias:25}},
  savedCoverage.market_asof),'','IAS cannot be inferred from other research evidence');
 assert.equal(unified.realSourceCoverageText(null,savedCoverage.market_asof),'');
+// All currently saved volume/OBV observations are displayed ONLY when the
+// full current-listing asof, source counts, issuer markets and bounded
+// non-certification are consistent. No artificial foreign net buying.
+const volumeSaved=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-volume-obv-observed.json'),'utf8'));
+const volumeActual=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/data.json'),'utf8'));
+const prepared=legacy.prepare(volumeActual,null,null,null,null,null);
+assert.equal(unified.applyObservedVolume(prepared,volumeSaved),
+ volumeSaved.observed_volume_candidate_issuers);
+assert.ok(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===16));
+assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=16));
+assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
+  unified.pillarState(x.r)[0].candidate<=16));
+const beforeScores=unified.summary(prepared,legacy).provisional;
+assert.ok(beforeScores>=volumeSaved.observed_volume_candidate_issuers);
+const badCount={...volumeSaved,observed_volume_candidate_issuers:9999};
+const second=legacy.prepare(volumeActual,null,null,null,null,null);
+assert.equal(unified.applyObservedVolume(second,badCount),0);
+assert.ok(second.rows.every(x=>unified.pillarState(x.r)[0].available===0));
+const badBuyer=structuredClone(volumeSaved);
+const one=Object.keys(badBuyer.records)[0];
+badBuyer.records[one].foreign_institutional_net_buy_inferred=true;
+const third=legacy.prepare(volumeActual,null,null,null,null,null);
+assert.equal(unified.applyObservedVolume(third,badBuyer),0);
+assert.ok(third.rows.every(x=>unified.pillarState(x.r)[0].available===0));
+
 
 const actual=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
 const dailyModel=legacy.prepare(actual,null,null,null,null,null);
