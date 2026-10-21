@@ -13,7 +13,7 @@ from datetime import date
 import math
 
 from v3_score_contract import (
-    IAS_POINTS, PILLAR_POINTS, NET_BUY_PERIOD_WEIGHT, research_scorecard
+    IAS_POINTS, PILLAR_POINTS, INDUSTRY_POINTS, NET_BUY_PERIOD_WEIGHT, research_scorecard
 )
 from v3_ias_flow_ledger import audit_daily_flow, FlowLedgerError
 
@@ -92,6 +92,13 @@ def _validate_design():
     for name, rows in PILLAR_METRICS.items():
         if not math.isclose(sum(item[1] for item in rows), PILLAR_POINTS[name]):
             raise FactorEngineError("pillar_feature_weights_invalid")
+    expected={"industry_early_rotation_signal":5,
+              "industry_profit_growth_12m_pct":4,
+              "industry_profit_improving_issuer_ratio":3,
+              "industry_overheat_concentration_quality":3}
+    present={name:weight for name,weight,_,_ in PILLAR_METRICS["industry"]}
+    if present!=expected or sorted(INDUSTRY_POINTS.values())!=[3,3,4,5]:
+        raise FactorEngineError("industry_subweights_changed")
 
 
 _validate_design()
