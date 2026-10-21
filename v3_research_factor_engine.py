@@ -55,9 +55,12 @@ PILLAR_METRICS = {
         ("technical_volume_breakout_ratio", 2, 1, (0, None)),
     ],
     "industry": [
-        ("industry_relative_strength_60_pct", 6, 1, None),
-        ("industry_profit_growth_12m_pct", 5, 1, None),
-        ("industry_breadth_above_ma_ratio", 4, 1, (0, 1)),
+        # Explicitly user-approved industry15 = 5/4/3/3.
+        # Early rotation must improve vs preceding sessions, not just rise.
+        ("industry_early_rotation_signal", 5, 1, (0, 1)),
+        ("industry_profit_growth_12m_pct", 4, 1, None),
+        ("industry_profit_improving_issuer_ratio", 3, 1, (0, 1)),
+        ("industry_overheat_concentration_quality", 3, 1, (0, 1)),
     ],
     "momentum": [
         # Independent relative-strength measures are not chart-shape bonuses.
