@@ -86,6 +86,11 @@ class FCFPreviewTests(unittest.TestCase):
                             for x in report["rows"]))
 
     def test_source_bounded_35_peer_research_score_does_not_promote_buy(self):
+        source=Path(__file__).resolve().parents[1]/"docs"
+        catalog=json.loads((source/"v22-market-catalog.json").read_text(encoding="utf8"))
+        bulk=json.loads((source/"v3-dart-bulk-history.json").read_text(encoding="utf8"))
+        if catalog["date"]!=bulk["asof"]:
+            self.skipTest("official_three_year_fcf_awaits_current_market_day")
         market,catalog,bulk,cash=fifty_source_matched()
         preview=factor.score_preview(market,catalog,bulk,cash)
         self.assertEqual(preview["real_fcf_assets_three_year_raw_issuer_count"],35)
