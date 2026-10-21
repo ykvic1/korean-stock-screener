@@ -550,8 +550,10 @@ def write_json(path,value):
     tmp.replace(path)
 
 
-def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS):
-    asof,members,_,years,cohorts=plan(market,catalog,prior=prior,groups=groups)
+def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
+            on_progress=None):
+    asof,members,retained,years,cohorts=plan(
+        market,catalog,prior=prior,groups=groups)
     if not cohorts:
         return combine(market,catalog,prior,{},groups=groups),0
     if type(key) is not str or len(key)<20:
@@ -568,11 +570,21 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS):
         raise BulkHistoryError("dart_company_mapping_failure") from None
     complete={}
     calls=1
+    checkpoint=prior
+    def save_year(updates,year):
+        nonlocal checkpoint
+        if on_progress:
+            checkpoint=partial_year_checkpoint(
+                market,catalog,checkpoint,updates)
+            on_progress(checkpoint,year)
     for cohort in cohorts:
-        row,n=fetch_group(session,key,asof,years,cohort,mapping)
-        complete.update(row);calls+=n
+        row,n=fetch_group(
+            session,key,asof,years,cohort,mapping,
+            prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
+            on_year=save_year if on_progress else None)
+        complete.update(row)
+        calls+=n
     return combine(market,catalog,prior,complete,groups=groups),calls
-
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
@@ -611,8 +623,30 @@ def main(argv=None):
         return
     import os, requests
     key=os.getenv("DART_API_KEY","")
-    archive,calls=collect(market,catalog,prior,key=key,
-                          session=requests.Session(),groups=args.groups)
+    checkpoints=[]
+    def save_verified_year(archive,year):
+        research=research_parts(archive,catalog,annual)
+        write_json(args.state,archive)
+        write_json(args.scores,research)
+        checkpoints.append(year)
+    try:
+        archive,calls=collect(
+            market,catalog,prior,key=key,session=requests.Session(),
+            groups=args.groups,on_progress=save_verified_year)
+    except BulkHistoryError as err:
+        if not checkpoints:
+            raise
+        # A later-year source outage must NOT discard independently valid
+        # historical years already collected. Resume them on the next job.
+        print(json.dumps({
+            "status":"partial_real_dart_fiscal_history_saved",
+            "fiscal_year_checkpoints_written":len(checkpoints),
+            "last_saved_fiscal_year":checkpoints[-1],
+            "subsequent_source_failure":str(err),
+            "raw_api_data_logged":False,
+            "full_v3_ready":False,
+        },sort_keys=True),flush=True)
+        return
     research=research_parts(archive,catalog,annual)
     write_json(args.state,archive)
     write_json(args.scores,research)
