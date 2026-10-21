@@ -182,7 +182,7 @@ class BulkHistoryTests(unittest.TestCase):
         def checkpoint(snapshot,year):
             saved.append((year,copy.deepcopy(snapshot)))
         with self.assertRaisesRegex(bulk.BulkHistoryError,
-                                     "dart_bulk_transport_unavailable"):
+                                     "dart_bulk_http_connection_failed"):
             bulk.collect(market,catalog,None,key="synthetic-key-not-secret-123",
                          session=first,groups=1,on_progress=checkpoint)
         self.assertEqual(len(saved),1)
