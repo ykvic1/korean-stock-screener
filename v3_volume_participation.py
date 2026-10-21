@@ -14,6 +14,8 @@ uses it (technical.volume_confirmation2).
 from __future__ import annotations
 
 import argparse
+import csv
+from io import StringIO
 import json
 import math
 from pathlib import Path
@@ -149,6 +151,57 @@ def build(market,catalog):
     }
 
 
+def to_csv(report,catalog):
+    """Readable whole-market companion: NEVER publish raw OHLCV or net buys."""
+    if (report.get("asof")!=catalog.get("date") or
+        report.get("listed_total")!=catalog.get("listed_total") or
+        report.get("source_catalog_sha256")!=_stable_digest(catalog)):
+        raise VolumeEvidenceError("volume_csv_catalog_source_mismatch")
+    out=StringIO(newline="")
+    writer=csv.writer(out,lineterminator="\n")
+    writer.writerow([
+        "종목코드","종목명","시장","시장자료기준일",
+        "거래량_OBV_잠정점수_20점중","산출가능배점_20점중",
+        "미확보배점_20점중","20일거래량_점수_6점",
+        "OBV60일_점수_6점","OBV_주가미반영_점수_4점",
+        "거래급증후매물소화_점수_4점","관측상태","위험신호",
+        "매수주체판별","정식투자점수"
+    ])
+    known=report.get("records",{})
+    members=sorted(catalog["rows"],key=lambda r:r["code"])
+    for item in members:
+        record=known.get(item["code"])
+        if record is None:
+            writer.writerow([item["code"],item["name"],item["market"],
+                            report["asof"],"","",20,"","","","",
+                            "자료미확보","","불가",""])
+            continue
+        if (record.get("market")!=item["market"]
+            or record.get("asof")!=report["asof"]
+            or record.get("observed_available_max")!=OBSERVABLE_MAX
+            or record.get("unobserved_max")!=4
+            or record.get("foreign_institutional_net_buy_inferred") is not False
+            or record.get("investable_score_certified") is not False):
+            raise VolumeEvidenceError("volume_csv_issuer_or_claim_mismatch")
+        points=record["subpoints"]
+        if (not isinstance(points,dict)
+            or points.get("post_spike_absorption") is not None
+            or sum(points[k] for k in (
+                "sustained_volume","obv_60_direction",
+                "obv_price_not_reflected"))!=record["observed_points"]):
+            raise VolumeEvidenceError("volume_csv_subfactor_tampered")
+        writer.writerow([
+            item["code"],item["name"],item["market"],report["asof"],
+            record["observed_points"],OBSERVABLE_MAX,4,
+            points["sustained_volume"],points["obv_60_direction"],
+            points["obv_price_not_reflected"],"","16점관측·4점미확보",
+            ";".join(record["risk_flags"]),"불가",""
+        ])
+    if len(members)!=report["listed_total"]:
+        raise VolumeEvidenceError("volume_csv_market_row_count_mismatch")
+    return "\ufeff"+out.getvalue()
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--docs",default="docs")
@@ -157,12 +210,18 @@ def main(argv=None):
     root=Path(x.docs)
     def read(name):
         return json.loads((root/name).read_text(encoding="utf8"))
-    value=build(read("data.json"),read("v22-market-catalog.json"))
+    catalog=read("v22-market-catalog.json")
+    value=build(read("data.json"),catalog)
     path=root/"v3-volume-obv-observed.json"
+    sheet=root/"v3-volume-obv-observed.csv"
+    csv_source=to_csv(value,catalog)
     if x.mode=="write":
         write_json(path,value)
+        sheet.write_text(csv_source,encoding="utf8")
     else:
-        if not path.is_file() or json.loads(path.read_text(encoding="utf8"))!=value:
+        if (not path.is_file() or not sheet.is_file()
+            or json.loads(path.read_text(encoding="utf8"))!=value
+            or sheet.read_text(encoding="utf8")!=csv_source):
             raise VolumeEvidenceError("volume_source_changed_after_rebase")
     print(json.dumps({"status":"verified_source_volume_obv_research_only",
        "asof":value["asof"],"listed":value["listed_total"],
