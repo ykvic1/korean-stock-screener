@@ -106,8 +106,15 @@ def prior_records(prior,asof,members):
         raise IndustrySourceError("stale_industry_checkpoint_requires_new_source")
     old_members={c:{"market":r["market"]} for c,r in prior["records"].items()}
     expected=summary(prior["asof"],old_members,prior["records"],prior["last_run_attempted"])
+    # A saved checkpoint spans the FULL market, even if only 96 out of
+    # 2497 companies have a record so far. Do not use the observed subset
+    # as the previous market census denominator.
+    expected["listed_total"]=prior["listed_total"]
+    expected["not_yet_attempted"]=prior["listed_total"]-len(prior["records"])
     # Only attributes in the canonical immutable source state accepted.
-    if expected!=prior:
+    if (type(prior["listed_total"]) is not int
+            or not len(prior["records"])<=prior["listed_total"]<=6000
+            or expected!=prior):
         raise IndustrySourceError("tampered_prior_industry_checkpoint")
     return {c:r for c,r in prior["records"].items()
             if c in members and members[c]["market"]==r["market"]}
