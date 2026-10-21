@@ -6,10 +6,11 @@ on:
     paths:
       - v3_all_listed_scorecard.py
       - .github/workflows/v3-all-listed-scorecard.yml
-  # 20:57 KST, after the existing 20:43 KST seven-day source rotation.
-  # Only existing saved source data is reused; zero new DART/KRX calls.
+  # Once hourly at :57 KST to publish scores after each DART/CAPEX
+  # acquisition window; shared concurrency serializes against backfills.
+  # Reuses already-stored source facts: zero new DART/KRX provider calls.
   schedule:
-    - cron: '57 11 * * *'
+    - cron: '57 * * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -54,7 +55,15 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "Publish observed-only all-listed V3 six-area scorecard"
             git pull --rebase origin main
-            # Do not publish stale values after another source updated main.
+            # Other DART or 7-day research jobs may have appended verified
+            # source data while this action queued. Recalculate from the
+            # rebased current data, replace only our generated CSV/summary,
+            # and persist the exact source fingerprints we actually used.
+            python v3_all_listed_scorecard.py --mode write
+            git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+            if ! git diff --cached --quiet; then
+              git commit --amend --no-edit
+            fi
             python v3_all_listed_scorecard.py --mode verify
             git push origin HEAD:main
           fi

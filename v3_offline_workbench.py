@@ -103,7 +103,14 @@ def run_workbench(bundle, *, min_peers=30):
             for identity in included:
                 if identity in derived_industry:
                     raise WorkbenchError("industry_member_assigned_twice")
-                derived_industry[identity] = output["features"]
+                # Newly introduced sector rebound diagnostics are NOT
+                # authorized inputs to the existing six-pillar factor engine.
+                # Keep risk warnings separately. A future factor-contract
+                # change requires independent validation and approval.
+                derived_industry[identity] = {
+                    name: value for name, value in output["features"].items()
+                    if name in FIELD_SPECS
+                }
                 industry_warnings_by_identity[identity] = output["risk_flags_research"]
             if output["risk_flags_research"]:
                 input_issue_counts["industry_cycle_warning_cohorts"] += 1

@@ -136,8 +136,13 @@ class DecadeArchiveResearchTests(unittest.TestCase):
             plan_next_batch(dates,batch_size=6)
         with self.assertRaises(BackfillPlanError):
             calendar_weekday_candidates("1990-01-01","2026-10-16")
+        # Use a genuinely future interval on any day this regression
+        # runs. The old fixed 2026-10-21 value became historical on that
+        # date and failed even though the calendar guard was correct.
+        future=(date.today()+timedelta(days=5)).isoformat()
+        later=(date.today()+timedelta(days=6)).isoformat()
         with self.assertRaises(BackfillPlanError):
-            calendar_weekday_candidates("2026-10-20","2026-10-21")
+            calendar_weekday_candidates(future,later)
 
 
 if __name__=="__main__":

@@ -185,6 +185,21 @@ def evaluate_industry_cohort(cohort, *, asof, decision_at_utc):
         if prev_sum > 0 and now_sum < prev_sum:
             risk_flags.append("aggregate_industry_operating_profit_declining")
     breadth = round(breadth_count / len(members), 6) if all_breadth else None
+    # Sector-level improving-profit BREADTH measures the number of issuers
+    # turning upward, not just how far the largest member has moved. Use
+    # the full declared roster; do not give a favorable subset score when
+    # any constituent's historical profit evidence is missing.
+    improvement_breadth = None
+    largest_improvement_share = None
+    if all_profit and len(profit_pairs) == len(members):
+        increases = [max(0, now - old) for old, now in profit_pairs]
+        improvement_breadth = round(
+            sum(now > old for old, now in profit_pairs) / len(members), 6)
+        positive_sum = sum(increases)
+        if positive_sum > 0:
+            largest_improvement_share = round(max(increases) / positive_sum, 6)
+            if largest_improvement_share > 0.7:
+                risk_flags.append("profit_recovery_concentrated_in_one_issuer")
     if breadth is not None and breadth < 0.3:
         risk_flags.append("low_declared_cohort_above_ma_breadth")
     return {
@@ -202,6 +217,9 @@ def evaluate_industry_cohort(cohort, *, asof, decision_at_utc):
         "features": {
             "industry_profit_growth_12m_pct": growth,
             "industry_breadth_above_ma_ratio": breadth,
+            "industry_profit_improving_issuer_ratio": improvement_breadth,
+            "industry_recovery_largest_issuer_delta_share":
+                largest_improvement_share,
         },
         "risk_flags_research": sorted(risk_flags),
         "only_declared_cohort_checked": True,
