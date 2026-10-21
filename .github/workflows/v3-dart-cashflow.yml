@@ -54,7 +54,13 @@ jobs:
       - name: Install official DART HTTP dependencies only in live mode
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
+      - name: Gate cashflow ingestion on the latest verified major-account market date
+        id: date_gate
+        run: |
+          set -euo pipefail
+          python v3_dart_source_day_preflight.py --kind major
       - name: Query only genuine fiscal 2023-2025 annual statement cashflows
+        if: ${{ steps.date_gate.outputs.ready == 'true' }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'live' }}
@@ -62,7 +68,7 @@ jobs:
           set -euo pipefail
           python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 32
       - name: Publish derived cashflow ONLY after successfully validated source
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') && steps.date_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -99,6 +105,8 @@ jobs:
           fi
       - name: Report real cashflow sources and missingness, never buy signals
         if: always()
+        env:
+          DAY_READY: ${{ steps.date_gate.outputs.ready }}
         run: |
           python - <<'PY'
           import json,os
@@ -110,6 +118,8 @@ jobs:
             '단일회사 전체 재무제표에서 실제 확인된 표준 계정만 이용합니다.',
             'CAPEX 유형/무형 중 하나라도 없으면 FCF는 결측입니다.',
           ]
+          if os.getenv("DAY_READY")!="true":
+              lines.append('새 장마감일의 공식 DART 4개년 기준일 대기: 금회 API 호출 0, 신규 FCF 자료 0. 아래는 이전에 저장된 원장입니다.')
           if file.is_file():
               data=json.loads(file.read_text(encoding='utf8'))
               lines.extend('- '+k+': **'+str(v)+'**' for k,v in
