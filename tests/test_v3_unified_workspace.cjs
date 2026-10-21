@@ -10,6 +10,38 @@ const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+// Industry earnings dashboard is a source-coverage tool, not a scored
+// signal. Reject forged source dates, wrong rubrics or sample leakage.
+const officialIndustrySample=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-dart-industry-earnings-sample.json'),'utf8'));
+const observedIndustry=unified.industryEvidenceView(
+ officialIndustrySample,officialIndustrySample.asof);
+assert.ok(observedIndustry&&observedIndustry.coverage>=observedIndustry.matched);
+assert.ok(observedIndustry.html.includes('표본'));
+assert.ok(observedIndustry.html.includes('미확보 반영 범위'));
+assert.ok(html.includes('id="industryResearch"'));
+assert.ok(source.includes("'v3-dart-industry-earnings-sample.json'"));
+assert.equal(unified.industryEvidenceView(
+ officialIndustrySample,'2026-10-21'),null);
+assert.equal(unified.industryEvidenceView(
+ {...officialIndustrySample,sector_15_points_earned_issuer_count:1},
+ officialIndustrySample.asof),null);
+const mutated=structuredClone(officialIndustrySample);
+mutated.groups[0].group_15point_investment_score=3;
+assert.equal(unified.industryEvidenceView(mutated,mutated.asof),null);
+const spoof=structuredClone(officialIndustrySample);
+spoof.groups[0].dart_industry_code_prefix_2='<img onerror=alert(1)>';
+assert.equal(unified.industryEvidenceView(spoof,spoof.asof),null);
+// A fully audited real group may legitimately have an observed zero.
+// Never render it as "no data"; only missing remains a dash.
+const sample=structuredClone(officialIndustrySample);
+const sampleRow=sample.groups.find(g=>g.issuer_year_pair_observed>=3);
+assert.ok(sampleRow);
+sampleRow.observed_earnings_improving_issuer_ratio_sample_only=0;
+sampleRow.improvement_breadth_lower_bound_known_classified_only=0;
+sampleRow.improvement_breadth_upper_bound_known_classified_only=0;
+assert.ok(unified.industryEvidenceView(sample,sample.asof)
+ .html.includes('0.0%'));
 // A weekly group is evidence replay, NOT full verification or a fresh API response.
 assert.equal(unified.weeklyCoverageText(null,'2026-10-20'),'');
 const weekly={schema:'v3-seven-day-research-coverage-0.1',
