@@ -193,8 +193,10 @@ def coverage(catalog,history,parts,weekly):
         parts.get("companies_with_computable_earnings_yield_scores")!=len(earnings)):
         raise CoverageAuditError("research_component_evidence_count_mismatch")
     technical=set();momentum=set()
-    if (weekly.get("processed_this_cycle")!=len(weekly["records"]) or
-        weekly.get("unprocessed_this_cycle")!=total-len(weekly["records"]) or
+    active_weekly={c:r for c,r in weekly["records"].items()
+                   if type(r) is dict and r.get("cycle")==weekly.get("cycle_start")}
+    if (weekly.get("processed_this_cycle")!=len(active_weekly) or
+        weekly.get("unprocessed_this_cycle")!=total-len(active_weekly) or
         set(weekly["records"])-set(members)):
         raise CoverageAuditError("incompatible_weekly_coverage")
     # A 7-day rotating replay explicitly retains earlier *same-cycle*
@@ -208,6 +210,10 @@ def coverage(catalog,history,parts,weekly):
     for code,rec in weekly["records"].items():
         if not isinstance(rec,dict) or rec.get("code")!=code:
             raise CoverageAuditError("invalid_technical_source_identity")
+        if code not in active_weekly:
+            # Previous cycle's cached result remains explicitly historical.
+            # It must never be added to the new close's numeric count.
+            continue
         observed_asof=rec.get("market_source_asof")
         if type(observed_asof) is not str:
             raise CoverageAuditError("invalid_technical_source_identity")
@@ -277,7 +283,7 @@ def coverage(catalog,history,parts,weekly):
         "industry_sector_label_issuer_count":len(industry_labels),
         "industry_scored_rotation_issuer_count":0,
         "official_investor_IAS_source_issuer_count":0,
-        "technical_weekly_source_processed_issuer_count":len(weekly["records"]),
+        "technical_weekly_source_processed_issuer_count":len(active_weekly),
         "technical_weekly_prior_market_day_records_excluded":old_weekly_issuer_count,
         "historical_dart_distinct_issuer_count":len(book_rows),
         "historical_dart_company_years_attempted_by_fiscal":attempted_years,
