@@ -88,6 +88,43 @@ class RealCoverageAuditTests(unittest.TestCase):
                                      "untrusted_provisional_pillar_row"):
             audit.coverage(*altered)
         altered=copy.deepcopy(base)
+        altered[2]["companies_with_computable_3y_margin_scores"]+=1
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                     "research_component_evidence_count_mismatch"):
+            audit.coverage(*altered)
+        altered=copy.deepcopy(base)
+        altered[2]["rows"].append({
+            **altered[2]["rows"][0],
+            "financial_available_max":0,
+            "financial_candidate_points":None,
+            "valuation_available_max":0,
+            "valuation_candidate_points":None,
+            "combined_available_max":0,
+            "combined_provisional_points":0,
+            "unverified_components":{
+                k:{**v,"max_points":0,"candidate_points":None}
+                for k,v in altered[2]["rows"][0]["unverified_components"].items()
+            },
+        })
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                     "duplicate_research_issuer"):
+            audit.coverage(*altered)
+        altered=copy.deepcopy(base)
+        altered[2]["rows"][0]["combined_available_max"]=100
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                     "invented_partial_coverage_or_total"):
+            audit.coverage(*altered)
+        altered=copy.deepcopy(base)
+        altered[2]["rows"][0]["combined_provisional_points"]=100
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                     "invented_partial_coverage_or_total"):
+            audit.coverage(*altered)
+        altered=copy.deepcopy(base)
+        altered[2]["rows"][0]["unverified_components"]["pbr"]["candidate_points"]=15
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                     "invented_partial_component_points"):
+            audit.coverage(*altered)
+        altered=copy.deepcopy(base)
         altered[1]["records"]["999999"]={"years":{}}
         with self.assertRaisesRegex(audit.CoverageAuditError,
                                      "unexpected_historical_issuer"):
