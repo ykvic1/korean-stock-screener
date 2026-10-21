@@ -1,11 +1,14 @@
 """Actual saved official DART profile x annual source join, no provider calls."""
 import copy
+import io
 import json
+import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
 import unittest
 
 from v3_dart_industry_earnings_sample import (
-    build,IndustryEarningsError,MIN_GROUP_ISSUERS_FOR_AGGREGATE,
+    build,source_join_ready,main,IndustryEarningsError,MIN_GROUP_ISSUERS_FOR_AGGREGATE,
 )
 from v3_dart_bulk_history import _stable_digest
 
@@ -78,17 +81,74 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
         workflow=(DOCS.parent/".github"/"workflows"/
                   "v3-dart-industry-codes.yml").read_text(encoding="utf8")
         self.assertIn("cron: '6,21,36,51 * * * *'",workflow)
-        self.assertIn("python v3_dart_industry_earnings_sample.py --mode write",
+        self.assertIn("python v3_dart_industry_earnings_sample.py --mode write-if-ready",
                       workflow)
-        self.assertIn("python v3_dart_industry_earnings_sample.py --mode verify",
+        self.assertIn("python v3_dart_industry_earnings_sample.py --mode verify-if-ready",
                       workflow)
         self.assertGreaterEqual(workflow.count(
             "git add docs/v3-dart-industry-classification.json docs/v3-dart-industry-earnings-sample.json"),2)
         self.assertLess(workflow.index(
             "python v3_dart_industry_codes.py --mode rebind"),
             workflow.rindex(
-                "python v3_dart_industry_earnings_sample.py --mode write"))
+                "python v3_dart_industry_earnings_sample.py --mode write-if-ready"))
         self.assertIn("cancel-in-progress: false",workflow)
+
+    def test_new_market_date_defers_old_annual_join_without_data_loss(self):
+        market=copy.deepcopy(self.market)
+        catalog=copy.deepcopy(self.catalog)
+        market["date"]="2026-10-21"
+        catalog["date"]="2026-10-21"
+        for stock in market["stocks"]:
+            stock["price_date"]="2026-10-21"
+        self.assertTrue(source_join_ready(
+            self.market,self.catalog,self.codes,self.bulk))
+        self.assertFalse(source_join_ready(
+            market,catalog,self.codes,self.bulk))
+        # The old "build" operation is still STRICT, even when this
+        # explicitly bounded, standalone publication option can defer.
+        with self.assertRaises(IndustryEarningsError):
+            build(market,catalog,self.codes,self.bulk)
+        original=DOCS/"v3-dart-industry-earnings-sample.json"
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory)
+            contents={
+                "data.json":market,
+                "v22-market-catalog.json":catalog,
+                "v3-dart-industry-classification.json":self.codes,
+                "v3-dart-bulk-history.json":self.bulk,
+            }
+            for name,obj in contents.items():
+                (folder/name).write_text(json.dumps(obj),encoding="utf8")
+            prior=original.read_bytes()
+            dest=folder/original.name
+            dest.write_bytes(prior)
+            with redirect_stdout(io.StringIO()) as captured:
+                main(["--docs",str(folder),"--mode","write-if-ready"])
+            notice=json.loads(captured.getvalue().strip())
+            self.assertEqual(notice["status"],"deferred_industry_earnings_join")
+            self.assertEqual(notice["market_asof"],"2026-10-21")
+            self.assertEqual(notice["annual_source_asof"],"2026-10-20")
+            self.assertFalse(notice["industry_score_certified"])
+            self.assertEqual(dest.read_bytes(),prior)
+
+    def test_bad_future_or_corrupt_annual_source_not_silently_deferred(self):
+        market=copy.deepcopy(self.market)
+        catalog=copy.deepcopy(self.catalog)
+        market["date"]=catalog["date"]="2026-10-21"
+        for stock in market["stocks"]:
+            stock["price_date"]="2026-10-21"
+        bad=copy.deepcopy(self.bulk)
+        bad["asof"]="2026-10-22"
+        with self.assertRaises(IndustryEarningsError):
+            source_join_ready(market,catalog,self.codes,bad)
+        bad=copy.deepcopy(self.bulk)
+        bad["raw_source_rows_published"]=True
+        with self.assertRaises(IndustryEarningsError):
+            source_join_ready(market,catalog,self.codes,bad)
+        bad=copy.deepcopy(self.bulk)
+        bad["asof"]="2026-10-01"
+        with self.assertRaises(IndustryEarningsError):
+            source_join_ready(market,catalog,self.codes,bad)
 
     def test_deceptive_industry_industry15_flag_rejected(self):
         fake=copy.deepcopy(self.codes)
