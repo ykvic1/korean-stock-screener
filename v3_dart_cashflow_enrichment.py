@@ -21,8 +21,8 @@ from v3_dart_bulk_history import (
 )
 
 SCHEMA="v3-observed-annual-dart-cashflow-capex-0.1"
-MAX_ISSUERS=12
-MAX_SOURCE_CALLS=36
+MAX_ISSUERS=32
+MAX_SOURCE_CALLS=96
 MAX_SECONDS=950
 YEARS=(2023,2024,2025)
 CFO_IDS={
@@ -50,6 +50,10 @@ def fingerprint(value):
 
 def asof_members(market,catalog,bulk):
     asof,members=_inputs(market,catalog)
+    # Never reuse FY2023-25 when FY2026 becomes the latest available annual
+    # cohort; explicitly update the capture contract at fiscal rollover.
+    if tuple(range(_day(asof).year-3,_day(asof).year))!=YEARS:
+        raise CashflowError("cashflow_fiscal_rollover_requires_review")
     if (type(bulk) is not dict or bulk.get("asof")!=asof
         or bulk.get("listed_total")!=len(members)
         or bulk.get("fiscal_years")!=list(range(_day(asof).year-4,_day(asof).year))
