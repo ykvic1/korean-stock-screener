@@ -6,14 +6,14 @@ on:
       - v3_dart_industry_codes.py
       - .github/workflows/v3-dart-industry-codes.yml
   schedule:
-    # 160 bounded profiles per 15 minutes (max 640/hour). Shares the
-    # publication lock with :29 annual major and :47 cashflow ingestion.
+    # 160 bounded profiles per 15 minutes (max 640/hour), independent
+    # from market-close and financial source queues. No quota increase.
     - cron: '6,21,36,51 * * * *'
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: korea-stock-screener-publication
+  group: korea-stock-screener-dart-company-profiles
   cancel-in-progress: false
 jobs:
   profile:
@@ -57,14 +57,23 @@ jobs:
           git add docs/v3-dart-industry-classification.json docs/v3-dart-industry-earnings-sample.json
           if ! git diff --cached --quiet; then
             git commit -m "Save observed company industry codes"
-            git pull --rebase origin main
-            python v3_dart_industry_codes.py --mode rebind
-            # The annual DART source may have changed during the queued
-            # GitHub action. Join against freshly rebased *saved* sources.
-            python v3_dart_industry_earnings_sample.py --mode write
-            git add docs/v3-dart-industry-classification.json docs/v3-dart-industry-earnings-sample.json
-            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
-            python v3_dart_industry_codes.py --mode verify
-            python v3_dart_industry_earnings_sample.py --mode verify
-            git push origin HEAD:main
+            # Retry git publication only: do not repeat DART company calls.
+            # Recalculate the earnings join against each rebased saved source.
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_dart_industry_codes.py --mode rebind
+              python v3_dart_industry_earnings_sample.py --mode write
+              git add docs/v3-dart-industry-classification.json docs/v3-dart-industry-earnings-sample.json
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              python v3_dart_industry_codes.py --mode verify
+              python v3_dart_industry_earnings_sample.py --mode verify
+              if git push origin HEAD:main; then
+                echo "verified_company_profiles_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::industry_publish_retries_exhausted"
+                exit 1
+              fi
+            done
           fi
