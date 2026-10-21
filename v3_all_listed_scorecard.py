@@ -88,6 +88,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
     members={r["code"]:r for r in catalog["rows"]}
     raw_parts={r["code"]:r for r in parts["rows"]}
     fcf_rows={}
+    fcf_effective=None
     fcf_accepted=False
     fcf_reason="source_not_available"
     if cash is not None and fcf is not None:
@@ -122,6 +123,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
             if len(fcf_rows)!=len(expected["rows"]):
                 raise FullMarketScorecardError("duplicate_fcf_issuer")
             fcf_accepted=True
+            fcf_effective=expected
             fcf_reason=("same_receipt_verified_research_only" if expected==fcf
                          else "recomputed_from_saved_verified_cashflow")
         except (CashflowError,FCFPreviewError,FullMarketScorecardError,
@@ -194,7 +196,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
             "dart_major":_stable_digest(history),
             "dart_partial":_stable_digest(parts),
             "weekly":_stable_digest(weekly),
-            "fcf":_stable_digest(fcf) if fcf_accepted else None,
+            "fcf":_stable_digest(fcf_effective) if fcf_accepted else None,
         },
         "notice":"Missing factor columns are blank, never 0. No official IAS20, sector15, historical PIT or verified buy ranking."
     }
