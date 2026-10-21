@@ -17,6 +17,7 @@ from xml.etree import ElementTree as ET
 import json
 import math
 import re
+import time
 
 from v3_dart_rolling_book_reference import _inputs
 
@@ -25,6 +26,8 @@ SCORE_SCHEMA = "v3-dart-multi-year-research-parts-0.1"
 MAX_CORPS = 100
 MAX_GROUPS = 3
 YEARS_BACK = 4
+MAX_SOURCE_FISCAL_CALLS = 8
+MAX_SOURCE_RUN_SECONDS = 1200
 LABELS = {
     ("IS","매출액"): "revenue",
     ("IS","영업수익"): "revenue",
@@ -253,7 +256,8 @@ def _mapping(blob, requested_codes):
 
 
 def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
-                prior_years=None,on_year=None):
+                prior_years=None,on_year=None,max_requests=None,
+                deadline=None):
     """Query ≤25 actual issuers per annual request; checkpoint every batch.
 
     The official 100-company API allows *at most* 100 names, but repeated
@@ -268,6 +272,10 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
     for year in years:
         needed=[c for c in available if str(year) not in found[c]]
         for offset in range(0,len(needed),25):
+            if max_requests is not None and requests_made>=max_requests:
+                raise BulkHistoryError("dart_bulk_safe_source_call_budget_reached")
+            if deadline is not None and time.monotonic()>=deadline:
+                raise BulkHistoryError("dart_bulk_safe_elapsed_time_budget_reached")
             batch=needed[offset:offset+25]
             lookup={corp_map[c]:c for c in batch}
             try:
@@ -450,6 +458,9 @@ def partial_year_checkpoint(market,catalog,prior,updates):
         "unattempted_company_count":len(members)-completed,
         "last_run_new_companies":len(updates),
         "completed_source_company_years":sum(len(v["years"]) for v in retained.values()),
+        "observed_nonempty_company_years":sum(
+            sum(bool(v) for v in row["years"].values())
+            for row in retained.values()),
         "historical_PIT_source_certified":False,
         "four_year_complete_financial15_certified":False,
         "cfo_capex_and_net_debt_from_bulk_api_available":False,
@@ -646,6 +657,7 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         raise BulkHistoryError("dart_company_mapping_failure") from None
     complete={}
     calls=1
+    deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
     checkpoint=prior
     def save_year(updates,year):
         nonlocal checkpoint
@@ -657,7 +669,9 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         row,n=fetch_group(
             session,key,asof,years,cohort,mapping,
             prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
-            on_year=save_year if on_progress else None)
+            on_year=save_year if on_progress else None,
+            max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-1),
+            deadline=deadline)
         complete.update(row)
         calls+=n
     return combine(market,catalog,prior,complete,groups=groups),calls
