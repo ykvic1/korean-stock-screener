@@ -23,7 +23,7 @@ from v3_dart_industry_earnings_sample import (
     IndustryEarningsError,build as earnings_build,source_join_ready,_pair
 )
 
-SCHEMA="v3-industry-saved-annual-earnings-missingness-0.1"
+SCHEMA="v3-industry-saved-annual-earnings-missingness-0.2-profit-only-evidence"
 CATEGORIES=(
     "saved_company_annual_history_absent",
     "saved_both_comparison_years_absent",
@@ -53,6 +53,37 @@ DESCRIPTION={
 
 class IndustryGapError(ValueError):
     """Failure code without private account values or issuer names."""
+
+
+def verified_operating_income_pair_without_revenue(record, prior_year, latest_year, asof):
+    """Proof of exact FY annual operating profit even when revenue is unusable.
+
+    Uses one SAME CFS or OFS financial scope across two years and exact annual
+    receipts. Missing/ambiguous operating profit is never treated as zero.
+    Numeric profits MUST NEVER be serialized in the saved gap queue.
+    """
+    if type(record) is not dict or type(record.get("years")) is not dict:
+        return None
+    years=record["years"]
+    for scope in ("CFS","OFS"):
+        amounts=[]
+        for year in (prior_year,latest_year):
+            fiscal=years.get(str(year))
+            if type(fiscal) is not dict:
+                break
+            data=fiscal.get(scope)
+            if type(data) is not dict or type(data.get("values")) is not dict:
+                break
+            value=data["values"].get("operating_income")
+            if (type(value) is not int or abs(value)>10**18
+                or type(data.get("ambiguous")) is not list
+                or "operating_income" in data["ambiguous"]
+                or not _valid_receipt(data.get("receipt_id"),year,_day(asof))):
+                break
+            amounts.append(value)
+        if len(amounts)==2:
+            return scope,amounts[0],amounts[1]
+    return None
 
 
 def missing_reason(record, prior_year, latest_year, asof):
@@ -134,7 +165,10 @@ def build(market,catalog,industry,bulk):
     missing=[]
     categories=Counter()
     by_market=defaultdict(Counter)
-    by_group=defaultdict(lambda:{"classified":0,"paired":0,"missing":Counter()})
+    profit_only_by_reason=Counter()
+    profit_only_by_market=Counter()
+    by_group=defaultdict(lambda:{"classified":0,"paired":0,"missing":Counter(),
+                                  "verified_profit_only_missing_revenue":0})
     matched=0
     if industry["observed_industry_codes"]!=len(members):
         raise IndustryGapError("market_industry_codes_not_fully_observed")
@@ -154,9 +188,19 @@ def build(market,catalog,industry,bulk):
         categories[reason]+=1
         by_market[market_name][reason]+=1
         group["missing"][reason]+=1
+        profit=verified_operating_income_pair_without_revenue(
+            saved.get(code),previous,latest,asof)
+        # This is independent proof of ONLY the two operating profit amounts;
+        # do not count as a regular pair, revenue, or any industry/15 points.
+        profit_only=profit is not None
+        if profit_only:
+            profit_only_by_reason[reason]+=1
+            profit_only_by_market[market_name]+=1
+            group["verified_profit_only_missing_revenue"]+=1
         missing.append({
           "code":code,"name":titles[code],"market":market_name,
           "industry_prefix_2":prefix,"saved_source_gap":reason,
+          "operating_profit_pair_without_revenue_verified":profit_only,
         })
     if (len(missing)+matched!=len(members) or
         matched!=sample["mapped_industry_issuer_earnings_two_year_matched"] or
@@ -179,6 +223,8 @@ def build(market,catalog,industry,bulk):
           "missing":v["classified"]-v["paired"],
           "source_coverage_ratio":round(v["paired"]/v["classified"],6),
           "gap_reason_counts":{k:v["missing"][k] for k in CATEGORIES if v["missing"][k]},
+          "verified_profit_only_gap_count":
+              v["verified_profit_only_missing_revenue"],
           "profit_scope_uniform_in_observed_sample":src["observed_pair_scope_uniform"],
           "source_is_current_dart_company_industry_not_krx_sector":True,
         })
@@ -189,6 +235,11 @@ def build(market,catalog,industry,bulk):
       "current_company_industry_codes_observed":len(profiles),
       "actual_saved_annual_profit_pairs":matched,
       "saved_profit_pair_unavailable":len(missing),
+      "verified_operating_profit_only_pair_among_missing":sum(profit_only_by_reason.values()),
+      "profit_only_verified_but_full_pair_still_missing":True,
+      "profit_only_among_missing_by_reason":{k:profit_only_by_reason[k] for k in CATEGORIES},
+      "profit_only_among_missing_by_market":{
+         m:profit_only_by_market[m] for m in ("KOSPI","KOSDAQ")},
       "missing_reason_counts":{k:categories[k] for k in CATEGORIES},
       "missing_reason_display_ko":dict(DESCRIPTION),
       "missing_by_market":{
@@ -207,7 +258,7 @@ def build(market,catalog,industry,bulk):
         "industry_current_company_codes":_stable_digest(industry),
         "dart_annual_receipt_history":_stable_digest(bulk),
       },
-      "note":"Gap labels describe THIS saved annual-receipt pipeline, not an official statement that filings do not exist. Two-digit DART code prefix is not an authenticated historical KRX sector, no industry/15 points.",
+      "note":"Gap labels describe THIS saved annual-receipt pipeline, not an official statement that filings do not exist. Verified profit-only pairs do NOT repair missing revenues, update the strict paired count, or authenticate historical KRX sector memberships. Zero industry/15 points.",
     }
     return stats,missing
 
@@ -217,14 +268,19 @@ def missing_csv(rows,stats):
     w=csv.writer(stream,lineterminator="\n")
     w.writerow(["종목코드","종목명","시장","현재DART업종코드앞2자리",
                 "공시자료기준일","저장원장_첫차단원인","원인설명",
+                "영업이익_2개년_매출무관_별도검증","매출포함_엄격비교",
                 "과거KRX업종확인","산업15점투자점수"])
     for row in rows:
         name=row["saved_source_gap"]
         if name not in DESCRIPTION:
             raise IndustryGapError("unknown_industry_gap_reason")
+        proven=row.get("operating_profit_pair_without_revenue_verified")
+        if type(proven) is not bool:
+            raise IndustryGapError("unverified_profit_only_gap_queue")
         w.writerow([row["code"],row["name"],row["market"],
                     row["industry_prefix_2"],stats["asof"],name,
-                    DESCRIPTION[name],"미확인",""])
+                    DESCRIPTION[name],"검증" if proven else "미검증",
+                    "미확보","미확인",""])
     if len(rows)!=stats["saved_profit_pair_unavailable"]:
         raise IndustryGapError("industry_gap_csv_count_mismatch")
     return "\ufeff"+stream.getvalue()
@@ -265,6 +321,8 @@ def main(argv=None):
                       "asof":stats["asof"],"listed":stats["listed_total"],
                       "profit_pairs":stats["actual_saved_annual_profit_pairs"],
                       "not_yet_usable":stats["saved_profit_pair_unavailable"],
+                      "profit_only_pairs_even_without_revenue":
+                        stats["verified_operating_profit_only_pair_among_missing"],
                       "cause_counts":stats["missing_reason_counts"],
                       "official_industry_score_count":0,"api_calls":0},
                      sort_keys=True))
