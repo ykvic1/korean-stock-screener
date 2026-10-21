@@ -15,6 +15,7 @@ import math
 from pathlib import Path
 
 from v3_dart_bulk_history import _stable_digest
+from v3_score_contract import INDUSTRY_POINTS
 from v3_real_six_pillar_coverage_audit import coverage, CoverageAuditError
 from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
@@ -22,8 +23,7 @@ from v3_dart_cashflow_enrichment import CashflowError
 AREAS=("ias","technical","financial","valuation","industry","momentum")
 # The user approved the six-domain 100-point contract and industry 5/4/3/3.
 # No five-domain 85-point alternative or rescaling is used.
-INDUSTRY_PARTS={"early_rotation":5,"profit_transition":4,
-                "improvement_diffusion":3,"overheat_crowding_quality":3}
+INDUSTRY_PARTS=dict(INDUSTRY_POINTS)
 WEIGHTS={"ias":20,"technical":25,"financial":15,
          "valuation":15,"industry":15,"momentum":10}
 NAMES={"ias":"수급","technical":"기술","financial":"재무",
