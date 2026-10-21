@@ -148,6 +148,10 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
 
     def test_workflow_never_calls_provider_or_forces_git(self):
         path=Path(__file__).resolve().parents[1]
+        for html in ("index.html","workspace.html"):
+            body=(path/"docs"/html).read_text(encoding="utf8")
+            self.assertIn('href="v3-industry-saved-profit-gap-issuers.csv"',body)
+            self.assertIn("공식 KRX 산업 15점이 아닙니다",body)
         flow=(path/".github/workflows/v3-industry-earnings-gap.yml").read_text("utf8")
         self.assertIn("v3_industry_earnings_gap_audit.py --mode write",flow)
         self.assertIn("v3_industry_earnings_gap_audit.py --mode verify",flow)
