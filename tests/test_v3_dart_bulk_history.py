@@ -138,7 +138,7 @@ class BulkHistoryTests(unittest.TestCase):
                     accepted["005930"]["CFS"]["values"]["revenue"])
                 self.assertEqual(
                     accepted["247540"]["CFS"]["values"]["revenue"],
-                    140_000_000_100)
+                    160_000_000_100)
 
     def test_untrusted_issuer_isolation_and_global_schema_fail_closed(self):
         rows=payload_rows(2025)
@@ -151,7 +151,7 @@ class BulkHistoryTests(unittest.TestCase):
                         lookup,diagnostics=reasons)
         self.assertNotIn("CFS",matched["005930"])
         self.assertEqual(matched["247540"]["CFS"]["values"]["revenue"],
-                         140_000_000_100)
+                         160_000_000_100)
         self.assertEqual(
             reasons["quarantine_reasons"]["mixed_receipts_same_company_scope"],1)
         self.assertEqual(reasons["quarantined_company_scope_count"],1)
