@@ -11,6 +11,7 @@ from datetime import date, datetime, time, timezone
 import math
 import re
 from zoneinfo import ZoneInfo
+from v3_sector_rotation_signal import early_rotation_signal
 
 SESSION = "KRX_REGULAR_0900_1530_ASIA_SEOUL"
 MAX_MEMBERS = 3000
@@ -185,6 +186,38 @@ def evaluate_industry_cohort(cohort, *, asof, decision_at_utc):
         if prev_sum > 0 and now_sum < prev_sum:
             risk_flags.append("aggregate_industry_operating_profit_declining")
     breadth = round(breadth_count / len(members), 6) if all_breadth else None
+    # Independent 61-date industry-versus-market index history is optional:
+    # a missing reference cannot turn into a fictitious five-point signal.
+    rotation=None
+    mk=cohort.get("market_index")
+    idx=cohort.get("industry_index")
+    if mk is not None or idx is not None:
+        if not isinstance(mk,list) or not isinstance(idx,list):
+            raise IndustryFeatureError("missing_one_industry_benchmark")
+        benchmarks=[]
+        for series in (mk,idx):
+            if len(series)!=61:
+                raise IndustryFeatureError("industry_requires_61_reference_dates")
+            records={}
+            previous=None
+            for obs in series:
+                if not isinstance(obs,dict):
+                    raise IndustryFeatureError("invalid_industry_index_observation")
+                stamp=_date(obs.get("date"))
+                value=obs.get("close")
+                if ((previous is not None and stamp<=previous) or stamp>day
+                    or type(value) not in (int,float) or
+                    not math.isfinite(value) or value<=0):
+                    raise IndustryFeatureError("invalid_industry_index_observation")
+                records[stamp.isoformat()]=value
+                previous=stamp
+            benchmarks.append(records)
+        mkt,sector=benchmarks
+        if list(mkt)!=list(sector):
+            raise IndustryFeatureError("sector_market_calendar_mismatch")
+        if list(mkt)[-1]!=asof:
+            raise IndustryFeatureError("stale_sector_market_benchmark")
+        rotation=early_rotation_signal(mkt,sector,list(mkt))
     # Sector-level improving-profit BREADTH measures the number of issuers
     # turning upward, not just how far the largest member has moved. Use
     # the full declared roster; do not give a favorable subset score when
@@ -200,6 +233,12 @@ def evaluate_industry_cohort(cohort, *, asof, decision_at_utc):
             largest_improvement_share = round(max(increases) / positive_sum, 6)
             if largest_improvement_share > 0.7:
                 risk_flags.append("profit_recovery_concentrated_in_one_issuer")
+    quality=None
+    if largest_improvement_share is not None and rotation is not None:
+        concentration=(0 if largest_improvement_share>=0.70 else
+                       1 if largest_improvement_share>=0.45 else 2)
+        overheat_free=int(rotation["recent20"]<12)
+        quality=round((concentration+overheat_free)/3,6)
     if breadth is not None and breadth < 0.3:
         risk_flags.append("low_declared_cohort_above_ma_breadth")
     return {
@@ -220,6 +259,9 @@ def evaluate_industry_cohort(cohort, *, asof, decision_at_utc):
             "industry_profit_improving_issuer_ratio": improvement_breadth,
             "industry_recovery_largest_issuer_delta_share":
                 largest_improvement_share,
+            "industry_early_rotation_signal":
+                rotation["strength"] if rotation is not None else None,
+            "industry_overheat_concentration_quality": quality,
         },
         "risk_flags_research": sorted(risk_flags),
         "only_declared_cohort_checked": True,
