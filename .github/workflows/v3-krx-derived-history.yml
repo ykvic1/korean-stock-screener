@@ -53,7 +53,7 @@ jobs:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'schedule' && '16' || inputs.max_windows }}
+          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
         run: |
           set -euo pipefail
           python v3_krx_derived_backfill.py
