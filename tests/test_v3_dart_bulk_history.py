@@ -1,5 +1,6 @@
 """No-network official fnlttMultiAcnt 4-fiscal-year full-listed contract."""
 import copy
+from pathlib import Path
 from io import BytesIO
 from zipfile import ZipFile
 import unittest
@@ -206,6 +207,53 @@ class BulkHistoryTests(unittest.TestCase):
             _,_,_,_,second=bulk.plan({}, {},prior=finished,groups=1)
             self.assertNotIn(near_complete[0],second[0])
             self.assertTrue(all(c in all_members for c in second[0]))
+
+    def test_recent_two_year_backfill_reserves_fair_seats_without_extra_api_budget(self):
+        members={f"{i:06d}":{"market":"KOSPI" if i<180 else "KOSDAQ"}
+                 for i in range(240)}
+        old_three={"2022":{},"2023":{},"2024":{}}
+        old_two={"2022":{},"2023":{}}
+        archive={}
+        # Base four-year queue has plenty of 3/4 FY-complete companies.
+        for i in list(range(110))+list(range(180,230)):
+            archive[f"{i:06d}"]={"years":dict(old_three)}
+        # High-code genuine 2024/25 not-yet-queried companies.
+        targets=[f"{i:06d}" for i in range(160,170)]
+        targets += [f"{i:06d}" for i in range(230,240)]
+        for code in targets:
+            archive[code]={"years":dict(old_two)}
+        # Previously queried but empty annual years must not masquerade as
+        # a fresh FY2024/25 unqueried gap and consume reserved target seats.
+        archive["000175"]={"years":{"2024":{},"2025":{}}}
+        prior={"schema":bulk.SCHEMA,"asof":DAY,"records":archive}
+        with patch("v3_dart_bulk_history._inputs",return_value=(DAY,members)):
+            _,_,_,years,baseline=bulk.plan({},{},prior=prior,groups=1)
+            _,_,_,_,focused=bulk.plan(
+                {},{},prior=prior,groups=1,recent_pair_priority=True)
+            self.assertEqual(len(focused[0]),100)
+            self.assertEqual(len(set(focused[0])),100)
+            self.assertEqual(sum(members[c]["market"]=="KOSPI" for c in focused[0]),50)
+            self.assertEqual(sum(members[c]["market"]=="KOSDAQ" for c in focused[0]),50)
+            self.assertEqual(years,[2022,2023,2024,2025])
+            self.assertTrue(set(targets).issubset(focused[0]))
+            self.assertTrue(set(targets)-set(baseline[0]))
+            self.assertNotIn("000175",focused[0][:10])
+            self.assertIn("000000",focused[0],
+                          "normal four-year 3/4 cohort must retain seats")
+            _,_,_,_,three=bulk.plan(
+                {},{},prior=prior,groups=3,recent_pair_priority=True)
+            flat=[c for g in three for c in g]
+            self.assertEqual(len(flat),len(members))
+            self.assertEqual(len(set(flat)),len(members))
+            self.assertEqual(bulk.MAX_SOURCE_FISCAL_CALLS,16)
+            with self.assertRaises(bulk.BulkHistoryError):
+                bulk.plan({},{},prior=prior,recent_pair_priority=1)
+
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/v3-dart-bulk-four-year.yml").read_text("utf8")
+        self.assertIn("--prioritize-latest-earnings",workflow)
+        self.assertIn('groups || \'3\'',workflow)
+        self.assertNotIn("git push --force",workflow)
 
     def test_historical_acceleration_stays_within_fiscal_calls_and_time(self):
         self.assertEqual(bulk.MAX_SOURCE_FISCAL_CALLS,16)
