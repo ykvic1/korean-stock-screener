@@ -211,13 +211,41 @@ def plan(market,catalog,*,prior=None,groups=MAX_GROUPS):
         raise BulkHistoryError("invalid_bulk_max_groups")
     retained=_validate_prior(prior,asof,members)
     fiscal=list(range(_day(asof).year-YEARS_BACK,_day(asof).year))
-    eligible=[]
+    # Full-market *historical* evidence is a two-market research dataset.
+    # Sorting only by six-digit code starved KOSDAQ financial peer sets while
+    # KOSPI already had >100 four-year records. Build independently verified
+    # missing-year queues and give each exchange up to 50 issuer seats in
+    # every 100-company research cohort, without caps on stock size/volume.
+    # Within each market, complete already-partial 3Y records first so their
+    # fourth authentic year unlocks useful multi-year peer comparison.
+    queues={"KOSPI":[],"KOSDAQ":[]}
     for code in sorted(members):
         years=retained.get(code,{}).get("years",{})
-        if any(str(y) not in years for y in fiscal):
-            eligible.append(code)
-    selected=eligible[:groups*MAX_CORPS]
-    cohorts=[selected[i:i+MAX_CORPS] for i in range(0,len(selected),MAX_CORPS)]
+        observed=sum(str(y) in years for y in fiscal)
+        if observed<len(fiscal):
+            queues[members[code]["market"]].append((-observed,code))
+    for market_name in queues:
+        queues[market_name]=[code for _,code in sorted(queues[market_name])]
+    cohorts=[]
+    for _ in range(groups):
+        cohort=[]
+        for market_name in ("KOSPI","KOSDAQ"):
+            picked=queues[market_name][:MAX_CORPS//2]
+            cohort.extend(picked)
+            del queues[market_name][:len(picked)]
+        # When a market is exhausted, use every remaining slot for genuine
+        # missing source companies from the other market, never dummy rows.
+        for market_name in ("KOSPI","KOSDAQ"):
+            missing=MAX_CORPS-len(cohort)
+            if missing<=0:
+                break
+            picked=queues[market_name][:missing]
+            cohort.extend(picked)
+            del queues[market_name][:len(picked)]
+        if cohort:
+            cohorts.append(cohort)
+        else:
+            break
     return asof,members,retained,fiscal,cohorts
 
 
