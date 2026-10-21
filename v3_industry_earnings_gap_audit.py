@@ -23,7 +23,8 @@ from v3_dart_industry_earnings_sample import (
     IndustryEarningsError,build as earnings_build,source_join_ready,_pair
 )
 
-SCHEMA="v3-industry-saved-annual-earnings-missingness-0.2-profit-only-evidence"
+SCHEMA="v3-industry-saved-annual-earnings-missingness-0.3-breadth-research"
+MIN_BREADTH_SAMPLE=3
 CATEGORIES=(
     "saved_company_annual_history_absent",
     "saved_both_comparison_years_absent",
@@ -168,7 +169,9 @@ def build(market,catalog,industry,bulk):
     profit_only_by_reason=Counter()
     profit_only_by_market=Counter()
     by_group=defaultdict(lambda:{"classified":0,"paired":0,"missing":Counter(),
-                                  "verified_profit_only_missing_revenue":0})
+                                  "verified_profit_only_missing_revenue":0,
+                                  "verified_operating_profit":0,
+                                  "operating_profit_improved":0})
     matched=0
     if industry["observed_industry_codes"]!=len(members):
         raise IndustryGapError("market_industry_codes_not_fully_observed")
@@ -182,8 +185,13 @@ def build(market,catalog,industry,bulk):
         group["classified"]+=1
         reason=missing_reason(saved.get(code),previous,latest,asof)
         if reason is None:
+            strict=_pair(saved.get(code),previous,latest,asof)
+            if strict is None:
+                raise IndustryGapError("strict_pair_not_reproducible")
             matched+=1
             group["paired"]+=1
+            group["verified_operating_profit"]+=1
+            group["operating_profit_improved"]+=int(strict[2]>strict[1])
             continue
         categories[reason]+=1
         by_market[market_name][reason]+=1
@@ -197,6 +205,8 @@ def build(market,catalog,industry,bulk):
             profit_only_by_reason[reason]+=1
             profit_only_by_market[market_name]+=1
             group["verified_profit_only_missing_revenue"]+=1
+            group["verified_operating_profit"]+=1
+            group["operating_profit_improved"]+=int(profit[2]>profit[1])
         missing.append({
           "code":code,"name":titles[code],"market":market_name,
           "industry_prefix_2":prefix,"saved_source_gap":reason,
@@ -215,8 +225,16 @@ def build(market,catalog,industry,bulk):
         if (not isinstance(src,dict) or
             v["classified"]!=src["current_classified_issuers"] or
             v["paired"]!=src["issuer_year_pair_observed"] or
-            v["classified"]-v["paired"]!=sum(v["missing"].values())):
+            v["classified"]-v["paired"]!=sum(v["missing"].values()) or
+            v["verified_operating_profit"]!=
+                v["paired"]+v["verified_profit_only_missing_revenue"] or
+            not 0<=v["operating_profit_improved"]<=v["verified_operating_profit"]
+                <=v["classified"]):
             raise IndustryGapError("industry_sample_group_counts_disagree")
+        comparable=v["verified_operating_profit"]
+        improved=v["operating_profit_improved"]
+        current_total=v["classified"]
+        publish_breadth=comparable>=MIN_BREADTH_SAMPLE
         group_rows.append({
           "market":market_name,"industry_code_prefix_2":prefix,
           "classified":v["classified"],"compared":v["paired"],
@@ -225,9 +243,26 @@ def build(market,catalog,industry,bulk):
           "gap_reason_counts":{k:v["missing"][k] for k in CATEGORIES if v["missing"][k]},
           "verified_profit_only_gap_count":
               v["verified_profit_only_missing_revenue"],
+          # Source-backed FY changes by exact issuer and same CFS/OFS scope,
+          # including profit-only companies WITHOUT inventing their revenue.
+          # These are CURRENT company-code samples, never historical sectors.
+          "two_year_operating_profit_verified_issuers":comparable,
+          "two_year_operating_profit_improving_issuers":
+              improved if publish_breadth else None,
+          "two_year_profit_improving_ratio_observed_sample_only":
+              round(improved/comparable,6) if publish_breadth else None,
+          "current_code_improving_breadth_lower_bound":
+              round(improved/current_total,6) if publish_breadth else None,
+          "current_code_improving_breadth_upper_bound":
+              round((improved+current_total-comparable)/current_total,6)
+              if publish_breadth else None,
           "profit_scope_uniform_in_observed_sample":src["observed_pair_scope_uniform"],
           "source_is_current_dart_company_industry_not_krx_sector":True,
         })
+    verified_total=matched+sum(profit_only_by_reason.values())
+    if sum(g["two_year_operating_profit_verified_issuers"]
+           for g in group_rows)!=verified_total:
+        raise IndustryGapError("combined_profit_breadth_count_disagrees")
     stats={
       "schema":SCHEMA,"asof":asof,
       "comparison_fiscal_years":[previous,latest],
@@ -236,6 +271,11 @@ def build(market,catalog,industry,bulk):
       "actual_saved_annual_profit_pairs":matched,
       "saved_profit_pair_unavailable":len(missing),
       "verified_operating_profit_only_pair_among_missing":sum(profit_only_by_reason.values()),
+      "two_year_operating_profit_verified_any_revenue":verified_total,
+      "two_year_operating_profit_coverage_any_revenue":
+          round(verified_total/len(members),6),
+      "two_year_profit_breadth_current_company_code_sample_only":True,
+      "historical_sector_profit_breadth_certified":False,
       "profit_only_verified_but_full_pair_still_missing":True,
       "profit_only_among_missing_by_reason":{k:profit_only_by_reason[k] for k in CATEGORIES},
       "profit_only_among_missing_by_market":{
@@ -258,7 +298,7 @@ def build(market,catalog,industry,bulk):
         "industry_current_company_codes":_stable_digest(industry),
         "dart_annual_receipt_history":_stable_digest(bulk),
       },
-      "note":"Gap labels describe THIS saved annual-receipt pipeline, not an official statement that filings do not exist. Verified profit-only pairs do NOT repair missing revenues, update the strict paired count, or authenticate historical KRX sector memberships. Zero industry/15 points.",
+      "note":"Gap labels describe THIS saved annual-receipt pipeline, not an official statement that filings do not exist. Verified profit-only pairs permit an independent FY2024/25 operating-profit improvement sample, but do NOT repair missing revenues, update the strict paired count, or authenticate historical KRX sector memberships. Current-code breadth bounds and ratios are NOT live sector/15 points.",
     }
     return stats,missing
 

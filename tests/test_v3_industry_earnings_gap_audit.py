@@ -123,6 +123,14 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
         self.assertEqual(rescued,
             sum(result["profit_only_among_missing_by_market"].values()))
         self.assertLessEqual(rescued,len(missing))
+        comparable=result["two_year_operating_profit_verified_any_revenue"]
+        self.assertEqual(comparable,result["actual_saved_annual_profit_pairs"]+
+                         rescued)
+        self.assertEqual(result["two_year_operating_profit_coverage_any_revenue"],
+                         round(comparable/result["listed_total"],6))
+        self.assertTrue(result[
+            "two_year_profit_breadth_current_company_code_sample_only"])
+        self.assertFalse(result["historical_sector_profit_breadth_certified"])
         self.assertTrue(result["profit_only_verified_but_full_pair_still_missing"])
         self.assertEqual(result["actual_saved_annual_profit_pairs"]+
                          result["saved_profit_pair_unavailable"],len(catalog["rows"]))
@@ -147,6 +155,37 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
             self.assertEqual(group["missing"],sum(group["gap_reason_counts"].values()))
         self.assertEqual(sum(x["verified_profit_only_gap_count"]
                              for x in result["groups"]),rescued)
+        self.assertEqual(sum(x["two_year_operating_profit_verified_issuers"]
+                             for x in result["groups"]),comparable)
+        original={(r["market"],r["dart_industry_code_prefix_2"]):r
+                  for r in sample["groups"]}
+        for row in result["groups"]:
+            n=row["two_year_operating_profit_verified_issuers"]
+            self.assertEqual(n,row["compared"]+
+                             row["verified_profit_only_gap_count"])
+            self.assertLessEqual(n,row["classified"])
+            count=row["two_year_operating_profit_improving_issuers"]
+            rate=row["two_year_profit_improving_ratio_observed_sample_only"]
+            low=row["current_code_improving_breadth_lower_bound"]
+            high=row["current_code_improving_breadth_upper_bound"]
+            if n<3:
+                self.assertIsNone(count)
+                self.assertIsNone(rate)
+                self.assertIsNone(low)
+                self.assertIsNone(high)
+                continue
+            self.assertLessEqual(0,count)
+            self.assertLessEqual(count,n)
+            self.assertEqual(rate,round(count/n,6))
+            self.assertLessEqual(low,rate+0.000002)
+            self.assertGreaterEqual(high+0.000002,rate)
+            if row["verified_profit_only_gap_count"]==0:
+                reference=original[(row["market"],row["industry_code_prefix_2"])]
+                self.assertEqual(rate,reference[
+                    "observed_earnings_improving_issuer_ratio_sample_only"])
+        # Still no industry 15/100 certification or fabricated historical roster.
+        self.assertEqual(result["actual_industry_15_points_authorized"],False)
+        self.assertNotIn("issuer_operating_profit_amounts",json.dumps(result))
 
     def test_forged_current_company_profile_and_future_history_fail(self):
         market,catalog,industry,bulk=saved()
