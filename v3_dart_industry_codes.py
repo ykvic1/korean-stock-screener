@@ -45,6 +45,7 @@ def summary(asof,members,records,last_run=0):
     counts={"code_observed":0,"code_missing":0}
     for code,record in records.items():
         if (code not in members or type(record) is not dict or
+            record.get("market") not in ("KOSPI","KOSDAQ") or
             record.get("market")!=members[code]["market"] or
             type(record.get("corporation_identity_digest")) is not str or
             not HASH.fullmatch(record["corporation_identity_digest"]) or
