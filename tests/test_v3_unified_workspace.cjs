@@ -432,6 +432,67 @@ assert.equal(unified.pillarState(funded)[3].available,5);
 assert.equal(unified.pillarState(funded)[0].available,0);
 assert.equal(unified.researchComposite(funded).earned,32.3);
 assert.equal(unified.researchComposite(funded).available,38);
+// Actual same-filing OpenDART FCF qualifies extra 4/5 subfactor points,
+// never a new full 15pt financial/valuation score or a 100pt certification.
+const fcfRow={
+ code:funded.code,market:funded.market,asof:'2026-10-20',
+ historical_PIT_certified:false,scoring_certified:false,
+ strict_receipt_scope_matched:true,
+ raw_observed_financial_fcf_assets_3y_pct:3.12,
+ raw_observed_valuation_fcf_yield_pct:-1.75,
+ financial_fcf_assets_candidate_points:2,
+ financial_fcf_assets_available_max:4,financial_fcf_peer_count:33,
+ valuation_fcf_yield_candidate_points:4,
+ valuation_fcf_yield_available_max:5,valuation_fcf_peer_count:35
+};
+const fcf={
+ schema:'v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1',
+ asof:'2026-10-20',listed_total:2497,
+ source_same_filing_scope_receipt_checked:true,raw_source_rows_stored:false,
+ hist_PIT_verified:false,four_year_financial15_complete:false,
+ valuation15_complete:false,joined_to_main_v3_ranking:false,
+ buy_recommendations_authorized:false,six_pillar_confirmed_100pt:null,
+ minimum_same_market_peers:30,financial_fcf_weight_available_max:4,
+ valuation_fcf_weight_available_max:5,
+ real_fcf_assets_three_year_raw_issuer_count:1,
+ real_latest_fcf_yield_raw_issuer_count:1,
+ financial_fcf4_research_candidate_issuer_count:1,
+ valuation_fcf5_research_candidate_issuer_count:1,
+ rows:[fcfRow]
+};
+display.marketEligible=2497;
+assert.equal(unified.applyActualCashflowPreview(display,fcf),1);
+assert.equal(unified.pillarState(funded)[2].candidate,8);
+assert.equal(unified.pillarState(funded)[2].available,12);
+assert.equal(unified.pillarState(funded)[3].candidate,7.5);
+assert.equal(unified.pillarState(funded)[3].available,10);
+assert.equal(unified.pillarState(funded)[0].candidate,null);
+assert.equal(unified.researchComposite(funded).earned,38.3);
+assert.equal(unified.researchComposite(funded).available,47);
+assert.equal(unified.researchComposite(funded).complete,false);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,asof:'2026-10-21'}),0);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,rows:[fcfRow,fcfRow]}),0);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,rows:[{...fcfRow,financial_fcf_assets_candidate_points:7}]}),0);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,rows:[{...fcfRow,valuation_fcf_peer_count:29}]}),0);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,rows:[{...fcfRow,scoring_certified:true}]}),0);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,financial_fcf4_research_candidate_issuer_count:2}),0);
+assert.equal(unified.applyActualCashflowPreview(display,{
+ ...fcf,buy_recommendations_authorized:true}),0);
+assert.ok(source.includes('applyActualCashflowPreview(model,actualCashflowCoverage)'));
+// A missing factor stays null, rather than being assigned zero points.
+const unobserved={...funded,v3_dart_fcf_research:{
+ ...fcfRow,financial_fcf_assets_candidate_points:null,
+ financial_fcf_assets_available_max:0,
+ valuation_fcf_yield_candidate_points:null,
+ valuation_fcf_yield_available_max:0}};
+assert.equal(unified.pillarState(unobserved)[2].available,8);
+assert.equal(unified.pillarState(unobserved)[3].available,5);
 const forged={...bulkParts,rows:[{...bulkParts.rows[0],
   financial_candidate_points:15,financial_available_max:8}]};
 assert.equal(unified.applyBulkFinancialPreview(display,forged),0,

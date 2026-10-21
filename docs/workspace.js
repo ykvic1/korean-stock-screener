@@ -169,6 +169,10 @@ function pillarState(r){
   [0,4,8].includes(bulk.financial_available_max)&&
   Number.isInteger(bulk.valuation_available_max)&&
   [0,5,10].includes(bulk.valuation_available_max);
+ const fcf=r?.v3_dart_fcf_research;
+ const fcfReady=fcf&&fcf.asof===r.price_date&&fcf.market===r.market&&
+   fcf.scoring_certified===false&&fcf.historical_PIT_certified===false&&
+   fcf.strict_receipt_scope_matched===true;
  const supplied=valid&&z.six_pillar_candidates&&
    typeof z.six_pillar_candidates==='object'&&!Array.isArray(z.six_pillar_candidates)?
    z.six_pillar_candidates:null;
@@ -181,13 +185,36 @@ function pillarState(r){
   else if(key==='momentum'&&momentum){
    candidate=momentum.earned;available=momentum.available;
   }
-  else if((key==='financial'||key==='valuation')&&bulkReady){
-   const points=key==='financial'?bulk.financial_candidate_points:
-    bulk.valuation_candidate_points;
-   const max=key==='financial'?bulk.financial_available_max:
-    bulk.valuation_available_max;
-   if(max>0&&finite(points)&&points>=0&&points<=max){
-    candidate=points;available=max;
+  else if(key==='financial'||key==='valuation'){
+   if(bulkReady){
+    const points=key==='financial'?bulk.financial_candidate_points:
+     bulk.valuation_candidate_points;
+    const max=key==='financial'?bulk.financial_available_max:
+     bulk.valuation_available_max;
+    if(max>0&&finite(points)&&points>=0&&points<=max){
+     candidate=points;available=max;
+    }
+   } else if(supplied&&matchingMaxima){
+    const value=supplied[key];
+    if(finite(value)&&value>=0&&value<=maximum){
+     candidate=value;available=maximum;
+    }
+   }
+   // Exact IFRS cashflows (FCF/assets4 or FCF yield5) are independent
+   // research subfactors, not another full 15pt financial/valuation area.
+   // Missing cashflow never means zero; reject already-complete 15pt area.
+   if(fcfReady&&available<maximum){
+    const points=key==='financial'?fcf.financial_fcf_assets_candidate_points:
+     fcf.valuation_fcf_yield_candidate_points;
+    const extra=key==='financial'?fcf.financial_fcf_assets_available_max:
+     fcf.valuation_fcf_yield_available_max;
+    const allowed=key==='financial'?4:5;
+    if(extra===allowed&&finite(points)&&points>=0&&points<=extra&&
+       available+extra<=maximum){
+     candidate=(candidate??0)+points;
+     candidate=Math.round(candidate*1000000)/1000000;
+     available+=extra;
+    }
    }
   }
   else if(key!=='technical'&&key!=='momentum'&&supplied&&matchingMaxima){
@@ -487,6 +514,73 @@ function applyBulkFinancialPreview(model,report){
  }
  return accepted;
 }
+function applyActualCashflowPreview(model,report){
+ // All-or-nothing source audit. Each scored item must be genuine same-day,
+ // source-receipt-matched, market-specific, peer>=30, and 0..4/5 points.
+ // This is research-only: no release flags, orders, or official PIT claims.
+ if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
+    !report||report.schema!=='v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1'||
+    report.asof!==model.date||report.listed_total!==model.marketEligible||
+    report.source_same_filing_scope_receipt_checked!==true||
+    report.raw_source_rows_stored!==false||
+    report.hist_PIT_verified!==false||
+    report.four_year_financial15_complete!==false||
+    report.valuation15_complete!==false||
+    report.joined_to_main_v3_ranking!==false||
+    report.buy_recommendations_authorized!==false||
+    report.six_pillar_confirmed_100pt!==null||
+    report.financial_fcf_weight_available_max!==4||
+    report.valuation_fcf_weight_available_max!==5||
+    !Number.isInteger(report.minimum_same_market_peers)||
+    report.minimum_same_market_peers<30||
+    !Array.isArray(report.rows)||report.rows.length>report.listed_total)
+    return 0;
+ const rows=new Map();let rawFin=0,rawVal=0,fin=0,val=0;
+ for(const r of report.rows){
+  if(!r||!TODAY_CODE.test(r.code)||rows.has(r.code)||
+     r.asof!==model.date||!['KOSPI','KOSDAQ'].includes(r.market)||
+     r.scoring_certified!==false||r.historical_PIT_certified!==false||
+     r.strict_receipt_scope_matched!==true||
+     !Number.isInteger(r.financial_fcf_peer_count)||
+     !Number.isInteger(r.valuation_fcf_peer_count)||
+     r.financial_fcf_peer_count<0||r.financial_fcf_peer_count>report.listed_total||
+     r.valuation_fcf_peer_count<0||r.valuation_fcf_peer_count>report.listed_total)
+     return 0;
+  const metrics=[
+   [r.raw_observed_financial_fcf_assets_3y_pct,
+    r.financial_fcf_assets_candidate_points,
+    r.financial_fcf_assets_available_max,4,r.financial_fcf_peer_count],
+   [r.raw_observed_valuation_fcf_yield_pct,
+    r.valuation_fcf_yield_candidate_points,
+    r.valuation_fcf_yield_available_max,5,r.valuation_fcf_peer_count]];
+  for(const [raw,points,max,weight,peers] of metrics){
+   if(raw!==null&&!finite(raw))return 0;
+   if(max!==0&&max!==weight)return 0;
+   if(max===weight&&(raw===null||!finite(points)||points<0||
+      points>weight||peers<report.minimum_same_market_peers))return 0;
+   if(max===0&&points!==null)return 0;
+   if(max===0&&raw!==null&&peers>=report.minimum_same_market_peers)
+      return 0;
+  }
+  rawFin+=Number(metrics[0][0]!==null);
+  rawVal+=Number(metrics[1][0]!==null);
+  fin+=Number(metrics[0][2]===4);
+  val+=Number(metrics[1][2]===5);
+  rows.set(r.code,r);
+ }
+ if(rawFin!==report.real_fcf_assets_three_year_raw_issuer_count||
+    rawVal!==report.real_latest_fcf_yield_raw_issuer_count||
+    fin!==report.financial_fcf4_research_candidate_issuer_count||
+    val!==report.valuation_fcf5_research_candidate_issuer_count)return 0;
+ let attached=0;
+ for(const x of model.rows){
+  const r=rows.get(x.r.code);
+  if(r&&r.market===x.r.market&&x.r.price_date===model.date){
+   x.r.v3_dart_fcf_research=r;attached++;
+  }
+ }
+ return attached;
+}
 function summary(model,core){
  const discover=rankItems(model,core,'discover');
  return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
@@ -498,7 +592,7 @@ function summary(model,core){
 }
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -579,6 +673,11 @@ function renderDetails(x){
   (finite(four.margin)?four.margin.toFixed(2)+'%':'미확보'):
   '미수집 또는 연도·회계범위 정합성 미충족')+
   ' · 공시 정정/PIT 검증 전으로 재무 15점 및 밸류 15점은 미산출.</p>'+
+ '<p class="u-muted">실제 DART FCF 연구값 (미검증): 3년 FCF/자산 '+(finite(r.v3_dart_fcf_research?.raw_observed_financial_fcf_assets_3y_pct)?
+  pct(r.v3_dart_fcf_research.raw_observed_financial_fcf_assets_3y_pct):'미확보')+
+  ' · FCF수익률 '+(finite(r.v3_dart_fcf_research?.raw_observed_valuation_fcf_yield_pct)?
+  pct(r.v3_dart_fcf_research.raw_observed_valuation_fcf_yield_pct):'미확보')+
+  ' · 잠정점수는 동시장 표본 30개 이상 충족 시에만 반영, 확정 매수점수 아님.</p>'+
  '<p class="u-muted">비공식 간이 P/B '+(book!==null?book.toFixed(2)+'배':'미산출')+
  ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+
@@ -689,6 +788,7 @@ async function load(){
   applyBulkFinancialPreview(model,responses[9]);
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
+  applyActualCashflowPreview(model,actualCashflowCoverage);
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
