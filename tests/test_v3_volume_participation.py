@@ -1,5 +1,7 @@
 """Offline price-volume factor tests: zero investor-flow assumptions."""
 import copy
+import csv
+from io import StringIO
 import json
 import tempfile
 from pathlib import Path
@@ -8,7 +10,7 @@ from datetime import date,timedelta
 
 from test_v3_dart_rolling_book_reference import fixture,DAY
 from v3_volume_participation import (
-    observed,build,main,VolumeEvidenceError,SUBMAX,
+    observed,build,to_csv,main,VolumeEvidenceError,SUBMAX,
 )
 
 
@@ -93,8 +95,28 @@ class ObservedVolumeTests(unittest.TestCase):
             main(["--docs",str(root),"--mode","write"])
             path=root/"v3-volume-obv-observed.json"
             self.assertTrue(path.is_file())
+            csv_file=root/"v3-volume-obv-observed.csv"
+            self.assertTrue(csv_file.is_file())
             main(["--docs",str(root),"--mode","verify"])
             self.assertFalse((root/"docs").exists())
+            csv_text=csv_file.read_text(encoding="utf8")
+            self.assertTrue(csv_text.startswith("\ufeff"))
+            rows=list(csv.DictReader(StringIO(csv_text.lstrip("\ufeff"))))
+            self.assertEqual(len(rows),catalog["listed_total"])
+            by_code={r["종목코드"]:r for r in rows}
+            self.assertEqual(by_code[market["stocks"][0]["code"]]
+                             ["거래량_OBV_잠정점수_20점중"],"16")
+            self.assertEqual(by_code[market["stocks"][1]["code"]]
+                             ["거래량_OBV_잠정점수_20점중"],"")
+            self.assertEqual(by_code[market["stocks"][1]["code"]]
+                             ["미확보배점_20점중"],"20")
+            self.assertEqual(by_code[market["stocks"][0]["code"]]
+                             ["거래급증후매물소화_점수_4점"],"")
+            csv_file.write_text(csv_text.replace("16점관측·4점미확보",
+                                                  "거짓점수"),encoding="utf8")
+            with self.assertRaises(VolumeEvidenceError):
+                main(["--docs",str(root),"--mode","verify"])
+            csv_file.write_text(csv_text,encoding="utf8")
             altered=json.loads(path.read_text(encoding="utf8"))
             altered["observed_volume_candidate_issuers"]+=1
             path.write_text(json.dumps(altered),encoding="utf8")
