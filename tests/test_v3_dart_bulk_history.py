@@ -4,6 +4,7 @@ from io import BytesIO
 from zipfile import ZipFile
 import unittest
 from unittest.mock import patch
+from unittest.mock import patch
 
 import v3_dart_bulk_history as bulk
 from test_v3_dart_rolling_book_reference import fixture, DAY
@@ -205,6 +206,20 @@ class BulkHistoryTests(unittest.TestCase):
             _,_,_,_,second=bulk.plan({}, {},prior=finished,groups=1)
             self.assertNotIn(near_complete[0],second[0])
             self.assertTrue(all(c in all_members for c in second[0]))
+
+    def test_historical_acceleration_stays_within_fiscal_calls_and_time(self):
+        self.assertEqual(bulk.MAX_SOURCE_FISCAL_CALLS,16)
+        self.assertLessEqual(bulk.MAX_SOURCE_RUN_SECONDS,1200)
+        self.assertEqual(bulk.MAX_CORPS,100)
+        market,catalog=fixture()
+        provider=FakeDART()
+        with patch.object(bulk,"MAX_SOURCE_FISCAL_CALLS",17):
+            with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                         "unsafe_dart_history_request_budget"):
+                bulk.collect(market,catalog,None,
+                             key="synthetic-key-not-secret-123",
+                             session=provider)
+        self.assertEqual(provider.calls,[])
 
     def test_one_mapping_four_year_requests_cover_every_listed_even_unpriced(self):
         market,catalog=fixture()

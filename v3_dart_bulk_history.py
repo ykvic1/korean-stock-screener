@@ -27,7 +27,7 @@ SCORE_SCHEMA = "v3-dart-multi-year-research-parts-0.1"
 MAX_CORPS = 100
 MAX_GROUPS = 3
 YEARS_BACK = 4
-MAX_SOURCE_FISCAL_CALLS = 8
+MAX_SOURCE_FISCAL_CALLS = 16
 MAX_SOURCE_RUN_SECONDS = 1200
 CORP_CACHE_SCHEMA = "v3-dart-listed-company-codes-actions-cache-0.1"
 LABELS = {
@@ -740,6 +740,12 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         return combine(market,catalog,prior,{},groups=groups),0
     if type(key) is not str or len(key)<20:
         raise BulkHistoryError("missing_dart_bulk_key")
+    # Independent caps: bound both total official fiscal queries and elapsed
+    # time. A single 25-company response cannot silently expand call volume.
+    if (type(MAX_SOURCE_FISCAL_CALLS) is not int or
+            not 1<=MAX_SOURCE_FISCAL_CALLS<=16 or
+            MAX_SOURCE_RUN_SECONDS>1200):
+        raise BulkHistoryError("unsafe_dart_history_request_budget")
     # Start the deadline before any potentially slow official XML request.
     deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
     mapping=verified_company_mapping_cache(company_cache,asof,members)
