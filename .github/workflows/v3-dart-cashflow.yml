@@ -8,7 +8,7 @@ on:
       - v3_dart_cashflow_factor_preview.py
       - .github/workflows/v3-dart-cashflow.yml
   # Thirty-two source-qualified issuers x three annual reports per hour.
-  # At most 96 fiscal requests/run; 47 past the hour avoids the 29-minute
+  # At most 96 provider calls/run; 47 past the hour avoids the 29-minute
   # bulk-history slot. Shared publication concurrency serializes commits.
   # The existing bulk major-account collector remains independent.
   schedule:
@@ -73,6 +73,15 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official FY2023-2025 cashflow/CAPEX observations (no scores)"
             git pull --rebase origin main
+            # A concurrent major-account backfill may append new firms. Rebind
+            # the reference hash only if every existing cashflow issuer/year/
+            # scope/receipt still matches; never silently certify a revision.
+            python v3_dart_cashflow_enrichment.py --mode rebind
+            python v3_dart_cashflow_factor_preview.py --mode write
+            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json
+            if ! git diff --cached --quiet; then
+              git commit --amend --no-edit
+            fi
             python v3_dart_cashflow_enrichment.py --mode verify
             python v3_dart_cashflow_factor_preview.py --mode verify
             git push origin HEAD:main
