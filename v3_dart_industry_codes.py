@@ -22,7 +22,7 @@ from v3_dart_bulk_history import (_mapping,_stable_digest,
 from v3_dart_rolling_book_reference import _inputs
 
 SCHEMA="v3-dart-current-listed-industry-code-reference-0.1"
-MAX_PER_RUN=96
+MAX_PER_RUN=160
 MAX_SECONDS=880
 CODE=re.compile(r"[0-9]{6}\Z")
 INDUSTRY=re.compile(r"[0-9]{2,8}\Z")
