@@ -26,6 +26,34 @@ assert.equal(unified.weeklyCoverageText({...weekly,source_collection_calls:6},
  '2026-10-20'),'');
 assert.equal(unified.weeklyCoverageText({...weekly,processed_this_cycle:400},
  '2026-10-20'),'');
+// Genuine FCF source receipts show counts only, never a synthetic 15pt rank.
+const rawFCF={schema:'v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1',
+ asof:'2026-10-20',listed_total:2497,
+ source_same_filing_scope_receipt_checked:true,
+ hist_PIT_verified:false,four_year_financial15_complete:false,
+ valuation15_complete:false,joined_to_main_v3_ranking:false,
+ buy_recommendations_authorized:false,six_pillar_confirmed_100pt:null,
+ minimum_same_market_peers:30,financial_fcf_weight_available_max:4,
+ valuation_fcf_weight_available_max:5,
+ real_fcf_assets_three_year_raw_issuer_count:24,
+ real_latest_fcf_yield_raw_issuer_count:33,
+ financial_fcf4_research_candidate_issuer_count:0,
+ valuation_fcf5_research_candidate_issuer_count:0,rows:[]};
+assert.ok(unified.actualCashflowCoverageText(rawFCF,'2026-10-20',2497)
+ .includes('실제 FCF 3년 자료 24종목'));
+assert.ok(unified.actualCashflowCoverageText(rawFCF,'2026-10-20',2497)
+ .includes('4점 잠정계산 0종목'));
+assert.equal(unified.actualCashflowCoverageText(rawFCF,'2026-10-21',2497),'');
+assert.equal(unified.actualCashflowCoverageText(rawFCF,'2026-10-20',2496),'');
+assert.equal(unified.actualCashflowCoverageText(
+ {...rawFCF,buy_recommendations_authorized:true},'2026-10-20',2497),'');
+assert.equal(unified.actualCashflowCoverageText(
+ {...rawFCF,financial_fcf4_research_candidate_issuer_count:25},
+ '2026-10-20',2497),'');
+assert.equal(unified.actualCashflowCoverageText(
+ {...rawFCF,hist_PIT_verified:true},'2026-10-20',2497),'');
+assert.ok(source.includes("'v3-dart-fcf-research-preview.json'")&&
+ source.includes('actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible)'));
 // Four-year DART source is read by primary V3; reference CAGR/margin
 // remains informational until revisions/PIT and full 15+15 scoring pass.
 const fourRecords=[2022,2023,2024,2025].map(yr=>({
