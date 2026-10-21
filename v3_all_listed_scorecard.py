@@ -20,6 +20,10 @@ from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
 
 AREAS=("ias","technical","financial","valuation","industry","momentum")
+# A reversible research comparison ONLY. The original approved six-area
+# V3/100 stays intact; do not secretly spread industry15 to other factors.
+FIVE_AREAS=("ias","technical","financial","valuation","momentum")
+FIVE_MAX=85
 WEIGHTS={"ias":20,"technical":25,"financial":15,
          "valuation":15,"industry":15,"momentum":10}
 NAMES={"ias":"수급","technical":"기술","financial":"재무",
@@ -135,6 +139,8 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
     rows=[]
     count={name:0 for name in AREAS}
     zero=0
+    five_full=0
+    known_industry_labels=0
     for code in sorted(members):
         member=members[code]
         values={k:(None,0) for k in AREAS}
@@ -172,12 +178,31 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
         if available==0:zero+=1
         for a,v in values.items():
             if v[1]:count[a]+=1
+        # Industry may be useful as a descriptive label; do not confuse it
+        # with a historical, scored, industry-cycle or peer-strength signal.
+        label=member.get("sector")
+        label=(label.strip() if type(label) is str and
+               0<len(label.strip())<=100 else None)
+        known_industry_labels+=int(label is not None)
+        five_available=sum(values[a][1] for a in FIVE_AREAS)
+        five_earned=sum(values[a][0] for a in FIVE_AREAS
+                        if values[a][0] is not None)
+        five_complete=all(values[a][1]==WEIGHTS[a] for a in FIVE_AREAS)
+        five_full+=int(five_complete)
         rows.append({"code":code,"name":member["name"],"market":member["market"],
                      "price_status":member.get("price_history_status"),
+                     "industry_label_unverified":label,
                      "factors":values,"earned":round(earned,4) if available else None,
-                     "available":available,"unavailable":100-available})
+                     "available":available,"unavailable":100-available,
+                     "five_area_85_points":round(five_earned,4)
+                         if five_available else None,
+                     "five_area_available":five_available,
+                     "five_area_missing":FIVE_MAX-five_available,
+                     "five_area_complete_unverified":five_complete})
     if (len(rows)!=listed or count["ias"]!=0 or count["industry"]!=0 or
-        any(r["available"]>100 for r in rows)):
+        any(r["available"]>100 or r["five_area_available"]>FIVE_MAX or
+            r["five_area_missing"]!=FIVE_MAX-r["five_area_available"]
+            for r in rows)):
         raise FullMarketScorecardError("false_full_score_or_missing_listed_issuer")
     summary={
         "schema":SCHEMA,"asof":day,"listed_total":listed,
@@ -186,6 +211,17 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
         "missing_data_never_zero_filled":True,
         "all_listed_included_even_without_price":True,
         "weights":dict(WEIGHTS),
+        "five_area_optional_comparison":{
+            "research_only":True,"industry_scoring_excluded":True,
+            "score_maximum":FIVE_MAX,
+            "weights":{k:WEIGHTS[k] for k in FIVE_AREAS},
+            "no_missing_factor_normalization":True,
+            "fully_observed_five_area_issuer_count":five_full,
+            "certified_investment_scores":0,
+            "industry_labels_descriptive_unverified":known_industry_labels,
+            "formal_six_area_v3_100_unchanged":True,
+            "choice_pending_user_decision":True,
+        },
         "provisional_numeric_issuer_counts":count,
         "no_numeric_factor_issuer_count":zero,
         "at_least_one_numeric_factor_count":listed-zero,
@@ -208,7 +244,9 @@ def to_csv(rows,summary):
     for name in AREAS:
         cols += [NAMES[name]+"_잠정점수",NAMES[name]+"_산출배점"]
     cols+=["V3잠정합계","산출가능배점_100점중","자료미확보배점_100점중",
-           "정식투자점수","인증상태"]
+           "5영역_산업제외_잠정점수_85점중",
+           "5영역_실제산출배점_85점중","5영역_미확보배점_85점중",
+           "산업_정성분류_점수없음","정식투자점수","인증상태"]
     output=StringIO(newline="")
     writer=csv.writer(output,lineterminator="\n")
     writer.writerow(cols)
@@ -221,6 +259,9 @@ def to_csv(rows,summary):
             earned,avail=r["factors"][name]
             current.extend([fmt(earned),avail if avail else ""])
         current += [fmt(r["earned"]),r["available"],r["unavailable"],
+                    fmt(r["five_area_85_points"]),r["five_area_available"],
+                    r["five_area_missing"],
+                    r["industry_label_unverified"] or "",
                     "", "미검증·연구용"]
         writer.writerow(current)
     return "\ufeff"+output.getvalue()
@@ -261,7 +302,9 @@ def main(argv=None):
         print(json.dumps({"listed":summary["listed_total"],
              "with_observed_points":summary["at_least_one_numeric_factor_count"],
              "source_by_area":summary["provisional_numeric_issuer_counts"],
-             "fcf_joined":summary["fcf_source_added"],"certified_full":0},
+             "fcf_joined":summary["fcf_source_added"],
+             "five_area_optional":summary["five_area_optional_comparison"],
+             "certified_full":0},
              sort_keys=True))
 
 
