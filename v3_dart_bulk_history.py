@@ -18,6 +18,7 @@ import json
 import math
 import re
 import time
+import hashlib
 
 from v3_dart_rolling_book_reference import _inputs
 
@@ -28,6 +29,7 @@ MAX_GROUPS = 3
 YEARS_BACK = 4
 MAX_SOURCE_FISCAL_CALLS = 8
 MAX_SOURCE_RUN_SECONDS = 1200
+CORP_CACHE_SCHEMA = "v3-dart-listed-company-codes-actions-cache-0.1"
 LABELS = {
     ("IS","매출액"): "revenue",
     ("IS","영업수익"): "revenue",
@@ -252,7 +254,66 @@ def _mapping(blob, requested_codes):
             mapped[code]=corp
     if not mapped:
         raise BulkHistoryError("dart_company_master_no_listed_matches")
+    # DART report corp IDs are NOT necessarily a one-to-one stock code
+    # mapping (preferred shares or restructurings). Do not silently assign
+    # one corporation's annual statement to an arbitrary second ticker.
+    duplicates={}
+    for corp in mapped.values():
+        duplicates[corp]=duplicates.get(corp,0)+1
+    ambiguous={corp for corp,n in duplicates.items() if n>1}
+    if ambiguous:
+        mapped={code:corp for code,corp in mapped.items()
+                if corp not in ambiguous}
+    if not mapped:
+        raise BulkHistoryError("dart_company_master_ambiguous_corp_identifiers")
     return mapped
+
+
+def _stable_digest(obj):
+    return hashlib.sha256(json.dumps(obj,sort_keys=True,
+        separators=(",",":"),ensure_ascii=True).encode("utf8")).hexdigest()
+
+
+def verified_company_mapping_cache(snapshot,asof,members):
+    """Reuse only hash-checked, exact-census, same-date official corp IDs.
+
+    Persisted only in the private GitHub Actions cache, NEVER public docs,
+    raw source ZIP or Git commits. Any stale asof falls back to the official
+    provider, while an altered same-date cache fails closed.
+    """
+    if snapshot is None:
+        return None
+    if type(snapshot) is not dict:
+        raise BulkHistoryError("unsafe_dart_company_mapping_cache")
+    if snapshot.get("asof")!=asof:
+        return None
+    mapping=snapshot.get("issuer_codes")
+    if (snapshot.get("schema")!=CORP_CACHE_SCHEMA or
+            snapshot.get("listed_sha256")!=_stable_digest(sorted(members)) or
+            type(mapping) is not dict or not mapping or
+            not set(mapping)<=set(members) or
+            any(type(c) is not str or not CODE.fullmatch(c) or
+                type(v) is not str or not CORP.fullmatch(v)
+                for c,v in mapping.items()) or
+            len(set(mapping.values()))!=len(mapping) or
+            snapshot.get("mapping_sha256")!=_stable_digest(mapping)):
+        raise BulkHistoryError("unsafe_dart_company_mapping_cache")
+    return mapping
+
+
+def make_company_mapping_cache(mapping,asof,members):
+    if (type(mapping) is not dict or not mapping or
+            not set(mapping)<=set(members) or
+            any(type(c) is not str or not CODE.fullmatch(c) or
+                type(v) is not str or not CORP.fullmatch(v)
+                for c,v in mapping.items()) or
+            len(set(mapping.values()))!=len(mapping)):
+        raise BulkHistoryError("unsafe_official_company_mapping")
+    ordered=dict(sorted(mapping.items()))
+    return {"schema":CORP_CACHE_SCHEMA,"asof":asof,
+            "listed_sha256":_stable_digest(sorted(members)),
+            "mapping_sha256":_stable_digest(ordered),
+            "issuer_codes":ordered}
 
 
 def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
@@ -634,7 +695,8 @@ def write_json(path,value):
 
 
 def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
-            on_progress=None,annual_book=None):
+            on_progress=None,annual_book=None,
+            company_cache=None,on_company_cache=None):
     # Enrich from ALREADY VERIFIED 2025 DART annual filings before any
     # additional source request. Independently persist this observed evidence.
     if annual_book is not None:
@@ -650,21 +712,30 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         return combine(market,catalog,prior,{},groups=groups),0
     if type(key) is not str or len(key)<20:
         raise BulkHistoryError("missing_dart_bulk_key")
-    requested={code for group in cohorts for code in group}
-    # Include corporate-master download/parse in the total scheduled run
-    # budget so that the job finishes before GitHub's hard 35 min timeout.
+    # Start the deadline before any potentially slow official XML request.
     deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
-    try:
-        resp=session.get("https://opendart.fss.or.kr/api/corpCode.xml",
-                         params={"crtfc_key":key},timeout=55)
-        resp.raise_for_status()
-        mapping=_mapping(resp.content,requested)
-    except BulkHistoryError:
-        raise
-    except Exception:
-        raise BulkHistoryError("dart_company_mapping_failure") from None
+    mapping=verified_company_mapping_cache(company_cache,asof,members)
+    cached=mapping is not None
+    if not cached:
+        try:
+            resp=session.get("https://opendart.fss.or.kr/api/corpCode.xml",
+                             params={"crtfc_key":key},timeout=55)
+            resp.raise_for_status()
+            # Capture all current-listed identifiers from ONE source download,
+            # rather than just today's next 100 tickers.
+            mapping=_mapping(resp.content,set(members))
+        except BulkHistoryError:
+            raise
+        except Exception:
+            raise BulkHistoryError("dart_company_mapping_failure") from None
+        if on_company_cache:
+            on_company_cache(make_company_mapping_cache(mapping,asof,members))
+    print(json.dumps({"official_dart_company_master_cache_used":cached,
+                      "official_listed_issuer_mapping_count":len(mapping),
+                      "raw_company_master_zip_stored":False},sort_keys=True),
+          flush=True)
     complete={}
-    calls=1
+    calls=0 if cached else 1
     checkpoint=prior
     def save_year(updates,year):
         nonlocal checkpoint
@@ -691,6 +762,8 @@ def main(argv=None):
     p.add_argument("--annual",default="docs/v3-dart-book-reference.json")
     p.add_argument("--state",default="docs/v3-dart-bulk-history.json")
     p.add_argument("--scores",default="docs/v3-dart-bulk-provisional.json")
+    p.add_argument("--company-cache",
+                   default=".cache/v3-dart-company-codes.json")
     p.add_argument("--groups",type=int,default=3)
     p.add_argument("--mode",choices=("dry-run","live","verify"),default="dry-run")
     args=p.parse_args(argv)
@@ -721,7 +794,15 @@ def main(argv=None):
         return
     import os, requests
     key=os.getenv("DART_API_KEY","")
+    cache_path=Path(args.company_cache)
+    try:
+        cached_corp=(json.loads(cache_path.read_text(encoding="utf8"))
+                     if cache_path.is_file() else None)
+    except (OSError,ValueError,UnicodeError):
+        raise BulkHistoryError("invalid_dart_company_cache_json") from None
     checkpoints=[]
+    def save_company_master(snapshot):
+        write_json(cache_path,snapshot)
     def save_verified_year(archive,year):
         research=research_parts(archive,catalog,annual)
         write_json(args.state,archive)
@@ -731,7 +812,8 @@ def main(argv=None):
         archive,calls=collect(
             market,catalog,prior,key=key,session=requests.Session(),
             groups=args.groups,on_progress=save_verified_year,
-            annual_book=annual)
+            annual_book=annual,company_cache=cached_corp,
+            on_company_cache=save_company_master)
     except BulkHistoryError as err:
         if not checkpoints:
             raise
