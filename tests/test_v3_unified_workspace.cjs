@@ -656,4 +656,33 @@ assert.equal(actualAll.length,dailyModel.rows.length);
 assert.ok(actualAll.every(x=>x.r.score>=0&&x.r.score<=100));
 assert.ok(actualAll.every(x=>x.tech===null||x.tech<=25));
 assert.equal(unified.summary(dailyModel,legacy).officialFullScore,0);
+// This file is now published by the zero-provider GitHub workflow. Verify
+// the ACTUAL production source, not merely an invented synthetic fixture.
+const livePrice=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-current-price-technical-momentum.json'),'utf8'));
+const freshModel=legacy.prepare(structuredClone(actual),null,null,null,null,null);
+assert.equal(livePrice.asof,freshModel.date);
+assert.equal(livePrice.priced_current_session,freshModel.rows.length);
+assert.ok(livePrice.technical_research_issuer_count>0);
+assert.ok(livePrice.momentum_research_issuer_count>0);
+const mergedPrice=unified.applyCurrentPriceReplay(freshModel,livePrice);
+assert.ok(mergedPrice>0,'real source-only price replay must attach some observed candidates');
+assert.equal(freshModel.rows.filter(x=>
+ unified.momentumEvidence(x.r)!==null).length,
+ livePrice.momentum_research_issuer_count,
+ 'the same-date real momentum8 evidence must be shown, not silently dropped');
+assert.equal(freshModel.rows.filter(x=>
+ unified.technicalEvidence(x.r)!==null).length,
+ livePrice.technical_research_issuer_count,
+ 'the real technical source must be visible on each actually observed ticker');
+const freshPrior=unified.summary(freshModel,legacy).provisional;
+assert.ok(freshPrior>=livePrice.at_least_one_price_factor_issuer_count);
+assert.equal(unified.summary(freshModel,legacy).officialFullScore,0);
+const badReal=structuredClone(livePrice);
+const realKey=Object.keys(badReal.rows)[0];
+badReal.rows[realKey].official_investment_score_certified=true;
+const otherMarket=legacy.prepare(structuredClone(actual),null,null,null,null,null);
+assert.equal(unified.applyCurrentPriceReplay(otherMarket,badReal),0,
+ 'tampered real record must fail close before ANY issuer gets boosted');
+
 console.log('Unified workspace: V3 provisional sum, missing-data safety, refreshed research scoring, mobile source handling, real-market compatibility PASS; records='+actualAll.length);
