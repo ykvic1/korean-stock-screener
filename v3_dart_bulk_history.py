@@ -735,7 +735,8 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
                       "raw_company_master_zip_stored":False},sort_keys=True),
           flush=True)
     complete={}
-    calls=0 if cached else 1
+    master_calls=0 if cached else 1
+    calls=master_calls
     checkpoint=prior
     def save_year(updates,year):
         nonlocal checkpoint
@@ -748,7 +749,7 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
             session,key,asof,years,cohort,mapping,
             prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
             on_year=save_year if on_progress else None,
-            max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-1),
+            max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-master_calls),
             deadline=deadline)
         complete.update(row)
         calls+=n
