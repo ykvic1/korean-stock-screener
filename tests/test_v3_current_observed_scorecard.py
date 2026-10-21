@@ -112,6 +112,8 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         for html in ("index.html","workspace.html"):
             text=(base/"docs"/html).read_text(encoding="utf8")
             self.assertIn('href="v3-current-observed-all-listed.csv"',text)
+            self.assertIn('당일 실측 잠정점수 CSV',text)
+            self.assertNotIn('당일 3영역 잠정점수 CSV',text)
             self.assertNotIn('href="v3-all-listed-scores.csv"',text)
 
     def test_financial_partial_join_preserves_zero_and_missing_separately(self):
