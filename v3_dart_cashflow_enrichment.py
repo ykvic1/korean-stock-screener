@@ -13,6 +13,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import time
 
 from v3_dart_bulk_history import (
@@ -81,15 +82,56 @@ def matched_scope(bulk_record):
     return None
 
 
+def retained_current_market_cashflow(market,catalog,bulk,prior):
+    """Carry genuine FY receipts to the next trading-day market snapshot.
+
+    Only current-listed issuers, same fiscal window and unchanged exact
+    major-account receipts survive. No provider call or inferred zero.
+    """
+    asof,members=asof_members(market,catalog,bulk)
+    if prior is None:
+        return None
+    if type(prior) is not dict:
+        raise CashflowError("untrusted_previous_cashflow_source")
+    previous=prior.get("asof")
+    try:
+        previous_day=_day(previous)
+        current_day=_day(asof)
+    except (ValueError,TypeError):
+        raise CashflowError("untrusted_previous_cashflow_date") from None
+    if previous_day==current_day:
+        verify_state(prior,market,catalog,bulk,strict_fingerprint=False)
+        return prior
+    if (previous_day>current_day or previous_day.year!=current_day.year
+        or (current_day-previous_day).days>45
+        or type(prior.get("listed_total")) is not int
+        or not 1<=prior["listed_total"]<=6000
+        or type(prior.get("records")) is not dict
+        or len(prior["records"])>prior["listed_total"]):
+        raise CashflowError("unsafe_cashflow_market_day_rollover")
+    old_records=prior["records"]
+    if any(type(c) is not str or not re.fullmatch(r"[0-9]{6}",c)
+           for c in old_records):
+        raise CashflowError("invalid_prior_company_identity")
+    # Revalidate the old immutable snapshot independently of today's
+    # membership without fabricating yesterday's entire listed universe.
+    reconstructed=summary(previous,old_records,old_records,
+                          prior.get("source_major_history_sha256"))
+    reconstructed["listed_total"]=prior["listed_total"]
+    if reconstructed!=prior:
+        raise CashflowError("untrusted_previous_cashflow_source")
+    current_records={c:rec for c,rec in old_records.items() if c in members}
+    now=summary(asof,members,current_records,fingerprint(bulk))
+    verify_state(now,market,catalog,bulk,strict_fingerprint=True)
+    return now
+
+
 def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS):
     asof,members=asof_members(market,catalog,bulk)
     if type(limit) is not int or not 1<=limit<=MAX_ISSUERS:
         raise CashflowError("invalid_cashflow_max_issuers")
-    if prior is not None:
-        verify_state(prior,market,catalog,bulk,strict_fingerprint=False)
-        retained=prior["records"]
-    else:
-        retained={}
+    prior=retained_current_market_cashflow(market,catalog,bulk,prior)
+    retained=prior["records"] if prior is not None else {}
     queues={"KOSPI":[],"KOSDAQ":[]}
     for code,row in members.items():
         record=bulk["records"].get(code)
@@ -373,8 +415,9 @@ def main(argv=None):
         # against the current major-history issuer/year/scope/receipt.
         if prior is None:
             raise CashflowError("cashflow_verified_state_missing")
-        verify_state(prior,market,catalog,bulk,strict_fingerprint=False)
-        refreshed=summary(asof,members,prior["records"],fingerprint(bulk))
+        refreshed=retained_current_market_cashflow(
+            market,catalog,bulk,prior)
+        refreshed=summary(asof,members,refreshed["records"],fingerprint(bulk))
         write_json(state_path,refreshed)
         print(json.dumps({"status":"receipt_rebound_same_market_date",
              "source_calls":0,"persisted_issuer_years":

@@ -99,6 +99,57 @@ class CashflowSourceTests(unittest.TestCase):
         self.assertEqual(n,4) # the fifth issuer's 3 fiscal years + master
         self.assertEqual(resumed["metrics"]["three_year_fcf_receipt_matched_issuers"],5)
 
+    def test_new_trading_day_carries_only_unchanged_filing_evidence(self):
+        market,catalog,bulk=live_inputs()
+        earlier,_=cf.collect(
+            market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=2)
+        next_market=copy.deepcopy(market)
+        next_catalog=copy.deepcopy(catalog)
+        next_bulk=copy.deepcopy(bulk)
+        next_day="2026-10-20"
+        next_market["date"]=next_day
+        for item in next_market["stocks"]:
+            item["price_date"]=next_day
+        next_catalog["date"]=next_day
+        next_bulk["asof"]=next_day
+        preserved=cf.retained_current_market_cashflow(
+            next_market,next_catalog,next_bulk,earlier)
+        self.assertEqual(preserved["asof"],next_day)
+        self.assertEqual(preserved["metrics"],earlier["metrics"])
+        self.assertEqual(preserved["records"],earlier["records"])
+        self.assertTrue(cf.verify_state(
+            preserved,next_market,next_catalog,next_bulk))
+        _,_,previous_records,targets=cf.plan(
+            next_market,next_catalog,next_bulk,earlier,limit=2)
+        self.assertEqual(previous_records,earlier["records"])
+        self.assertTrue(all(t[1] not in earlier["records"] for t in targets))
+        session=FakeSession()
+        continued,_=cf.collect(
+            next_market,next_catalog,next_bulk,earlier,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=session,issuer_limit=2)
+        self.assertEqual(continued["asof"],next_day)
+        self.assertEqual(continued["metrics"]["attempted_company_years"],12)
+        self.assertEqual(len(session.calls),7)  # new master plus 2x3 FY
+        altered=copy.deepcopy(next_bulk)
+        altered["records"]["005930"]["years"]["2024"]["CFS"]["receipt_id"]=(
+            "20250318000002")
+        blocked=FakeSession()
+        with self.assertRaisesRegex(
+            cf.CashflowError,"cashflow_major_receipt_changed"):
+            cf.collect(next_market,next_catalog,altered,earlier,
+                key="synthetic-non-sensitive-DART-api-key",
+                session=blocked,issuer_limit=2)
+        self.assertEqual(blocked.calls,[])
+        tampered=copy.deepcopy(earlier)
+        tampered["metrics"]["fcf_company_years"]+=1
+        with self.assertRaisesRegex(
+            cf.CashflowError,"untrusted_previous_cashflow_source"):
+            cf.retained_current_market_cashflow(
+                next_market,next_catalog,next_bulk,tampered)
+
     def test_major_archive_growth_reuses_receipts_but_revision_fails_closed(self):
         market,catalog,bulk=live_inputs()
         saved,_=cf.collect(
