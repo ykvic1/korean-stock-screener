@@ -31,6 +31,8 @@ class IndustryTransitionTests(unittest.TestCase):
         inputs=self.snapshots()
         results=preview(inputs,asof=self.day)
         self.assertEqual(sum(WEIGHTS.values()),15)
+        self.assertEqual(WEIGHTS,{"early_rotation":5,"profit_transition":4,
+            "improvement_diffusion":3,"overheat_crowding_quality":3})
         self.assertEqual(results["input_sector_snapshots"],6)
         self.assertFalse(results["approved_for_live_stock_scoring"])
         self.assertEqual(results["observed_issuer_investment_scores"],0)
@@ -38,6 +40,7 @@ class IndustryTransitionTests(unittest.TestCase):
         self.assertNotIn("operating_profit_krw",json.dumps(results))
         self.assertNotIn("daily_closes",json.dumps(results))
         for item in results["research_only_sectors"]:
+            self.assertTrue(item["industry_5433_weights_user_approved"])
             self.assertEqual(item["provisional_available_weight"],15)
             self.assertEqual(item["provisional_missing_weight"],0)
             self.assertIsNone(item["investment_grade_industry15_score"])
@@ -81,9 +84,9 @@ class IndustryTransitionTests(unittest.TestCase):
              if r["industry_code"]=="MISS00"][0]
         self.assertIsNone(row["provisional_15point_parts"]["profit_transition"])
         self.assertIsNone(row["provisional_15point_parts"]["improvement_diffusion"])
-        self.assertIsNone(row["provisional_15point_parts"]["rebound_concentration_risk"])
-        self.assertEqual(row["provisional_available_weight"],3)
-        self.assertGreaterEqual(row["provisional_15point_parts"]["price_breadth_context"],0)
+        self.assertIsNone(row["provisional_15point_parts"]["overheat_crowding_quality"])
+        self.assertEqual(row["provisional_available_weight"],5)
+        self.assertGreaterEqual(row["provisional_15point_parts"]["early_rotation"],0)
 
     def test_sector_concentration_penalizes_one_company_recovery(self):
         source=deepcopy(self.cohort)
@@ -101,7 +104,7 @@ class IndustryTransitionTests(unittest.TestCase):
         target=[x for x in rs["research_only_sectors"]
                 if x["industry_code"]=="SOLO"][0]
         self.assertEqual(
-            target["provisional_15point_parts"]["rebound_concentration_risk"],0)
+            target["provisional_15point_parts"]["overheat_crowding_quality"],1)
 
     def test_fake_authentication_cannot_unlock_live_issuer_scores(self):
         sectors=self.snapshots()
@@ -125,11 +128,14 @@ class IndustryTransitionTests(unittest.TestCase):
     def test_low_raw_data_coverage_cannot_fake_forecast_signal(self):
         missing=deepcopy(self.snapshots())
         missing[0]["features"]["industry_breadth_above_ma_ratio"]=None
+        missing[0]["features"]["industry_early_rotation_signal"]=None
+        missing[0]["features"]["industry_overheat_concentration_quality"]=None
         missing[0]["breadth_covered_issuers"]=None
         result=preview(missing,asof=self.day)
         row=result["research_only_sectors"][0]
-        self.assertIsNone(row["provisional_15point_parts"]["price_breadth_context"])
-        self.assertEqual(row["provisional_available_weight"],12)
+        self.assertIsNone(row["provisional_15point_parts"]["early_rotation"])
+        self.assertIsNone(row["provisional_15point_parts"]["overheat_crowding_quality"])
+        self.assertEqual(row["provisional_available_weight"],7)
         self.assertFalse(result["approved_for_live_stock_scoring"])
 
 
