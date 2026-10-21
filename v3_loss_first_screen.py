@@ -24,6 +24,7 @@ INDUSTRY_WARNINGS = frozenset({
     "zero_or_loss_base_prevents_growth_ratio",
     "aggregate_industry_operating_profit_declining",
     "low_declared_cohort_above_ma_breadth",
+    "profit_recovery_concentrated_in_one_issuer",
 })
 MAX_HISTORY = 4000
 PIVOT_LEFT = 3
@@ -118,6 +119,7 @@ def loss_first_screen(*, asof, price_bars=None, raw_features=None,
 
     risk = []
     watch = []
+    industry_advisories = []
     gap_to_support = None
     reference = None
     daily_trend = "unavailable"
@@ -134,11 +136,13 @@ def loss_first_screen(*, asof, price_bars=None, raw_features=None,
     if "net_debt_above_equity" in finance:
         watch.append("net_debt_exceeds_equity")
     if "aggregate_industry_operating_profit_declining" in industry:
-        watch.append("industry_profit_declining")
+        industry_advisories.append("industry_profit_declining")
     if "zero_or_loss_base_prevents_growth_ratio" in industry:
-        watch.append("industry_turnaround_growth_unquantifiable")
+        industry_advisories.append("industry_turnaround_growth_unquantifiable")
     if "low_declared_cohort_above_ma_breadth" in industry:
-        watch.append("weak_industry_market_breadth")
+        industry_advisories.append("weak_industry_market_breadth")
+    if "profit_recovery_concentrated_in_one_issuer" in industry:
+        industry_advisories.append("industry_profit_improvement_concentrated")
 
     if df is not None and len(df) >= 61:
         close = df["Close"].to_numpy(dtype=float)
@@ -198,8 +202,7 @@ def loss_first_screen(*, asof, price_bars=None, raw_features=None,
     elif any(k in watch for k in (
             "negative_owner_earnings", "negative_last_fcf",
             "price_below_declining_short_medium_structure",
-            "persistent_observed_net_selling_20_and_60",
-            "industry_profit_declining")):
+            "persistent_observed_net_selling_20_and_60")):
         status = "downside_watch"
     elif "extended_price_chase_risk" in watch:
         status = "chase_risk"
@@ -222,7 +225,10 @@ def loss_first_screen(*, asof, price_bars=None, raw_features=None,
         "asof": asof,
         "status_research_only": status,
         "exclusion_reasons": sorted(set(risk)),
-        "review_reasons": sorted(set(watch)),
+        "review_reasons": sorted(set(watch+industry_advisories)),
+        "industry_advisories_not_separate_risk_gate":
+            sorted(set(industry_advisories)),
+        "industry_signals_only_contribute_within_industry15":True,
         "daily_trend_observation": daily_trend,
         "observed_20_session_return_pct": price_20_pct,
         "observed_60_session_return_pct": price_60_pct,

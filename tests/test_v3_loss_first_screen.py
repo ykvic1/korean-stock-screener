@@ -100,6 +100,21 @@ class LossFirstGateTests(unittest.TestCase):
         self.assertIn("negative_last_fcf", r["review_reasons"])
         self.assertIn("industry_profit_declining", r["review_reasons"])
 
+    def test_industry_only_warning_cannot_double_penalize_other_pillars(self):
+        result=screen(industry=["aggregate_industry_operating_profit_declining",
+                                "low_declared_cohort_above_ma_breadth",
+                                "profit_recovery_concentrated_in_one_issuer"])
+        self.assertEqual(result["status_research_only"],
+                         "conditional_research_review")
+        self.assertEqual(result["exclusion_reasons"],[])
+        self.assertIn("industry_profit_declining",result["review_reasons"])
+        self.assertIn("weak_industry_market_breadth",result["review_reasons"])
+        self.assertIn("industry_profit_improvement_concentrated",
+                      result["industry_advisories_not_separate_risk_gate"])
+        self.assertTrue(result["industry_signals_only_contribute_within_industry15"])
+        self.assertFalse(result["risk_gate_overrides_provisional_high_scores"])
+        self.assertFalse(result["confirmed_buy"])
+
     def test_persistent_negative_20_60_flows_overrides_positive_price_signal(self):
         result = screen(features={
             "ias_flow20_pct_float": -0.2,
