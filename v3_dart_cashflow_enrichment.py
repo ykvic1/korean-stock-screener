@@ -259,6 +259,21 @@ def verify_state(state,market,catalog,bulk,strict_fingerprint=True):
     if (strict_fingerprint and
         state.get("source_major_history_sha256")!=fingerprint(bulk)):
         raise CashflowError("cashflow_source_changed_after_rebase")
+    # A newer bulk archive may append unrelated filings. Permit that
+    # without a needless refetch, but NEVER carry a "receipt matched" FCF
+    # across a changed or missing major-account filing for the same issuer.
+    for code,issuer in state["records"].items():
+        if type(issuer) is not dict:
+            raise CashflowError("invalid_cashflow_checkpoint_issuer")
+        scope=issuer.get("scope")
+        current=bulk.get("records",{}).get(code,{}).get("years",{})
+        for year,record in issuer.get("years",{}).items():
+            if (type(record) is dict and
+                record.get("major_annual_receipt_matched") is True):
+                major=current.get(year,{}).get(scope,{})
+                if (type(major) is not dict or
+                    major.get("receipt_id")!=record.get("annual_receipt_id")):
+                    raise CashflowError("cashflow_major_receipt_changed")
     calculated=summary(asof,members,state["records"],
                        state.get("source_major_history_sha256"))
     if state!=calculated:
@@ -337,7 +352,7 @@ def main(argv=None):
     p.add_argument("--state",default="docs/v3-dart-cashflow-reference.json")
     p.add_argument("--cache",default=".cache/v3-dart-company-codes.json")
     p.add_argument("--issuer-limit",type=int,default=MAX_ISSUERS)
-    p.add_argument("--mode",choices=("dry-run","live","verify"),default="dry-run")
+    p.add_argument("--mode",choices=("dry-run","live","verify","rebind"),default="dry-run")
     a=p.parse_args(argv)
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
@@ -351,6 +366,20 @@ def main(argv=None):
         print(json.dumps({"status":"dry_run_no_api","asof":asof,
              "eligible_next_company_count":len(chosen),"source_calls":0,
              "cashflow_scores_certified":False},sort_keys=True))
+        return
+    if a.mode=="rebind":
+        # Only after a git rebase: no network, no account substitution.
+        # verify_state checks each previously receipt-matched statement
+        # against the current major-history issuer/year/scope/receipt.
+        if prior is None:
+            raise CashflowError("cashflow_verified_state_missing")
+        verify_state(prior,market,catalog,bulk,strict_fingerprint=False)
+        refreshed=summary(asof,members,prior["records"],fingerprint(bulk))
+        write_json(state_path,refreshed)
+        print(json.dumps({"status":"receipt_rebound_same_market_date",
+             "source_calls":0,"persisted_issuer_years":
+             refreshed["metrics"]["attempted_company_years"],
+             "full_v3_ready":False},sort_keys=True))
         return
     if a.mode=="verify":
         if prior is None:
