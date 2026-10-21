@@ -15,6 +15,7 @@ Unverified data stays unscored; approved weights never certify a buy signal.
 """
 from __future__ import annotations
 from collections import defaultdict
+from v3_score_contract import INDUSTRY_POINTS
 from datetime import date
 import math
 import re
@@ -26,6 +27,8 @@ WEIGHTS={
     "improvement_diffusion":3,
     "overheat_crowding_quality":3,
 }
+if WEIGHTS!=dict(INDUSTRY_POINTS):
+    raise RuntimeError('industry_contract_mismatch')
 MIN_SECTORS=5
 
 
