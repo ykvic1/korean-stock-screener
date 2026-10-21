@@ -611,9 +611,11 @@ function industryEvidenceView(raw,asof){
      raw.dart_current_industry_codes_observed||
    raw.full_market_industry_membership_pit_verified!==false||
    raw.sector_15_points_earned_issuer_count!==0||
-   JSON.stringify(raw.industry_subweights_locked)!==
-     JSON.stringify({early_rotation:5,profit_transition:4,
-       improvement_diffusion:3,overheat_crowding_quality:3})||
+   !raw.industry_subweights_locked||
+   raw.industry_subweights_locked.early_rotation!==5||
+   raw.industry_subweights_locked.profit_transition!==4||
+   raw.industry_subweights_locked.improvement_diffusion!==3||
+   raw.industry_subweights_locked.overheat_crowding_quality!==3||
    !Array.isArray(raw.groups)||raw.groups.length>300||
    !raw.source_sha256||Object.values(raw.source_sha256).some(v=>
      typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v)))return null;
