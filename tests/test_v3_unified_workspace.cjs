@@ -583,7 +583,7 @@ const volumeSaved=JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/v3-volume-obv-observed.json'),'utf8'));
 const volumeActual=JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/data.json'),'utf8'));
-const prepared=legacy.prepare(volumeActual,null,null,null,null,null);
+const prepared=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
 assert.equal(unified.applyObservedVolume(prepared,volumeSaved),
  volumeSaved.observed_volume_candidate_issuers);
 assert.ok(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===16));
@@ -593,13 +593,13 @@ assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
 const beforeScores=unified.summary(prepared,legacy).provisional;
 assert.ok(beforeScores>=volumeSaved.observed_volume_candidate_issuers);
 const badCount={...volumeSaved,observed_volume_candidate_issuers:9999};
-const second=legacy.prepare(volumeActual,null,null,null,null,null);
+const second=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
 assert.equal(unified.applyObservedVolume(second,badCount),0);
 assert.ok(second.rows.every(x=>unified.pillarState(x.r)[0].available===0));
 const badBuyer=structuredClone(volumeSaved);
 const one=Object.keys(badBuyer.records)[0];
 badBuyer.records[one].foreign_institutional_net_buy_inferred=true;
-const third=legacy.prepare(volumeActual,null,null,null,null,null);
+const third=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
 assert.equal(unified.applyObservedVolume(third,badBuyer),0);
 assert.ok(third.rows.every(x=>unified.pillarState(x.r)[0].available===0));
 
