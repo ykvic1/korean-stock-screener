@@ -93,6 +93,25 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             with self.assertRaises(LivePartialScorecardError):
                 main(["--docs",str(root),"--mode","verify"])
 
+    def test_current_coverage_publisher_and_homepage_link(self):
+        base=Path(__file__).resolve().parents[1]
+        flow=(base/".github/workflows/v3-current-observed-scorecard.yml").read_text(encoding="utf8")
+        self.assertIn("v3_current_observed_scorecard.py --mode write",flow)
+        self.assertIn("v3_current_observed_scorecard.py --mode verify",flow)
+        self.assertIn("group: korea-stock-screener-current-observed-publisher",flow)
+        self.assertNotIn("DART_API_KEY:",flow)
+        self.assertNotIn("KRX_API_KEY:",flow)
+        self.assertNotIn("git push --force",flow)
+        add=[line for line in flow.splitlines() if line.strip().startswith("git add docs/")]
+        self.assertGreaterEqual(len(add),2)
+        self.assertTrue(all(
+            line.strip()=="git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json"
+            for line in add))
+        for html in ("index.html","workspace.html"):
+            text=(base/"docs"/html).read_text(encoding="utf8")
+            self.assertIn('href="v3-current-observed-all-listed.csv"',text)
+            self.assertNotIn('href="v3-all-listed-scores.csv"',text)
+
     def test_real_saved_market_reconciles_without_rescanning_prices(self):
         docs=DOCS
         required=("data.json","v22-market-catalog.json",
