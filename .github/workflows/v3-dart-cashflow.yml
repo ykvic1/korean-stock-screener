@@ -7,10 +7,12 @@ on:
       - v3_dart_cashflow_enrichment.py
       - v3_dart_cashflow_factor_preview.py
       - .github/workflows/v3-dart-cashflow.yml
-  # Thirty-two source-qualified issuers x three annual reports per two hours.
+  # Thirty-two source-qualified issuers x three annual reports per hour.
+  # At most 96 fiscal requests/run; 47 past the hour avoids the 29-minute
+  # bulk-history slot. Shared publication concurrency serializes commits.
   # The existing bulk major-account collector remains independent.
   schedule:
-    - cron: '17 */2 * * *'
+    - cron: '47 * * * *'
   workflow_dispatch:
     inputs:
       mode:
