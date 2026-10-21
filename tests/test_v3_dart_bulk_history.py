@@ -3,6 +3,7 @@ import copy
 from io import BytesIO
 from zipfile import ZipFile
 import unittest
+from unittest.mock import patch
 
 import v3_dart_bulk_history as bulk
 from test_v3_dart_rolling_book_reference import fixture, DAY
@@ -113,6 +114,44 @@ class BulkHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(bulk.BulkHistoryError,
                                     "unsafe_dart_company_mapping_cache"):
             bulk.verified_company_mapping_cache(spoofed,DAY,set(CODES))
+
+    def test_first_official_corporation_master_transient_failure_one_retry_only(self):
+        market,catalog=fixture()
+        class BriefOutage(FakeDART):
+            def __init__(self):
+                super().__init__()
+                self.misses=1
+            def get(self,url,params,timeout):
+                if url.endswith("corpCode.xml") and self.misses:
+                    self.calls.append((url,params))
+                    self.misses-=1
+                    raise ConnectionError("untrusted_error_must_not_be_logged")
+                return super().get(url,params,timeout)
+        source=BriefOutage()
+        cached=[]
+        with patch("v3_dart_bulk_history.time.sleep",
+                   return_value=None) as sleeps:
+            state,n=bulk.collect(
+                market,catalog,None,key="synthetic-key-not-secret-123",
+                session=source,
+                on_company_cache=lambda source_map:cached.append(source_map))
+        self.assertEqual(sleeps.call_count,1)
+        self.assertEqual(n,6) # 2 official master attempts and 4 fiscal GETs
+        self.assertEqual(len(cached),1)
+        self.assertEqual(state["four_year_income_observed_count"],5)
+        class PersistingOutage(FakeDART):
+            def get(self,url,params,timeout):
+                if url.endswith("corpCode.xml"):
+                    self.calls.append((url,params))
+                    raise ConnectionError("untrusted_secret_text")
+                return super().get(url,params,timeout)
+        bad=PersistingOutage()
+        with patch("v3_dart_bulk_history.time.sleep",return_value=None):
+            with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                        "dart_company_mapping_failure"):
+                bulk.collect(market,catalog,None,
+                    key="synthetic-key-not-secret-123",session=bad)
+        self.assertEqual(len(bad.calls),2)
 
     def test_official_corporation_identity_collisions_not_randomly_assigned(self):
         xml=BytesIO()
