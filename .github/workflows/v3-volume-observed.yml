@@ -1,0 +1,107 @@
+name: V3 Source-Observed Volume OBV 20-Point Research (16 observed)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_volume_participation.py
+      - docs/data.json
+      - docs/v22-market-catalog.json
+      - .github/workflows/v3-volume-observed.yml
+  # Also recheck the latest actual market closing census independent of
+  # the lagged DART BS/IS and FCF collector clocks.
+  schedule:
+    - cron: '12,42 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [verify, write]
+        default: verify
+        required: true
+
+permissions:
+  contents: write
+
+# The updated volume/OBV research NEVER blocks DART cashflow or the
+# 18:30 KST full-market data collection, and cannot be displaced by them.
+concurrency:
+  group: korea-stock-screener-v3-volume-source
+  cancel-in-progress: false
+
+jobs:
+  same-close-volume-obv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reject fabricated volume and buyer attribution (no provider network)
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_volume_participation.py
+          python -m unittest discover -s tests -p 'test_v3_volume_participation.py' -v
+      - name: Recalculate saved market EOD price-volume/OBV, at most 16 of 20
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: python v3_volume_participation.py --mode write
+      - name: Publish ONLY volume-derived private-safe source evidence
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-volume-obv-observed.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish actual-market observed volume OBV provisional research"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_volume_participation.py --mode write
+              git add docs/v3-volume-obv-observed.json
+              if ! git diff --cached --quiet; then
+                git commit --amend --no-edit
+              fi
+              python v3_volume_participation.py --mode verify
+              if git push origin HEAD:main; then
+                echo "volume_source_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::volume_source_publish_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Read-only recheck
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        run: python v3_volume_participation.py --mode verify
+      - name: Explain partial evidence and missingness
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          src=Path("docs/v3-volume-obv-observed.json")
+          lines=[
+            "### V3 실제 거래량·OBV 잠정 참여도 / 공식 투자자 수급 대체 아님",
+            "매매주체(외국인/기관) 판별 없음. OBV 상승만으로 매집 추정 금지.",
+            "20점 예산 중 현행 V2.2 출처 관측 가능한 배점은 16점, 4점 결측.",
+            "당일 거래량 급증은 기술25 내 별도 2점 관측이므로 중복 제외.",
+            "일별 보정/정규장 거래량, 기업행사, 산업15, 정식100점 미인증.",
+          ]
+          if src.is_file():
+              a=json.loads(src.read_text(encoding="utf8"))
+              lines += [
+                "실제 시장자료 기준일: "+str(a["asof"]),
+                "전체 상장종목: "+str(a["listed_total"]),
+                "V3 거래량·OBV 16점 이내 관측기업: "+
+                  str(a["observed_volume_candidate_issuers"]),
+                "미관측·가격결측 기업: "+str(a["insufficient_or_unpriced_issuers"]),
+                "공식 100점 인증 기업: 0",
+              ]
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY

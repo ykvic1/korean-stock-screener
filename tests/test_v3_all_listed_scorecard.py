@@ -41,22 +41,29 @@ class AllListedScorecardTests(unittest.TestCase):
                          sorted(r["code"] for r in catalog["rows"]))
         self.assertEqual(len({r["code"] for r in rows}),len(rows))
         self.assertEqual(report["full_six_pillar_certified_count"],0)
-        self.assertFalse(any(r["factors"]["ias"][1] for r in rows))
+        self.assertNotIn("ias",m.WEIGHTS)
+        self.assertEqual(m.WEIGHTS["volume"],20)
+        self.assertEqual(report["provisional_numeric_issuer_counts"]["volume"],
+                         sum(r["factors"]["volume"][1]>0 for r in rows))
         self.assertFalse(any(r["factors"]["industry"][1] for r in rows))
         self.assertTrue(all(r["available"]<=100 and
                             r["unavailable"]==100-r["available"] for r in rows))
         self.assertTrue(any(r["available"]>0 for r in rows))
         self.assertEqual(report["no_numeric_factor_issuer_count"]+
                          report["at_least_one_numeric_factor_count"],len(rows))
-        self.assertEqual(report["provisional_numeric_issuer_counts"]["ias"],0)
+        self.assertTrue(report["volume20_replaces_unavailable_investor_IAS20"])
+        self.assertEqual(report["legacy_foreign_institutional_IAS_verified_count"],0)
+        self.assertEqual(report["volume20_observed_maximum_per_issuer"],16)
+        self.assertTrue(report["technical_one_day_volume_not_double_counted"])
         self.assertEqual(report["provisional_numeric_issuer_counts"]["industry"],0)
         text=m.to_csv(rows,report)
         self.assertTrue(text.startswith("\ufeff"))
         parsed=list(csv.DictReader(StringIO(text.lstrip("\ufeff"))))
         self.assertEqual(len(parsed),len(rows))
+        self.assertIn("거래량·OBV_잠정점수",parsed[0])
+        self.assertNotIn("수급_잠정점수",parsed[0])
         self.assertEqual(parsed[0]["종목코드"],rows[0]["code"])
-        self.assertTrue(all(r["수급_잠정점수"]=="" and
-                            r["산업_잠정점수"]=="" and
+        self.assertTrue(all(r["산업_잠정점수"]=="" and
                             r["정식투자점수"]=="" for r in parsed))
         self.assertTrue(all(r["인증상태"]=="미검증·연구용" for r in parsed))
         never=sum(1 for row in rows if row["available"]==0)
@@ -178,7 +185,8 @@ class AllListedScorecardTests(unittest.TestCase):
             self.assertFalse(report["fcf_source_added"])
             self.assertEqual(report["provisional_numeric_issuer_counts"],
                              base["provisional_numeric_issuer_counts"])
-            self.assertEqual(other[0]["factors"]["ias"],(None,0))
+            self.assertIn("volume",other[0]["factors"])
+            self.assertLessEqual(other[0]["factors"]["volume"][1],16)
         future=copy.deepcopy(fcf)
         future["asof"]="2026-10-22"
         _,blocked=m.generate(market,catalog,history,parts,weekly,cash,future)
