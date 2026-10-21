@@ -99,20 +99,31 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
                 fcf.get("hist_PIT_verified") is not False or
                 fcf.get("six_pillar_confirmed_100pt") is not None or
                 fcf.get("buy_recommendations_authorized") is not False or
-                fcf.get("source_same_filing_scope_receipt_checked") is not True):
+                fcf.get("source_same_filing_scope_receipt_checked") is not True or
+                fcf.get("raw_source_rows_stored") is not False or
+                fcf.get("four_year_financial15_complete") is not False or
+                fcf.get("valuation15_complete") is not False or
+                not isinstance(fcf.get("rows"),list) or
+                any(type(r) is not dict or
+                    r.get("scoring_certified") is not False or
+                    r.get("historical_PIT_certified") is not False or
+                    r.get("strict_receipt_scope_matched") is not True
+                    for r in fcf["rows"])):
                 raise FullMarketScorecardError("fcf_source_day_or_claim_mismatch")
+            # Historical major-account backfill and CF collection finish at
+            # different times. Recalculate from the SAVED verified cashflow
+            # filings against today's same-scope major annual receipts rather
+            # than dropping true FCF just because the previous preview hash
+            # predates unrelated newly collected companies. No new API calls.
             expected=score_preview(
                 market,catalog,history,cash,
                 minimum_peers=fcf.get("minimum_same_market_peers",30))
-            # Exact derivation from the actual CF annual receipts and current
-            # 4-year source. Stale hashes, revisions or invented rows are out.
-            if expected!=fcf:
-                raise FullMarketScorecardError("fcf_recomputed_source_mismatch")
-            fcf_rows={r["code"]:r for r in fcf["rows"]}
-            if len(fcf_rows)!=len(fcf["rows"]):
+            fcf_rows={r["code"]:r for r in expected["rows"]}
+            if len(fcf_rows)!=len(expected["rows"]):
                 raise FullMarketScorecardError("duplicate_fcf_issuer")
             fcf_accepted=True
-            fcf_reason="same_receipt_verified_research_only"
+            fcf_reason=("same_receipt_verified_research_only" if expected==fcf
+                         else "recomputed_from_saved_verified_cashflow")
         except (CashflowError,FCFPreviewError,FullMarketScorecardError,
                 KeyError,TypeError,ValueError):
             # Do NOT take down all-listed BS/IS/technical reporting just
