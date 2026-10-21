@@ -77,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           python v3_dart_bulk_history.py \
-             --mode "$REQUESTED_MODE" --groups "$REQUESTED_GROUPS"
+             --mode "$REQUESTED_MODE" --groups "$REQUESTED_GROUPS" --prioritize-latest-earnings
       - name: Publish only derived 4-year annual values and provisional points
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') && steps.date_gate.outputs.ready == 'true' }}
         run: |
