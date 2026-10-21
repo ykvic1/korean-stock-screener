@@ -360,6 +360,11 @@ def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
        "fiscal_years":fiscal,
        "attempted_company_count":completed,
        "four_year_income_observed_count":four_income,
+       "completed_source_company_years":sum(
+           len(x["years"]) for x in retained.values()),
+       "observed_nonempty_company_years":sum(
+           sum(bool(v) for v in x["years"].values())
+           for x in retained.values()),
        "unattempted_company_count":len(members)-completed,
        "last_run_new_companies":len(expected),
        "historical_PIT_source_certified":False,
@@ -646,6 +651,9 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
     if type(key) is not str or len(key)<20:
         raise BulkHistoryError("missing_dart_bulk_key")
     requested={code for group in cohorts for code in group}
+    # Include corporate-master download/parse in the total scheduled run
+    # budget so that the job finishes before GitHub's hard 35 min timeout.
+    deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
     try:
         resp=session.get("https://opendart.fss.or.kr/api/corpCode.xml",
                          params={"crtfc_key":key},timeout=55)
@@ -657,7 +665,6 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         raise BulkHistoryError("dart_company_mapping_failure") from None
     complete={}
     calls=1
-    deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
     checkpoint=prior
     def save_year(updates,year):
         nonlocal checkpoint
