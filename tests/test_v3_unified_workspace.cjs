@@ -20,6 +20,8 @@ assert.ok(observedIndustry&&observedIndustry.coverage>=observedIndustry.matched)
 assert.ok(observedIndustry.html.includes('표본'));
 assert.ok(observedIndustry.html.includes('미확보 반영 범위'));
 assert.ok(html.includes('id="industryResearch"'));
+assert.ok(entry.includes('id="industryResearch"'),
+ 'root index must include data panel or JS load would crash on missing element');
 assert.ok(source.includes("'v3-dart-industry-earnings-sample.json'"));
 assert.equal(unified.industryEvidenceView(
  officialIndustrySample,'2026-10-21'),null);
