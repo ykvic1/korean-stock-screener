@@ -634,15 +634,23 @@ function industryEvidenceView(raw,asof){
      g.group_15point_investment_score!==null||
      g.missing_marketwide_membership_cannot_be_rescaled!==true)return null;
    const observed=g.observed_earnings_improving_issuer_ratio_sample_only;
-   const low=g.improvement_breadth_lower_bound_known_classified_only;
-   const high=g.improvement_breadth_upper_bound_known_classified_only;
-   const coverage=g.classified_sample_earnings_coverage_ratio;
+   // v0.1 stored samples may predate the new conservative-bounds fields.
+   // Accept ONLY a complete older sample, never invent its missing bounds.
+   const keys=['improvement_breadth_lower_bound_known_classified_only',
+     'improvement_breadth_upper_bound_known_classified_only',
+     'classified_sample_earnings_coverage_ratio'];
+   const present=keys.map(k=>Object.prototype.hasOwnProperty.call(g,k));
+   if(present.some(Boolean)&&!present.every(Boolean))return null;
+   const low=present[0]?g[keys[0]]:null;
+   const high=present[0]?g[keys[1]]:null;
+   const coverage=present[0]?g[keys[2]]:null;
    const validRatio=v=>finite(v)&&v>=0&&v<=1;
    if(g.issuer_year_pair_observed<3){
      if(observed!==null||low!==null||high!==null||coverage!==null)return null;
    }else{
-     if(![observed,low,high,coverage].every(validRatio)||
-       low>observed+1e-5||high+1e-5<observed||low>high)return null;
+     if(!validRatio(observed))return null;
+     if(present[0]&&(![low,high,coverage].every(validRatio)||
+       low>observed+1e-5||high+1e-5<observed||low>high))return null;
    }
    rows.push({market:g.market,code:g.dart_industry_code_prefix_2,
      observed:g.issuer_year_pair_observed,classified:g.current_classified_issuers,
@@ -669,7 +677,8 @@ function industryEvidenceView(raw,asof){
   rows.filter(r=>r.observed>=3).slice(0,24).map(r=>
     '<tr><th>'+esc(r.market)+' · '+esc(r.code)+'</th><td>'+
     r.observed+'/'+r.classified+'</td><td>'+format(r.improving)+
-    '</td><td>'+format(r.lower)+'~'+format(r.upper)+'</td><td>'+
+    '</td><td>'+(r.lower===null?'갱신 대기':format(r.lower)+'~'+format(r.upper))+
+    '</td><td>'+
     (r.growth===null?'—':pct(r.growth))+'</td></tr>').join('')+
   '</tbody></table></div>'+
   '<p class="u-muted">* 미확보 반영 범위는 <strong>이미 분류된 기업 안에서만</strong> 가능한 비율의 상·하한입니다. 미분류 기업까지 고려한 전체 업종의 범위는 아닙니다. 표시 순서는 실적 확보 기업 수이며 매수 순위가 아닙니다. 서로 다른 연결·별도 재무제표가 섞이면 업종 이익변화는 비워둡니다.</p>';
