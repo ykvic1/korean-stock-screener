@@ -82,6 +82,43 @@ class AllListedScorecardTests(unittest.TestCase):
             self.assertEqual(got["산업_잠정점수"],"")
             self.assertEqual(got["정식투자점수"],"")
 
+    def test_official_current_industry_codes_display_without_industry_points(self):
+        market,catalog,history,parts,weekly,cash,fcf=sources()
+        industry=read("v3-dart-industry-classification.json")
+        rows,report=m.generate(market,catalog,history,parts,weekly,cash,fcf,
+                               industry)
+        by_code={r["code"]:r for r in rows}
+        self.assertEqual(report["industry_current_company_source_status"],
+                         "verified_current_company_classification_only")
+        self.assertEqual(report["industry_code_source_observed"],
+                         industry["observed_industry_codes"])
+        self.assertGreater(report["industry_code_source_observed"],0)
+        self.assertEqual(report["industry_code_source_sector15_earned_count"],0)
+        self.assertEqual(report["provisional_numeric_issuer_counts"]["industry"],0)
+        for code,value in industry["records"].items():
+            self.assertEqual(by_code[code]["dart_current_industry_code"],
+                             value["industry_code"])
+            self.assertEqual(by_code[code]["factors"]["industry"],(None,0))
+        csv_rows=list(csv.DictReader(StringIO(m.to_csv(
+            rows,report).lstrip("\ufeff"))))
+        self.assertIn("DART_현재업종코드_산업점수아님",csv_rows[0])
+        first=industry["records"].keys().__iter__().__next__()
+        self.assertEqual(next(r for r in csv_rows if r["종목코드"]==first)
+                         ["DART_현재업종코드_산업점수아님"],
+                         industry["records"][first]["industry_code"])
+
+        altered=copy.deepcopy(industry)
+        altered["records"][first]["industry_code"]="999999"
+        discarded,blocked=m.generate(
+            market,catalog,history,parts,weekly,cash,fcf,altered)
+        self.assertEqual(blocked["industry_current_company_source_status"],
+                         "source_rejected")
+        self.assertEqual(blocked["industry_code_source_observed"],0)
+        self.assertIsNone(blocked["source_sha256"]["industry_company_profile"])
+        self.assertFalse(any(r["dart_current_industry_code"] for r in discarded))
+        self.assertEqual(blocked["provisional_numeric_issuer_counts"],
+                         report["provisional_numeric_issuer_counts"])
+
     def test_fcf_only_when_exact_recomputed_source_matches(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         _,base=m.generate(market,catalog,history,parts,weekly)

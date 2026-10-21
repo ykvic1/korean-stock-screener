@@ -41,7 +41,7 @@ jobs:
         run: |
           MODE=dry-run
           if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then MODE=live; fi
-          python v3_dart_industry_codes.py --mode "$MODE" --limit 96
+          python v3_dart_industry_codes.py --mode "$MODE" --limit 160
       - name: Save only observed industry classifications
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |

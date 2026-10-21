@@ -19,6 +19,7 @@ from v3_score_contract import INDUSTRY_POINTS
 from v3_real_six_pillar_coverage_audit import coverage, CoverageAuditError
 from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
+from v3_dart_industry_codes import prior_records, IndustrySourceError
 
 AREAS=("ias","technical","financial","valuation","industry","momentum")
 # The user approved the six-domain 100-point contract and industry 5/4/3/3.
@@ -84,13 +85,29 @@ def _momentum(record, asof, market):
     return _contribution(record["momentum_research_points"],avail,10)
 
 
-def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
+def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
+             industry_source=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
     audit=coverage(catalog,history,parts,weekly)
     day=audit["market_asof"]
     listed=audit["listed_total"]
     members={r["code"]:r for r in catalog["rows"]}
     raw_parts={r["code"]:r for r in parts["rows"]}
+    industry_codes={}
+    industry_ref_status="source_not_available"
+    if industry_source is not None:
+        try:
+            # Exact current KOSPI/KOSDAQ issuer and source digest. Historical
+            # sector membership is NOT proven by today's company.json.
+            industry_codes=prior_records(industry_source,day,members)
+            if (industry_source.get("official_krx_sector_membership_verified") is not False
+                or industry_source.get("past_constituent_membership_pit_verified") is not False
+                or industry_source.get("industry_5433_points_authorized") is not False):
+                raise FullMarketScorecardError("industry_profile_claims_pit")
+            industry_ref_status="verified_current_company_classification_only"
+        except (IndustrySourceError,FullMarketScorecardError,TypeError,ValueError):
+            industry_codes={}
+            industry_ref_status="source_rejected"
     fcf_rows={}
     fcf_effective=None
     fcf_accepted=False
@@ -186,6 +203,8 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
         rows.append({"code":code,"name":member["name"],"market":member["market"],
                      "price_status":member.get("price_history_status"),
                      "industry_label_unverified":label,
+                     "dart_current_industry_code":(
+                         industry_codes.get(code,{}).get("industry_code")),
                      "factors":values,"earned":round(earned,4) if available else None,
                      "available":available,"unavailable":100-available})
     if (len(rows)!=listed or count["ias"]!=0 or count["industry"]!=0 or
@@ -201,6 +220,11 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
         "industry_approved_subweights":dict(INDUSTRY_PARTS),
         "industry_numeric_score_requires_real_verified_inputs":True,
         "industry_labels_descriptive_unverified":known_industry_labels,
+        "industry_current_company_source_status":industry_ref_status,
+        "industry_code_source_attempted":len(industry_codes),
+        "industry_code_source_observed":sum(
+            r["industry_code"] is not None for r in industry_codes.values()),
+        "industry_code_source_sector15_earned_count":0,
         "provisional_numeric_issuer_counts":count,
         "no_numeric_factor_issuer_count":zero,
         "at_least_one_numeric_factor_count":listed-zero,
@@ -212,6 +236,9 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
             "dart_partial":_stable_digest(parts),
             "weekly":_stable_digest(weekly),
             "fcf":_stable_digest(fcf_effective) if fcf_accepted else None,
+            "industry_company_profile":_stable_digest(industry_source)
+                if industry_ref_status=="verified_current_company_classification_only"
+                else None,
         },
         "notice":"Missing factor columns are blank, never 0. No official IAS20, sector15, historical PIT or verified buy ranking."
     }
@@ -223,7 +250,8 @@ def to_csv(rows,summary):
     for name in AREAS:
         cols += [NAMES[name]+"_잠정점수",NAMES[name]+"_산출배점"]
     cols+=["V3잠정합계","산출가능배점_100점중","자료미확보배점_100점중",
-           "산업_분류_참고용","정식투자점수","인증상태"]
+           "산업_분류_참고용","DART_현재업종코드_산업점수아님",
+           "정식투자점수","인증상태"]
     output=StringIO(newline="")
     writer=csv.writer(output,lineterminator="\n")
     writer.writerow(cols)
@@ -237,6 +265,7 @@ def to_csv(rows,summary):
             current.extend([fmt(earned),avail if avail else ""])
         current += [fmt(r["earned"]),r["available"],r["unavailable"],
                     r["industry_label_unverified"] or "",
+                    r["dart_current_industry_code"] or "",
                     "", "미검증·연구용"]
         writer.writerow(current)
     return "\ufeff"+output.getvalue()
@@ -259,7 +288,10 @@ def main(argv=None):
     fcf_path=d/"v3-dart-fcf-research-preview.json"
     cash=read(cash_path.name) if cash_path.is_file() else None
     fcf=read(fcf_path.name) if fcf_path.is_file() else None
-    rows,summary=generate(market,catalog,history,parts,weekly,cash,fcf)
+    industry_path=d/"v3-dart-industry-classification.json"
+    industry=read(industry_path.name) if industry_path.is_file() else None
+    rows,summary=generate(market,catalog,history,parts,weekly,cash,fcf,
+                          industry)
     content=to_csv(rows,summary)
     dest=d/"v3-all-listed-scores.csv"
     report=d/"v3-all-listed-scorecard-summary.json"
