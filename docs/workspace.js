@@ -237,6 +237,17 @@ function researchComposite(r){
   observedPillars:pillars.filter(p=>p.available>0).length,
   complete:available===100,provisional:true,pillars};
 }
+function fiveAreaResearchView(r){
+ // Optional framework study: 85 raw points, industry outside numeric model.
+ // No inflation for missing observations or redistribution of 15 points.
+ const chosen=pillarState(r).filter(p=>p.key!=='industry');
+ const available=chosen.reduce((v,p)=>v+p.available,0);
+ const earned=chosen.reduce((v,p)=>v+(p.candidate??0),0);
+ return {earned:available?Math.round(earned*10000)/10000:null,
+   available,missing:85-available,maximum:85,
+   complete:chosen.every(p=>p.available===p.max),
+   approved:false,certified:false};
+}
 function riskState(x,core){
  const r=x.r;
  const distance=core.stopDistance(r);
@@ -591,7 +602,7 @@ function summary(model,core){
   officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,fiveAreaResearchView,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -620,6 +631,7 @@ function renderDetails(x){
  const risk=x.risk;
  const quant=sampleQuant(x,core);
  const composite=researchComposite(r);
+ const five=fiveAreaResearchView(r);
  const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+
   ' <small>/'+i.max+'</small></span><b>'+
   (i.candidate===null?'— · 자료 미확보':i.candidate.toFixed(1)+'점')+
@@ -653,6 +665,10 @@ function renderDetails(x){
  (composite.earned===null?'자료 미확보':composite.earned.toFixed(1)+' / 100')+
  ' · 미검증</b> · 산출 가능 '+composite.available+'/100 · 미확보 '+
  composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
+ '<p class="u-muted">산업 제외 5영역 비교안 (채택 전): '+
+ (five.earned===null?'자료 미확보':five.earned.toFixed(1)+' / 85')+
+ ' · 산출 가능 '+five.available+'/85 · 미확보 '+five.missing+
+ '/85. 100점 환산·재배분 없음. 산업은 정성 검토만 합니다.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
  '<h3>IAS(수급) /20 · 내부 100점 평가구조</h3>'+
  '<p class="u-muted">'+esc(iasStatus(pillars.find(p=>p.key==='ias')))+'</p>'+
@@ -762,7 +778,7 @@ function present(data){
   '종목. 실시간 투자등급이 아닌 관측 기준일별 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
   '4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
-  '종목 (재무 15점 확정 아님). 주간 순환 연구는 기존 원천 자료 재계산이며 6개 영역의 데이터 확보는 진행 중입니다.'+
+  '종목 (재무 15점 확정 아님). 산업 15점은 근거 없이 부여하지 않으며 5영역 85점 비교안은 아직 미채택입니다. 주간 순환 연구는 기존 원천 자료 재계산입니다.'+
   weeklyCoverageText(weeklyCoverage,model.date)+
   realSourceCoverageText(realSavedCoverage,model.date)+
   actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);
