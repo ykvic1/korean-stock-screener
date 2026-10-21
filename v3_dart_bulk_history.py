@@ -205,8 +205,12 @@ def _validate_prior(prior, asof, members):
     return keep
 
 
-def plan(market,catalog,*,prior=None,groups=MAX_GROUPS):
+RECENT_EARNINGS_RESERVED_PER_MARKET=20  # within the existing 50/market
+
+def plan(market,catalog,*,prior=None,groups=MAX_GROUPS,recent_pair_priority=False):
     asof,members=_inputs(market,catalog)
+    if type(recent_pair_priority) is not bool:
+        raise BulkHistoryError("invalid_recent_earnings_backfill_selector")
     if type(groups) is not int or not 1<=groups<=MAX_GROUPS:
         raise BulkHistoryError("invalid_bulk_max_groups")
     retained=_validate_prior(prior,asof,members)
@@ -230,9 +234,33 @@ def plan(market,catalog,*,prior=None,groups=MAX_GROUPS):
     for _ in range(groups):
         cohort=[]
         for market_name in ("KOSPI","KOSDAQ"):
-            picked=queues[market_name][:MAX_CORPS//2]
+            cap=MAX_CORPS//2
+            if recent_pair_priority:
+                # Reserve only 20 out of each market's 50 seats for issuers
+                # whose ACTUAL saved annual archive lacks a 2024 or 2025
+                # year key. A queried-but-empty year remains attempted; do
+                # NOT waste provider calls trying to turn its missing
+                # financial account into an invented income value.
+                previous,latest=fiscal[-2:]
+                eligible=[]
+                for code in queues[market_name]:
+                    actual=retained.get(code,{}).get("years",{})
+                    missing=int(str(previous) not in actual)+int(str(latest) not in actual)
+                    if missing:
+                        observed=sum(str(y) in actual for y in fiscal)
+                        eligible.append((-missing,-observed,code))
+                prioritized=[code for _,_,code in sorted(eligible)
+                             [:RECENT_EARNINGS_RESERVED_PER_MARKET]]
+                chosen=set(prioritized)
+                backfill=[code for code in queues[market_name] if code not in chosen]
+                picked=prioritized+backfill[:cap-len(prioritized)]
+                selected=set(picked)
+                queues[market_name]=[code for code in queues[market_name]
+                                     if code not in selected]
+            else:
+                picked=queues[market_name][:cap]
+                del queues[market_name][:len(picked)]
             cohort.extend(picked)
-            del queues[market_name][:len(picked)]
         # When a market is exhausted, use every remaining slot for genuine
         # missing source companies from the other market, never dummy rows.
         for market_name in ("KOSPI","KOSDAQ"):
@@ -759,7 +787,8 @@ def write_json(path,value):
 
 def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
             on_progress=None,annual_book=None,
-            company_cache=None,on_company_cache=None):
+            company_cache=None,on_company_cache=None,
+            recent_pair_priority=False):
     # Enrich from ALREADY VERIFIED 2025 DART annual filings before any
     # additional source request. Independently persist this observed evidence.
     if annual_book is not None:
@@ -770,7 +799,8 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
             if on_progress:
                 on_progress(prior,_day(prior["asof"]).year-1)
     asof,members,retained,years,cohorts=plan(
-        market,catalog,prior=prior,groups=groups)
+        market,catalog,prior=prior,groups=groups,
+        recent_pair_priority=recent_pair_priority)
     if not cohorts:
         return combine(market,catalog,prior,{},groups=groups),0
     if type(key) is not str or len(key)<20:
@@ -869,6 +899,8 @@ def main(argv=None):
     p.add_argument("--company-cache",
                    default=".cache/v3-dart-company-codes.json")
     p.add_argument("--groups",type=int,default=3)
+    p.add_argument("--prioritize-latest-earnings",action="store_true",
+                   help="reserve 20 of each market's 50 seats for unqueried FY2024/25")
     p.add_argument("--mode",choices=("dry-run","live","verify"),default="dry-run")
     args=p.parse_args(argv)
     market=json.loads(Path(args.market).read_text(encoding="utf8"))
@@ -876,7 +908,9 @@ def main(argv=None):
     annual=json.loads(Path(args.annual).read_text(encoding="utf8"))
     state=Path(args.state)
     prior=json.loads(state.read_text(encoding="utf8")) if state.is_file() else None
-    asof,members,_,years,cohorts=plan(market,catalog,prior=prior,groups=args.groups)
+    asof,members,_,years,cohorts=plan(
+        market,catalog,prior=prior,groups=args.groups,
+        recent_pair_priority=args.prioritize_latest_earnings)
     if args.mode=="verify":
         if (prior is None or prior["asof"]!=asof or
             prior["listed_total"]!=len(members) or
@@ -894,6 +928,7 @@ def main(argv=None):
         print(json.dumps({"asof":asof,"listed":len(members),
              "unprocessed_today":sum(map(len,cohorts)),
              "next_groups":len(cohorts),"years":years,
+             "recent_earnings_priority":args.prioritize_latest_earnings,
              "API_calls":0,"saved_data":False}))
         return
     import os, requests
@@ -917,7 +952,8 @@ def main(argv=None):
             market,catalog,prior,key=key,session=requests.Session(),
             groups=args.groups,on_progress=save_verified_year,
             annual_book=annual,company_cache=cached_corp,
-            on_company_cache=save_company_master)
+            on_company_cache=save_company_master,
+            recent_pair_priority=args.prioritize_latest_earnings)
     except BulkHistoryError as err:
         if not checkpoints:
             raise
@@ -942,7 +978,9 @@ def main(argv=None):
         "margin_3y_partial_scored":research["companies_with_computable_3y_margin_scores"],
         "pbr_partial_scored":research["companies_with_computable_pb_scores"],
         "earnings_yield_partial_scored":research["companies_with_computable_earnings_yield_scores"],
-        "source_calls":calls,"full_v3_ready":False},sort_keys=True))
+        "source_calls":calls,
+        "recent_earnings_priority":args.prioritize_latest_earnings,
+        "full_v3_ready":False},sort_keys=True))
 
 
 if __name__=="__main__":
