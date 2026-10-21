@@ -147,7 +147,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,volume,price,financial={"005930":bad})
         bad=copy.deepcopy(example)
-        bad["asof"]="2026-10-19"
+        bad["asof"]="1900-01-01"
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,volume,price,financial={"005930":bad})
 
