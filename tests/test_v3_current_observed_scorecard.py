@@ -11,7 +11,7 @@ from test_v3_dart_rolling_book_reference import fixture
 from v3_volume_participation import build as volume_build
 from v3_current_price_replay import build as price_build
 from v3_current_observed_scorecard import (
-    generate,to_csv,main,finance_source,LivePartialScorecardError,
+    generate,to_csv,main,finance_source,cashflow_source,LivePartialScorecardError,
 )
 
 DOCS=Path(__file__).resolve().parents[1]/"docs"
@@ -100,6 +100,8 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertIn("v3_current_observed_scorecard.py --mode verify",flow)
         self.assertIn("docs/v3-dart-bulk-provisional.json",flow)
         self.assertIn("docs/v3-real-source-six-area-coverage.json",flow)
+        self.assertIn("docs/v3-dart-cashflow-reference.json",flow)
+        self.assertIn("docs/v3-dart-fcf-research-preview.json",flow)
         self.assertIn("group: korea-stock-screener-current-observed-publisher",flow)
         self.assertNotIn("DART_API_KEY:",flow)
         self.assertNotIn("KRX_API_KEY:",flow)
@@ -152,6 +154,96 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         bad["asof"]="1900-01-01"
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,volume,price,financial={"005930":bad})
+
+    def test_fcf_receipt_candidate_join_no_double_count_or_false_certification(self):
+        market,catalog=small()
+        v=volume_build(market,catalog)
+        p=price_build(market,catalog)
+        base={"code":"005930","market":"KOSPI","asof":market["date"],
+              "financial_candidate_points":3.0,
+              "financial_available_max":8,
+              "valuation_candidate_points":4.0,
+              "valuation_available_max":10,
+              "confirmed_v3_score":None,"scoring_certified":False}
+        item={"code":"005930","market":"KOSPI","asof":market["date"],
+              "financial_fcf_assets_candidate_points":0.0,
+              "financial_fcf_assets_available_max":4,
+              "valuation_fcf_yield_candidate_points":5.0,
+              "valuation_fcf_yield_available_max":5,
+              "strict_receipt_scope_matched":True,
+              "historical_PIT_certified":False,
+              "scoring_certified":False}
+        rows,summary=generate(market,catalog,v,p,
+                 financial={"005930":base},cashflow={"005930":item})
+        row=next(x for x in rows if x["code"]=="005930")
+        self.assertEqual(row["factors"]["financial"],3.0)
+        self.assertEqual(row["factor_available"]["financial"],12)
+        self.assertEqual(row["factors"]["valuation"],9.0)
+        self.assertEqual(row["factor_available"]["valuation"],15)
+        self.assertEqual(row["fcf_subpoints"]["financial4"],0.0)
+        self.assertEqual(row["fcf_subpoints"]["valuation5"],5.0)
+        self.assertEqual(summary["highest_currently_observable_weight"],76)
+        self.assertEqual(summary["fcf_observed_issuer_counts"],
+                         {"financial4":1,"valuation5":1})
+        view=list(csv.DictReader(StringIO(to_csv(rows,summary).lstrip("\ufeff"))))
+        got=next(x for x in view if x["종목코드"]=="005930")
+        self.assertEqual(got["FCF자산3년_잠정점수"],"0.0")
+        self.assertEqual(got["FCF수익률_잠정점수"],"5.0")
+        self.assertEqual(got["재무_산출배점"],"12")
+        self.assertEqual(got["가치_산출배점"],"15")
+        self.assertEqual(got["정식투자점수"],"")
+        none=next(x for x in view if x["종목코드"]=="300004")
+        self.assertEqual(none["FCF자산3년_잠정점수"],"")
+        self.assertEqual(none["미확보배점_100점중"],"100")
+        bad=copy.deepcopy(item)
+        bad["strict_receipt_scope_matched"]=False
+        with self.assertRaises(LivePartialScorecardError):
+            generate(market,catalog,v,p,financial={"005930":base},
+                     cashflow={"005930":bad})
+        bad=copy.deepcopy(item)
+        bad["financial_fcf_assets_candidate_points"]=4.5
+        with self.assertRaises(LivePartialScorecardError):
+            generate(market,catalog,v,p,financial={"005930":base},
+                     cashflow={"005930":bad})
+        bad=copy.deepcopy(base)
+        bad["financial_available_max"]=15
+        with self.assertRaises(LivePartialScorecardError):
+            generate(market,catalog,v,p,financial={"005930":bad},
+                     cashflow={"005930":item})
+
+    def test_real_stored_three_year_receipts_replay_before_publish(self):
+        docs=DOCS
+        names=("data.json","v22-market-catalog.json",
+               "v3-dart-bulk-history.json","v3-dart-cashflow-reference.json",
+               "v3-dart-fcf-research-preview.json")
+        market,catalog,history,cash,preview=[
+           json.loads((docs/x).read_text(encoding="utf8")) for x in names]
+        if any(x["asof"]!=catalog["date"] for x in (history,cash,preview)):
+            self.skipTest("real_FCF_sources_not_same_asof")
+        actual=cashflow_source(market,catalog,history,cash,preview)
+        self.assertIsNotNone(actual)
+        rows,source=actual
+        self.assertEqual(sum(r["financial_fcf_assets_available_max"]==4
+                             for r in rows.values()),
+                         source["financial_fcf4_research_candidate_issuer_count"])
+        self.assertEqual(sum(r["valuation_fcf_yield_available_max"]==5
+                             for r in rows.values()),
+                         source["valuation_fcf5_research_candidate_issuer_count"])
+        self.assertGreater(len(rows),0)
+        self.assertEqual(source["hist_PIT_verified"],False)
+        self.assertIsNone(source["six_pillar_confirmed_100pt"])
+        bad=copy.deepcopy(preview)
+        bad["buy_recommendations_authorized"]=True
+        with self.assertRaises(LivePartialScorecardError):
+            cashflow_source(market,catalog,history,cash,bad)
+        bad=copy.deepcopy(preview)
+        if bad["rows"]:
+            bad["rows"][0]["financial_fcf_assets_candidate_points"]=99
+            with self.assertRaises(LivePartialScorecardError):
+                cashflow_source(market,catalog,history,cash,bad)
+        old=copy.deepcopy(cash)
+        old["asof"]="2000-01-01"
+        self.assertIsNone(cashflow_source(market,catalog,history,old,preview))
 
     def test_actual_saved_same_day_dart_replays_only_if_audited(self):
         root=DOCS
