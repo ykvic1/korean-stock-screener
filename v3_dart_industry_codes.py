@@ -8,7 +8,7 @@ Only public 6-digit ticker -> observed industry code is committed; the
 """
 from __future__ import annotations
 import argparse
-from datetime import date,datetime
+from datetime import date,datetime,timedelta
 import hashlib
 import json
 import os
@@ -55,11 +55,11 @@ def summary(asof,members,records,last_run=0):
             observed=date.fromisoformat(record["checked_on"])
         except (TypeError,ValueError,KeyError):
             raise IndustrySourceError("industry_observation_date_invalid") from None
-        if observed<date.fromisoformat(asof) or observed>date.today().replace(year=date.today().year)+__import__("datetime").timedelta(days=2):
-            # The checked_on date may be newer than the market close; an
-            # old prior reference may also be retained across close rolls.
-            if observed<date.fromisoformat(asof)-__import__("datetime").timedelta(days=45) or observed>date.today()+__import__("datetime").timedelta(days=2):
-                raise IndustrySourceError("industry_observation_date_mismatch")
+        # Cached current-company profile may be retained when the new market
+        # trading date rolls; never confuse it with historical PIT membership.
+        if (observed<date.fromisoformat(asof)-timedelta(days=45)
+                or observed>date.today()+timedelta(days=2)):
+            raise IndustrySourceError("industry_observation_date_mismatch")
         value=record.get("industry_code")
         status=record.get("status")
         if value is None:
@@ -156,7 +156,7 @@ def classify(response,code,corp,market,checked_on):
 
 
 def collect(market,catalog,prior,*,key,session,cache=None,limit=MAX_PER_RUN,
-            checked_on=None,on_cache=None):
+            checked_on=None,on_cache=None,on_progress=None):
     asof,members=_inputs(market,catalog)
     retained=prior_records(prior,asof,members)
     if type(key) is not str or len(key)<20:
@@ -185,7 +185,7 @@ def collect(market,catalog,prior,*,key,session,cache=None,limit=MAX_PER_RUN,
             on_cache(make_company_mapping_cache(mapping,asof,members))
     selected=choose(members,retained,mapping,limit=limit)
     deadline=time.monotonic()+MAX_SECONDS
-    for code in selected:
+    for index,code in enumerate(selected,1):
         if time.monotonic()>deadline:
             raise IndustrySourceError("profile_safe_time_budget_reached")
         try:
@@ -202,6 +202,8 @@ def collect(market,catalog,prior,*,key,session,cache=None,limit=MAX_PER_RUN,
         # pretending a research score exists.
         record=classify(payload,code,mapping[code],members[code]["market"],checked_on)
         retained[code]=record
+        if on_progress and index%16==0:
+            on_progress(summary(asof,members,retained,index))
     return summary(asof,members,retained,len(selected)),calls
 
 
@@ -243,9 +245,22 @@ def main(argv=None):
     import requests
     cache=read(a.cache) if Path(a.cache).is_file() else None
     def save_cache(value): write_json(a.cache,value)
-    finished,calls=collect(market,catalog,prior,
-        key=os.getenv("DART_API_KEY",""),session=requests.Session(),
-        cache=cache,limit=a.limit,on_cache=save_cache)
+    saved=0
+    def checkpoint(value):
+        nonlocal saved
+        write_json(file,value)
+        saved+=1
+    try:
+        finished,calls=collect(market,catalog,prior,
+            key=os.getenv("DART_API_KEY",""),session=requests.Session(),
+            cache=cache,limit=a.limit,on_cache=save_cache,on_progress=checkpoint)
+    except IndustrySourceError as exc:
+        if saved==0:
+            raise
+        print(json.dumps({"status":"partial_validated_industry_profiles",
+            "checkpoints":saved,"halt_reason":str(exc),"score_certified":False},
+            sort_keys=True))
+        return
     write_json(file,finished)
     print(json.dumps({"status":"official_company_industry_code_only",
         "asof":asof,"calls":calls,"mapped":finished["observed_industry_codes"],
