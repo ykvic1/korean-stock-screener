@@ -226,6 +226,23 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
             r["industry_code"] is not None for r in industry_codes.values()),
         "industry_code_source_sector15_earned_count":0,
         "provisional_numeric_issuer_counts":count,
+        # Counts from the same source-validated snapshot used to calculate
+        # the CSV; do not confuse attempted annual requests with 4-year
+        # complete filings or receipt-matched FCF with investment certification.
+        "observed_source_depth":{
+            "four_year_dart_attempted_issuers":
+                audit["historical_dart_distinct_issuer_count"],
+            "four_year_income_observed_issuers":
+                audit["verified_four_year_income_reference_issuers"],
+            "three_year_margin_observed_issuers":
+                audit["three_year_actual_margin_source_issuers"],
+            "three_year_receipt_matched_fcf_issuers":(
+                cash["metrics"]["three_year_fcf_receipt_matched_issuers"]
+                if fcf_accepted else None),
+            "current_company_industry_code_issuers":
+                sum(r["industry_code"] is not None
+                    for r in industry_codes.values()),
+        },
         "no_numeric_factor_issuer_count":zero,
         "at_least_one_numeric_factor_count":listed-zero,
         "fcf_source_state":fcf_reason,
