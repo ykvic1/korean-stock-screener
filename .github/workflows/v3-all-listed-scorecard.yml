@@ -1,0 +1,84 @@
+name: V3 All-Listed Observed Six-Pillar CSV (No Certified Score)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_all_listed_scorecard.py
+      - .github/workflows/v3-all-listed-scorecard.yml
+  # 20:57 KST, after the existing 20:43 KST seven-day source rotation.
+  # Only existing saved source data is reused; zero new DART/KRX calls.
+  schedule:
+    - cron: '57 11 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [verify, write]
+        default: verify
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  full-current-listed-observed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate full-listed six-pillar scoring, source joins and no invention
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_all_listed_scorecard.py
+          python -m unittest discover -s tests -p 'test_v3_all_listed_scorecard.py' -v
+      - name: Calculate exactly the listed market's observed factor scores
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: python v3_all_listed_scorecard.py --mode write
+      - name: Publish current-listed score CSV and source-readiness summary only
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish observed-only all-listed V3 six-area scorecard"
+            git pull --rebase origin main
+            # Do not publish stale values after another source updated main.
+            python v3_all_listed_scorecard.py --mode verify
+            git push origin HEAD:main
+          fi
+      - name: Read-only consistency check (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        run: python v3_all_listed_scorecard.py --mode verify
+      - name: Publish source/coverage summary, not investment advice
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          path=Path("docs/v3-all-listed-scorecard-summary.json")
+          lines=["### 한국시장 전체 6영역 실측 잠정점수",
+            "자료 미확보는 비워두며 IAS·산업은 정식 점수로 추정하지 않습니다."]
+          if path.is_file():
+              report=json.loads(path.read_text(encoding="utf8"))
+              lines.append("상장종목: "+str(report["listed_total"]))
+              lines.append("실측 잠정점수 1개 영역 이상: "+
+                           str(report["at_least_one_numeric_factor_count"]))
+              lines.append("FCF 별도 공시 검증 연결: "+str(report["fcf_source_added"]))
+              lines.append("정식 투자점수 인증 기업: 0")
+          else:
+              lines.append("결과 아직 게시되지 않음")
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(lines)+"\n",
+              encoding="utf8")
+          PY
