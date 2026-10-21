@@ -102,6 +102,8 @@ class FCFPreviewTests(unittest.TestCase):
         # Past/future revised statements may remain separately recorded in the
         # cashflow source, but cannot be blended with the original major BS.
         changed["records"][first]["years"]["2024"]["major_annual_receipt_matched"]=False
+        changed=cf.summary(bulk["asof"],{v["code"]:v for v in catalog["rows"]},
+                           changed["records"],cf.fingerprint(bulk))
         older=factor.score_preview(market,catalog,bulk,changed)
         self.assertEqual(older["real_fcf_assets_three_year_raw_issuer_count"],34)
 
