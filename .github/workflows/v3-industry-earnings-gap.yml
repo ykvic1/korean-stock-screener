@@ -122,7 +122,9 @@ jobs:
               lines.extend([
                 "저장된 진단 기준일: "+str(a["asof"]),
                 "실제 두 연도 비교 확보: "+str(a["actual_saved_annual_profit_pairs"]),
-                "저장원장 미확보/미검증: "+str(a["saved_profit_pair_unavailable"]),
+                "저장원장 매출포함 엄격 비교 미확보: "+str(a["saved_profit_pair_unavailable"]),
+                "매출 제외 영업이익 2개년 별도 확인: "+
+                   str(a["verified_operating_profit_only_pair_among_missing"]),
                 "미확보 첫 차단원인 수: "+str(a["missing_reason_counts"]),
               ])
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
