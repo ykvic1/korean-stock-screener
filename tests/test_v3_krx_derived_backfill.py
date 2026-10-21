@@ -110,7 +110,7 @@ class HistoricalDerivedTests(unittest.TestCase):
                     checksum=DIGEST,windows=1)
         self.assertEqual(client.calls,[])
         good=FakeHistoryPrivate()
-        for value in (0,9,True):
+        for value in (0,17,True):
             with self.assertRaises(DerivedBackfillError):
                 collect(storage=good,client=client,dates=DATES,
                         checksum=DIGEST,windows=value)
