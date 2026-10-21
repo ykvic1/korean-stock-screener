@@ -34,6 +34,22 @@ class FakeProfile:
             body["stock_code"]="999999"
         return FakeResp(body)
 
+class FlakyProfile(FakeProfile):
+    """Synthetic transport loss, not an HTTP/quota or identity error."""
+    def __init__(self,*args,failed_code,fail_times=1,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.failed_code=failed_code
+        self.fail_times=fail_times
+
+    def get(self,url,params,timeout):
+        code=self.inverse[params["corp_code"]]
+        if code==self.failed_code and self.fail_times:
+            self.calls.append(url)
+            self.fail_times-=1
+            raise TimeoutError("synthetic_transport_outage")
+        return super().get(url,params,timeout)
+
+
 class OfficialIndustryCodeTests(unittest.TestCase):
     def setUp(self):
         self.market,self.catalog=fixture()
@@ -73,6 +89,39 @@ class OfficialIndustryCodeTests(unittest.TestCase):
         self.assertEqual(second["attempted_company_profiles"],len(self.members))
         self.assertEqual(calls,len(self.members)-3)
         self.assertEqual(c.choose(self.members,second["records"],self.mapping),[])
+
+    def test_transient_retry_once_and_global_call_budget(self):
+        from unittest.mock import patch
+        first=sorted(self.members)[0]
+        fake=FlakyProfile(self.mapping,self.market_names,failed_code=first)
+        with patch.object(c.time,"sleep",return_value=None) as sleepy:
+            result,calls=c.collect(self.market,self.catalog,None,key=self.key,
+                session=fake,cache=self.cache,checked_on=DAY)
+        self.assertEqual(result["attempted_company_profiles"],len(self.members))
+        self.assertEqual(calls,len(self.members)+1)
+        self.assertEqual(len(fake.calls),calls)
+        self.assertEqual(sleepy.call_count,1)
+        self.assertFalse(result["industry_5433_points_authorized"])
+
+    def test_retry_exhaustion_checkpoints_previously_verified_rows(self):
+        from unittest.mock import patch
+        second=sorted(self.members)[1]
+        flaky=FlakyProfile(self.mapping,self.market_names,
+                           failed_code=second,fail_times=2)
+        snapshots=[]
+        with patch.object(c.time,"sleep",return_value=None):
+            with self.assertRaisesRegex(c.IndustrySourceError,
+                                        "company_profile_transport_unavailable"):
+                c.collect(self.market,self.catalog,None,key=self.key,
+                    session=flaky,cache=self.cache,limit=3,checked_on=DAY,
+                    on_progress=snapshots.append)
+        self.assertEqual(len(flaky.calls),3)
+        self.assertEqual(len(snapshots),1)
+        self.assertEqual(snapshots[0]["attempted_company_profiles"],1)
+        self.assertEqual(snapshots[0]["last_run_attempted"],1)
+        self.assertEqual(list(snapshots[0]["records"]),[sorted(self.members)[0]])
+        self.assertEqual(snapshots[0]["observed_industry_codes"],1)
+        self.assertFalse(snapshots[0]["industry_5433_points_authorized"])
 
     def test_missing_code_is_absent_not_zero_scoring(self):
         fake=self.session(missing=sorted(self.members)[0])
