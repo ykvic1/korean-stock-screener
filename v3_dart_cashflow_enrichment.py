@@ -13,6 +13,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import time
 
 from v3_dart_bulk_history import (
