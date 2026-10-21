@@ -162,7 +162,7 @@ def main(argv=None):
     if x.mode=="write":
         write_json(path,value)
     else:
-        if not path.is_file() or read(path)!=value:
+        if not path.is_file() or json.loads(path.read_text(encoding="utf8"))!=value:
             raise VolumeEvidenceError("volume_source_changed_after_rebase")
     print(json.dumps({"status":"verified_source_volume_obv_research_only",
        "asof":value["asof"],"listed":value["listed_total"],
