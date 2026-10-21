@@ -174,19 +174,57 @@ def build(market,catalog,industry,bulk):
     }
 
 
+def source_join_ready(market,catalog,industry,bulk):
+    """Defer ONLY a bounded older major-account snapshot after market close.
+
+    Both independent sources retain their actual asof; never relabel an old
+    fiscal sample with a new market date or hide malformed source evidence.
+    """
+    try:
+        asof,members=_inputs(market,catalog)
+        prior_records(industry,asof,members)
+        if (type(bulk) is not dict or bulk.get("schema")!=BULK_SCHEMA
+            or bulk.get("listed_total")!=len(members)
+            or bulk.get("historical_PIT_source_certified") is not False
+            or bulk.get("raw_source_rows_published") is not False
+            or bulk.get("fiscal_years")!=
+                list(range(_day(asof).year-4,_day(asof).year))):
+            raise IndustryEarningsError("industry_join_source_not_verified")
+        old_day=_day(bulk.get("asof"))
+        new_day=_day(asof)
+    except (ValueError,KeyError,TypeError):
+        raise IndustryEarningsError("industry_join_source_not_verified") from None
+    if old_day==new_day:
+        return True
+    if old_day<new_day and (new_day-old_day).days<=10:
+        return False
+    raise IndustryEarningsError("industry_join_source_day_incompatible")
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--docs",default="docs")
-    p.add_argument("--mode",choices=("write","verify"),default="write")
+    p.add_argument("--mode",choices=("write","verify","write-if-ready","verify-if-ready"),default="write")
     opt=p.parse_args(argv)
     d=Path(opt.docs)
     def read(name):
         return json.loads((d/name).read_text(encoding="utf8"))
-    snap=build(read("data.json"),read("v22-market-catalog.json"),
-        read("v3-dart-industry-classification.json"),
-        read("v3-dart-bulk-history.json"))
+    market=read("data.json")
+    catalog=read("v22-market-catalog.json")
+    industry=read("v3-dart-industry-classification.json")
+    bulk=read("v3-dart-bulk-history.json")
+    if opt.mode.endswith("-if-ready") and not source_join_ready(
+            market,catalog,industry,bulk):
+        # Preserve the previous explicitly dated sample without publishing
+        # a fake "current" industry earnings comparison.
+        print(json.dumps({"status":"deferred_industry_earnings_join",
+            "market_asof":market["date"],
+            "annual_source_asof":bulk["asof"],
+            "industry_score_certified":False},sort_keys=True))
+        return
+    snap=build(market,catalog,industry,bulk)
     dest=d/"v3-dart-industry-earnings-sample.json"
-    if opt.mode=="write":
+    if opt.mode in ("write","write-if-ready"):
         write_json(dest,snap)
     else:
         if not dest.exists() or read(dest.name)!=snap:
