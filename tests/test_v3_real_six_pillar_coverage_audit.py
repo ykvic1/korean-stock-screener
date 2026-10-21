@@ -31,14 +31,26 @@ class RealCoverageAuditTests(unittest.TestCase):
         self.assertEqual(out["official_investor_IAS_source_issuer_count"],0)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["ias"],0)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["industry"],0)
-        self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["financial"],
-                         sources[2]["companies_with_computable_4y_income_scores"])
+        # Four-year growth and three-year operating margin are independent
+        # genuine evidence. Do not mistake their union for 4Y completeness.
+        finance=out["six_pillar_numeric_provisional_issuer_counts"]["financial"]
+        growth=sources[2]["companies_with_computable_4y_income_scores"]
+        margin=sources[2]["companies_with_computable_3y_margin_scores"]
+        self.assertEqual(finance,margin)
+        self.assertGreaterEqual(finance,growth)
+        self.assertEqual(
+            out["three_year_margin_provisional_score_issuers"],margin)
+        self.assertEqual(
+            out["verified_four_year_income_reference_issuers"],growth)
+        self.assertLessEqual(
+            out["four_numerical_areas_same_date_overlap_count"],finance)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["technical"],
                          sources[3]["numeric_technical_candidates_this_cycle"])
         self.assertFalse(out["buy_recommendations_authorized"])
         self.assertFalse(out["investment_grade_scores_confirmed"])
         overlap=out["four_numerical_areas_same_date_overlap_count"]
-        self.assertLessEqual(overlap,out["verified_four_year_income_reference_issuers"])
+        self.assertLessEqual(overlap,
+                             out["six_pillar_numeric_provisional_issuer_counts"]["financial"])
         self.assertLessEqual(len(out["four_numerical_areas_diagnostic_sample_codes"]),50)
         self.assertTrue(all(len(h)==64 for h in
                        out["source_sha256_canonical"].values()))
