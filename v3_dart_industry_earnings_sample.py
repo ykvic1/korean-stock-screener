@@ -114,6 +114,14 @@ def build(market,catalog,industry,bulk):
         consistent=anonymous and len(g["scopes"])==1
         improving=(round(g["improved"]/g["reported"],6)
                    if anonymous else None)
+        # Conservative bounds only over the company identities that have
+        # ACTUALLY been classified in this as-of snapshot. Not an industry
+        # census: still missing as-yet-unclassified listed companies.
+        min_breadth=(round(g["improved"]/g["mapped"],6)
+                     if anonymous else None)
+        max_breadth=(round((g["improved"]+g["mapped"]-g["reported"])/
+                           g["mapped"],6)
+                     if anonymous else None)
         observed_sample_count+=int(anonymous)
         grouped.append({
             "market":market_name,"dart_industry_code_prefix_2":prefix,
@@ -122,6 +130,10 @@ def build(market,catalog,industry,bulk):
             "unobserved_income_among_known_codes":g["mapped"]-g["reported"],
             "two_year_scope_mix":(sorted(g["scopes"]) if anonymous else []),
             "observed_earnings_improving_issuer_ratio_sample_only":improving,
+            "classified_sample_earnings_coverage_ratio":(
+                round(g["reported"]/g["mapped"],6) if anonymous else None),
+            "improvement_breadth_lower_bound_known_classified_only":min_breadth,
+            "improvement_breadth_upper_bound_known_classified_only":max_breadth,
             "observed_loss_to_profit_turnarounds_sample_only":
                 g["loss_to_profit"] if anonymous else None,
             "observed_pair_scope_uniform":consistent,
@@ -143,6 +155,11 @@ def build(market,catalog,industry,bulk):
         "mapped_industry_issuer_earnings_two_year_matched":matched_issuers,
         "observed_2digit_code_market_groups":len(grouped),
         "groups_with_at_least_three_real_earnings_pairs":observed_sample_count,
+        "classified_issuer_company_income_pair_coverage":(
+            round(matched_issuers/sum(
+                v.get("industry_code") is not None for v in classified.values()),6)
+            if any(v.get("industry_code") is not None
+                   for v in classified.values()) else None),
         "groups":[*grouped],
         "full_market_industry_membership_pit_verified":False,
         "sector_15_points_earned_issuer_count":0,
@@ -153,7 +170,7 @@ def build(market,catalog,industry,bulk):
             "industry_current_company_codes":_stable_digest(industry),
             "dart_verified_major_account":_stable_digest(bulk),
         },
-        "source_usage_notice":"Sampled current-company DART industry-code prefix and saved annual reports; not an official KRX sector trend, PIT universe, or approved issuer score.",
+        "source_usage_notice":"Samples are only from *currently classified issuers*. The bound is among known codes only and can change when unclassified companies are added. NOT whole-sector breadth, historically validated sector membership, investment score or buy recommendation.",
     }
 
 
