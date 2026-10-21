@@ -169,6 +169,117 @@ class BulkHistoryTests(unittest.TestCase):
                                                 lookup)["005930"],{})
 
 
+
+    def test_reuse_all_five_real_annual_book_latest_year_before_bulk_http(self):
+        market,catalog=fixture()
+        book={"asof":DAY,"market_listed_total":5,
+              "records":[{
+                 "code":code,"status":"observed",
+                 "annual":{"year":2025,"fs_div":"CFS",
+                           "receipt_id":"20260318000001","currency":"KRW",
+                           "values":{"revenue":150_000_000_000+i*1000,
+                                     "operating_income":15_000_000_000,
+                                     "equity":50_000_000_000,
+                                     "liabilities":20_000_000_000}}}
+                for i,code in enumerate(CODES)]}
+        ready=bulk.verified_current_annual_book_year(
+            market,catalog,book,None)
+        self.assertEqual(set(ready),set(CODES))
+        self.assertIsNone(ready["005930"]["2025"]["CFS"]["values"]["assets"])
+        self.assertEqual(ready["005930"]["2025"]["CFS"]["source_origin"],
+                         "previously_observed_dart_annual_book")
+        session=FakeDART()
+        saved=[]
+        state,calls=bulk.collect(
+            market,catalog,None,key="synthetic-key-not-secret-123",
+            session=session,groups=1,annual_book=book,
+            on_progress=lambda snapshot,year:saved.append(
+                (year,copy.deepcopy(snapshot))))
+        self.assertEqual(calls,4) # mapping + only 2022,2023,2024
+        self.assertEqual([v["bsns_year"] for u,v in session.calls[1:]],
+                         ["2022","2023","2024"])
+        self.assertEqual(saved[0][0],2025)
+        self.assertEqual(saved[0][1]["completed_source_company_years"],5)
+        self.assertEqual(state["four_year_income_observed_count"],5)
+        self.assertTrue(all(
+            state["records"][c]["years"]["2025"]["CFS"]["values"]["assets"]
+            is None for c in CODES))
+        self.assertEqual(len(saved),4)
+        with self.assertRaisesRegex(bulk.BulkHistoryError,"seed_asof"):
+            bulk.verified_current_annual_book_year(
+                market,catalog,{**book,"asof":"2026-10-19"},None)
+        altered=copy.deepcopy(book)
+        altered["records"][0]["annual"]["receipt_id"]="20271018000001"
+        self.assertNotIn("005930",
+            bulk.verified_current_annual_book_year(
+                market,catalog,altered,None))
+        swapped=copy.deepcopy(book)
+        swapped["records"][0]["annual"]["currency"]="USD"
+        self.assertNotIn("005930",
+            bulk.verified_current_annual_book_year(
+                market,catalog,swapped,None))
+
+    def test_25_issuer_response_limit_and_resume_preserves_first_chunk(self):
+        codes=[f"{i:06d}" for i in range(1,31)]
+        corpcodes={code:f"{i+10000:08d}" for i,code in enumerate(codes)}
+        reverse={v:k for k,v in corpcodes.items()}
+        class BatchSource:
+            def __init__(self,fail_after=None):
+                self.requested=[]
+                self.fail_after=fail_after
+            def get(self,url,params,timeout):
+                chunk=params["corp_code"].split(",")
+                self.requested.append(chunk)
+                if self.fail_after is not None and (
+                        len(self.requested)>self.fail_after):
+                    raise ConnectionError("never log source error text")
+                rows=[]
+                for corp in chunk:
+                    code=reverse[corp]
+                    for nm,sj,val in (
+                            ("매출액","IS","1000000000"),
+                            ("영업이익","IS","100000000"),
+                            ("자산총계","BS","2000000000"),
+                            ("부채총계","BS","500000000"),
+                            ("자본총계","BS","1500000000")):
+                        rows.append({
+                            "stock_code":code,"corp_code":corp,
+                            "bsns_year":"2025","reprt_code":"11011",
+                            "fs_div":"CFS","sj_div":sj,"account_nm":nm,
+                            "thstrm_amount":val,"currency":"KRW",
+                            "rcept_no":"20260318000001"})
+                return FakeResponse({"status":"000","list":rows})
+        chunks=[]
+        one=BatchSource()
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                     "safe_source_call_budget_reached"):
+            bulk.fetch_group(
+                one,"mock",DAY,[2025],codes,corpcodes,
+                max_requests=1,
+                on_year=lambda batch,year:chunks.append(copy.deepcopy(batch)))
+        self.assertEqual(len(one.requested),1)
+        self.assertEqual(len(one.requested[0]),25)
+        self.assertEqual(len(chunks),1)
+        self.assertEqual(len(chunks[0]),25)
+        self.assertEqual(sum(len(v) for v in chunks[0].values()),25)
+        prior={code:years for code,years in chunks[0].items()}
+        remainder=BatchSource()
+        finished,calls=bulk.fetch_group(
+            remainder,"mock",DAY,[2025],codes,corpcodes,prior_years=prior)
+        self.assertEqual(calls,1)
+        self.assertEqual(len(remainder.requested[0]),5)
+        self.assertEqual(len(finished),30)
+        self.assertTrue(all("2025" in v for v in finished.values()))
+        self.assertEqual(finished[codes[0]],prior[codes[0]])
+        errors=BatchSource(fail_after=1)
+        preserved=[]
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                     "dart_bulk_http_connection_failed"):
+            bulk.fetch_group(errors,"mock",DAY,[2025],codes,corpcodes,
+                on_year=lambda batch,year:preserved.append(batch))
+        self.assertEqual(len(preserved),1)
+        self.assertEqual(len(preserved[0]),25)
+
     def test_live_http_failure_preserves_last_valid_year_and_resumes_without_refetch(self):
         market,catalog=fixture()
         saved=[]
