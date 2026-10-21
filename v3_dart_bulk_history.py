@@ -252,24 +252,38 @@ def _mapping(blob, requested_codes):
     return mapped
 
 
-def fetch_group(session,key,asof,years,code_cohort,corp_map):
-    """One batched request per year, never one request per issuer."""
-    found={code:{} for code in code_cohort}
+def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
+                prior_years=None,on_year=None):
+    """Skip verified historical years and checkpoint each complete annual GET."""
+    prior_years=prior_years or {}
+    found={c:dict(prior_years.get(c,{})) for c in code_cohort}
     available=[c for c in code_cohort if c in corp_map]
-    if not available:
-        return {c:{str(y):{} for y in years} for c in code_cohort},0
-    lookup={corp_map[code]:code for code in available}
     requests_made=0
     for year in years:
+        needed=[c for c in available if str(year) not in found[c]]
+        if not needed:
+            for code in code_cohort:
+                found[code].setdefault(str(year),{})
+            continue
+        lookup={corp_map[c]:c for c in needed}
         try:
-            response=session.get("https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
+            response=session.get(
+                "https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
                 params={"crtfc_key":key,"corp_code":",".join(lookup),
-                        "bsns_year":str(year),"reprt_code":"11011"},timeout=55)
+                        "bsns_year":str(year),"reprt_code":"11011"},
+                timeout=55)
             requests_made+=1
             response.raise_for_status()
             payload=response.json()
-        except Exception:
-            raise BulkHistoryError("dart_bulk_transport_unavailable") from None
+        except Exception as exc:
+            name=type(exc).__name__
+            reason=("dart_bulk_http_timeout"
+                    if name in ("ReadTimeout","ConnectTimeout","Timeout")
+                    else "dart_bulk_http_connection_failed"
+                    if name=="ConnectionError" else "dart_bulk_http_status_failed"
+                    if name=="HTTPError" else "dart_bulk_invalid_json"
+                    if name=="JSONDecodeError" else "dart_bulk_transport_unavailable")
+            raise BulkHistoryError(reason) from None
         if not isinstance(payload,dict):
             raise BulkHistoryError("dart_bulk_unexpected_response")
         status=payload.get("status")
@@ -280,26 +294,24 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map):
             if not isinstance(rows,list) or not rows:
                 raise BulkHistoryError("dart_bulk_empty_success_response")
         else:
-            # Quota exhaustion (020), unavailable service, invalid key etc.
-            # Never keep issuing requests on global provider failure.
             raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
         diagnostics={}
         try:
-            extracted=_normalize_year(rows,year,asof,set(available),lookup,
+            extracted=_normalize_year(rows,year,asof,set(needed),lookup,
                                       diagnostics=diagnostics)
         finally:
-            # Log categories ONLY. Never print DART account values, identities,
-            # provider error text, certificate/token, or original payload.
             print(json.dumps({
                 "dart_bulk_fiscal_year":year,
-                "batch_requested_companies":len(available),
+                "batch_requested_companies":len(needed),
                 "source_validation":diagnostics,
                 "raw_dart_rows_logged":False,
             },sort_keys=True),flush=True)
         for code in code_cohort:
-            found[code][str(year)]=extracted.get(code,{})
+            found[code].setdefault(str(year),extracted.get(code,{}))
+        if on_year:
+            on_year({c:{str(year):found[c][str(year)]}
+                     for c in code_cohort},year)
     return found,requests_made
-
 
 def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
     asof,members,retained,fiscal,cohorts=plan(
@@ -336,6 +348,47 @@ def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
        "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
        "raw_source_rows_published":False,
        "records":{code:retained[code] for code in sorted(retained)}
+    }
+
+
+def partial_year_checkpoint(market,catalog,prior,updates):
+    """Persist source-confirmed company/years independently of four-year rank."""
+    asof,members=_inputs(market,catalog)
+    retained=_validate_prior(prior,asof,members)
+    fiscal=list(range(_day(asof).year-YEARS_BACK,_day(asof).year))
+    expected={str(y) for y in fiscal}
+    if type(updates) is not dict or not updates or not set(updates)<=set(members):
+        raise BulkHistoryError("invalid_partial_fiscal_issuer")
+    for code,years in updates.items():
+        if (type(years) is not dict or not years or
+            not set(years)<=expected or any(
+                type(scopes) is not dict or not set(scopes)<={"CFS","OFS"}
+                for scopes in years.values())):
+            raise BulkHistoryError("invalid_partial_fiscal_year")
+        value=dict(retained.get(code,{"years":{}})["years"])
+        for year,scopes in years.items():
+            if year in value and value[year]!=scopes:
+                raise BulkHistoryError("conflicting_saved_year_evidence")
+            value[year]=scopes
+        retained[code]={"years":value}
+    completed=sum(all(str(y) in r["years"] for y in fiscal)
+                  for r in retained.values())
+    income=sum(_best_income_window(r,fiscal) is not None
+               for r in retained.values())
+    return {
+        "schema":SCHEMA,"asof":asof,"listed_total":len(members),
+        "fiscal_years":fiscal,
+        "attempted_company_count":completed,
+        "four_year_income_observed_count":income,
+        "unattempted_company_count":len(members)-completed,
+        "last_run_new_companies":len(updates),
+        "completed_source_company_years":sum(len(v["years"]) for v in retained.values()),
+        "historical_PIT_source_certified":False,
+        "four_year_complete_financial15_certified":False,
+        "cfo_capex_and_net_debt_from_bulk_api_available":False,
+        "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
+        "raw_source_rows_published":False,
+        "records":{code:retained[code] for code in sorted(retained)},
     }
 
 
@@ -497,8 +550,10 @@ def write_json(path,value):
     tmp.replace(path)
 
 
-def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS):
-    asof,members,_,years,cohorts=plan(market,catalog,prior=prior,groups=groups)
+def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
+            on_progress=None):
+    asof,members,retained,years,cohorts=plan(
+        market,catalog,prior=prior,groups=groups)
     if not cohorts:
         return combine(market,catalog,prior,{},groups=groups),0
     if type(key) is not str or len(key)<20:
@@ -515,11 +570,21 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS):
         raise BulkHistoryError("dart_company_mapping_failure") from None
     complete={}
     calls=1
+    checkpoint=prior
+    def save_year(updates,year):
+        nonlocal checkpoint
+        if on_progress:
+            checkpoint=partial_year_checkpoint(
+                market,catalog,checkpoint,updates)
+            on_progress(checkpoint,year)
     for cohort in cohorts:
-        row,n=fetch_group(session,key,asof,years,cohort,mapping)
-        complete.update(row);calls+=n
+        row,n=fetch_group(
+            session,key,asof,years,cohort,mapping,
+            prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
+            on_year=save_year if on_progress else None)
+        complete.update(row)
+        calls+=n
     return combine(market,catalog,prior,complete,groups=groups),calls
-
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
@@ -558,8 +623,30 @@ def main(argv=None):
         return
     import os, requests
     key=os.getenv("DART_API_KEY","")
-    archive,calls=collect(market,catalog,prior,key=key,
-                          session=requests.Session(),groups=args.groups)
+    checkpoints=[]
+    def save_verified_year(archive,year):
+        research=research_parts(archive,catalog,annual)
+        write_json(args.state,archive)
+        write_json(args.scores,research)
+        checkpoints.append(year)
+    try:
+        archive,calls=collect(
+            market,catalog,prior,key=key,session=requests.Session(),
+            groups=args.groups,on_progress=save_verified_year)
+    except BulkHistoryError as err:
+        if not checkpoints:
+            raise
+        # A later-year source outage must NOT discard independently valid
+        # historical years already collected. Resume them on the next job.
+        print(json.dumps({
+            "status":"partial_real_dart_fiscal_history_saved",
+            "fiscal_year_checkpoints_written":len(checkpoints),
+            "last_saved_fiscal_year":checkpoints[-1],
+            "subsequent_source_failure":str(err),
+            "raw_api_data_logged":False,
+            "full_v3_ready":False,
+        },sort_keys=True),flush=True)
+        return
     research=research_parts(archive,catalog,annual)
     write_json(args.state,archive)
     write_json(args.scores,research)

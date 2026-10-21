@@ -168,6 +168,63 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(bulk._normalize_year([],2025,DAY,set(CODES),
                                                 lookup)["005930"],{})
 
+
+    def test_live_http_failure_preserves_last_valid_year_and_resumes_without_refetch(self):
+        market,catalog=fixture()
+        saved=[]
+        class Outage(FakeDART):
+            def get(self,url,params,timeout):
+                if url.endswith("fnlttMultiAcnt.json") and params["bsns_year"]=="2023":
+                    self.calls.append((url,params))
+                    raise ConnectionError("untrusted-secret-in-provider-error")
+                return super().get(url,params,timeout)
+        first=Outage()
+        def checkpoint(snapshot,year):
+            saved.append((year,copy.deepcopy(snapshot)))
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                     "dart_bulk_http_connection_failed"):
+            bulk.collect(market,catalog,None,key="synthetic-key-not-secret-123",
+                         session=first,groups=1,on_progress=checkpoint)
+        self.assertEqual(len(saved),1)
+        self.assertEqual(saved[0][0],2022)
+        self.assertEqual(saved[0][1]["attempted_company_count"],0)
+        self.assertEqual(saved[0][1]["completed_source_company_years"],5)
+        self.assertEqual(saved[0][1]["records"]["005930"]["years"].keys(),
+                         {"2022"})
+        recovered=FakeDART()
+        state,requests_made=bulk.collect(
+            market,catalog,saved[0][1],key="synthetic-key-not-secret-123",
+            session=recovered,groups=1,on_progress=checkpoint)
+        self.assertEqual(requests_made,4) # mapping + 2023/2024/2025
+        self.assertEqual([v["bsns_year"] for u,v in recovered.calls[1:]],
+                         ["2023","2024","2025"])
+        self.assertEqual(state["four_year_income_observed_count"],5)
+        self.assertEqual(state["attempted_company_count"],5)
+        self.assertEqual(len(saved),4) # previous 2022 + next 3 checkpoints
+        self.assertEqual(saved[-1][1]["completed_source_company_years"],20)
+        self.assertFalse(state["four_year_complete_financial15_certified"])
+
+    def test_checkpoint_rejects_cross_company_wrong_year_and_changes(self):
+        market,catalog=fixture()
+        good={CODES[0]:{"2022":{"CFS":{
+            "receipt_id":"20230318000001",
+            "values":{"revenue":2000},"ambiguous":[]}}}}
+        first=bulk.partial_year_checkpoint(market,catalog,None,good)
+        self.assertEqual(first["completed_source_company_years"],1)
+        self.assertEqual(first["four_year_income_observed_count"],0)
+        self.assertEqual(first["attempted_company_count"],0)
+        self.assertEqual(bulk.partial_year_checkpoint(
+            market,catalog,first,good)["records"],first["records"])
+        for change,wrong in (
+            ("wrong_code",{"999999":{"2022":{}}}),
+            ("wrong_year",{CODES[0]:{"2027":{}}}),
+            ("wrong_scope",{CODES[0]:{"2023":{"UNKNOWN":{}}}})):
+            with self.subTest(change=change),self.assertRaises(bulk.BulkHistoryError):
+                bulk.partial_year_checkpoint(market,catalog,first,wrong)
+        with self.assertRaisesRegex(bulk.BulkHistoryError,"conflicting_saved"):
+            bulk.partial_year_checkpoint(market,catalog,first,{
+                CODES[0]:{"2022":{"CFS":{"receipt_id":"20230318000002"}}}})
+
     def test_current_dart_company_master_is_safely_size_bounded_and_identified(self):
         self.assertEqual(bulk._mapping(mapping_zip(),set(CODES)),CORPS)
         with self.assertRaisesRegex(bulk.BulkHistoryError,"not_zip_bytes"):
