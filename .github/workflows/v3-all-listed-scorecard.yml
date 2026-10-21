@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_all_listed_scorecard.py
+      - v3_dart_industry_earnings_sample.py
       - .github/workflows/v3-all-listed-scorecard.yml
   # Once hourly at :57 KST to publish scores after each DART/CAPEX
   # acquisition window; shared concurrency serializes against backfills.
@@ -40,18 +41,21 @@ jobs:
       - name: Validate full-listed six-pillar scoring, source joins and no invention
         run: |
           set -euo pipefail
-          python -m py_compile v3_all_listed_scorecard.py
+          python -m py_compile v3_all_listed_scorecard.py v3_dart_industry_earnings_sample.py
           python -m unittest discover -s tests -p 'test_v3_all_listed_scorecard.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_industry_earnings_sample.py' -v
       - name: Calculate exactly the listed market's observed factor scores
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
-        run: python v3_all_listed_scorecard.py --mode write
+        run: |
+          python v3_all_listed_scorecard.py --mode write
+          python v3_dart_industry_earnings_sample.py --mode write
       - name: Publish current-listed score CSV and source-readiness summary only
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+          git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json docs/v3-dart-industry-earnings-sample.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish observed-only all-listed V3 six-area scorecard"
             git pull --rebase origin main
@@ -60,16 +64,20 @@ jobs:
             # rebased current data, replace only our generated CSV/summary,
             # and persist the exact source fingerprints we actually used.
             python v3_all_listed_scorecard.py --mode write
-            git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+            python v3_dart_industry_earnings_sample.py --mode write
+            git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json docs/v3-dart-industry-earnings-sample.json
             if ! git diff --cached --quiet; then
               git commit --amend --no-edit
             fi
             python v3_all_listed_scorecard.py --mode verify
+            python v3_dart_industry_earnings_sample.py --mode verify
             git push origin HEAD:main
           fi
       - name: Read-only consistency check (manual)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
-        run: python v3_all_listed_scorecard.py --mode verify
+        run: |
+          python v3_all_listed_scorecard.py --mode verify
+          python v3_dart_industry_earnings_sample.py --mode verify
       - name: Publish source/coverage summary, not investment advice
         if: always()
         run: |
@@ -86,6 +94,17 @@ jobs:
                            str(report["at_least_one_numeric_factor_count"]))
               lines.append("FCF 별도 공시 검증 연결: "+str(report["fcf_source_added"]))
               lines.append("정식 투자점수 인증 기업: 0")
+          industry=Path("docs/v3-dart-industry-earnings-sample.json")
+          if industry.is_file():
+              i=json.loads(industry.read_text(encoding="utf8"))
+              lines.extend([
+                "실제 DART 업종코드: "+str(i["dart_current_industry_codes_observed"]),
+                "공식 연결 FY 2024/2025 영업이익 2년치: "+
+                  str(i["mapped_industry_issuer_earnings_two_year_matched"]),
+                "표본 3개사 이상 관찰집단: "+
+                  str(i["groups_with_at_least_three_real_earnings_pairs"]),
+                "산업 투자점수 확정: 0 (역사적 섹터 전체 모집단 미확보)",
+              ])
           else:
               lines.append("결과 아직 게시되지 않음")
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(lines)+"\n",
