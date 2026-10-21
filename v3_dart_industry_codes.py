@@ -219,11 +219,12 @@ def collect(market,catalog,prior,*,key,session,cache=None,limit=MAX_PER_RUN,
             raise IndustrySourceError("profile_safe_time_budget_reached")
         for attempt in range(2):
             try:
+                # Count every outbound attempt, including failed timeouts.
+                calls+=1
                 response=session.get(
                     "https://opendart.fss.or.kr/api/company.json",
                     params={"crtfc_key":key,"corp_code":mapping[code]},
                     timeout=35)
-                calls+=1
                 response.raise_for_status()
                 payload=response.json()
                 break
