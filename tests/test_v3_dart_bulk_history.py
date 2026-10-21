@@ -529,6 +529,55 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(years,[2022,2023,2024,2025])
         self.assertEqual(len(cohorts[0]),5)
 
+
+    def test_three_year_actual_margin_scores_without_missing_2022_growth(self):
+        # FY2023/24/25 has the exact 3-year operating margin source for
+        # companies whose 2022 filing is unavailable. Their growth CAGR
+        # must remain null; never synthesize the fourth annual observation.
+        n=40
+        recordset={}
+        catalog_rows=[]
+        for i in range(n):
+            code=f"{i:06d}"
+            catalog_rows.append({"code":code,"market":"KOSPI",
+                                 "reference_market_cap_eok":1000+i})
+            fiscal={}
+            for yr in (2023,2024,2025):
+                fiscal[str(yr)]={"CFS":{
+                    "receipt_id":f"{yr+1}0318000001",
+                    "values":{"revenue":10_000_000_000+(yr-2023)*500_000_000+i,
+                              "operating_income":400_000_000+i*100,
+                              "assets":20_000_000_000,
+                              "liabilities":5_000_000_000,
+                              "equity":15_000_000_000},
+                    "ambiguous":[]}}
+            recordset[code]={"years":fiscal}
+        history={"schema":bulk.SCHEMA,"asof":DAY,"fiscal_years":
+                 [2022,2023,2024,2025],"listed_total":n,
+                 "four_year_income_observed_count":0,"records":recordset}
+        catalog={"date":DAY,"listed_total":n,"rows":catalog_rows}
+        annual={"asof":DAY,"market_listed_total":n,
+                "records":[],"observations":[]}
+        parts=bulk.research_parts(history,catalog,annual,minimum_peers=30)
+        self.assertEqual(parts["companies_with_computable_4y_income_scores"],0)
+        self.assertEqual(parts["companies_with_computable_3y_margin_scores"],n)
+        self.assertEqual(len(parts["rows"]),n)
+        for row in parts["rows"]:
+            self.assertEqual(row["financial_available_max"],4)
+            self.assertEqual(row["valuation_available_max"],0)
+            self.assertIsNone(
+                row["unverified_components"]["revenue_cagr_3y_pct"]["candidate_points"])
+            self.assertTrue(
+                0<=row["unverified_components"]["operating_margin_3y_pct"]["candidate_points"]<=4)
+            self.assertIsNone(row["confirmed_v3_score"])
+        one=recordset["000000"]
+        self.assertIsNone(bulk._best_income_window(one,[2022,2023,2024,2025]))
+        self.assertIsNotNone(
+            bulk._three_year_margin(one,[2022,2023,2024,2025]))
+        one["years"]["2024"]["CFS"]["values"]["revenue"]=None
+        self.assertIsNone(
+            bulk._three_year_margin(one,[2022,2023,2024,2025]))
+
     def test_market_peer_partial_financial_and_valuation_never_claim_100(self):
         n=40
         years=[2022,2023,2024,2025]
