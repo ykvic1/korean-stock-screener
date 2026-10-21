@@ -119,6 +119,43 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(blocked["provisional_numeric_issuer_counts"],
                          report["provisional_numeric_issuer_counts"])
 
+    def test_source_depth_matches_same_saved_verified_annual_and_fcf_inputs(self):
+        market,catalog,history,parts,weekly,cash,fcf=sources()
+        industry=read("v3-dart-industry-classification.json")
+        rows,report=m.generate(market,catalog,history,parts,weekly,cash,fcf,
+                               industry)
+        from v3_real_six_pillar_coverage_audit import coverage
+        actual=coverage(catalog,history,parts,weekly)
+        depth=report["observed_source_depth"]
+        self.assertEqual(depth["four_year_dart_attempted_issuers"],
+                         actual["historical_dart_distinct_issuer_count"])
+        self.assertEqual(depth["four_year_income_observed_issuers"],
+                         actual["verified_four_year_income_reference_issuers"])
+        self.assertEqual(depth["three_year_margin_observed_issuers"],
+                         actual["three_year_actual_margin_source_issuers"])
+        self.assertEqual(depth["three_year_receipt_matched_fcf_issuers"],
+            cash["metrics"]["three_year_fcf_receipt_matched_issuers"]
+            if report["fcf_source_added"] else None)
+        self.assertEqual(depth["current_company_industry_code_issuers"],
+                         report["industry_code_source_observed"])
+        self.assertEqual(report["source_sha256"]["dart_major"],
+                         m._stable_digest(history))
+        self.assertEqual(report["source_sha256"]["dart_partial"],
+                         m._stable_digest(parts))
+        self.assertEqual(report["source_sha256"]["weekly"],
+                         m._stable_digest(weekly))
+        self.assertEqual(len(rows),2497)
+        self.assertEqual(report["full_six_pillar_certified_count"],0)
+
+        corrupted=copy.deepcopy(cash)
+        corrupted["metrics"]["three_year_fcf_receipt_matched_issuers"]+=1
+        _,blocked=m.generate(market,catalog,history,parts,weekly,
+                             corrupted,fcf,industry)
+        self.assertFalse(blocked["fcf_source_added"])
+        self.assertIsNone(blocked["observed_source_depth"]
+                          ["three_year_receipt_matched_fcf_issuers"])
+        self.assertEqual(blocked["full_six_pillar_certified_count"],0)
+
     def test_fcf_only_when_exact_recomputed_source_matches(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         _,base=m.generate(market,catalog,history,parts,weekly)
