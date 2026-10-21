@@ -31,8 +31,32 @@ class RealCoverageAuditTests(unittest.TestCase):
         self.assertEqual(out["official_investor_IAS_source_issuer_count"],0)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["ias"],0)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["industry"],0)
-        self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["financial"],
+        # A valid FY2023-25 operating-margin research score (4 points) is
+        # independently available even when FY2022 growth is missing.
+        # Never force all financial research rows to have 4-year CAGR.
+        comp=sources[2]["rows"]
+        growth={row["code"] for row in comp if
+                row["unverified_components"]["revenue_cagr_3y_pct"]["candidate_points"]
+                is not None}
+        margin={row["code"] for row in comp if
+                row["unverified_components"]["operating_margin_3y_pct"]["candidate_points"]
+                is not None}
+        self.assertEqual(len(growth),
                          sources[2]["companies_with_computable_4y_income_scores"])
+        self.assertEqual(len(margin),
+                         sources[2]["companies_with_computable_3y_margin_scores"])
+        self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["financial"],
+                         len(growth|margin))
+        self.assertEqual(out["three_year_margin_provisional_score_issuers"],
+                         len(margin))
+        self.assertGreaterEqual(len(growth|margin),len(growth))
+        for row in comp:
+            if row["code"] in margin-growth:
+                self.assertEqual(row["financial_available_max"],4)
+                self.assertIsNone(row["unverified_components"][
+                    "revenue_cagr_3y_pct"]["candidate_points"])
+                self.assertIsNotNone(row["unverified_components"][
+                    "operating_margin_3y_pct"]["candidate_points"])
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["technical"],
                          sources[3]["numeric_technical_candidates_this_cycle"])
         self.assertFalse(out["buy_recommendations_authorized"])
@@ -74,6 +98,11 @@ class RealCoverageAuditTests(unittest.TestCase):
         a["confirmed_v3_score"]=77
         with self.assertRaisesRegex(audit.CoverageAuditError,
                                      "untrusted_provisional_pillar_row"):
+            audit.coverage(*altered)
+        altered=copy.deepcopy(base)
+        altered[2]["companies_with_computable_3y_margin_scores"]+=1
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                     "research_component_evidence_count_mismatch"):
             audit.coverage(*altered)
         altered=copy.deepcopy(base)
         altered[1]["records"]["999999"]={"years":{}}
