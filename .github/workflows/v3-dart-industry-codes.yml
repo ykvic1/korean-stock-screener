@@ -6,7 +6,9 @@ on:
       - v3_dart_industry_codes.py
       - .github/workflows/v3-dart-industry-codes.yml
   schedule:
-    - cron: '12 * * * *'
+    # 160 bounded profiles per 15 minutes (max 640/hour). Shares the
+    # publication lock with :29 annual major and :47 cashflow ingestion.
+    - cron: '6,21,36,51 * * * *'
   workflow_dispatch:
 permissions:
   contents: write
