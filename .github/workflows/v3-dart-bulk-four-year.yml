@@ -42,6 +42,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Restore asof-bound public-company identifier mapping
+        uses: actions/cache@v4
+        with:
+          # This is a nonpublished Actions-only cache of 6-digit stock
+          # codes and 8-digit OpenDART corp IDs; no credentials or rows.
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
       - name: Install official DART HTTP client for live historical collection
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
@@ -92,6 +99,47 @@ jobs:
             python v3_dart_bulk_history.py --mode verify
             git push origin HEAD:main
           fi
+      - name: Historical source acquisition results (audit only)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
+          archive=Path('docs/v3-dart-bulk-history.json')
+          parts=Path('docs/v3-dart-bulk-provisional.json')
+          lines=[
+            '### V3 과거 공시 확보 현황 · 미검증 연구자료',
+            '이 표는 체크아웃된 결과 파일의 숫자입니다. '
+            '당일 저장 성공 여부는 Publish 단계의 GitHub push를 별도 확인해야 합니다.',
+          ]
+          if archive.is_file() and parts.is_file():
+            a=json.loads(archive.read_text(encoding='utf8'))
+            p=json.loads(parts.read_text(encoding='utf8'))
+            rows=a.get('records',{})
+            observed=sum(sum(bool(y) for y in r.get('years',{}).values())
+                         for r in rows.values())
+            years=sum(len(r.get('years',{})) for r in rows.values())
+            for name,count in (
+                ('기준일',a.get('asof','미확인')),
+                ('전 종목',a.get('listed_total',0)),
+                ('기존 및 신규 연도별 조회·재사용 기록',years),
+                ('공시 계정이 실제 있는 기업·연도',observed),
+                ('4개 사업연도 조회 시도 완료',a.get('attempted_company_count',0)),
+                ('4개년 매출/영업이익 동일범위 확인',
+                 a.get('four_year_income_observed_count',0)),
+                ('4개년 성장률 잠정점수 계산기업',
+                 p.get('companies_with_computable_4y_income_scores',0)),
+                ('간이 PBR 참고점수 계산기업',
+                 p.get('companies_with_computable_pb_scores',0)),
+                ('이익수익률 참고점수 계산기업',
+                 p.get('companies_with_computable_earnings_yield_scores',0))):
+                lines.append('- '+str(name)+': **'+str(count)+'**')
+          else:
+            lines.append('- 유효한 과거 공시 파일 미확인: 완료 아님')
+          lines.append('공식 수급 IAS, 기업행사·과거 PIT, 6영역 확정점수 없음.')
+          summary.write_text('\n'.join(lines)+'\n',encoding='utf8')
+          PY
       - name: Source integrity and no certified 100-point release notice
         if: always()
         run: |
