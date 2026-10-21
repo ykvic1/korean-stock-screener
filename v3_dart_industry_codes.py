@@ -24,6 +24,10 @@ from v3_dart_rolling_book_reference import _inputs
 SCHEMA="v3-dart-current-listed-industry-code-reference-0.1"
 MAX_PER_RUN=160
 MAX_SECONDS=880
+# Recovery calls are exceptional and globally capped; never retry DART quota,
+# HTTP rejection, ambiguous identity or business-status errors.
+MAX_TRANSIENT_RETRIES=4
+TRANSIENT_RETRY_DELAY=0.5
 CODE=re.compile(r"[0-9]{6}\Z")
 INDUSTRY=re.compile(r"[0-9]{2,8}\Z")
 HASH=re.compile(r"[a-f0-9]{64}\Z")
@@ -37,6 +41,20 @@ def _hash_corp(corp):
     if type(corp) is not str or not re.fullmatch(r"[0-9]{8}",corp):
         raise IndustrySourceError("bad_corporate_identity")
     return hashlib.sha256(corp.encode("ascii")).hexdigest()
+
+
+def _is_transient_transport_error(exc):
+    """Only connection loss / timeout, never an HTTP status or bad DART data."""
+    if isinstance(exc,(TimeoutError,ConnectionError)):
+        return True
+    try:
+        from requests.exceptions import (
+            ConnectionError as RequestsConnectionError,
+            Timeout as RequestsTimeout,
+        )
+    except ImportError:
+        return False
+    return isinstance(exc,(RequestsConnectionError,RequestsTimeout))
 
 
 def summary(asof,members,records,last_run=0):
@@ -179,6 +197,7 @@ def collect(market,catalog,prior,*,key,session,cache=None,limit=MAX_PER_RUN,
         raise IndustrySourceError("company_profile_before_market_close_date")
     mapping=verified_company_mapping_cache(cache,asof,members)
     calls=0
+    transient_retries=0
     if mapping is None:
         try:
             response=session.get(
@@ -195,20 +214,40 @@ def collect(market,catalog,prior,*,key,session,cache=None,limit=MAX_PER_RUN,
     deadline=time.monotonic()+MAX_SECONDS
     for index,code in enumerate(selected,1):
         if time.monotonic()>deadline:
+            if on_progress and index>1:
+                on_progress(summary(asof,members,retained,index-1))
             raise IndustrySourceError("profile_safe_time_budget_reached")
-        try:
-            response=session.get(
-                "https://opendart.fss.or.kr/api/company.json",
-                params={"crtfc_key":key,"corp_code":mapping[code]},
-                timeout=35)
-            calls+=1
-            response.raise_for_status()
-            payload=response.json()
-        except Exception:
-            raise IndustrySourceError("company_profile_transport_unavailable") from None
+        for attempt in range(2):
+            try:
+                # Count every outbound attempt, including failed timeouts.
+                calls+=1
+                response=session.get(
+                    "https://opendart.fss.or.kr/api/company.json",
+                    params={"crtfc_key":key,"corp_code":mapping[code]},
+                    timeout=35)
+                response.raise_for_status()
+                payload=response.json()
+                break
+            except Exception as exc:
+                if (attempt==0 and transient_retries<MAX_TRANSIENT_RETRIES
+                        and _is_transient_transport_error(exc)
+                        and time.monotonic()+TRANSIENT_RETRY_DELAY<deadline):
+                    transient_retries+=1
+                    time.sleep(TRANSIENT_RETRY_DELAY)
+                    continue
+                # Persist ONLY previously validated company identities even if
+                # an outage arrives before the regular 16-company checkpoint.
+                if on_progress and index>1:
+                    on_progress(summary(asof,members,retained,index-1))
+                raise IndustrySourceError("company_profile_transport_unavailable") from None
         # Status 020/quota, missing info, unknown schema fail closed without
         # pretending a research score exists.
-        record=classify(payload,code,mapping[code],members[code]["market"],checked_on)
+        try:
+            record=classify(payload,code,mapping[code],members[code]["market"],checked_on)
+        except IndustrySourceError:
+            if on_progress and index>1:
+                on_progress(summary(asof,members,retained,index-1))
+            raise
         retained[code]=record
         if on_progress and index%16==0:
             on_progress(summary(asof,members,retained,index))
