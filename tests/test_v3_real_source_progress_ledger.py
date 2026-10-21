@@ -1,6 +1,7 @@
 """Six-area source acquisition trend is not six investable scores."""
 import copy
 import json
+from datetime import date,timedelta
 from pathlib import Path
 import tempfile
 import unittest
@@ -47,7 +48,8 @@ class SixAreaProgressLedgerTests(unittest.TestCase):
         self.assertFalse(updated["buy_signals_authorized"])
         self.assertEqual(ledger.append(later,updated),updated)
         future=copy.deepcopy(later)
-        future["market_asof"]="2026-10-21"
+        future["market_asof"]=(date.fromisoformat(later["market_asof"])+
+                               timedelta(days=1)).isoformat()
         future["six_pillar_numeric_provisional_issuer_counts"]["financial"]-=1
         shifted=ledger.append(future,updated)
         self.assertIsNone(shifted["snapshots"][-1]["progress_since_previous"])
