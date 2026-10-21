@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from technical_v22 import rsi, divergence, pattern_snapshot
+from v3_sector_rotation_signal import early_rotation_signal
 
 # Safety bound, NOT an investment lookback. About two decades of daily
 # observations may be accepted; research indicators keep their own windows.
@@ -124,7 +125,7 @@ def extract_price_features(bars, *, asof, market_index=None,
         "momentum_stock_relative_strength_20_pct": None,
         "momentum_stock_relative_strength_60_pct": None,
         "momentum_positive_days_20_ratio": None,
-        "industry_relative_strength_60_pct": None,
+        "industry_early_rotation_signal": None,
     }
     # Positive OBV within lower price changes can be an interesting *candidate*
     # but requires verified regular-only session volumes and corporate actions.
@@ -144,11 +145,9 @@ def extract_price_features(bars, *, asof, market_index=None,
         features["momentum_stock_relative_strength_60_pct"] = (
             _relative(c, market, dates, 60))
         if market is not None and industry is not None:
-            matched = dates[-61:]
-            if all(day in market and day in industry for day in matched):
-                features["industry_relative_strength_60_pct"] = round(
-                    100 * ((industry[matched[-1]] / industry[matched[0]]) /
-                           (market[matched[-1]] / market[matched[0]]) - 1), 6)
+            rotation=early_rotation_signal(market,industry,dates[-61:])
+            if rotation is not None:
+                features["industry_early_rotation_signal"]=rotation["strength"]
     if n >= 90:
         patterns = pattern_snapshot(df)
         if patterns["status"] == "heuristic_unvalidated":

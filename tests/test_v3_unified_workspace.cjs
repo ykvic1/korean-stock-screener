@@ -198,18 +198,12 @@ assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 상승다이버�
 assert.equal(unified.technicalCandidate(row),22.8);
 assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
  [null,22.8,null,null,null,null]);
-// Industry 15pt is not measurable merely from sector labels. An
-// alternative five-area 85pt interpretation is useful without pretending
-// to approve a new weighting scheme or scaling unknown components.
-const fiveRaw=unified.fiveAreaResearchView(row);
-const existingSix=unified.researchComposite(row);
-assert.equal(fiveRaw.maximum,85);
-assert.equal(fiveRaw.available,existingSix.available);
-assert.equal(fiveRaw.earned,existingSix.earned);
-assert.equal(fiveRaw.missing,85-existingSix.available);
-assert.equal(fiveRaw.approved,false);
-assert.equal(fiveRaw.certified,false);
-assert.ok(source.includes('산업 제외 5영역 비교안 (채택 전)'));
+// Approved industry 5+4+3+3 belongs to the same six-area /100 model.
+assert.equal(unified.INDUSTRY_COMPONENTS.reduce((a,x)=>a+x[1],0),15);
+assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
+assert.equal(unified.researchComposite(row).pillars.length,6);
+assert.ok(source.includes('산업 15점 내부 배점 (승인 5·4·3·3)'));
+assert.equal(typeof unified.fiveAreaResearchView,'undefined');
 const missingIAS=unified.pillarState(row)[0];
 assert.equal(missingIAS.label,'IAS·수급');
 assert.equal(missingIAS.max,20);

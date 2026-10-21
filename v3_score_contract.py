@@ -26,6 +26,14 @@ PILLAR_POINTS = MappingProxyType({
     "industry": 15,
     "momentum": 10,
 })
+# User-approved subweights of industry15 inside the unchanged V3/100:
+# 5 early rotation + 4 profit recovery + 3 diffusion + 3 crowding quality.
+INDUSTRY_POINTS = MappingProxyType({
+    "early_rotation":5,
+    "profit_transition":4,
+    "improvement_diffusion":3,
+    "overheat_crowding_quality":3,
+})
 IAS_POINTS = MappingProxyType({
     "long_term_holding": 20,
     "accumulated_net_buy": 25,
@@ -52,6 +60,11 @@ def _check_design() -> None:
                 "ias": 20, "financial": 15, "valuation": 15,
                 "technical": 25, "industry": 15, "momentum": 10,
             }
+            or dict(INDUSTRY_POINTS) != {
+                "early_rotation":5, "profit_transition":4,
+                "improvement_diffusion":3, "overheat_crowding_quality":3,
+            }
+            or sum(INDUSTRY_POINTS.values()) != PILLAR_POINTS["industry"]
             or sum(IAS_POINTS.values()) != IAS_MAX
             or set(NET_BUY_PERIOD_WEIGHT) != {20, 60, 120, 250}
             or sum(NET_BUY_PERIOD_WEIGHT.values()) != 100):

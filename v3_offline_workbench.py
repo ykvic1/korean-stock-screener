@@ -38,7 +38,9 @@ MANUAL_FIELDS = frozenset(
     name for name in FIELD_SPECS
     if name.startswith(("financial_", "valuation_"))
     or name in ("industry_profit_growth_12m_pct",
-                "industry_breadth_above_ma_ratio")
+                "industry_early_rotation_signal",
+                "industry_profit_improving_issuer_ratio",
+                "industry_overheat_concentration_quality")
 )
 
 
@@ -394,6 +396,8 @@ def demo_bundle(*, sample_each_market=32):
             "asof": asof.isoformat(),
             "market": market_name, "industry_code": f"IND.{market_index+1}",
             "latest_comparable_fiscal_year": 2025,
+            "market_index": market_benchmark[-61:],
+            "industry_index": industry_benchmark[-61:],
             "members": industry_members,
         })
     return {"asof": asof.isoformat(), "stocks": result,

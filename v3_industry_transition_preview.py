@@ -6,27 +6,29 @@ whether a 15-point industry dimension can provide useful differentiation,
 not permission to amend the existing 100-point model or award any issuer
 investment score. No API, ticker ranking, prices or account rows are output.
 
-Suggested alternative 15-point hypothesis:
-  aggregate earnings transition:       6
-  issuers with improving profits:      4
-  breadth above MA60:                   3
-  concentration risk within rebound:   2
-The MA60 group is inherently correlated with technical/momentum; it is
-restricted to THREE points and subject to later correlation backtesting.
+User-approved 15-point industry breakdown (part of six-area /100):
+  early sector fund rotation signal:   5
+  industry earnings floor and recovery:4
+  issuer earnings improvement breadth: 3
+  overheating and concentration:       3
+Unverified data stays unscored; approved weights never certify a buy signal.
 """
 from __future__ import annotations
 from collections import defaultdict
+from v3_score_contract import INDUSTRY_POINTS
 from datetime import date
 import math
 import re
 
 SCHEMA="v3-industry-transition-risk-stage-preview-0.1"
 WEIGHTS={
-    "profit_transition":6,
-    "improvement_diffusion":4,
-    "price_breadth_context":3,
-    "rebound_concentration_risk":2,
+    "early_rotation":5,
+    "profit_transition":4,
+    "improvement_diffusion":3,
+    "overheat_crowding_quality":3,
 }
+if WEIGHTS!=dict(INDUSTRY_POINTS):
+    raise RuntimeError('industry_contract_mismatch')
 MIN_SECTORS=5
 
 
@@ -82,6 +84,8 @@ def preview(sectors, *, asof, min_sectors=MIN_SECTORS):
             ("industry_profit_improving_issuer_ratio",0,1),
             ("industry_breadth_above_ma_ratio",0,1),
             ("industry_recovery_largest_issuer_delta_share",0,1),
+            ("industry_early_rotation_signal",0,1),
+            ("industry_overheat_concentration_quality",0,1),
         ]
         for k,low,high in spec:
             n=features.get(k)
@@ -94,10 +98,13 @@ def preview(sectors, *, asof, min_sectors=MIN_SECTORS):
         if not profit_complete and any(features.get(k) is not None for k in
             ("industry_profit_growth_12m_pct",
              "industry_profit_improving_issuer_ratio",
-             "industry_recovery_largest_issuer_delta_share")):
+             "industry_recovery_largest_issuer_delta_share",
+             "industry_overheat_concentration_quality")):
             raise IndustryTransitionError("partial_roster_profit_score_forbidden")
-        if not price_complete and features.get(
-                "industry_breadth_above_ma_ratio") is not None:
+        if not price_complete and any(features.get(k) is not None for k in
+            ("industry_breadth_above_ma_ratio",
+             "industry_early_rotation_signal",
+             "industry_overheat_concentration_quality")):
             raise IndustryTransitionError("partial_roster_price_score_forbidden")
         if (features.get("industry_profit_improving_issuer_ratio")==0 and
             features.get("industry_recovery_largest_issuer_delta_share") is not None):
@@ -114,29 +121,24 @@ def preview(sectors, *, asof, min_sectors=MIN_SECTORS):
         eligible=len(peers)>=min_sectors
         components={key:None for key in WEIGHTS}
         if eligible:
+            signal=features.get("industry_early_rotation_signal")
+            if signal is not None:
+                components["early_rotation"]=round(5*signal,6)
             grow=features.get("industry_profit_growth_12m_pct")
             # Negative earnings: *observed* zero points, not a missing value.
             # 10% thresholds are trial hypotheses, not calibrated targets.
             if grow is not None:
                 components["profit_transition"]=(
-                    0 if grow<=0 else 2 if grow<10 else
-                    4 if grow<25 else 6)
+                    0 if grow<=0 else 1 if grow<10 else
+                    3 if grow<25 else 4)
             breadth=features.get("industry_profit_improving_issuer_ratio")
             if breadth is not None:
                 components["improvement_diffusion"]=(
                     0 if breadth<0.3 else 1 if breadth<0.5 else
-                    3 if breadth<0.7 else 4)
-            price=features.get("industry_breadth_above_ma_ratio")
-            if price is not None:
-                components["price_breadth_context"]=(
-                    0 if price<0.3 else 1 if price<0.5 else
-                    2 if price<0.7 else 3)
-            concentration=features.get(
-                "industry_recovery_largest_issuer_delta_share")
-            if concentration is not None:
-                components["rebound_concentration_risk"]=(
-                    0 if concentration>=0.7 else
-                    1 if concentration>=0.45 else 2)
+                    2 if breadth<0.7 else 3)
+            quality=features.get("industry_overheat_concentration_quality")
+            if quality is not None:
+                components["overheat_crowding_quality"]=round(3*quality,6)
         available=sum(WEIGHTS[k] for k,v in components.items()
                       if v is not None)
         points=sum(v for v in components.values() if v is not None)
@@ -153,13 +155,14 @@ def preview(sectors, *, asof, min_sectors=MIN_SECTORS):
             "provisional_missing_weight":15-available,
             "sector_member_roster_pit_verified":False,
             "all_sector_historical_constituents_verified":False,
-            "standalone_hypothesis_unapproved":True,
+            "industry_5433_weights_user_approved":True,
+            "research_scoring_not_yet_provider_certified":True,
             "stock_buy_signal":False,
             "investment_grade_industry15_score":None,
         })
     return {
         "schema":SCHEMA,"asof":asof,
-        "proposed_industry15_weights":dict(WEIGHTS),
+        "approved_industry15_weights":dict(WEIGHTS),
         "min_sectors_per_market":min_sectors,
         "input_sector_snapshots":len(accepted),
         "research_only_sectors":output,

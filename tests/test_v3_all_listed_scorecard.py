@@ -59,37 +59,27 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(report["score_state"],
             "provisional_observed_only_not_investment_grade")
 
-    def test_five_pillar_is_exact_85_without_industry_inflation(self):
+    def test_user_approved_six_area_100_with_industry5433(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         rows,summary=m.generate(market,catalog,history,parts,weekly,cash,fcf)
-        opt=summary["five_area_optional_comparison"]
-        self.assertEqual(opt["score_maximum"],85)
-        self.assertEqual(sum(opt["weights"].values()),85)
-        self.assertNotIn("industry",opt["weights"])
-        self.assertTrue(opt["formal_six_area_v3_100_unchanged"])
-        self.assertTrue(opt["choice_pending_user_decision"])
-        self.assertEqual(opt["certified_investment_scores"],0)
-        self.assertEqual(opt["fully_observed_five_area_issuer_count"],0)
-        self.assertFalse(any(r["factors"]["industry"][1] for r in rows))
-        for r in rows:
-            expected=sum(r["factors"][k][1] for k in m.FIVE_AREAS)
-            self.assertEqual(r["five_area_available"],expected)
-            self.assertEqual(r["five_area_missing"],85-expected)
-            self.assertTrue(0<=expected<=85)
-            self.assertEqual(r["five_area_85_points"],r["earned"])
-            self.assertFalse(r["five_area_complete_unverified"])
-        generated=list(csv.DictReader(StringIO(m.to_csv(
+        self.assertEqual(sum(m.WEIGHTS.values()),100)
+        self.assertEqual(summary["industry_approved_subweights"],{
+            "early_rotation":5,"profit_transition":4,
+            "improvement_diffusion":3,"overheat_crowding_quality":3})
+        self.assertEqual(sum(summary["industry_approved_subweights"].values()),15)
+        self.assertNotIn("five_area_optional_comparison",summary)
+        self.assertFalse(any(row["factors"]["industry"][1] for row in rows))
+        self.assertEqual(len(rows),2497)
+        for row in rows:
+            self.assertEqual(row["available"]+row["unavailable"],100)
+        csv_data=list(csv.DictReader(StringIO(m.to_csv(
             rows,summary).lstrip("\ufeff"))))
-        self.assertEqual(len(generated),summary["listed_total"])
-        for got,source in zip(generated,rows):
-            self.assertEqual(got["5영역_실제산출배점_85점중"],
-                             str(source["five_area_available"]))
-            self.assertEqual(got["5영역_미확보배점_85점중"],
-                             str(source["five_area_missing"]))
-            self.assertEqual(got["5영역_산업제외_잠정점수_85점중"],
-                             got["V3잠정합계"])
-            self.assertEqual(got["산업_정성분류_점수없음"],
-                             source["industry_label_unverified"] or "")
+        self.assertEqual(len(csv_data),len(rows))
+        self.assertNotIn("5영역_산업제외_잠정점수_85점중",csv_data[0])
+        for got,row in zip(csv_data,rows):
+            self.assertEqual(got["산업_분류_참고용"],
+                             row["industry_label_unverified"] or "")
+            self.assertEqual(got["산업_잠정점수"],"")
             self.assertEqual(got["정식투자점수"],"")
 
     def test_fcf_only_when_exact_recomputed_source_matches(self):

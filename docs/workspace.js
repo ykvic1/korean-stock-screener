@@ -4,6 +4,10 @@
 const VERSION='v3-unified-research-workspace-0.2-ias20-visibility';
 const WEIGHTS=Object.freeze({ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
 const PILLARS=Object.freeze([['ias','IAS·수급'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['industry','산업·섹터'],['momentum','모멘텀']]);
+const INDUSTRY_COMPONENTS=Object.freeze([
+ ['초기 순환매 신호',5],['업황 바닥 통과·실적 개선',4],
+ ['개선기업 확산',3],['과열·쏠림 위험관리',3]
+]);
 const IAS_COMPONENTS=Object.freeze([
  ['장기 보유 변화',20],['20·60·120·250일 누적 순매수',25],
  ['매수 지속성',15],['외국인·연기금 동반 매수',10],
@@ -237,16 +241,11 @@ function researchComposite(r){
   observedPillars:pillars.filter(p=>p.available>0).length,
   complete:available===100,provisional:true,pillars};
 }
-function fiveAreaResearchView(r){
- // Optional framework study: 85 raw points, industry outside numeric model.
- // No inflation for missing observations or redistribution of 15 points.
- const chosen=pillarState(r).filter(p=>p.key!=='industry');
- const available=chosen.reduce((v,p)=>v+p.available,0);
- const earned=chosen.reduce((v,p)=>v+(p.candidate??0),0);
- return {earned:available?Math.round(earned*10000)/10000:null,
-   available,missing:85-available,maximum:85,
-   complete:chosen.every(p=>p.available===p.max),
-   approved:false,certified:false};
+function industryParts(){
+ return '<div class="u-pillars">'+INDUSTRY_COMPONENTS.map(([name,max])=>
+  '<div class="u-pillar u-factor-unverified"><span>'+esc(name)+
+  ' <small>/'+max+'</small></span><b>— · 원천 미검증</b></div>').join('')+
+  '</div>';
 }
 function riskState(x,core){
  const r=x.r;
@@ -602,7 +601,7 @@ function summary(model,core){
   officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,fiveAreaResearchView,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,INDUSTRY_COMPONENTS,industryParts,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -631,8 +630,7 @@ function renderDetails(x){
  const risk=x.risk;
  const quant=sampleQuant(x,core);
  const composite=researchComposite(r);
- const five=fiveAreaResearchView(r);
- const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+
+  const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+
   ' <small>/'+i.max+'</small></span><b>'+
   (i.candidate===null?'— · 자료 미확보':i.candidate.toFixed(1)+'점')+
   '<em class="u-factor-mark">'+(i.candidate===null?'미산출 · 미검증':
@@ -665,11 +663,10 @@ function renderDetails(x){
  (composite.earned===null?'자료 미확보':composite.earned.toFixed(1)+' / 100')+
  ' · 미검증</b> · 산출 가능 '+composite.available+'/100 · 미확보 '+
  composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
- '<p class="u-muted">산업 제외 5영역 비교안 (채택 전): '+
- (five.earned===null?'자료 미확보':five.earned.toFixed(1)+' / 85')+
- ' · 산출 가능 '+five.available+'/85 · 미확보 '+five.missing+
- '/85. 100점 환산·재배분 없음. 산업은 정성 검토만 합니다.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
+ '<h3>산업 15점 내부 배점 (승인 5·4·3·3)</h3>'+
+ industryParts()+
+ '<p class="u-muted">산업의 과열·쏠림 관리는 산업 15점 내부의 3점으로만 반영합니다. 다른 영역의 점수에 중복 감점을 적용하지 않습니다. 현재 업종별 실제 이력 미확보 항목은 미검증입니다.</p>'+
  '<h3>IAS(수급) /20 · 내부 100점 평가구조</h3>'+
  '<p class="u-muted">'+esc(iasStatus(pillars.find(p=>p.key==='ias')))+'</p>'+
  iasParts()+
@@ -778,7 +775,7 @@ function present(data){
   '종목. 실시간 투자등급이 아닌 관측 기준일별 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
   '4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
-  '종목 (재무 15점 확정 아님). 산업 15점은 근거 없이 부여하지 않으며 5영역 85점 비교안은 아직 미채택입니다. 주간 순환 연구는 기존 원천 자료 재계산입니다.'+
+  '종목 (재무 15점 확정 아님). 산업 15점 배점은 5·4·3·3으로 확정했으며 실제 업종 원천이 확보되기 전까지 미검증으로 남습니다. 주간 순환 연구는 기존 원천 자료 재계산입니다.'+
   weeklyCoverageText(weeklyCoverage,model.date)+
   realSourceCoverageText(realSavedCoverage,model.date)+
   actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);

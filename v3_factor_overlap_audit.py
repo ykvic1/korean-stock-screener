@@ -22,7 +22,7 @@ SUSPECTED_PAIRS = (
     ("ias_obv_change_60_pct", "technical_volume_breakout_ratio", "volume_related"),
     ("ias_unreflected_price_60_pct", "momentum_stock_relative_strength_60_pct", "price_factor_overlap"),
     ("momentum_stock_relative_strength_20_pct", "momentum_stock_relative_strength_60_pct", "nested_momentum"),
-    ("industry_relative_strength_60_pct", "momentum_stock_relative_strength_60_pct", "industry_stock_relative"),
+    ("industry_early_rotation_signal", "momentum_stock_relative_strength_60_pct", "industry_stock_relative"),
     ("financial_fcf_assets_3y_pct", "valuation_fcf_yield_pct", "fcf_numerator_related"),
 )
 MIN_PAIRS = 30

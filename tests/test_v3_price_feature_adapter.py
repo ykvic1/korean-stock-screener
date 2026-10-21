@@ -48,7 +48,8 @@ class TechnicalOHLCVTests(unittest.TestCase):
         self.assertGreater(f["technical_volume_breakout_ratio"], 1)
         self.assertGreater(f["momentum_stock_relative_strength_20_pct"], 0)
         self.assertGreater(f["momentum_stock_relative_strength_60_pct"], 0)
-        self.assertGreater(f["industry_relative_strength_60_pct"], 0)
+        self.assertGreaterEqual(f["industry_early_rotation_signal"], 0)
+        self.assertLessEqual(f["industry_early_rotation_signal"], 1)
         self.assertEqual(f["momentum_positive_days_20_ratio"], 1)
         self.assertIn("technical_weekly_ma120_reclaim_strength", r["available_features"])
         self.assertIn("technical_weekly_rsi_divergence_strength", r["available_features"])
@@ -96,10 +97,10 @@ class TechnicalOHLCVTests(unittest.TestCase):
         result = calculate(bars, market, industry)
         self.assertIsNone(result["features"]["momentum_stock_relative_strength_60_pct"])
         self.assertIsNotNone(result["features"]["momentum_stock_relative_strength_20_pct"])
-        self.assertIsNone(result["features"]["industry_relative_strength_60_pct"])
+        self.assertIsNone(result["features"]["industry_early_rotation_signal"])
         no_benchmark = calculate(bars)
         self.assertIsNone(no_benchmark["features"]["momentum_stock_relative_strength_20_pct"])
-        self.assertIsNone(no_benchmark["features"]["industry_relative_strength_60_pct"])
+        self.assertIsNone(no_benchmark["features"]["industry_early_rotation_signal"])
         self.assertIsNotNone(no_benchmark["features"]["momentum_positive_days_20_ratio"])
 
     def test_obv_is_volume_normalized_not_unstable_percent_change_of_obv_baseline(self):
