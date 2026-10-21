@@ -23,8 +23,11 @@ assert.ok(html.includes('id="industryResearch"'));
 assert.ok(entry.includes('id="industryResearch"'),
  'root index must include data panel or JS load would crash on missing element');
 assert.ok(source.includes("'v3-dart-industry-earnings-sample.json'"));
+const dayBeforeIndustry=new Date(officialIndustrySample.asof+'T00:00:00Z');
+dayBeforeIndustry.setUTCDate(dayBeforeIndustry.getUTCDate()-1);
 assert.equal(unified.industryEvidenceView(
- officialIndustrySample,'2026-10-21'),null);
+ officialIndustrySample,dayBeforeIndustry.toISOString().slice(0,10)),null,
+ 'industry evidence must reject different source dates, not the actual live asof');
 assert.equal(unified.industryEvidenceView(
  {...officialIndustrySample,sector_15_points_earned_issuer_count:1},
  officialIndustrySample.asof),null);

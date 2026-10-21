@@ -4,6 +4,8 @@ Only independent current-close price evidence is always replayed:
 volume/OBV <=16/20, technical <=25/25, momentum <=8/10.
 When independently verified current-close DART filing evidence EXISTS, its
 derived financial <=8/15 and simple valuation <=10/15 are also displayed.
+Independently saved, receipt-matched FY2023-25 DART CF/CAPEX can contribute an
+additional financial <=4 and valuation <=5 when all same-day source joins pass.
 Stale, conflicting or uncertified filings NEVER become new-day points. Industry
 remains EMPTY; no 100-point rescaling or official investment certification.
 """
@@ -20,8 +22,10 @@ from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points
 from v3_dart_bulk_history import _stable_digest, research_parts, BulkHistoryError
 from v3_real_six_pillar_coverage_audit import _canonical_hash
+from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
+from v3_dart_cashflow_enrichment import CashflowError, fingerprint
 
-SCHEMA="v3-current-day-all-listed-observed-plus-same-date-dart-0.2"
+SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":15,
               "valuation":15,"industry":15,"momentum":10}
 
@@ -79,7 +83,50 @@ def finance_source(catalog,history,parts,annual,audit):
     return rows
 
 
-def generate(market,catalog,volume,price,financial=None):
+def cashflow_source(market,catalog,history,cash,stored_preview):
+    """Recompute only true same-company, same-scope, same-receipt DART FCF.
+
+    A saved preview from before later legitimate major-account additions may
+    be stale; only its SOURCE fingerprints may differ. A changed row with the
+    exact same source fingerprints is an invalid claim, never accepted.
+    """
+    if type(cash) is not dict or type(stored_preview) is not dict:
+        return None
+    day=catalog["date"]
+    if (cash.get("asof")!=day or stored_preview.get("asof")!=day
+        or history.get("asof")!=day):
+        return None
+    if (cash.get("historical_PIT_certified") is not False or
+        cash.get("raw_dart_rows_published") is not False or
+        cash.get("official_six_pillar_100pt_certified") is not False or
+        cash.get("three_year_fcf_financial15_certified") is not False or
+        cash.get("current_year_fcf_valuation15_certified") is not False or
+        cash.get("cashflow_accounting_consolidated_with_major_source") is not False or
+        stored_preview.get("hist_PIT_verified") is not False or
+        stored_preview.get("six_pillar_confirmed_100pt") is not None or
+        stored_preview.get("raw_source_rows_stored") is not False or
+        stored_preview.get("source_same_filing_scope_receipt_checked") is not True or
+        stored_preview.get("buy_recommendations_authorized") is not False or
+        stored_preview.get("joined_to_main_v3_ranking") is not False or
+        stored_preview.get("four_year_financial15_complete") is not False or
+        stored_preview.get("valuation15_complete") is not False):
+        raise LivePartialScorecardError("untrusted_fcf_source_claim")
+    try:
+        expected=score_preview(market,catalog,history,cash,minimum_peers=30)
+    except (CashflowError,FCFPreviewError,ValueError,KeyError,TypeError):
+        return None
+    if (stored_preview.get("market_catalog_sha256")==fingerprint(catalog) and
+        stored_preview.get("cashflow_snapshot_sha256")==fingerprint(cash) and
+        stored_preview.get("major_history_sha256")==fingerprint(history) and
+        stored_preview!=expected):
+        raise LivePartialScorecardError("matched_fcf_preview_rows_changed_without_source")
+    rows={r["code"]:r for r in expected["rows"]}
+    if len(rows)!=len(expected["rows"]):
+        raise LivePartialScorecardError("duplicate_fcf_source_issuer")
+    return rows,expected
+
+
+def generate(market,catalog,volume,price,financial=None,cashflow=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
     true_volume=volume_build(market,catalog)
     true_price=price_build(market,catalog)
@@ -92,6 +139,7 @@ def generate(market,catalog,volume,price,financial=None):
     output=[]
     counts={"volume":0,"technical":0,"momentum":0,
             "financial":0,"valuation":0}
+    fcf_counts={"financial4":0,"valuation5":0}
     nonblank=0
     for listed in sorted(catalog["rows"],key=lambda r:r["code"]):
         code=listed["code"]
@@ -140,12 +188,41 @@ def generate(market,catalog,volume,price,financial=None):
                 available=fiscal.get(group+"_available_max")
                 values[group],coverage[group]=_contribution(
                     points,available,POINT_BUDGET[group])
+        fcf_earned={"financial4":None,"valuation5":None}
+        if cashflow is not None and code in cashflow:
+            entry=cashflow[code]
+            if (entry.get("code")!=code or entry.get("market")!=listed["market"] or
+                entry.get("asof")!=asof or
+                entry.get("strict_receipt_scope_matched") is not True or
+                entry.get("historical_PIT_certified") is not False or
+                entry.get("scoring_certified") is not False):
+                raise LivePartialScorecardError("fcf_join_issuer_or_claim_mismatch")
+            for group,field,maximum,key in (
+                ("financial","financial_fcf_assets",4,"financial4"),
+                ("valuation","valuation_fcf_yield",5,"valuation5")):
+                extra=entry.get(field+"_candidate_points")
+                weight=entry.get(field+"_available_max")
+                if (type(weight) is not int or weight not in (0,maximum)
+                    or (weight==0 and extra is not None)
+                    or (weight==maximum and
+                        (type(extra) not in (float,int) or
+                         not 0<=extra<=maximum))):
+                    raise LivePartialScorecardError("invented_or_invalid_fcf_component")
+                if weight:
+                    base,base_weight=values[group],coverage[group]
+                    if base_weight+weight>POINT_BUDGET[group]:
+                        raise LivePartialScorecardError("fcf_double_count_or_weight_overflow")
+                    values[group],coverage[group]=_contribution(
+                        (base or 0)+extra,base_weight+weight,POINT_BUDGET[group])
+                    fcf_earned[key]=extra
+                    fcf_counts[key]+=1
         for area in counts:
             if coverage[area]>0:
                 counts[area]+=1
         available=sum(coverage.values())
         earned=sum(v for v in values.values() if v is not None)
-        if not 0<=earned<=available<=(67 if financial is not None else 49):
+        if not 0<=earned<=available<=(76 if cashflow is not None else
+                                   67 if financial is not None else 49):
             raise LivePartialScorecardError("invented_current_day_score")
         if available:
             nonblank+=1
@@ -154,6 +231,7 @@ def generate(market,catalog,volume,price,financial=None):
             "asof":asof,"earned":round(earned,4) if available else None,
             "available":available,"unavailable":100-available,
             "factors":values,"factor_available":coverage,
+            "fcf_subpoints":fcf_earned,
             "official_score":None,"certified":False,
         })
     if (len(output)!=catalog["listed_total"]
@@ -166,7 +244,12 @@ def generate(market,catalog,volume,price,financial=None):
         "observed_any_factor_issuers":nonblank,
         "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
-        "highest_currently_observable_weight":67 if financial is not None else 49,
+        "highest_currently_observable_weight":(
+            76 if cashflow is not None else 67 if financial is not None else 49),
+        "fcf_observed_issuer_counts":fcf_counts,
+        "fcf_reference_join_status":(
+            "same_fiscal_year_scope_receipt_replayed" if cashflow is not None
+            else "unavailable_or_not_same_source_day"),
         "fiscal_reference_join_status":(
             "same_day_saved_receipts_replayed" if financial is not None
             else "not_ready_or_unverified_annual_source"),
@@ -193,7 +276,9 @@ def to_csv(rows,summary):
         "재무_잠정점수","밸류에이션_잠정점수","산업_잠정점수",
         "모멘텀_잠정점수","모멘텀_산출배점",
         "관측잠정합계_100점중","산출가능배점_100점중",
-        "미확보배점_100점중","정식투자점수","투자등급"])
+        "미확보배점_100점중","정식투자점수","투자등급",
+        "재무_산출배점","가치_산출배점",
+        "FCF자산3년_잠정점수","FCF수익률_잠정점수"])
     for row in rows:
         v=row["factors"]
         a=row["factor_available"]
@@ -205,7 +290,12 @@ def to_csv(rows,summary):
             "" if v["valuation"] is None else v["valuation"],"",
             "" if v["momentum"] is None else v["momentum"],a["momentum"] or "",
             "" if row["earned"] is None else row["earned"],
-            row["available"] or "",row["unavailable"],"","미검증 연구용"
+            row["available"] or "",row["unavailable"],"","미검증 연구용",
+            a["financial"] or "",a["valuation"] or "",
+            "" if row["fcf_subpoints"]["financial4"] is None
+                else row["fcf_subpoints"]["financial4"],
+            "" if row["fcf_subpoints"]["valuation5"] is None
+                else row["fcf_subpoints"]["valuation5"]
         ])
     return "\ufeff"+sink.getvalue()
 
@@ -227,11 +317,22 @@ def main(argv=None):
             read("v3-real-source-six-area-coverage.json"))
     except (OSError,ValueError,KeyError):
         financial=None
+    market=read("data.json")
+    cashflow=None
+    if financial is not None:
+        try:
+            candidate=cashflow_source(
+                market,catalog,read("v3-dart-bulk-history.json"),
+                read("v3-dart-cashflow-reference.json"),
+                read("v3-dart-fcf-research-preview.json"))
+            if candidate is not None:
+                cashflow,_=candidate
+        except (OSError,ValueError,KeyError):
+            cashflow=None
     rows,summary=generate(
-        read("data.json"),catalog,
-        read("v3-volume-obv-observed.json"),
+        market,catalog,read("v3-volume-obv-observed.json"),
         read("v3-current-price-technical-momentum.json"),
-        financial=financial)
+        financial=financial,cashflow=cashflow)
     new_csv=to_csv(rows,summary)
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"
@@ -250,7 +351,8 @@ def main(argv=None):
         "listed":summary["listed_total"],
         "observed":summary["observed_any_factor_issuers"],
         "by_area":summary["observed_issuer_counts"],
-        "available_points_ceiling":summary["highest_currently_observable_weight"],"certified_100point":0,
+        "available_points_ceiling":summary["highest_currently_observable_weight"],
+        "receipt_matched_fcf_issuer_counts":summary["fcf_observed_issuer_counts"],"certified_100point":0,
     },sort_keys=True))
 
 
