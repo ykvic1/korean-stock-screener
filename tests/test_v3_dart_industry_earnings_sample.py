@@ -74,6 +74,22 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
                     self.assertIsNone(item[
                         "sample_aggregate_operating_profit_growth_pct"])
 
+    def test_every_source_ingest_refreshes_official_earnings_pair_evidence(self):
+        workflow=(DOCS.parent/".github"/"workflows"/
+                  "v3-dart-industry-codes.yml").read_text(encoding="utf8")
+        self.assertIn("cron: '6,21,36,51 * * * *'",workflow)
+        self.assertIn("python v3_dart_industry_earnings_sample.py --mode write",
+                      workflow)
+        self.assertIn("python v3_dart_industry_earnings_sample.py --mode verify",
+                      workflow)
+        self.assertGreaterEqual(workflow.count(
+            "git add docs/v3-dart-industry-classification.json docs/v3-dart-industry-earnings-sample.json"),2)
+        self.assertLess(workflow.index(
+            "python v3_dart_industry_codes.py --mode rebind"),
+            workflow.rindex(
+                "python v3_dart_industry_earnings_sample.py --mode write"))
+        self.assertIn("cancel-in-progress: false",workflow)
+
     def test_deceptive_industry_industry15_flag_rejected(self):
         fake=copy.deepcopy(self.codes)
         fake["industry_5433_points_authorized"]=True
