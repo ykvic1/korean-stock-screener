@@ -236,7 +236,10 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         bad["buy_recommendations_authorized"]=True
         with self.assertRaises(LivePartialScorecardError):
             cashflow_source(market,catalog,history,cash,bad)
-        bad=copy.deepcopy(preview)
+        # Use the fully recomputed CURRENT receipt-matched source. The
+        # previously saved preview may legitimately predate unrelated new
+        # major-company receipts and has different valid source hashes.
+        bad=copy.deepcopy(source)
         if bad["rows"]:
             bad["rows"][0]["financial_fcf_assets_candidate_points"]=99
             with self.assertRaises(LivePartialScorecardError):
