@@ -1,17 +1,18 @@
 /* Unified single-surface Korean-stock research. Source-aware, no fabricated V3 totals. */
 (function(root){
 'use strict';
-const VERSION='v3-unified-research-workspace-0.2-ias20-visibility';
-const WEIGHTS=Object.freeze({ias:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
-const PILLARS=Object.freeze([['ias','IAS·수급'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['industry','산업·섹터'],['momentum','모멘텀']]);
+const VERSION='v3-unified-research-workspace-0.3-real-volume-20';
+const WEIGHTS=Object.freeze({volume:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['industry','산업·섹터'],['momentum','모멘텀']]);
 const INDUSTRY_COMPONENTS=Object.freeze([
  ['초기 순환매 신호',5],['업황 바닥 통과·실적 개선',4],
  ['개선기업 확산',3],['과열·쏠림 위험관리',3]
 ]);
-const IAS_COMPONENTS=Object.freeze([
- ['장기 보유 변화',20],['20·60·120·250일 누적 순매수',25],
- ['매수 지속성',15],['외국인·연기금 동반 매수',10],
- ['OBV·거래량',15],['주가 미반영 정도',15]
+const VOLUME_COMPONENTS=Object.freeze([
+ ['최근20일/이전40일 거래량',6,'sustained_volume'],
+ ['60거래일 OBV 방향',6,'obv_60_direction'],
+ ['OBV 상승 대비 주가 미반영',4,'obv_price_not_reflected'],
+ ['거래량 급증 후 매물 소화',4,'post_spike_absorption']
 ]);
 const finite=x=>typeof x==='number'&&Number.isFinite(x);
 const esc=x=>String(x===null||x===undefined?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
@@ -157,6 +158,71 @@ function momentumEvidence(r){
     Math.abs(total-z.momentum_research_candidate)>0.001)return null;
  return {earned:Math.round(total*10000)/10000,available};
 }
+// Validate real same-session price-volume research, NOT foreign/institutional
+// net buying. No source-derived candidate exists for the remaining 4 points.
+function observedVolumeEvidence(r){
+ const v=r?.v3_volume_observed;
+ if(!v||v.asof!==r.price_date||v.market!==r.market||
+   !validDate(v.asof)||v.observed_available_max!==16||
+   v.unobserved_max!==4||v.source_history_adjusted_verified!==false||
+   v.source_exchange_regular_only_verified!==false||
+   v.foreign_institutional_net_buy_inferred!==false||
+   v.investable_score_certified!==false||
+   v.trading_signal_authorized!==false||
+   !Array.isArray(v.risk_flags)||v.risk_flags.some(x=>typeof x!=='string')||
+   !v.subpoints||typeof v.subpoints!=='object')return null;
+ const z=v.subpoints;
+ if(z.post_spike_absorption!==null ||
+   !finite(z.sustained_volume)||!finite(z.obv_60_direction)||
+   !finite(z.obv_price_not_reflected)||
+   z.sustained_volume<0||z.sustained_volume>6||
+   z.obv_60_direction<0||z.obv_60_direction>6||
+   z.obv_price_not_reflected<0||z.obv_price_not_reflected>4||
+   !finite(v.observed_points)||
+   Math.abs(v.observed_points-(z.sustained_volume+
+      z.obv_60_direction+z.obv_price_not_reflected))>0.000001)return null;
+ return {earned:v.observed_points,available:16,fullyObserved:false};
+}
+function applyObservedVolume(model,source){
+ if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
+   !Number.isInteger(model.marketEligible)||model.marketEligible<1||
+   !source||source.schema!=='v3-current-market-volume-obv-provisional-research-0.1'||
+   source.asof!==model.date||source.listed_total!==model.marketEligible||
+   source.points_budget!==20||
+   source.available_point_budget_per_observed_issuer!==16||
+   source.not_observed_absorption_max!==4||
+   source.ias_investor_flow_component_used!==false||
+   source.technical_one_day_volume_not_double_counted!==true||
+   source.source_raw_ohlcv_published!==false||
+   source.corporate_actions_adjusted!==false||
+   source.official_foreign_institutional_flow_verified!==false||
+   source.historical_PIT_certified!==false||
+   source.certified_100_point_investment_scores!==0||
+   source.research_only!==true||
+   !source.records||typeof source.records!=='object'||Array.isArray(source.records)||
+   !Number.isInteger(source.price_source_issuers)||
+   source.price_source_issuers!==model.rows.length||
+   !Number.isInteger(source.observed_volume_candidate_issuers)||
+   !Number.isInteger(source.insufficient_or_unpriced_issuers)||
+   source.insufficient_or_unpriced_issuers+
+    source.observed_volume_candidate_issuers!==source.listed_total||
+   !/^[a-f0-9]{64}$/.test(source.source_market_sha256||'')||
+   !/^[a-f0-9]{64}$/.test(source.source_catalog_sha256||''))
+   return 0;
+ const list=new Map(model.rows.map(x=>[x.r.code,x.r]));
+ if(list.size!==model.rows.length)return 0;
+ const accepted=[];
+ for(const [code,rec] of Object.entries(source.records)){
+  const r=list.get(code);
+  if(!TODAY_CODE.test(code)||!r||!rec||typeof rec!=='object'||
+     r.price_date!==model.date||
+     observedVolumeEvidence({...r,v3_volume_observed:rec})===null)return 0;
+  accepted.push([r,rec]);
+ }
+ if(accepted.length!==source.observed_volume_candidate_issuers)return 0;
+ for(const [r,rec] of accepted)r.v3_volume_observed=rec;
+ return accepted.length;
+}
 function pillarState(r){
  const z=r?.v3_pattern_integrated;
  const tech=technicalEvidence(r);
@@ -185,7 +251,11 @@ function pillarState(r){
  return PILLARS.map(([key,label])=>{
   const maximum=WEIGHTS[key];
   let candidate=null,available=0;
-  if(key==='technical'&&tech){candidate=tech.earned;available=tech.available;}
+  if(key==='volume'){
+   const v=observedVolumeEvidence(r);
+   if(v){candidate=v.earned;available=v.available;}
+  }
+  else if(key==='technical'&&tech){candidate=tech.earned;available=tech.available;}
   else if(key==='momentum'&&momentum){
    candidate=momentum.earned;available=momentum.available;
   }
@@ -221,7 +291,7 @@ function pillarState(r){
     }
    }
   }
-  else if(key!=='technical'&&key!=='momentum'&&supplied&&matchingMaxima){
+  else if(key!=='volume'&&key!=='technical'&&key!=='momentum'&&supplied&&matchingMaxima){
    const value=supplied[key];
    // Independently supplied V3 research candidates only; never legacy factors.
    if(finite(value)&&value>=0&&value<=maximum){
@@ -317,17 +387,22 @@ function sampleQuant(x,core){
  if(!x.q)return '동일 기준일 퀀트 연구 없음';
  return core.quantGlance(x.q);
 }
-function iasStatus(pillar){
- if(!pillar||pillar.key!=='ias'||pillar.max!==WEIGHTS.ias)return 'IAS 상태 확인 불가';
+function volumeStatus(pillar){
+ if(!pillar||pillar.key!=='volume'||pillar.max!==WEIGHTS.volume)
+  return '거래량·OBV 기준 확인 불가';
  return pillar.candidate===null
-   ?'IAS 수급 20점: 외국인·기관·연기금의 종목별 정규장 20·60·120·250일 원장과 정체성·기간 검증이 부족하여 점수를 산출하지 않습니다. 결측은 0점이 아닙니다.'
-   :'IAS 수급 20점: 연구용 잠정값이며 공식 정규장 수급·연기금 포함관계·기간 검증 전에는 투자판단 점수가 아닙니다.';
+  ?'거래량·OBV 실제 파생자료가 미확보입니다. 데이터 결측은 0점이 아닙니다.'
+  :'가격·거래량 관측으로 20점 중 '+pillar.available+'점 배점만 산출했습니다. 외국인·기관 매수 주체는 확인할 수 없으며, 매집 증거 또는 매수 신호가 아닙니다.';
 }
-function iasParts(){
- return '<div class="u-parts u-ias-parts" aria-label="IAS 내부 100점 배점·데이터 검증상태">'+
-  IAS_COMPONENTS.map(([label,max])=>
+function volumeParts(r){
+ const v=observedVolumeEvidence(r);
+ const parts=v?r.v3_volume_observed.subpoints:{};
+ return '<div class="u-parts u-volume-parts" aria-label="거래량·OBV 20점 관측 근거">'+
+  VOLUME_COMPONENTS.map(([label,max,key])=>
    '<div class="u-factor-unverified"><span>'+esc(label)+'</span>'+
-   '<b>— / '+max+' <em class="u-factor-mark">미검증</em></b></div>').join('')+'</div>';
+   '<b>'+(v&&finite(parts[key])?parts[key].toFixed(1):'—')+' / '+max+
+   ' <em class="u-factor-mark">'+(v&&finite(parts[key])?'잠정':'미확보')+
+   '</em></b></div>').join('')+'</div>';
 }
 function technicalParts(r){
  const evidence=technicalEvidence(r),source=r?.v3_pattern_integrated?.technical_parts;
@@ -374,7 +449,7 @@ function weeklyCoverageText(report, marketDate){
  const validSix=six&&keys.every(k=>Number.isInteger(six[k])&&six[k]>=0&&
    six[k]<=report.processed_this_cycle);
  const sixText=validSix?
-  ' · 6영역 참고관측(확정점수 아님): 수급 '+six.ias+
+  ' · 6영역 참고관측(확정점수 아님): 공식 투자자별 수급 '+six.ias+
   ' / 기술 '+six.technical+' / 4년재무 '+six.financial+
   ' / PBR추정 '+six.valuation+' / 업종명 '+six.industry+
   ' / 모멘텀 '+six.momentum:'';
@@ -401,7 +476,7 @@ function realSourceCoverageText(report,marketDate){
     report.four_numerical_areas_same_date_overlap_count<0||
     report.four_numerical_areas_same_date_overlap_count>
       Math.min(n.technical,n.financial,n.valuation,n.momentum))return '';
- return ' · 출처기준 6영역 계산가능 연구점수 (확정점수 아님): 수급 '+n.ias+
+ return ' · 출처기준 6영역 계산가능 연구점수 (확정점수 아님): 공식 투자자별 수급 '+n.ias+
    ' / 기술 '+n.technical+' / 재무 '+n.financial+
    ' / 가치 '+n.valuation+' / 산업 '+n.industry+
    ' / 모멘텀 '+n.momentum+'종목'+
@@ -685,7 +760,7 @@ function industryEvidenceView(raw,asof){
  return {html,rows,coverage:raw.dart_current_industry_codes_observed,
          matched:raw.mapped_industry_issuer_earnings_two_year_matched};
 }
-const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,INDUSTRY_COMPONENTS,industryParts,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -752,10 +827,10 @@ function renderDetails(x){
  '<h3>산업 15점 내부 배점 (승인 5·4·3·3)</h3>'+
  industryParts()+
  '<p class="u-muted">산업의 과열·쏠림 관리는 산업 15점 내부의 3점으로만 반영합니다. 다른 영역의 점수에 중복 감점을 적용하지 않습니다. 현재 업종별 실제 이력 미확보 항목은 미검증입니다.</p>'+
- '<h3>IAS(수급) /20 · 내부 100점 평가구조</h3>'+
- '<p class="u-muted">'+esc(iasStatus(pillars.find(p=>p.key==='ias')))+'</p>'+
- iasParts()+
- '<p class="u-muted">IAS 내부 배점 100점은 전체 V3의 20점 영역으로 환산합니다. 종목별 공식 수급 원장과 기업행사 보정이 검증되지 않아 이전 v2.2 수급 추정점수를 IAS 숫자로 대신 표시하지 않습니다.</p>'+
+ '<h3>거래량·OBV /20 · 실제 자료 관측</h3>'+
+ '<p class="u-muted">'+esc(volumeStatus(pillars.find(p=>p.key==='volume')))+'</p>'+
+ volumeParts(r)+
+ '<p class="u-muted">저장된 20일 거래량 비율·60일 OBV 방향·주가 미반영 16점까지만 산출합니다. 4점 매물 소화는 미확보이며 기존 기술25의 당일 거래량 점수와 중복하지 않습니다. 정규장 원자료·기업행사는 미검증입니다.</p>'+
  '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
  technicalParts(r)+
  '<h3>재무 · 밸류 참고</h3>'+
@@ -816,9 +891,9 @@ function draw(){
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
    x.composite.available+'/100</small></span></div>'+
    '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
-     '<span class="u-factor-unverified"'+(i.key==='ias'?' data-pillar="ias"':'')+'><small>'+esc(i.label)+' /'+i.max+
+     '<span class="u-factor-unverified"'+(i.key==='volume'?' data-pillar="volume"':'')+'><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
-     '</b><em class="u-factor-mark">'+(i.available===0?(i.key==='ias'?'IAS 원장 미검증':'자료없음 · 미검증'):
+     '</b><em class="u-factor-mark">'+(i.available===0?(i.key==='volume'?'거래량 근거 미확보':'자료없음 · 미검증'):
       '미검증')+'</em></span>').join('')+
      '<span class="u-factor-unverified u-total-factor"><small>잠정 합계 /100</small><b>'+
      (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
@@ -857,7 +932,9 @@ function present(data){
   '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
-  '종목. 실시간 투자등급이 아닌 관측 기준일별 미검증 점수입니다. '+
+  '종목. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
+    observedVolumeEvidence(x.r)!==null).length+
+  '종목 / 관측가능 16점·미확보 4점입니다. 실시간 투자등급이 아닌 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
   '4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
   '종목 (재무 15점 확정 아님). 산업 15점 배점은 5·4·3·3으로 확정했으며 실제 업종 원천이 확보되기 전까지 미검증으로 남습니다. 주간 순환 연구는 기존 원천 자료 재계산입니다.'+
@@ -873,7 +950,7 @@ async function load(){
   'v3-weekly-rotation.json','v3-dart-four-year-reference.json',
   'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json',
   'v3-dart-fcf-research-preview.json',
-  'v3-dart-industry-earnings-sample.json'];
+  'v3-dart-industry-earnings-sample.json','v3-volume-obv-observed.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -888,6 +965,7 @@ async function load(){
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
   applyActualCashflowPreview(model,actualCashflowCoverage);
+  const volumeAccepted=applyObservedVolume(model,responses[13]);
   const industry=industryEvidenceView(responses[12],model.date);
   $('industryResearchContent').innerHTML=industry?industry.html:
     '<p class="u-muted">업종별 실제 실적 표본은 원천 날짜 또는 진위 검증 대기 중입니다. 산업점수를 임의로 표시하지 않습니다.</p>';
