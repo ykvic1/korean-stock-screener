@@ -59,6 +59,8 @@ jobs:
           python -m py_compile v3_dart_bulk_history.py v3_real_six_pillar_coverage_audit.py
           python -m unittest discover -s tests -p 'test_v3_dart_bulk_history.py' -v
           python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
+          python -m unittest discover -s tests -p 'test_v3_real_source_progress_ledger.py' -v
+          python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
       - name: Resolve one legitimate close-date census and preflight DART book
         run: |
           set -euo pipefail
@@ -95,12 +97,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           python v3_real_six_pillar_coverage_audit.py --mode write
-          git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json docs/v3-real-source-six-area-coverage.json
+          python v3_real_source_progress_ledger.py --mode write
+          git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json docs/v3-real-source-six-area-coverage.json docs/v3-real-source-six-area-progress.json
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official 100-company annual 4-year DART batch (derived source)"
             git pull --rebase origin main
             python v3_dart_bulk_history.py --mode verify
             python v3_real_six_pillar_coverage_audit.py --mode verify
+            python v3_real_source_progress_ledger.py --mode verify
             git push origin HEAD:main
           fi
       - name: Historical source acquisition results (audit only)
@@ -150,6 +154,15 @@ jobs:
             lines.append('- 6영역 미검증 점수 계산 기업: '+
                 ', '.join(str(k)+' '+str(numeric.get(k,0))
                  for k in ('ias','technical','financial','valuation','industry','momentum')))
+            progress=Path('docs/v3-real-source-six-area-progress.json')
+            if progress.is_file():
+              trend=json.loads(progress.read_text(encoding='utf8'))
+              last=trend.get('snapshots',[])[-1:]
+              lines.append('- 검증된 원천변경 이력: **'+
+                           str(len(trend.get('snapshots',[])))+'건**')
+              if last and last[0].get('progress_since_previous') is not None:
+                lines.append('- 마지막 동일 기준일 영역별 변화: '+
+                             str(last[0]['progress_since_previous']))
             lines.append('- 4개 영역 연구점수 중복 보유 기업: **'+
               str(a.get('four_numerical_areas_same_date_overlap_count',0))+'**')
           lines.append('공식 수급 IAS, 기업행사·과거 PIT, 6영역 확정점수 없음.')
