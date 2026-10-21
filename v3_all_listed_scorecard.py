@@ -100,9 +100,9 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
             # Exact current KOSPI/KOSDAQ issuer and source digest. Historical
             # sector membership is NOT proven by today's company.json.
             industry_codes=prior_records(industry_source,day,members)
-            if industry_source.get("official_krx_sector_membership_verified") is not False or
-                industry_source.get("past_constituent_membership_pit_verified") is not False or
-                industry_source.get("industry_5433_points_authorized") is not False:
+            if (industry_source.get("official_krx_sector_membership_verified") is not False
+                or industry_source.get("past_constituent_membership_pit_verified") is not False
+                or industry_source.get("industry_5433_points_authorized") is not False):
                 raise FullMarketScorecardError("industry_profile_claims_pit")
             industry_ref_status="verified_current_company_classification_only"
         except (IndustrySourceError,FullMarketScorecardError,TypeError,ValueError):
