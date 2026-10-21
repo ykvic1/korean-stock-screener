@@ -233,6 +233,8 @@ def evaluate_industry_cohort(cohort, *, asof, decision_at_utc):
             largest_improvement_share = round(max(increases) / positive_sum, 6)
             if largest_improvement_share > 0.7:
                 risk_flags.append("profit_recovery_concentrated_in_one_issuer")
+    if not all_breadth:
+        rotation=None  # No full constituent roster, no industry price signal.
     quality=None
     if largest_improvement_share is not None and rotation is not None:
         concentration=(0 if largest_improvement_share>=0.70 else
