@@ -357,10 +357,65 @@ def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
        "historical_PIT_source_certified":False,
        "four_year_complete_financial15_certified":False,
        "cfo_capex_and_net_debt_from_bulk_api_available":False,
-       "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
+       "source":"Official OpenDART multi-company BS/IS plus already observed annual book",
        "raw_source_rows_published":False,
        "records":{code:retained[code] for code in sorted(retained)}
     }
+
+
+def verified_current_annual_book_year(market,catalog,annual_book,prior):
+    """Reuse only same-asof, real published DART FY receipts and exact accounts.
+
+    This is already collected official derived evidence, not a fabricated
+    multi-company statement or proof of historic PIT. It contains only fields
+    truly observed in the annual book; notably, assets remain unknown.
+    """
+    asof,members=_inputs(market,catalog)
+    if (type(annual_book) is not dict or annual_book.get("asof")!=asof or
+            annual_book.get("market_listed_total")!=len(members) or
+            type(annual_book.get("records")) is not list):
+        raise BulkHistoryError("incompatible_observed_annual_seed_asof")
+    current_year=_day(asof).year-1
+    retained=_validate_prior(prior,asof,members)
+    seeded={}
+    seen=set()
+    for row in annual_book["records"]:
+        if type(row) is not dict:
+            raise BulkHistoryError("invalid_observed_annual_seed_row")
+        code=row.get("code")
+        if code not in members or row.get("status")!="observed":
+            continue
+        if code in seen:
+            raise BulkHistoryError("duplicate_observed_annual_seed_issuer")
+        seen.add(code)
+        annual=row.get("annual")
+        if type(annual) is not dict:
+            continue
+        scope=annual.get("fs_div")
+        v=annual.get("values")
+        if (annual.get("year")!=current_year or scope not in ("CFS","OFS") or
+                annual.get("currency")!="KRW" or type(v) is not dict or
+                not _valid_receipt(annual.get("receipt_id"),current_year,_day(asof))):
+            continue
+        revenue=v.get("revenue")
+        income=v.get("operating_income")
+        if (type(revenue) is not int or not 0<revenue<=10**18 or
+                type(income) is not int or abs(income)>10**18):
+            continue
+        if str(current_year) in retained.get(code,{}).get("years",{}):
+            continue
+        values={"revenue":revenue,"operating_income":income,"assets":None,
+                "liabilities":None,"equity":None}
+        for key in ("liabilities","equity"):
+            entry=v.get(key)
+            if type(entry) is int and abs(entry)<=10**18:
+                values[key]=entry
+        seeded[code]={str(current_year):{scope:{
+            "receipt_id":annual["receipt_id"],
+            "values":values,"ambiguous":[],
+            "source_origin":"previously_observed_dart_annual_book",
+        }}}
+    return seeded
 
 
 def partial_year_checkpoint(market,catalog,prior,updates):
@@ -398,7 +453,7 @@ def partial_year_checkpoint(market,catalog,prior,updates):
         "historical_PIT_source_certified":False,
         "four_year_complete_financial15_certified":False,
         "cfo_capex_and_net_debt_from_bulk_api_available":False,
-        "source":"OpenDART fnlttMultiAcnt annual BS/IS only",
+        "source":"Official OpenDART multi-company BS/IS plus already observed annual book",
         "raw_source_rows_published":False,
         "records":{code:retained[code] for code in sorted(retained)},
     }
@@ -563,7 +618,16 @@ def write_json(path,value):
 
 
 def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
-            on_progress=None):
+            on_progress=None,annual_book=None):
+    # Enrich from ALREADY VERIFIED 2025 DART annual filings before any
+    # additional source request. Independently persist this observed evidence.
+    if annual_book is not None:
+        reuse=verified_current_annual_book_year(
+            market,catalog,annual_book,prior)
+        if reuse:
+            prior=partial_year_checkpoint(market,catalog,prior,reuse)
+            if on_progress:
+                on_progress(prior,_day(prior["asof"]).year-1)
     asof,members,retained,years,cohorts=plan(
         market,catalog,prior=prior,groups=groups)
     if not cohorts:
@@ -597,6 +661,7 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
         complete.update(row)
         calls+=n
     return combine(market,catalog,prior,complete,groups=groups),calls
+
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
@@ -644,7 +709,8 @@ def main(argv=None):
     try:
         archive,calls=collect(
             market,catalog,prior,key=key,session=requests.Session(),
-            groups=args.groups,on_progress=save_verified_year)
+            groups=args.groups,on_progress=save_verified_year,
+            annual_book=annual)
     except BulkHistoryError as err:
         if not checkpoints:
             raise
