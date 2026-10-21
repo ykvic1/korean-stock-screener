@@ -1,0 +1,102 @@
+name: V3 All-Listed Same-Day Technical Momentum Replay (0 provider calls)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/data.json
+      - docs/v22-market-catalog.json
+      - v3_current_price_replay.py
+      - .github/workflows/v3-current-price-replay.yml
+  schedule:
+    # Offline replay of already collected observations; not a new price scan.
+    - cron: '14,44 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        required: true
+        type: choice
+        options: [verify, write]
+        default: verify
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-v3-current-price-replay
+  cancel-in-progress: false
+
+jobs:
+  source-only-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline data analysis dependencies
+        run: pip install -r requirements.txt
+      - name: Validate exact saved-source and missing-factor safety
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_current_price_replay.py' -v
+      - name: Recompute all observed current-listed technical and momentum candidates
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: python v3_current_price_replay.py --mode write
+      - name: Publish ONLY calculated price factor candidates
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-current-price-technical-momentum.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Replay stored daily price technical and momentum research for all listed"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_current_price_replay.py --mode write
+              git add docs/v3-current-price-technical-momentum.json
+              if ! git diff --cached --quiet; then
+                git commit --amend --no-edit
+              fi
+              python v3_current_price_replay.py --mode verify
+              if git push origin HEAD:main; then
+                echo "all_current_price_replay_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::current_price_replay_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Read-only verification
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        run: python v3_current_price_replay.py --mode verify
+      - name: Report coverage and never imply a certified 100 point score
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          target=Path("docs/v3-current-price-technical-momentum.json")
+          lines=[
+            "### 현재 장마감 가격자료만 재계산한 기술/모멘텀 미검증 잠정점수",
+            "공식 가격 재수집 0회, 외인/기관 IAS 미사용, 결측 0점 대입 없음.",
+            "일봉 주봉 기술25, 상대강도 모멘텀10의 독립 원천 부분점수만 처리.",
+          ]
+          if target.is_file():
+              x=json.loads(target.read_text(encoding="utf8"))
+              lines.extend([
+                "자료 기준일: "+str(x["asof"]),
+                "전체 상장명부: "+str(x["listed_total"]),
+                "기술 부분점수 관측기업: "+str(x["technical_research_issuer_count"]),
+                "모멘텀 부분점수 관측기업: "+str(x["momentum_research_issuer_count"]),
+                "정식 투자점수 인증: 0",
+              ])
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY

@@ -375,6 +375,51 @@ assert.equal(unified.momentumEvidence({...partialMomentum,
 assert.equal(unified.momentumEvidence({...partialMomentum,
  v3_momentum_research:{...momentumReference,
  momentum_parts:{...momentumReference.momentum_parts,positive_days20:2}}}),null);
+// A second all-listed, same-day derived-price replay can cover every
+// ALREADY PRICED current issuer without recollecting KRX quotes or
+// waiting seven calendar days for a weekly 357-name cohort.
+const replayRecord={
+ code:row.code,market:row.market,asof:row.price_date,
+ technical_research_reference:partial.v3_pattern_integrated,
+ momentum_research_reference:momentumReference,
+ official_investment_score_certified:false,
+ price_source_corporate_action_verified:false
+};
+const replaySource={
+ schema:'v3-all-listed-current-market-price-only-technical-momentum-replay-0.1',
+ asof:row.price_date,listed_total:2,priced_current_session:1,
+ technical_research_issuer_count:1,momentum_research_issuer_count:1,
+ at_least_one_price_factor_issuer_count:1,
+ source_market_sha256:'b'.repeat(64),source_catalog_sha256:'a'.repeat(64),
+ separate_source_provider_calls:0,official_ias_or_buyer_identity_inferred:false,
+ corporate_action_adjusted_verified:false,historical_PIT_certified:false,
+ sector_score_authentic:false,certified_100point_investment_issuers:0,
+ rows:{[row.code]:replayRecord}
+};
+const seeded={...row,v3_pattern_integrated:null,v3_momentum_research:null};
+const seededModel={date:row.price_date,marketEligible:2,rows:[{r:seeded}]};
+assert.equal(unified.applyCurrentPriceReplay(seededModel,replaySource),2);
+assert.equal(unified.researchComposite(seeded).available,19);
+assert.ok(unified.researchComposite(seeded).earned!==null);
+assert.equal(unified.pillarState(seeded)[1].available,11);
+assert.equal(unified.pillarState(seeded)[5].available,8);
+for(const forged of [
+ {...replaySource,asof:'2026-10-21'},
+ {...replaySource,separate_source_provider_calls:1},
+ {...replaySource,technical_research_issuer_count:999},
+ {...replaySource,official_ias_or_buyer_identity_inferred:true},
+ {...replaySource,rows:{[row.code]:{...replayRecord,
+   official_investment_score_certified:true}}},
+ {...replaySource,rows:{[row.code]:{...replayRecord,
+   momentum_research_reference:{...momentumReference,peer20_count:1}}}}
+]){
+ const other={...row,v3_pattern_integrated:null,v3_momentum_research:null};
+ assert.equal(unified.applyCurrentPriceReplay({
+   date:row.price_date,marketEligible:2,rows:[{r:other}]},forged),0);
+ assert.equal(unified.researchComposite(other).earned,null);
+}
+assert.ok(source.includes("applyCurrentPriceReplay(model,responses[14])"));
+assert.ok(source.includes("'v3-current-price-technical-momentum.json'"));
 const missing={...row,v3_pattern_integrated:null};
 assert.equal(unified.researchComposite(missing).earned,null,
  'missing factor must not appear as 0.0/100');

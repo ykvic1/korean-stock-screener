@@ -223,6 +223,71 @@ function applyObservedVolume(model,source){
  for(const [r,rec] of accepted)r.v3_volume_observed=rec;
  return accepted.length;
 }
+// Independently stored same-day market-price replay, at most technical25
+// + momentum8 points. This is not a new KRX/DART fetch or a full 100 rank.
+function applyCurrentPriceReplay(model,source){
+ if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
+   !Number.isInteger(model.marketEligible)||
+   !source||source.schema!=='v3-all-listed-current-market-price-only-technical-momentum-replay-0.1'||
+   source.asof!==model.date||source.listed_total!==model.marketEligible||
+   source.priced_current_session!==model.rows.length||
+   !Number.isInteger(source.technical_research_issuer_count)||
+   !Number.isInteger(source.momentum_research_issuer_count)||
+   !Number.isInteger(source.at_least_one_price_factor_issuer_count)||
+   source.separate_source_provider_calls!==0||
+   source.official_ias_or_buyer_identity_inferred!==false||
+   source.corporate_action_adjusted_verified!==false||
+   source.historical_PIT_certified!==false||
+   source.sector_score_authentic!==false||
+   source.certified_100point_investment_issuers!==0||
+   !/^[a-f0-9]{64}$/.test(source.source_market_sha256||'')||
+   !/^[a-f0-9]{64}$/.test(source.source_catalog_sha256||'')||
+   !source.rows||typeof source.rows!=='object'||Array.isArray(source.rows))
+   return 0;
+ const stocks=new Map(model.rows.map(x=>[x.r.code,x.r]));
+ if(stocks.size!==model.rows.length)return 0;
+ let tech=0,momentum=0,accepted=[];
+ for(const [code,entry] of Object.entries(source.rows)){
+  const r=stocks.get(code);
+  if(!TODAY_CODE.test(code)||!r||!entry||typeof entry!=='object'||
+    entry.code!==code||entry.market!==r.market||
+    entry.asof!==model.date||r.price_date!==model.date||
+    entry.official_investment_score_certified!==false||
+    entry.price_source_corporate_action_verified!==false)
+    return 0;
+  const t=entry.technical_research_reference;
+  const m=entry.momentum_research_reference;
+  if(t===null&&m===null)return 0;
+  if(t!==null){
+   const ev=technicalEvidence({...r,v3_pattern_integrated:t});
+   if(!ev||ev.available>25)return 0;
+   tech++;
+  }
+  if(m!==null){
+   const ev=momentumEvidence({...r,v3_momentum_research:m});
+   if(!ev||ev.available>8)return 0;
+   momentum++;
+  }
+  accepted.push([r,t,m]);
+ }
+ if(tech!==source.technical_research_issuer_count||
+    momentum!==source.momentum_research_issuer_count||
+    accepted.length!==source.at_least_one_price_factor_issuer_count)
+   return 0;
+ let added=0;
+ for(const [r,t,m] of accepted){
+  if(t&&(!r.v3_pattern_integrated||
+     !technicalEvidence(r))){
+   r.v3_pattern_integrated=t;
+   added++;
+  }
+  if(m&&!momentumEvidence(r)){
+   r.v3_momentum_research=m;
+   added++;
+  }
+ }
+ return added;
+}
 function pillarState(r){
  const z=r?.v3_pattern_integrated;
  const tech=technicalEvidence(r);
@@ -760,7 +825,7 @@ function industryEvidenceView(raw,asof){
  return {html,rows,coverage:raw.dart_current_industry_codes_observed,
          matched:raw.mapped_industry_issuer_earnings_two_year_matched};
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,INDUSTRY_COMPONENTS,industryParts,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -950,7 +1015,8 @@ async function load(){
   'v3-weekly-rotation.json','v3-dart-four-year-reference.json',
   'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json',
   'v3-dart-fcf-research-preview.json',
-  'v3-dart-industry-earnings-sample.json','v3-volume-obv-observed.json'];
+  'v3-dart-industry-earnings-sample.json','v3-volume-obv-observed.json',
+  'v3-current-price-technical-momentum.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -965,7 +1031,8 @@ async function load(){
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
   applyActualCashflowPreview(model,actualCashflowCoverage);
-  const volumeAccepted=applyObservedVolume(model,responses[13]);
+  applyObservedVolume(model,responses[13]);
+  applyCurrentPriceReplay(model,responses[14]);
   const industry=industryEvidenceView(responses[12],model.date);
   $('industryResearchContent').innerHTML=industry?industry.html:
     '<p class="u-muted">업종별 실제 실적 표본은 원천 날짜 또는 진위 검증 대기 중입니다. 산업점수를 임의로 표시하지 않습니다.</p>';
