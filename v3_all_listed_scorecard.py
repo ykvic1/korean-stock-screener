@@ -183,7 +183,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None):
         label=(label.strip() if type(label) is str and
                0<len(label.strip())<=100 else None)
         known_industry_labels+=int(label is not None)
-         rows.append({"code":code,"name":member["name"],"market":member["market"],
+        rows.append({"code":code,"name":member["name"],"market":member["market"],
                      "price_status":member.get("price_history_status"),
                      "industry_label_unverified":label,
                      "factors":values,"earned":round(earned,4) if available else None,
