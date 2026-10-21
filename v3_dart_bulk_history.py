@@ -716,26 +716,39 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
     deadline=time.monotonic()+MAX_SOURCE_RUN_SECONDS
     mapping=verified_company_mapping_cache(company_cache,asof,members)
     cached=mapping is not None
+    master_calls=0
     if not cached:
-        try:
-            resp=session.get("https://opendart.fss.or.kr/api/corpCode.xml",
-                             params={"crtfc_key":key},timeout=55)
-            resp.raise_for_status()
-            # Capture all current-listed identifiers from ONE source download,
-            # rather than just today's next 100 tickers.
-            mapping=_mapping(resp.content,set(members))
-        except BulkHistoryError:
-            raise
-        except Exception:
-            raise BulkHistoryError("dart_company_mapping_failure") from None
+        for attempt in range(2):
+            if time.monotonic()>=deadline:
+                raise BulkHistoryError("dart_company_mapping_elapsed_budget")
+            try:
+                # A single transient corpCode.xml connection failure must
+                # not indefinitely block ALL 2,497 issuers. One bounded
+                # retry, only for network timeout/connection categories.
+                master_calls+=1
+                resp=session.get(
+                    "https://opendart.fss.or.kr/api/corpCode.xml",
+                    params={"crtfc_key":key},timeout=(20,100))
+                resp.raise_for_status()
+                mapping=_mapping(resp.content,set(members))
+                break
+            except BulkHistoryError:
+                raise
+            except Exception as error:
+                retryable=type(error).__name__ in (
+                    "ConnectionError","ReadTimeout","ConnectTimeout","Timeout")
+                if retryable and attempt==0:
+                    time.sleep(1)
+                    continue
+                raise BulkHistoryError("dart_company_mapping_failure") from None
         if on_company_cache:
             on_company_cache(make_company_mapping_cache(mapping,asof,members))
     print(json.dumps({"official_dart_company_master_cache_used":cached,
                       "official_listed_issuer_mapping_count":len(mapping),
+                      "official_company_master_api_calls":master_calls,
                       "raw_company_master_zip_stored":False},sort_keys=True),
           flush=True)
     complete={}
-    master_calls=0 if cached else 1
     calls=master_calls
     checkpoint=prior
     def save_year(updates,year):
