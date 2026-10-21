@@ -7,13 +7,13 @@ on:
       - v3_all_listed_scorecard.py
       - v3_dart_industry_earnings_sample.py
       - .github/workflows/v3-all-listed-scorecard.yml
-  # Two research-only replays per hour at :27 and :57 KST. This bounds
+  # Two research-only replays per hour at :24 and :54 KST. This bounds
   # public scorecard staleness during the live four-year/DART cashflow backfill.
   # The shared publication lock queues behind source collectors rather than
   # competing with or interrupting the weekday 18:30 V2.2 market scan.
   # Every replay reads saved, source-checked facts: zero new DART/KRX calls.
   schedule:
-    - cron: '27,57 * * * *'
+    - cron: '24,54 * * * *'
   workflow_dispatch:
     inputs:
       mode:
