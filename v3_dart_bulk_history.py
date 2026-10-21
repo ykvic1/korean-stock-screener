@@ -81,37 +81,68 @@ def _empty_year():
     return {}
 
 
-def _normalize_year(rows, year, asof, requested, corp_to_stock):
-    """Reject unknown issuers, year/scope mismatch and ambiguous account rows.
+def _normalize_year(rows, year, asof, requested, corp_to_stock,
+                    diagnostics=None):
+    """Keep independently valid official records; quarantine unsafe rows.
 
-    A response can legitimately omit stocks; that becomes a documented missing
-    year, not a fabricated financial zero.
+    Official multi-company API may omit a company, return stale disclosures
+    or return extra/unexpected rows. One bad issuer must not invalidate good
+    issuers. A batch with zero or overwhelmingly few trusted rows still aborts.
+    Only counts and fixed diagnostic labels are logged, never provider rows.
     """
     cutoff=_day(asof)
     if type(rows) is not list or len(rows)>120_000:
         raise BulkHistoryError("invalid_bulk_dart_row_count")
     data={code:{} for code in requested}
     observed={}
+    tainted=set()
+    counts={}
+    trusted=0
+    def reject(label):
+        counts[label]=counts.get(label,0)+1
     for row in rows:
         if type(row) is not dict:
-            raise BulkHistoryError("invalid_bulk_dart_row")
+            reject("malformed_row")
+            continue
         code=row.get("stock_code")
         corp=row.get("corp_code")
-        if (code not in data or
-                (corp is not None and (
-                    not CORP.fullmatch(corp) or corp_to_stock.get(corp)!=code)) or
-                str(row.get("bsns_year"))!=str(year) or
-                row.get("reprt_code")!="11011" or
-                row.get("fs_div") not in ("CFS","OFS") or
-                row.get("currency")!="KRW" or
-                not _valid_receipt(row.get("rcept_no"),year,cutoff)):
-            raise BulkHistoryError("invalid_bulk_dart_identity_or_receipt")
-        scope=row["fs_div"]
+        if type(code) is not str or code not in data:
+            reject("unrequested_or_blank_stock_code")
+            continue
+        if corp is not None and (type(corp) is not str or
+                not CORP.fullmatch(corp) or corp_to_stock.get(corp)!=code):
+            reject("corp_code_mismatch")
+            continue
+        if str(row.get("bsns_year"))!=str(year):
+            reject("fiscal_year_mismatch")
+            continue
+        if row.get("reprt_code")!="11011":
+            reject("annual_report_code_mismatch")
+            continue
+        scope=row.get("fs_div")
+        if scope not in ("CFS","OFS"):
+            reject("unknown_accounting_scope")
+            continue
+        if row.get("currency")!="KRW":
+            reject("unconfirmed_krw_currency")
+            continue
+        if not _valid_receipt(row.get("rcept_no"),year,cutoff):
+            reject("invalid_or_future_receipt")
+            continue
         key=(code,scope)
+        if key in tainted:
+            reject("scope_quarantined_due_to_mixed_receipt")
+            continue
         receipt=row["rcept_no"]
         if key in observed and observed[key]!=receipt:
-            raise BulkHistoryError("mixed_receipts_in_one_annual_scope")
+            # Never combine two different report revisions under one scope:
+            # drop all of its accounts, but preserve independent issuers.
+            tainted.add(key)
+            data[code].pop(scope,None)
+            reject("mixed_receipts_same_company_scope")
+            continue
         observed[key]=receipt
+        trusted+=1
         acct=LABELS.get((row.get("sj_div"),row.get("account_nm")))
         if acct is None:
             continue
@@ -119,11 +150,22 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock):
         doc=data[code].setdefault(scope,{"receipt_id":receipt,
                                          "values":{},"ambiguous":[]})
         if acct in doc["values"]:
-            # Two aliases in the same statement cannot be safely resolved.
             doc["ambiguous"].append(acct)
             doc["values"][acct]=None
         else:
             doc["values"][acct]=value
+    if diagnostics is not None:
+        if type(diagnostics) is not dict:
+            raise BulkHistoryError("invalid_bulk_diagnostic_target")
+        diagnostics.update({
+            "returned_row_count":len(rows),
+            "trusted_row_count":trusted,
+            "quarantined_row_count":sum(counts.values()),
+            "quarantine_reasons":dict(sorted(counts.items())),
+            "quarantined_company_scope_count":len(tainted),
+        })
+    if rows and (trusted==0 or trusted*20<len(rows)):
+        raise BulkHistoryError("dart_bulk_fatal_no_trustworthy_source_rows")
     for code in requested:
         for scope,ref in list(data[code].items()):
             for key in FIELDS:
@@ -134,14 +176,11 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock):
                 abs(ref["values"]["assets"]-ref["values"]["liabilities"]-
                     ref["values"]["equity"])>
                 max(1,abs(ref["values"]["assets"])*0.01)):
-                # Some equity variants may have misunderstood account labels.
-                # Quarantine rather than treating a broken statement as true.
                 ref["values"]["assets"]=None
                 ref["values"]["liabilities"]=None
                 ref["values"]["equity"]=None
             ref["ambiguous"]=sorted(set(ref["ambiguous"]))
     return data
-
 
 def _validate_prior(prior, asof, members):
     if prior is None:
@@ -244,7 +283,19 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map):
             # Quota exhaustion (020), unavailable service, invalid key etc.
             # Never keep issuing requests on global provider failure.
             raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
-        extracted=_normalize_year(rows,year,asof,set(available),lookup)
+        diagnostics={}
+        try:
+            extracted=_normalize_year(rows,year,asof,set(available),lookup,
+                                      diagnostics=diagnostics)
+        finally:
+            # Log categories ONLY. Never print DART account values, identities,
+            # provider error text, certificate/token, or original payload.
+            print(json.dumps({
+                "dart_bulk_fiscal_year":year,
+                "batch_requested_companies":len(available),
+                "source_validation":diagnostics,
+                "raw_dart_rows_logged":False,
+            },sort_keys=True),flush=True)
         for code in code_cohort:
             found[code][str(year)]=extracted.get(code,{})
     return found,requests_made
