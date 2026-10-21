@@ -37,7 +37,7 @@ def rows(year,code,*,skip_intangible=False,mixed=False,wrong_year=False):
                     "bsns_year":str(year-1 if wrong_year else year),
                     "reprt_code":"11011","sj_div":"CF",
                     "account_detail":"-","fs_div":"CFS",
-                    "rcept_no":"20270318000001" if mixed and key.endswith("IntangibleAssets")
+                    "rcept_no":f"{year+1}0325000002" if mixed and key.endswith("IntangibleAssets")
                     else receipt,"currency":"KRW",
                     "account_id":key,"thstrm_amount":amount})
     return ans
