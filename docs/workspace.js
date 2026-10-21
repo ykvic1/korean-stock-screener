@@ -449,7 +449,7 @@ function weeklyCoverageText(report, marketDate){
  const validSix=six&&keys.every(k=>Number.isInteger(six[k])&&six[k]>=0&&
    six[k]<=report.processed_this_cycle);
  const sixText=validSix?
-  ' · 6영역 참고관측(확정점수 아님): 수급 '+six.ias+
+  ' · 6영역 참고관측(확정점수 아님): 공식 투자자별 수급 '+six.ias+
   ' / 기술 '+six.technical+' / 4년재무 '+six.financial+
   ' / PBR추정 '+six.valuation+' / 업종명 '+six.industry+
   ' / 모멘텀 '+six.momentum:'';
@@ -476,7 +476,7 @@ function realSourceCoverageText(report,marketDate){
     report.four_numerical_areas_same_date_overlap_count<0||
     report.four_numerical_areas_same_date_overlap_count>
       Math.min(n.technical,n.financial,n.valuation,n.momentum))return '';
- return ' · 출처기준 6영역 계산가능 연구점수 (확정점수 아님): 수급 '+n.ias+
+ return ' · 출처기준 6영역 계산가능 연구점수 (확정점수 아님): 공식 투자자별 수급 '+n.ias+
    ' / 기술 '+n.technical+' / 재무 '+n.financial+
    ' / 가치 '+n.valuation+' / 산업 '+n.industry+
    ' / 모멘텀 '+n.momentum+'종목'+
