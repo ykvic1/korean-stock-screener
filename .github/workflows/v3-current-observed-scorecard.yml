@@ -1,0 +1,110 @@
+name: V3 Current Close All-Listed Observed Partial CSV (49/100 Max)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_current_observed_scorecard.py
+      - v3_current_price_replay.py
+      - v3_volume_participation.py
+      - docs/data.json
+      - docs/v22-market-catalog.json
+      - docs/v3-volume-obv-observed.json
+      - docs/v3-current-price-technical-momentum.json
+      - .github/workflows/v3-current-observed-scorecard.yml
+  schedule:
+    # Saved research replay, not official API source acquisition.
+    - cron: '26,56 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        required: true
+        type: choice
+        options: [verify, write]
+        default: verify
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-current-observed-publisher
+  cancel-in-progress: false
+
+jobs:
+  same-close-current-price-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing offline source computation dependencies
+        run: pip install -r requirements.txt
+      - name: Reject mismatched source evidence and missing=0 before publication
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
+      - name: Recompute only actually observed current-close evidence
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: |
+          set -euo pipefail
+          # Recompute both independently stored source products if available;
+          # source quality always rechecked against the current market census.
+          python v3_current_observed_scorecard.py --mode write
+      - name: Publish current-day CSV and aggregate evidence counts only
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish current closing market 3-source all-listed provisional CSV"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_current_observed_scorecard.py --mode write
+              git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json
+              if ! git diff --cached --quiet; then
+                git commit --amend --no-edit
+              fi
+              python v3_current_observed_scorecard.py --mode verify
+              if git push origin HEAD:main; then
+                echo "current_close_research_csv_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::current_close_publication_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Manual read-only consistency verification
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        run: python v3_current_observed_scorecard.py --mode verify
+      - name: Display source-specific observed count, not investment grades
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          path=Path("docs/v3-current-observed-all-listed-summary.json")
+          lines=[
+            "### V3 당일 기준 전종목 실측 잠정 CSV",
+            "DART 결산 연간자료/업종이 전일이어도 현재 종가에 맞춘 거래량/기술/모멘텀은 따로 표시",
+            "완성 100점 투자 인증은 0개. 매수·기관 순매수 추정이 아님.",
+          ]
+          if path.exists():
+              a=json.loads(path.read_text(encoding="utf8"))
+              lines.extend([
+                "실제 가격일: "+str(a["asof"]),
+                "전종목: "+str(a["listed_total"]),
+                "한개 이상 관측: "+str(a["observed_any_factor_issuers"]),
+                "영역별 관측종목: "+str(a["observed_issuer_counts"]),
+                "현재 관측 가능 최대배점: 49/100",
+              ])
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY
