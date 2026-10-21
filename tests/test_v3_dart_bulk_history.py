@@ -117,16 +117,56 @@ class BulkHistoryTests(unittest.TestCase):
         changed=bulk._normalize_year(dupe,2025,DAY,set(CODES),
                 {corp:code for code,corp in CORPS.items()})
         self.assertIsNone(changed["005930"]["CFS"]["values"]["revenue"])
-        for key,value in (("stock_code","999999"),
-                          ("bsns_year","2024"),
-                          ("rcept_no","20271019009999"),
-                          ("currency","USD"),
-                          ("fs_div","BAD")):
+        for key,value,reason in (
+                ("stock_code","999999","unrequested_or_blank_stock_code"),
+                ("bsns_year","2024","fiscal_year_mismatch"),
+                ("reprt_code","11012","annual_report_code_mismatch"),
+                ("rcept_no","20271019009999","invalid_or_future_receipt"),
+                ("currency","USD","unconfirmed_krw_currency"),
+                ("fs_div","BAD","unknown_accounting_scope"),
+                ("corp_code","00199999","corp_code_mismatch")):
             bad=copy.deepcopy(rows)
             bad[0][key]=value
-            with self.subTest(key=key),self.assertRaises(bulk.BulkHistoryError):
-                bulk._normalize_year(bad,2025,DAY,set(CODES),
-                    {corp:code for code,corp in CORPS.items()})
+            reasons={}
+            with self.subTest(key=key):
+                accepted=bulk._normalize_year(bad,2025,DAY,set(CODES),
+                        {corp:code for code,corp in CORPS.items()},
+                        diagnostics=reasons)
+                self.assertEqual(reasons["quarantine_reasons"],{reason:1})
+                self.assertEqual(reasons["trusted_row_count"],len(rows)-1)
+                self.assertIsNone(
+                    accepted["005930"]["CFS"]["values"]["revenue"])
+                self.assertEqual(
+                    accepted["247540"]["CFS"]["values"]["revenue"],
+                    140_000_000_100)
+
+    def test_untrusted_issuer_isolation_and_global_schema_fail_closed(self):
+        rows=payload_rows(2025)
+        lookup={corp:code for code,corp in CORPS.items()}
+        bad=copy.deepcopy(rows)
+        # One company's fiscal report revision cannot contaminate another.
+        bad.append(dict(bad[0],rcept_no="20260412000001"))
+        reasons={}
+        matched=bulk._normalize_year(bad,2025,DAY,set(CODES),
+                        lookup,diagnostics=reasons)
+        self.assertNotIn("CFS",matched["005930"])
+        self.assertEqual(matched["247540"]["CFS"]["values"]["revenue"],
+                         140_000_000_100)
+        self.assertEqual(
+            reasons["quarantine_reasons"]["mixed_receipts_same_company_scope"],1)
+        self.assertEqual(reasons["quarantined_company_scope_count"],1)
+        # Do not accept one valid row amid a wholesale changed/invalid API.
+        severe=[dict(bad[1],stock_code="999999") for _ in range(100)]
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                     "no_trustworthy_source"):
+            bulk._normalize_year(severe+[rows[0]],2025,DAY,set(CODES),
+                                 lookup)
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                     "no_trustworthy_source"):
+            bulk._normalize_year([dict(rows[0],currency="USD")],
+                                 2025,DAY,set(CODES),lookup)
+        self.assertEqual(bulk._normalize_year([],2025,DAY,set(CODES),
+                                                lookup)["005930"],{})
 
     def test_current_dart_company_master_is_safely_size_bounded_and_identified(self):
         self.assertEqual(bulk._mapping(mapping_zip(),set(CODES)),CORPS)
