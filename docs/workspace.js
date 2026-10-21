@@ -600,9 +600,83 @@ function summary(model,core){
   provisional:model.rows.filter(x=>researchComposite(x.r).earned!==null).length,
   officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
+// Observed sample comparison, never a stock-specific investment rank.
+function industryEvidenceView(raw,asof){
+ if(!raw||raw.schema!=='v3-observed-dart-current-sector-profit-sample-0.1'||
+   raw.asof!==asof||!validDate(asof)||
+   !Number.isInteger(raw.current_listed_total)||raw.current_listed_total<100||
+   !Number.isInteger(raw.dart_current_industry_codes_observed)||
+   !Number.isInteger(raw.mapped_industry_issuer_earnings_two_year_matched)||
+   raw.mapped_industry_issuer_earnings_two_year_matched>
+     raw.dart_current_industry_codes_observed||
+   raw.full_market_industry_membership_pit_verified!==false||
+   raw.sector_15_points_earned_issuer_count!==0||
+   JSON.stringify(raw.industry_subweights_locked)!==
+     JSON.stringify({early_rotation:5,profit_transition:4,
+       improvement_diffusion:3,overheat_crowding_quality:3})||
+   !Array.isArray(raw.groups)||raw.groups.length>300||
+   !raw.source_sha256||Object.values(raw.source_sha256).some(v=>
+     typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v)))return null;
+ const rows=[];
+ for(const g of raw.groups){
+   if(!g||!['KOSPI','KOSDAQ'].includes(g.market)||
+     typeof g.dart_industry_code_prefix_2!=='string'||
+     !/^[0-9]{2}$/.test(g.dart_industry_code_prefix_2)||
+     !Number.isInteger(g.current_classified_issuers)||
+     !Number.isInteger(g.issuer_year_pair_observed)||
+     !(g.current_classified_issuers>=g.issuer_year_pair_observed&&
+       g.issuer_year_pair_observed>=0)||
+     g.unobserved_income_among_known_codes!==
+       g.current_classified_issuers-g.issuer_year_pair_observed||
+     g.group_is_approved_historical_industry_cohort!==false||
+     g.group_15point_investment_score!==null||
+     g.missing_marketwide_membership_cannot_be_rescaled!==true)return null;
+   const observed=g.observed_earnings_improving_issuer_ratio_sample_only;
+   const low=g.improvement_breadth_lower_bound_known_classified_only;
+   const high=g.improvement_breadth_upper_bound_known_classified_only;
+   const coverage=g.classified_sample_earnings_coverage_ratio;
+   const validRatio=v=>finite(v)&&v>=0&&v<=1;
+   if(g.issuer_year_pair_observed<3){
+     if(observed!==null||low!==null||high!==null||coverage!==null)return null;
+   }else{
+     if(![observed,low,high,coverage].every(validRatio)||
+       low>observed+1e-5||high+1e-5<observed||low>high)return null;
+   }
+   rows.push({market:g.market,code:g.dart_industry_code_prefix_2,
+     observed:g.issuer_year_pair_observed,classified:g.current_classified_issuers,
+     coverage,improving:observed,lower:low,upper:high,
+     growth:g.observed_pair_scope_uniform===true&&
+       finite(g.sample_aggregate_operating_profit_growth_pct)?
+       g.sample_aggregate_operating_profit_growth_pct:null});
+ }
+ if(rows.reduce((v,r)=>v+r.observed,0)!==
+    raw.mapped_industry_issuer_earnings_two_year_matched ||
+    rows.reduce((v,r)=>v+r.classified,0)!==
+    raw.dart_current_industry_codes_observed)return null;
+ rows.sort((a,b)=>b.observed-a.observed||a.market.localeCompare(b.market)||
+   a.code.localeCompare(b.code));
+ const format=v=>v===null?'—':(v*100).toFixed(1)+'%';
+ const html='<p class="u-muted">공식 DART 기업개황 업종코드 '+
+   raw.dart_current_industry_codes_observed+' / '+raw.current_listed_total+
+   '개 · 2024~25년 영업이익 2개년 실제 대조 '+
+   raw.mapped_industry_issuer_earnings_two_year_matched+
+   '개. 아래 비율은 <strong>분류·실적 관측 표본만</strong>의 결과이며 산업 15점 및 종목 추천이 아닙니다.</p>'+
+  '<div class="u-scroller"><table><thead><tr>'+
+  '<th>시장 · 코드 앞 2자리</th><th>분류/실적</th><th>개선기업 (표본)</th>'+
+  '<th>미확보 반영 범위*</th><th>표본 이익변화</th></tr></thead><tbody>'+
+  rows.filter(r=>r.observed>=3).slice(0,24).map(r=>
+    '<tr><th>'+esc(r.market)+' · '+esc(r.code)+'</th><td>'+
+    r.observed+'/'+r.classified+'</td><td>'+format(r.improving)+
+    '</td><td>'+format(r.lower)+'~'+format(r.upper)+'</td><td>'+
+    (r.growth===null?'—':pct(r.growth))+'</td></tr>').join('')+
+  '</tbody></table></div>'+
+  '<p class="u-muted">* 미확보 반영 범위는 <strong>이미 분류된 기업 안에서만</strong> 가능한 비율의 상·하한입니다. 미분류 기업까지 고려한 전체 업종의 범위는 아닙니다. 표시 순서는 실적 확보 기업 수이며 매수 순위가 아닙니다. 서로 다른 연결·별도 재무제표가 섞이면 업종 이익변화는 비워둡니다.</p>';
+ return {html,rows,coverage:raw.dart_current_industry_codes_observed,
+         matched:raw.mapped_industry_issuer_earnings_two_year_matched};
+}
 const api={VERSION,WEIGHTS,PILLARS,IAS_COMPONENTS,iasStatus,iasParts,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,INDUSTRY_COMPONENTS,industryParts,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -787,7 +861,8 @@ async function load(){
   'v3-priority-quant.json','v3-dart-book-reference.json','v3-weekly-coverage.json',
   'v3-weekly-rotation.json','v3-dart-four-year-reference.json',
   'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json',
-  'v3-dart-fcf-research-preview.json'];
+  'v3-dart-fcf-research-preview.json',
+  'v3-dart-industry-earnings-sample.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -802,6 +877,12 @@ async function load(){
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
   applyActualCashflowPreview(model,actualCashflowCoverage);
+  const industry=industryEvidenceView(responses[12],model.date);
+  $('industryResearchContent').innerHTML=industry?industry.html:
+    '<p class="u-muted">업종별 실제 실적 표본은 원천 날짜 또는 진위 검증 대기 중입니다. 산업점수를 임의로 표시하지 않습니다.</p>';
+  $('industryResearchCount').textContent=industry?
+    ('분류 '+industry.coverage+'개 · 실적 대조 '+industry.matched+'개'):
+    '자료 검증 대기';
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
