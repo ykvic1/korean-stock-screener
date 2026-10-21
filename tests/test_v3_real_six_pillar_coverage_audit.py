@@ -51,7 +51,13 @@ class RealCoverageAuditTests(unittest.TestCase):
         self.assertLessEqual(
             out["four_numerical_areas_same_date_overlap_count"],finance)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["technical"],
-                         sources[3]["numeric_technical_candidates_this_cycle"])
+                         sum(rec.get("market_source_asof")==sources[0]["date"] and
+                             isinstance(rec.get("research_score_points"),(int,float)) and
+                             isinstance(rec.get("available_weight"),(int,float)) and
+                             0<rec["available_weight"]<=25 and
+                             0<=rec["research_score_points"]<=rec["available_weight"]
+                             for rec in sources[3]["records"].values()
+                             if rec.get("cycle")==sources[3]["cycle_start"]))
         self.assertFalse(out["buy_recommendations_authorized"])
         self.assertFalse(out["investment_grade_scores_confirmed"])
         overlap=out["four_numerical_areas_same_date_overlap_count"]
@@ -138,6 +144,64 @@ class RealCoverageAuditTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+class SameCycleWeeklyRolloverEvidenceTests(unittest.TestCase):
+    def test_only_same_market_day_earns_weekly_technical_momentum(self):
+        members={c:{} for c in ("000001","000002","000003")}
+        cycle="2026-10-20"
+        def record(code,asof):
+            return {"code":code,"cycle":cycle,
+                "market_source_asof":asof,"last_recalculated_kst":asof,
+                "research_score_points":0.0,"available_weight":11,
+                "momentum_research_points":3.0,"momentum_available_weight":8}
+        data={"cycle_start":cycle,"run_kst":"2026-10-21",
+            "processed_this_cycle":2,"unprocessed_this_cycle":1,
+            "numeric_technical_candidates_this_cycle":2,
+            "records":{
+                "000001":record("000001","2026-10-20"),
+                "000002":record("000002","2026-10-21"),
+            }}
+        tech,mom,old,current=audit.weekly_current_day_evidence(
+            data,"2026-10-21",members)
+        self.assertEqual(tech,{"000002"})
+        self.assertEqual(mom,{"000002"})
+        self.assertEqual(old,1)
+        self.assertEqual(current,2)
+        # A previous cycle's cached record may be stored, but must not
+        # masquerade as this week's inspected evidence.
+        data["records"]["000003"]={
+            **record("000003","2026-10-10"),"cycle":"2026-10-13"}
+        tech,mom,old,current=audit.weekly_current_day_evidence(
+            data,"2026-10-21",members)
+        self.assertEqual((tech,mom,old,current),({"000002"},{"000002"},1,2))
+
+    def test_future_expired_forged_or_inflated_weekly_evidence_rejected(self):
+        members={"000001":{}}
+        clean={
+          "cycle_start":"2026-10-20","run_kst":"2026-10-21",
+          "processed_this_cycle":1,"unprocessed_this_cycle":0,
+          "numeric_technical_candidates_this_cycle":1,
+          "records":{"000001":{
+              "code":"000001","cycle":"2026-10-20",
+              "market_source_asof":"2026-10-20",
+              "last_recalculated_kst":"2026-10-20",
+              "research_score_points":5.0,"available_weight":11,
+              "momentum_research_points":1.0,"momentum_available_weight":8}}
+        }
+        for mutation in (
+            lambda x:x["records"]["000001"].update(market_source_asof="2026-10-22"),
+            lambda x:x["records"]["000001"].update(market_source_asof="2026-09-10"),
+            lambda x:x["records"]["000001"].update(last_recalculated_kst="2026-10-22"),
+            lambda x:x.update(numeric_technical_candidates_this_cycle=2),
+            lambda x:x.update(processed_this_cycle=0),
+            lambda x:x["records"]["000001"].update(market_source_asof="not-a-date"),
+        ):
+            altered=copy.deepcopy(clean)
+            mutation(altered)
+            with self.assertRaises(audit.CoverageAuditError):
+                audit.weekly_current_day_evidence(
+                    altered,"2026-10-21",members)
+
 
 class RealCoverageRolloverTests(unittest.TestCase):
     def test_cross_day_official_annual_evidence_rejected(self):

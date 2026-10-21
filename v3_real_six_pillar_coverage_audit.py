@@ -36,6 +36,70 @@ def _number(value):
     return type(value) in (int,float) and math.isfinite(value)
 
 
+def weekly_current_day_evidence(weekly,day,members):
+    """Count source-week candidates, but score only today's dated candidates."""
+    total=len(members)
+    technical=set();momentum=set()
+    active_weekly={c:r for c,r in weekly["records"].items()
+                   if type(r) is dict and r.get("cycle")==weekly.get("cycle_start")}
+    if (weekly.get("processed_this_cycle")!=len(active_weekly) or
+        weekly.get("unprocessed_this_cycle")!=total-len(active_weekly) or
+        set(weekly["records"])-set(members)):
+        raise CoverageAuditError("incompatible_weekly_coverage")
+    # A 7-day rotating replay explicitly retains earlier *same-cycle*
+    # issuer observations after the daily market census rolls forward.
+    # Those old records remain valid as historical research references but
+    # can NEVER be counted toward current-close technical/momentum points.
+    # This cross-domain audit must not block fresh, independently verified
+    # DART annual BS/IS source publication solely because of that lag.
+    technical_source_all_dates=set()
+    old_weekly_issuer_count=0
+    for code,rec in weekly["records"].items():
+        if not isinstance(rec,dict) or rec.get("code")!=code:
+            raise CoverageAuditError("invalid_technical_source_identity")
+        if code not in active_weekly:
+            # Previous cycle's cached result remains explicitly historical.
+            # It must never be added to the new close's numeric count.
+            continue
+        observed_asof=rec.get("market_source_asof")
+        if type(observed_asof) is not str:
+            raise CoverageAuditError("invalid_technical_source_identity")
+        try:
+            age=(date.fromisoformat(day)-date.fromisoformat(observed_asof)).days
+        except ValueError:
+            raise CoverageAuditError("invalid_technical_source_identity") from None
+        if (date.fromisoformat(observed_asof).isoformat()!=observed_asof or
+            age<0 or age>9):
+            raise CoverageAuditError("invalid_technical_source_identity")
+        current_day=age==0
+        if not current_day:
+            # Old observations are acceptable ONLY inside this week's
+            # genuinely processed cohort and must preserve their own dates.
+            if (rec.get("cycle")!=weekly.get("cycle_start") or
+                type(rec.get("last_recalculated_kst")) is not str or
+                rec["last_recalculated_kst"]>weekly.get("run_kst","") or
+                rec["last_recalculated_kst"]<observed_asof):
+                raise CoverageAuditError("invalid_technical_source_identity")
+            old_weekly_issuer_count+=1
+        tech_valid=(_number(rec.get("research_score_points")) and
+            _number(rec.get("available_weight")) and
+            0<rec["available_weight"]<=25 and
+            0<=rec["research_score_points"]<=rec["available_weight"])
+        if tech_valid:
+            technical_source_all_dates.add(code)
+            if current_day:technical.add(code)
+        if (current_day and _number(rec.get("momentum_research_points")) and
+            _number(rec.get("momentum_available_weight")) and
+            0<rec["momentum_available_weight"]<=10 and
+            0<=rec["momentum_research_points"]<=rec["momentum_available_weight"]):
+            momentum.add(code)
+    # The rotating workflow's own count is an observation over the full
+    # active CYCLE, whereas the financial join below is exact MARKET DAY.
+    if weekly.get("numeric_technical_candidates_this_cycle")!=len(technical_source_all_dates):
+        raise CoverageAuditError("technical_source_count_disagrees")
+    return technical,momentum,old_weekly_issuer_count,len(active_weekly)
+
+
 def coverage(catalog,history,parts,weekly):
     day=catalog.get("date")
     if not isinstance(day,str):
@@ -192,27 +256,8 @@ def coverage(catalog,history,parts,weekly):
         parts.get("companies_with_computable_pb_scores")!=len(pbr) or
         parts.get("companies_with_computable_earnings_yield_scores")!=len(earnings)):
         raise CoverageAuditError("research_component_evidence_count_mismatch")
-    technical=set();momentum=set()
-    if (weekly.get("processed_this_cycle")!=len(weekly["records"]) or
-        weekly.get("unprocessed_this_cycle")!=total-len(weekly["records"]) or
-        set(weekly["records"])-set(members)):
-        raise CoverageAuditError("incompatible_weekly_coverage")
-    for code,rec in weekly["records"].items():
-        if (not isinstance(rec,dict) or rec.get("code")!=code or
-            rec.get("market_source_asof")!=day):
-            raise CoverageAuditError("invalid_technical_source_identity")
-        if (_number(rec.get("research_score_points")) and
-            _number(rec.get("available_weight")) and
-            0<rec["available_weight"]<=25 and
-            0<=rec["research_score_points"]<=rec["available_weight"]):
-            technical.add(code)
-        if (_number(rec.get("momentum_research_points")) and
-            _number(rec.get("momentum_available_weight")) and
-            0<rec["momentum_available_weight"]<=10 and
-            0<=rec["momentum_research_points"]<=rec["momentum_available_weight"]):
-            momentum.add(code)
-    if weekly.get("numeric_technical_candidates_this_cycle")!=len(technical):
-        raise CoverageAuditError("technical_source_count_disagrees")
+    technical,momentum,old_weekly_issuer_count,active_weekly_count=(
+        weekly_current_day_evidence(weekly,day,members))
     industry_labels={code for code,row in members.items()
                      if isinstance(row.get("sector"),str) and row["sector"].strip()}
     # Category labels are useful data but NOT independently scored industry
@@ -246,7 +291,8 @@ def coverage(catalog,history,parts,weekly):
         "industry_sector_label_issuer_count":len(industry_labels),
         "industry_scored_rotation_issuer_count":0,
         "official_investor_IAS_source_issuer_count":0,
-        "technical_weekly_source_processed_issuer_count":len(weekly["records"]),
+        "technical_weekly_source_processed_issuer_count":active_weekly_count,
+        "technical_weekly_prior_market_day_records_excluded":old_weekly_issuer_count,
         "historical_dart_distinct_issuer_count":len(book_rows),
         "historical_dart_company_years_attempted_by_fiscal":attempted_years,
         "historical_dart_company_years_with_accounts_by_fiscal":observed_years,
