@@ -108,26 +108,24 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
         self.assertIn("cancel-in-progress: false",workflow)
 
     def test_new_market_date_defers_old_annual_join_without_data_loss(self):
-        old_day=self.bulk["asof"]
-        new_day=(date.fromisoformat(old_day)+timedelta(days=1)).isoformat()
-        old_market=copy.deepcopy(self.market)
-        old_catalog=copy.deepcopy(self.catalog)
-        old_market["date"]=old_catalog["date"]=old_day
-        for stock in old_market["stocks"]:
-            stock["price_date"]=old_day
-        market=copy.deepcopy(old_market)
-        catalog=copy.deepcopy(old_catalog)
-        market["date"]=catalog["date"]=new_day
-        for stock in market["stocks"]:
-            stock["price_date"]=new_day
+        # Keep the current valid market AND company-profile identity;
+        # simulate only the separately scheduled ANNUAL DART ledger lag.
+        market=copy.deepcopy(self.market)
+        catalog=copy.deepcopy(self.catalog)
+        new_day=market["date"]
+        old_day=(date.fromisoformat(new_day)-timedelta(days=1)).isoformat()
+        lagged_bulk=copy.deepcopy(self.bulk)
+        lagged_bulk["asof"]=old_day
+        current_bulk=copy.deepcopy(self.bulk)
+        current_bulk["asof"]=new_day
         self.assertTrue(source_join_ready(
-            old_market,old_catalog,self.codes,self.bulk))
+            market,catalog,self.codes,current_bulk))
         self.assertFalse(source_join_ready(
-            market,catalog,self.codes,self.bulk))
+            market,catalog,self.codes,lagged_bulk))
         # The old "build" operation is still STRICT, even when this
         # explicitly bounded, standalone publication option can defer.
         with self.assertRaises(IndustryEarningsError):
-            build(market,catalog,self.codes,self.bulk)
+            build(market,catalog,self.codes,lagged_bulk)
         original=DOCS/"v3-dart-industry-earnings-sample.json"
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory)
@@ -135,7 +133,7 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
                 "data.json":market,
                 "v22-market-catalog.json":catalog,
                 "v3-dart-industry-classification.json":self.codes,
-                "v3-dart-bulk-history.json":self.bulk,
+                "v3-dart-bulk-history.json":lagged_bulk,
             }
             for name,obj in contents.items():
                 (folder/name).write_text(json.dumps(obj),encoding="utf8")
@@ -152,15 +150,12 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
             self.assertEqual(dest.read_bytes(),prior)
 
     def test_bad_future_or_corrupt_annual_source_not_silently_deferred(self):
-        old_day=date.fromisoformat(self.bulk["asof"])
-        new_day=(old_day+timedelta(days=1)).isoformat()
         market=copy.deepcopy(self.market)
         catalog=copy.deepcopy(self.catalog)
-        market["date"]=catalog["date"]=new_day
-        for stock in market["stocks"]:
-            stock["price_date"]=new_day
+        new_day=market["date"]
+        old_day=date.fromisoformat(new_day)
         bad=copy.deepcopy(self.bulk)
-        bad["asof"]=(old_day+timedelta(days=2)).isoformat()
+        bad["asof"]=(old_day+timedelta(days=1)).isoformat()
         with self.assertRaises(IndustryEarningsError):
             source_join_ready(market,catalog,self.codes,bad)
         bad=copy.deepcopy(self.bulk)
