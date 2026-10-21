@@ -24,6 +24,7 @@ INDUSTRY_WARNINGS = frozenset({
     "zero_or_loss_base_prevents_growth_ratio",
     "aggregate_industry_operating_profit_declining",
     "low_declared_cohort_above_ma_breadth",
+    "profit_recovery_concentrated_in_one_issuer",
 })
 MAX_HISTORY = 4000
 PIVOT_LEFT = 3
@@ -140,6 +141,8 @@ def loss_first_screen(*, asof, price_bars=None, raw_features=None,
         industry_advisories.append("industry_turnaround_growth_unquantifiable")
     if "low_declared_cohort_above_ma_breadth" in industry:
         industry_advisories.append("weak_industry_market_breadth")
+    if "profit_recovery_concentrated_in_one_issuer" in industry:
+        industry_advisories.append("industry_profit_improvement_concentrated")
 
     if df is not None and len(df) >= 61:
         close = df["Close"].to_numpy(dtype=float)
