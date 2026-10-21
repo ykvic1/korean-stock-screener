@@ -5,8 +5,9 @@ on:
     branches: [main]
     paths:
       - v3_dart_cashflow_enrichment.py
+      - v3_dart_cashflow_factor_preview.py
       - .github/workflows/v3-dart-cashflow.yml
-  # Twelve source-qualified issuers x three annual reports per two hours.
+  # Thirty-two source-qualified issuers x three annual reports per two hours.
   # The existing bulk major-account collector remains independent.
   schedule:
     - cron: '17 */2 * * *'
@@ -44,8 +45,9 @@ jobs:
       - name: Run no-network exact-IFRS cashflow and no-fabrication tests
         run: |
           set -euo pipefail
-          python -m py_compile v3_dart_cashflow_enrichment.py
+          python -m py_compile v3_dart_cashflow_enrichment.py v3_dart_cashflow_factor_preview.py
           python -m unittest discover -s tests -p 'test_v3_dart_cashflow_enrichment.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_factor_preview.py' -v
       - name: Install official DART HTTP dependencies only in live mode
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
@@ -55,7 +57,7 @@ jobs:
           MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'live' }}
         run: |
           set -euo pipefail
-          python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 12
+          python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 32
       - name: Publish derived cashflow ONLY after successfully validated source
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
         run: |
@@ -63,12 +65,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [[ -f docs/v3-dart-cashflow-reference.json ]]; then
-            git add docs/v3-dart-cashflow-reference.json
+            python v3_dart_cashflow_factor_preview.py --mode write
+            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json
           fi
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official FY2023-2025 cashflow/CAPEX observations (no scores)"
             git pull --rebase origin main
             python v3_dart_cashflow_enrichment.py --mode verify
+            python v3_dart_cashflow_factor_preview.py --mode verify
             git push origin HEAD:main
           fi
       - name: Report real cashflow sources and missingness, never buy signals
@@ -90,6 +94,15 @@ jobs:
                  data.get('metrics',{}).items())
           else:
               lines.append('- 실제 소스 체크포인트 아직 없음')
+          candidate=Path('docs/v3-dart-fcf-research-preview.json')
+          if candidate.is_file():
+              p=json.loads(candidate.read_text(encoding='utf8'))
+              lines.append('- 3Y FCF/자산 진짜 원천 관측: **'+str(
+                 p.get('real_fcf_assets_three_year_raw_issuer_count',0))+'**')
+              lines.append('- 재무 FCF 4/15 연구점수 후보: **'+str(
+                 p.get('financial_fcf4_research_candidate_issuer_count',0))+'**')
+              lines.append('- 가치 FCF수익률 5/15 연구점수 후보: **'+str(
+                 p.get('valuation_fcf5_research_candidate_issuer_count',0))+'**')
           lines.append('미확인 항목 0원 추정 없음; IAS·산업·재무15·가치15·PIT 인증 없음.')
           dest.write_text('\n'.join(lines)+'\n',encoding='utf8')
           PY
