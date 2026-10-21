@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_all_listed_scorecard.py
+      - v3_scorecard_source_day_preflight.py
       - .github/workflows/v3-all-listed-scorecard.yml
   # Two research-only replays per hour at :24 and :54 KST. This bounds
   # public scorecard staleness during the live four-year/DART cashflow backfill.
@@ -47,12 +48,17 @@ jobs:
           python -m py_compile v3_all_listed_scorecard.py v3_dart_industry_earnings_sample.py
           python -m unittest discover -s tests -p 'test_v3_all_listed_scorecard.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_industry_earnings_sample.py' -v
+      - name: Check same market date of official saved DART and weekly source ledgers
+        id: date_gate
+        run: |
+          set -euo pipefail
+          python v3_scorecard_source_day_preflight.py
       - name: Calculate exactly the listed market's observed factor scores
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
         run: |
           python v3_all_listed_scorecard.py --mode write
       - name: Publish current-listed score CSV and source-readiness summary only
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -84,18 +90,22 @@ jobs:
             done
           fi
       - name: Read-only consistency check (manual)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' && steps.date_gate.outputs.ready == 'true' }}
         run: |
           python v3_all_listed_scorecard.py --mode verify
       - name: Publish source/coverage summary, not investment advice
         if: always()
+        env:
+          DAY_READY: ${{ steps.date_gate.outputs.ready }}
         run: |
           python - <<'PY'
           import json,os
           from pathlib import Path
           path=Path("docs/v3-all-listed-scorecard-summary.json")
           lines=["### 한국시장 전체 6영역 실측 잠정점수",
-            "자료 미확보는 비워두며 IAS·산업은 정식 점수로 추정하지 않습니다."]
+            "기존 투자자 IAS는 거래량·OBV 20점으로 대체; 16점만 관측, 4점 결측. 산업은 정식 점수 미인증."]
+          if os.getenv("DAY_READY")!="true":
+              lines.append("시장일과 DART/주간 데이터 기준일 차이로 이번 통합 점수표 게시 보류. 기존 게시 파일의 날짜를 새 날짜로 바꾸지 않음.")
           if path.is_file():
               report=json.loads(path.read_text(encoding="utf8"))
               lines.append("상장종목: "+str(report["listed_total"]))
