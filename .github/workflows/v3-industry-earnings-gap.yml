@@ -1,0 +1,130 @@
+name: V3 Saved Industry Annual Earnings Missingness Audit (no provider)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_industry_earnings_gap_audit.py
+      - docs/data.json
+      - docs/v22-market-catalog.json
+      - docs/v3-dart-industry-classification.json
+      - docs/v3-dart-bulk-history.json
+      - docs/v3-dart-industry-earnings-sample.json
+      - .github/workflows/v3-industry-earnings-gap.yml
+  # Recompute from SAVED annual source only, after DART bulk :29/profile :36.
+  schedule:
+    - cron: '40 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        required: true
+        type: choice
+        options: [verify, write]
+        default: verify
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-industry-gap
+  cancel-in-progress: false
+
+jobs:
+  audited-saved-annual-gap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline missingness and fraud-rejection tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_industry_earnings_gap_audit.py
+          python -m unittest discover -s tests -p 'test_v3_industry_earnings_gap_audit.py' -v
+      - name: Gate on genuine same-day official DART archive and company profile
+        id: market_gate
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from v3_dart_industry_earnings_sample import source_join_ready
+          base=Path("docs")
+          def read(name):
+              return json.loads((base/name).read_text(encoding="utf8"))
+          market=read("data.json")
+          catalog=read("v22-market-catalog.json")
+          industry=read("v3-dart-industry-classification.json")
+          archive=read("v3-dart-bulk-history.json")
+          ready=source_join_ready(market,catalog,industry,archive)
+          complete=(industry.get("observed_industry_codes")==catalog["listed_total"])
+          ready=ready and complete
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as fp:
+              fp.write("ready="+str(ready).lower()+"\n")
+          print(json.dumps({
+              "ready":ready,"market_asof":catalog["date"],
+              "annual_asof":archive["asof"],"complete_current_company_codes":complete,
+              "official_industry_15_points_authorized":False,"new_provider_calls":0,
+          },sort_keys=True))
+          PY
+      - name: Compute all-listed saved-source FY2024-25 missingness
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.market_gate.outputs.ready == 'true' }}
+        run: python v3_industry_earnings_gap_audit.py --mode write
+      - name: Publish only no-raw-data industry missingness and work queue
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.market_gate.outputs.ready == 'true' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-industry-saved-profit-gap-summary.json docs/v3-industry-saved-profit-gap-issuers.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "Audit verified FY2024-25 DART industry income gaps without scoring"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              # Re-evaluate from latest rebased stored source. A market-day
+              # mismatch or missing classified issuer FAILS, never postdates.
+              python v3_industry_earnings_gap_audit.py --mode write
+              git add docs/v3-industry-saved-profit-gap-summary.json docs/v3-industry-saved-profit-gap-issuers.csv
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              python v3_industry_earnings_gap_audit.py --mode verify
+              if git push origin HEAD:main; then
+                echo "verified_saved_industry_profit_gap_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::industry_gap_publish_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Read-only current evidence verification
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' && steps.market_gate.outputs.ready == 'true' }}
+        run: python v3_industry_earnings_gap_audit.py --mode verify
+      - name: Report first-blocker categories only, no investment scores
+        if: always()
+        env:
+          SOURCE_READY: ${{ steps.market_gate.outputs.ready }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          lines=["### V3 공시 업종코드 및 두 연도 영업이익 저장원장 누락 진단",
+                 "원인 코드는 저장된 연간 자료 기준이며 실제 공시 부재의 증거가 아닙니다.",
+                 "과거 KRX 업종 구성/PIT 미검증. 산업 15점 부여 0개. 새 DART 호출 0건."]
+          if os.getenv("SOURCE_READY")!="true":
+              lines.append("현재 시장일·연간원장·기업 업종코드의 동기화 대기: 금회 발행 보류")
+          path=Path("docs/v3-industry-saved-profit-gap-summary.json")
+          if path.is_file():
+              a=json.loads(path.read_text(encoding="utf8"))
+              lines.extend([
+                "저장된 진단 기준일: "+str(a["asof"]),
+                "실제 두 연도 비교 확보: "+str(a["actual_saved_annual_profit_pairs"]),
+                "저장원장 미확보/미검증: "+str(a["saved_profit_pair_unavailable"]),
+                "미확보 첫 차단원인 수: "+str(a["missing_reason_counts"]),
+              ])
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY
