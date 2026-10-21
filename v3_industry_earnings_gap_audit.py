@@ -112,7 +112,11 @@ def missing_reason(record, prior_year, latest_year, asof):
 
 def build(market,catalog,industry,bulk):
     """Audit exact same-day source state and reconcile to original 2Y sample."""
-    if not source_join_ready(market,catalog,industry,bulk):
+    try:
+        ready=source_join_ready(market,catalog,industry,bulk)
+    except (IndustryEarningsError,ValueError,TypeError,KeyError):
+        raise IndustryGapError("untrusted_industry_source_preflight") from None
+    if not ready:
         raise IndustryGapError("industry_earnings_sources_not_same_market_date")
     try:
         asof,members=_inputs(market,catalog)
@@ -122,6 +126,11 @@ def build(market,catalog,industry,bulk):
     except (ValueError,KeyError,TypeError,IndustryEarningsError):
         raise IndustryGapError("untrusted_real_industry_filing_source") from None
     previous,latest=sample["fiscal_year_pair"]
+    titles={item["code"]:item["name"] for item in catalog["rows"]}
+    if (len(titles)!=len(members) or set(titles)!=set(members)
+        or any(not isinstance(title,str) or not title.strip()
+               for title in titles.values())):
+        raise IndustryGapError("listed_issuer_names_not_reconciled")
     missing=[]
     categories=Counter()
     by_market=defaultdict(Counter)
@@ -146,7 +155,7 @@ def build(market,catalog,industry,bulk):
         by_market[market_name][reason]+=1
         group["missing"][reason]+=1
         missing.append({
-          "code":code,"name":members[code]["name"],"market":market_name,
+          "code":code,"name":titles[code],"market":market_name,
           "industry_prefix_2":prefix,"saved_source_gap":reason,
         })
     if (len(missing)+matched!=len(members) or
