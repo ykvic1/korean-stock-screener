@@ -7,11 +7,13 @@ on:
       - v3_all_listed_scorecard.py
       - v3_dart_industry_earnings_sample.py
       - .github/workflows/v3-all-listed-scorecard.yml
-  # Once hourly at :57 KST to publish scores after each DART/CAPEX
-  # acquisition window; shared concurrency serializes against backfills.
-  # Reuses already-stored source facts: zero new DART/KRX provider calls.
+  # Two research-only replays per hour at :27 and :57 KST. This bounds
+  # public scorecard staleness during the live four-year/DART cashflow backfill.
+  # The shared publication lock queues behind source collectors rather than
+  # competing with or interrupting the weekday 18:30 V2.2 market scan.
+  # Every replay reads saved, source-checked facts: zero new DART/KRX calls.
   schedule:
-    - cron: '57 * * * *'
+    - cron: '27,57 * * * *'
   workflow_dispatch:
     inputs:
       mode:
