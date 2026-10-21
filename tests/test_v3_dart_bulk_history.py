@@ -128,6 +128,24 @@ class BulkHistoryTests(unittest.TestCase):
                 bulk._normalize_year(bad,2025,DAY,set(CODES),
                     {corp:code for code,corp in CORPS.items()})
 
+    def test_current_dart_company_master_is_safely_size_bounded_and_identified(self):
+        self.assertEqual(bulk._mapping(mapping_zip(),set(CODES)),CORPS)
+        with self.assertRaisesRegex(bulk.BulkHistoryError,"not_zip_bytes"):
+            bulk._mapping(b"",set(CODES))
+        with self.assertRaisesRegex(bulk.BulkHistoryError,"zip_over_30mb"):
+            bulk._mapping(b"x"*30_000_001,set(CODES))
+        with self.assertRaisesRegex(bulk.BulkHistoryError,"not_parseable_zip_xml"):
+            bulk._mapping(b"not a zip",set(CODES))
+        corrupt=BytesIO()
+        with ZipFile(corrupt,"w") as z:
+            z.writestr("CORPCODE.xml",("<result><list><stock_code>005930</stock_code>"
+               "<corp_code>00100000</corp_code></list>"
+               "<list><stock_code>005930</stock_code>"
+               "<corp_code>00100001</corp_code></list></result>"))
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                    "duplicate_stock_identity"):
+            bulk._mapping(corrupt.getvalue(),set(CODES))
+
     def test_provider_stop_and_incomplete_response_do_not_update_snapshot(self):
         market,catalog=fixture()
         with self.assertRaisesRegex(bulk.BulkHistoryError,

@@ -178,29 +178,38 @@ def plan(market,catalog,*,prior=None,groups=MAX_GROUPS):
 
 
 def _mapping(blob, requested_codes):
-    if type(blob) is not bytes or not 0<len(blob)<6_000_000:
-        raise BulkHistoryError("invalid_company_mapping_payload")
+    # DART's full current+historic corporation master grows independently of
+    # today's ~2,497 KRX listed names. Do not confuse a growing XML source
+    # file with a valid stock market census. Still cap ZIP and XML memory.
+    if type(blob) is not bytes or not blob:
+        raise BulkHistoryError("dart_company_master_not_zip_bytes")
+    if len(blob)>30_000_000:
+        raise BulkHistoryError("dart_company_master_zip_over_30mb")
     try:
         with ZipFile(BytesIO(blob)) as z:
             if "CORPCODE.xml" not in z.namelist():
-                raise ValueError()
+                raise BulkHistoryError("dart_company_master_missing_xml")
             with z.open("CORPCODE.xml") as fd:
-                body=fd.read(25_000_001)
-        if len(body)>25_000_000:
-            raise ValueError()
+                body=fd.read(80_000_001)
+        if len(body)>80_000_000:
+            raise BulkHistoryError("dart_company_master_xml_over_80mb")
         xml=ET.fromstring(body)
-        mapped={}
-        for item in xml.findall("list"):
-            code=item.findtext("stock_code")
-            corp=item.findtext("corp_code")
-            if code in requested_codes:
-                if not CORP.fullmatch(corp or "") or code in mapped:
-                    raise ValueError()
-                mapped[code]=corp
-        if not mapped:
-            raise ValueError()
+    except BulkHistoryError:
+        raise
     except Exception:
-        raise BulkHistoryError("invalid_company_mapping_payload") from None
+        raise BulkHistoryError("dart_company_master_not_parseable_zip_xml") from None
+    mapped={}
+    for item in xml.findall("list"):
+        code=item.findtext("stock_code")
+        corp=item.findtext("corp_code")
+        if code in requested_codes:
+            if not CORP.fullmatch(corp or ""):
+                raise BulkHistoryError("dart_company_master_bad_corp_identity")
+            if code in mapped and mapped[code]!=corp:
+                raise BulkHistoryError("dart_company_master_duplicate_stock_identity")
+            mapped[code]=corp
+    if not mapped:
+        raise BulkHistoryError("dart_company_master_no_listed_matches")
     return mapped
 
 
