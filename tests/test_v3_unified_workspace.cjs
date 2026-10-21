@@ -42,6 +42,8 @@ assert.ok(sampleRow);
 sampleRow.observed_earnings_improving_issuer_ratio_sample_only=0;
 sampleRow.improvement_breadth_lower_bound_known_classified_only=0;
 sampleRow.improvement_breadth_upper_bound_known_classified_only=0;
+sampleRow.classified_sample_earnings_coverage_ratio=
+  sampleRow.issuer_year_pair_observed/sampleRow.current_classified_issuers;
 assert.ok(unified.industryEvidenceView(sample,sample.asof)
  .html.includes('0.0%'));
 // A weekly group is evidence replay, NOT full verification or a fresh API response.
