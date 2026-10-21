@@ -29,7 +29,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: korea-stock-screener-publication
+  group: korea-stock-screener-dart-fouryear-major
   cancel-in-progress: false
 
 jobs:
@@ -101,11 +101,23 @@ jobs:
           git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json docs/v3-real-source-six-area-coverage.json docs/v3-real-source-six-area-progress.json
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official 100-company annual 4-year DART batch (derived source)"
-            git pull --rebase origin main
-            python v3_dart_bulk_history.py --mode verify
-            python v3_real_six_pillar_coverage_audit.py --mode verify
-            python v3_real_source_progress_ledger.py --mode verify
-            git push origin HEAD:main
+            # Retry only Git push/rebase after source-safe verification.
+            # A new market date or provider revision must fail, not re-label
+            # stale fiscal evidence; never refetch DART in this retry loop.
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_dart_bulk_history.py --mode verify
+              python v3_real_six_pillar_coverage_audit.py --mode verify
+              python v3_real_source_progress_ledger.py --mode verify
+              if git push origin HEAD:main; then
+                echo "verified_fouryear_evidence_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::fouryear_publish_retries_exhausted"
+                exit 1
+              fi
+            done
           fi
       - name: Historical source acquisition results (audit only)
         if: always()
