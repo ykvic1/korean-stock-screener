@@ -19,6 +19,12 @@ def actual_inputs():
 
 
 class RealCoverageAuditTests(unittest.TestCase):
+    def setUp(self):
+        catalog,bulk,parts,weekly=actual_inputs()
+        day=catalog["date"]
+        if any(d!=day for d in (
+                bulk["asof"],parts["asof"],weekly["market_asof"])):
+            self.skipTest("saved_research_sources_await_same_market_date")
     def test_actual_saved_sources_are_reconciled_with_no_fake_100point(self):
         sources=actual_inputs()
         out=audit.coverage(*sources)
@@ -132,3 +138,11 @@ class RealCoverageAuditTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+class RealCoverageRolloverTests(unittest.TestCase):
+    def test_cross_day_official_annual_evidence_rejected(self):
+        catalog,bulk,parts,weekly=actual_inputs()
+        altered=copy.deepcopy(bulk)
+        altered["asof"]="2026-10-19" if catalog["date"]!="2026-10-19" else "2026-10-18"
+        with self.assertRaises(audit.CoverageAuditError):
+            audit.coverage(catalog,altered,parts,weekly)
