@@ -254,64 +254,76 @@ def _mapping(blob, requested_codes):
 
 def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
                 prior_years=None,on_year=None):
-    """Skip verified historical years and checkpoint each complete annual GET."""
+    """Query ≤25 actual issuers per annual request; checkpoint every batch.
+
+    The official 100-company API allows *at most* 100 names, but repeated
+    real-world 100-name large filings had dropped the HTTP connection.
+    Smaller groups bound response volume and preserve independently valid
+    company-years without replaying previously saved years.
+    """
     prior_years=prior_years or {}
     found={c:dict(prior_years.get(c,{})) for c in code_cohort}
     available=[c for c in code_cohort if c in corp_map]
     requests_made=0
     for year in years:
         needed=[c for c in available if str(year) not in found[c]]
-        if not needed:
-            for code in code_cohort:
-                found[code].setdefault(str(year),{})
-            continue
-        lookup={corp_map[c]:c for c in needed}
-        try:
-            response=session.get(
-                "https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
-                params={"crtfc_key":key,"corp_code":",".join(lookup),
-                        "bsns_year":str(year),"reprt_code":"11011"},
-                timeout=55)
-            requests_made+=1
-            response.raise_for_status()
-            payload=response.json()
-        except Exception as exc:
-            name=type(exc).__name__
-            reason=("dart_bulk_http_timeout"
-                    if name in ("ReadTimeout","ConnectTimeout","Timeout")
-                    else "dart_bulk_http_connection_failed"
-                    if name=="ConnectionError" else "dart_bulk_http_status_failed"
-                    if name=="HTTPError" else "dart_bulk_invalid_json"
-                    if name=="JSONDecodeError" else "dart_bulk_transport_unavailable")
-            raise BulkHistoryError(reason) from None
-        if not isinstance(payload,dict):
-            raise BulkHistoryError("dart_bulk_unexpected_response")
-        status=payload.get("status")
-        if status=="013":
-            rows=[]
-        elif status=="000":
-            rows=payload.get("list")
-            if not isinstance(rows,list) or not rows:
-                raise BulkHistoryError("dart_bulk_empty_success_response")
-        else:
-            raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
-        diagnostics={}
-        try:
-            extracted=_normalize_year(rows,year,asof,set(needed),lookup,
-                                      diagnostics=diagnostics)
-        finally:
-            print(json.dumps({
-                "dart_bulk_fiscal_year":year,
-                "batch_requested_companies":len(needed),
-                "source_validation":diagnostics,
-                "raw_dart_rows_logged":False,
-            },sort_keys=True),flush=True)
+        for offset in range(0,len(needed),25):
+            batch=needed[offset:offset+25]
+            lookup={corp_map[c]:c for c in batch}
+            try:
+                response=session.get(
+                    "https://opendart.fss.or.kr/api/fnlttMultiAcnt.json",
+                    params={"crtfc_key":key,"corp_code":",".join(lookup),
+                            "bsns_year":str(year),"reprt_code":"11011"},
+                    timeout=55)
+                requests_made+=1
+                response.raise_for_status()
+                payload=response.json()
+            except Exception as exc:
+                kind=type(exc).__name__
+                reason=("dart_bulk_http_timeout"
+                        if kind in ("ReadTimeout","ConnectTimeout","Timeout")
+                        else "dart_bulk_http_connection_failed"
+                        if kind=="ConnectionError" else "dart_bulk_http_status_failed"
+                        if kind=="HTTPError" else "dart_bulk_invalid_json"
+                        if kind=="JSONDecodeError" else "dart_bulk_transport_unavailable")
+                raise BulkHistoryError(reason) from None
+            if not isinstance(payload,dict):
+                raise BulkHistoryError("dart_bulk_unexpected_response")
+            status=payload.get("status")
+            if status=="013":
+                rows=[]
+            elif status=="000":
+                rows=payload.get("list")
+                if not isinstance(rows,list) or not rows:
+                    raise BulkHistoryError("dart_bulk_empty_success_response")
+            else:
+                # A status such as 020 (quota) must pause the run.
+                raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
+            diagnostics={}
+            try:
+                extracted=_normalize_year(
+                    rows,year,asof,set(batch),lookup,diagnostics=diagnostics)
+            finally:
+                print(json.dumps({
+                    "dart_bulk_fiscal_year":year,
+                    "batch_requested_companies":len(batch),
+                    "source_validation":diagnostics,
+                    "raw_dart_rows_logged":False,
+                },sort_keys=True),flush=True)
+            for code in batch:
+                found[code][str(year)]=extracted.get(code,{})
+            if on_year:
+                on_year({c:{str(year):found[c][str(year)]}
+                         for c in batch},year)
+        # Keep 'no corporation mapping' distinct from real observed accounts;
+        # annual observations are never invented, and unmatched firms remain
+        # an empty researched source for any year in this completed cohort.
         for code in code_cohort:
-            found[code].setdefault(str(year),extracted.get(code,{}))
-        if on_year:
-            on_year({c:{str(year):found[c][str(year)]}
-                     for c in code_cohort},year)
+            if code not in available:
+                found[code].setdefault(str(year),{})
     return found,requests_made
+
 
 def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
     asof,members,retained,fiscal,cohorts=plan(
