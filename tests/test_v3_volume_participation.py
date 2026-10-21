@@ -1,7 +1,7 @@
 """Offline price-volume factor tests: zero investor-flow assumptions."""
 import copy
-import csv
 import unittest
+from datetime import date,timedelta
 
 from test_v3_dart_rolling_book_reference import fixture,DAY
 from v3_volume_participation import (
@@ -64,7 +64,7 @@ class ObservedVolumeTests(unittest.TestCase):
             dict(original,volume_ratio=True),
             dict(original,price60=float("nan")),
             dict(original,volume_ratio=-1),
-            dict(original,price_date="2026-10-19"),
+            dict(original,price_date=(date.fromisoformat(DAY)-timedelta(days=1)).isoformat()),
             dict(original,market="KOSDAQ"),
         ):
             self.assertIsNone(observed(broken,asof=DAY,market="KOSPI"))
@@ -78,6 +78,10 @@ class ObservedVolumeTests(unittest.TestCase):
         s.update({"volume_ratio":1.5,"obv_rising":True,
                   "price60":3.0,"divergence":True,
                   "one_day_volume_ratio":12.5})
+        for entry in catalog["rows"]:
+            for current in market["stocks"]:
+                if entry["code"]==current["code"]:
+                    entry["name"]=current["name"]
         for later in market["stocks"][1:]:
             later.update({"volume_ratio":None})
         out=build(market,catalog)
@@ -91,7 +95,7 @@ class ObservedVolumeTests(unittest.TestCase):
         self.assertEqual(out["records"][s["code"]]["observed_points"],16)
         self.assertNotIn(market["stocks"][1]["code"],out["records"])
         wrong=copy.deepcopy(catalog)
-        wrong["date"]="2026-10-19"
+        wrong["date"]=(date.fromisoformat(DAY)-timedelta(days=1)).isoformat()
         with self.assertRaises(VolumeEvidenceError):
             build(market,wrong)
         mismatch=copy.deepcopy(catalog)
