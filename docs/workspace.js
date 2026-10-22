@@ -741,6 +741,99 @@ function summary(model,core){
   officialFullScore:0,rollingBook:model.rollingBookCount,quant:model.quantCount};
 }
 // Observed sample comparison, never a stock-specific investment rank.
+function industryPriceEvidenceView(raw,asof,listed){
+ if(!raw||raw.schema!=='v3-current-company-industry-relative-strength-observed-v1'||
+    raw.asof!==asof||!validDate(asof)||raw.listed_total!==listed||
+    !Number.isInteger(listed)||listed<100||
+    raw.historical_krx_sector_membership_pit_verified!==false||
+    raw.official_industry_15_points_authorized!==false||
+    raw.investment_grade_100point_scores_authorized!==false||
+    raw.independently_verified_benchmark_session_or_adjusted_prices!==false||
+    raw.new_provider_calls!==0||
+    !Array.isArray(raw.groups)||raw.groups_total!==raw.groups.length||
+    raw.groups.length>300||
+    !raw.source_sha256||Object.keys(raw.source_sha256).length!==3||
+    Object.values(raw.source_sha256).some(v=>typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v)))
+    return null;
+ let total=0,paired=0,watch=0;
+ const seen=new Set(),rows=[];
+ const labels=['insufficient_sample','early_relative_recovery_watch',
+               'relative20_extension_caution','no_early_recovery_pattern_observed'];
+ for(const g of raw.groups){
+   if(!g||!['KOSPI','KOSDAQ'].includes(g.market)||
+      typeof g.current_dart_industry_prefix_2!=='string'||
+      !/^[0-9]{2}$/.test(g.current_dart_industry_prefix_2)||
+      !Number.isInteger(g.current_listed_issuers)||
+      !Number.isInteger(g.same_day_priced_issuers)||
+      !Number.isInteger(g.complete_relative20_60_issuer_count)||
+      g.current_listed_issuers<1||
+      g.same_day_priced_issuers<g.complete_relative20_60_issuer_count||
+      g.complete_relative20_60_issuer_count<0||
+      g.same_day_priced_issuers>g.current_listed_issuers||
+      g.missing_relative20_60_issuer_count!==
+         g.current_listed_issuers-g.complete_relative20_60_issuer_count||
+      !labels.includes(g.early_rotation_research_state)||
+      g.official_industry_15_points!==null||
+      g.current_company_codes_not_historical_krx_sector!==true||
+      g.market_benchmark_dates_independently_verified!==false||
+      g.prices_corporate_action_adjusted_verified!==false)return null;
+   const key=g.market+':'+g.current_dart_industry_prefix_2;
+   if(seen.has(key))return null;seen.add(key);
+   const n=g.complete_relative20_60_issuer_count;
+   if(!finite(g.observed_20_60_coverage)||
+      Math.abs(g.observed_20_60_coverage-n/g.current_listed_issuers)>0.000002)return null;
+   const metrics=[g.median_market_relative_20pct_sample,
+                  g.median_market_relative_60pct_sample];
+   const breadth=[g.positive_relative20_breadth_observed_only,
+                  g.positive_relative20_breadth_all_lower_bound,
+                  g.positive_relative20_breadth_all_upper_bound];
+   if(n<3){
+     if(metrics.some(v=>v!==null)||breadth.some(v=>v!==null)||
+        g.positive_relative20_issuers_sample!==null)return null;
+   }else{
+     if(metrics.some(v=>!finite(v)||v< -100||v>1000)||
+        breadth.some(v=>!finite(v)||v<0||v>1)||
+        !Number.isInteger(g.positive_relative20_issuers_sample)||
+        g.positive_relative20_issuers_sample<0||
+        g.positive_relative20_issuers_sample>n||
+        Math.abs(breadth[0]-g.positive_relative20_issuers_sample/n)>0.000002||
+        Math.abs(breadth[1]-g.positive_relative20_issuers_sample/g.current_listed_issuers)>0.000002||
+        Math.abs(breadth[2]-
+          (g.positive_relative20_issuers_sample+g.current_listed_issuers-n)/
+            g.current_listed_issuers)>0.000002)return null;
+   }
+   const eligible=n>=10&&n/g.current_listed_issuers>=.75;
+   const early=g.early_rotation_research_state==='early_relative_recovery_watch';
+   if(early&&(!eligible||metrics[0]<=0||metrics[1]>0||
+                breadth[0]<=.5||metrics[0]>=15))return null;
+   if(!eligible&&g.early_rotation_research_state!=='insufficient_sample')return null;
+   watch+=Number(early);total+=g.current_listed_issuers;paired+=n;
+   if(early)rows.push({
+     market:g.market,code:g.current_dart_industry_prefix_2,
+     n,listed:g.current_listed_issuers,m20:metrics[0],m60:metrics[1],
+     lower:breadth[1],upper:breadth[2]
+   });
+ }
+ if(total!==listed||paired!==raw.paired_20_60_observations||
+    watch!==raw.groups_early_recovery_watch)return null;
+ rows.sort((a,b)=>b.n-a.n||a.market.localeCompare(b.market)||
+           a.code.localeCompare(b.code));
+ const strength=v=>(v>0?'+':'')+v.toFixed(1)+'%';
+ const html='<h3>업종 상대강도 회복 관찰 · 동일 시장일</h3>'+
+  '<p class="u-muted">현재 상장 '+total+'개 중 20·60일 상대강도 동시 확보 '+
+  paired+'개 · 관찰 후보 '+watch+'개 업종코드 그룹. 지수 대비 상대강도 표본 중앙값 기준으로 20일 양수·60일 0 이하인 그룹을 연구용으로 추렸습니다. <strong>매수 순위나 산업 15점이 아닙니다.</strong></p>'+
+  (rows.length?'<div class="u-scroller"><table><thead><tr>'+
+  '<th>시장 · 코드</th><th>관측/전체</th><th>20일 상대강도</th>'+
+  '<th>60일 상대강도</th><th>전체 강세비율 가능한 범위</th></tr></thead><tbody>'+
+  rows.slice(0,12).map(g=>
+   '<tr><th>'+esc(g.market)+' · '+esc(g.code)+'</th><td>'+g.n+'/'+
+   g.listed+'</td><td>'+strength(g.m20)+'</td><td>'+strength(g.m60)+
+   '</td><td>'+(g.lower*100).toFixed(0)+'~'+(g.upper*100).toFixed(0)+
+   '%</td></tr>').join('')+'</tbody></table></div>':
+   '<p class="u-muted">현재 엄격한 표본 조건을 충족한 상대강도 회복 관찰 후보가 없습니다.</p>')+
+  '<p class="u-muted">* 업종은 현재 DART 회사업종코드 2자리 분류입니다. 과거 구성종목, 수정주가 및 지수별 거래일은 별도 인증 전이며 후보 판정은 매매 신호가 아닙니다.</p>';
+ return {html,paired,watch};
+}
 function industryEvidenceView(raw,asof){
  if(!raw||raw.schema!=='v3-observed-dart-current-sector-profit-sample-0.1'||
    raw.asof!==asof||!validDate(asof)||
@@ -827,7 +920,7 @@ function industryEvidenceView(raw,asof){
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,INDUSTRY_COMPONENTS,industryParts,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -1016,7 +1109,8 @@ async function load(){
   'v3-dart-bulk-provisional.json','v3-real-source-six-area-coverage.json',
   'v3-dart-fcf-research-preview.json',
   'v3-dart-industry-earnings-sample.json','v3-volume-obv-observed.json',
-  'v3-current-price-technical-momentum.json'];
+  'v3-current-price-technical-momentum.json',
+  'v3-industry-observed-relative-strength.json'];
  try{
   const responses=await Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
@@ -1034,11 +1128,15 @@ async function load(){
   applyObservedVolume(model,responses[13]);
   applyCurrentPriceReplay(model,responses[14]);
   const industry=industryEvidenceView(responses[12],model.date);
-  $('industryResearchContent').innerHTML=industry?industry.html:
-    '<p class="u-muted">업종별 실제 실적 표본은 원천 날짜 또는 진위 검증 대기 중입니다. 산업점수를 임의로 표시하지 않습니다.</p>';
-  $('industryResearchCount').textContent=industry?
-    ('분류 '+industry.coverage+'개 · 실적 대조 '+industry.matched+'개'):
-    '자료 검증 대기';
+  const industryPrice=industryPriceEvidenceView(responses[15],model.date,model.marketEligible);
+  $('industryResearchContent').innerHTML=
+    (industryPrice?industryPrice.html:'<p class="u-muted">동일 시장일 업종 상대강도 집계 자료 동기화 대기 중입니다.</p>')+
+    (industry?industry.html:
+    '<p class="u-muted">업종별 실제 실적 표본은 원천 날짜 또는 진위 검증 대기 중입니다. 산업점수를 임의로 표시하지 않습니다.</p>');
+  $('industryResearchCount').textContent=industryPrice?
+    ('가격 관측 '+industryPrice.paired+'개 · 회복 관찰 '+industryPrice.watch+'개 그룹'):
+    (industry?'분류 '+industry.coverage+'개 · 실적 대조 '+industry.matched+'개':
+    '자료 검증 대기');
   selected=null;$('detail').hidden=true;
   present(model);
  }catch(_){
