@@ -2,6 +2,7 @@
 import base64
 import gzip
 import json
+from pathlib import Path
 import unittest
 
 import v3_krx_derived_corporate_action_risk as baseline
@@ -139,6 +140,23 @@ class IncrementalCorporateActionRiskTests(unittest.TestCase):
                                     "missing_verified_nine_cohort_baseline"):
             inc.run(storage=p,days=days,digest=DIGEST)
         self.assertFalse(any(k.startswith("derived/quality/") for k in p.blobs))
+
+
+    def test_derived_risk_follows_only_trusted_rolling_success(self):
+        text=(Path(__file__).resolve().parents[1]/
+              ".github/workflows/v3-krx-derived-corporate-risk-incremental.yml"
+              ).read_text(encoding="utf8")
+        self.assertIn("workflow_run:",text)
+        self.assertIn(
+            "V3 KRX Private Derived-Only 20/60/120/250-Session Return Research",text)
+        self.assertIn("types: [completed]",text)
+        self.assertIn("workflow_run.conclusion == 'success'",text)
+        self.assertIn("workflow_run.head_branch == 'main'",text)
+        self.assertIn("workflow_run.head_repository.full_name == github.repository",text)
+        self.assertIn("branches: [main]",text)
+        self.assertIn("v3_krx_corporate_risk_incremental.py",text)
+        self.assertNotIn("KRX_API_KEY:",text)
+        self.assertNotIn("DART_API_KEY:",text)
 
 
 if __name__=="__main__":
