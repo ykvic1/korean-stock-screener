@@ -1,9 +1,10 @@
 name: V3 KRX Derived-Only Historical Cohort Boundary Join
 
 on:
-  # Each source batch starts at 07:11, 14:11, 22:11 KST. Join after the
-  # batch, at most 24 derived links per run (96 KRX market calls).
+  # Join after each of four source slots (02:11, 07:11, 14:11, 22:11 KST),
+  # at most 24 derived links per run (96 official KRX market calls).
   schedule:
+    - cron: '47 17 * * *' # 02:47 KST, after the added 02:11 source slot
     - cron: '47 22 * * *' # 07:47 KST
     - cron: '47 5 * * *'  # 14:47 KST
     - cron: '47 13 * * *'
