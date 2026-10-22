@@ -80,10 +80,14 @@ with sync_playwright() as p:
         assert page.locator("#readinessPrice").inner_text() == (
             f"{observed['observed_issuer_counts']['technical']:,} / {observed['listed_total']:,}"
         )
-        assert page.locator("#readinessCashflow").inner_text() == (
-            f"{joined['observed_source_depth']['three_year_receipt_matched_fcf_issuers']:,} / "
-            f"{observed['listed_total']:,}"
-        )
+        if joined["asof"] == observed["asof"] and joined["listed_total"] == observed["listed_total"]:
+            assert page.locator("#readinessCashflow").inner_text() == (
+                f"{joined['observed_source_depth']['three_year_receipt_matched_fcf_issuers']:,} / "
+                f"{observed['listed_total']:,}"
+            )
+        else:
+            assert page.locator("#readinessCashflow").inner_text() == "미확인"
+            assert "3개년 FCF 갱신 대기" in page.locator("#readinessNotes").inner_text()
         assert page.locator("#readinessCertified").inner_text() == "0종목"
     else:
         # Market-close transition may leave legitimately mismatched snapshot
