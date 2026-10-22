@@ -458,6 +458,19 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertTrue(diagnostics["all_rows_recognized_foreign_unit_excluded"])
         self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
                          {"CNY":12,"USD":13})
+        # The next real batch exposed JPY 28 and USD 70 accounts. Both
+        # denominations are explicitly foreign and must contribute no KRW
+        # amounts, no fabricated zero, and no research points.
+        jpy_usd=[dict(row,currency=("JPY" if i%2 else "USD"))
+                 for i,row in enumerate(payload_rows(2022))]
+        jpy_diag={}
+        jpy_result=bulk._normalize_year(
+            jpy_usd,2022,DAY,set(CODES),lookup,diagnostics=jpy_diag)
+        self.assertEqual(jpy_result,{code:{} for code in CODES})
+        self.assertTrue(jpy_diag[
+            "all_rows_recognized_foreign_unit_excluded"])
+        self.assertEqual(jpy_diag["rejected_three_letter_unit_codes"],
+                         {"JPY":12,"USD":13})
 
         # Live 2022 response included 28 foreign rows whose receipts could
         # not be verified. No foreign amount may be used regardless of date.

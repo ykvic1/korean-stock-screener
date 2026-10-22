@@ -29,7 +29,7 @@ MAX_GROUPS = 3
 YEARS_BACK = 4
 MAX_SOURCE_FISCAL_CALLS = 16
 MAX_SOURCE_RUN_SECONDS = 1200
-OBSERVED_FOREIGN_UNITS = frozenset(("CNY", "USD"))
+OBSERVED_FOREIGN_UNITS = frozenset(("CNY", "JPY", "USD"))
 CORP_CACHE_SCHEMA = "v3-dart-listed-company-codes-actions-cache-0.1"
 LABELS = {
     ("IS","매출액"): "revenue",
@@ -224,7 +224,7 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
                 rows and recognized_foreign_rows==len(rows)),
             "quarantined_company_scope_count":len(tainted),
         })
-    # A USD/CNY filing is legitimate foreign-currency evidence, not KRW.
+    # An observed USD/CNY/JPY filing is foreign-currency evidence, not KRW.
     # Skip it without imputed conversion or score, while continuing to other
     # company batches. An unknown/missing unit or malformed evidence still
     # counts against the strict minimum trusted-source threshold.
