@@ -1,0 +1,117 @@
+name: V3 Current Company Industry Relative Strength Research (no provider)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_industry_price_rotation_research.py
+      - docs/data.json
+      - docs/v22-market-catalog.json
+      - docs/v3-dart-industry-classification.json
+      - .github/workflows/v3-industry-price-rotation.yml
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        required: true
+        type: choice
+        options: [verify, write]
+        default: verify
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-industry-price-observed
+  cancel-in-progress: false
+
+jobs:
+  current-company-relative-strength:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline source and no-sector-score regression
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_industry_price_rotation_research.py
+          python -m unittest discover -s tests -p 'test_v3_industry_price_rotation_research.py' -v
+      - name: Require exactly aligned complete saved market and company-code dates
+        id: gate
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from v3_industry_price_rotation_research import source_ready
+          p=Path("docs")
+          market=json.loads((p/"data.json").read_text(encoding="utf8"))
+          catalog=json.loads((p/"v22-market-catalog.json").read_text(encoding="utf8"))
+          industry=json.loads((p/"v3-dart-industry-classification.json").read_text(encoding="utf8"))
+          ready=source_ready(market,catalog,industry)
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as f:
+              f.write("ready="+str(ready).lower()+"\n")
+          print(json.dumps({"ready":ready,"asof":catalog.get("date"),
+                            "industry_asof":industry.get("asof"),
+                            "industry_15pt_certified":False,"new_provider_calls":0},
+                           sort_keys=True))
+          PY
+      - name: Recompute research-only group medians and missingness
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
+        run: python v3_industry_price_rotation_research.py --mode write
+      - name: Publish aggregates only, retry rebase with full source recheck
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-industry-observed-relative-strength.json docs/v3-industry-observed-relative-strength.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh saved-source current DART industry relative strength"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_industry_price_rotation_research.py --mode write
+              git add docs/v3-industry-observed-relative-strength.json docs/v3-industry-observed-relative-strength.csv
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              python v3_industry_price_rotation_research.py --mode verify
+              if git push origin HEAD:main; then
+                echo "audited_industry_relative_strength_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::industry_relative_strength_publish_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Verify saved publication only upon manual request
+        if: ${{ steps.gate.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        run: python v3_industry_price_rotation_research.py --mode verify
+      - name: Publish research caveats and actual availability in run summary
+        if: always()
+        env:
+          READY: ${{ steps.gate.outputs.ready }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          lines=["### V3 업종 상대강도 실제 관측 연구",
+                 "현재 DART 회사 업종코드별 집계. 공식 과거 KRX 업종 구성은 검증되지 않았습니다.",
+                 "20·60일 상대수익률은 저장된 가격 추정치이며 지수 날짜/수정주가 독립 검증 전입니다.",
+                 "산업 15점 배점 0, 신규 KRX/DART 호출 0."]
+          if os.getenv("READY")!="true":
+              lines.append("시장일과 업종코드 자료 날짜가 아직 정합하지 않아 발행 보류.")
+          path=Path("docs/v3-industry-observed-relative-strength.json")
+          if path.is_file():
+              a=json.loads(path.read_text(encoding="utf8"))
+              lines+=["최종 저장본 기준일: "+str(a["asof"]),
+                      "20일/60일 상대강도 실제 쌍: "+str(a["paired_20_60_observations"]),
+                      "관찰 후보 업종코드 그룹: "+str(a["groups_early_recovery_watch"])]
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY
