@@ -73,13 +73,13 @@ jobs:
       - name: Compute all-listed saved-source FY2024-25 missingness
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.market_gate.outputs.ready == 'true' }}
         run: python v3_industry_earnings_gap_audit.py --mode write
-      - name: Publish only no-raw-data industry missingness and work queue
+      - name: Publish grouped real industry profit breadth and audited gap queue (no raw values)
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.market_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/v3-industry-saved-profit-gap-summary.json docs/v3-industry-saved-profit-gap-issuers.csv
+          git add docs/v3-industry-saved-profit-gap-summary.json docs/v3-industry-saved-profit-gap-issuers.csv docs/v3-industry-observed-profit-breadth.csv
           if ! git diff --cached --quiet; then
             git commit -m "Audit verified FY2024-25 DART industry income gaps without scoring"
             for attempt in 1 2 3; do
@@ -87,7 +87,7 @@ jobs:
               # Re-evaluate from latest rebased stored source. A market-day
               # mismatch or missing classified issuer FAILS, never postdates.
               python v3_industry_earnings_gap_audit.py --mode write
-              git add docs/v3-industry-saved-profit-gap-summary.json docs/v3-industry-saved-profit-gap-issuers.csv
+              git add docs/v3-industry-saved-profit-gap-summary.json docs/v3-industry-saved-profit-gap-issuers.csv docs/v3-industry-observed-profit-breadth.csv
               if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
               python v3_industry_earnings_gap_audit.py --mode verify
               if git push origin HEAD:main; then
