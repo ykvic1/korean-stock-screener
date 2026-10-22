@@ -2,6 +2,7 @@ name: V3 KRX Private Derived Corporate Action Risk Review (incremental)
 
 on:
   schedule:
+    - cron: '43 18 * * *' # 03:43 KST, after the added 03:11 returns
     - cron: '43 23 * * *' # 08:43 KST, after 07:11 source / 07:47 bridge / 08:11 returns
     - cron: '43 6 * * *'  # 15:43 KST, after 14:11 source / 14:47 bridge / 15:11 returns
     - cron: '43 14 * * *' # 23:43 KST, after 22:11 source / 22:47 bridge / 23:11 returns
