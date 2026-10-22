@@ -1,6 +1,10 @@
 """Network-free OpenDART annual current-source rebind safety checks."""
 import copy
 from datetime import date
+import json
+from pathlib import Path
+import re
+import tempfile
 import unittest
 
 import v3_dart_bulk_history as bulk
@@ -126,6 +130,47 @@ class VerifiedAnnualRefreshTests(unittest.TestCase):
             issuer = freshness.slice_codes(history["records"], KST_DAY, 0)[1][0]
             mod.reconcile(market, catalog, book, history, replay(history, issuer),
                           when=KST_DAY, part=0, selected=[])
+
+    def test_stale_annual_scores_defer_without_api_and_verify_stays_strict(self):
+        market, catalog, book, history = evidence()
+        current = bulk.research_parts(history, catalog, book)
+        stale = copy.deepcopy(current)
+        stale["companies_with_computable_pb_scores"] = -1
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            sources = (market, catalog, book, history, stale)
+            paths = [base / f"annual_{i}.json" for i in range(len(sources))]
+            for path, source in zip(paths, sources):
+                path.write_text(json.dumps(source), encoding="utf8")
+            report_path = base / "report.json"
+            common = [
+                "--run-day", KST_DAY.isoformat(), "--part", "1",
+                "--market", str(paths[0]), "--catalog", str(paths[1]),
+                "--book", str(paths[2]), "--history", str(paths[3]),
+                "--scores", str(paths[4]), "--report", str(report_path),
+            ]
+            self.assertEqual(mod.main(["--mode", "publish", *common]), 0)
+            report = json.loads(report_path.read_text(encoding="utf8"))
+            self.assertEqual(report["status"], "waiting_annual_score_replay")
+            self.assertEqual(report["source_api_calls"], 0)
+            self.assertFalse(report["source_archive_changed"])
+            self.assertFalse(report["historical_PIT_certified"])
+            self.assertEqual(json.loads(paths[3].read_text(encoding="utf8")), history)
+            self.assertEqual(json.loads(paths[4].read_text(encoding="utf8")), stale)
+            with self.assertRaisesRegex(mod.RebindError,
+                                        "existing_annual_source_and_scores_disagree"):
+                mod.main(["--mode", "verify", *common])
+
+    def test_rebind_slots_follow_annual_book_then_hourly_score_replay(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/v3-dart-weekly-verified-refresh.yml").read_text(encoding="utf8")
+        bulk_flow = (root / ".github/workflows/v3-dart-bulk-four-year.yml").read_text(encoding="utf8")
+        crons = re.findall(r"^\\s+- cron: '([^']+)'", workflow, flags=re.M)
+        self.assertEqual(crons, [
+            "11 18 * * *", "11 21 * * *", "11 0 * * *", "11 3 * * *",
+        ])
+        self.assertIn("cron: '29 * * * *'", bulk_flow)
+        self.assertIn("git pull --rebase origin main", workflow)
 
     def test_audit_mode_never_uses_a_provider_or_writes_market(self):
         market, catalog, book, history = evidence()
