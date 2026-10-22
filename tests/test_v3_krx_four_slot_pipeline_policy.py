@@ -21,8 +21,6 @@ class FourSlotDerivedPipelineTests(unittest.TestCase):
              ["11 17 * * *", "11 22 * * *", "11 5 * * *", "11 13 * * *"]),
             ("v3-krx-derived-boundaries.yml",
              ["47 17 * * *", "47 22 * * *", "47 5 * * *", "47 13 * * *"]),
-            ("v3-krx-derived-rolling-returns.yml",
-             ["11 18 * * *", "11 23 * * *", "11 6 * * *", "11 14 * * *"]),
             ("v3-krx-derived-corporate-risk-incremental.yml",
              ["43 18 * * *", "43 23 * * *", "43 6 * * *", "43 14 * * *"]),
         )
@@ -35,6 +33,25 @@ class FourSlotDerivedPipelineTests(unittest.TestCase):
                 self.assertIn("contents: read", source)
                 self.assertNotIn("contents: write", source)
                 self.assertIn("persist-credentials: false", source)
+
+        # Rolling return research is triggered by each successful boundary
+        # completion; a single fallback remains for dropped GitHub events.
+        # All four source/boundary API slots remain unchanged.
+        rolling_workflow, rolling_slots = crons(
+            "v3-krx-derived-rolling-returns.yml")
+        self.assertEqual(rolling_slots, ["11 18 * * *"])
+        self.assertIn("V3 KRX Derived-Only Historical Cohort Boundary Join",
+                      rolling_workflow)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'",
+                      rolling_workflow)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'",
+                      rolling_workflow)
+        self.assertIn("group: v3-krx-private-derived-history",
+                      rolling_workflow)
+        self.assertIn("cancel-in-progress: false", rolling_workflow)
+        self.assertIn("contents: read", rolling_workflow)
+        self.assertNotIn("contents: write", rolling_workflow)
+        self.assertIn("persist-credentials: false", rolling_workflow)
 
     def test_no_unbounded_market_calls_or_certified_scores(self):
         source = (ROOT / "v3_krx_derived_backfill.py").read_text(encoding="utf-8")
