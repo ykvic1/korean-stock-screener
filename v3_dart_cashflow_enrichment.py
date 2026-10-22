@@ -22,8 +22,11 @@ from v3_dart_bulk_history import (
 )
 
 SCHEMA="v3-observed-annual-dart-cashflow-capex-0.1"
-MAX_ISSUERS=32
-MAX_SOURCE_CALLS=96
+MAX_ISSUERS=40
+# Forty issuers x three fiscal years; allow one extra corpCode.xml request
+# if the verified listing-mapping cache is unavailable. Partial progress is
+# checkpointed after every year when the wall-clock budget is reached.
+MAX_SOURCE_CALLS=121
 MAX_SECONDS=950
 YEARS=(2023,2024,2025)
 CFO_IDS={
