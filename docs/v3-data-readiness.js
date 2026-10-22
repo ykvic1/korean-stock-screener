@@ -31,21 +31,25 @@
     ids.status.textContent = '실제 수집자료 확인 중…';
     ids.notes.textContent = '자료 기준일과 종목 수가 일치하는지 검증 중입니다.';
     try {
-      const results = await Promise.all(SOURCE_FILES.map(async path => {
+      // Source-specific freshness: a lagging weekly scorecard must not hide
+      // independently verified SAME-DAY DART and price source coverage.
+      const [current, history] = await Promise.all(SOURCE_FILES.slice(0, 2).map(async path => {
         const response = await fetch(path, {cache: 'no-store'});
         if (!response.ok) throw new Error('source unavailable');
         return response.json();
       }));
-      const [current, history, score] = results;
+      let score = null;
+      try {
+        const response = await fetch(SOURCE_FILES[2], {cache: 'no-store'});
+        if (response.ok) score = await response.json();
+      } catch (_) { /* Optional FCF source may legitimately lag. */ }
       const asof = current.asof;
       const listed = current.listed_total;
       if (!date(asof) || asof !== history.market_asof ||
-          asof !== score.asof ||
           !Number.isSafeInteger(listed) || listed < 100 ||
-          listed !== history.listed_total || listed !== score.listed_total ||
+          listed !== history.listed_total ||
           !current.observed_issuer_counts || !history.historical_dart_company_years_attempted_by_fiscal ||
-          !history.historical_dart_company_years_with_accounts_by_fiscal ||
-          !score.observed_source_depth) {
+          !history.historical_dart_company_years_with_accounts_by_fiscal) {
         throw new Error('source date or market census mismatch');
       }
       const fiscalYears = Array.from({length: 4}, (_, i) => String(Number(asof.slice(0, 4)) - 4 + i));
@@ -58,22 +62,27 @@
         actual += b;
       }
       const priced = current.observed_issuer_counts.technical;
-      const fcf = score.observed_source_depth.three_year_receipt_matched_fcf_issuers;
-      const certified = score.full_six_pillar_certified_count;
+      // FCF must be same-market-day, but never suppress financial/price
+      // coverage just because the independently scheduled FCF report lags.
+      const fcf = score && score.asof === asof && score.listed_total === listed &&
+        score.observed_source_depth ?
+        score.observed_source_depth.three_year_receipt_matched_fcf_issuers : null;
+      const certified = current.certified_100point_count;
       if (attempted < 1 || !count(priced, listed) ||
-          !count(fcf, listed) || !count(certified, listed) ||
+          (fcf !== null && !count(fcf, listed)) || !count(certified, listed) ||
           !count(current.observed_any_factor_issuers, listed)) {
         throw new Error('invalid source-derived coverage');
       }
       ids.financial.textContent = fmt(actual) + ' / ' + fmt(attempted);
       ids.price.textContent = fmt(priced) + ' / ' + fmt(listed);
-      ids.cashflow.textContent = fmt(fcf) + ' / ' + fmt(listed);
+      ids.cashflow.textContent = fcf === null ? '미확인' : fmt(fcf) + ' / ' + fmt(listed);
       ids.certified.textContent = fmt(certified) + '종목';
       ids.status.textContent = '자료 기준일 ' + asof;
       ids.notes.textContent =
         'DART 4개년 재무 ' + percent(actual, attempted) +
         ' · 기술분석 관측 ' + percent(priced, listed) +
-        ' · 3개년 FCF ' + percent(fcf, listed) +
+        (fcf === null ? ' · 3개년 FCF 갱신 대기' :
+          ' · 3개년 FCF ' + percent(fcf, listed)) +
         '. 이는 데이터 확보율이며 매수 검증률이 아닙니다. ' +
         '미확보 항목은 0점으로 처리하지 않습니다.';
     } catch (_) {
