@@ -2,7 +2,7 @@ name: V3 KRX Derived-Only Historical Cohort Boundary Join
 
 on:
   # Each source batch starts at 07:11, 14:11, 22:11 KST. Join after the
-  # batch, at most sixteen derived links per run (64 KRX market calls).
+  # batch, at most 24 derived links per run (96 KRX market calls).
   schedule:
     - cron: '47 22 * * *' # 07:47 KST
     - cron: '47 5 * * *'  # 14:47 KST
@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_krx_derived_bridges.py
           python -m unittest discover -s tests -p 'test_v3_krx_derived_bridges.py' -v
-      - name: Save up to sixteen cross-cohort return links from actual KRX sessions
+      - name: Save up to 24 cross-cohort return links from actual KRX sessions
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}

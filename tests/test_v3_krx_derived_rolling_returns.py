@@ -78,16 +78,16 @@ def setup_factors(cohorts=9,*,quarantine_one=False):
 
 
 class PrivateKRXDerivedReturnTests(unittest.TestCase):
-    def test_sixteen_windows_per_horizon_with_exact_resume(self):
-        p,candidates=setup_factors(cohorts=25)
+    def test_twenty_four_windows_per_horizon_with_exact_resume(self):
+        p,candidates=setup_factors(cohorts=33)
         first=rolling.run(storage=p,dates=candidates,
                           calendar_hash=DIGEST,horizons=[20])
-        self.assertEqual(first["horizons"]["20"]["newly_written_or_reused_windows"],16)
+        self.assertEqual(first["horizons"]["20"]["newly_written_or_reused_windows"],24)
         self.assertEqual(first["provider_api_calls"],0)
         second=rolling.run(storage=p,dates=candidates,
                            calendar_hash=DIGEST,horizons=[20])
         self.assertEqual(second["horizons"]["20"]["newly_written_or_reused_windows"],6)
-        self.assertEqual(second["horizons"]["20"]["saved_complete_cohort_windows"],22)
+        self.assertEqual(second["horizons"]["20"]["saved_complete_cohort_windows"],30)
         self.assertEqual(second["provider_api_calls"],0)
 
     def test_first_nine_cohorts_yield_six_20day_windows_no_other_horizon_yet(self):
@@ -156,6 +156,10 @@ class PrivateKRXDerivedReturnTests(unittest.TestCase):
     def test_corrupt_checkpoint_bad_calendar_or_wrong_public_destination_fails(self):
         p,days_=setup_factors()
         provider_call_count=0
+        with self.assertRaisesRegex(rolling.DerivedReturnError,
+                                    "invalid_rolling_factor_configuration"):
+            rolling.run(storage=p,dates=days_,calendar_hash=DIGEST,
+                        limit=25,horizons=[20])
         p.repository="ykvic1/korean-stock-screener"
         with self.assertRaises(rolling.DerivedReturnError):
             rolling.run(storage=p,dates=days_,calendar_hash=DIGEST)
