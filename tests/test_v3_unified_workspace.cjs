@@ -10,6 +10,63 @@ const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+// Verified PRIVATE KRX derived backfill is a separate research progress meter.
+// It NEVER claims adjusted-history price certification or historical PIT.
+const krxProgress=require('../docs/v3-krx-progress.js');
+const syntheticKrxProgress={
+ schema:'v3-verified-private-derived-krx-historical-progress-0.1',
+ source_candidate_start:'2016-10-17',source_candidate_end:'2026-10-16',
+ five_session_cohorts_target:100,five_session_cohorts_completed:10,
+ five_session_cohorts_remaining:90,source_history_coverage_ratio:.1,
+ last_completed_source_session:'2017-01-30',
+ cross_cohort_bridges_completed:8,
+ cross_cohort_bridges_required_for_completed_source:9,
+ cross_cohort_bridges_backlog:1,
+ rolling_return_horizon_research:{
+  '20':{complete_cohort_windows:6,
+        possible_windows_from_current_verified_bridges:6,
+        backlog_windows_at_this_snapshot:0,
+        unadjusted_price_return_approved:false},
+  '60':{complete_cohort_windows:0,
+        possible_windows_from_current_verified_bridges:0,
+        backlog_windows_at_this_snapshot:0,
+        unadjusted_price_return_approved:false},
+  '120':{complete_cohort_windows:0,
+         possible_windows_from_current_verified_bridges:0,
+         backlog_windows_at_this_snapshot:0,
+         unadjusted_price_return_approved:false},
+  '250':{complete_cohort_windows:0,
+         possible_windows_from_current_verified_bridges:0,
+         backlog_windows_at_this_snapshot:0,
+         unadjusted_price_return_approved:false}
+ },
+ price_discontinuity_heuristic_cohorts_reviewed:9,
+ price_discontinuity_review_backlog_at_verified_bridges:0,
+ private_immutable_evidence_tails_verified:true,
+ private_repo_verified_before_read:true,
+ historical_delisted_universe_pit_verified:false,
+ corporate_actions_or_adjusted_prices_verified:false,
+ official_exchange_historical_factor_certified:false,
+ industry_15_or_other_v3_trade_score_promoted:false,
+ public_issuer_prices_or_individual_returns_written:false,
+ provider_data_new_calls:0
+};
+const sourceProgress=krxProgress.validate(syntheticKrxProgress);
+assert.ok(sourceProgress);
+assert.equal(sourceProgress.completed,10);
+assert.equal(sourceProgress.windows[20],6);
+assert.equal(sourceProgress.risk,9);
+assert.equal(krxProgress.validate({
+ ...syntheticKrxProgress,five_session_cohorts_completed:11
+}),null);
+assert.equal(krxProgress.validate({
+ ...syntheticKrxProgress,corporate_actions_or_adjusted_prices_verified:true
+}),null);
+assert.ok(html.includes('id="krxHistoryProgress"'));
+assert.ok(entry.includes('id="krxHistoryProgress"'));
+assert.ok(entry.includes('v3-krx-progress.js'));
+
+
 // Industry earnings dashboard is a source-coverage tool, not a scored
 // signal. Reject forged source dates, wrong rubrics or sample leakage.
 const officialIndustrySample=JSON.parse(fs.readFileSync(
