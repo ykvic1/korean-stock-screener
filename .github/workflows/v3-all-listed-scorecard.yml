@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_all_listed_scorecard.py
+      - tests/test_v3_all_listed_scorecard.py
       - v3_scorecard_source_day_preflight.py
       - .github/workflows/v3-all-listed-scorecard.yml
   # Two research-only replays per hour at :24 and :54 KST. This bounds
