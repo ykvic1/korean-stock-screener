@@ -2,6 +2,7 @@ name: V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
 
 on:
   schedule:
+    - cron: '11 18 * * *' # 03:11 KST, after the added 02:47 boundaries
     - cron: '11 23 * * *' # 08:11 KST, after 07:47 boundaries
     - cron: '11 6 * * *'  # 15:11 KST, after 14:47 boundaries
     - cron: '11 14 * * *' # 23:11 KST, after 22:47 boundaries
