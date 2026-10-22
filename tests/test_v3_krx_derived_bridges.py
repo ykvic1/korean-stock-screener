@@ -78,20 +78,20 @@ class DerivedHistoricalBridgeTests(unittest.TestCase):
         self.assertTrue(all(k.startswith("derived/") for k in p.blobs))
         self.assertLess(len(p.blobs[bridge.CHECKPOINT]),1000)
 
-    def test_sixteen_link_cap_and_contiguous_private_resume(self):
-        p,calendar=fixture(complete=18)
+    def test_twenty_four_link_cap_and_contiguous_private_resume(self):
+        p,calendar=fixture(complete=26)
         source=FakeKRX()
         first=bridge.run(storage=p,client=source,dates=calendar,
                          calendar_hash=HASH)
-        self.assertEqual(first["cumulative_completed_derived_boundaries"],16)
-        self.assertEqual(first["new_market_api_calls"],64)
-        self.assertEqual(len(source.calls),64)
+        self.assertEqual(first["cumulative_completed_derived_boundaries"],24)
+        self.assertEqual(first["new_market_api_calls"],96)
+        self.assertEqual(len(source.calls),96)
         self.assertEqual(first["raw_provider_files_saved"],0)
         followup=bridge.run(storage=p,client=source,dates=calendar,
                             calendar_hash=HASH)
-        self.assertEqual(followup["cumulative_completed_derived_boundaries"],17)
+        self.assertEqual(followup["cumulative_completed_derived_boundaries"],25)
         self.assertEqual(followup["new_market_api_calls"],4)
-        self.assertEqual(len(source.calls),68)
+        self.assertEqual(len(source.calls),100)
 
     def test_eventually_visible_private_blob_does_not_repeat_source_or_put(self):
         p,calendar=fixture(complete=2)
@@ -195,7 +195,7 @@ class DerivedHistoricalBridgeTests(unittest.TestCase):
             bridge.run(storage=p,client=client,dates=calendar,
                        calendar_hash=HASH)
         p.repository="ykvic1/korean-stock-private-data"
-        for max_links in (0,17,True):
+        for max_links in (0,25,True):
             with self.subTest(max_links=max_links),self.assertRaises(bridge.BoundaryError):
                 bridge.run(storage=p,client=client,dates=calendar,
                            calendar_hash=HASH,max_links=max_links)
