@@ -302,5 +302,21 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertTrue(all(r["available"]<=49 for r in rows))
 
 
+    def test_fcf_collection_completion_triggers_same_day_rescore(self):
+        flow=(Path(__file__).resolve().parents[1]/
+              ".github/workflows/v3-current-observed-scorecard.yml").read_text(
+                  encoding="utf8")
+        self.assertIn("workflow_run:",flow)
+        self.assertIn(
+            "V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)",flow)
+        self.assertIn("types: [completed]",flow)
+        self.assertIn("workflow_run.conclusion == 'success'",flow)
+        self.assertIn("workflow_run.head_branch == 'main'",flow)
+        self.assertIn("workflow_run.head_repository.full_name == github.repository",flow)
+        self.assertIn("cron: '26,56 * * * *'",flow)
+        self.assertNotIn("DART_API_KEY:",flow)
+        self.assertNotIn("KRX_API_KEY:",flow)
+
+
 if __name__=="__main__":
     unittest.main()
