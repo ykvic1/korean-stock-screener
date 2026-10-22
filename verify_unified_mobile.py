@@ -58,6 +58,41 @@ with sync_playwright() as p:
     assert page.locator("#statV3").inner_text().strip().endswith("종목")
     page.locator("#marketSummary summary").click()
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
+    # The V3 landing page must expose real saved-source progress without
+    # claiming that current research coverage equals a verified investment rank.
+    assert not page.locator("#dataReadiness").evaluate("(el) => el.open")
+    page.locator("#dataReadiness summary").click()
+    page.wait_for_function(
+        "() => document.getElementById('readinessStatus').textContent.includes('자료 기준일')"
+        " || document.getElementById('readinessStatus').textContent.includes('출처 재검증 중')",
+        timeout=15000
+    )
+    readiness = page.locator("#readinessStatus").inner_text()
+    if "자료 기준일" in readiness:
+        observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
+        historical = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
+        joined = context.request.get(URL + "v3-all-listed-scorecard-summary.json").json()
+        expected_financial = sum(historical["historical_dart_company_years_with_accounts_by_fiscal"].values())
+        expected_attempted = sum(historical["historical_dart_company_years_attempted_by_fiscal"].values())
+        assert page.locator("#readinessFinancial").inner_text() == (
+            f"{expected_financial:,} / {expected_attempted:,}"
+        )
+        assert page.locator("#readinessPrice").inner_text() == (
+            f"{observed['observed_issuer_counts']['technical']:,} / {observed['listed_total']:,}"
+        )
+        assert page.locator("#readinessCashflow").inner_text() == (
+            f"{joined['observed_source_depth']['three_year_receipt_matched_fcf_issuers']:,} / "
+            f"{observed['listed_total']:,}"
+        )
+        assert page.locator("#readinessCertified").inner_text() == "0종목"
+    else:
+        # Market-close transition may leave legitimately mismatched snapshot
+        # dates; the UI must show unknown rather than silently merge dates.
+        for field in ("Financial", "Price", "Cashflow", "Certified"):
+            assert page.locator("#readiness" + field).inner_text() == "미확인"
+    assert page.get_by_text("공식 수집 실행 기록 확인 ↗").is_visible()
+    page.locator("#dataReadiness summary").click()
+    assert not page.locator("#dataReadiness").evaluate("(el) => el.open")
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
     ), "unified mobile horizontal overflow"
