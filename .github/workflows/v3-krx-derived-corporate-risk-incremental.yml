@@ -1,6 +1,18 @@
 name: V3 KRX Private Derived Corporate Action Risk Review (incremental)
 
 on:
+  # Run the non-provider private heuristic once when this trusted workflow
+  # changes on main, then follow every successful private rolling batch.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-krx-derived-corporate-risk-incremental.yml
+      - v3_krx_corporate_risk_incremental.py
+      - tests/test_v3_krx_corporate_risk_incremental.py
+  workflow_run:
+    workflows:
+      - V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
+    types: [completed]
   schedule:
     - cron: '43 18 * * *' # 03:43 KST, after the added 03:11 returns
     - cron: '43 23 * * *' # 08:43 KST, after 07:11 source / 07:47 bridge / 08:11 returns
@@ -24,7 +36,7 @@ concurrency:
 
 jobs:
   review:
-    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'live' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
