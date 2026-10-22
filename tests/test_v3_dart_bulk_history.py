@@ -392,6 +392,38 @@ class BulkHistoryTests(unittest.TestCase):
                     accepted["247540"]["CFS"]["values"]["revenue"],
                     160_000_000_100)
 
+    def test_explicit_won_unit_alias_and_fail_closed_currency_diagnostics(self):
+        lookup={corp:code for code,corp in CORPS.items()}
+        for explicit in ("원"," KRW ","krw"):
+            with self.subTest(explicit_krw=explicit):
+                rows=[dict(row,currency=explicit) for row in payload_rows(2025)]
+                diagnostics={}
+                matched=bulk._normalize_year(
+                    rows,2025,DAY,set(CODES),lookup,diagnostics=diagnostics)
+                self.assertEqual(diagnostics["trusted_row_count"],len(rows))
+                self.assertEqual(diagnostics["currency_rejection_profile"],{})
+                self.assertEqual(matched["005930"]["CFS"]["values"]["revenue"],
+                                 160_000_000_000)
+        for raw,category in (
+                (None,"missing_or_null"),("","blank"),
+                ("천원","scaled_or_other_won_unit"),
+                ("백만원","scaled_or_other_won_unit"),
+                ("USD","other_iso_currency"),(1000,"invalid_type"),
+                ("?", "unrecognized_unit")):
+            with self.subTest(rejection_category=category):
+                row=dict(payload_rows(2025)[0],currency=raw)
+                diagnostics={}
+                with self.assertRaisesRegex(
+                        bulk.BulkHistoryError,"no_trustworthy_source_rows"):
+                    bulk._normalize_year(
+                        [row],2025,DAY,set(CODES),lookup,diagnostics=diagnostics)
+                self.assertEqual(diagnostics["currency_rejection_profile"],
+                                 {category:1})
+                self.assertEqual(diagnostics["quarantine_reasons"],
+                                 {"unconfirmed_krw_currency":1})
+                if raw not in (None,""):
+                    self.assertNotIn(str(raw),str(diagnostics))
+
     def test_untrusted_issuer_isolation_and_global_schema_fail_closed(self):
         rows=payload_rows(2025)
         lookup={corp:code for code,corp in CORPS.items()}

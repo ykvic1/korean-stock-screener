@@ -86,6 +86,35 @@ def _empty_year():
     return {}
 
 
+def _explicit_krw_currency(raw):
+    """Accept only an explicit unscaled Korean-won denomination.
+
+    OpenDART labels this response field as the currency *unit*. A missing
+    unit, a foreign ISO currency, or a scaled Korean unit is not proof that
+    thstrm_amount is denominated in individual KRW.
+    """
+    if type(raw) is not str:
+        return False
+    unit=raw.strip()
+    return unit.upper()=="KRW" or unit=="원"
+
+
+def _rejected_currency_category(raw):
+    """Finite, non-sensitive labels; never log provider field contents."""
+    if raw is None:
+        return "missing_or_null"
+    if type(raw) is not str:
+        return "invalid_type"
+    unit=raw.strip()
+    if not unit:
+        return "blank"
+    if unit.endswith("원") and unit!="원":
+        return "scaled_or_other_won_unit"
+    if re.fullmatch(r"[A-Za-z]{3}",unit):
+        return "other_iso_currency"
+    return "unrecognized_unit"
+
+
 def _normalize_year(rows, year, asof, requested, corp_to_stock,
                     diagnostics=None):
     """Keep independently valid official records; quarantine unsafe rows.
@@ -102,6 +131,7 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
     observed={}
     tainted=set()
     counts={}
+    currency_rejections={}
     trusted=0
     def reject(label):
         counts[label]=counts.get(label,0)+1
@@ -128,8 +158,10 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
         if scope not in ("CFS","OFS"):
             reject("unknown_accounting_scope")
             continue
-        if row.get("currency")!="KRW":
+        if not _explicit_krw_currency(row.get("currency")):
             reject("unconfirmed_krw_currency")
+            category=_rejected_currency_category(row.get("currency"))
+            currency_rejections[category]=currency_rejections.get(category,0)+1
             continue
         if not _valid_receipt(row.get("rcept_no"),year,cutoff):
             reject("invalid_or_future_receipt")
@@ -167,6 +199,7 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
             "trusted_row_count":trusted,
             "quarantined_row_count":sum(counts.values()),
             "quarantine_reasons":dict(sorted(counts.items())),
+            "currency_rejection_profile":dict(sorted(currency_rejections.items())),
             "quarantined_company_scope_count":len(tainted),
         })
     if rows and (trusted==0 or trusted*20<len(rows)):
