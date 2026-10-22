@@ -4,6 +4,7 @@ from datetime import date,timedelta
 from hashlib import sha256
 import gzip
 import json
+from pathlib import Path
 import unittest
 
 import v3_krx_derived_rolling_returns as rolling
@@ -78,6 +79,22 @@ def setup_factors(cohorts=9,*,quarantine_one=False):
 
 
 class PrivateKRXDerivedReturnTests(unittest.TestCase):
+    def test_rolling_workflow_runs_after_verified_boundary_not_on_failed_or_forked_run(self):
+        workflow=(Path(__file__).resolve().parents[1] /
+                  ".github/workflows/v3-krx-derived-rolling-returns.yml").read_text(
+                      encoding="utf-8")
+        self.assertIn("V3 KRX Derived-Only Historical Cohort Boundary Join",workflow)
+        self.assertIn("types: [completed]",workflow)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'",workflow)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'",workflow)
+        self.assertIn(
+            "github.event.workflow_run.head_repository.full_name == github.repository",
+            workflow)
+        self.assertEqual(workflow.count("cron:"),1,
+                         "only one fallback; avoid redundant scheduled research jobs")
+        self.assertIn("inputs.mode == 'live'",workflow)
+        self.assertIn("concurrency:",workflow)
+
     def test_twenty_four_windows_per_horizon_with_exact_resume(self):
         p,candidates=setup_factors(cohorts=33)
         first=rolling.run(storage=p,dates=candidates,
