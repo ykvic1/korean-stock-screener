@@ -453,11 +453,25 @@ class BulkHistoryTests(unittest.TestCase):
             foreign,2022,DAY,set(CODES),lookup,diagnostics=diagnostics)
         self.assertEqual(result,{code:{} for code in CODES})
         self.assertEqual(diagnostics["trusted_row_count"],0)
-        self.assertEqual(diagnostics["valid_foreign_unit_rows_excluded"],
+        self.assertEqual(diagnostics["recognized_foreign_unit_rows_excluded"],
                          len(foreign))
-        self.assertTrue(diagnostics["all_rows_valid_foreign_unit_excluded"])
+        self.assertTrue(diagnostics["all_rows_recognized_foreign_unit_excluded"])
         self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
                          {"CNY":12,"USD":13})
+
+        # Live 2022 response included 28 foreign rows whose receipts could
+        # not be verified. No foreign amount may be used regardless of date.
+        invalid_receipt_foreign=[dict(row,rcept_no="20270101000001")
+                                 if i%4==0 else row
+                                 for i,row in enumerate(foreign)]
+        rejected_replay={}
+        skipped=bulk._normalize_year(
+            invalid_receipt_foreign,2022,DAY,set(CODES),lookup,
+            diagnostics=rejected_replay)
+        self.assertEqual(skipped,{code:{} for code in CODES})
+        self.assertTrue(rejected_replay[
+            "all_rows_recognized_foreign_unit_excluded"])
+        self.assertEqual(rejected_replay["trusted_row_count"],0)
 
         # A recognized foreign denomination must not lower valid KRW
         # coverage to a false fatal failure in a mixed multinational batch.
@@ -473,11 +487,17 @@ class BulkHistoryTests(unittest.TestCase):
         # still stop the batch; none qualifies as an observed foreign unit.
         for change in (dict(currency="KWR"),
                        dict(currency=None),
-                       dict(currency="USD",rcept_no="20270101000001")):
+                       dict(currency="KRW",rcept_no="20270101000001")):
             bad=[dict(foreign[0],**change)]
             with self.subTest(change=change),self.assertRaisesRegex(
                     bulk.BulkHistoryError,"no_trustworthy_source_rows"):
                 bulk._normalize_year(bad,2022,DAY,set(CODES),lookup)
+
+        # Invalid future receipt on an explicitly foreign-currency row is
+        # still excluded, not promoted to valid historical KRW evidence.
+        bad_foreign=[dict(foreign[0],rcept_no="20270101000001")]
+        skipped=bulk._normalize_year(bad_foreign,2022,DAY,set(CODES),lookup)
+        self.assertEqual(skipped,{code:{} for code in CODES})
 
     def test_foreign_only_year_checkpoint_does_not_block_later_krw_year(self):
         class MixedYears(FakeDART):
