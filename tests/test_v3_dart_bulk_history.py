@@ -409,7 +409,7 @@ class BulkHistoryTests(unittest.TestCase):
                 (None,"missing_or_null"),("","blank"),
                 ("천원","scaled_or_other_won_unit"),
                 ("백만원","scaled_or_other_won_unit"),
-                ("USD","other_three_letter_unit"),(1000,"invalid_type"),
+                (1000,"invalid_type"),
                 ("?", "unrecognized_unit")):
             with self.subTest(rejection_category=category):
                 row=dict(payload_rows(2025)[0],currency=raw)
@@ -421,10 +421,10 @@ class BulkHistoryTests(unittest.TestCase):
                 self.assertEqual(diagnostics["currency_rejection_profile"],
                                  {category:1})
                 self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
-                                 {"USD":1} if raw=="USD" else {})
+                                 {})
                 self.assertEqual(diagnostics["quarantine_reasons"],
                                  {"unconfirmed_krw_currency":1})
-                if raw not in (None,"","USD"):
+                if raw not in (None,""):
                     self.assertNotIn(str(raw),str(diagnostics))
 
     def test_three_letter_diagnostics_are_bounded_not_raw_provider_rows(self):
@@ -443,6 +443,61 @@ class BulkHistoryTests(unittest.TestCase):
                                  diagnostics=diagnostics)
         self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
                          {"KWR":1,"WON":1})
+
+    def test_explicit_cny_usd_filings_are_excluded_not_misconverted(self):
+        lookup={corp:code for code,corp in CORPS.items()}
+        foreign=[dict(row,currency=("CNY" if i%2 else "USD"))
+                 for i,row in enumerate(payload_rows(2022))]
+        diagnostics={}
+        result=bulk._normalize_year(
+            foreign,2022,DAY,set(CODES),lookup,diagnostics=diagnostics)
+        self.assertEqual(result,{code:{} for code in CODES})
+        self.assertEqual(diagnostics["trusted_row_count"],0)
+        self.assertEqual(diagnostics["valid_foreign_unit_rows_excluded"],
+                         len(foreign))
+        self.assertTrue(diagnostics["all_rows_valid_foreign_unit_excluded"])
+        self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
+                         {"CNY":12,"USD":13})
+
+        # A recognized foreign denomination must not lower valid KRW
+        # coverage to a false fatal failure in a mixed multinational batch.
+        krw=payload_rows(2022,codes=(CODES[0],))
+        mixed=foreign*30+krw
+        accepted=bulk._normalize_year(
+            mixed,2022,DAY,set(CODES),lookup)
+        self.assertEqual(accepted[CODES[0]]["CFS"]["values"]["revenue"],
+                         100_000_000_000)
+        self.assertEqual(accepted[CODES[1]],{})
+
+        # A malformed receipt, invented currency or unknown currency must
+        # still stop the batch; none qualifies as an observed foreign unit.
+        for change in (dict(currency="KWR"),
+                       dict(currency=None),
+                       dict(currency="USD",rcept_no="20270101000001")):
+            bad=[dict(foreign[0],**change)]
+            with self.subTest(change=change),self.assertRaisesRegex(
+                    bulk.BulkHistoryError,"no_trustworthy_source_rows"):
+                bulk._normalize_year(bad,2022,DAY,set(CODES),lookup)
+
+    def test_foreign_only_year_checkpoint_does_not_block_later_krw_year(self):
+        class MixedYears(FakeDART):
+            def get(self,url,params,timeout):
+                self.calls.append((url,params))
+                year=int(params["bsns_year"])
+                rows=payload_rows(year)
+                if year==2022:
+                    rows=[dict(row,currency="USD") for row in rows]
+                return FakeResponse({"status":"000","list":rows})
+        checkpoints=[]
+        result,calls=bulk.fetch_group(
+            MixedYears(),"synthetic-key-not-secret-123",DAY,
+            (2022,2023),CODES,CORPS,
+            on_year=lambda changes,year:checkpoints.append((year,changes)))
+        self.assertEqual(calls,2)
+        self.assertEqual([y for y,_ in checkpoints],[2022,2023])
+        self.assertEqual(result[CODES[0]]["2022"],{})
+        self.assertEqual(result[CODES[0]]["2023"]["CFS"]["values"]["revenue"],
+                         120_000_000_000)
 
     def test_untrusted_issuer_isolation_and_global_schema_fail_closed(self):
         rows=payload_rows(2025)
@@ -467,8 +522,11 @@ class BulkHistoryTests(unittest.TestCase):
                                  lookup)
         with self.assertRaisesRegex(bulk.BulkHistoryError,
                                      "no_trustworthy_source"):
-            bulk._normalize_year([dict(rows[0],currency="USD")],
+            bulk._normalize_year([dict(rows[0],currency="WON")],
                                  2025,DAY,set(CODES),lookup)
+        foreign=bulk._normalize_year([dict(rows[0],currency="USD")],
+                                 2025,DAY,set(CODES),lookup)
+        self.assertEqual(foreign["005930"],{})
         self.assertEqual(bulk._normalize_year([],2025,DAY,set(CODES),
                                                 lookup)["005930"],{})
 
