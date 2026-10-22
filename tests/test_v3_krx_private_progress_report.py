@@ -179,6 +179,7 @@ class CheckPrivateProgress(unittest.TestCase):
               ".github/workflows/v3-krx-public-derived-progress.yml").read_text(
                   encoding="utf8")
         self.assertIn("workflow_run:",flow)
+        self.assertIn("V3 KRX historical derived-only backfill",flow)
         self.assertIn(
             "V3 KRX Private Derived-Only 20/60/120/250-Session Return Research",flow)
         self.assertIn(

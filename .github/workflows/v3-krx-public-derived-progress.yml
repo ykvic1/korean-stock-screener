@@ -10,9 +10,11 @@ on:
   # Wait for each source, bridge, rolling and incremental risk batch (KST).
   schedule:
     - cron: '13 0,7,15,19 * * *'
-  # After successful private derived research, publish only safe aggregate counts.
+  # Publish immediately after a verified PRIVATE source cohort lands too.
+  # Safe aggregate counters only; no extra KRX call or original OHLCV.
   workflow_run:
     workflows:
+      - V3 KRX historical derived-only backfill
       - V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
       - V3 KRX Private Derived Corporate Action Risk Review (incremental)
     types: [completed]
