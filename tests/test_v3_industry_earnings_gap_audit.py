@@ -209,6 +209,28 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
         with self.assertRaises(IndustryGapError):
             build(market,catalog,altered,bulk)
 
+    def test_last_published_industry_breadth_replays_without_current_day(self):
+        # The current market may roll to tomorrow before 4-year DART catches up.
+        # This independent test must never SKIP: it validates the LAST published
+        # source-audited group snapshot, with the ORIGINAL asof, without APIs.
+        previous=json.loads((DOCS/"v3-industry-saved-profit-gap-summary.json")
+                            .read_text(encoding="utf8"))
+        result=industry_breadth_csv(previous)
+        stored=(DOCS/"v3-industry-observed-profit-breadth.csv").read_text(
+            encoding="utf8")
+        self.assertEqual(result,stored)
+        values=list(csv.DictReader(StringIO(result.removeprefix("\ufeff"))))
+        self.assertEqual(len(values),previous["group_count"])
+        self.assertEqual({x["공시자료기준일"] for x in values},{previous["asof"]})
+        self.assertEqual(sum(int(x["영업이익2개년_검증기업수"]) for x in values),
+                         previous["two_year_operating_profit_verified_any_revenue"])
+        self.assertTrue(all(x["공식산업15점"]=="" for x in values))
+        self.assertTrue(all(x["과거KRX업종구성_PIT"]=="미확인" for x in values))
+        bad=copy.deepcopy(previous)
+        bad["groups"][0]["two_year_operating_profit_verified_issuers"]+=1
+        with self.assertRaises(IndustryGapError):
+            industry_breadth_csv(bad)
+
     def test_observed_industry_breadth_excel_csv_preserves_missingness(self):
         market,catalog,industry,bulk=saved()
         if not source_join_ready(market,catalog,industry,bulk):
