@@ -1,6 +1,7 @@
 """Strict full-listed same-day scorecard regression; no new provider calls."""
 import copy
 import csv
+from datetime import date, timedelta
 from io import StringIO
 import json
 from pathlib import Path
@@ -65,7 +66,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,bad,p)
         bad=copy.deepcopy(p)
-        bad["asof"]="2026-10-21"
+        bad["asof"]=(date.fromisoformat(market["date"])+timedelta(days=1)).isoformat()
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,v,bad)
         bad=copy.deepcopy(p)
@@ -272,7 +273,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         fake["source_sha256_canonical"]["dart_four_year_archive"]="0"*64
         self.assertIsNone(finance_source(catalog,history,parts,annual,fake))
         ahead=copy.deepcopy(history)
-        ahead["asof"]="2026-10-22"
+        ahead["asof"]=(date.fromisoformat(catalog["date"])+timedelta(days=1)).isoformat()
         self.assertIsNone(finance_source(catalog,ahead,parts,annual,audit))
         forged=copy.deepcopy(annual)
         forged["official_exchange_pbr_verified"]=True
