@@ -1,0 +1,106 @@
+name: V3 DART Seven-Day Four-Year Source Drift Audit
+
+on:
+  schedule:
+    # Four small official-DART groups per KST day, one-seventh of listed issuers.
+    # Times are UTC; 01:17, 07:17, 13:17, 19:17 KST respectively.
+    # READ-ONLY comparison against existing FY2022-2025 baseline. No git push.
+    - cron: '17 16 * * *'
+    - cron: '17 22 * * *'
+    - cron: '17 4 * * *'
+    - cron: '17 10 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'audit: 0 official API calls; live: recheck one <=90-company slice'
+        required: true
+        default: audit
+        type: choice
+        options: [audit, live]
+      part:
+        description: '0, 1, 2, or 3 (one of four subgroups in the KST day)'
+        required: true
+        default: '0'
+        type: choice
+        options: ['0', '1', '2', '3']
+      run_day:
+        description: 'Optional KST YYYY-MM-DD (blank = today)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Completely independent from the existing weekday 18:30 production job and
+# seven-day derived-score publication. No writes to tracked source data.
+concurrency:
+  group: v3-dart-weekly-source-drift-audit
+  cancel-in-progress: false
+
+jobs:
+  official-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prove bounded partition and no-overwrite source contracts
+        run: |
+          python -m py_compile v3_dart_weekly_freshness.py
+          python -m unittest discover -s tests -p 'test_v3_dart_weekly_freshness.py' -v
+      - name: Determine KST day and the scheduled quarter
+        id: cohort
+        env:
+          GITHUB_SCHEDULE: ${{ github.event.schedule }}
+          DISPATCH_DAY: ${{ inputs.run_day }}
+          DISPATCH_PART: ${{ inputs.part }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DAY="$(TZ=Asia/Seoul date +%F)"
+          MODE='live'
+          if [[ "$EVENT_NAME" == 'schedule' ]]; then
+            case "$GITHUB_SCHEDULE" in
+              '17 16 * * *') PART=0 ;;
+              '17 22 * * *') PART=1 ;;
+              '17 4 * * *') PART=2 ;;
+              '17 10 * * *') PART=3 ;;
+              *) echo 'unrecognized_schedule' >&2; exit 1 ;;
+            esac
+          else
+            MODE="$DISPATCH_MODE"
+            PART="$DISPATCH_PART"
+            if [[ -n "$DISPATCH_DAY" ]]; then DAY="$DISPATCH_DAY"; fi
+          fi
+          echo "run_day=$DAY" >> "$GITHUB_OUTPUT"
+          echo "part=$PART" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "KST $DAY part $PART mode $MODE"
+      - name: Compare bounded official DART FY evidence without changing archive
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          SOURCE_MODE: ${{ steps.cohort.outputs.mode }}
+          RUN_DAY: ${{ steps.cohort.outputs.run_day }}
+          PART: ${{ steps.cohort.outputs.part }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python v3_dart_weekly_freshness.py \
+            --mode "$SOURCE_MODE" \
+            --run-day "$RUN_DAY" \
+            --part "$PART"
+      - name: Archive identifiers and drift reason codes only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-dart-source-drift-${{ github.run_id }}
+          path: reports/v3-dart-weekly-source-audit.json
+          retention-days: 14
+          if-no-files-found: warn
