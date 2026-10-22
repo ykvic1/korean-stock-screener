@@ -2,6 +2,7 @@
 import copy
 import csv
 import json
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 import unittest
@@ -188,7 +189,8 @@ class AllListedScorecardTests(unittest.TestCase):
             self.assertIn("volume",other[0]["factors"])
             self.assertLessEqual(other[0]["factors"]["volume"][1],16)
         future=copy.deepcopy(fcf)
-        future["asof"]="2026-10-22"
+        future["asof"]=(date.fromisoformat(catalog["date"])+
+                        timedelta(days=1)).isoformat()
         _,blocked=m.generate(market,catalog,history,parts,weekly,cash,future)
         self.assertFalse(blocked["fcf_source_added"])
         self.assertIsNone(blocked["source_sha256"]["fcf"])

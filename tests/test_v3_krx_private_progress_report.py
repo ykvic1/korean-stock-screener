@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 from hashlib import sha256
 import json
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -171,6 +172,23 @@ class CheckPrivateProgress(unittest.TestCase):
         fake.repository="ykvic1/korean-stock-screener"
         with self.assertRaises(PrivateProgressError):
             run(fake)
+
+
+    def test_successful_private_rolling_research_refreshes_only_public_aggregates(self):
+        flow=(Path(__file__).resolve().parents[1]/
+              ".github/workflows/v3-krx-public-derived-progress.yml").read_text(
+                  encoding="utf8")
+        self.assertIn("workflow_run:",flow)
+        self.assertIn(
+            "V3 KRX Private Derived-Only 20/60/120/250-Session Return Research",flow)
+        self.assertIn(
+            "V3 KRX Private Derived Corporate Action Risk Review (incremental)",flow)
+        self.assertIn("types: [completed]",flow)
+        self.assertIn("workflow_run.conclusion == 'success'",flow)
+        self.assertIn("workflow_run.head_branch == 'main'",flow)
+        self.assertIn("workflow_run.head_repository.full_name == github.repository",flow)
+        self.assertIn("docs/v3-krx-derived-backfill-progress.json",flow)
+        self.assertNotIn("KRX_API_KEY:",flow)
 
 
 if __name__=="__main__":
