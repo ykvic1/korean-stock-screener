@@ -303,6 +303,86 @@ def build(market,catalog,industry,bulk):
     return stats,missing
 
 
+def industry_breadth_csv(stats):
+    """Export grouped, observed FY2024/25 breadth without fictional sector points.
+
+    Current-company DART industry codes are NOT historical KRX constituents.
+    Groups with fewer than three comparable issuer profit pairs remain blank.
+    Bounds show what missing CURRENT constituents could change, not certainty.
+    """
+    if (stats.get("actual_industry_15_points_authorized") is not False
+        or stats.get("historical_sector_profit_breadth_certified") is not False
+        or stats.get("official_krx_sector_membership_pit_verified") is not False
+        or stats.get("full_market_profit_sector_score_certified") is not False
+        or stats.get("source_calls")!=0
+        or stats.get("comparison_fiscal_years")!=[2024,2025]
+        or type(stats.get("groups")) is not list
+        or len(stats["groups"])!=stats.get("group_count")
+        or type(stats.get("asof")) is not str):
+        raise IndustryGapError("untrusted_observed_industry_breadth_source")
+    output=StringIO(newline="")
+    writer=csv.writer(output,lineterminator="\\n")
+    writer.writerow([
+       "시장","현재DART업종코드앞2자리","현재상장기업수",
+       "영업이익2개년_검증기업수","매출포함엄격비교기업수",
+       "영업이익개선기업수_표본3개이상",
+       "검증표본내_실적개선율_%","현재분류전체_개선율하한_%",
+       "현재분류전체_개선율상한_%","영업이익비교_실측확보율_%",
+       "공시자료기준일","과거KRX업종구성_PIT","공식산업15점",
+    ])
+    sums={"classified":0,"verified":0,"strict":0}
+    seen=set()
+    def pct(value):
+        return f"{100*value:.2f}"
+    for group in stats["groups"]:
+        market=group.get("market")
+        code=group.get("industry_code_prefix_2")
+        if (market not in ("KOSPI","KOSDAQ")
+            or type(code) is not str or len(code)!=2 or not code.isascii()
+            or not code.isdigit() or (market,code) in seen
+            or group.get("source_is_current_dart_company_industry_not_krx_sector") is not True):
+            raise IndustryGapError("untrusted_current_company_industry_group")
+        seen.add((market,code))
+        total=group.get("classified")
+        verified=group.get("two_year_operating_profit_verified_issuers")
+        strict=group.get("compared")
+        extra=group.get("verified_profit_only_gap_count")
+        if (any(type(v) is not int for v in (total,verified,strict,extra))
+            or not 0<=strict<=verified<=total or total<1
+            or verified!=strict+extra):
+            raise IndustryGapError("invalid_group_annual_profit_coverage")
+        sums["classified"]+=total
+        sums["verified"]+=verified
+        sums["strict"]+=strict
+        improved=group.get("two_year_operating_profit_improving_issuers")
+        ratio=group.get("two_year_profit_improving_ratio_observed_sample_only")
+        lower=group.get("current_code_improving_breadth_lower_bound")
+        upper=group.get("current_code_improving_breadth_upper_bound")
+        if verified<MIN_BREADTH_SAMPLE:
+            if any(v is not None for v in (improved,ratio,lower,upper)):
+                raise IndustryGapError("small_group_profit_breadth_disclosure")
+            visible=["","","",""]
+        else:
+            if (type(improved) is not int or not 0<=improved<=verified
+                or any(type(v) not in (int,float) or not 0<=v<=1
+                       for v in (ratio,lower,upper))
+                or abs(ratio-round(improved/verified,6))>0.000002
+                or abs(lower-round(improved/total,6))>0.000002
+                or abs(upper-round((improved+total-verified)/total,6))>0.000002
+                or lower>ratio+0.000002 or upper+0.000002<ratio):
+                raise IndustryGapError("invalid_observed_breadth_uncertainty")
+            visible=[improved,pct(ratio),pct(lower),pct(upper)]
+        writer.writerow([
+            market,code,total,verified,strict,*visible,
+            pct(verified/total),stats["asof"],"미확인","",
+        ])
+    if (sums["classified"]!=stats.get("listed_total")
+        or sums["verified"]!=stats.get("two_year_operating_profit_verified_any_revenue")
+        or sums["strict"]!=stats.get("actual_saved_annual_profit_pairs")):
+        raise IndustryGapError("industry_group_breadth_totals_mismatch")
+    return "\\ufeff"+output.getvalue()
+
+
 def missing_csv(rows,stats):
     stream=StringIO(newline="")
     w=csv.writer(stream,lineterminator="\n")
@@ -349,13 +429,17 @@ def main(argv=None):
     stats,missing=build(market,catalog,industry,bulk)
     data=root/"v3-industry-saved-profit-gap-summary.json"
     sheet=root/"v3-industry-saved-profit-gap-issuers.csv"
+    breadth=root/"v3-industry-observed-profit-breadth.csv"
     rendered=missing_csv(missing,stats)
+    breadth_rendered=industry_breadth_csv(stats)
     if args.mode.startswith("write"):
         write_json(data,stats)
         sheet.write_text(rendered,encoding="utf8")
+        breadth.write_text(breadth_rendered,encoding="utf8")
     else:
-        if (not data.is_file() or not sheet.is_file()
-            or read(data.name)!=stats or sheet.read_text(encoding="utf8")!=rendered):
+        if (not data.is_file() or not sheet.is_file() or not breadth.is_file()
+            or read(data.name)!=stats or sheet.read_text(encoding="utf8")!=rendered
+            or breadth.read_text(encoding="utf8")!=breadth_rendered):
             raise IndustryGapError("industry_gap_source_changed_after_rebase")
     print(json.dumps({"status":"saved_industry_profit_missingness_audited",
                       "asof":stats["asof"],"listed":stats["listed_total"],
