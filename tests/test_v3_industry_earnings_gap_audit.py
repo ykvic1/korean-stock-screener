@@ -9,7 +9,7 @@ import unittest
 
 from v3_industry_earnings_gap_audit import (
     SCHEMA,CATEGORIES,missing_reason,verified_operating_income_pair_without_revenue,
-    build,missing_csv,main,IndustryGapError,
+    build,missing_csv,industry_breadth_csv,main,IndustryGapError,
 )
 from v3_dart_industry_earnings_sample import build as sample_build,source_join_ready
 
@@ -209,6 +209,42 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
         with self.assertRaises(IndustryGapError):
             build(market,catalog,altered,bulk)
 
+    def test_observed_industry_breadth_excel_csv_preserves_missingness(self):
+        market,catalog,industry,bulk=saved()
+        if not source_join_ready(market,catalog,industry,bulk):
+            self.skipTest("independent_annual_source_not_same_day")
+        stats,_=build(market,catalog,industry,bulk)
+        body=industry_breadth_csv(stats)
+        self.assertTrue(body.startswith("\ufeff"))
+        items=list(csv.DictReader(StringIO(body.removeprefix("\ufeff"))))
+        self.assertEqual(len(items),stats["group_count"])
+        self.assertEqual(sum(int(x["현재상장기업수"]) for x in items),
+                         stats["listed_total"])
+        self.assertEqual(sum(int(x["영업이익2개년_검증기업수"]) for x in items),
+                         stats["two_year_operating_profit_verified_any_revenue"])
+        matched={(x["시장"],x["현재DART업종코드앞2자리"]):x for x in items}
+        for group in stats["groups"]:
+            x=matched[(group["market"],group["industry_code_prefix_2"])]
+            self.assertEqual(x["산업15점투자점수"] if "산업15점투자점수" in x else x["공식산업15점"],"")
+            self.assertEqual(x["과거KRX업종구성_PIT"],"미확인")
+            count=group["two_year_operating_profit_verified_issuers"]
+            if count<3:
+                self.assertEqual(x["영업이익개선기업수_표본3개이상"],"")
+                self.assertEqual(x["검증표본내_실적개선율_%"],"")
+            else:
+                self.assertAlmostEqual(
+                    float(x["검증표본내_실적개선율_%"]),
+                    round(100*group["two_year_profit_improving_ratio_observed_sample_only"],2),
+                    places=2)
+        forged=copy.deepcopy(stats)
+        forged["actual_industry_15_points_authorized"]=True
+        with self.assertRaises(IndustryGapError):
+            industry_breadth_csv(forged)
+        forged=copy.deepcopy(stats)
+        forged["groups"][0]["classified"]+=1
+        with self.assertRaises(IndustryGapError):
+            industry_breadth_csv(forged)
+
     def test_cli_writes_both_outputs_verifies_and_rejects_tamper(self):
         market,catalog,industry,bulk=saved()
         if not source_join_ready(market,catalog,industry,bulk):
@@ -223,6 +259,12 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
                 (root/file).write_text(json.dumps(source),encoding="utf8")
             main(["--docs",str(root),"--mode","write"])
             main(["--docs",str(root),"--mode","verify"])
+            breadth=root/"v3-industry-observed-profit-breadth.csv"
+            self.assertGreater(len(breadth.read_text(encoding="utf8")),100)
+            breadth.write_text("tampered",encoding="utf8")
+            with self.assertRaises(IndustryGapError):
+                main(["--docs",str(root),"--mode","verify"])
+            main(["--docs",str(root),"--mode","write"])
             summary=root/"v3-industry-saved-profit-gap-summary.json"
             parsed=json.loads(summary.read_text(encoding="utf8"))
             parsed["actual_industry_15_points_authorized"]=True
