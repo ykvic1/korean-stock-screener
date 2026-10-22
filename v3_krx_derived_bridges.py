@@ -28,7 +28,9 @@ from v3_krx_private_github_backfill import PrivateGitStorage
 
 SCHEMA="v3-krx-private-cohort-boundary-log-return-v1"
 CHECKPOINT="derived/boundaries-checkpoint.json"
-MAX_LINKS_PER_RUN=8
+# Match one scheduled historical source batch (16 five-session cohorts).
+# At most 64 official calls per invocation: 16 links x 2 days x 2 markets.
+MAX_LINKS_PER_RUN=16
 MAX_BLOB_BYTES=260_000
 MAX_TOTAL_BYTES=40*1024*1024
 
