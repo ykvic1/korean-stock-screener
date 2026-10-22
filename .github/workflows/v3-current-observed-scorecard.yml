@@ -20,13 +20,16 @@ on:
       - docs/v3-dart-fcf-research-preview.json
       - .github/workflows/v3-current-observed-scorecard.yml
   schedule:
-    # Saved research replay, not official API source acquisition.
-    - cron: '26,56 * * * *'
-  # Refresh as soon as verified same-day FCF/CAPEX source finishes.
-  # A GITHUB_TOKEN source push does not trigger another push workflow.
+    # Read-only saved-source replay: at :11, after preceding hourly :29 DART
+    # 4Y batch and before the :17 rolling annual-book publication window.
+    # Avoid :26, which sampled a newer book before its provisional score replay.
+    - cron: '11 * * * *'
+  # Replay immediately after a completed official DART 4Y/FCF collector;
+  # source commits from GITHUB_TOKEN do not activate normal push triggers.
   workflow_run:
     workflows:
       - V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)
+      - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
     types: [completed]
   workflow_dispatch:
     inputs:
