@@ -23,6 +23,53 @@ assert.ok(html.includes('id="industryResearch"'));
 assert.ok(entry.includes('id="industryResearch"'),
  'root index must include data panel or JS load would crash on missing element');
 assert.ok(source.includes("'v3-dart-industry-earnings-sample.json'"));
+
+assert.ok(source.includes("'v3-industry-observed-relative-strength.json'"));
+assert.ok(entry.includes('v3-industry-observed-relative-strength.csv'));
+const industryPriceSummary={
+ schema:'v3-current-company-industry-relative-strength-observed-v1',
+ asof:'2026-10-22',listed_total:100,groups_total:1,
+ paired_20_60_observations:85,groups_early_recovery_watch:1,
+ historical_krx_sector_membership_pit_verified:false,
+ official_industry_15_points_authorized:false,
+ investment_grade_100point_scores_authorized:false,
+ independently_verified_benchmark_session_or_adjusted_prices:false,
+ new_provider_calls:0,
+ source_sha256:{market:'a'.repeat(64),catalog:'b'.repeat(64),
+                current_dart_company_industry_codes:'c'.repeat(64)},
+ groups:[{
+  market:'KOSPI',current_dart_industry_prefix_2:'20',
+  current_listed_issuers:100,same_day_priced_issuers:85,
+  complete_relative20_60_issuer_count:85,
+  missing_relative20_60_issuer_count:15,observed_20_60_coverage:.85,
+  median_market_relative_20pct_sample:2,
+  median_market_relative_60pct_sample:-1,
+  positive_relative20_issuers_sample:55,
+  positive_relative20_breadth_observed_only:.647059,
+  positive_relative20_breadth_all_lower_bound:.55,
+  positive_relative20_breadth_all_upper_bound:.7,
+  early_rotation_research_state:'early_relative_recovery_watch',
+  current_company_codes_not_historical_krx_sector:true,
+  market_benchmark_dates_independently_verified:false,
+  prices_corporate_action_adjusted_verified:false,
+  official_industry_15_points:null
+ }]
+};
+const currentSector=unified.industryPriceEvidenceView(
+ industryPriceSummary,'2026-10-22',100);
+assert.ok(currentSector&&currentSector.watch===1);
+assert.ok(currentSector.html.includes('관찰 후보 1개'));
+assert.equal(unified.industryPriceEvidenceView(
+ industryPriceSummary,'2026-10-21',100),null);
+const forgedIndustryPrice=structuredClone(industryPriceSummary);
+forgedIndustryPrice.groups[0].official_industry_15_points=3;
+assert.equal(unified.industryPriceEvidenceView(
+ forgedIndustryPrice,'2026-10-22',100),null);
+const contaminatedIndustryPrice=structuredClone(industryPriceSummary);
+contaminatedIndustryPrice.groups[0].current_dart_industry_prefix_2='<img>';
+assert.equal(unified.industryPriceEvidenceView(
+ contaminatedIndustryPrice,'2026-10-22',100),null);
+
 const dayBeforeIndustry=new Date(officialIndustrySample.asof+'T00:00:00Z');
 dayBeforeIndustry.setUTCDate(dayBeforeIndustry.getUTCDate()-1);
 assert.equal(unified.industryEvidenceView(
