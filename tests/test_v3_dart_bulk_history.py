@@ -402,13 +402,14 @@ class BulkHistoryTests(unittest.TestCase):
                     rows,2025,DAY,set(CODES),lookup,diagnostics=diagnostics)
                 self.assertEqual(diagnostics["trusted_row_count"],len(rows))
                 self.assertEqual(diagnostics["currency_rejection_profile"],{})
+                self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],{})
                 self.assertEqual(matched["005930"]["CFS"]["values"]["revenue"],
                                  160_000_000_000)
         for raw,category in (
                 (None,"missing_or_null"),("","blank"),
                 ("천원","scaled_or_other_won_unit"),
                 ("백만원","scaled_or_other_won_unit"),
-                ("USD","other_iso_currency"),(1000,"invalid_type"),
+                ("USD","other_three_letter_unit"),(1000,"invalid_type"),
                 ("?", "unrecognized_unit")):
             with self.subTest(rejection_category=category):
                 row=dict(payload_rows(2025)[0],currency=raw)
@@ -419,10 +420,29 @@ class BulkHistoryTests(unittest.TestCase):
                         [row],2025,DAY,set(CODES),lookup,diagnostics=diagnostics)
                 self.assertEqual(diagnostics["currency_rejection_profile"],
                                  {category:1})
+                self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
+                                 {"USD":1} if raw=="USD" else {})
                 self.assertEqual(diagnostics["quarantine_reasons"],
                                  {"unconfirmed_krw_currency":1})
-                if raw not in (None,""):
+                if raw not in (None,"","USD"):
                     self.assertNotIn(str(raw),str(diagnostics))
+
+    def test_three_letter_diagnostics_are_bounded_not_raw_provider_rows(self):
+        self.assertEqual(bulk._bounded_currency_code(" won "),"WON")
+        self.assertEqual(bulk._bounded_currency_code("KWR"),"KWR")
+        self.assertIsNone(bulk._bounded_currency_code("USD;secret=123"))
+        self.assertIsNone(bulk._bounded_currency_code("원"))
+        self.assertIsNone(bulk._bounded_currency_code(None))
+        lookup={corp:code for code,corp in CORPS.items()}
+        rows=[dict(payload_rows(2025)[0],currency="WON"),
+              dict(payload_rows(2025)[1],currency="kWr")]
+        diagnostics={}
+        with self.assertRaisesRegex(bulk.BulkHistoryError,
+                                    "no_trustworthy_source_rows"):
+            bulk._normalize_year(rows,2025,DAY,set(CODES),lookup,
+                                 diagnostics=diagnostics)
+        self.assertEqual(diagnostics["rejected_three_letter_unit_codes"],
+                         {"KWR":1,"WON":1})
 
     def test_untrusted_issuer_isolation_and_global_schema_fail_closed(self):
         rows=payload_rows(2025)
