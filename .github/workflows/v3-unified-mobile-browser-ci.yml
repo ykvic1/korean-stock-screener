@@ -6,6 +6,7 @@ on:
       - 'docs/index.html'
       - 'docs/workspace.html'
       - 'docs/workspace.js'
+      - 'docs/v3-data-readiness.js'
       - 'docs/workspace.css'
       - 'docs/v3-ranking.js'
       - 'docs/data.json'
