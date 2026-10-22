@@ -1,11 +1,16 @@
 name: V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
 
 on:
+  # Recompute right after a successful private boundary join. A delayed
+  # scheduled join must not leave newly connected history unrecalculated.
+  workflow_run:
+    workflows:
+      - V3 KRX Derived-Only Historical Cohort Boundary Join
+    types: [completed]
+  # One independent daily fallback if GitHub drops a workflow_run event.
+  # All rolling computations reuse verified private factors: 0 KRX calls.
   schedule:
-    - cron: '11 18 * * *' # 03:11 KST, after the added 02:47 boundaries
-    - cron: '11 23 * * *' # 08:11 KST, after 07:47 boundaries
-    - cron: '11 6 * * *'  # 15:11 KST, after 14:47 boundaries
-    - cron: '11 14 * * *' # 23:11 KST, after 22:47 boundaries
+    - cron: '11 18 * * *' # 03:11 KST
   workflow_dispatch:
     inputs:
       mode:
@@ -24,7 +29,15 @@ concurrency:
 
 jobs:
   research:
-    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    if: >-
+      ${{
+        github.event_name == 'schedule' ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.head_repository.full_name == github.repository) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
