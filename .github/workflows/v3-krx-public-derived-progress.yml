@@ -1,0 +1,114 @@
+name: V3 Verified Private KRX Derived Progress to Public Aggregates (no provider)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_private_progress_report.py
+      - tests/test_v3_krx_private_progress_report.py
+      - .github/workflows/v3-krx-public-derived-progress.yml
+  # Wait for each source, bridge, rolling and incremental risk batch (KST).
+  schedule:
+    - cron: '13 0,7,15,19 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [verify, write]
+        default: verify
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v3-public-private-derived-progress-only
+  cancel-in-progress: false
+
+jobs:
+  verified-aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install calendar and source-schema validation only
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Regression - private-tail checks and zero publisher raw data
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_private_progress_report.py
+          python -m unittest discover -s tests -p 'test_v3_krx_private_progress_report.py' -v
+      - name: Build public aggregate from private immutable evidence only
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_private_progress_report.py --mode write
+      - name: Publish bounded aggregate counters only
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-krx-derived-backfill-progress.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish verified private KRX backfill aggregate progress only"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              # Re-read PRIVATE checkpoints; a changed source must never be
+              # silently published as if it were the original snapshot.
+              python v3_krx_private_progress_report.py --mode write
+              git add docs/v3-krx-derived-backfill-progress.json
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              python v3_krx_private_progress_report.py --mode verify
+              if git push origin HEAD:main; then
+                echo "verified_aggregate_only_history_progress_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::verified_backfill_progress_publish_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Verify exact published aggregate only on manual request
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_private_progress_report.py --mode verify
+      - name: Source verification and research-only status
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          lines=["### KRX 10년 비공개 파생지표 데이터 실제 확보율",
+                 "수집 원본 가격/종목별 수익률/비공개 저장소 경로를 공개하지 않습니다.",
+                 "개별 종목 PIT 및 수정주가 검증 전. 정식 산업·재무·투자점수로 승격하지 않습니다.",
+                 "신규 KRX/DART 데이터 API 요청 0."]
+          f=Path("docs/v3-krx-derived-backfill-progress.json")
+          if f.is_file():
+              s=json.loads(f.read_text(encoding="utf8"))
+              lines+=[
+                  "확인된 5거래일 코호트 "+str(s["five_session_cohorts_completed"])+
+                  "/"+str(s["five_session_cohorts_target"]),
+                  "연결 경계 "+str(s["cross_cohort_bridges_completed"]),
+                  "20/60/120/250 재계산 구간: "+str({
+                    k:v["complete_cohort_windows"] for k,v in
+                    s["rolling_return_horizon_research"].items()
+                  }),
+                  "과도한 가격변화 위험검토 완료 코호트 "+
+                  str(s["price_discontinuity_heuristic_cohorts_reviewed"]),
+              ]
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY
