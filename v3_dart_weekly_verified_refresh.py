@@ -244,7 +244,30 @@ def main(argv=None):
     # Prove original sources and saved provisional points are coherent
     # before making any provider call or proposing a transaction.
     if bulk.research_parts(archive, catalog, book) != existing_score:
-        raise RebindError("existing_annual_source_and_scores_disagree")
+        # Annual book and the independently scheduled 4Y replayer publish at
+        # different times. Defer transient source/score drift without DART
+        # calls, writes or a false claim of verified rebind completion.
+        # Post-rebase verification remains strict: never push mismatched data.
+        if args.mode == "verify":
+            raise RebindError("existing_annual_source_and_scores_disagree")
+        report = {
+            "schema": REPORT_SCHEMA,
+            "status": "waiting_annual_score_replay",
+            "source_api_calls": 0,
+            "source_archive_changed": False,
+            "market_asof": catalog["date"],
+            "part_index": args.part,
+            "review_flags": [{"reason": "saved_scores_disagree_with_current_annual_sources"}],
+            "historical_PIT_certified": False,
+            "full_V3_100point_certified": False,
+            "buy_recommendations_authorized": False,
+        }
+        report_path = Path(args.report)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, sort_keys=True) + "\n", encoding="utf8")
+        print(json.dumps({"status": report["status"], "source_api_calls": 0},
+                         sort_keys=True))
+        return 0
     if args.mode == "verify":
         print("source_rebind_post_rebase_verified")
         return 0
