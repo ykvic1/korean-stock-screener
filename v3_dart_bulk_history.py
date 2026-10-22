@@ -29,6 +29,7 @@ MAX_GROUPS = 3
 YEARS_BACK = 4
 MAX_SOURCE_FISCAL_CALLS = 16
 MAX_SOURCE_RUN_SECONDS = 1200
+OBSERVED_FOREIGN_UNITS = frozenset(("CNY", "USD"))
 CORP_CACHE_SCHEMA = "v3-dart-listed-company-codes-actions-cache-0.1"
 LABELS = {
     ("IS","매출액"): "revenue",
@@ -142,6 +143,7 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
     currency_rejections={}
     currency_codes={}
     trusted=0
+    verified_foreign_rows=0
     def reject(label):
         counts[label]=counts.get(label,0)+1
     for row in rows:
@@ -167,6 +169,9 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
         if scope not in ("CFS","OFS"):
             reject("unknown_accounting_scope")
             continue
+        if not _valid_receipt(row.get("rcept_no"),year,cutoff):
+            reject("invalid_or_future_receipt")
+            continue
         if not _explicit_krw_currency(row.get("currency")):
             reject("unconfirmed_krw_currency")
             category=_rejected_currency_category(row.get("currency"))
@@ -174,9 +179,8 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
             code=_bounded_currency_code(row.get("currency"))
             if code:
                 currency_codes[code]=currency_codes.get(code,0)+1
-            continue
-        if not _valid_receipt(row.get("rcept_no"),year,cutoff):
-            reject("invalid_or_future_receipt")
+                if code in OBSERVED_FOREIGN_UNITS:
+                    verified_foreign_rows+=1
             continue
         key=(code,scope)
         if key in tainted:
@@ -213,9 +217,18 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
             "quarantine_reasons":dict(sorted(counts.items())),
             "currency_rejection_profile":dict(sorted(currency_rejections.items())),
             "rejected_three_letter_unit_codes":dict(sorted(currency_codes.items())),
+            "valid_foreign_unit_rows_excluded":verified_foreign_rows,
+            "all_rows_valid_foreign_unit_excluded":bool(
+                rows and verified_foreign_rows==len(rows)),
             "quarantined_company_scope_count":len(tainted),
         })
-    if rows and (trusted==0 or trusted*20<len(rows)):
+    # A USD/CNY filing is legitimate foreign-currency evidence, not KRW.
+    # Skip it without imputed conversion or score, while continuing to other
+    # company batches. An unknown/missing unit or malformed evidence still
+    # counts against the strict minimum trusted-source threshold.
+    rows_requiring_krw_proof=len(rows)-verified_foreign_rows
+    if rows_requiring_krw_proof and (trusted==0 or
+            trusted*20<rows_requiring_krw_proof):
         raise BulkHistoryError("dart_bulk_fatal_no_trustworthy_source_rows")
     for code in requested:
         for scope,ref in list(data[code].items()):
