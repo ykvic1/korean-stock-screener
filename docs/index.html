@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="workspace.css">
 <script src="v3-ranking.js" defer></script>
 <script src="workspace.js" defer></script>
+<script src="v3-krx-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
 </head>
 <body id="unifiedApp">
@@ -55,6 +56,18 @@
    <a href="https://github.com/ykvic1/korean-stock-screener/actions/workflows/v3-krx-derived-history.yml" target="_blank" rel="noopener noreferrer">공식 수집 실행 기록 확인 ↗</a>.
    기존 18:30 분석은 V3 통합 화면에 가격·패턴·엑셀 자료를 공급하며, 검증 완료 후 새 엔진으로 단계적으로 전환합니다.</p>
   <p class="u-source"><strong>업종별 20·60일 상대강도:</strong> <a href="v3-industry-observed-relative-strength.csv" download>실제 표본·초기 회복 관찰 후보 CSV ↓</a> · 현재 DART 업종분류와 저장된 시장 대비 상대강도에 근거합니다. 과거 업종 구성·수정주가·시장지수별 날짜는 독립 검증 전이며 정식 산업 15점은 비워둡니다.</p>
+ </details>
+  <details class="u-intro" id="krxHistoryProgress">
+  <summary class="u-intro-top"><span class="u-section-heading">KRX 10년 과거 파생데이터 확보 현황 <small>자세히 보기</small></span>
+   <span id="krxProgressStatus" class="u-state" role="status" aria-live="polite">비공개 파생자료 검사 중…</span></summary>
+  <div class="u-stats">
+   <div><span>5거래일 묶음 확보 / 전체</span><strong id="krxHistoryCollected">미확인</strong></div>
+   <div><span>구간 경계 연결 / 확보분</span><strong id="krxHistoryBridges">미확인</strong></div>
+   <div><span>20·60·120·250거래일 파생수익률 산출 묶음</span><strong id="krxHistoryRolling">미확인</strong></div>
+   <div><span>급격한 가격변화 위험점검 / 연결분</span><strong id="krxHistoryRisk">미확인</strong></div>
+  </div>
+  <p class="u-source" id="krxHistoryNotes">비공개 원본 대신 검증된 수집 구간 수만 보여드립니다. 미확인 항목은 자동 배점에 반영되지 않습니다.</p>
+  <p class="u-source"><a href="v3-krx-derived-backfill-progress.json">실제 4단계 확보·미확보 원천 요약 JSON ↗</a> · 비공개 파생근거만 계산하며 개별 시세 및 과거 상장폐지 종목 PIT 검증 완료를 의미하지 않습니다.</p>
  </details>
  <section class="u-controls" aria-label="종목 발굴 조건">
   <label class="u-quick-search" for="stockSearch">종목 검색
