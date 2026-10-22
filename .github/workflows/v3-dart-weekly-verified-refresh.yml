@@ -1,0 +1,131 @@
+name: V3 Verified Annual DART Source Rebind (No PIT Promotion)
+
+on:
+  # Scheduled after the previous market close and aligned annual-book window.
+  # UTC corresponds to 02:11, 05:11, 08:11, 11:11 KST every day.
+  schedule:
+    - cron: '11 17 * * *'
+    - cron: '11 20 * * *'
+    - cron: '11 23 * * *'
+    - cron: '11 2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        description: 'audit = 0 API calls, live = no publish, publish = validated source update'
+        required: true
+        default: audit
+        options: [audit, live, publish]
+      part:
+        type: choice
+        required: true
+        default: '0'
+        options: ['0', '1', '2', '3']
+      run_day:
+        type: string
+        required: false
+        description: 'YYYY-MM-DD in Korea, blank means today'
+
+permissions:
+  contents: write
+
+# Git rebase + strict source re-verification is the publication boundary.
+# Never force push or edit v2.2 18:30 production outputs.
+concurrency:
+  group: v3-dart-weekly-verified-rebind
+  cancel-in-progress: false
+
+jobs:
+  annual-current-source-rebind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official DART HTTP client
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Offline strict receipt and no-loss source rebind tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_weekly_verified_refresh.py
+          python -m unittest discover -s tests -p 'test_v3_dart_weekly_verified_refresh.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_weekly_freshness.py' -v
+      - name: Select Korean calendar day and one of four bounded issuer groups
+        id: cohort
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE: ${{ github.event.schedule }}
+          DISPATCH_DAY: ${{ inputs.run_day }}
+          DISPATCH_PART: ${{ inputs.part }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DAY="$(TZ=Asia/Seoul date +%F)"
+          MODE='publish'
+          if [[ "$EVENT_NAME" == 'schedule' ]]; then
+            case "$GITHUB_SCHEDULE" in
+              '11 17 * * *') PART=0 ;;
+              '11 20 * * *') PART=1 ;;
+              '11 23 * * *') PART=2 ;;
+              '11 2 * * *') PART=3 ;;
+              *) echo 'unrecognized_schedule' >&2; exit 1 ;;
+            esac
+          else
+            MODE="$DISPATCH_MODE"
+            PART="$DISPATCH_PART"
+            if [[ -n "$DISPATCH_DAY" ]]; then DAY="$DISPATCH_DAY"; fi
+          fi
+          echo "day=$DAY" >> "$GITHUB_OUTPUT"
+          echo "part=$PART" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "KST $DAY part $PART mode $MODE"
+      - name: Recheck live source and rebind only newer official verified filings
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          RUN_DAY: ${{ steps.cohort.outputs.day }}
+          PART: ${{ steps.cohort.outputs.part }}
+          MODE: ${{ steps.cohort.outputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python v3_dart_weekly_verified_refresh.py \
+            --mode "$MODE" --run-day "$RUN_DAY" --part "$PART"
+      - name: Update source coverage diagnostics and publish only validated revisions
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
+        env:
+          RUN_DAY: ${{ steps.cohort.outputs.day }}
+          PART: ${{ steps.cohort.outputs.part }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/v3-dart-bulk-history.json; then
+            echo "No newly verified DART annual source revision; no publication."
+            exit 0
+          fi
+          python v3_real_six_pillar_coverage_audit.py --mode write
+          python v3_real_source_progress_ledger.py --mode write
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json \
+            docs/v3-real-source-six-area-coverage.json \
+            docs/v3-real-source-six-area-progress.json
+          git commit -m "Rebind verified newer OpenDART annual evidence (research only)"
+          git pull --rebase origin main
+          python v3_dart_weekly_verified_refresh.py \
+            --mode verify --run-day "$RUN_DAY" --part "$PART"
+          python v3_real_six_pillar_coverage_audit.py --mode verify
+          python v3_real_source_progress_ledger.py --mode verify
+          git push origin HEAD:main
+      - name: Keep source status and revision reason-only report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-dart-weekly-rebind-${{ github.run_id }}
+          path: reports/v3-dart-weekly-rebind-review.json
+          retention-days: 14
+          if-no-files-found: warn
