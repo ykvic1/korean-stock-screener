@@ -33,6 +33,24 @@ def seed(p,days):
 
 
 class IncrementalCorporateActionRiskTests(unittest.TestCase):
+    def test_sixteen_derived_cohorts_per_run_and_partial_followup(self):
+        p,days=archive(27)
+        seed(p,days)
+        inc.run(storage=p,days=days,digest=DIGEST)
+        first=inc.run(storage=p,days=days,digest=DIGEST)
+        self.assertEqual(first["new_verified_cohorts_examined"],16)
+        self.assertEqual(first["completed_quality_cohorts"],25)
+        self.assertEqual(first["source_provider_calls"],0)
+        self.assertEqual(first["raw_prices_persisted"],0)
+        followup=inc.run(storage=p,days=days,digest=DIGEST)
+        self.assertEqual(followup["new_verified_cohorts_examined"],2)
+        self.assertEqual(followup["completed_quality_cohorts"],27)
+        self.assertEqual(followup["source_provider_calls"],0)
+        self.assertEqual(followup["raw_prices_persisted"],0)
+        with self.assertRaisesRegex(inc.IncrementalRiskError,
+                                    "invalid_private_incremental_quality_request"):
+            inc.run(storage=p,days=days,digest=DIGEST,limit=17)
+
     def test_adopt_real_shaped_nine_cohort_baseline_zero_api_and_no_new_chunk(self):
         p,days=archive(9)
         seed(p,days)
