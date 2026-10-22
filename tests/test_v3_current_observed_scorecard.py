@@ -313,7 +313,9 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertIn("workflow_run.conclusion == 'success'",flow)
         self.assertIn("workflow_run.head_branch == 'main'",flow)
         self.assertIn("workflow_run.head_repository.full_name == github.repository",flow)
-        self.assertIn("cron: '26,56 * * * *'",flow)
+        self.assertIn("V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)",flow)
+        self.assertIn("cron: '11 * * * *'",flow)
+        self.assertNotIn("cron: '26,56 * * * *'",flow)
         self.assertNotIn("DART_API_KEY:",flow)
         self.assertNotIn("KRX_API_KEY:",flow)
 
