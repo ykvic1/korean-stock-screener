@@ -1,6 +1,7 @@
 """Offline contract tests for cash flow source acquisition. Zero live calls."""
 import copy
 import unittest
+from unittest.mock import patch
 
 from test_v3_dart_rolling_book_reference import fixture, DAY
 from test_v3_dart_bulk_history import CODES, CORPS, mapping_zip
@@ -72,6 +73,65 @@ class FakeSession:
 
 
 class CashflowSourceTests(unittest.TestCase):
+    def test_40_issuer_hourly_budget_and_exact_source_only_resumption(self):
+        market,catalog,bulk=live_inputs()
+        # Exercise the production upper bound without depending on the small
+        # five-company fixture, provider credentials, or network access.
+        codes=[f"{i:06d}" for i in range(1,41)]
+        members={code:{"market":"KOSPI" if i%2 else "KOSDAQ"}
+                 for i,code in enumerate(codes)}
+        receipts={str(y):{"CFS":{"receipt_id":f"{y+1}0318000001",
+                     "values":{"revenue":100000000,"operating_income":100000}}}
+                  for y in range(2022,2026)}
+        bulk["listed_total"]=40
+        bulk["records"]={code:{"years":copy.deepcopy(receipts)} for code in codes}
+        corp_map={code:f"{i+100000:08d}" for i,code in enumerate(codes)}
+
+        class FortyCompanySession:
+            def __init__(self):
+                self.calls=[]
+            def get(self,url,params,timeout):
+                self.calls.append((url,params))
+                year=int(params["bsns_year"])
+                corp=params["corp_code"]
+                code=next(c for c,v in corp_map.items() if v==corp)
+                receipt=f"{year+1}0318000001"
+                entries=[
+                    ("ifrs-full_CashFlowsFromUsedInOperatingActivities","1200"),
+                    ("ifrs-full_PurchaseOfPropertyPlantAndEquipment","300"),
+                    ("ifrs-full_PurchaseOfIntangibleAssets","100"),
+                ]
+                return FakeResponse({"status":"000","list":[
+                    {"corp_code":corp,"stock_code":code,"bsns_year":str(year),
+                     "reprt_code":"11011","fs_div":"CFS","sj_div":"CF",
+                     "account_detail":"-","rcept_no":receipt,"currency":"KRW",
+                     "account_id":key,"thstrm_amount":amount}
+                    for key,amount in entries]})
+
+        with patch.object(cf,"asof_members",return_value=(DAY,members)), \
+             patch.object(cf,"verified_company_mapping_cache",return_value=corp_map):
+            with self.assertRaisesRegex(cf.CashflowError,"invalid_cashflow_max_issuers"):
+                cf.plan(market,catalog,bulk,limit=41)
+            source=FortyCompanySession()
+            saved=[]
+            state,calls=cf.collect(market,catalog,bulk,None,
+                key="synthetic-test-dart-key-without-real-secrets",session=source,
+                issuer_limit=40,on_progress=lambda snapshot:saved.append(snapshot))
+            self.assertEqual(calls,120)
+            self.assertEqual(len(source.calls),120)
+            self.assertEqual(len(saved),120)
+            self.assertEqual(state["metrics"]["attempted_company_years"],120)
+            self.assertEqual(state["metrics"]["fcf_company_years"],120)
+            self.assertEqual(state["metrics"]["three_year_fcf_receipt_matched_issuers"],40)
+            self.assertTrue(cf.verify_state(state,market,catalog,bulk))
+            no_repeat=FortyCompanySession()
+            repeated,n=cf.collect(market,catalog,bulk,state,
+                key="synthetic-test-dart-key-without-real-secrets",session=no_repeat,
+                issuer_limit=40)
+            self.assertEqual(n,0)
+            self.assertEqual(no_repeat.calls,[])
+            self.assertEqual(repeated,state)
+
     def test_same_receipt_three_year_full_statement_no_guessing_and_resume(self):
         market,catalog,bulk=live_inputs()
         prior=[]

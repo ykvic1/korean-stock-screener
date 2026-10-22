@@ -7,8 +7,9 @@ on:
       - v3_dart_cashflow_enrichment.py
       - v3_dart_cashflow_factor_preview.py
       - .github/workflows/v3-dart-cashflow.yml
-  # Thirty-two source-qualified issuers x three annual reports per hour.
-  # At most 96 provider calls/run; 47 past the hour avoids the 29-minute
+  # Forty source-qualified issuers x three annual reports per hour.
+  # At most 120 fiscal calls plus one corpCode.xml refresh per run;
+  # 47 past the hour avoids the 29-minute
   # bulk-history slot. Dedicated concurrency avoids displacement by the
   # 18:30 full-market queue; source commits rebase on the latest main.
   # The existing bulk major-account collector remains independent.
@@ -66,7 +67,7 @@ jobs:
           MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'live' }}
         run: |
           set -euo pipefail
-          python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 32
+          python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 40
       - name: Publish derived cashflow ONLY after successfully validated source
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') && steps.date_gate.outputs.ready == 'true' }}
         run: |
@@ -124,6 +125,14 @@ jobs:
               data=json.loads(file.read_text(encoding='utf8'))
               lines.extend('- '+k+': **'+str(v)+'**' for k,v in
                  data.get('metrics',{}).items())
+              years=[year for company in data.get('records',{}).values()
+                     for year in company.get('years',{}).values()]
+              for field,label in (
+                ('operating_cashflow_krw','CFO'),
+                ('ppe_capex_krw','유형자산 취득액'),
+                ('intangible_capex_krw','무형자산 취득액')):
+                  lines.append('- '+label+' 미확인 회사·연도: **'+
+                               str(sum(row.get(field) is None for row in years))+'**')
           else:
               lines.append('- 실제 소스 체크포인트 아직 없음')
           candidate=Path('docs/v3-dart-fcf-research-preview.json')
