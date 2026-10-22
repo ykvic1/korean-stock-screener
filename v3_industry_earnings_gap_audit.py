@@ -321,7 +321,7 @@ def industry_breadth_csv(stats):
         or type(stats.get("asof")) is not str):
         raise IndustryGapError("untrusted_observed_industry_breadth_source")
     output=StringIO(newline="")
-    writer=csv.writer(output,lineterminator="\\n")
+    writer=csv.writer(output,lineterminator="\n")
     writer.writerow([
        "시장","현재DART업종코드앞2자리","현재상장기업수",
        "영업이익2개년_검증기업수","매출포함엄격비교기업수",
@@ -380,7 +380,7 @@ def industry_breadth_csv(stats):
         or sums["verified"]!=stats.get("two_year_operating_profit_verified_any_revenue")
         or sums["strict"]!=stats.get("actual_saved_annual_profit_pairs")):
         raise IndustryGapError("industry_group_breadth_totals_mismatch")
-    return "\\ufeff"+output.getvalue()
+    return "\ufeff"+output.getvalue()
 
 
 def missing_csv(rows,stats):
