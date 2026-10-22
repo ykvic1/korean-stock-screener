@@ -78,6 +78,18 @@ def setup_factors(cohorts=9,*,quarantine_one=False):
 
 
 class PrivateKRXDerivedReturnTests(unittest.TestCase):
+    def test_sixteen_windows_per_horizon_with_exact_resume(self):
+        p,candidates=setup_factors(cohorts=25)
+        first=rolling.run(storage=p,dates=candidates,
+                          calendar_hash=DIGEST,horizons=[20])
+        self.assertEqual(first["horizons"]["20"]["newly_written_or_reused_windows"],16)
+        self.assertEqual(first["provider_api_calls"],0)
+        second=rolling.run(storage=p,dates=candidates,
+                           calendar_hash=DIGEST,horizons=[20])
+        self.assertEqual(second["horizons"]["20"]["newly_written_or_reused_windows"],6)
+        self.assertEqual(second["horizons"]["20"]["saved_complete_cohort_windows"],22)
+        self.assertEqual(second["provider_api_calls"],0)
+
     def test_first_nine_cohorts_yield_six_20day_windows_no_other_horizon_yet(self):
         p,candidates=setup_factors()
         outcome=rolling.run(storage=p,dates=candidates,calendar_hash=DIGEST)
