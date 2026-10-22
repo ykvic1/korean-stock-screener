@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_current_observed_scorecard.py
+      - tests/test_v3_current_observed_scorecard.py
       - v3_current_price_replay.py
       - v3_volume_participation.py
       - docs/data.json
