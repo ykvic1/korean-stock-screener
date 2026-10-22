@@ -165,7 +165,7 @@ class VerifiedAnnualRefreshTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/v3-dart-weekly-verified-refresh.yml").read_text(encoding="utf8")
         bulk_flow = (root / ".github/workflows/v3-dart-bulk-four-year.yml").read_text(encoding="utf8")
-        crons = re.findall(r"^\\s+- cron: '([^']+)'", workflow, flags=re.M)
+        crons = re.findall(r"^\s+- cron: '([^']+)'", workflow, flags=re.M)
         self.assertEqual(crons, [
             "11 18 * * *", "11 21 * * *", "11 0 * * *", "11 3 * * *",
         ])
