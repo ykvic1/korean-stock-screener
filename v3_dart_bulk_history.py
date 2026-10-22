@@ -111,8 +111,16 @@ def _rejected_currency_category(raw):
     if unit.endswith("원") and unit!="원":
         return "scaled_or_other_won_unit"
     if re.fullmatch(r"[A-Za-z]{3}",unit):
-        return "other_iso_currency"
+        return "other_three_letter_unit"
     return "unrecognized_unit"
+
+
+def _bounded_currency_code(raw):
+    """Reveal only safe three-letter alphabetic unit identifiers, not rows."""
+    if type(raw) is not str:
+        return None
+    unit=raw.strip().upper()
+    return unit if re.fullmatch(r"[A-Z]{3}",unit) else None
 
 
 def _normalize_year(rows, year, asof, requested, corp_to_stock,
@@ -132,6 +140,7 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
     tainted=set()
     counts={}
     currency_rejections={}
+    currency_codes={}
     trusted=0
     def reject(label):
         counts[label]=counts.get(label,0)+1
@@ -162,6 +171,9 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
             reject("unconfirmed_krw_currency")
             category=_rejected_currency_category(row.get("currency"))
             currency_rejections[category]=currency_rejections.get(category,0)+1
+            code=_bounded_currency_code(row.get("currency"))
+            if code:
+                currency_codes[code]=currency_codes.get(code,0)+1
             continue
         if not _valid_receipt(row.get("rcept_no"),year,cutoff):
             reject("invalid_or_future_receipt")
@@ -200,6 +212,7 @@ def _normalize_year(rows, year, asof, requested, corp_to_stock,
             "quarantined_row_count":sum(counts.values()),
             "quarantine_reasons":dict(sorted(counts.items())),
             "currency_rejection_profile":dict(sorted(currency_rejections.items())),
+            "rejected_three_letter_unit_codes":dict(sorted(currency_codes.items())),
             "quarantined_company_scope_count":len(tainted),
         })
     if rows and (trusted==0 or trusted*20<len(rows)):
