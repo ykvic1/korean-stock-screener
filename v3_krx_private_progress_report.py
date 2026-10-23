@@ -164,6 +164,16 @@ def collect(storage, dates, digest):
         "cross_cohort_bridges_backlog": max(0,source_count-1)-linked,
         "rolling_return_horizon_research": research_windows,
         "price_discontinuity_heuristic_cohorts_reviewed": reviewed,
+        # Uniquely named event COUNTS, not distinct affected issuers, verified
+        # splits, confirmed corporate actions, or tradeable adjustment factors.
+        # Until the risk cursor exists, absence stays NULL (never zero flags).
+        "price_discontinuity_heuristic_flag_events_observed": (
+            risk["cumulative_price_discontinuity_flags"] if risk else None),
+        "price_discontinuity_issuer_cohort_observations_examined": (
+            risk["cumulative_issuer_buckets_examined"] if risk else None),
+        "price_discontinuity_issuer_boundary_observations_examined": (
+            risk["cumulative_issuer_bridges_examined"] if risk else None),
+        "price_discontinuity_flags_are_confirmed_corporate_actions": False,
         "price_discontinuity_review_backlog_at_verified_bridges": end_available-reviewed,
         "private_immutable_evidence_tails_verified": True,
         "private_repo_verified_before_read": True,

@@ -117,6 +117,10 @@ jobs:
                   }),
                   "과도한 가격변화 위험검토 완료 코호트 "+
                   str(s["price_discontinuity_heuristic_cohorts_reviewed"]),
+                  "과도한 가격변화 의심 이벤트(중복 가능/기업행위 미확정): "+
+                  str(s["price_discontinuity_heuristic_flag_events_observed"]),
+                  "급변화 위험 검토에 포함된 종목-구간 관측: "+
+                  str(s["price_discontinuity_issuer_cohort_observations_examined"]),
               ]
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
               "\n".join(lines)+"\n",encoding="utf8")

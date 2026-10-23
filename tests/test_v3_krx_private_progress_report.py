@@ -121,6 +121,10 @@ class CheckPrivateProgress(unittest.TestCase):
         self.assertEqual(h["20"]["possible_windows_from_current_verified_bridges"],8)
         self.assertEqual(h["60"]["complete_cohort_windows"],0)
         self.assertEqual(result["price_discontinuity_heuristic_cohorts_reviewed"],10)
+        self.assertEqual(result["price_discontinuity_heuristic_flag_events_observed"],3)
+        self.assertEqual(result["price_discontinuity_issuer_cohort_observations_examined"],0)
+        self.assertEqual(result["price_discontinuity_issuer_boundary_observations_examined"],0)
+        self.assertIs(result["price_discontinuity_flags_are_confirmed_corporate_actions"],False)
         self.assertEqual(result["price_discontinuity_review_backlog_at_verified_bridges"],1)
         self.assertFalse(result["historical_delisted_universe_pit_verified"])
         self.assertFalse(result["corporate_actions_or_adjusted_prices_verified"])
@@ -139,6 +143,10 @@ class CheckPrivateProgress(unittest.TestCase):
         self.assertEqual(report["cross_cohort_bridges_completed"],0)
         self.assertEqual(report["rolling_return_horizon_research"]["20"]["complete_cohort_windows"],0)
         self.assertEqual(report["price_discontinuity_heuristic_cohorts_reviewed"],0)
+        self.assertIsNone(report["price_discontinuity_heuristic_flag_events_observed"])
+        self.assertIsNone(report["price_discontinuity_issuer_cohort_observations_examined"])
+        self.assertIsNone(report["price_discontinuity_issuer_boundary_observations_examined"])
+        self.assertFalse(report["price_discontinuity_flags_are_confirmed_corporate_actions"])
         self.assertFalse(report["official_exchange_historical_factor_certified"])
 
     def test_checkpoint_cannot_claim_more_bridges_than_source(self):
