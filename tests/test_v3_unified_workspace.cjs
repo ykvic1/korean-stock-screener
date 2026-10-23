@@ -420,7 +420,7 @@ assert.equal(unified.researchComposite(partial).earned,6.5);
 assert.equal(unified.researchComposite(partial).available,11);
 assert.equal(unified.researchComposite(partial).missing,89);
 assert.deepEqual(unified.pillarState(partial).map(p=>p.candidate),
- [null,6.5,null,null,null,null]);
+ [null,6.5,null,null,null]);
 // Backfilled V3 values from the bounded 7-day rotation require exact date,
 // same ticker, source counts, numeric parts and explicit noncertification.
 const missingAdapter={...partial,v3_pattern_integrated:null};
