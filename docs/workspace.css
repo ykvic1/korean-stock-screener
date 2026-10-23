@@ -214,3 +214,13 @@ details.u-intro{padding:15px 18px;margin-bottom:10px}
 .u-industry-research .u-scroller th{position:sticky;top:0;background:#132528}
 .u-industry-research .u-scroller td{font-variant-numeric:tabular-nums}
 @media(max-width:480px){.u-industry-research{padding:12px 14px}.u-industry-research>summary strong{font-size:13px}.u-industry-research>summary small{font-size:10px}}
+
+/* Five score pillars fill the full stock-card row; total is shown above. */
+.u-stock .u-scoresix{grid-template-columns:repeat(5,minmax(0,1fr))}
+.u-stock .u-scoresix span{padding-inline:4px}
+.u-stock .u-scoresix span:last-child{border-right:0}
+@media(max-width:480px){
+ .u-stock .u-scoresix small{font-size:10px;line-height:1.35}
+ .u-stock .u-scoresix b{font-size:12px}
+ .u-stock .u-scoresix span{padding:9px 3px}
+}
