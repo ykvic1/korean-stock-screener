@@ -8,6 +8,8 @@ The rollups are NOT source-adjusted or historical PIT investment certification.
 from __future__ import annotations
 
 import argparse
+import math
+import time
 from hashlib import sha256
 import json
 import os
@@ -156,6 +158,8 @@ def collect(storage, dates, digest):
         "five_session_cohorts_target": total,
         "five_session_cohorts_completed": source_count,
         "five_session_cohorts_remaining": total-source_count,
+        "minimum_cohorts_for_95pct": math.ceil(total*0.95),
+        "cohorts_remaining_to_95pct": max(0,math.ceil(total*0.95)-source_count),
         "source_history_coverage_ratio": round(source_count/total, 6),
         "last_completed_source_session": (
             dates[5*source_count-1] if source_count else None),
@@ -202,7 +206,16 @@ def main(argv=None):
         raise PrivateProgressError("private_derived_read_secrets_missing")
     dates,digest=history_candidates()
     storage=PrivateGitStorage(repo,token)
-    report=collect(storage,dates,digest)
+    # Concurrent historical collector can advance a checkpoint mid-read.
+    # Retry only verified PRIVATE reads; never call KRX or relax tail hashes.
+    for attempt in range(3):
+        try:
+            report=collect(storage,dates,digest)
+            break
+        except PrivateProgressError as exc:
+            if str(exc)!="private_progress_changed_during_read" or attempt==2:
+                raise
+            time.sleep(attempt+1)
     target=Path(args.docs)/"v3-krx-derived-backfill-progress.json"
     if args.mode=="write":
         write_json(target,report)
