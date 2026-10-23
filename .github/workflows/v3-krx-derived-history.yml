@@ -2,7 +2,7 @@ name: V3 KRX historical derived-only backfill
 
 on:
   # Resume the approved derived-only history collection on vetted main
-  # merge, then continue through seven daily windows, with capped private snapshots.
+  # merge, then continue through twelve bounded daily windows, with capped private snapshots.
   push:
     branches: [main]
     paths:
@@ -17,6 +17,11 @@ on:
     - cron: '11 13 * * *'  # 22:11 KST, outside main market workflow
     - cron: '11 8 * * *'   # 17:11 KST, bounded private historical backfill
     - cron: '11 15 * * *'  # 00:11 KST, bounded private historical backfill
+    - cron: '11 0 * * *'   # 09:11 KST
+    - cron: '11 4 * * *'   # 13:11 KST
+    - cron: '11 10 * * *'  # 19:11 KST
+    - cron: '11 19 * * *'  # 04:11 KST
+    - cron: '11 23 * * *'  # 08:11 KST
   workflow_dispatch:
     inputs:
       max_windows:
