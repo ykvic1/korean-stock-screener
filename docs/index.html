@@ -69,21 +69,25 @@ h2{font-size:18px;margin:0 0 12px}.status{font-weight:750;color:var(--green)}.st
 [hidden]{display:none!important}.inline-research{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}.quality-text{font-size:12px;color:var(--sub)}.quant-button{font-size:12px;padding:6px 11px;white-space:nowrap}.quick-actions{margin-top:7px}.quant-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.quant-table-wrap{overflow-x:auto}.quant-table{border-collapse:collapse;min-width:620px;width:100%;font-size:13px}.quant-table th,.quant-table td{border-bottom:1px solid #e5edef;padding:10px;text-align:right;white-space:nowrap}.quant-table th:first-child,.quant-table td:first-child{text-align:left}.quant-table th{background:#f6f9fa}.research-note{font-size:12px;color:var(--sub)}.research-warn{color:#9a5310;font-weight:700}
 a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.history a{display:block;margin:7px 0;font-size:13px}
 @media(max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr}header h1{font-size:22px}.panel{padding:14px}.stock{padding:12px}.score{font-size:19px}}
-</style></head><body>
+details#developmentDetails>summary{font-size:15px;padding:10px 2px}#developmentDetails>.panel{box-shadow:none;margin-top:12px}.stock>.scores{border:1px solid #dce6ea;border-radius:9px;padding:8px 10px;background:#f7fafb}.stock>.scores b{font-size:12px}</style></head><body>
 <header><div class="wrap"><div class="eyebrow">QUANT RESEARCH / KOREA</div><h1>한국주식 다면 스크리너 <small style="font-size:12px;color:#9fd5d4">v2.0</small></h1><p>거래량 · 일봉·주봉 구조 · 수급 · 시장강도 · 밸류 · 손실 통제</p></div></header>
 <main>
-<section class="panel" style="border-left:4px solid #087d83"><h2>이전 연구 화면 보관</h2><p class="note">현재 통합 워크스페이스와 다른 과거 분석 화면입니다. 기존 관측점수는 V3 공식 종합점수가 아닙니다.</p><a class="btn primary" href="workspace.html">통합 스크리너로 돌아가기 →</a></section>
-<section class="panel" id="v3BetaEntry" style="border-left:4px solid #148487">
-  <h2>v3 차트 패턴 우선 관찰 · RSI·손실 위험</h2>
-  <p class="note">폴링 웻지, 역헤드앤숄더, 더블바텀, <strong>Bull Flag</strong> 등 선호 패턴과 RSI 30 회복·상승다이버전스, 구조적 손절 위험을 먼저 확인합니다. OBV는 필수 조건이 아닌 보조 관찰입니다. <strong>기관 매집과 실제 매수 적합성은 아직 미인증</strong>입니다.</p>
-  <a class="btn primary" href="v3-beta.html">선호 차트 패턴 · RSI 관찰 후보 확인 →</a>
-</section>
-<section class="panel" id="deepResearch">
-  <h2>전체시장 기반 종목별 심층 분석 · 최대 20개</h2>
-  <p class="note">전 종목을 먼저 평가한 뒤 손절·점수·확보율 조건을 충족한 종목만 상세 분석합니다. 20개는 <strong>표시할 최대 수</strong>이며, 충분한 후보가 없다면 적게 표시합니다. <strong>심층분석 대상은 매수 추천이 아닙니다.</strong> 재무·업황·기관 수급 및 수익률 전망이 검증되지 않으면 확정 추천 0종목도 정상적인 결과입니다.</p>
-  <div class="research-summary" id="deepResearchStatus" aria-live="polite">전 종목 심층분석 보고서를 불러오는 중입니다.</div>
-  <p class="note" id="deepChanges"></p>
-  <div id="deepDossiers" class="rich-stock-list"><div class="empty">종목별 분석 자료 확인 중…</div></div>
+<section class="panel" id="screenList">
+  <h2>종목 검색 · 전체 발굴 종목</h2>
+  <p class="note">현재 전시장 가격 분석 결과를 검색할 수 있습니다. 각 종목의 <strong>퀀트 검증</strong> 버튼은 기존 과거 연구자료를 여기서 조회하며, 종목의 가격 데이터 신뢰성 연구는 자동으로 확인합니다. <strong>연구표본에 없는 종목은 품질이나 재무 상태가 나쁘다고 판단하지 않고 '미확인'으로 표시합니다.</strong></p>
+  <p class="note">코스피·코스닥 보통주에 시가총액·거래대금 상·하한을 적용하지 않습니다. 과거 차트 정밀조회는 실행시간 내에서 거래일마다 순환하며, 수급·재무·업황 미확인 정보는 점수에 임의 반영하지 않습니다.</p>
+  <div class="filters"><input id="search" placeholder="종목명 또는 코드 검색" aria-label="종목 검색"/><select id="sort" aria-label="종목 정렬"><option value="score">기존 v2 부분환산 점수순</option><option value="risk">손절 위험이 낮은 순</option><option value="recent">60일 수익률 낮은 순</option><option value="relative">시장 상대강도순</option><option value="coverage">데이터 확보율순</option></select></div>
+  <div class="chips" id="filterBar">
+    <button class="chip active" data-filter="all">전체</button>
+    <button class="chip" data-filter="early">상승 초기</button>
+    <button class="chip" data-filter="patterns">차트 패턴</button>
+    <button class="chip" data-filter="weekly">주봉 전환</button>
+    <button class="chip" data-filter="volume">거래량 신호</button>
+    <button class="chip" data-filter="divergence">OBV 괴리</button>
+    <button class="chip" data-filter="lowrisk">손절폭 15% 이내</button>
+    <button class="chip" data-filter="flow">수급 확인</button>
+  </div>
+  <div id="list"><div class="empty">스크리너 결과를 읽고 있습니다.</div></div>
 </section>
 <section class="panel" id="practicalWatchlist">
   <h2>기술점수 상위 20개 · 추가 탐색용</h2>
@@ -115,22 +119,14 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note" id="practicalNote">최근 자료가 없거나 조건을 충족하는 종목이 없으면 억지로 채우지 않습니다.</p>
   <a class="btn" href="#screenList">전체 후보 자세히 보기 →</a>
 </section>
-<section class="panel" id="screenList">
-  <h2>관심 종목 스크리닝</h2>
-  <p class="note">현재 전시장 가격 분석 결과를 검색할 수 있습니다. 각 종목의 <strong>퀀트 검증</strong> 버튼은 기존 과거 연구자료를 여기서 조회하며, 종목의 가격 데이터 신뢰성 연구는 자동으로 확인합니다. <strong>연구표본에 없는 종목은 품질이나 재무 상태가 나쁘다고 판단하지 않고 '미확인'으로 표시합니다.</strong></p>
-  <p class="note">코스피·코스닥 보통주에 시가총액·거래대금 상·하한을 적용하지 않습니다. 과거 차트 정밀조회는 실행시간 내에서 거래일마다 순환하며, 수급·재무·업황 미확인 정보는 점수에 임의 반영하지 않습니다.</p>
-  <div class="filters"><input id="search" placeholder="종목명 또는 코드 검색" aria-label="종목 검색"/><select id="sort" aria-label="종목 정렬"><option value="score">기존 v2 부분환산 점수순</option><option value="risk">손절 위험이 낮은 순</option><option value="recent">60일 수익률 낮은 순</option><option value="relative">시장 상대강도순</option><option value="coverage">데이터 확보율순</option></select></div>
-  <div class="chips" id="filterBar">
-    <button class="chip active" data-filter="all">전체</button>
-    <button class="chip" data-filter="early">상승 초기</button>
-    <button class="chip" data-filter="patterns">차트 패턴</button>
-    <button class="chip" data-filter="weekly">주봉 전환</button>
-    <button class="chip" data-filter="volume">거래량 신호</button>
-    <button class="chip" data-filter="divergence">OBV 괴리</button>
-    <button class="chip" data-filter="lowrisk">손절폭 15% 이내</button>
-    <button class="chip" data-filter="flow">수급 확인</button>
-  </div>
-  <div id="list"><div class="empty">스크리너 결과를 읽고 있습니다.</div></div>
+
+
+<section class="panel" id="deepResearch">
+  <h2>전체시장 기반 종목별 심층 분석 · 최대 20개</h2>
+  <p class="note">전 종목을 먼저 평가한 뒤 손절·점수·확보율 조건을 충족한 종목만 상세 분석합니다. 20개는 <strong>표시할 최대 수</strong>이며, 충분한 후보가 없다면 적게 표시합니다. <strong>심층분석 대상은 매수 추천이 아닙니다.</strong> 재무·업황·기관 수급 및 수익률 전망이 검증되지 않으면 확정 추천 0종목도 정상적인 결과입니다.</p>
+  <div class="research-summary" id="deepResearchStatus" aria-live="polite">전 종목 심층분석 보고서를 불러오는 중입니다.</div>
+  <p class="note" id="deepChanges"></p>
+  <div id="deepDossiers" class="rich-stock-list"><div class="empty">종목별 분석 자료 확인 중…</div></div>
 </section>
 <section class="panel" id="quantPanel" hidden aria-live="polite">
   <div class="quant-head"><h2 id="quantTitle">종목별 퀀트 검증</h2><button class="btn" type="button" id="closeQuant">닫기</button></div>
@@ -138,6 +134,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <div id="quantResults">퀀트 연구 자료 확인 중…</div>
   <p class="note">퀀트 표본은 전체시장에 비해 제한적입니다. 과거 유사조건 관측은 미래 상승 확률 또는 매수 추천이 아닙니다. 자료가 없는 종목을 부적격이라고 판단하지 않습니다.</p>
 </section>
+<details class="panel" id="developmentDetails"><summary>개발현황 · 데이터 품질 · 과거 보고서 (펼치기)</summary>
 <section class="panel" id="marketSummary">
   <h2>데이터 현황 · 품질 참고</h2>
   <div id="status" class="status bad">시장 분석 데이터 확인 중…</div><div id="updated" class="meta">-</div>
@@ -159,6 +156,7 @@ a{color:#116a88}.empty{text-align:center;padding:25px 7px;color:var(--sub)}.hist
   <p class="note"><strong>아직 자동 검증되지 않은 항목:</strong> 산업 사이클/업종 순환, 연도별 매출·영업이익·현금흐름, 공매도 잔고, 실질 엘리어트 카운팅, 월별 기대수익률. 패턴은 자동 근사 후보이며 실제 차트와 대안 파동으로 검증해야 합니다. 데이터 제공처 오류 시 갱신이 중단될 수 있습니다.</p>
   <p class="note">가격 및 상장 정보: FinanceDataReader · 수급: pykrx/KRX · 네이버 금융 대체 조회(각 종목에 실제 출처 표시). 공개 GitHub Pages에 개인 보유종목·매수가·API 키를 넣지 마세요.</p>
 </section>
+</details>
 </main>
 <script src="watchlist.js"></script>
 <script src="partial_score.js"></script>
@@ -210,7 +208,7 @@ function drawCard(r,options={}){
   <div class="metric"><label>거래량 20일/이전40일</label><b>${val(r.volume_ratio,'배')}</b></div>
   <div class="metric"><label>60일 주가변화</label><b>${signed(r.price60,'%')}</b></div>
   <div class="metric"><label>120주선 괴리</label><b>${signed(r.ma120w_gap,'%')}</b></div>
- </div><div class="tags">${tags.join('')}</div>
+ </div><div class="scores"><b>항목별 산출 점수 · 잠정</b>${components||"<div>항목별 자료 미확보</div>"}</div><div class="tags">${tags.join('')}</div>
  <div class="quick-axes"><span>${esc(profile?.riskLabel||'진입 위험 근거 미확인')}</span><span>${esc(profile?.horizonLabel||'기간 분류 미확인')}</span></div>
  <div class="inline-research"><span class="quality-text">가격 데이터: ${esc(r._quality?.label||'품질 자료 조회 중')}</span>
  <button type="button" class="btn quant-button" data-quant-code="${esc(r.code)}">퀀트 검증</button></div>
@@ -232,7 +230,7 @@ function drawCard(r,options={}){
   ${indicator('수급 자료원',r.flow_source||'미확인')}
   ${indicator('수급 기준 기간',r.flow_end_date?`${r.flow_start_date} ~ ${r.flow_end_date}`:'미확인')}
   ${indicator('52주 고점 참조',val(r.reference_resistance,'원'))}
-  </div><div class="scores">${components}</div>
+  </div>
   <p class="note"><b>자동 가격품질 연구:</b> ${esc(r._quality?.label||'품질 자료 조회 중')}
     · 연구 기준일 ${esc(r._quality?.asof||'미확인')}
     · 연속 유효 ${val(r._quality?.usable,'봉')}
