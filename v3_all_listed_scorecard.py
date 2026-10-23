@@ -65,7 +65,9 @@ def _momentum(record, asof, market):
         ref.get("positive_days20_observed") is not False):
         return None,0
     parts=ref.get("momentum_parts")
-    if not isinstance(parts,dict) or parts.get("positive_days20") is not None:
+    if (not isinstance(parts,dict) or parts.get("positive_days20") is not None or
+        parts.get("trend_persistence60") is not None or
+        parts.get("reversal_breadth120") is not None):
         return None,0
     avail=0
     points=0
@@ -79,7 +81,7 @@ def _momentum(record, asof, market):
         points+=v
     if (avail not in (4,8) or record.get("momentum_available_weight")!=avail or
         ref.get("momentum_observed_maximum")!=avail or
-        ref.get("momentum_maximum")!=10 or
+        ref.get("momentum_maximum") not in (10,15) or
         not _number(record.get("momentum_research_points"),avail) or
         not _number(ref.get("momentum_research_candidate"),avail) or
         abs(points-record["momentum_research_points"])>0.00001 or
