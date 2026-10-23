@@ -182,12 +182,51 @@ class CheckPrivateProgress(unittest.TestCase):
             run(fake)
 
 
+    def test_bridge_success_updates_progress_without_waiting_for_rolling(self):
+        """Direct bridge completion needs its own publisher event, with no API."""
+        workflows=Path(__file__).resolve().parents[1]/".github"/"workflows"
+        bridge=(workflows/"v3-krx-derived-boundaries.yml").read_text(
+            encoding="utf8")
+        public=(workflows/"v3-krx-public-derived-progress.yml").read_text(
+            encoding="utf8")
+        from re import search
+        actual_name=search(r"(?m)^name: (.+)$",bridge)
+        self.assertIsNotNone(actual_name)
+        name=actual_name.group(1)
+        self.assertEqual(name,
+                         "V3 KRX Derived-Only Historical Cohort Boundary Join")
+        self.assertIn("      - "+name+"\\n",public)
+        self.assertIn("types: [completed]",public)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'",
+                      public)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'",
+                      public)
+        self.assertIn(
+            "github.event.workflow_run.head_repository.full_name == github.repository",
+            public)
+        self.assertIn("docs/v3-krx-derived-backfill-progress.json",public)
+        self.assertIn('str(s["cross_cohort_bridges_backlog"])',public)
+        self.assertNotIn("KRX_API_KEY:",public)
+        self.assertNotIn("DART_API_KEY:",public)
+        self.assertIn("group: v3-public-private-derived-progress-only",public)
+        self.assertIn("cancel-in-progress: false",public)
+        self.assertIn("python v3_krx_private_progress_report.py --mode verify",
+                      public)
+        self.assertIn("private_progress_changed_during_read",
+                      (workflows.parent.parent/
+                       "v3_krx_private_progress_report.py").read_text(
+                           encoding="utf8"))
+        self.assertIn("cron: '30 9 * * 1-5'",
+                      (workflows/"full-market-batches.yml").read_text(
+                          encoding="utf8"))
+
     def test_successful_private_rolling_research_refreshes_only_public_aggregates(self):
         flow=(Path(__file__).resolve().parents[1]/
               ".github/workflows/v3-krx-public-derived-progress.yml").read_text(
                   encoding="utf8")
         self.assertIn("workflow_run:",flow)
         self.assertIn("V3 KRX historical derived-only backfill",flow)
+        self.assertIn("V3 KRX Derived-Only Historical Cohort Boundary Join",flow)
         self.assertIn(
             "V3 KRX Private Derived-Only 20/60/120/250-Session Return Research",flow)
         self.assertIn(
