@@ -225,8 +225,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
                 counts[area]+=1
         available=sum(coverage.values())
         earned=sum(v for v in values.values() if v is not None)
-        if not 0<=earned<=available<=(76 if cashflow is not None else
-                                   67 if financial is not None else 49):
+        if not 0<=earned<=available<=sum(POINT_BUDGET.values()):
             raise LivePartialScorecardError("invented_current_day_score")
         if available:
             nonblank+=1
@@ -259,8 +258,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "five_area_observed_overlap_by_market":five_area_overlap_by_market,
         "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
-        "highest_currently_observable_weight":(
-            76 if cashflow is not None else 67 if financial is not None else 49),
+        "highest_currently_observable_weight":sum(
+            max(r["factor_available"][area] for r in output)
+            for area in POINT_BUDGET),
         "fcf_observed_issuer_counts":fcf_counts,
         "fcf_reference_join_status":(
             "same_fiscal_year_scope_receipt_replayed" if cashflow is not None
