@@ -15,6 +15,7 @@ import os
 import time as retry_clock
 
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
+from official_probe.clients import KRXProbeError
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_derived_5day import (
@@ -210,6 +211,14 @@ def main():
         if (str(err)=="official_market_window_or_validation_failed"
             and phase in ("transport","source_validation","issuer_identity")):
             report["opaque_failure_phase"]=phase
+            # KRXProbeError.REASONS is a finite fixed code list. An HTTP
+            # status is numeric only; neither can contain credentials/URLs.
+            reason=getattr(err,"safe_krx_reason",None)
+            if phase=="transport" and reason in KRXProbeError.REASONS:
+                report["krx_allowlisted_failure_reason"]=reason
+                code=getattr(err,"safe_krx_http_status",None)
+                if type(code) is int and 100<=code<=599:
+                    report["http_status_only"]=code
         print(json.dumps(report,sort_keys=True))
         return 1
     except Exception as exc:
