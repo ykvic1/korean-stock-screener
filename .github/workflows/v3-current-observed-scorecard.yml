@@ -84,12 +84,12 @@ jobs:
             git commit -m "Publish actual closing market price+DART receipt-checked partial CSV"
             for attempt in 1 2 3; do
               git pull --rebase origin main
-              python v3_current_observed_scorecard.py --mode write
+              python v3_current_observed_scorecard.py --mode write --refresh-derived
               git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json
               if ! git diff --cached --quiet; then
                 git commit --amend --no-edit
               fi
-              python v3_current_observed_scorecard.py --mode verify
+              python v3_current_observed_scorecard.py --mode verify --refresh-derived
               if git push origin HEAD:main; then
                 echo "current_close_research_csv_published"
                 break
@@ -102,7 +102,7 @@ jobs:
           fi
       - name: Manual read-only consistency verification
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
-        run: python v3_current_observed_scorecard.py --mode verify
+        run: python v3_current_observed_scorecard.py --mode verify --refresh-derived
       - name: Display source-specific observed count, not investment grades
         if: always()
         run: |
