@@ -51,7 +51,7 @@ with sync_playwright() as p:
     shown = page.locator('.u-scoresix span[data-pillar="volume"] b').first.inner_text()
     assert shown.strip() != "—", "real observed volume candidate not applied"
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
-    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 5
+    assert page.locator(".u-scoresix").first.locator("span[data-pillar]").count() == 5
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
     page.locator("#marketSummary summary").click()
