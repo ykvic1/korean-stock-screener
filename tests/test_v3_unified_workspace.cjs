@@ -509,7 +509,7 @@ assert.equal(unified.applyCurrentPriceReplay(seededModel,replaySource),2);
 assert.equal(unified.researchComposite(seeded).available,19);
 assert.ok(unified.researchComposite(seeded).earned!==null);
 assert.equal(unified.pillarState(seeded)[1].available,11);
-assert.equal(unified.pillarState(seeded)[5].available,8);
+assert.equal(unified.pillarState(seeded)[4].available,8);
 for(const forged of [
  {...replaySource,asof:'2026-10-21'},
  {...replaySource,separate_source_provider_calls:1},
