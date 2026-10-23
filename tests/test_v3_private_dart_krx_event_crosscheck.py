@@ -197,12 +197,12 @@ class CrosscheckTests(unittest.TestCase):
         self.assertEqual(r["provider_calls"],0)
         self.assertFalse(r["corporate_actions_verified"])
         self.assertEqual(r["scores_promoted"],0)
-        count = store.puts
+        count = store.posts
         # Re-running the integrity preflight never writes, prices or scores.
         with patch.object(cross,"history_candidates",return_value=(days,DIGEST)):
             same = cross.verify_private_risk_archive(store)
         self.assertEqual(same,r)
-        self.assertEqual(store.puts,count)
+        self.assertEqual(store.posts,count)
         # Missing middle chunk is not incorrectly treated as an empty result.
         chunk = inc._delta_path(days,9,25)
         store.blobs.pop(chunk)
