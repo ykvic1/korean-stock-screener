@@ -1,0 +1,61 @@
+name: V3 Private Historical OpenDART Filing Receipts (Research Only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_historical_event_receipts.py
+      - tests/test_v3_dart_historical_event_receipts.py
+      - .github/workflows/v3-dart-historical-event-receipts.yml
+  # Four bounded daily private metadata batches; max 8 official DART calls
+  # per run. Do not conflict with the independent official KRX schedule.
+  schedule:
+    - cron: '19 20 * * *' # 05:19 KST
+    - cron: '19 2 * * *'  # 11:19 KST
+    - cron: '19 8 * * *'  # 17:19 KST
+    - cron: '19 14 * * *' # 23:19 KST
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Manual defaults to test-only; live stores private receipts'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-dart-private-historical-event-receipts
+  cancel-in-progress: false
+
+jobs:
+  historical-filing-receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate historical official filing metadata and private-only reuse
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_historical_event_receipts.py
+          python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
+      - name: Save bounded historical official DART B C E I receipt metadata in PRIVATE repo
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No vendor response bodies, private receipt IDs, corp IDs or API
+          # token are written into this public repository, logs or artifacts.
+          # No KRX calls; source is filings, NOT certified price adjustments.
+          python v3_dart_historical_event_receipts.py
