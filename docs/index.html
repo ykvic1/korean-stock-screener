@@ -10,6 +10,7 @@
 <script src="v3-ranking.js" defer></script>
 <script src="workspace.js" defer></script>
 <script src="v3-krx-progress.js" defer></script>
+<script src="v3-data-readiness.js" defer></script>
 </head>
 <body id="unifiedApp">
 <header class="u-header">
@@ -17,9 +18,9 @@
   <div><div class="u-eyebrow">KOREA EQUITY RESEARCH · UNIFIED WORKSPACE</div>
    <h1>한국주식 통합 스크리너</h1>
    <p>일봉·주봉·거래량·OBV부터 실적과 손실 위험까지 한 화면에서 분석</p></div>
-  <div class="u-header-actions"><a href="v3-current-observed-all-listed.csv" download>당일 실측 잠정점수 CSV ↓</a><a href="v3-dart-industry-earnings-sample.json">DART 업종 실적 표본 근거</a><a href="reports/latest.xlsx" download>전체 엑셀 ↓</a>
+  <div class="u-header-actions"><a href="v3-current-observed-all-listed.csv" download>당일 실측 잠정점수 CSV ↓</a><a href="reports/latest.xlsx" download>전체 엑셀 ↓</a>
    <button type="button" id="reload">자료 새로고침</button>
-   <a href="legacy.html">기존 v2 화면</a></div>
+   <a href="legacy.html">이전 화면</a></div>
  </div>
 </header>
 <main class="u-wrap">
@@ -37,9 +38,23 @@
  <details class="u-industry-research u-intro" id="industryResearch">
    <summary><strong>산업 실제 실적 관측 · 표본 확산</strong><small id="industryResearchCount">자료 확인 중</small></summary>
    <div id="industryResearchContent">
-     <p class="u-muted">공식 DART 업종코드 및 실적 자료를 확인하고 있습니다. 미확인 항목은 투자점수가 아닙니다.</p>
+     <p class="u-muted">공식 DART 업종코드 및 실적 자료를 확인하고 있습니다. 산업 15점은 실증자료 검증 전까지 빈칸입니다.</p>
    </div>
    <p class="u-source"><a href="v3-industry-observed-profit-breadth.csv" download>업종별 영업이익 개선율·확보율 CSV ↓</a> · <a href="v3-industry-saved-profit-gap-issuers.csv" download>업종 실적 비교 미확보 종목·원인 CSV ↓</a> · 현재 DART 회사업종/저장 공시원장 기준이며 공식 KRX 산업 15점이 아닙니다.</p>
+ </details>
+ <details class="u-intro" id="dataReadiness">
+  <summary class="u-intro-top"><span class="u-section-heading">V3 데이터 확보 현황 <small>자세히 보기</small></span>
+   <span id="readinessStatus" class="u-state" role="status" aria-live="polite">실측 자료 확인 중…</span></summary>
+  <div class="u-stats" aria-label="과거 자료 및 당일 관측 확보 현황">
+   <div><span>DART 4개년 공시자료 (종목·연도)</span><strong id="readinessFinancial">미확인</strong></div>
+   <div><span>기술분석 관측 종목</span><strong id="readinessPrice">미확인</strong></div>
+   <div><span>3개년 FCF 확인 종목</span><strong id="readinessCashflow">미확인</strong></div>
+   <div><span>정식 100점 검증 종목</span><strong id="readinessCertified">미확인</strong></div>
+  </div>
+  <p class="u-source" id="readinessNotes">서로 같은 기준일의 실제 수집 결과만 함께 표시합니다.</p>
+  <p class="u-source">KRX 장기 과거 구간은 원본을 공개하지 않고 비공개 파생정보로 수집 중입니다.
+   <a href="https://github.com/ykvic1/korean-stock-screener/actions/workflows/v3-krx-derived-history.yml" target="_blank" rel="noopener noreferrer">공식 수집 실행 기록 확인 ↗</a>.
+   기존 18:30 분석은 V3 통합 화면에 가격·패턴·엑셀 자료를 공급하며, 검증 완료 후 새 엔진으로 단계적으로 전환합니다.</p>
   <p class="u-source"><strong>업종별 20·60일 상대강도:</strong> <a href="v3-industry-observed-relative-strength.csv" download>실제 표본·초기 회복 관찰 후보 CSV ↓</a> · 현재 DART 업종분류와 저장된 시장 대비 상대강도에 근거합니다. 과거 업종 구성·수정주가·시장지수별 날짜는 독립 검증 전이며 정식 산업 15점은 비워둡니다.</p>
  </details>
   <details class="u-intro" id="krxHistoryProgress">
