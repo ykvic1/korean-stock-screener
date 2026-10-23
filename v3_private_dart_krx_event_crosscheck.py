@@ -340,13 +340,48 @@ def run(storage):
             "scores_promoted": 0, "public_issuer_records_written": 0}
 
 
+
+def verify_private_risk_archive(storage):
+    """Check that ALL checkpointed KRX anomaly chunks remain joined and valid.
+
+    Independent of how many DART months have finished: diagnose the private
+    risk-source chain now rather than waiting for historical filing backfill.
+    This is evidence integrity, NEVER event causality or price adjustment.
+    """
+    if storage.repository != PRIVATE_REPO:
+        raise CrosscheckError("public_or_untrusted_private_archive")
+    storage.verify_private()
+    events, _, risk, source_raw, risk_raw = _source_events(storage)
+    if risk is None:
+        return {"status": "waiting_for_verified_krx_risk_review",
+                "provider_calls": 0, "adjusted_prices_certified": False,
+                "corporate_actions_verified": False, "scores_promoted": 0}
+    if (storage.get_content(SOURCE_CHECKPOINT)[0] != source_raw
+        or storage.get_content(RISK_CHECKPOINT)[0] != risk_raw):
+        raise CrosscheckError("source_cursors_changed_during_risk_preflight")
+    return {"status": "private_krx_risk_archive_checkpoint_chain_verified",
+            "risk_reviewed_five_session_cohorts": risk["next_cohort_index"],
+            "heuristic_price_discontinuity_events": len(events),
+            "provider_calls": 0,
+            "adjusted_prices_certified": False,
+            "corporate_actions_verified": False,
+            "historical_pit_verified": False,
+            "scores_promoted": 0,
+            "public_issuer_records_written": 0}
+
+
+
 def main():
     if (os.getenv("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO
         or len(os.getenv("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20):
         raise SystemExit("blocked: private-only historical crosscheck credentials missing")
+    import sys
+    if sys.argv[1:] not in ([], ["--risk-preflight"]):
+        raise SystemExit("blocked: invalid private crosscheck mode")
     try:
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
-        result = run(store)
+        result = (verify_private_risk_archive(store)
+                  if sys.argv[1:] == ["--risk-preflight"] else run(store))
     except Exception:
         raise SystemExit("blocked: private DART KRX candidate review validation failed") from None
     print(json.dumps(result, sort_keys=True))
