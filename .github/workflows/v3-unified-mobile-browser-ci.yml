@@ -31,10 +31,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install Chromium browser test runtime
+      - name: Use preinstalled GitHub Ubuntu Chrome with Playwright
         run: |
           python -m pip install 'playwright>=1.48,<2'
-          python -m playwright install --with-deps chromium
+          command -v google-chrome
+          google-chrome --version
       - name: Launch checked-in production-data Pages mirror
         run: |
           python -m http.server 8765 --bind 127.0.0.1 --directory docs > /tmp/v3-ui-server.log 2>&1 &
