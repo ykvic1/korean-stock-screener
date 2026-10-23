@@ -1,0 +1,65 @@
+name: V3 Private OpenDART Original Filing ZIP Evidence Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_private_dart_original_evidence.py
+      - tests/test_v3_private_dart_original_evidence.py
+      - .github/workflows/v3-private-dart-original-evidence.yml
+  schedule:
+    # Fallbacks for a pending private title queue, never provider quota retries.
+    - cron: '27 3 * * *'   # 12:27 KST
+    - cron: '27 15 * * *'  # 00:27 KST
+  workflow_run:
+    workflows:
+      - V3 Private DART KRX Anomaly Filing Candidate Crosscheck
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Manual defaults to offline-only; live saves private ZIP sources'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-dart-private-historical-event-receipts
+  cancel-in-progress: false
+
+jobs:
+  original-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private transport and official KRX calendar imports only
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Enforce source ZIP safety, private-only storage and no score promotion
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_private_dart_original_evidence.py
+          python -m unittest discover -s tests -p 'test_v3_private_dart_original_evidence.py' -v
+      - name: Retrieve only two private title-hint receipts from official DART original ZIP API
+        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Only stored in the already private and size-checked archive.
+          # No original source, title text, receipt number, corp code or
+          # API credential appears in public log/artifact/repository.
+          # Original ZIP exists != corporate action or adjusted price proof.
+          python v3_private_dart_original_evidence.py
