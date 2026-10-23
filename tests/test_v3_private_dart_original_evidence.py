@@ -101,6 +101,26 @@ class OriginalEvidenceTests(unittest.TestCase):
             original._check_zip(zip_source())["archive_structure_validated_only"],
             True)
 
+    def test_dart_member_rejection_exposes_only_fixed_reason_never_file_identity(self):
+        variants=[(zip_source("../private-990011-secret.xml"),"unsafe_member_path"),
+                  (zip_source("x\\secret.xml"),"unsafe_member_path")]
+        blank=BytesIO()
+        with ZipFile(blank,"w",ZIP_DEFLATED) as z:
+            z.writestr("confidential-empty-member.xml","")
+        variants.append((blank.getvalue(),"invalid_regular_member_size"))
+        for raw,expected in variants:
+            with self.assertRaises(original.OriginalEvidenceError) as caught:
+                original._check_zip(raw)
+            err=caught.exception
+            self.assertEqual(err.safe_zip_validation_stage,
+                             "member_structure_or_security")
+            self.assertEqual(err.safe_zip_member_issue,expected)
+            self.assertIn(expected,original.SAFE_ZIP_MEMBER_ISSUES)
+            self.assertEqual(str(err),"invalid_or_unsafe_official_document_zip")
+            self.assertNotIn("secret",str(err))
+            self.assertNotIn("confidential",str(err))
+
+
     def test_safe_directory_entries_are_allowed_but_traversal_stays_blocked(self):
         out = BytesIO()
         with ZipFile(out, "w", ZIP_DEFLATED) as z:
