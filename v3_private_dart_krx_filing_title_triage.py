@@ -232,9 +232,12 @@ def run(storage):
                 "confirmed_corporate_actions": 0, "scores_promoted": 0}
     try:
         receipts = _month_receipts(storage, left) + _month_receipts(storage, right)
+    except Exception:
+        raise TitleTriageError("invalid_private_complete_month_receipts") from None
+    try:
         examined, matches = _shortlist(events, receipts, left, right)
     except Exception:
-        raise TitleTriageError("invalid_private_shortlist_inputs") from None
+        raise TitleTriageError("invalid_private_title_candidate_matching") from None
 
     payload = canonical({
         "schema": SCHEMA, "first_month": left, "second_month": right,
@@ -310,6 +313,9 @@ def main():
     try:
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         summary = run(store)
+    except TitleTriageError as exc:
+        # Every TitleTriageError uses a fixed, redaction-safe reason code.
+        raise SystemExit("blocked: " + str(exc)) from None
     except Exception:
         raise SystemExit("blocked: private filing title shortlist validation failed") from None
     print(json.dumps(summary, sort_keys=True))
