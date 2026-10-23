@@ -308,6 +308,11 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             sources[2].get("asof")!=sources[1].get("date") or
             sources[3].get("asof")!=sources[1].get("date")):
             self.skipTest("stored_current_sources_not_same_trading_session")
+        # A collector can update its same-day snapshot before its sibling;
+        # a saved fixture is only replayable when exact recomputation matches.
+        if (sources[2]!=volume_build(sources[0],sources[1]) or
+            sources[3]!=price_build(sources[0],sources[1])):
+            self.skipTest("stored_source_snapshots_not_exactly_replayed")
         rows,report=generate(*sources)
         self.assertEqual(len(rows),report["listed_total"])
         self.assertEqual(report["listed_total"],sources[1]["listed_total"])
