@@ -249,6 +249,10 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         or counts["technical"]!=price["technical_research_issuer_count"]
         or counts["momentum"]!=price["momentum_research_issuer_count"]):
         raise LivePartialScorecardError("source_counts_do_not_reconcile")
+    observed_area_max={area:max(r["factor_available"][area] for r in output)
+                       for area in POINT_BUDGET}
+    missing_area_weight={area:POINT_BUDGET[area]-observed_area_max[area]
+                         for area in POINT_BUDGET}
     summary={
         "schema":SCHEMA,"asof":asof,"listed_total":len(output),
         "observed_any_factor_issuers":nonblank,
@@ -258,9 +262,10 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "five_area_observed_overlap_by_market":five_area_overlap_by_market,
         "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
-        "highest_currently_observable_weight":sum(
-            max(r["factor_available"][area] for r in output)
-            for area in POINT_BUDGET),
+        "factor_observed_weight_ceiling":observed_area_max,
+        "factor_unobserved_weight_gap":missing_area_weight,
+        "total_unobserved_weight_gap":sum(missing_area_weight.values()),
+        "highest_currently_observable_weight":sum(observed_area_max.values()),
         "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
         "fcf_reference_join_status":(
