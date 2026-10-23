@@ -13,7 +13,8 @@ from datetime import date
 import math
 
 SCHEMA = "v3-observed-market-momentum-8of10-research-0.1"
-WEIGHTS = {"relative20": 4, "relative60": 4, "positive_days20": 2,\n           "trend_persistence60": 3, "reversal_breadth120": 2}
+WEIGHTS = {"relative20": 4, "relative60": 4, "positive_days20": 2,
+           "trend_persistence60": 3, "reversal_breadth120": 2}
 MIN_PEERS = 80
 
 
@@ -45,7 +46,9 @@ def market_momentum(source, *, min_peers=MIN_PEERS):
         for m in ("KOSPI","KOSDAQ")
         for k in ("relative20","relative60")
     }
-    if sum(WEIGHTS.values())!=15:\n        raise ValueError("invalid_momentum_five_pillar_budget")\n    candidates={}
+    if sum(WEIGHTS.values())!=15:
+        raise ValueError("invalid_momentum_five_pillar_budget")
+    candidates={}
     for s in usable:
         parts={}
         available=0
@@ -58,7 +61,9 @@ def market_momentum(source, *, min_peers=MIN_PEERS):
             pct=(bisect_left(array,float(val))+bisect_right(array,float(val)))/(2*len(array))
             parts[field]=round(max_points*pct,6)
             available+=max_points
-        parts["positive_days20"]=None\n        parts["trend_persistence60"]=None\n        parts["reversal_breadth120"]=None
+        parts["positive_days20"]=None
+        parts["trend_persistence60"]=None
+        parts["reversal_breadth120"]=None
         score=round(sum(v for v in parts.values() if v is not None),6) if available else None
         candidates[s["code"]]={
             "schema":SCHEMA,"asof":asof,"market":s["market"],
