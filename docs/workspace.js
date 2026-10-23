@@ -1309,6 +1309,8 @@ function init(){
    top100Only=!top100Only;limit=20;draw();
  });
  $('stockList').addEventListener('click',e=>{
+  // Expanding source evidence must not open the stock detail or rerender the card.
+  if(e.target.closest('.u-factor-details'))return;
   const b=e.target.closest('[data-stock]');if(!b)return;
   selected=b.dataset.stock;draw();
  });
