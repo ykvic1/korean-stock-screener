@@ -114,6 +114,8 @@ class CheckPrivateProgress(unittest.TestCase):
         self.assertEqual(fake.verified,1)
         self.assertEqual(result["five_session_cohorts_completed"],12)
         self.assertEqual(result["five_session_cohorts_remaining"],0)
+        self.assertEqual(result["minimum_cohorts_for_95pct"],12)
+        self.assertEqual(result["cohorts_remaining_to_95pct"],0)
         self.assertEqual(result["cross_cohort_bridges_completed"],10)
         self.assertEqual(result["cross_cohort_bridges_backlog"],1)
         h=result["rolling_return_horizon_research"]
