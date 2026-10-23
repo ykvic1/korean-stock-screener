@@ -1187,7 +1187,7 @@ function draw(){
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
    x.composite.available+'/100</small></span></div>'+
    '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
-     '<span class="u-factor-unverified"'+(i.key==='volume'?' data-pillar="volume"':'')+'><small>'+esc(i.label)+' /'+i.max+
+     '<span class="u-factor-unverified" data-pillar="'+esc(i.key)+'"><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
      '</b><em class="u-factor-mark">'+(i.available===0?(i.key==='volume'?'거래량 근거 미확보':'자료없음 · 미검증'):
       '미검증')+'</em></span>').join('')+
