@@ -22,6 +22,30 @@ with sync_playwright() as p:
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
     assert page.url.rstrip("/") == URL.rstrip("/"), "root should serve unified UI directly"
+    # Actual source-gate cards must be visible and must never promote
+    # provisional factor observations to certified IAS/PBR or 100pt scores.
+    observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
+    evidence = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
+    backfill = context.request.get(URL + "v3-krx-derived-backfill-progress.json").json()
+    assert observed["asof"] == evidence["market_asof"]
+    assert observed["listed_total"] == evidence["listed_total"]
+    page.locator("#coverageGateStatus").get_by_text("확정 100점", exact=False).wait_for(timeout=20000)
+    status_text = page.locator("#coverageGateStatus").inner_text()
+    assert str(observed["certified_100point_count"]) + "종목" in status_text
+    cards = page.locator("#coverageGateRows").inner_text()
+    for factor, label in (("technical", "기술"), ("volume", "거래량·OBV"),
+                          ("momentum", "모멘텀"), ("financial", "재무"),
+                          ("valuation", "가치평가"), ("industry", "산업")):
+        assert label in cards
+        assert format(observed["observed_issuer_counts"][factor], ",") in cards
+    assert "공식 기관·외국인 수급" in cards and "공식 PBR 검증" in cards
+    assert "잠정 산출" in cards and "PIT 확정 아님" in cards
+    assert format(evidence["verified_four_year_income_reference_issuers"], ",") in cards
+    assert format(backfill["five_session_cohorts_completed"], ",") in cards
+    assert evidence["official_investor_IAS_source_issuer_count"] == 0
+    assert evidence["official_pbr_verified_count"] == 0
+    assert "0 / " + format(observed["listed_total"], ",") in cards
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "coverage cards overflow mobile"
     # The source snapshot overview is deliberately collapsed until requested.
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
     assert not page.locator("#advancedFilters").evaluate("(el) => el.open")
