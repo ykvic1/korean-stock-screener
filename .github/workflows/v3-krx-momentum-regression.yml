@@ -1,0 +1,28 @@
+name: V3 KRX and Momentum Offline Regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/test_v3_krx_four_slot_pipeline_policy.py'
+      - 'tests/test_v3_krx_fourth_daily_window_policy.py'
+      - 'tests/test_v3_observed_momentum.py'
+      - '.github/workflows/v3-krx-momentum-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Validate source modules and three regression suites
+        run: |
+          python -m py_compile v3_observed_momentum.py v3_krx_derived_backfill.py
+          python -m unittest discover -s tests -p 'test_v3_krx_four_slot_pipeline_policy.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_fourth_daily_window_policy.py' -v
+          python -m unittest discover -s tests -p 'test_v3_observed_momentum.py' -v
