@@ -76,6 +76,31 @@ class Private:
 
 
 class OriginalEvidenceTests(unittest.TestCase):
+    def test_zip_failure_stage_is_fixed_and_never_exposes_file_identity(self):
+        # Only allowlisted phase labels are safe for public Actions logs.
+        # An unsafe member stays rejected; diagnostics do not relax ZIP rules.
+        for source, expected_stage in (
+            (b"PKunsafe-corrupted-secret", "zip_structure"),
+            (zip_source("../private-receipt-secret.xml"),
+             "member_structure_or_security"),
+            (zip_source("opaque-provider-source.bin"),
+             "document_extension"),
+        ):
+            with self.assertRaisesRegex(
+                original.OriginalEvidenceError,
+                "^invalid_or_unsafe_official_document_zip$"
+            ) as failed:
+                original._check_zip(source)
+            self.assertEqual(failed.exception.safe_zip_validation_stage,
+                             expected_stage)
+            self.assertIn(expected_stage,
+                          original.SAFE_ZIP_VALIDATION_STAGES)
+            self.assertNotIn("secret", str(failed.exception))
+            self.assertNotIn("receipt", str(failed.exception))
+        self.assertEqual(
+            original._check_zip(zip_source())["archive_structure_validated_only"],
+            True)
+
     def test_safe_directory_entries_are_allowed_but_traversal_stays_blocked(self):
         out = BytesIO()
         with ZipFile(out, "w", ZIP_DEFLATED) as z:
