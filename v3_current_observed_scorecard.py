@@ -145,6 +145,14 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
     available_weight_distribution={}
     available_weight_by_market={}
     five_area_overlap_by_market={}
+    # Count genuinely observed weight by area, not earned points.
+    # An observed 0-point result still has source evidence; unobserved
+    # weights remain unavailable and are never treated as zero points.
+    area_available_weight_distribution={area:{} for area in POINT_BUDGET}
+    unacquired_area_issuers={area:0 for area in POINT_BUDGET}
+    partial_area_issuers={area:0 for area in POINT_BUDGET}
+    complete_area_issuers={area:0 for area in POINT_BUDGET}
+    unacquired_weight_issuer_slots={area:0 for area in POINT_BUDGET}
     for listed in sorted(catalog["rows"],key=lambda r:r["code"]):
         code=listed["code"]
         v=volume["records"].get(code)
@@ -223,6 +231,14 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         for area in counts:
             if coverage[area]>0:
                 counts[area]+=1
+        for area,budget in POINT_BUDGET.items():
+            weight=coverage[area]
+            dist=area_available_weight_distribution[area]
+            dist[str(weight)]=dist.get(str(weight),0)+1
+            unacquired_area_issuers[area]+=int(weight==0)
+            partial_area_issuers[area]+=int(0<weight<budget)
+            complete_area_issuers[area]+=int(weight==budget)
+            unacquired_weight_issuer_slots[area]+=budget-weight
         available=sum(coverage.values())
         earned=sum(v for v in values.values() if v is not None)
         if not 0<=earned<=available<=sum(POINT_BUDGET.values()):
@@ -262,6 +278,17 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "five_area_observed_overlap_by_market":five_area_overlap_by_market,
         "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
+        "area_available_weight_distribution":area_available_weight_distribution,
+        "unacquired_area_issuer_counts":unacquired_area_issuers,
+        "partial_area_issuer_counts":partial_area_issuers,
+        "complete_area_issuer_counts":complete_area_issuers,
+        # Sum of missing source-weight slots over ALL issuers. This is not
+        # a loss rate, a return forecast, a zero earned-score, or the number
+        # of firms missing a certified investment grade.
+        "unacquired_weight_issuer_slots":unacquired_weight_issuer_slots,
+        "total_unacquired_weight_issuer_slots":sum(
+            unacquired_weight_issuer_slots.values()),
+        "unacquired_weight_is_not_a_zero_score":True,
         "factor_observed_weight_ceiling":observed_area_max,
         "factor_unobserved_weight_gap":missing_area_weight,
         "total_unobserved_weight_gap":sum(missing_area_weight.values()),
@@ -379,7 +406,11 @@ def main(argv=None):
         "observed":summary["observed_any_factor_issuers"],
         "by_area":summary["observed_issuer_counts"],
         "available_points_ceiling":summary["highest_currently_observable_weight"],
-        "receipt_matched_fcf_issuer_counts":summary["fcf_observed_issuer_counts"],"certified_100point":0,
+        "receipt_matched_fcf_issuer_counts":summary["fcf_observed_issuer_counts"],
+        "missing_issuers_per_area":summary["unacquired_area_issuer_counts"],
+        "partially_observed_issuers_per_area":summary["partial_area_issuer_counts"],
+        "total_unacquired_weight_issuer_slots":summary["total_unacquired_weight_issuer_slots"],
+        "certified_100point":0,
     },sort_keys=True))
 
 
