@@ -102,7 +102,11 @@ class SourceCompletionBoundaryPolicy(unittest.TestCase):
         self.assertIn("cron: '30 9 * * 1-5'", production)
         bridge = read(BRIDGE)
         self.assertNotIn("full-market-batches", bridge)
-        self.assertNotIn("docs/", bridge)
+        # Read-only public progress may short-circuit a finished archive;
+        # the private bridge cannot stage, modify or publish public rows.
+        self.assertIn('Path("docs/v3-krx-derived-backfill-progress.json")', bridge)
+        self.assertNotIn("git add docs/", bridge)
+        self.assertNotIn("git push", bridge)
 
 
 if __name__ == "__main__":
