@@ -20,7 +20,7 @@ import re
 
 from v3_krx_derived_5day import validate_derived_blob
 from v3_krx_derived_backfill import (
-    history_candidates, CHECKPOINT as HISTORY_CHECKPOINT,
+    _calendar_hash_matches, history_candidates, CHECKPOINT as HISTORY_CHECKPOINT,
     _manifest as _history_manifest)
 from v3_krx_derived_bridges import (
     CHECKPOINT as BRIDGE_CHECKPOINT,
@@ -201,7 +201,8 @@ def _check_progress(raw,calendar_hash,horizon):
     except Exception: raise DerivedReturnError("invalid_composed_return_checkpoint") from None
     end=obj.get("next_end_bucket")
     if (obj.get("schema")!=CHECKPOINT_SCHEMA
-        or obj.get("calendar_candidate_hash")!=calendar_hash
+        or not _calendar_hash_matches(obj.get("calendar_candidate_hash"),
+                                      calendar_hash,dates,5*end if type(end) is int else -1)
         or obj.get("horizon")!=horizon
         or type(end) is not int or not expected_first<=end<=1000
         or type(obj.get("complete_issuer_window_observations")) is not int
