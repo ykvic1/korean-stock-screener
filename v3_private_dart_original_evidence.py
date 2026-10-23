@@ -90,7 +90,7 @@ def _cursor(raw):
             raise ValueError()
         p, d = x.get("last_report_file"), x.get("last_report_digest")
         if p is None:
-            if d is not None or (i,j) != (0,0):
+            if d is not None or j != 0:
                 raise ValueError()
         elif (type(p) is not str or not p.startswith(BASE + "/reports/")
               or not re.fullmatch(r"[0-9a-f]{64}", str(d))):
@@ -289,7 +289,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
 
     # A bounded run may resume previously written immutable ZIPs or reports
     # after a failed checkpoint PUT without repeating the upstream API call.
-    api_calls = saved = unavailable = oversized = reused = advanced = 0
+    api_calls = saved = unavailable = oversized = reused = advanced = new_zips = 0
     last_path, last_digest = state["last_report_file"], state["last_report_digest"]
     while j < len(queue) and advanced < max_calls:
         record = queue[j]
@@ -319,6 +319,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
             if kind == "zip" and archived is None:
                 storage.put_new(source_path, returned,
                                 "Save private official original ZIP source")
+                new_zips += 1
                 archived, _ = storage.get_content(source_path)
                 if archived != returned:
                     raise OriginalEvidenceError("private_original_zip_not_read_back")
@@ -378,7 +379,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         "status": "private_original_filing_retrieval_pilot_completed",
         "title_keyword_pair_inputs": title_pairs,
         "processed_receipts": advanced,
-        "new_original_zips_archived": saved-reused if saved >= reused else 0,
+        "new_original_zips_archived": new_zips,
         "available_original_zip_receipts": saved,
         "source_unavailable_receipts": unavailable,
         "source_oversize_receipts": oversized,
