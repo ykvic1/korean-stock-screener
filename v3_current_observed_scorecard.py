@@ -261,6 +261,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "highest_currently_observable_weight":sum(
             max(r["factor_available"][area] for r in output)
             for area in POINT_BUDGET),
+        "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
         "fcf_reference_join_status":(
             "same_fiscal_year_scope_receipt_replayed" if cashflow is not None
