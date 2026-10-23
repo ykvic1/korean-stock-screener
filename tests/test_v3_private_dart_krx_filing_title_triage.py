@@ -64,7 +64,7 @@ def risk_events():
             for x in range(45)]
     return [
         {"issuer_market": "KOSPI:005930", "first_day": "2016-10-27",
-         "last_day": "2016-10-31", "type": "four_interval_change"},
+         "last_day": "2016-10-31", "type": "large_four_interval_bucket_change"},
         {"issuer_market": "KOSPI:005930", "first_day": "2016-11-02",
          "last_day": "2016-11-03", "type": "cohort_boundary_change"},
     ], days, {"next_cohort_index": 9}, b"source", b"risk"
@@ -129,6 +129,19 @@ class FilingTitleTriageTests(unittest.TestCase):
         self.assertEqual(triage._hint("정정(주식 병합 결정 철회)"),
                          ["stock_split_consolidation"])
         self.assertEqual(triage._hint("통상의 정기보고서"), [])
+        # The immutable first nine KRX cohorts use distinct, equally valid
+        # historical kind names. A six-character nonnumeric KRX code is valid
+        # but cannot be joined to the numeric-only DART ticker and stays absent.
+        mixed, matches = triage._shortlist(
+            risk_events()[0] + [{
+                "issuer_market": "KOSPI:12A345",
+                "first_day": "2016-10-27", "last_day": "2016-10-31",
+                "type": "large_one_interval_cohort_boundary"}],
+            rows(None, "2016-10") + rows(None, "2016-11"),
+            "2016-10", "2016-11",
+        )
+        self.assertEqual(mixed, 3)
+        self.assertEqual(len(matches), 4)
         events = [{"issuer_market": "KOSDAQ:000660",
                    "first_day": "2016-11-01",
                    "last_day": "2016-11-03",
