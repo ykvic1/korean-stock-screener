@@ -1,0 +1,61 @@
+name: V3 OpenDART Structured Action JSON Private Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_private_dart_structured_action_receipts.py
+      - tests/test_v3_private_dart_structured_action_receipts.py
+      - .github/workflows/v3-dart-structured-actions-private.yml
+  schedule:
+    - cron: '43 2,14 * * *'
+  workflow_run:
+    workflows:
+      - V3 Private DART KRX Anomaly Filing Candidate Crosscheck
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Default test-only; live calls max six structured JSON endpoints'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-dart-private-structured-action-receipts
+  cancel-in-progress: false
+
+jobs:
+  structured-events:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private-only archive client and pinned filing dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Unit-test exact receipt identity and no false score certification
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_private_dart_structured_action_receipts.py
+          python -m unittest discover -s tests -p 'test_v3_private_dart_structured_action_receipts.py' -v
+      - name: Crosscheck at most two shortlisted receipts via official structured JSON only
+        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # API max 6 calls; original document ZIPs are not touched.
+          # Never publish issuer records, adjustment dates, or certified scores.
+          python v3_private_dart_structured_action_receipts.py
