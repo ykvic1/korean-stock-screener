@@ -224,3 +224,50 @@ details.u-intro{padding:15px 18px;margin-bottom:10px}
  .u-stock .u-scoresix b{font-size:12px}
  .u-stock .u-scoresix span{padding:9px 3px}
 }
+
+
+/* V3.0a mobile layout correction: constrain intrinsic widths instead of
+   letting toolbar buttons, score grids or long evidence text shift the
+   entire viewport to the left. Wide tables scroll only inside their panel. */
+html,body{max-width:100%}
+#unifiedApp{overflow-x:clip}
+.u-wrap{width:100%;min-width:0;margin-inline:auto}
+.u-header-inner>div,.u-header-actions,.u-content,.u-list-area,
+.u-intro,.u-controls,.u-results,.u-stock,.u-detail,.u-scroller{min-width:0;max-width:100%}
+.u-header-actions{flex-wrap:wrap;white-space:normal}
+.u-header-actions>*{min-width:0;max-width:100%}
+.u-stock-name,.u-stock-main,.u-ranked,.u-results-head>div,
+.u-intro>summary,.u-industry-research>summary{min-width:0}
+.u-stock-name strong,.u-stock-name small,.u-results-head p,
+.u-rank-controls,.u-state,.u-source,.u-muted,.u-score-hint{
+ overflow-wrap:anywhere
+}
+.u-detail-grid>div,.u-parts>div,.u-pillar{min-width:0}
+.u-pillar b,.u-parts b{overflow-wrap:anywhere}
+.u-industry-research .u-scroller{max-width:100%;overscroll-behavior-x:contain}
+@media(max-width:600px){
+ .u-wrap{padding-inline:12px}
+ .u-header-inner{display:flex;flex-direction:column;align-items:stretch;gap:15px}
+ .u-header-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;width:100%;max-width:100%;white-space:normal}
+ .u-header-actions a,.u-header-actions button{
+  min-width:0;width:100%;padding:10px 6px;text-align:center;
+  white-space:normal;line-height:1.35;overflow-wrap:anywhere
+ }
+ .u-results-head{min-width:0}
+ .u-stock-main{gap:12px;flex-wrap:wrap}
+ .u-intro>summary .u-section-heading{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:480px){
+ .u-stock .u-scoresix{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .u-stock .u-scoresix span{min-width:0;padding:10px 5px;
+  border-bottom:1px solid #304143}
+ .u-stock .u-scoresix span:nth-child(2n){border-right:0}
+ .u-stock .u-scoresix span:last-child{grid-column:1/-1;
+  border-right:0;border-bottom:0}
+ .u-stock .u-scoresix small{font-size:11px;line-height:1.35}
+ .u-stock .u-scoresix b{font-size:14px}
+ .u-stock .u-scoresix .u-factor-mark{font-size:10px}
+ .u-stock .u-scoresix span[data-pillar="volume"] small{font-size:11px}
+ .u-stock-main>span{min-width:0}
+}
