@@ -259,7 +259,7 @@ def _validate_report(raw, index, receipt, record):
 
 
 def run(storage, fetch, max_calls=MAX_API_CALLS):
-    if (storage.repository != PRIVATE_REPO or type(max_calls) is not int
+    if (getattr(storage, "repository", None) != PRIVATE_REPO or type(max_calls) is not int
         or not 1 <= max_calls <= MAX_API_CALLS):
         raise OriginalEvidenceError("unsafe_original_filing_destination_or_call_cap")
     storage.verify_private()
