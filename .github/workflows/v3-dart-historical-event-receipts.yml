@@ -7,7 +7,7 @@ on:
       - v3_dart_historical_event_receipts.py
       - tests/test_v3_dart_historical_event_receipts.py
       - .github/workflows/v3-dart-historical-event-receipts.yml
-  # Four bounded daily private metadata batches; max 8 official DART calls
+  # Four bounded daily private metadata batches; max 24 official DART calls
   # per run. Do not conflict with the independent official KRX schedule.
   schedule:
     - cron: '19 20 * * *' # 05:19 KST
