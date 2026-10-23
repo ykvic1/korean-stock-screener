@@ -32,8 +32,10 @@ with sync_playwright() as p:
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
-    assert page.locator(".u-stock").first.get_by_text("V3 잠정 합계").is_visible()
-    assert page.locator(".u-scoresix").first.get_by_text("잠정 합계").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-risk-first").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-research-summary").is_visible()
+    page.locator(".u-stock").first.locator(".u-factor-details summary").click()
+    assert page.locator(".u-factor-details").first.get_by_text("6개 영역별 점수").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("거래량·OBV /20").is_visible()
     volume = context.request.get(URL + "v3-volume-obv-observed.json").json()
     assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
@@ -44,10 +46,7 @@ with sync_playwright() as p:
     shown = page.locator('.u-scoresix span[data-pillar="volume"] b').first.inner_text()
     assert shown.strip() != "—", "real observed volume candidate not applied"
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
-    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 7
-    assert page.locator(".u-scoresix .u-total-factor").first.evaluate(
-        "(el) => getComputedStyle(el).boxShadow !== 'none'"
-    )
+    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 6
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
     page.locator("#marketSummary summary").click()
@@ -130,8 +129,8 @@ with sync_playwright() as p:
     page.locator("#sort").select_option("score")
     page.locator("#advancedFilters summary").click()
     # Card order is provisional evidence-first, not the old 2.2 ranking.
-    assert page.locator(".u-stock-main .u-provisional-total").first.is_visible()
-    assert "산출 가능" in page.locator(".u-stock-main .u-provisional-total").first.inner_text()
+    assert page.locator(".u-stock-main .u-risk-first").first.is_visible()
+    assert "배점 확보" in page.locator(".u-research-summary").first.inner_text()
     page.locator(".u-stock").first.click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
