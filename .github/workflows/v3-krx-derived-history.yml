@@ -35,7 +35,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: v3-krx-private-derived-history
+  group: v3-krx-private-derived-history-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -67,6 +67,8 @@ jobs:
           V3_BULK_BATCHES: ${{ github.event_name == 'push' && '16' || '1' }}
         run: |
           set -euo pipefail
+          # A canceled run with no jobs indicates cancellation before runner startup;
+          # this loop handles the data backlog once a runner is actually assigned.
           for batch in $(seq 1 "$V3_BULK_BATCHES"); do
             echo "Bounded historical collection batch $batch/$V3_BULK_BATCHES"
             python v3_krx_derived_backfill.py
