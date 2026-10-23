@@ -18,7 +18,7 @@ import os
 import re
 import time
 
-from v3_krx_derived_backfill import (history_candidates, CHECKPOINT as HISTORY_CHECKPOINT,
+from v3_krx_derived_backfill import (_calendar_hash_matches, history_candidates, CHECKPOINT as HISTORY_CHECKPOINT,
                                      _manifest as _history_manifest, DerivedBackfillError)
 from v3_krx_derived_5day import validate_derived_blob
 from v3_krx_history_collection import _snapshot_market
@@ -189,7 +189,8 @@ def _check_progress(data,dates,calendar_hash,completed):
         raise BoundaryError("invalid_derived_boundary_checkpoint") from None
     n=obj.get("next_boundary_index")
     if (obj.get("schema")!=empty["schema"]
-        or obj.get("calendar_candidate_hash")!=calendar_hash
+        or not _calendar_hash_matches(obj.get("calendar_candidate_hash"),
+                                      calendar_hash,dates,5*n if type(n) is int else -1)
         or type(n) is not int or not 1<=n<=completed
         or type(obj.get("cumulative_derived_boundary_issuer_records")) is not int
         or obj["cumulative_derived_boundary_issuer_records"]<0
