@@ -112,7 +112,7 @@ class HistoricalDerivedTests(unittest.TestCase):
         self.assertEqual(provider.calls,[])
 
     def test_partial_failed_provider_preserves_last_checkpoint_and_next_run_resumes(self):
-        repo=FakePrivate()
+        repo=FakeHistoryPrivate()
         provider=FakeKRX(fail_market=("KOSDAQ","2026-10-21"))
         with self.assertRaises(Exception):
             collect(storage=repo,client=provider,dates=DATES,
