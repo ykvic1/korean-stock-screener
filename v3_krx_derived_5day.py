@@ -21,6 +21,7 @@ from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryErro
 from v3_krx_history_collection import _snapshot_market
 from v3_krx_daily_anomaly_triage import classify_row
 from official_probe.validation import _numeric
+from official_probe.clients import KRXProbeError
 
 SCHEMA="v3-krx-private-derived-five-session-factors-0.1"
 FIXED_FIRST_SAMPLE=["2026-10-12","2026-10-13","2026-10-14","2026-10-15","2026-10-16"]
@@ -106,11 +107,14 @@ def derive(client,days=FIXED_FIRST_SAMPLE):
                         by_code.setdefault(code,{})[day]=values
                 # raw and rows are transient; only window-level numbers survive.
                 del raw, rows
-    except Exception:
-        # Stage labels are from this fixed list only. Never expose vendor
-        # exceptions, raw OHLCV, response bodies, URLs or private credentials.
+    except Exception as failure:
+        # Only existing allowlisted KRXProbeError fields are copied. Do not
+        # serialize vendor exception text, URLs, headers or response bodies.
         err=DerivedSourceError("official_market_window_or_validation_failed")
         err.safe_failure_phase=safe_phase
+        if safe_phase=="transport" and isinstance(failure,KRXProbeError):
+            err.safe_krx_reason=failure.reason
+            err.safe_krx_http_status=failure.http_status
         raise err from None
     if fetched_calls!=MAX_SOURCE_CALLS or len(counts)!=10:
         raise DerivedSourceError("incomplete_official_market_window")
