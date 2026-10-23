@@ -9,6 +9,7 @@ import unittest
 
 import v3_all_listed_scorecard as m
 from v3_dart_cashflow_factor_preview import score_preview
+from v3_current_price_replay import build as same_day_price_replay
 
 DOCS=Path(__file__).resolve().parent.parent/"docs"
 
@@ -75,6 +76,59 @@ class AllListedScorecardTests(unittest.TestCase):
                             if r["available"]>0))
         self.assertEqual(report["score_state"],
             "provisional_observed_only_not_investment_grade")
+
+    def test_current_price_replay_covers_all_actual_saved_price_issuers(self):
+        market,catalog,history,parts,weekly,cash,fcf=sources()
+        replay=same_day_price_replay(market,catalog)
+        baseline_rows,baseline=m.generate(market,catalog,history,parts,weekly)
+        rows,report=m.generate(market,catalog,history,parts,weekly,
+                               price_replay=replay)
+        self.assertEqual(report["technical_momentum_price_replay_state"],
+                         "same_market_digest_verified_research_only")
+        self.assertEqual(report["technical_momentum_price_replay_issuer_count"],
+                         replay["at_least_one_price_factor_issuer_count"])
+        self.assertGreater(
+            report["provisional_numeric_issuer_counts"]["technical"],
+            baseline["provisional_numeric_issuer_counts"]["technical"])
+        self.assertGreater(
+            report["provisional_numeric_issuer_counts"]["momentum"],
+            baseline["provisional_numeric_issuer_counts"]["momentum"])
+        self.assertEqual(
+            report["provisional_numeric_issuer_counts"]["technical"],
+            replay["technical_research_issuer_count"])
+        self.assertEqual(
+            report["provisional_numeric_issuer_counts"]["momentum"],
+            replay["momentum_research_issuer_count"])
+        self.assertEqual(report["price_replay_new_provider_calls"],0)
+        self.assertEqual(report["full_six_pillar_certified_count"],0)
+        self.assertFalse(any(r["factors"]["industry"][1] for r in rows))
+        self.assertEqual(len(rows),len(baseline_rows))
+        self.assertTrue(all(r["available"]<=100 for r in rows))
+        self.assertTrue(all(r["unavailable"]==100-r["available"] for r in rows))
+
+        # Any different price source/date or one tampered issuer must discard
+        # the WHOLE replay, and retain only original verified weekly coverage.
+        corrupt=copy.deepcopy(replay)
+        corrupt["source_market_sha256"]="0"*64
+        stale,notice=m.generate(market,catalog,history,parts,weekly,
+                                price_replay=corrupt)
+        self.assertEqual(notice["technical_momentum_price_replay_state"],
+                         "source_rejected_or_stale")
+        self.assertIsNone(notice["source_sha256"]["same_day_price_replay"])
+        self.assertEqual(notice["provisional_numeric_issuer_counts"],
+                         baseline["provisional_numeric_issuer_counts"])
+        self.assertEqual([r["factors"] for r in stale],
+                         [r["factors"] for r in baseline_rows])
+
+        corrupt=copy.deepcopy(replay)
+        first=next(iter(corrupt["rows"]))
+        corrupt["rows"][first]["technical_research_reference"][
+            "technical_parts"]["daily_pattern"]=999.0
+        _,notice=m.generate(market,catalog,history,parts,weekly,
+                            price_replay=corrupt)
+        self.assertEqual(notice["technical_momentum_price_replay_issuer_count"],0)
+        self.assertEqual(notice["technical_momentum_price_replay_state"],
+                         "source_rejected_or_stale")
 
     def test_user_approved_six_area_100_with_industry5433(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
