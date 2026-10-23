@@ -214,3 +214,14 @@ details.u-intro{padding:15px 18px;margin-bottom:10px}
 .u-industry-research .u-scroller th{position:sticky;top:0;background:#132528}
 .u-industry-research .u-scroller td{font-variant-numeric:tabular-nums}
 @media(max-width:480px){.u-industry-research{padding:12px 14px}.u-industry-research>summary strong{font-size:13px}.u-industry-research>summary small{font-size:10px}}
+
+/* Mobile decision-first cards: risk before provisional scoring. */
+.u-risk-first{display:flex;flex-direction:column;gap:2px;min-width:0;padding:8px 10px;border:1px solid #b77955;border-radius:10px;background:rgba(148,71,35,.10)}
+.u-risk-first b{font-size:17px;overflow-wrap:anywhere}.u-risk-first small{font-size:11px;line-height:1.35}
+.u-risk-high{border-color:#db6871;background:rgba(178,44,67,.14)}
+.u-research-summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin:12px 0 4px;font-size:12px}
+.u-research-summary span{opacity:.8}
+.u-factor-details{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.u-factor-details>summary{cursor:pointer;font-weight:650;font-size:13px}
+.u-factor-details .u-scoresix{margin-top:12px}
+@media(max-width:560px){.u-stock-main{align-items:stretch}.u-risk-first{max-width:58%;text-align:left}.u-factor-details .u-scoresix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.u-factor-details .u-scoresix>span{min-width:0;overflow-wrap:anywhere}}
