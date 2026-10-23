@@ -180,6 +180,37 @@ def collect(*,storage,client,dates,checksum,windows=1,progress=None):
     }
 
 
+def _safe_source_failure_diagnostics(err):
+    """Publish fixed KRX failure context, never vendor response or identity."""
+    if str(err)!="official_market_window_or_validation_failed":
+        return {}
+    phase=getattr(err,"safe_failure_phase",None)
+    if phase not in ("transport","source_validation","issuer_identity"):
+        return {}
+    report={"opaque_failure_phase":phase}
+    market=getattr(err,"safe_source_market",None)
+    day=getattr(err,"safe_source_day",None)
+    calls=getattr(err,"safe_completed_market_calls",None)
+    if market in ("KOSPI","KOSDAQ") and type(day) is str:
+        try:
+            valid=date.fromisoformat(day)
+        except ValueError:
+            valid=None
+        if (valid is not None and valid.isoformat()==day
+            and START<=day<=END):
+            report["failed_source_market"]=market
+            report["failed_source_day"]=day
+    if type(calls) is int and 0<=calls<10:
+        report["fully_validated_market_calls_before_failure"]=calls
+    reason=getattr(err,"safe_krx_reason",None)
+    if phase=="transport" and type(reason) is str and reason in KRXProbeError.REASONS:
+        report["krx_allowlisted_failure_reason"]=reason
+        code=getattr(err,"safe_krx_http_status",None)
+        if type(code) is int and 100<=code<=599:
+            report["http_status_only"]=code
+    return report
+
+
 def main():
     # No extra approval variable for the user's explicit derived-only project
     # request; old raw KRX workflow retains its separate written-license gate.
@@ -207,18 +238,7 @@ def main():
         # Operator-only fixed stage codes; never log upstream exception text.
         report={"status":"blocked","category":str(err),
                 "source_payload_logged":False}
-        phase=getattr(err,"safe_failure_phase",None)
-        if (str(err)=="official_market_window_or_validation_failed"
-            and phase in ("transport","source_validation","issuer_identity")):
-            report["opaque_failure_phase"]=phase
-            # KRXProbeError.REASONS is a finite fixed code list. An HTTP
-            # status is numeric only; neither can contain credentials/URLs.
-            reason=getattr(err,"safe_krx_reason",None)
-            if phase=="transport" and reason in KRXProbeError.REASONS:
-                report["krx_allowlisted_failure_reason"]=reason
-                code=getattr(err,"safe_krx_http_status",None)
-                if type(code) is int and 100<=code<=599:
-                    report["http_status_only"]=code
+        report.update(_safe_source_failure_diagnostics(err))
         print(json.dumps(report,sort_keys=True))
         return 1
     except Exception as exc:
