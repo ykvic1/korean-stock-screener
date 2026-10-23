@@ -41,7 +41,7 @@ concurrency:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,6 +64,10 @@ jobs:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
+          V3_BULK_BATCHES: ${{ github.event_name == 'push' && '4' || '1' }}
         run: |
           set -euo pipefail
-          python v3_krx_derived_backfill.py
+          for batch in $(seq 1 "$V3_BULK_BATCHES"); do
+            echo "Bounded historical collection batch $batch/$V3_BULK_BATCHES"
+            python v3_krx_derived_backfill.py
+          done
