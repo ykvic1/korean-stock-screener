@@ -6,8 +6,10 @@ on:
     paths:
       - v3_private_dart_krx_event_crosscheck.py
       - v3_private_dart_krx_adjacent_month.py
+      - v3_private_dart_krx_filing_title_triage.py
       - tests/test_v3_private_dart_krx_event_crosscheck.py
       - tests/test_v3_private_dart_krx_adjacent_month.py
+      - tests/test_v3_private_dart_krx_filing_title_triage.py
       - .github/workflows/v3-private-dart-krx-event-crosscheck.yml
   schedule:
     # Fallback twice daily. Pending DART months never become negative evidence.
@@ -63,9 +65,10 @@ jobs:
       - name: Enforce offline complete-month and no-false-corporate-action rules
         run: |
           set -euo pipefail
-          python -m py_compile v3_private_dart_krx_event_crosscheck.py v3_private_dart_krx_adjacent_month.py
+          python -m py_compile v3_private_dart_krx_event_crosscheck.py v3_private_dart_krx_adjacent_month.py v3_private_dart_krx_filing_title_triage.py
           python -m unittest discover -s tests -p 'test_v3_private_dart_krx_event_crosscheck.py' -v
           python -m unittest discover -s tests -p 'test_v3_private_dart_krx_adjacent_month.py' -v
+          python -m unittest discover -s tests -p 'test_v3_private_dart_krx_filing_title_triage.py' -v
       - name: Validate complete private KRX risk baseline, all committed chunks and source tail
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
@@ -95,3 +98,13 @@ jobs:
           # TWO completed filing months and KRX risk review required;
           # zero vendor requests, issuer output, PIT or adjusted-price claims.
           python v3_private_dart_krx_adjacent_month.py
+      - name: Save private title-hint shortlist for original-filing review (not corporate-action proof)
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Completed same+adjacent months only, title hints do not verify
+          # actual corporate events, issuer continuity, PIT or adjustments.
+          # Sensitive identifiers appear only in the PRIVATE archived gzip.
+          python v3_private_dart_krx_filing_title_triage.py
