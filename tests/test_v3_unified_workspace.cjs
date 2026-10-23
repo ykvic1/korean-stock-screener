@@ -233,7 +233,7 @@ assert.ok(source.includes('4개년 연간공시 연구 참고')&&
  'four-year metrics cannot silently become a certified 30 point ranking');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,
- {volume:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+ {volume:20,technical:25,financial:20,valuation:20,momentum:15});
 assert.equal(unified.PILLARS[0][0],'volume');
 assert.equal(unified.PILLARS[0][1],'거래량·OBV');
 assert.deepEqual(unified.VOLUME_COMPONENTS.map(([label,w])=>w),[6,6,4,4]);
