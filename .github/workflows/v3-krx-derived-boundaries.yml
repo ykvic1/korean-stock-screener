@@ -1,6 +1,10 @@
 name: V3 KRX Derived-Only Historical Cohort Boundary Join
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-krx-derived-boundaries.yml
   # Join after each of five source slots (02:11, 07:11, 11:11, 14:11, 22:11 KST),
   # at most 24 derived links per run (96 official KRX market calls).
   # Run as soon as a verified source backfill has completed successfully.
@@ -9,6 +13,9 @@ on:
   workflow_run:
     workflows:
       - V3 KRX historical derived-only backfill
+      # Trusted two-hourly source-audited run keeps the completed archive
+      # moving if GitHub drops a standalone boundary schedule invocation.
+      - V3 Saved Industry Annual Earnings Missingness Audit (no provider)
     types: [completed]
   schedule:
     - cron: '47 17 * * *' # 02:47 KST, after the added 02:11 source slot
@@ -36,6 +43,7 @@ jobs:
   bridge:
     if: >-
       ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
         github.event_name == 'schedule' ||
         (github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success' &&
@@ -53,14 +61,43 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Skip fully verified public 489/489 bridge completion
+        id: already_complete
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          path=Path("docs/v3-krx-derived-backfill-progress.json")
+          verified=False
+          if path.is_file():
+              try:
+                  a=json.loads(path.read_text(encoding="utf8"))
+                  verified=(a.get("five_session_cohorts_completed")==490
+                            and a.get("five_session_cohorts_target")==490
+                            and a.get("cross_cohort_bridges_completed")==489
+                            and a.get("cross_cohort_bridges_required_for_completed_source")==489
+                            and a.get("cross_cohort_bridges_backlog")==0
+                            and a.get("private_immutable_evidence_tails_verified") is True
+                            and a.get("provider_data_new_calls")==0
+                            and a.get("official_exchange_historical_factor_certified") is False)
+              except (ValueError,OSError):
+                  pass
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as f:
+              f.write("done="+str(verified).lower()+"\n")
+          print(json.dumps({"verified_saved_completion":verified,
+              "new_provider_calls":0,"score_promoted":False},sort_keys=True))
+          PY
       - name: Install KRX open API transport and candidate calendar
+        if: ${{ steps.already_complete.outputs.done != 'true' }}
         run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
       - name: Check genuine source integrity, lossless provenance and private-only boundary regression
+        if: ${{ steps.already_complete.outputs.done != 'true' }}
         run: |
           set -euo pipefail
           python -m py_compile v3_krx_derived_bridges.py
           python -m unittest discover -s tests -p 'test_v3_krx_derived_bridges.py' -v
       - name: Save up to 24 cross-cohort return links from actual KRX sessions
+        if: ${{ steps.already_complete.outputs.done != 'true' }}
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
