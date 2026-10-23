@@ -6,6 +6,8 @@ on:
     paths:
       - v3_all_listed_scorecard.py
       - tests/test_v3_all_listed_scorecard.py
+      - v3_current_price_replay.py
+      - tests/test_v3_current_price_replay.py
       - v3_scorecard_source_day_preflight.py
       - .github/workflows/v3-all-listed-scorecard.yml
   # Two research-only replays per hour at :24 and :54 KST. This bounds
@@ -48,6 +50,7 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_all_listed_scorecard.py v3_dart_industry_earnings_sample.py
           python -m unittest discover -s tests -p 'test_v3_all_listed_scorecard.py' -v
+          python -m unittest discover -s tests -p 'test_v3_current_price_replay.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_industry_earnings_sample.py' -v
       - name: Check same market date of official saved DART and weekly source ledgers
         id: date_gate
@@ -112,6 +115,11 @@ jobs:
               lines.append("상장종목: "+str(report["listed_total"]))
               lines.append("실측 잠정점수 1개 영역 이상: "+
                            str(report["at_least_one_numeric_factor_count"]))
+              totals=report["provisional_numeric_issuer_counts"]
+              lines.append("당일 실측 기술/모멘텀 관측 종목: "+
+                           str(totals["technical"])+"/"+str(totals["momentum"]))
+              lines.append("전 종목 가격 재계산 연결: "+
+                           str(report.get("technical_momentum_price_replay_state","not_joined")))
               lines.append("FCF 별도 공시 검증 연결: "+str(report["fcf_source_added"]))
               lines.append("정식 투자점수 인증 기업: 0")
           industry=Path("docs/v3-dart-industry-earnings-sample.json")
