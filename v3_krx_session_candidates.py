@@ -61,7 +61,7 @@ def candidate_dates(weekdays, *, source="weekdays"):
         "uncorrected_xkrx_candidate_sha256":original_candidate_hash,
         "confirmed_krx_2026_closures_removed":removed,
         "excluded_weekdays_by_third_party_calendar":
-            len(weekdays)-len(selected) if source=="xkrx" else 0,
+            len(weekdays)-len(selected)-len(removed) if source=="xkrx" else 0,
         "official_krx_session_calendar_authenticated":False,
         # A fixed official closure is verified, not a complete calendar audit.
         "krx_ad_hoc_closure_or_future_revision_verified":False,
