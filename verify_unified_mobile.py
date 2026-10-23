@@ -26,8 +26,15 @@ with sync_playwright() as p:
     # Check the real market source snapshot and the unchanged stock-card UI.
     observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
     evidence = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
-    assert observed["asof"] == evidence["market_asof"]
+    # The price close can advance before the annual DART source and its
+    # coverage audit finish. A prior-day fiscal audit is not a same-day score:
+    # show those points as missing, but keep the mobile price view usable.
+    assert evidence["market_asof"] <= observed["asof"]
     assert observed["listed_total"] == evidence["listed_total"]
+    if evidence["market_asof"] != observed["asof"]:
+        assert observed["observed_issuer_counts"]["financial"] == 0
+        assert observed["observed_issuer_counts"]["valuation"] == 0
+        assert observed["certified_100point_count"] == 0
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "page overflows mobile"
     # The source snapshot overview is deliberately collapsed until requested.
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
