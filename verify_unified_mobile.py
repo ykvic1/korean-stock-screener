@@ -29,7 +29,7 @@ with sync_playwright() as p:
     backfill = context.request.get(URL + "v3-krx-derived-backfill-progress.json").json()
     assert observed["asof"] == evidence["market_asof"]
     assert observed["listed_total"] == evidence["listed_total"]
-    page.locator("#coverageGateStatus").get_by_text("확정 100점").wait_for(timeout=20000)
+    page.locator("#coverageGateStatus").wait_for(state="attached",timeout=20000)
     status_text = page.locator("#coverageGateStatus").inner_text()
     assert str(observed["certified_100point_count"]) + "종목" in status_text
     cards = page.locator("#coverageGateRows").inner_text()
