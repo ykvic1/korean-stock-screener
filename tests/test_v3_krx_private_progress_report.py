@@ -195,7 +195,7 @@ class CheckPrivateProgress(unittest.TestCase):
         name=actual_name.group(1)
         self.assertEqual(name,
                          "V3 KRX Derived-Only Historical Cohort Boundary Join")
-        self.assertIn("      - "+name+"\\n",public)
+        self.assertIn("      - "+name+"\n",public)
         self.assertIn("types: [completed]",public)
         self.assertIn("github.event.workflow_run.conclusion == 'success'",
                       public)
