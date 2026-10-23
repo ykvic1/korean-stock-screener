@@ -9,8 +9,9 @@ Promise.all([load('v3-current-observed-all-listed-summary.json'),load('v3-real-s
  .then(([d,e,h,g,i])=>{
   const total=d.listed_total,counts=d.observed_issuer_counts;
   if(!Number.isInteger(total)||total<=0||!counts||!areas.every(([k])=>safeCount(counts[k],total)!==null))throw Error('invalid coverage payload');
-  status.textContent='관측 기준 '+String(d.asof||'미확인')+' · 대상 '+total.toLocaleString('ko-KR')+'종목 · 확정 100점 '+String(d.certified_100point_count??'미확인')+'종목';
   if(e.listed_total!==total||e.market_asof!==d.asof||g.asof!==d.asof||i.asof!==d.asof||i.listed_total!==total)throw Error('source dates or universe differ');
+  if(!d.fcf_observed_issuer_counts||safeCount(d.fcf_observed_issuer_counts.financial4,total)===null||safeCount(d.fcf_observed_issuer_counts.valuation5,total)===null||safeCount(d.certified_100point_count,total)===null)throw Error('invalid FCF evidence counts');
+  status.textContent='관측 기준 '+String(d.asof||'미확인')+' · 대상 '+total.toLocaleString('ko-KR')+'종목 · 확정 100점 '+d.certified_100point_count+'종목';
   root.replaceChildren();
   for(const [key,label] of areas){
    const n=counts[key],el=document.createElement('div');
@@ -22,6 +23,8 @@ Promise.all([load('v3-current-observed-all-listed-summary.json'),load('v3-real-s
   }
   const add=(label,value,note)=>{const el=document.createElement('div');const a=document.createElement('span');a.textContent=label;const b=document.createElement('strong');b.textContent=value;const c=document.createElement('small');c.textContent=note;el.append(a,b,c);root.append(el);};
   const num=v=>Number.isInteger(v)&&v>=0?v.toLocaleString('ko-KR'):'미확인';
+  add('FCF 재무 관측',num(d.fcf_observed_issuer_counts.financial4)+' / '+num(total),'실제 현금흐름 관측 · 재무 4점 근거 · 잠정');
+  add('FCF 가치평가 관측',num(d.fcf_observed_issuer_counts.valuation5)+' / '+num(total),'현금흐름 기반 가치평가 5점 근거 · 잠정');
   add('DART 4개년 실적 관측',num(e.verified_four_year_income_reference_issuers)+' / '+num(total),'공시 실적 참고자료 · PIT 확정 아님');
   add('공식 기관·외국인 수급',num(e.official_investor_IAS_source_issuer_count)+' / '+num(total),'거래량·OBV와 별개 · IAS 20점 검증');
   add('공식 PBR 검증',num(e.official_pbr_verified_count)+' / '+num(total),'잠정 PBR 산출과 별개');
