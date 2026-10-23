@@ -65,10 +65,10 @@ jobs:
               fp.write("ready="+str(ready).lower()+"\n")
           PY
       - name: Regenerate research-only group CSV and aggregate JSON
-        if: {{ steps.evidence_gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
+        if: ${{ steps.evidence_gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
         run: python v3_industry_dual_evidence_watch.py --mode write
       - name: Publish only data-safe aggregates after new-source recheck
-        if: {{ steps.evidence_gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
+        if: ${{ steps.evidence_gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -93,12 +93,12 @@ jobs:
             done
           fi
       - name: Verify saved output on manual request
-        if: {{ steps.evidence_gate.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        if: ${{ steps.evidence_gate.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: python v3_industry_dual_evidence_watch.py --mode verify
       - name: Explain that research watch is NOT an investable score
         if: always()
         env:
-          SOURCE_READY: {{ steps.evidence_gate.outputs.ready }}
+          SOURCE_READY: ${{ steps.evidence_gate.outputs.ready }}
         run: |
           python - <<'PY'
           import json,os
