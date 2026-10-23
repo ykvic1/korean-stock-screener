@@ -45,7 +45,7 @@ def market_momentum(source, *, min_peers=MIN_PEERS):
         for m in ("KOSPI","KOSDAQ")
         for k in ("relative20","relative60")
     }
-    candidates={}
+    if sum(WEIGHTS.values())!=15:\n        raise ValueError("invalid_momentum_five_pillar_budget")\n    candidates={}
     for s in usable:
         parts={}
         available=0
