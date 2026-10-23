@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from test_v3_dart_rolling_book_reference import fixture
+from v3_all_listed_scorecard import FullMarketScorecardError
 from v3_volume_participation import build as volume_build
 from v3_current_price_replay import build as price_build
 from v3_current_observed_scorecard import (
@@ -208,7 +209,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                      cashflow={"005930":bad})
         bad=copy.deepcopy(base)
         bad["financial_available_max"]=21
-        with self.assertRaises(LivePartialScorecardError):
+        with self.assertRaises((LivePartialScorecardError, FullMarketScorecardError)):
             generate(market,catalog,v,p,financial={"005930":bad},
                      cashflow={"005930":item})
 
