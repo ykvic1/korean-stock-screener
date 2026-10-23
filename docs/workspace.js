@@ -1181,21 +1181,18 @@ function draw(){
    '</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
-   '<span class="u-provisional-total"><b>'+
-   (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
-   '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
-   x.composite.available+'/100</small></span></div>'+
-   '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
+   '<span class="u-risk-first '+(x.risk.unsafe?'u-risk-high':'')+'"><b>'+
+   (x.risk.distance===null?'손절선 미확인':('참고 하방 '+x.risk.distance.toFixed(1)+'%'))+
+   '</b><small>'+esc(state)+' · 구조적 참고값</small></span></div>'+
+   '<div class="u-research-summary"><strong>분석자료 '+x.composite.available+'/100 배점 확보</strong>'+
+   '<span>연구점수 '+(x.composite.earned===null?'미산출':x.composite.earned.toFixed(1))+
+   ' · 미검증 · 정식 투자순위 아님</span></div>'+
+   '<details class="u-factor-details"><summary>6개 영역별 점수·누락 자료 확인</summary>'+
+   '<div class="u-scoresix" aria-label="영역별 미검증 연구점수">'+x.composite.pillars.map(i=>
      '<span class="u-factor-unverified"'+(i.key==='volume'?' data-pillar="volume"':'')+'><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
-     '</b><em class="u-factor-mark">'+(i.available===0?(i.key==='volume'?'거래량 근거 미확보':'자료없음 · 미검증'):
-      '미검증')+'</em></span>').join('')+
-     '<span class="u-factor-unverified u-total-factor"><small>잠정 합계 /100</small><b>'+
-     (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
-     '</b><em class="u-factor-mark">미검증</em></span></div>'+
-   '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
-   x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
-   '서로 다른 확보 배점은 직접 비교할 수 없습니다.</p>'+
+     '</b><em class="u-factor-mark">'+(i.available===0?'자료 미확보':'연구·미검증')+'</em></span>').join('')+
+   '</div><p class="u-score-hint">확보 배점은 신뢰도나 데이터 정확도가 아닙니다. 누락 항목을 0점 처리하지 않으며 서로 다른 확보 범위의 종목은 점수를 직접 비교할 수 없습니다.</p></details>'+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
    '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+
