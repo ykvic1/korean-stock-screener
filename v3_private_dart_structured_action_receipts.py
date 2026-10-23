@@ -192,7 +192,10 @@ def _validate_report(raw, index, record):
                 info.get("provider_status") not in ("000", "013") or
                 type(info.get("list_rows")) is not int or
                 not 0 <= info["list_rows"] <= 200 or
-                type(info.get("exact_receipt_match")) is not bool):
+                type(info.get("exact_receipt_match")) is not bool or
+                (info["provider_status"] == "013" and
+                 (info["list_rows"] != 0 or info["exact_receipt_match"])) or
+                (info["exact_receipt_match"] and info["list_rows"] == 0)):
                 raise ValueError()
             if info["exact_receipt_match"]:
                 expected.append(endpoint)
