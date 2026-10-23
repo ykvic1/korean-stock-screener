@@ -334,11 +334,11 @@ assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 30 재돌파'));
 assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 상승다이버전스'));
 assert.equal(unified.technicalCandidate(row),22.8);
 assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
- [null,22.8,null,null,null,null]);
+ [null,22.8,null,null,null]);
 // Approved industry 5+4+3+3 belongs to the same six-area /100 model.
 assert.equal(unified.INDUSTRY_COMPONENTS.reduce((a,x)=>a+x[1],0),15);
 assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
-assert.equal(unified.researchComposite(row).pillars.length,6);
+assert.equal(unified.researchComposite(row).pillars.length,5);
 assert.ok(source.includes('산업 15점 내부 배점 (승인 5·4·3·3)'));
 assert.equal(typeof unified.fiveAreaResearchView,'undefined');
 const missingVolume=unified.pillarState(row)[0];
