@@ -63,14 +63,15 @@ def _read(storage, path):
 def _source_events(storage):
     """Strictly validate the complete risk archive, not a partial cursor tail."""
     dates, digest = history_candidates()
+    source_raw = _read(storage, SOURCE_CHECKPOINT)
+    risk_raw, _ = storage.get_content(RISK_CHECKPOINT)
     try:
-        source = source_validate(_read(storage, SOURCE_CHECKPOINT), dates, digest)
-        state = risk_cursor(storage.get_content(RISK_CHECKPOINT)[0],
-                            dates, digest, source["next_window_index"])
+        source = source_validate(source_raw, dates, digest)
+        state = risk_cursor(risk_raw, dates, digest, source["next_window_index"])
     except Exception:
         raise CrosscheckError("invalid_krx_source_or_risk_checkpoint") from None
     if state is None:
-        return [], dates, None
+        return [], dates, None, source_raw, risk_raw
     last = state["next_cohort_index"]
     if last < BASELINE_COHORTS:
         raise CrosscheckError("invalid_risk_review_cursor")
@@ -116,6 +117,10 @@ def _source_events(storage):
             enumerated.append((start, end, path))
         enumerated.sort()
         for start, end, path in enumerated:
+            # An immutable chunk may have been saved before a crashed cursor
+            # update; ignore it until independently committed by risk review.
+            if start >= last:
+                continue
             if start != cursor or not cursor < end <= last:
                 raise CrosscheckError("private_risk_inventory_gap_or_overlap")
             chunk = risk_delta(_read(storage, path), days=dates,
@@ -125,15 +130,15 @@ def _source_events(storage):
             cursor = end
         if cursor != last:
             raise CrosscheckError("private_risk_inventory_incomplete")
-        if (enumerated[-1][2] != state["last_audit_file"]
-            or sha256(_read(storage, state["last_audit_file"])).hexdigest()
+        if (cursor != last or
+            sha256(_read(storage, state["last_audit_file"])).hexdigest()
             != state["last_audit_sha256"]):
             raise CrosscheckError("private_risk_tail_changed")
     elif sha256(_read(storage, state["last_audit_file"])).hexdigest() != state["last_audit_sha256"]:
         raise CrosscheckError("private_risk_baseline_tail_changed")
     if flags != state["cumulative_price_discontinuity_flags"]:
         raise CrosscheckError("private_risk_flag_count_mismatch")
-    return events, dates, state
+    return events, dates, state, source_raw, risk_raw
 
 
 def _month_receipts(storage, month):
@@ -257,7 +262,7 @@ def run(storage):
                 "completed_dart_months": dart["month_index"],
                 "crosschecked_months": idx, "provider_calls": 0,
                 "confirmed_corporate_actions": 0, "scores_promoted": 0}
-    events, days, risk = _source_events(storage)
+    events, days, risk, source_raw, risk_raw = _source_events(storage)
     if risk is None:
         return {"status": "waiting_for_private_risk_review",
                 "completed_dart_months": dart["month_index"],
@@ -283,6 +288,12 @@ def run(storage):
     }
     payload = canonical(report)
     path = f"{OUT}/{month}.json"
+    # Refuse mixing two concurrently mutating source checkpoints before
+    # creating any new private output or advancing this run's cursor.
+    if (storage.get_content(DART_CHECKPOINT)[0] != dartraw
+        or storage.get_content(RISK_CHECKPOINT)[0] != risk_raw
+        or storage.get_content(SOURCE_CHECKPOINT)[0] != source_raw):
+        raise CrosscheckError("source_cursors_changed_during_match")
     previous, _ = storage.get_content(path)
     if previous is not None and previous != payload:
         raise CrosscheckError("immutable_private_monthly_crosscheck_changed")
@@ -312,7 +323,8 @@ def run(storage):
     # The source may have progressed concurrently (another workflow). Do not
     # claim a stable comparison if either cursor changed in the meantime.
     # Outputs are only a bounded private research candidate, never an answer.
-    if dart_after != dartraw or risk_after != storage.get_content(RISK_CHECKPOINT)[0]:
+    if (dart_after != dartraw or risk_after != risk_raw or
+        storage.get_content(SOURCE_CHECKPOINT)[0] != source_raw):
         raise CrosscheckError("source_cursors_changed_during_match")
     return {"status": "private_unverified_candidate_month_completed",
             "completed_dart_months": dart["month_index"],
