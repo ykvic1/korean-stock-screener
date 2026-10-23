@@ -23,6 +23,8 @@ from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
 from v3_dart_industry_codes import prior_records, IndustrySourceError
 from v3_volume_participation import build as observed_volume, OBSERVABLE_MAX
+from v3_current_price_replay import SCHEMA as PRICE_REPLAY_SCHEMA
+from v3_weekly_rotation import TECH_PARTS
 
 AREAS=("volume","technical","financial","valuation","industry","momentum")
 # The user approved the six-domain 100-point contract and industry 5/4/3/3.
@@ -90,8 +92,102 @@ def _momentum(record, asof, market):
     return _contribution(record["momentum_research_points"],avail,10)
 
 
+
+def _replay_technical(ref, asof):
+    """Use only independently observed technical subparts, never a 25-point guess."""
+    if ref is None:
+        return None,0
+    if (type(ref) is not dict or
+        ref.get("schema")!="v3-pattern-within-six-pillars-research-0.4" or
+        ref.get("asof")!=asof or ref.get("technical_maximum")!=25 or
+        ref.get("buy_certified") is not False or
+        ref.get("v3_release_ready") is not False or
+        ref.get("investable_score") is not None or
+        ref.get("technical_weights")!=TECH_PARTS):
+        raise FullMarketScorecardError("price_replay_technical_contract_invalid")
+    parts=ref.get("technical_parts")
+    if type(parts) is not dict or set(parts)!=set(TECH_PARTS):
+        raise FullMarketScorecardError("price_replay_technical_parts_invalid")
+    avail=0
+    earned=0.
+    for name,maximum in TECH_PARTS.items():
+        value=parts[name]
+        if value is None:
+            continue
+        if not _number(value,maximum):
+            raise FullMarketScorecardError("price_replay_technical_part_out_of_range")
+        avail+=maximum
+        earned+=value
+    if avail==0 or ref.get("technical_observed_maximum")!=avail:
+        raise FullMarketScorecardError("price_replay_technical_availability_invalid")
+    candidate=ref.get("technical_research_candidate")
+    if candidate is not None and (avail!=25 or
+        not _number(candidate,25) or abs(candidate-earned)>0.01):
+        raise FullMarketScorecardError("price_replay_technical_total_invalid")
+    return _contribution(round(earned,4),avail,25)
+
+
+def _verified_price_replay(source,market,catalog,day,members):
+    """Reject stale/malformed 0-call replay before joining ANY issuer."""
+    if source is None:
+        return {},"source_not_available"
+    try:
+        if (type(source) is not dict or
+            source.get("schema")!=PRICE_REPLAY_SCHEMA or
+            source.get("asof")!=day or
+            source.get("listed_total")!=len(members) or
+            source.get("source_market_sha256")!=_stable_digest(market) or
+            source.get("source_catalog_sha256")!=_stable_digest(catalog) or
+            source.get("separate_source_provider_calls")!=0 or
+            source.get("official_ias_or_buyer_identity_inferred") is not False or
+            source.get("corporate_action_adjusted_verified") is not False or
+            source.get("historical_PIT_certified") is not False or
+            source.get("sector_score_authentic") is not False or
+            source.get("certified_100point_investment_issuers")!=0 or
+            type(source.get("rows")) is not dict):
+            raise FullMarketScorecardError("price_replay_source_mismatch")
+        refs=source["rows"]
+        if (source.get("at_least_one_price_factor_issuer_count")!=len(refs) or
+            type(source.get("priced_current_session")) is not int or
+            not len(refs)<=source["priced_current_session"]<=len(members)):
+            raise FullMarketScorecardError("price_replay_issuer_count_mismatch")
+        normalized={}
+        tc=mc=0
+        for code,ref in refs.items():
+            if (code not in members or type(ref) is not dict or
+                ref.get("code")!=code or ref.get("asof")!=day or
+                ref.get("market")!=members[code]["market"] or
+                ref.get("official_investment_score_certified") is not False or
+                ref.get("price_source_corporate_action_verified") is not False):
+                raise FullMarketScorecardError("price_replay_issuer_identity_invalid")
+            tech_ref=ref.get("technical_research_reference")
+            mom_ref=ref.get("momentum_research_reference")
+            technical=_replay_technical(tech_ref,day)
+            momentum=(None,0)
+            if mom_ref is not None:
+                if type(mom_ref) is not dict:
+                    raise FullMarketScorecardError("price_replay_momentum_invalid")
+                temp={"momentum_research_reference":mom_ref,
+                      "momentum_available_weight":mom_ref.get("momentum_observed_maximum"),
+                      "momentum_research_points":mom_ref.get("momentum_research_candidate")}
+                momentum=_momentum(temp,day,members[code]["market"])
+                if not momentum[1]:
+                    raise FullMarketScorecardError("price_replay_momentum_contract_invalid")
+            if not technical[1] and not momentum[1]:
+                raise FullMarketScorecardError("price_replay_empty_issuer")
+            tc+=int(bool(technical[1]))
+            mc+=int(bool(momentum[1]))
+            normalized[code]={"technical":technical,"momentum":momentum}
+        if (source.get("technical_research_issuer_count")!=tc or
+            source.get("momentum_research_issuer_count")!=mc):
+            raise FullMarketScorecardError("price_replay_factor_count_mismatch")
+        return normalized,"same_market_digest_verified_research_only"
+    except (FullMarketScorecardError,TypeError,ValueError,KeyError):
+        return {},"source_rejected_or_stale"
+
+
 def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
-             industry_source=None):
+             industry_source=None,price_replay=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
     audit=coverage(catalog,history,parts,weekly)
     day=audit["market_asof"]
@@ -102,6 +198,8 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
     # An independent live investor-identity API is NOT required.
     volume_source=observed_volume(market,catalog)
     volume_rows=volume_source["records"]
+    replay_rows,replay_state=_verified_price_replay(
+        price_replay,market,catalog,day,members)
     industry_codes={}
     industry_ref_status="source_not_available"
     if industry_source is not None:
@@ -189,6 +287,13 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                 rec.get("no_data_construed_as_zero") is True):
                 values["technical"]=_contribution(tech_score,tech_avail,25)
             values["momentum"]=_momentum(rec,day,member["market"])
+        # Prefer broader exact-current-price coverage over the 350-name
+        # weekly rotation; substitute, never add the same pillar twice.
+        replayed=replay_rows.get(code)
+        if replayed:
+            for area in ("technical","momentum"):
+                if replayed[area][1]>=values[area][1] and replayed[area][1]>0:
+                    values[area]=replayed[area]
         f=fcf_rows.get(code)
         if f and f.get("market")==member["market"] and f.get("asof")==day:
             for area,field,maximum in (
@@ -238,6 +343,9 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
         "volume20_observed_maximum_per_issuer":OBSERVABLE_MAX,
         "volume20_unobserved_absorption_points":4,
         "technical_one_day_volume_not_double_counted":True,
+        "technical_momentum_price_replay_state":replay_state,
+        "technical_momentum_price_replay_issuer_count":len(replay_rows),
+        "price_replay_new_provider_calls":0,
         "industry_current_company_source_status":industry_ref_status,
         "industry_code_source_attempted":len(industry_codes),
         "industry_code_source_observed":sum(
@@ -270,6 +378,9 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
             "dart_major":_stable_digest(history),
             "dart_partial":_stable_digest(parts),
             "weekly":_stable_digest(weekly),
+            "same_day_price_replay":_stable_digest(price_replay)
+                if replay_state=="same_market_digest_verified_research_only"
+                else None,
             "volume_observed":_stable_digest(volume_source),
             "fcf":_stable_digest(fcf_effective) if fcf_accepted else None,
             "industry_company_profile":_stable_digest(industry_source)
@@ -326,8 +437,10 @@ def main(argv=None):
     fcf=read(fcf_path.name) if fcf_path.is_file() else None
     industry_path=d/"v3-dart-industry-classification.json"
     industry=read(industry_path.name) if industry_path.is_file() else None
+    replay_path=d/"v3-current-price-technical-momentum.json"
+    replay=read(replay_path.name) if replay_path.is_file() else None
     rows,summary=generate(market,catalog,history,parts,weekly,cash,fcf,
-                          industry)
+                          industry,replay)
     content=to_csv(rows,summary)
     dest=d/"v3-all-listed-scores.csv"
     report=d/"v3-all-listed-scorecard-summary.json"
