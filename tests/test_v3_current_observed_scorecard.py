@@ -109,6 +109,25 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             with self.assertRaises(LivePartialScorecardError):
                 main(["--docs",str(root),"--mode","verify"])
 
+    def test_refresh_derived_recomputes_stale_saved_products_without_false_score(self):
+        market,catalog=small()
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t)
+            inputs={
+                "data.json":market,
+                "v22-market-catalog.json":catalog,
+                "v3-volume-obv-observed.json":{"stale":True},
+                "v3-current-price-technical-momentum.json":{"stale":True},
+            }
+            for name,value in inputs.items():
+                (root/name).write_text(json.dumps(value),encoding="utf8")
+            with self.assertRaises(LivePartialScorecardError):
+                main(["--docs",str(root),"--mode","write"])
+            main(["--docs",str(root),"--mode","write","--refresh-derived"])
+            main(["--docs",str(root),"--mode","verify","--refresh-derived"])
+            with self.assertRaises(LivePartialScorecardError):
+                main(["--docs",str(root),"--mode","verify"])
+
     def test_current_coverage_publisher_and_homepage_link(self):
         base=Path(__file__).resolve().parents[1]
         flow=(base/".github/workflows/v3-current-observed-scorecard.yml").read_text(encoding="utf8")
