@@ -1,0 +1,118 @@
+name: V3 Saved Current Industry Profit And Price Dual-Evidence Watch (no provider)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_industry_dual_evidence_watch.py
+      - docs/v3-industry-saved-profit-gap-summary.json
+      - docs/v3-industry-observed-relative-strength.json
+      - .github/workflows/v3-industry-dual-evidence-watch.yml
+  schedule:
+    - cron: '47 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        required: true
+        type: choice
+        options: [verify, write]
+        default: verify
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v3-current-industry-dual-evidence-watch
+  cancel-in-progress: false
+
+jobs:
+  cross-source-observed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Regression on real saved aggregates and no industry-score promotion
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_industry_dual_evidence_watch.py
+          python -m unittest discover -s tests -p 'test_v3_industry_dual_evidence_watch.py' -v
+      - name: Gate on same-day same-roster published source hashes
+        id: evidence_gate
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from v3_industry_dual_evidence_watch import build,CrossSourceError
+          base=Path("docs")
+          e=json.loads((base/"v3-industry-saved-profit-gap-summary.json").read_text("utf8"))
+          p=json.loads((base/"v3-industry-observed-relative-strength.json").read_text("utf8"))
+          try:
+              candidate=build(e,p)
+              ready=True
+              print(json.dumps({"ready":True,"asof":candidate["asof"],
+                "dual_evidence_research_groups":candidate["dual_evidence_watch_groups"],
+                "industry_15pt_issued":0,"provider_calls":0},sort_keys=True))
+          except CrossSourceError:
+              ready=False
+              print(json.dumps({"ready":False,"reason":"asof_roster_or_source_hash_pending",
+                "industry_15pt_issued":0,"provider_calls":0},sort_keys=True))
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as fp:
+              fp.write("ready="+str(ready).lower()+"\n")
+          PY
+      - name: Regenerate research-only group CSV and aggregate JSON
+        if: {{ steps.evidence_gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
+        run: python v3_industry_dual_evidence_watch.py --mode write
+      - name: Publish only data-safe aggregates after new-source recheck
+        if: {{ steps.evidence_gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-industry-dual-evidence-watch.json docs/v3-industry-dual-evidence-watch.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh observed dual-source current-industry research"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_industry_dual_evidence_watch.py --mode write
+              git add docs/v3-industry-dual-evidence-watch.json docs/v3-industry-dual-evidence-watch.csv
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              python v3_industry_dual_evidence_watch.py --mode verify
+              if git push origin HEAD:main; then
+                echo "audited_industry_dual_source_observations_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::industry_dual_source_publish_retries_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Verify saved output on manual request
+        if: {{ steps.evidence_gate.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        run: python v3_industry_dual_evidence_watch.py --mode verify
+      - name: Explain that research watch is NOT an investable score
+        if: always()
+        env:
+          SOURCE_READY: {{ steps.evidence_gate.outputs.ready }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          msg=["### V3 업종 가격·영업이익 실측 교차 관찰",
+               "현재 DART 기업 업종코드별 관측 연구. 과거 KRX 공식 업종 PIT와 조정주가는 아직 검증 전.",
+               "산업 15점 실전 점수 부여: 0. 신규 KRX/DART 호출: 0."]
+          path=Path("docs/v3-industry-dual-evidence-watch.json")
+          if path.is_file():
+              r=json.loads(path.read_text("utf8"))
+              msg.append("마지막 저장 기준일: "+str(r["asof"]))
+              msg.append("실측 이중조건 관찰 그룹: "+str(r["dual_evidence_watch_groups"]))
+          if os.getenv("SOURCE_READY")!="true":
+              msg.append("현재 실적·가격 스냅샷 날짜/원천 해시 동기화 대기. 점수/CSV 새 발행 보류.")
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(msg)+"\n", encoding="utf8")
+          PY
