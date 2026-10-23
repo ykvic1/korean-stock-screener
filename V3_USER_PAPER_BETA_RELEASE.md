@@ -1,6 +1,6 @@
 # v3.0 사용자 모의검증 베타 — 공개 종목 검색 + 개인 관찰 기록
 
-2026-10-19 기준 첫 사용자용 베타. GitHub Pages 경로: \`docs/v3-beta.html\` (운영 경로 \`https://ykvic1.github.io/korean-stock-screener/v3-beta.html\`). 기존 운영 \`docs/index.html\` 첫 화면에서 연결된다.
+> **최신 운영 기준 (2026-10-23):** [V3.0a 연구용 통합 베타 마감 및 V3.0b 이관](V30A_CLOSEOUT_20261023.md). 아래는 2026-10-19 초기 베타의 과거 기록이며, 예전 6영역 점수 설명은 현행 승인 5영역(거래량·OBV20, 기술25, 재무20, 가치20, 모멘텀15)을 대체하지 않습니다. 인증된 정식 100점은 아직 0종목입니다.\n\n2026-10-19 기준 첫 사용자용 베타. GitHub Pages 경로: \`docs/v3-beta.html\` (운영 경로 \`https://ykvic1.github.io/korean-stock-screener/v3-beta.html\`). 기존 운영 \`docs/index.html\` 첫 화면에서 연결된다.
 
 ## 사용자 가용 기능
 
