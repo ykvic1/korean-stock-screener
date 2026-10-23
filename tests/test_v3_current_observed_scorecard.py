@@ -46,6 +46,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(sum(summary["available_weight_distribution"].values()),5)
         self.assertEqual(summary["available_weight_distribution"].get("0",0), sum(r["available"]==0 for r in rows))
         self.assertEqual(summary["five_area_observed_overlap_issuers"],0)
+        self.assertEqual(summary["max_single_issuer_available_weight"],max(r["available"] for r in rows))
         self.assertEqual(sum(sum(d.values()) for d in summary["available_weight_distribution_by_market"].values()),5)
         self.assertEqual(sum(summary["five_area_observed_overlap_by_market"].values()),0)
         self.assertEqual(set(summary["available_weight_distribution_by_market"]),set(r["market"] for r in rows))
