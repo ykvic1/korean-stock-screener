@@ -22,7 +22,9 @@ from v3_krx_private_github_backfill import PrivateGitStorage
 SCHEMA = "v3-private-dart-historical-filing-receipts-v1"
 CHECKPOINT = "derived/dart-filing-receipts/checkpoint.json"
 CATEGORIES = ("B", "C", "E", "I")
-MAX_API_CALLS = 8
+# Bounded faster historical catalog fill: 4 slots/day * 24 pages =
+# <=96 additional official calls/day; each page and resume tail is validated.
+MAX_API_CALLS = 24
 MAX_FILE_BYTES = 150_000
 PRIVATE_REPO = "ykvic1/korean-stock-private-data"
 FIRST = (2016, 10)
