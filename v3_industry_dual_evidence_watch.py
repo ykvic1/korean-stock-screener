@@ -102,7 +102,7 @@ def build(earnings, prices):
             row.get("classified"), row.get("two_year_operating_profit_verified_issuers"),
             row.get("compared"), row.get("missing"))
         if (key in groups_e or not all(_count(z) for z in (n, verified, strict, missing))
-            or n != strict + missing or not strict <= verified <= n
+            or n < 1 or n != strict + missing or not strict <= verified <= n
             or row.get("source_is_current_dart_company_industry_not_krx_sector") is not True
             or not _ratio(row.get("source_coverage_ratio"))
             or abs(row["source_coverage_ratio"] - strict / n) > .000002
@@ -134,7 +134,7 @@ def build(earnings, prices):
             row.get("current_listed_issuers"), row.get("same_day_priced_issuers"),
             row.get("complete_relative20_60_issuer_count"))
         if (not all(_count(z) for z in (n, priced, both))
-            or n != e["classified"] or not both <= priced <= n
+            or n < 1 or n != e["classified"] or not both <= priced <= n
             or row.get("missing_relative20_60_issuer_count") != n - both
             or row.get("current_company_codes_not_historical_krx_sector") is not True
             or row.get("market_benchmark_dates_independently_verified") is not False
@@ -158,7 +158,7 @@ def build(earnings, prices):
               or abs(lower_price - up/n) > .000002
               or abs(upper_price - (up + n - both)/n) > .000002):
             raise CrossSourceError("unreconciled_price_breadth_bounds")
-        genuine_price_watch = (n >= MIN_GROUP and both/n >= MIN_COVERAGE
+        genuine_price_watch = (both >= MIN_GROUP and both/n >= MIN_COVERAGE
                                and relative20 is not None and relative60 is not None
                                and 0 < relative20 < 15 and relative60 <= 0
                                and up * 2 > both)
