@@ -94,7 +94,8 @@ def _decode(blob, month, category, page):
             or pages != (total + 99) // 100 or type(rows) is not list
             or len(rows) > 100 or len(rows) > total
             or (pages == 0 and (page != 1 or rows))
-            or (pages > 0 and (page > pages or not rows))):
+            or (pages > 0 and (page > pages or len(rows) !=
+                min(100, total - (page - 1) * 100)))):
             raise ValueError()
         start, end = _dates(month)
         seen = set()
@@ -114,6 +115,13 @@ def _decode(blob, month, category, page):
                 or type(filing_date) is not str or not start <= filing_date <= end
                 or type(title) is not str or not 0 < len(title) <= 500):
                 raise ValueError()
+            try:
+                if date.fromisoformat(filing_date[:4] + "-" +
+                                       filing_date[4:6] + "-" +
+                                       filing_date[6:]).strftime("%Y%m%d") != filing_date:
+                    raise ValueError()
+            except ValueError:
+                raise ValueError() from None
             seen.add(receipt)
         return x
     except Exception:
