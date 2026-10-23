@@ -96,9 +96,9 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertEqual(again["months_completed"], 1)
         self.assertEqual(private.puts, puts + 4)
 
-    def test_fortyeight_page_capped_api_budget_and_exact_resume(self):
+    def test_seventytwo_page_capped_api_budget_and_exact_resume(self):
         """No pagination gaps or unbounded provider calls at the larger cap."""
-        self.assertEqual(MAX_API_CALLS, 48)
+        self.assertEqual(MAX_API_CALLS, 72)
         private = FakePrivate()
         requested = []
         total = (MAX_API_CALLS + 1) * 100
@@ -200,7 +200,7 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("Install private Git storage import dependencies", wf)
         self.assertIn("requests>=2.31,<3", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)
-        self.assertIn("max 48 official DART calls", wf)
+        self.assertIn("max 72 official DART calls", wf)
         self.assertEqual(wf.count("    - cron:"), 4)
         self.assertIn("timeout-minutes: 17", wf)
         self.assertIn("cancel-in-progress: false", wf)
