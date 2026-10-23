@@ -36,10 +36,14 @@ SCHEMA = "v3-private-dart-krx-title-shortlist-v1"
 CHECKPOINT = "derived/quality/dart-krx-title-shortlist-checkpoint.json"
 OUT = "derived/quality/dart-krx-title-shortlists"
 DIGEST = re.compile(r"[a-f0-9]{64}\Z")
-ISSUER = re.compile(r"(?:KOSPI|KOSDAQ):[0-9]{6}\Z")
+ISSUER = re.compile(r"(?:KOSPI|KOSDAQ):[0-9A-Z]{6}\Z")
 RECEIPT = re.compile(r"[0-9]{14}\Z")
 CORP = re.compile(r"[0-9]{8}\Z")
 STOCK = re.compile(r"[0-9]{6}\Z")
+ALLOWED_RISK_KINDS = (
+    "large_four_interval_bucket_change", "large_one_interval_cohort_boundary",
+    "four_interval_change", "cohort_boundary_change",
+)
 MAX_PAIRS = 4000
 MAX_BLOB_BYTES = 950_000
 HINTS = (
@@ -151,7 +155,7 @@ def _shortlist(events, receipts, left, right):
         code = flag.get("issuer_market")
         kind = flag.get("type")
         if (start > end or type(code) is not str or not ISSUER.fullmatch(code)
-            or kind not in ("four_interval_change", "cohort_boundary_change")):
+            or kind not in ALLOWED_RISK_KINDS):
             raise TitleTriageError("invalid_private_title_risk_flag")
         examined += 1
         for receipt, stamp, hints in index.get(code.split(":")[1], ()):
