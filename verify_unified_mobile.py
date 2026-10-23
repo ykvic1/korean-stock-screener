@@ -29,7 +29,7 @@ with sync_playwright() as p:
     backfill = context.request.get(URL + "v3-krx-derived-backfill-progress.json").json()
     assert observed["asof"] == evidence["market_asof"]
     assert observed["listed_total"] == evidence["listed_total"]
-    page.wait_for_function("document.getElementById(\'coverageGateStatus\')?.textContent?.includes(\'확정 100점\')", timeout=20000)
+    page.locator("#coverageGateStatus").get_by_text("확정 100점").wait_for(timeout=20000)
     status_text = page.locator("#coverageGateStatus").inner_text()
     assert str(observed["certified_100point_count"]) + "종목" in status_text
     cards = page.locator("#coverageGateRows").inner_text()
@@ -60,8 +60,8 @@ with sync_playwright() as p:
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
-    assert page.locator(".u-stock").first.locator(".u-risk-first").is_visible()
-    assert page.locator(".u-stock").first.locator(".u-research-summary").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-card-score").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-scoresix-visible").is_visible()
     page.locator(".u-stock").first.locator(".u-factor-details summary").click()
     assert page.locator(".u-factor-details").first.get_by_text("6개 영역별 점수").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("거래량·OBV /20").is_visible()

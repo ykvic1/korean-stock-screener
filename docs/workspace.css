@@ -225,3 +225,13 @@ details.u-intro{padding:15px 18px;margin-bottom:10px}
 .u-factor-details>summary{cursor:pointer;font-weight:650;font-size:13px}
 .u-factor-details .u-scoresix{margin-top:12px}
 @media(max-width:560px){.u-stock-main{align-items:stretch}.u-risk-first{max-width:58%;text-align:left}.u-factor-details .u-scoresix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.u-factor-details .u-scoresix>span{min-width:0;overflow-wrap:anywhere}}
+
+/* Restore screenshot-approved V3 visible score-card layout. */
+.u-card-score{border:1.5px solid #bd6076;border-radius:11px;background:#281b24;padding:10px 12px;min-width:130px}
+.u-card-score>b{font-size:24px;color:#f5b2c3}.u-card-score small{color:#c6aeb6}
+.u-scoresix-visible{grid-template-columns:repeat(7,minmax(0,1fr));border-color:#bd6076;background:#271b24}
+.u-scoresix-visible>span{border-right:1px solid #bd6076;min-width:0;padding:9px 2px}
+.u-scoresix-visible>span:last-child{border-right:0}
+.u-scoresix-visible small{color:#e2bdc7}.u-scoresix-visible b{color:#ffd3de}
+.u-scoresix-visible em{font-size:9px;font-style:normal;color:#f1a7bb;line-height:1.25}
+@media(max-width:560px){.u-scoresix-visible{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0}.u-scoresix-visible>span{padding:8px 1px}.u-scoresix-visible small{font-size:9px}.u-scoresix-visible b{font-size:11px}.u-scoresix-visible em{font-size:9px}.u-card-score{min-width:0;max-width:54%}}
