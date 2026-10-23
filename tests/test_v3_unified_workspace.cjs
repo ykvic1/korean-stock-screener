@@ -198,7 +198,7 @@ assert.equal(unified.actualCashflowCoverageText(
 assert.ok(source.includes("'v3-dart-fcf-research-preview.json'")&&
  source.includes('actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible)'));
 // Four-year DART source is read by primary V3; reference CAGR/margin
-// remains informational until revisions/PIT and full 15+15 scoring pass.
+// remains informational until revision/PIT and certified 20+20 scoring.
 const fourRecords=[2022,2023,2024,2025].map(yr=>({
  year:yr,fs_div:'CFS',currency:'KRW',
  receipt_id:String(yr+1)+'0318001162',values:{revenue:1000+yr}
@@ -229,7 +229,7 @@ assert.ok(source.includes('v3-dart-four-year-reference.json')&&
  source.includes('core.prepare(...responses.slice(0,6),responses[8])'),
  'primary workspace must ingest separate four-year DART evidence');
 assert.ok(source.includes('4개년 연간공시 연구 참고')&&
- source.includes('공시 정정/PIT 검증 전으로 재무 15점 및 밸류 15점은 미산출'),
+ source.includes('공시 정정·시점(PIT) 검증 전으로 재무 20점과 가치 20점은 정식 투자점수 미확정'),
  'four-year metrics cannot silently become a certified 30 point ranking');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,
@@ -339,7 +339,9 @@ assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
 assert.equal(unified.INDUSTRY_COMPONENTS.reduce((a,x)=>a+x[1],0),15);
 assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
 assert.equal(unified.researchComposite(row).pillars.length,5);
-assert.ok(source.includes('산업 15점 내부 배점 (승인 5·4·3·3)'));
+assert.ok(source.includes('산업 순환매 참고지표 · 정식 100점 합계 미포함'));
+assert.ok(!Object.prototype.hasOwnProperty.call(unified.WEIGHTS,'industry'),
+ 'legacy 15-point industry research is not a sixth scored factor');
 assert.equal(typeof unified.fiveAreaResearchView,'undefined');
 const missingVolume=unified.pillarState(row)[0];
 assert.equal(missingVolume.label,'거래량·OBV');
