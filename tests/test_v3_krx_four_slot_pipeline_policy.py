@@ -18,7 +18,7 @@ class FiveSlotDerivedPipelineTests(unittest.TestCase):
     def test_daily_pipeline_has_exact_ordered_five_utc_slots(self):
         expectations = (
             ("v3-krx-derived-history.yml",
-             ["11 17 * * *", "11 22 * * *", "11 2 * * *", "11 5 * * *", "11 13 * * *"]),
+             ["11 0,6,12,18 * * *"]),
             ("v3-krx-derived-boundaries.yml",
              ["47 17 * * *", "47 22 * * *", "47 2 * * *", "47 5 * * *", "47 13 * * *"]),
             ("v3-krx-derived-corporate-risk-incremental.yml",
