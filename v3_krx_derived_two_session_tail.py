@@ -34,7 +34,7 @@ class TwoSessionTailError(ValueError):
 
 
 def select_tail(days):
-    if (type(days) is not list or len(days) < 7 or
+    if (type(days) is not list or len(days) < 5 or
         len(days) != len(set(days)) or days != sorted(days) or
         any(type(x) is not str for x in days)):
         raise TwoSessionTailError("invalid_session_candidates")
