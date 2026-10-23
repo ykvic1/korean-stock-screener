@@ -10,18 +10,9 @@ on:
       - v3_krx_derived_5day.py
       - .github/workflows/v3-krx-derived-history.yml
   schedule:
-    - cron: '11 17 * * *'  # 02:11 KST, additional bounded historical replay
-    - cron: '11 22 * * *'  # 07:11 KST, derived private backlog only
-    - cron: '11 2 * * *'   # 11:11 KST, fifth bounded historical replay slot
-    - cron: '11 5 * * *'   # 14:11 KST
-    - cron: '11 13 * * *'  # 22:11 KST, outside main market workflow
-    - cron: '11 8 * * *'   # 17:11 KST, bounded private historical backfill
-    - cron: '11 15 * * *'  # 00:11 KST, bounded private historical backfill
-    - cron: '11 0 * * *'   # 09:11 KST
-    - cron: '11 4 * * *'   # 13:11 KST
-    - cron: '11 10 * * *'  # 19:11 KST
-    - cron: '11 19 * * *'  # 04:11 KST
-    - cron: '11 23 * * *'  # 08:11 KST
+    # Continuous bounded replay, one resumable job every six hours.
+    # Avoid 12 overlapping long-running jobs and GitHub queue cancellation.
+    - cron: '11 0,6,12,18 * * *'
   workflow_dispatch:
     inputs:
       max_windows:
@@ -64,7 +55,7 @@ jobs:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
-          V3_BULK_BATCHES: ${{ github.event_name == 'push' && '16' || '1' }}
+          V3_BULK_BATCHES: '16'
         run: |
           set -euo pipefail
           # A canceled run with no jobs indicates cancellation before runner startup;
