@@ -1,6 +1,8 @@
 """Manual Chromium smoke test of unified public research workspace at 390x844."""
 from pathlib import Path
 from zipfile import ZipFile
+from io import StringIO
+import csv
 import json
 import os
 from playwright.sync_api import sync_playwright
@@ -66,6 +68,38 @@ with sync_playwright() as p:
     assert page.locator(".u-scoresix").first.locator("span[data-pillar]").count() == 5
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
+    # V3.0a acceptance: a matching official-source CSV must visibly restore
+    # both partial financial and valuation points on the unified stock card.
+    # The 5-factor UI must never silently hide a verified same-day overlay.
+    if (observed["observed_issuer_counts"]["financial"] > 0
+            and observed["observed_issuer_counts"]["valuation"] > 0):
+        source_csv = context.request.get(URL + "v3-current-observed-all-listed.csv").text()
+        source_rows = list(csv.DictReader(StringIO(source_csv.lstrip("\\ufeff"))))
+        listed_codes = {item["code"] for item in data["stocks"]}
+        selected = next((
+            item for item in source_rows
+            if item["종목코드"] in listed_codes
+            and item["가격자료기준일"] == observed["asof"]
+            and item["재무_잠정점수"] != ""
+            and item["밸류에이션_잠정점수"] != ""
+            and item["재무_산출배점"] != ""
+            and item["가치_산출배점"] != ""
+        ), None)
+        assert selected is not None, "no same-day financial/value research stock to verify"
+        page.locator("#stockSearch").fill(selected["종목코드"])
+        stock = page.locator(".u-stock")
+        assert stock.count() == 1, "direct code search must find observed finance stock"
+        for key, value_field, budget_field in (
+            ("financial", "재무_잠정점수", "재무_산출배점"),
+            ("valuation", "밸류에이션_잠정점수", "가치_산출배점"),
+        ):
+            cell = stock.locator(f'span[data-pillar="{key}"]')
+            assert cell.locator("b").inner_text().strip() == (
+                f'{float(selected[value_field]):.1f}'
+            ), f"{key} source-observed points missing in rendered card"
+            assert f'확보 {int(selected[budget_field])}/20' in cell.inner_text()
+            assert "미검증" in cell.inner_text()
+        page.locator("#stockSearch").fill("")
     page.locator("#marketSummary summary").click()
     assert page.locator("#statAnalyzed").is_visible()
     displayed = int(page.locator("#statAnalyzed").inner_text().replace(",", ""))
