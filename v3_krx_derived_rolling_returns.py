@@ -185,7 +185,7 @@ def _estimate_one(storage,dates,horizon,end_bucket, factor_cache, bridge_cache):
     return payload,encoded
 
 
-def _check_progress(raw,calendar_hash,horizon):
+def _check_progress(raw,calendar_hash,horizon,dates=None):
     expected_first=horizon//5
     if raw is None:
         return {
@@ -254,7 +254,7 @@ def run(*,storage,dates,calendar_hash,limit=MAX_PER_HORIZON,horizons=HORIZONS):
     for horizon in horizons:
         b=horizon//5
         raw,sha=storage.get_content(_progress_path(horizon))
-        progress=_check_progress(raw,calendar_hash,horizon)
+        progress=_check_progress(raw,calendar_hash,horizon,dates)
         pointer=progress["next_end_bucket"]
         if pointer>b:
             prev_end=pointer-1
