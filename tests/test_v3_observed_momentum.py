@@ -21,7 +21,9 @@ class MomentumObservedTests(unittest.TestCase):
         a=candidates["000000"]
         b=candidates["000099"]
         self.assertEqual(a["momentum_observed_maximum"],8)
-        self.assertEqual(a["momentum_maximum"],10)
+        self.assertEqual(a["momentum_maximum"],15)
+        self.assertIsNone(a["momentum_parts"]["trend_persistence60"])
+        self.assertIsNone(a["momentum_parts"]["reversal_breadth120"])
         self.assertIsNone(a["momentum_parts"]["positive_days20"])
         self.assertFalse(a["market_benchmark_date_independently_verified"])
         self.assertFalse(a["buy_certified"])
