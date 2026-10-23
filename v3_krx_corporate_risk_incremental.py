@@ -83,8 +83,16 @@ def _check_progress(data,dates,digest,source_available):
 
 
 def _validate_delta(raw,*,days,start,end):
+    """Fail closed on falsified private anomaly event dates, counts and magnitudes.
+
+    These checks prove ONLY event-structure consistency, never an official
+    corporate action or a historical split-adjusted price.
+    """
     try:
-        if type(raw) is not bytes or not 0<len(raw)<MAX_FILE_BYTES:
+        if (type(raw) is not bytes or not 0<len(raw)<MAX_FILE_BYTES
+            or type(days) is not list or days!=sorted(set(days))
+            or type(start) is not int or type(end) is not int
+            or not BASELINE_COHORTS<=start<end<=len(days)//5):
             raise ValueError()
         import io
         with gzip.GzipFile(fileobj=io.BytesIO(raw)) as stream:
@@ -92,6 +100,10 @@ def _validate_delta(raw,*,days,start,end):
         if len(body)>4_000_000:
             raise ValueError()
         item=json.loads(body)
+        flags=item.get("flags")
+        observed_buckets=item.get("issuer_bucket_factors_examined")
+        observed_links=item.get("issuer_cross_boundary_factors_examined")
+        count=item.get("flag_count")
         if (item.get("schema")!=SCHEMA
             or item.get("first_cohort_index")!=start
             or item.get("next_cohort_index")!=end
@@ -101,20 +113,44 @@ def _validate_delta(raw,*,days,start,end):
             or item.get("original_ohlcv_stored") is not False
             or item.get("corporate_action_certified") is not False
             or item.get("v3_trade_score_certified") is not False
-            or type(item.get("flags")) is not list
-            or len(item["flags"])!=item["flag_count"]
-            or len(item["flags"])>MAX_ISSUE_RECORDS):
+            or type(observed_buckets) is not int or observed_buckets<0
+            or type(observed_links) is not int or observed_links<0
+            or type(count) is not int or count<0
+            or type(flags) is not list or len(flags)!=count
+            or count>MAX_ISSUE_RECORDS
+            or count>observed_buckets+observed_links):
             raise ValueError()
-        for f in item["flags"]:
-            if (not isinstance(f,dict) or type(f.get("issuer_market")) is not str
-                or not CODE.fullmatch(f["issuer_market"])
-                or f.get("type") not in ("four_interval_change","cohort_boundary_change")
-                or type(f.get("return_bp")) is not int
-                or abs(f["return_bp"])>100_000_000
-                or type(f.get("first_day")) is not str
-                or type(f.get("last_day")) is not str
-                or f["first_day"]>=f["last_day"]):
+        # Every heuristic issue MUST correspond to exactly one of the
+        # verified five-session windows or its immediately preceding bridge.
+        # The first bridge belongs to this chunk even if its older endpoint
+        # precedes the chunk's first day.
+        allowed=set()
+        for index in range(start,end):
+            first,last=days[5*index],days[5*index+4]
+            allowed.add(("four_interval_change",first,last))
+            if index:
+                allowed.add(("cohort_boundary_change",days[5*index-1],first))
+        seen=set()
+        for flag in flags:
+            if not isinstance(flag,dict):
                 raise ValueError()
+            code=flag.get("issuer_market")
+            kind=flag.get("type")
+            first,last=flag.get("first_day"),flag.get("last_day")
+            bp=flag.get("return_bp")
+            identity=(kind,first,last,code)
+            if (type(code) is not str or not CODE.fullmatch(code)
+                or (kind,first,last) not in allowed or identity in seen
+                or type(bp) is not int or not -10000<bp<=100_000_000):
+                raise ValueError()
+            if kind=="four_interval_change" and abs(bp)<BUCKET_JUMP_BP:
+                raise ValueError()
+            # Quantization rounds the actual bridge return to 1 bp; allow
+            # at most one bp tolerance against the original log threshold.
+            if (kind=="cohort_boundary_change" and
+                abs(math.log1p(bp/10000))+0.0001<BOUNDARY_ABS_LOG_E9/1e9):
+                raise ValueError()
+            seen.add(identity)
         return item
     except Exception:
         raise IncrementalRiskError("invalid_immutable_incremental_quality_chunk") from None
