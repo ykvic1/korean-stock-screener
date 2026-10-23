@@ -549,8 +549,8 @@ const partial3={...partial,v3_pattern_integrated:{
  six_pillar_candidates:{volume:null,technical:null,financial:6,
    valuation:null,industry:null,momentum:4}
 }};
-assert.equal(unified.researchComposite(partial3).earned,12.5);
-assert.equal(unified.researchComposite(partial3).available,26,
+assert.equal(unified.researchComposite(partial3).earned,6.5);
+assert.equal(unified.researchComposite(partial3).available,11,
  'previously supplied momentum data cannot enter a V3 subtotal without independently checked 8-point benchmark research');
 assert.equal(unified.researchComposite({...partial3,
  v3_pattern_integrated:{...partial3.v3_pattern_integrated,
