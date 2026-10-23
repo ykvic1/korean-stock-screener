@@ -792,4 +792,39 @@ const otherMarket=legacy.prepare(structuredClone(actual),null,null,null,null,nul
 assert.equal(unified.applyCurrentPriceReplay(otherMarket,badReal),0,
  'tampered real record must fail close before ANY issuer gets boosted');
 
+// Actual same-day CSV has complete real financial/value observed points.
+// Reconcile every listed code and available weight before attaching ANY row.
+const observedPartialSummary=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-current-observed-all-listed-summary.json'),'utf8'));
+const observedPartialCsv=fs.readFileSync(
+ path.join(__dirname,'../docs/v3-current-observed-all-listed.csv'),'utf8');
+assert.ok(source.includes("'v3-current-observed-all-listed-summary.json'"));
+assert.ok(source.includes('v3-current-observed-all-listed.csv?v='));
+assert.equal(observedPartialSummary.asof,freshModel.date);
+assert.equal(observedPartialSummary.listed_total,freshModel.marketEligible);
+const overlayCount=unified.applyCurrentObservedFinance(
+ freshModel,observedPartialSummary,observedPartialCsv);
+assert.ok(overlayCount>0&&
+ overlayCount<=observedPartialSummary.observed_issuer_counts.financial,
+ 'genuine source CSV scores must show on priced model rows');
+const financialRow=freshModel.rows.find(x=>
+ x.r.v3_same_day_observed_finance?.financial?.available>0);
+assert.ok(financialRow);
+const sourceFinance=financialRow.r.v3_same_day_observed_finance.financial;
+const displayedFinance=unified.pillarState(financialRow.r).find(x=>x.key==='financial');
+assert.equal(displayedFinance.available,sourceFinance.available);
+assert.equal(displayedFinance.candidate,sourceFinance.points);
+assert.equal(displayedFinance.status,'미검증 연구점수');
+assert.equal(unified.summary(freshModel,legacy).officialFullScore,0);
+const badOverlayModel=legacy.prepare(structuredClone(actual),null,null,null,null,null);
+const futureObserved={...observedPartialSummary,asof:'2026-10-23'};
+assert.equal(unified.applyCurrentObservedFinance(
+ badOverlayModel,futureObserved,observedPartialCsv),0);
+assert.equal(unified.applyCurrentObservedFinance(
+ badOverlayModel,observedPartialSummary,
+ observedPartialCsv.replace('미검증 연구용','확정 투자등급')),0);
+assert.ok(badOverlayModel.rows.every(x=>
+ x.r.v3_same_day_observed_finance===undefined),
+ 'reject an entire source batch on any mismatched row');
+
 console.log('Unified workspace: V3 provisional sum, missing-data safety, refreshed research scoring, mobile source handling, real-market compatibility PASS; records='+actualAll.length);
