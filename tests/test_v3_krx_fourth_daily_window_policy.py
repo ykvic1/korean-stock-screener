@@ -16,12 +16,11 @@ class FiveDailyKrxReplayPolicyTest(unittest.TestCase):
         crons = re.findall(r"^\s+- cron: '([^']+)'", source, re.MULTILINE)
         self.assertEqual(
             crons,
-            ["11 17 * * *", "11 22 * * *", "11 2 * * *", "11 5 * * *",
-             "11 13 * * *"],
+            ["11 0,6,12,18 * * *"],
         )
         self.assertIn("group: v3-krx-private-derived-history", source)
         self.assertIn("cancel-in-progress: false", source)
-        self.assertIn("timeout-minutes: 55", source)
+        self.assertIn("timeout-minutes: 360", source)
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN:", source)
         self.assertNotIn("contents: write", source)
 
