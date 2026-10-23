@@ -5,7 +5,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from v3_krx_derived_backfill import collect,DerivedBackfillError,_manifest,SCHEMA
+from v3_krx_derived_backfill import (collect,DerivedBackfillError,
+    _manifest,SCHEMA,_safe_source_failure_diagnostics)
 from test_v3_krx_derived_5day import FakeKRX,FakePrivate
 
 
@@ -30,6 +31,31 @@ class FakeHistoryPrivate(FakePrivate):
 
 
 class HistoricalDerivedTests(unittest.TestCase):
+    def test_failure_context_is_allowlisted_without_vendor_payload(self):
+        from v3_krx_derived_5day import DerivedSourceError
+        err=DerivedSourceError("official_market_window_or_validation_failed")
+        err.safe_failure_phase="transport"
+        err.safe_source_day="2026-05-11"
+        err.safe_source_market="KOSPI"
+        err.safe_completed_market_calls=0
+        err.safe_krx_reason="empty_market_rows"
+        err.safe_krx_http_status=200
+        report=_safe_source_failure_diagnostics(err)
+        self.assertEqual(report["failed_source_day"],"2026-05-11")
+        self.assertEqual(report["failed_source_market"],"KOSPI")
+        self.assertEqual(report["fully_validated_market_calls_before_failure"],0)
+        self.assertEqual(report["krx_allowlisted_failure_reason"],"empty_market_rows")
+        self.assertEqual(report["http_status_only"],200)
+        forged=DerivedSourceError("official_market_window_or_validation_failed")
+        forged.safe_failure_phase="transport"
+        forged.safe_source_day="2026-05-11-RAW_SECRET"
+        forged.safe_source_market="KOSPI_SECRET"
+        forged.safe_completed_market_calls=-1
+        forged.safe_krx_reason="RAW_SECRET"
+        forged.safe_krx_http_status=999
+        report=_safe_source_failure_diagnostics(forged)
+        self.assertEqual(report,{"opaque_failure_phase":"transport"})
+
     def test_real_source_shaped_two_5day_windows_20_calls_and_no_raw(self):
         repo=FakeHistoryPrivate()
         provider=FakeKRX()

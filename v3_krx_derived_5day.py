@@ -81,9 +81,13 @@ def derive(client,days=FIXED_FIRST_SAMPLE):
     raw_total=0
     fetched_calls=0
     safe_phase="transport"
+    safe_source_day=None
+    safe_source_market=None
     try:
         for day in days:
             for market in ("KOSPI","KOSDAQ"):
+                safe_source_day=day
+                safe_source_market=market
                 safe_phase="transport"
                 rows,raw=client.daily_market(market,day)
                 safe_phase="source_validation"
@@ -112,6 +116,10 @@ def derive(client,days=FIXED_FIRST_SAMPLE):
         # serialize vendor exception text, URLs, headers or response bodies.
         err=DerivedSourceError("official_market_window_or_validation_failed")
         err.safe_failure_phase=safe_phase
+        # These were validated BEFORE provider calls; never copy vendor text.
+        err.safe_source_day=safe_source_day
+        err.safe_source_market=safe_source_market
+        err.safe_completed_market_calls=fetched_calls
         if safe_phase=="transport" and isinstance(failure,KRXProbeError):
             err.safe_krx_reason=failure.reason
             err.safe_krx_http_status=failure.http_status
