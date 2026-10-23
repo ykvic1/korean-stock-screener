@@ -141,6 +141,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
             "financial":0,"valuation":0}
     fcf_counts={"financial4":0,"valuation5":0}
     nonblank=0
+    five_area_overlap=0
+    available_weight_distribution={}
     for listed in sorted(catalog["rows"],key=lambda r:r["code"]):
         code=listed["code"]
         v=volume["records"].get(code)
@@ -226,6 +228,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
             raise LivePartialScorecardError("invented_current_day_score")
         if available:
             nonblank+=1
+        if all(coverage[area]>0 for area in POINT_BUDGET):
+            five_area_overlap+=1
+        available_weight_distribution[str(available)]=available_weight_distribution.get(str(available),0)+1
         output.append({
             "code":code,"name":listed["name"],"market":listed["market"],
             "asof":asof,"earned":round(earned,4) if available else None,
@@ -242,6 +247,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
     summary={
         "schema":SCHEMA,"asof":asof,"listed_total":len(output),
         "observed_any_factor_issuers":nonblank,
+        "five_area_observed_overlap_issuers":five_area_overlap,
+        "available_weight_distribution":available_weight_distribution,
         "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
         "highest_currently_observable_weight":(
