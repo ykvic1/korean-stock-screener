@@ -2,8 +2,8 @@
 (function(root){
 'use strict';
 const VERSION='v3-unified-research-workspace-0.3-real-volume-20';
-const WEIGHTS=Object.freeze({volume:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
-const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['industry','산업·섹터'],['momentum','모멘텀']]);
+const WEIGHTS=Object.freeze({volume:20,technical:25,financial:20,valuation:20,momentum:15});
+const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['momentum','모멘텀']]);
 const INDUSTRY_COMPONENTS=Object.freeze([
  ['초기 순환매 신호',5],['업황 바닥 통과·실적 개선',4],
  ['개선기업 확산',3],['과열·쏠림 위험관리',3]
