@@ -129,8 +129,8 @@ with sync_playwright() as p:
     page.locator("#sort").select_option("score")
     page.locator("#advancedFilters summary").click()
     # Card order is provisional evidence-first, not the old 2.2 ranking.
-    assert page.locator(".u-stock-main .u-provisional-total").first.is_visible()
-    assert "산출 가능" in page.locator(".u-stock-main .u-provisional-total").first.inner_text()
+    assert page.locator(".u-stock-main .u-risk-first").first.is_visible()
+    assert "배점 확보" in page.locator(".u-research-summary").first.inner_text()
     page.locator(".u-stock").first.click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
