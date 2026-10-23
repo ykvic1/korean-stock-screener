@@ -79,10 +79,13 @@ def derive(client,days=FIXED_FIRST_SAMPLE):
     counts={}
     raw_total=0
     fetched_calls=0
+    safe_phase="transport"
     try:
         for day in days:
             for market in ("KOSPI","KOSDAQ"):
+                safe_phase="transport"
                 rows,raw=client.daily_market(market,day)
+                safe_phase="source_validation"
                 source_check=_snapshot_market(rows,raw,market=market,asof=day)
                 raw_total+=len(raw)
                 fetched_calls+=1
@@ -93,6 +96,7 @@ def derive(client,days=FIXED_FIRST_SAMPLE):
                     "identity_not_independently_reconciled":True,
                 }
                 by_code=frames[market]
+                safe_phase="issuer_identity"
                 for row in rows:
                     code=row.get("ISU_CD")
                     if type(code) is not str or not re.fullmatch(r"[0-9A-Z]{6}",code):
@@ -103,7 +107,11 @@ def derive(client,days=FIXED_FIRST_SAMPLE):
                 # raw and rows are transient; only window-level numbers survive.
                 del raw, rows
     except Exception:
-        raise DerivedSourceError("official_market_window_or_validation_failed") from None
+        # Stage labels are from this fixed list only. Never expose vendor
+        # exceptions, raw OHLCV, response bodies, URLs or private credentials.
+        err=DerivedSourceError("official_market_window_or_validation_failed")
+        err.safe_failure_phase=safe_phase
+        raise err from None
     if fetched_calls!=MAX_SOURCE_CALLS or len(counts)!=10:
         raise DerivedSourceError("incomplete_official_market_window")
     factors={}

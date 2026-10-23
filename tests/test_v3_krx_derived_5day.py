@@ -172,8 +172,20 @@ class FiveDayDerivativeTests(unittest.TestCase):
                                     "^official_market_window_or_validation_failed$") as err:
             d.store_five_day_factors(private,provider)
         self.assertNotIn("untrusted-api-token",str(err.exception))
+        self.assertEqual(err.exception.safe_failure_phase,"transport")
         self.assertEqual(private.posts,0)
         self.assertEqual(private.blobs,{})
+
+    def test_sanitized_validator_stage_does_not_expose_raw_provider_text(self):
+        with patch.object(d,"_snapshot_market",
+                          side_effect=RuntimeError("RAW_PROVIDER_SECRET_NEVER_LOG")):
+            with self.assertRaisesRegex(
+                d.DerivedSourceError,
+                "^official_market_window_or_validation_failed$"
+            ) as error:
+                d.derive(FakeKRX())
+        self.assertEqual(error.exception.safe_failure_phase,"source_validation")
+        self.assertNotIn("RAW_PROVIDER_SECRET",str(error.exception))
 
     def test_no_public_repo_upload_even_before_request(self):
         p=FakePrivate()
