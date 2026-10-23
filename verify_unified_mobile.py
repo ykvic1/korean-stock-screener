@@ -74,7 +74,7 @@ with sync_playwright() as p:
     if (observed["observed_issuer_counts"]["financial"] > 0
             and observed["observed_issuer_counts"]["valuation"] > 0):
         source_csv = context.request.get(URL + "v3-current-observed-all-listed.csv").text()
-        source_rows = list(csv.DictReader(StringIO(source_csv.lstrip("\\ufeff"))))
+        source_rows = list(csv.DictReader(StringIO(source_csv.removeprefix(chr(0xfeff)))))
         listed_codes = {item["code"] for item in data["stocks"]}
         selected = next((
             item for item in source_rows
