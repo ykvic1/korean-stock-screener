@@ -63,6 +63,16 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_private_dart_krx_event_crosscheck.py
           python -m unittest discover -s tests -p 'test_v3_private_dart_krx_event_crosscheck.py' -v
+      - name: Validate complete private KRX risk baseline, all committed chunks and source tail
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No source vendor API calls, no public issuer IDs or price disclosure.
+          # Independently validates the upstream archive BEFORE any DART month is
+          # complete; diagnose broken/gapped risk chains early.
+          python v3_private_dart_krx_event_crosscheck.py --risk-preflight
       - name: Compare only fully saved private DART receipt months against verified KRX anomaly events
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
