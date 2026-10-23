@@ -1191,9 +1191,7 @@ function draw(){
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
      '</b><em class="u-factor-mark">'+(i.available===0?(i.key==='volume'?'거래량 근거 미확보':'자료없음 · 미검증'):
       '미검증')+'</em></span>').join('')+
-     '<span class="u-factor-unverified u-total-factor"><small>잠정 합계 /100</small><b>'+
-     (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
-     '</b><em class="u-factor-mark">미검증</em></span></div>'+
+     '</div>'+ 
    '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
    x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
    '서로 다른 확보 배점은 직접 비교할 수 없습니다.</p>'+
