@@ -16,12 +16,23 @@ DOCS = ROOT / "docs"
 
 
 def snapshot():
-    return [
+    reports = [
         json.loads((DOCS / path).read_text(encoding="utf8")) for path in (
             "v3-industry-saved-profit-gap-summary.json",
             "v3-industry-observed-relative-strength.json",
         )
     ]
+    earnings, prices = reports
+    # On a new market day the independent upstream producers may publish
+    # in different minutes. Production gates DEFER; unit tests must not
+    # misclassify the legitimate day-rollover gap as an algorithm regression.
+    if (earnings["asof"] != prices["asof"]
+        or earnings["source_sha256"]["market_catalog"] !=
+           prices["source_sha256"]["catalog"]
+        or earnings["source_sha256"]["industry_current_company_codes"] !=
+           prices["source_sha256"]["current_dart_company_industry_codes"]):
+        raise unittest.SkipTest("upstream_market_day_or_provenance_catching_up")
+    return reports
 
 
 class DualEvidenceWatchTests(unittest.TestCase):
@@ -101,6 +112,22 @@ class DualEvidenceWatchTests(unittest.TestCase):
         bad["groups"][0]["official_industry_15_points"] = 7
         with self.assertRaises(CrossSourceError):
             build(e, bad)
+
+    def test_ten_price_pairs_required_not_just_ten_listed(self):
+        e, p = snapshot()
+        # A group with 11 listed but only nine observed price pairs is
+        # INSUFFICIENT even if its median20/60 happens to look recovering.
+        for row in p["groups"]:
+            if (row["current_listed_issuers"] >= 10
+                and row["complete_relative20_60_issuer_count"] < 10):
+                self.assertNotEqual(row["early_rotation_research_state"],
+                                    "early_relative_recovery_watch")
+                result = build(e, p)
+                joined = next(g for g in result["groups"]
+                              if g["market"] == row["market"] and
+                              g["current_dart_industry_prefix_2"] ==
+                              row["current_dart_industry_prefix_2"])
+                self.assertNotEqual(joined["observed_state"], "dual_evidence_watch")
 
     def test_missing_sample_has_no_fabricated_recovery(self):
         e, p = snapshot()
