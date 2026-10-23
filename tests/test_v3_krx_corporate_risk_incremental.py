@@ -104,6 +104,54 @@ class IncrementalCorporateActionRiskTests(unittest.TestCase):
         self.assertFalse(v["corporate_action_certified"])
         self.assertFalse(v["v3_trade_score_certified"])
 
+    def test_private_quality_chunk_rejects_forged_flags_and_malformed_counts(self):
+        # Immutable private chunks may be recovered from a failed checkpoint
+        # write. Their own provenance MUST be validated before reuse.
+        p,days=archive(10)
+        seed(p,days)
+        inc.run(storage=p,days=days,digest=DIGEST)
+        inc.run(storage=p,days=days,digest=DIGEST)
+        raw=p.blobs[inc._delta_path(days,9,10)]
+        original=inc._validate_delta(raw,days=days,start=9,end=10)
+        self.assertFalse(original["corporate_action_certified"])
+        self.assertFalse(original["v3_trade_score_certified"])
+        def rejects(**changes):
+            candidate=json.loads(json.dumps(original))
+            candidate.update(changes)
+            compressed=gzip.compress(json.dumps(candidate).encode(),mtime=0)
+            with self.assertRaisesRegex(
+                    inc.IncrementalRiskError,
+                    "invalid_immutable_incremental_quality_chunk"):
+                inc._validate_delta(compressed,days=days,start=9,end=10)
+        rejects(issuer_bucket_factors_examined=-1)
+        rejects(issuer_cross_boundary_factors_examined=True)
+        rejects(flag_count=True)
+        rejects(flag_count=1)
+        rejects(corporate_action_certified=True)
+        rejects(provider_api_calls=1)
+        # The same issuer/event/period cannot be counted twice.
+        intrabucket={"issuer_market":"KOSPI:005000",
+                     "first_day":days[45],"last_day":days[49],
+                     "type":"four_interval_change","return_bp":6500}
+        rejects(flag_count=2,flags=[intrabucket,intrabucket])
+        rejects(flag_count=1,flags=[{**intrabucket,"first_day":days[0]}])
+        rejects(flag_count=1,flags=[{**intrabucket,"last_day":days[48]}])
+        rejects(flag_count=1,flags=[{**intrabucket,"return_bp":10}])
+        rejects(flag_count=1,flags=[{**intrabucket,"return_bp":True}])
+        # A one-session bridge must join exactly dates[44] to dates[45].
+        boundary={**intrabucket,"type":"cohort_boundary_change",
+                  "first_day":days[44],"last_day":days[45],
+                  "return_bp":-2700}
+        rejects(flag_count=1,flags=[{**boundary,"first_day":days[43]}])
+        rejects(flag_count=1,flags=[{**boundary,"return_bp":-10}])
+        # Negative price changes remain derivative evidence, NOT stock splits.
+        accepted={**original,"flag_count":1,"flags":[boundary]}
+        verified=inc._validate_delta(
+            gzip.compress(json.dumps(accepted).encode(),mtime=0),
+            days=days,start=9,end=10)
+        self.assertEqual(verified["flags"][0]["return_bp"],-2700)
+        self.assertFalse(verified["corporate_action_certified"])
+
     def test_incomplete_bridge_stops_at_last_verified_cohort_without_fabricating(self):
         p,days=archive(10)
         seed(p,days)
