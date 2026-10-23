@@ -187,12 +187,16 @@ def main():
         or not os.getenv("V3_PRIVATE_ARCHIVE_TOKEN","").strip()):
         print('{"status":"blocked","reason":"derived_secret_or_provider_not_ready"}')
         return 1
+    stage="initialization"
     try:
         from official_probe.clients import KRXClient
+        stage="calendar"
         dates,checksum=history_candidates()
+        stage="private_repository"
         private=PrivateGitStorage(os.environ["V3_PRIVATE_ARCHIVE_REPO"],
                                   os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         windows=int(os.getenv("V3_DERIVED_BATCH_WINDOWS","1"))
+        stage="collection_or_checkpoint"
         result=collect(storage=private,
                        client=KRXClient(os.environ["KRX_API_KEY"]),
                        dates=dates,checksum=checksum,windows=windows)
@@ -202,8 +206,15 @@ def main():
         print(json.dumps({"status":"blocked","category":str(err),
                           "source_payload_logged":False}))
         return 1
-    except Exception:
-        print('{"status":"blocked","category":"untrusted_source_or_private_archive_error","source_payload_logged":false}')
+    except Exception as exc:
+        # Class name and stage only; never print provider responses, paths, keys,
+        # HTTP errors, or raw data that could disclose licensed market source.
+        allowed={"TimeoutError","ConnectionError","HTTPError","PrivateHistoryError",
+                 "OSError","KeyError","ValueError","RuntimeError"}
+        kind=type(exc).__name__
+        if kind not in allowed:kind="other_untrusted_error"
+        print(json.dumps({"status":"blocked","category":"untrusted_source_or_private_archive_error",
+                          "stage":stage,"exception_type":kind,"source_payload_logged":False}))
         return 1
 
 
