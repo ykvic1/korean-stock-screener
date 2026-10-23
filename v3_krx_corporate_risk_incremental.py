@@ -17,7 +17,7 @@ import re
 
 from v3_krx_private_github_backfill import PrivateGitStorage
 from v3_krx_derived_backfill import (
-    history_candidates, _manifest, CHECKPOINT as HISTORY_PATH, _path)
+    _calendar_hash_matches, history_candidates, _manifest, CHECKPOINT as HISTORY_PATH, _path)
 from v3_krx_derived_5day import validate_derived_blob
 from v3_krx_derived_bridges import (
     _read_link, _link_path, _check_progress as bridge_progress,
@@ -59,7 +59,8 @@ def _check_progress(data,dates,digest,source_available):
         item=json.loads(data)
         cursor=item["next_cohort_index"]
         if (item.get("schema")!=SCHEMA
-            or item.get("calendar_candidate_hash")!=digest
+            or not _calendar_hash_matches(item.get("calendar_candidate_hash"),
+                                          digest,dates,5*cursor if type(cursor) is int else -1)
             or type(cursor) is not int
             or not BASELINE_COHORTS<=cursor<=source_available
             or item.get("raw_provider_files_stored")!=0
