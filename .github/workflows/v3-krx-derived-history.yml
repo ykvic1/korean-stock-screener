@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: v3-krx-private-derived-history-${{ github.ref }}
+  group: v3-krx-private-derived-history
   cancel-in-progress: false
 
 jobs:
