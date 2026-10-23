@@ -109,6 +109,19 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             with self.assertRaises(LivePartialScorecardError):
                 main(["--docs",str(root),"--mode","verify"])
 
+    def test_momentum_fifteen_budget_keeps_unobserved_seven_blank(self):
+        market,catalog=small()
+        price=price_build(market,catalog)
+        for record in price["rows"].values():
+            ref=record.get("momentum_research_reference")
+            if ref is not None:
+                self.assertEqual(ref["momentum_maximum"],15)
+                self.assertIsNone(ref["momentum_parts"]["positive_days20"])
+                self.assertIsNone(ref["momentum_parts"]["trend_persistence60"])
+                self.assertIsNone(ref["momentum_parts"]["reversal_breadth120"])
+        rows,report=generate(market,catalog,volume_build(market,catalog),price)
+        self.assertEqual(len(rows),report["listed_total"])
+
     def test_refresh_derived_recomputes_stale_saved_products_without_false_score(self):
         market,catalog=small()
         with tempfile.TemporaryDirectory() as t:
