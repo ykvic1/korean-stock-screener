@@ -160,13 +160,14 @@ class CrosscheckTests(unittest.TestCase):
             "stock_code":"005930","rcept_dt":"20161017",
             "report_nm":"미검증"}],month)
         self.assertEqual(found["ticker_date_nearby_event_count"],1)
-        event["last_day"]="2016-10-16"
+        event["last_day"]="2016-10-31"
         found=cross._crossmatch([event],[{
-            "rcept_no":"20161017000001","corp_code":"00123456",
-            "stock_code":"005930","rcept_dt":"20161017",
+            "rcept_no":"20161001000001","corp_code":"00123456",
+            "stock_code":"005930","rcept_dt":"20161001",
             "report_nm":"미검증"}],month)
         self.assertEqual(found["risk_events_within_completed_month"],1)
-        self.assertEqual(found["ticker_date_nearby_event_count"],1)
+        self.assertEqual(found["ticker_date_nearby_event_count"],0)
+        self.assertTrue(found["coverage_gaps_not_negative_evidence"])
         self.assertFalse(found["identity_or_corporate_action_verified"])
 
     def test_workflow_is_private_and_derived_only_with_untrusted_event_gate(self):
