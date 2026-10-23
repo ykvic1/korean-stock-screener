@@ -203,8 +203,14 @@ def main():
         print(json.dumps(result,sort_keys=True))
         return 0
     except (DerivedBackfillError,DerivedSourceError) as err:
-        print(json.dumps({"status":"blocked","category":str(err),
-                          "source_payload_logged":False}))
+        # Operator-only fixed stage codes; never log upstream exception text.
+        report={"status":"blocked","category":str(err),
+                "source_payload_logged":False}
+        phase=getattr(err,"safe_failure_phase",None)
+        if (str(err)=="official_market_window_or_validation_failed"
+            and phase in ("transport","source_validation","issuer_identity")):
+            report["opaque_failure_phase"]=phase
+        print(json.dumps(report,sort_keys=True))
         return 1
     except Exception as exc:
         # Class name and stage only; never print provider responses, paths, keys,
