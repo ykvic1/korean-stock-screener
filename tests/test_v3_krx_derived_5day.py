@@ -5,6 +5,7 @@ from unittest.mock import patch
 from unittest.mock import patch
 
 import v3_krx_derived_5day as d
+from official_probe.clients import KRXProbeError
 
 
 def fake_rows(market,day,*,invalid=False):
@@ -186,6 +187,20 @@ class FiveDayDerivativeTests(unittest.TestCase):
                 d.derive(FakeKRX())
         self.assertEqual(error.exception.safe_failure_phase,"source_validation")
         self.assertNotIn("RAW_PROVIDER_SECRET",str(error.exception))
+
+    def test_only_allowlisted_krx_http_failure_fields_survive(self):
+        class RateLimitedKRX:
+            def daily_market(self,market,day):
+                raise KRXProbeError(market,"http_rate_limited",429)
+        with self.assertRaisesRegex(
+            d.DerivedSourceError,
+            "^official_market_window_or_validation_failed$"
+        ) as error:
+            d.derive(RateLimitedKRX())
+        self.assertEqual(error.exception.safe_failure_phase,"transport")
+        self.assertEqual(error.exception.safe_krx_reason,"http_rate_limited")
+        self.assertEqual(error.exception.safe_krx_http_status,429)
+        self.assertNotIn("AUTH_KEY",str(error.exception))
 
     def test_no_public_repo_upload_even_before_request(self):
         p=FakePrivate()
