@@ -151,20 +151,31 @@ def _candidate_queue(raw, index):
         raise OriginalEvidenceError("invalid_private_title_shortlist_source") from None
 
 
+SAFE_ZIP_VALIDATION_STAGES = frozenset((
+    "payload_envelope", "zip_structure", "member_count",
+    "member_structure_or_security", "expanded_size",
+    "document_extension", "member_integrity",
+))
+
+
 def _check_zip(raw):
-    """Validate archive contents in memory; NEVER extract or print raw filings."""
+    """Validate in memory; expose only a fixed stage, never source identity."""
+    stage = "payload_envelope"
     try:
         if type(raw) is not bytes or not 0 < len(raw) <= MAX_ZIP_BYTES:
             raise ValueError()
+        stage = "zip_structure"
         if not raw.startswith(b"PK"):
             raise ValueError()
         with zipfile.ZipFile(BytesIO(raw), "r") as z:
+            stage = "member_count"
             files = z.infolist()
             if not 1 <= len(files) <= MAX_FILES:
                 raise ValueError()
             names = set()
             total = 0
             for f in files:
+                stage = "member_structure_or_security"
                 name = f.filename
                 if (not name or name in names or "\\" in name
                     or name.startswith("/") or name.startswith("../")
@@ -172,15 +183,20 @@ def _check_zip(raw):
                     or "\x00" in name
                     or f.flag_bits & 1
                     or (f.external_attr >> 16) & 0o170000 == 0o120000
-                    or (f.file_size <= 0 and not f.is_dir()) or f.file_size > MAX_EXPANDED_BYTES
+                    or (f.file_size <= 0 and not f.is_dir())
+                    or f.file_size > MAX_EXPANDED_BYTES
                     or (f.compress_size <= 0 and not f.is_dir())):
                     raise ValueError()
                 names.add(name)
                 total += f.file_size
+                stage = "expanded_size"
                 if total > MAX_EXPANDED_BYTES:
                     raise ValueError()
-            if not any(n.lower().endswith((".xml", ".htm", ".html")) for n in names):
+            stage = "document_extension"
+            if not any(n.lower().endswith((".xml", ".htm", ".html"))
+                       for n in names):
                 raise ValueError()
+            stage = "member_integrity"
             if z.testzip() is not None:
                 raise ValueError()
         return {
@@ -190,8 +206,9 @@ def _check_zip(raw):
             "archive_structure_validated_only": True,
         }
     except Exception:
-        raise OriginalEvidenceError("invalid_or_unsafe_official_document_zip") from None
-
+        err = OriginalEvidenceError("invalid_or_unsafe_official_document_zip")
+        err.safe_zip_validation_stage = stage
+        raise err from None
 
 def _interpret_response(raw):
     if type(raw) is not bytes or not raw:
@@ -402,7 +419,13 @@ def main():
         key = os.environ["DART_API_KEY"]
         result = run(store, lambda no: official_fetch(key, no))
     except OriginalEvidenceError as exc:
-        # Fixed-code errors contain no identities, source bytes or query keys.
+        # Only this static allowlist survives a ZIP validation failure.
+        # No receipt, original member names, URL, source bytes or credentials.
+        stage = getattr(exc, "safe_zip_validation_stage", None)
+        if (str(exc) == "invalid_or_unsafe_official_document_zip"
+            and stage in SAFE_ZIP_VALIDATION_STAGES):
+            raise SystemExit("blocked: invalid_or_unsafe_official_document_zip"
+                             " [zip_validation_stage=" + stage + "]") from None
         raise SystemExit("blocked: " + str(exc)) from None
     except Exception:
         raise SystemExit("blocked: private original filing source validation failed") from None
