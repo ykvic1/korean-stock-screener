@@ -1,0 +1,75 @@
+name: V3 Private DART KRX Anomaly Filing Candidate Crosscheck
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_private_dart_krx_event_crosscheck.py
+      - tests/test_v3_private_dart_krx_event_crosscheck.py
+      - .github/workflows/v3-private-dart-krx-event-crosscheck.yml
+  schedule:
+    # Fallback twice daily. Pending DART months never become negative evidence.
+    - cron: '53 0 * * *'   # 09:53 KST
+    - cron: '53 12 * * *'  # 21:53 KST
+  workflow_run:
+    workflows:
+      - V3 Private Historical OpenDART Filing Receipts (Research Only)
+      - V3 KRX Private Derived Corporate Action Risk Review (incremental)
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+# Shared with official DART receipt ingestion: no mixed partial-month snapshots.
+# KRX risk writes use their existing separate group; source checkpoints are
+# read twice and changes abort the candidate report.
+concurrency:
+  group: v3-dart-private-historical-event-receipts
+  cancel-in-progress: false
+
+jobs:
+  private-month-candidates:
+    if: >-
+      ${{
+        github.event_name == 'schedule' ||
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.head_repository.full_name == github.repository)
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install verified calendar and private transport imports only
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Enforce offline complete-month and no-false-corporate-action rules
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_private_dart_krx_event_crosscheck.py
+          python -m unittest discover -s tests -p 'test_v3_private_dart_krx_event_crosscheck.py' -v
+      - name: Compare only fully saved private DART receipt months against verified KRX anomaly events
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # ZERO new KRX/OpenDART provider API requests; exact receipt/source
+          # and anomaly records never enter stdout, public git or artifacts.
+          # Matching ticker/date is NOT a split/merger or PIT certification.
+          python v3_private_dart_krx_event_crosscheck.py
