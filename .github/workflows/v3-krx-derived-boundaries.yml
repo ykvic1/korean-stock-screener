@@ -3,6 +3,13 @@ name: V3 KRX Derived-Only Historical Cohort Boundary Join
 on:
   # Join after each of five source slots (02:11, 07:11, 11:11, 14:11, 22:11 KST),
   # at most 24 derived links per run (96 official KRX market calls).
+  # Run as soon as a verified source backfill has completed successfully.
+  # Scheduled joins remain a fallback, and the shared serial concurrency
+  # group plus immutable checkpoint avoid duplicate provider requests.
+  workflow_run:
+    workflows:
+      - V3 KRX historical derived-only backfill
+    types: [completed]
   schedule:
     - cron: '47 17 * * *' # 02:47 KST, after the added 02:11 source slot
     - cron: '47 22 * * *' # 07:47 KST
@@ -27,7 +34,15 @@ concurrency:
 
 jobs:
   bridge:
-    if: ${{ github.event_name == 'schedule' || inputs.mode == 'live' }}
+    if: >-
+      ${{
+        github.event_name == 'schedule' ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.head_repository.full_name == github.repository) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
