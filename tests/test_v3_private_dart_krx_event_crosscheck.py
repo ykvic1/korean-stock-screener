@@ -170,6 +170,63 @@ class CrosscheckTests(unittest.TestCase):
         self.assertTrue(found["coverage_gaps_not_negative_evidence"])
         self.assertFalse(found["identity_or_corporate_action_verified"])
 
+    def test_real_shaped_contiguous_private_risk_inventory_preflight(self):
+        """Verify *actual* local compressed baseline/chunks, not a mocked list."""
+        from test_v3_krx_corporate_risk_incremental import archive, seed
+        from test_v3_krx_derived_rolling_returns import DIGEST
+        import v3_krx_corporate_risk_incremental as inc
+        store, days = archive(27)
+        seed(store, days)
+        inc.run(storage=store, days=days, digest=DIGEST)
+        inc.run(storage=store, days=days, digest=DIGEST)
+        inc.run(storage=store, days=days, digest=DIGEST)
+        self.assertEqual(json.loads(store.blobs[inc.CHECKPOINT])[
+                         "next_cohort_index"],27)
+        original = store.transport
+        def inventory(method,path,payload=None):
+            if method == "GET" and path == "contents/derived/quality/batches":
+                return [{"type":"file","path":k} for k in sorted(store.blobs)
+                        if k.startswith("derived/quality/batches/")]
+            return original(method,path,payload)
+        store.transport = inventory
+        with patch.object(cross,"history_candidates",return_value=(days,DIGEST)):
+            r = cross.verify_private_risk_archive(store)
+        self.assertEqual(r["status"],
+                         "private_krx_risk_archive_checkpoint_chain_verified")
+        self.assertEqual(r["risk_reviewed_five_session_cohorts"],27)
+        self.assertEqual(r["provider_calls"],0)
+        self.assertFalse(r["corporate_actions_verified"])
+        self.assertEqual(r["scores_promoted"],0)
+        count = store.puts
+        # Re-running the integrity preflight never writes, prices or scores.
+        with patch.object(cross,"history_candidates",return_value=(days,DIGEST)):
+            same = cross.verify_private_risk_archive(store)
+        self.assertEqual(same,r)
+        self.assertEqual(store.puts,count)
+        # Missing middle chunk is not incorrectly treated as an empty result.
+        chunk = inc._delta_path(days,9,25)
+        store.blobs.pop(chunk)
+        with patch.object(cross,"history_candidates",return_value=(days,DIGEST)):
+            with self.assertRaises(cross.CrosscheckError):
+                cross.verify_private_risk_archive(store)
+
+    def test_preflight_source_cursor_drift_never_proves_corporate_action(self):
+        store,days,event,review = setup(completed=0)
+        with patch.object(cross,"_source_events",return_value=(
+                [event],days,review,b"synthetic-source",b"synthetic-risk")):
+            result=cross.verify_private_risk_archive(store)
+        self.assertEqual(result["heuristic_price_discontinuity_events"],1)
+        self.assertFalse(result["adjusted_prices_certified"])
+        self.assertEqual(result["public_issuer_records_written"],0)
+        self.assertEqual(store.puts,0)
+        def drifting(s):
+            s.blobs[cross.RISK_CHECKPOINT]=b"mutated"
+            return [event],days,review,b"synthetic-source",b"synthetic-risk"
+        with patch.object(cross,"_source_events",side_effect=drifting):
+            with self.assertRaisesRegex(
+                    cross.CrosscheckError,"source_cursors_changed_during_risk_preflight"):
+                cross.verify_private_risk_archive(store)
+
     def test_workflow_is_private_and_derived_only_with_untrusted_event_gate(self):
         base=Path(__file__).resolve().parents[1]
         workflow=(base/".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
@@ -189,6 +246,7 @@ class CrosscheckTests(unittest.TestCase):
         self.assertNotIn("KRX_API_KEY:",workflow)
         self.assertNotIn("git push",workflow)
         self.assertIn("default: dry_run",workflow)
+        self.assertIn("--risk-preflight",workflow)
         self.assertIn("cron: '30 9 * * 1-5'",
                       (base/".github/workflows/full-market-batches.yml").read_text())
 
