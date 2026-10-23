@@ -6,7 +6,8 @@ import unittest
 from unittest.mock import patch
 
 from v3_krx_derived_backfill import (collect,DerivedBackfillError,
-    _manifest,SCHEMA,_safe_source_failure_diagnostics)
+    _manifest,_empty,_calendar_snapshot,_calendar_hash_matches,history_candidates,
+    SCHEMA,_safe_source_failure_diagnostics)
 from test_v3_krx_derived_5day import FakeKRX,FakePrivate
 
 
@@ -31,6 +32,33 @@ class FakeHistoryPrivate(FakePrivate):
 
 
 class HistoricalDerivedTests(unittest.TestCase):
+    def test_2026_krx_closure_legacy_prefix_migrates_without_hash_bypass(self):
+        old,corrected,old_hash,new_hash=_calendar_snapshot()
+        days,digest=history_candidates()
+        self.assertEqual(days,corrected)
+        self.assertEqual(digest,new_hash)
+        self.assertNotEqual(old_hash,new_hash)
+        self.assertNotIn("2026-06-03",days)
+        self.assertNotIn("2026-07-17",days)
+        first_shift=next(k for k in range(len(corrected))
+                         if old[k]!=corrected[k])
+        self.assertEqual(old[first_shift],"2026-06-03")
+        self.assertTrue(_calendar_hash_matches(old_hash,new_hash,days,first_shift))
+        self.assertFalse(_calendar_hash_matches(old_hash,new_hash,days,first_shift+1))
+        self.assertFalse(_calendar_hash_matches("f"*64,new_hash,days,0))
+        self.assertFalse(_calendar_hash_matches(old_hash,new_hash,days[:-1],0))
+        self.assertFalse(_calendar_hash_matches(old_hash,"f"*64,days,0))
+        before=first_shift//5
+        row=_empty(old_hash)
+        row["next_window_index"]=before
+        row["last_window_file_sha256"]="a"*64
+        self.assertEqual(_manifest(json.dumps(row),days,new_hash)
+                         ["next_window_index"],before)
+        row["next_window_index"]=before+1
+        with self.assertRaises(DerivedBackfillError):
+            _manifest(json.dumps(row),days,new_hash)
+
+
     def test_failure_context_is_allowlisted_without_vendor_payload(self):
         from v3_krx_derived_5day import DerivedSourceError
         err=DerivedSourceError("official_market_window_or_validation_failed")
