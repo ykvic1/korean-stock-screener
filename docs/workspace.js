@@ -136,7 +136,7 @@ function momentumEvidence(r){
  const z=r?.v3_momentum_research;
  if(!z||z.schema!=='v3-observed-market-momentum-8of10-research-0.1'||
     z.asof!==r.price_date||!validDate(r.price_date)||
-    z.market!==r.market||z.momentum_maximum!==10||
+    z.market!==r.market||z.momentum_maximum!==WEIGHTS.momentum||
     z.buy_certified!==false||z.investable_score!==null||
     z.market_benchmark_date_independently_verified!==false||
     z.source_unadjusted_corporate_events_verified!==false||
@@ -334,6 +334,9 @@ function applyCurrentObservedFinance(model,summary,csv){
     summary.missing_weight_is_not_zero!==true||
     summary.not_an_investment_ranking!==true||
     summary.highest_currently_observable_weight>100||
+    !summary.area_budgets||
+    Object.keys(summary.area_budgets).length!==PILLARS.length||
+    PILLARS.some(([key])=>summary.area_budgets[key]!==WEIGHTS[key])||
     !summary.observed_issuer_counts||
     summary.observed_issuer_counts.industry!==0)return 0;
  const rows=parseObservedCsv(csv);
@@ -366,22 +369,24 @@ function applyCurrentObservedFinance(model,summary,csv){
      field('산업_잠정점수')!==''||
      field('투자등급')!=='미검증 연구용')return 0;
   seen.add(code);
-  const financial=number(field('재무_잠정점수'),15);
-  const valuation=number(field('밸류에이션_잠정점수'),15);
+  const financial=number(field('재무_잠정점수'),WEIGHTS.financial);
+  const valuation=number(field('밸류에이션_잠정점수'),WEIGHTS.valuation);
   const financeAvail=field('재무_산출배점')===''?0:
-    number(field('재무_산출배점'),15);
+    number(field('재무_산출배점'),WEIGHTS.financial);
   const valueAvail=field('가치_산출배점')===''?0:
-    number(field('가치_산출배점'),15);
+    number(field('가치_산출배점'),WEIGHTS.valuation);
   const fcfFinance=number(field('FCF자산3년_잠정점수'),4);
   const fcfValue=number(field('FCF수익률_잠정점수'),5);
   const components=[
-   [financial,financeAvail,15],[valuation,valueAvail,15],
+   [financial,financeAvail,WEIGHTS.financial],
+   [valuation,valueAvail,WEIGHTS.valuation],
    [number(field('거래량_OBV_잠정점수'),20),
     field('거래량_OBV_산출배점')===''?0:number(field('거래량_OBV_산출배점'),20),20],
    [number(field('기술_잠정점수'),25),
     field('기술_산출배점')===''?0:number(field('기술_산출배점'),25),25],
-   [number(field('모멘텀_잠정점수'),10),
-    field('모멘텀_산출배점')===''?0:number(field('모멘텀_산출배점'),10),10]
+   [number(field('모멘텀_잠정점수'),WEIGHTS.momentum),
+    field('모멘텀_산출배점')===''?0:
+      number(field('모멘텀_산출배점'),WEIGHTS.momentum),WEIGHTS.momentum]
   ];
   if(components.some(([value,avail,max])=>
       !Number.isInteger(avail)||avail<0||avail>max||
@@ -418,13 +423,8 @@ function applyCurrentObservedFinance(model,summary,csv){
  return proposed.filter(([,value])=>value.financial.available>0).length;
 }
 function pillarState(r){
- const z=r?.v3_pattern_integrated;
  const tech=technicalEvidence(r);
  const momentum=momentumEvidence(r);
- const valid=z&&z.schema==='v3-pattern-within-six-pillars-research-0.4'&&
-   z.asof===r.price_date&&validDate(r.price_date)&&
-   z.buy_certified===false&&z.v3_release_ready===false&&
-   z.investable_score===null;
  const bulk=r?.v3_dart_bulk_provisional;
  const bulkReady=bulk&&bulk.scoring_certified===false&&
   bulk.confirmed_v3_score===null&&bulk.asof===r.price_date&&
@@ -437,11 +437,8 @@ function pillarState(r){
  const fcfReady=fcf&&fcf.asof===r.price_date&&fcf.market===r.market&&
    fcf.scoring_certified===false&&fcf.historical_PIT_certified===false&&
    fcf.strict_receipt_scope_matched===true;
- const supplied=valid&&z.six_pillar_candidates&&
-   typeof z.six_pillar_candidates==='object'&&!Array.isArray(z.six_pillar_candidates)?
-   z.six_pillar_candidates:null;
- const maxima=valid&&z.six_pillar_maximum;
- const matchingMaxima=!maxima||PILLARS.every(([key])=>maxima[key]===(key==='financial'||key==='valuation'?15:key==='momentum'?10:WEIGHTS[key]));
+ // Do not reclassify archived six-pillar candidate values as five-factor
+ // observations. Only dated, source-replayed price/volume/DART data count.
  return PILLARS.map(([key,label])=>{
   const maximum=WEIGHTS[key];
   let candidate=null,available=0;
@@ -470,16 +467,10 @@ function pillarState(r){
     if(max>0&&finite(points)&&points>=0&&points<=max){
      candidate=points;available=max;
     }
-   } else if(supplied&&matchingMaxima){
-    const value=supplied[key];
-    const legacyMaximum=15;
-    if(finite(value)&&value>=0&&value<=legacyMaximum){
-     candidate=value;available=legacyMaximum;
-    }
    }
    // Exact IFRS cashflows (FCF/assets4 or FCF yield5) are independent
-   // research subfactors, not another full 15pt financial/valuation area.
-   // Missing cashflow never means zero; reject already-complete 15pt area.
+   // research subfactors, not another full financial/valuation area.
+   // Missing cashflow never means zero; reject already-complete area.
    if(!matched&&fcfReady&&available<maximum){
     const points=key==='financial'?fcf.financial_fcf_assets_candidate_points:
      fcf.valuation_fcf_yield_candidate_points;
@@ -492,13 +483,6 @@ function pillarState(r){
      candidate=Math.round(candidate*1000000)/1000000;
      available+=extra;
     }
-   }
-  }
-  else if(key!=='volume'&&key!=='technical'&&key!=='momentum'&&supplied&&matchingMaxima){
-   const value=supplied[key];
-   // Independently supplied V3 research candidates only; never legacy factors.
-   if(finite(value)&&value>=0&&value<=maximum){
-    candidate=value;available=maximum;
    }
   }
   return {key,label,max:maximum,candidate,available,

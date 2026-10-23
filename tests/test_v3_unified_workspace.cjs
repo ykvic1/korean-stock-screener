@@ -455,8 +455,9 @@ for(const bad of [
 }
 const momentumReference={
  schema:'v3-observed-market-momentum-8of10-research-0.1',
- asof:'2026-10-20',market:'KOSPI',momentum_maximum:10,
- momentum_parts:{relative20:3,relative60:2,positive_days20:null},
+ asof:'2026-10-20',market:'KOSPI',momentum_maximum:15,
+ momentum_parts:{relative20:3,relative60:2,positive_days20:null,
+  trend_persistence60:null,reversal_breadth120:null},
  momentum_observed_maximum:8,momentum_research_candidate:5,
  peer20_count:100,peer60_count:100,
  buy_certified:false,investable_score:null,
@@ -474,6 +475,10 @@ assert.equal(unified.applyRotationTechnicalBackfill(
  {date:'2026-10-20',rows:[{r:partialMomentum}]},stateWithMomentum),1);
 assert.equal(unified.researchComposite(partialMomentum).earned,5);
 assert.equal(unified.researchComposite(partialMomentum).available,8);
+assert.equal(unified.pillarState(partialMomentum)[4].max,15);
+assert.equal(unified.momentumEvidence({...partialMomentum,
+ v3_momentum_research:{...momentumReference,momentum_maximum:10}}),null,
+ 'old ten-point maximum must not be treated as the new fifteen-point area');
 assert.equal(unified.momentumEvidence({...partialMomentum,
  v3_momentum_research:{...momentumReference,
  market_benchmark_date_independently_verified:true}}),null);
@@ -510,6 +515,7 @@ assert.equal(unified.researchComposite(seeded).available,19);
 assert.ok(unified.researchComposite(seeded).earned!==null);
 assert.equal(unified.pillarState(seeded)[1].available,11);
 assert.equal(unified.pillarState(seeded)[4].available,8);
+assert.equal(unified.pillarState(seeded)[4].max,15);
 for(const forged of [
  {...replaySource,asof:'2026-10-21'},
  {...replaySource,separate_source_provider_calls:1},
@@ -804,20 +810,27 @@ assert.equal(observedPartialSummary.asof,freshModel.date);
 assert.equal(observedPartialSummary.listed_total,freshModel.marketEligible);
 const overlayCount=unified.applyCurrentObservedFinance(
  freshModel,observedPartialSummary,observedPartialCsv);
-assert.ok(overlayCount>0&&
- overlayCount<=observedPartialSummary.observed_issuer_counts.financial,
- 'genuine source CSV scores must show on priced model rows');
-const financialRow=freshModel.rows.find(x=>
- x.r.v3_same_day_observed_finance?.financial?.available>0);
-assert.ok(financialRow);
-const sourceFinance=financialRow.r.v3_same_day_observed_finance.financial;
-const displayedFinance=unified.pillarState(financialRow.r).find(x=>x.key==='financial');
-assert.equal(displayedFinance.available,sourceFinance.available);
-assert.equal(displayedFinance.candidate,sourceFinance.points);
-assert.equal(displayedFinance.status,'미검증 연구점수');
+assert.ok(overlayCount>=0&&
+ overlayCount<=observedPartialSummary.observed_issuer_counts.financial);
+if(observedPartialSummary.observed_issuer_counts.financial>0){
+ assert.ok(overlayCount>0,'same-date verified research should be displayed');
+ const financialRow=freshModel.rows.find(x=>
+  x.r.v3_same_day_observed_finance?.financial?.available>0);
+ assert.ok(financialRow);
+ const sourceFinance=financialRow.r.v3_same_day_observed_finance.financial;
+ const displayedFinance=unified.pillarState(financialRow.r).find(x=>x.key==='financial');
+ assert.equal(displayedFinance.available,sourceFinance.available);
+ assert.equal(displayedFinance.candidate,sourceFinance.points);
+ assert.equal(displayedFinance.status,'미검증 연구점수');
+}else{
+ assert.equal(overlayCount,0,'no same-date DART must leave finance missing');
+ assert.ok(freshModel.rows.every(x=>unified.pillarState(x.r)[2].available===0));
+}
 assert.equal(unified.summary(freshModel,legacy).officialFullScore,0);
 const badOverlayModel=legacy.prepare(structuredClone(actual),null,null,null,null,null);
-const futureObserved={...observedPartialSummary,asof:'2026-10-23'};
+const futureObserved={...observedPartialSummary,
+ asof:new Date(Date.parse(freshModel.date+'T00:00:00Z')+86400000)
+  .toISOString().slice(0,10)};
 assert.equal(unified.applyCurrentObservedFinance(
  badOverlayModel,futureObserved,observedPartialCsv),0);
 assert.equal(unified.applyCurrentObservedFinance(
