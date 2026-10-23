@@ -96,6 +96,42 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertEqual(again["months_completed"], 1)
         self.assertEqual(private.puts, puts + 4)
 
+    def test_fortyeight_page_capped_api_budget_and_exact_resume(self):
+        """No pagination gaps or unbounded provider calls at the larger cap."""
+        self.assertEqual(MAX_API_CALLS, 48)
+        private = FakePrivate()
+        requested = []
+        total = (MAX_API_CALLS + 1) * 100
+        def fetch(month, category, page):
+            requested.append((month, category, page))
+            self.assertEqual(month, "2016-10")
+            self.assertEqual(category, "B")
+            return response(
+                page, total,
+                [row(f"{(page-1)*100+i:014d}") for i in range(1, 101)])
+        first = run(private, fetch, max_calls=MAX_API_CALLS)
+        self.assertEqual(first["provider_calls"], MAX_API_CALLS)
+        self.assertEqual(first["new_pages"], MAX_API_CALLS)
+        self.assertEqual(first["cumulative_pages"], MAX_API_CALLS)
+        self.assertEqual(first["cumulative_receipts"], MAX_API_CALLS*100)
+        self.assertFalse(first["historical_adjusted_prices_certified"])
+        self.assertFalse(first["public_issuer_data_published"])
+        cursor = json.loads(private.files[CHECKPOINT])
+        self.assertEqual(cursor["page"], MAX_API_CALLS + 1)
+        self.assertEqual(cursor["category_index"], 0)
+        self.assertEqual(len(requested), MAX_API_CALLS)
+        self.assertEqual(len({p for _,_,p in requested}), MAX_API_CALLS)
+        second = run(private, fetch, max_calls=1)
+        self.assertEqual(second["provider_calls"], 1)
+        self.assertEqual(requested[-1], ("2016-10", "B", MAX_API_CALLS+1))
+        self.assertEqual(second["cumulative_receipts"], total)
+        cursor = json.loads(private.files[CHECKPOINT])
+        self.assertEqual(cursor["category_index"], 1)
+        self.assertEqual(cursor["page"], 1)
+        self.assertEqual(private.puts, 2 * (MAX_API_CALLS+1))
+        with self.assertRaises(DARTEventReceiptError):
+            run(private, fetch, max_calls=MAX_API_CALLS + 1)
+
     def test_failed_checkpoint_resumes_private_immutable_orphan_without_redownload(self):
         private = FakePrivate()
         private.fail_once_on_checkpoint = True
@@ -164,6 +200,9 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("Install private Git storage import dependencies", wf)
         self.assertIn("requests>=2.31,<3", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)
+        self.assertIn("max 48 official DART calls", wf)
+        self.assertEqual(wf.count("    - cron:"), 4)
+        self.assertIn("timeout-minutes: 17", wf)
         self.assertIn("cancel-in-progress: false", wf)
         self.assertIn("contents: read", wf)
         self.assertNotIn("contents: write", wf)
