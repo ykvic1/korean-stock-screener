@@ -41,7 +41,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(summary["area_budgets"], {"volume":20,"technical":25,"financial":20,"valuation":20,"momentum":15})
         self.assertNotIn("industry",summary["area_budgets"])
         self.assertEqual(sum(summary["area_budgets"].values()),100)
-        self.assertTrue(all("industry" not in r["factors"] for r in rows))
+        self.assertTrue(all(r["factors"]["industry"] is None and r["factor_available"]["industry"] == 0 for r in rows))
         self.assertEqual(summary["provider_requests"],0)
         self.assertEqual(summary["observed_issuer_counts"]["volume"],1)
         self.assertEqual(summary["certified_100point_count"],0)
