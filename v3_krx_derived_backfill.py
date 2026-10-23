@@ -174,7 +174,7 @@ def collect(*,storage,client,dates,checksum,windows=1,progress=None):
         # checkpoint over a failed source or overwrite a mutated private blob.
         checkpoint_sha=_save_checkpoint(storage,updated,checkpoint_sha)
         checkpoint=updated
-     return {
+    return {
         "status":"private_derived_history_checkpoint_verified",
         "completed_five_session_cohorts":checkpoint["next_window_index"],
         "historical_session_candidates_covered":5*checkpoint["next_window_index"],
