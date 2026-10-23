@@ -169,11 +169,11 @@ def _check_zip(raw):
                 if (not name or name in names or "\\" in name
                     or name.startswith("/") or name.startswith("../")
                     or ".." in name.split("/")
-                    or "\x00" in name or f.is_dir()
+                    or "\x00" in name
                     or f.flag_bits & 1
                     or (f.external_attr >> 16) & 0o170000 == 0o120000
-                    or f.file_size <= 0 or f.file_size > MAX_EXPANDED_BYTES
-                    or f.compress_size <= 0):
+                    or (f.file_size <= 0 and not f.is_dir()) or f.file_size > MAX_EXPANDED_BYTES
+                    or (f.compress_size <= 0 and not f.is_dir())):
                     raise ValueError()
                 names.add(name)
                 total += f.file_size

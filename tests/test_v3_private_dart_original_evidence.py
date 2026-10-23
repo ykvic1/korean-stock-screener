@@ -76,6 +76,19 @@ class Private:
 
 
 class OriginalEvidenceTests(unittest.TestCase):
+    def test_safe_directory_entries_are_allowed_but_traversal_stays_blocked(self):
+        out = BytesIO()
+        with ZipFile(out, "w", ZIP_DEFLATED) as z:
+            z.writestr("docs/", "")
+            z.writestr("docs/original.xml", "<DOCUMENT>source</DOCUMENT>")
+        self.assertEqual(original._check_zip(out.getvalue())["zip_member_count"], 2)
+        out = BytesIO()
+        with ZipFile(out, "w", ZIP_DEFLATED) as z:
+            z.writestr("../unsafe/", "")
+            z.writestr("original.xml", "<DOCUMENT>source</DOCUMENT>")
+        with self.assertRaises(original.OriginalEvidenceError):
+            original._check_zip(out.getvalue())
+
     def test_zip_and_provider_no_data_are_unverified_and_resumable(self):
         store = Private()
         calls = []
