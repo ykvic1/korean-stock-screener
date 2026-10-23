@@ -54,6 +54,30 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(sum(summary["five_area_observed_overlap_by_market"].values()),0)
         self.assertEqual(set(summary["available_weight_distribution_by_market"]),set(r["market"] for r in rows))
         self.assertEqual(summary["observed_issuer_counts"]["volume"],1)
+        # V3.0b: continuous same-day missingness census for all five areas.
+        self.assertTrue(summary["unacquired_weight_is_not_a_zero_score"])
+        self.assertEqual(set(summary["area_available_weight_distribution"]),
+                         set(summary["area_budgets"]))
+        for area,budget in summary["area_budgets"].items():
+            weights=[r["factor_available"][area] for r in rows]
+            distribution=summary["area_available_weight_distribution"][area]
+            self.assertEqual(sum(distribution.values()),len(rows))
+            self.assertEqual(
+                {str(w):weights.count(w) for w in set(weights)},distribution)
+            self.assertEqual(summary["unacquired_area_issuer_counts"][area],
+                             sum(w==0 for w in weights))
+            self.assertEqual(summary["partial_area_issuer_counts"][area],
+                             sum(0<w<budget for w in weights))
+            self.assertEqual(summary["complete_area_issuer_counts"][area],
+                             sum(w==budget for w in weights))
+            self.assertEqual(summary["unacquired_weight_issuer_slots"][area],
+                             sum(budget-w for w in weights))
+            self.assertEqual(len(rows),sum((
+                summary["unacquired_area_issuer_counts"][area],
+                summary["partial_area_issuer_counts"][area],
+                summary["complete_area_issuer_counts"][area])))
+        self.assertEqual(summary["total_unacquired_weight_issuer_slots"],
+                         sum(r["unavailable"] for r in rows))
         self.assertEqual(summary["certified_100point_count"],0)
         self.assertEqual(summary["highest_currently_observable_weight"],sum(max(r["factor_available"][a] for r in rows) for a in summary["area_budgets"]))
         self.assertEqual(by["005930"]["factors"]["volume"],16.0)
@@ -102,6 +126,15 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             for name,value in sources.items():
                 (root/name).write_text(json.dumps(value),encoding="utf8")
             main(["--docs",str(root),"--mode","write"])
+            main(["--docs",str(root),"--mode","verify"])
+            report=root/"v3-current-observed-all-listed-summary.json"
+            clean_report=report.read_text(encoding="utf8")
+            forged=json.loads(clean_report)
+            forged["unacquired_area_issuer_counts"]["volume"]=0
+            report.write_text(json.dumps(forged),encoding="utf8")
+            with self.assertRaises(LivePartialScorecardError):
+                main(["--docs",str(root),"--mode","verify"])
+            report.write_text(clean_report,encoding="utf8")
             main(["--docs",str(root),"--mode","verify"])
             p=root/"v3-current-observed-all-listed.csv"
             clean=p.read_text(encoding="utf8")
