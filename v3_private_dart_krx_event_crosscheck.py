@@ -277,7 +277,10 @@ def run(storage):
                 "completed_dart_months": dart["month_index"],
                 "crosschecked_months": idx, "provider_calls": 0,
                 "confirmed_corporate_actions": 0, "scores_promoted": 0}
-    receipts = _month_receipts(storage, month)
+    try:
+        receipts = _month_receipts(storage, month)
+    except Exception:
+        raise CrosscheckError("invalid_or_incomplete_private_dart_month") from None
     report = {
         "schema": SCHEMA, "month": month,
         "dart_categories_complete": list(CATEGORIES),
