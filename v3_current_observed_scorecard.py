@@ -324,6 +324,8 @@ def to_csv(rows,summary):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs",default="docs")
+    parser.add_argument("--refresh-derived",action="store_true",
+                        help="Recompute derived volume and price from saved market/catalog in memory")
     parser.add_argument("--mode",choices=("write","verify"),default="write")
     args=parser.parse_args(argv)
     root=Path(args.docs)
@@ -350,9 +352,13 @@ def main(argv=None):
                 cashflow,_=candidate
         except (OSError,ValueError,KeyError):
             cashflow=None
+    volume=(volume_build(market,catalog) if args.refresh_derived
+            else read("v3-volume-obv-observed.json"))
+    price=(price_build(market,catalog) if args.refresh_derived
+           else read("v3-current-price-technical-momentum.json"))
     rows,summary=generate(
-        market,catalog,read("v3-volume-obv-observed.json"),
-        read("v3-current-price-technical-momentum.json"),
+        market,catalog,volume,
+        price,
         financial=financial,cashflow=cashflow)
     new_csv=to_csv(rows,summary)
     target=root/"v3-current-observed-all-listed.csv"
