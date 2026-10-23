@@ -2,8 +2,8 @@
 (function(root){
 'use strict';
 const VERSION='v3-unified-research-workspace-0.3-real-volume-20';
-const WEIGHTS=Object.freeze({volume:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
-const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['industry','산업·섹터'],['momentum','모멘텀']]);
+const WEIGHTS=Object.freeze({volume:20,technical:25,financial:20,valuation:20,momentum:15});
+const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['momentum','모멘텀']]);
 const INDUSTRY_COMPONENTS=Object.freeze([
  ['초기 순환매 신호',5],['업황 바닥 통과·실적 개선',4],
  ['개선기업 확산',3],['과열·쏠림 위험관리',3]
@@ -441,7 +441,7 @@ function pillarState(r){
    typeof z.six_pillar_candidates==='object'&&!Array.isArray(z.six_pillar_candidates)?
    z.six_pillar_candidates:null;
  const maxima=valid&&z.six_pillar_maximum;
- const matchingMaxima=!maxima||PILLARS.every(([key])=>maxima[key]===WEIGHTS[key]);
+ const matchingMaxima=!maxima||PILLARS.every(([key])=>maxima[key]===(key==='financial'||key==='valuation'?15:key==='momentum'?10:WEIGHTS[key]));
  return PILLARS.map(([key,label])=>{
   const maximum=WEIGHTS[key];
   let candidate=null,available=0;
@@ -472,8 +472,9 @@ function pillarState(r){
     }
    } else if(supplied&&matchingMaxima){
     const value=supplied[key];
-    if(finite(value)&&value>=0&&value<=maximum){
-     candidate=value;available=maximum;
+    const legacyMaximum=15;
+    if(finite(value)&&value>=0&&value<=legacyMaximum){
+     candidate=value;available=legacyMaximum;
     }
    }
    // Exact IFRS cashflows (FCF/assets4 or FCF yield5) are independent
@@ -1186,7 +1187,7 @@ function draw(){
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
    x.composite.available+'/100</small></span></div>'+
    '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
-     '<span class="u-factor-unverified"'+(i.key==='volume'?' data-pillar="volume"':'')+'><small>'+esc(i.label)+' /'+i.max+
+     '<span class="u-factor-unverified" data-pillar="'+esc(i.key)+'"><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
      '</b><em class="u-factor-mark">'+(i.available===0?(i.key==='volume'?'거래량 근거 미확보':'자료없음 · 미검증'):
       '미검증')+'</em></span>').join('')+
@@ -1234,7 +1235,7 @@ function present(data){
   '당일 CSV 재무 잠정점수 표시 '+data.rows.filter(x=>
     x.r.v3_same_day_observed_finance?.financial?.available>0).length+
   '종목(동일 기준일 확인) · 4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
-  '종목 (재무 15점 확정 아님). 산업 15점 배점은 5·4·3·3으로 확정했으며 실제 업종 원천이 확보되기 전까지 미검증으로 남습니다. 주간 순환 연구는 기존 원천 자료 재계산입니다.'+
+  '종목 (재무 20점 확정 아님). 산업은 점수에서 제외하고 재무·가치·모멘텀에 각각 5점씩 배분했습니다. 추가 배점은 검증된 신규 근거가 확보되기 전까지 미확보로 남습니다. 업종 관측은 점수 외 참고자료입니다.'+
   weeklyCoverageText(weeklyCoverage,model.date)+
   realSourceCoverageText(realSavedCoverage,model.date)+
   actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);

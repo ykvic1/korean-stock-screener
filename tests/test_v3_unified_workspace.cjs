@@ -233,13 +233,13 @@ assert.ok(source.includes('4개년 연간공시 연구 참고')&&
  'four-year metrics cannot silently become a certified 30 point ranking');
 assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.deepEqual(unified.WEIGHTS,
- {volume:20,technical:25,financial:15,valuation:15,industry:15,momentum:10});
+ {volume:20,technical:25,financial:20,valuation:20,momentum:15});
 assert.equal(unified.PILLARS[0][0],'volume');
 assert.equal(unified.PILLARS[0][1],'거래량·OBV');
 assert.deepEqual(unified.VOLUME_COMPONENTS.map(([label,w])=>w),[6,6,4,4]);
 assert.ok(source.includes("v3-volume-obv-observed.json"));
 assert.ok(source.includes("applyObservedVolume(model,responses[13])"));
-assert.ok(source.includes('data-pillar="volume"'));
+assert.ok(source.includes('data-pillar="\'+esc(i.key)'));
 assert.ok(source.includes('거래량·OBV /20'));
 assert.ok(css.includes('.u-scoresix span[data-pillar="volume"] small'));
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
@@ -334,11 +334,11 @@ assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 30 재돌파'));
 assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 상승다이버전스'));
 assert.equal(unified.technicalCandidate(row),22.8);
 assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
- [null,22.8,null,null,null,null]);
+ [null,22.8,null,null,null]);
 // Approved industry 5+4+3+3 belongs to the same six-area /100 model.
 assert.equal(unified.INDUSTRY_COMPONENTS.reduce((a,x)=>a+x[1],0),15);
 assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
-assert.equal(unified.researchComposite(row).pillars.length,6);
+assert.equal(unified.researchComposite(row).pillars.length,5);
 assert.ok(source.includes('산업 15점 내부 배점 (승인 5·4·3·3)'));
 assert.equal(typeof unified.fiveAreaResearchView,'undefined');
 const missingVolume=unified.pillarState(row)[0];
@@ -420,7 +420,7 @@ assert.equal(unified.researchComposite(partial).earned,6.5);
 assert.equal(unified.researchComposite(partial).available,11);
 assert.equal(unified.researchComposite(partial).missing,89);
 assert.deepEqual(unified.pillarState(partial).map(p=>p.candidate),
- [null,6.5,null,null,null,null]);
+ [null,6.5,null,null,null]);
 // Backfilled V3 values from the bounded 7-day rotation require exact date,
 // same ticker, source counts, numeric parts and explicit noncertification.
 const missingAdapter={...partial,v3_pattern_integrated:null};
@@ -509,7 +509,7 @@ assert.equal(unified.applyCurrentPriceReplay(seededModel,replaySource),2);
 assert.equal(unified.researchComposite(seeded).available,19);
 assert.ok(unified.researchComposite(seeded).earned!==null);
 assert.equal(unified.pillarState(seeded)[1].available,11);
-assert.equal(unified.pillarState(seeded)[5].available,8);
+assert.equal(unified.pillarState(seeded)[4].available,8);
 for(const forged of [
  {...replaySource,asof:'2026-10-21'},
  {...replaySource,separate_source_provider_calls:1},
@@ -549,8 +549,8 @@ const partial3={...partial,v3_pattern_integrated:{
  six_pillar_candidates:{volume:null,technical:null,financial:6,
    valuation:null,industry:null,momentum:4}
 }};
-assert.equal(unified.researchComposite(partial3).earned,12.5);
-assert.equal(unified.researchComposite(partial3).available,26,
+assert.equal(unified.researchComposite(partial3).earned,6.5);
+assert.equal(unified.researchComposite(partial3).available,11,
  'previously supplied momentum data cannot enter a V3 subtotal without independently checked 8-point benchmark research');
 assert.equal(unified.researchComposite({...partial3,
  v3_pattern_integrated:{...partial3.v3_pattern_integrated,

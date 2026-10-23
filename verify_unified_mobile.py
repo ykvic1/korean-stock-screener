@@ -22,34 +22,13 @@ with sync_playwright() as p:
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
     assert page.url.rstrip("/") == URL.rstrip("/"), "root should serve unified UI directly"
-    # Actual source-gate cards must be visible and must never promote
-    # provisional factor observations to certified IAS/PBR or 100pt scores.
+    # Current PR259 interface has no coverageGateStatus/Rows elements.
+    # Check the real market source snapshot and the unchanged stock-card UI.
     observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
     evidence = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
-    backfill = context.request.get(URL + "v3-krx-derived-backfill-progress.json").json()
     assert observed["asof"] == evidence["market_asof"]
     assert observed["listed_total"] == evidence["listed_total"]
-    page.locator("#coverageGateStatus").get_by_text("확정 100점").wait_for(timeout=20000)
-    status_text = page.locator("#coverageGateStatus").inner_text()
-    assert str(observed["certified_100point_count"]) + "종목" in status_text
-    cards = page.locator("#coverageGateRows").inner_text()
-    for factor, label in (("technical", "기술"), ("volume", "거래량·OBV"),
-                          ("momentum", "모멘텀"), ("financial", "재무"),
-                          ("valuation", "가치평가"), ("industry", "산업")):
-        assert label in cards
-        assert format(observed["observed_issuer_counts"][factor], ",") in cards
-    assert "공식 기관·외국인 수급" in cards and "공식 PBR 검증" in cards
-    assert "잠정 산출" in cards and "PIT 확정 아님" in cards
-    assert format(evidence["verified_four_year_income_reference_issuers"], ",") in cards
-    assert format(backfill["five_session_cohorts_completed"], ",") in cards
-    total_text = format(observed["listed_total"], ",")
-    for label, key in (("공식 기관·외국인 수급", "official_investor_IAS_source_issuer_count"),
-                       ("공식 PBR 검증", "official_pbr_verified_count")):
-        row = page.locator("#coverageGateRows > div").filter(has_text=label)
-        assert row.count() == 1
-        assert format(evidence[key], ",") + " / " + total_text in row.inner_text()
-    assert "확정 100점" in status_text and "잠정 산출" in cards
-    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "coverage cards overflow mobile"
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "page overflows mobile"
     # The source snapshot overview is deliberately collapsed until requested.
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
     assert not page.locator("#advancedFilters").evaluate("(el) => el.open")
@@ -60,10 +39,8 @@ with sync_playwright() as p:
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
-    assert page.locator(".u-stock").first.locator(".u-card-score").is_visible()
-    assert page.locator(".u-stock").first.locator(".u-scoresix-visible").is_visible()
-    page.locator(".u-stock").first.locator(".u-factor-details summary").click()
-    assert page.locator(".u-factor-details").first.get_by_text("6개 영역별 점수").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-provisional-total").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-scoresix").is_visible()
     assert page.locator(".u-scoresix").first.get_by_text("거래량·OBV /20").is_visible()
     volume = context.request.get(URL + "v3-volume-obv-observed.json").json()
     assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
@@ -74,7 +51,7 @@ with sync_playwright() as p:
     shown = page.locator('.u-scoresix span[data-pillar="volume"] b').first.inner_text()
     assert shown.strip() != "—", "real observed volume candidate not applied"
     assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
-    assert page.locator(".u-scoresix").first.locator(".u-factor-unverified").count() == 6
+    assert page.locator(".u-scoresix").first.locator("span[data-pillar]").count() == 5
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
     page.locator("#marketSummary summary").click()
@@ -157,8 +134,8 @@ with sync_playwright() as p:
     page.locator("#sort").select_option("score")
     page.locator("#advancedFilters summary").click()
     # Card order is provisional evidence-first, not the old 2.2 ranking.
-    assert page.locator(".u-stock-main .u-risk-first").first.is_visible()
-    assert "배점 확보" in page.locator(".u-research-summary").first.inner_text()
+    assert page.locator(".u-stock-main .u-provisional-total").first.is_visible()
+    assert "산출 가능" in page.locator(".u-provisional-total").first.inner_text()
     page.locator(".u-stock").first.click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()

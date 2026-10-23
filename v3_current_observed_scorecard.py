@@ -26,8 +26,8 @@ from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError, fingerprint
 
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
-POINT_BUDGET={"volume":20,"technical":25,"financial":15,
-              "valuation":15,"industry":15,"momentum":10}
+POINT_BUDGET={"volume":20,"technical":25,"financial":20,
+              "valuation":20,"momentum":15}
 
 class LivePartialScorecardError(ValueError):
     """Never include raw provider data in failures."""
