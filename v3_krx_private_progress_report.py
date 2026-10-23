@@ -106,7 +106,7 @@ def collect(storage, dates, digest):
     for horizon in HORIZONS:
         original, _ = storage.get_content(rolling_path(horizon))
         try:
-            p = rolling_checkpoint(original, digest, horizon)
+            p = rolling_checkpoint(original, digest, horizon, dates)
         except Exception:
             raise PrivateProgressError("invalid_private_rolling_checkpoint") from None
         b = horizon // 5

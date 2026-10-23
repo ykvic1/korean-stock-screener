@@ -2,11 +2,12 @@
 
 Uses five historical observed-session candidates per cohort, 2 KRX EOD
 market API reads each day. Original response bytes are never persisted.
-One short private checkpoint advances AFTER all transformed files are checked.
+A private checkpoint advances AFTER each transformed file is verified.
 """
 from __future__ import annotations
 
 import base64
+from functools import lru_cache
 from datetime import date,datetime,time
 from zoneinfo import ZoneInfo
 from hashlib import sha256
@@ -34,10 +35,46 @@ class DerivedBackfillError(ValueError):
     """No raw source, token, URL or vendor messages in diagnostic text."""
 
 
-def history_candidates():
+@lru_cache(maxsize=1)
+def _calendar_snapshot():
+    # The XKRX dependency missed KRX's ad-hoc 2026-06-03 election closure
+    # and 2026-07-17 Constitution Day closure. Preserve its prior candidate
+    # digest ONLY to migrate existing verified immutable historical prefixes.
+    # A change elsewhere in the underlying calendar fails this migration.
     days=calendar_weekday_candidates(START,END)
     cal=candidate_dates(days,source="xkrx")
-    return cal["dates"],cal["candidate_dates_sha256"]
+    corrected=cal["dates"]
+    old=sorted(set(corrected)|set(cal["confirmed_krx_2026_closures_removed"]))
+    return (old,corrected,cal["uncorrected_xkrx_candidate_sha256"],
+            cal["candidate_dates_sha256"])
+
+
+def history_candidates():
+    _,corrected,_,digest=_calendar_snapshot()
+    return list(corrected),digest
+
+
+def _calendar_hash_matches(stored,current,dates,consumed_days):
+    if stored==current:
+        return True
+    # Backwards compatibility is allowed ONLY for the pinned former XKRX
+    # digest AND a byte-for-byte-identical historical date prefix. Never
+    # silently treat an arbitrary changed calendar or a post-closure old
+    # checkpoint as valid source evidence.
+    if (type(stored) is not str or type(current) is not str
+        or type(consumed_days) is not int or consumed_days<0
+        or not isinstance(dates,list) or consumed_days>len(dates)):
+        return False
+    try:
+        legacy,corrected,legacy_digest,new_digest=_calendar_snapshot()
+    except Exception:
+        return False
+    return (stored==legacy_digest and current==new_digest
+            and dates==corrected
+            and consumed_days<=len(legacy)
+            and legacy[:consumed_days]==corrected[:consumed_days])
+
+
 
 
 def _canonical(obj):
@@ -63,7 +100,9 @@ def _manifest(data,dates,checksum):
         except Exception:raise DerivedBackfillError("corrupt_derived_history_checkpoint") from None
     max_complete=len(dates)//5
     index=obj.get("next_window_index")
-    if (obj.get("schema")!=SCHEMA or obj.get("calendar_candidate_hash")!=checksum
+    if (obj.get("schema")!=SCHEMA
+        or not _calendar_hash_matches(obj.get("calendar_candidate_hash"),
+                                      checksum,dates,5*index if type(index) is int else -1)
         or obj.get("start")!=START or obj.get("end")!=END
         or type(index) is not int or not 0<=index<=max_complete
         or type(obj.get("full_issuer_bucket_records")) is not int
