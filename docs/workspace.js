@@ -1104,9 +1104,9 @@ function renderDetails(x){
  ' · 미검증</b> · 산출 가능 '+composite.available+'/100 · 미확보 '+
  composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
- '<h3>산업 15점 내부 배점 (승인 5·4·3·3)</h3>'+
+ '<h3>산업 순환매 참고지표 · 정식 100점 합계 미포함</h3>'+
  industryParts()+
- '<p class="u-muted">산업의 과열·쏠림 관리는 산업 15점 내부의 3점으로만 반영합니다. 다른 영역의 점수에 중복 감점을 적용하지 않습니다. 현재 업종별 실제 이력 미확보 항목은 미검증입니다.</p>'+
+ '<p class="u-muted">이 5·4·3·3 구성은 과거 산업 15점 연구 설계의 참고자료이며 현행 5영역(20·25·20·20·15) 잠정 합계에 더하지 않습니다. 업종별 실제 이력 및 시점 검증을 통과하기 전까지 투자점수로 사용하지 않습니다.</p>'+
  '<h3>거래량·OBV /20 · 실제 자료 관측</h3>'+
  '<p class="u-muted">'+esc(volumeStatus(pillars.find(p=>p.key==='volume')))+'</p>'+
  volumeParts(r)+
@@ -1125,7 +1125,7 @@ function renderDetails(x){
   ' · 3년 평균 영업이익률 '+
   (finite(four.margin)?four.margin.toFixed(2)+'%':'미확보'):
   '미수집 또는 연도·회계범위 정합성 미충족')+
-  ' · 공시 정정/PIT 검증 전으로 재무 15점 및 밸류 15점은 미산출.</p>'+
+  ' · 공시 정정·시점(PIT) 검증 전으로 재무 20점과 가치 20점은 정식 투자점수 미확정입니다. 일부 확인된 근거만 위 잠정점수에 반영합니다.</p>'+
  '<p class="u-muted">실제 DART FCF 연구값 (미검증): 3년 FCF/자산 '+(finite(r.v3_dart_fcf_research?.raw_observed_financial_fcf_assets_3y_pct)?
   pct(r.v3_dart_fcf_research.raw_observed_financial_fcf_assets_3y_pct):'미확보')+
   ' · FCF수익률 '+(finite(r.v3_dart_fcf_research?.raw_observed_valuation_fcf_yield_pct)?
