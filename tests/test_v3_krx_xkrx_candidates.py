@@ -50,13 +50,29 @@ class CandidateSessionTests(unittest.TestCase):
         self.assertFalse(report["krx_ad_hoc_closure_or_future_revision_verified"])
         self.assertTrue(report["calendar_candidate_library_version"])
 
+    def test_2026_krx_official_election_and_constitution_day_closures_removed(self):
+        weekdays=calendar_weekday_candidates("2026-06-01","2026-07-20")
+        report=candidate_dates(weekdays,source="xkrx")
+        self.assertNotIn("2026-06-03",report["dates"])
+        self.assertNotIn("2026-07-17",report["dates"])
+        self.assertIn("2026-06-02",report["dates"])
+        self.assertIn("2026-06-04",report["dates"])
+        self.assertIn("2026-07-16",report["dates"])
+        self.assertTrue(report["uncorrected_xkrx_candidate_sha256"])
+        self.assertEqual(len(report["uncorrected_xkrx_candidate_sha256"]),64)
+        self.assertIn("2026-06-03",report["confirmed_krx_2026_closures_removed"])
+        self.assertNotEqual(report["uncorrected_xkrx_candidate_sha256"],
+                            report["candidate_dates_sha256"])
+        self.assertFalse(report["official_krx_session_calendar_authenticated"])
+
+
     def test_target_250_are_candidates_not_authenticated_exchange_sessions(self):
         with tempfile.TemporaryDirectory() as temp:
             db=Path(temp)/"secure"/"pairs.sqlite3"
             report=plan_private_history("2025-10-13","2026-10-16",
                         db_path=db,calendar_source="xkrx",batch_size=5)
             self.assertEqual(report["calendar_candidate_source"],"xkrx")
-            self.assertEqual(report["calendar_candidate_count"],250)
+            self.assertEqual(report["calendar_candidate_count"],248)
             self.assertEqual(report["next_batch_dates"],[
                 "2025-10-13","2025-10-14","2025-10-15",
                 "2025-10-16","2025-10-17"])
