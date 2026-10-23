@@ -143,6 +143,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
     nonblank=0
     five_area_overlap=0
     available_weight_distribution={}
+    available_weight_by_market={}
+    five_area_overlap_by_market={}
     for listed in sorted(catalog["rows"],key=lambda r:r["code"]):
         code=listed["code"]
         v=volume["records"].get(code)
@@ -228,8 +230,12 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
             raise LivePartialScorecardError("invented_current_day_score")
         if available:
             nonblank+=1
+        stock_market=listed["market"]
+        market_weights=available_weight_by_market.setdefault(stock_market,{})
+        market_weights[str(available)]=market_weights.get(str(available),0)+1
         if all(coverage[area]>0 for area in POINT_BUDGET):
             five_area_overlap+=1
+            five_area_overlap_by_market[stock_market]=five_area_overlap_by_market.get(stock_market,0)+1
         available_weight_distribution[str(available)]=available_weight_distribution.get(str(available),0)+1
         output.append({
             "code":code,"name":listed["name"],"market":listed["market"],
@@ -249,6 +255,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "observed_any_factor_issuers":nonblank,
         "five_area_observed_overlap_issuers":five_area_overlap,
         "available_weight_distribution":available_weight_distribution,
+        "available_weight_distribution_by_market":available_weight_by_market,
+        "five_area_observed_overlap_by_market":five_area_overlap_by_market,
         "observed_issuer_counts":{**counts,"industry":0},
         "area_budgets":dict(POINT_BUDGET),
         "highest_currently_observable_weight":(
