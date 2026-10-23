@@ -195,6 +195,74 @@ with sync_playwright() as p:
         assert page.evaluate(
             "document.documentElement.scrollWidth <= window.innerWidth"
         ), f"horizontal overflow in {scope}"
+    # Real narrow-screen geometry, not merely a 390px root scrollWidth:
+    # an overflowing toolbar or 5 tiny columns can push visible controls
+    # beyond the right edge even when the document itself clips overflow.
+    for viewport_width in (320, 360, 390, 430, 600, 768):
+        page.set_viewport_size({"width": viewport_width, "height": 844})
+        mobile_geometry = page.evaluate("""() => {
+            const w = window.innerWidth;
+            const visible = el => {
+                const style = window.getComputedStyle(el);
+                const rect = el.getBoundingClientRect();
+                return style.display !== 'none' && style.visibility !== 'hidden'
+                    && rect.width > 0 && rect.height > 0;
+            };
+            const selectors = [
+                '.u-wrap', '.u-header-inner', '.u-header-actions',
+                '.u-header-actions > *', '.u-intro', '.u-intro > summary',
+                '.u-controls', '.u-quick-search', '#stockSearch', '.u-tabs',
+                '.u-results', '.u-list-area', '.u-stock',
+                '.u-stock .u-scoresix', '.u-stock .u-scoresix span'
+            ];
+            const over = [];
+            for (const selector of selectors) {
+                for (const el of document.querySelectorAll(selector)) {
+                    if (!visible(el)) continue;
+                    const rect = el.getBoundingClientRect();
+                    if (rect.left < -2 || rect.right > w + 2) {
+                        over.push({selector, left: Math.round(rect.left),
+                            right: Math.round(rect.right)});
+                    }
+                }
+            }
+            const actions = [...document.querySelectorAll(
+                '.u-header-actions > *')].filter(visible);
+            return {
+                width: w,
+                docWidth: document.documentElement.scrollWidth,
+                bodyWidth: document.body.scrollWidth,
+                overflow: over,
+                actionCount: actions.length,
+                factorCount: document.querySelectorAll(
+                    '.u-stock:first-child .u-scoresix span').length,
+            };
+        }""")
+        assert mobile_geometry["width"] == viewport_width, mobile_geometry
+        assert mobile_geometry["docWidth"] <= viewport_width + 1, mobile_geometry
+        assert mobile_geometry["bodyWidth"] <= viewport_width + 1, mobile_geometry
+        assert not mobile_geometry["overflow"], mobile_geometry
+        assert mobile_geometry["actionCount"] == 4, mobile_geometry
+        assert mobile_geometry["factorCount"] == 5, mobile_geometry
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.locator("#industryResearch summary").click()
+    industry_geometry = page.evaluate("""() => {
+        const card = document.querySelector('#industryResearch');
+        const items = [...card.querySelectorAll('.u-scroller')];
+        return {
+            cardRight: card.getBoundingClientRect().right,
+            wrappers: items.map(el => ({
+                left: el.getBoundingClientRect().left,
+                right: el.getBoundingClientRect().right,
+                scrollable: el.scrollWidth >= el.clientWidth,
+            })),
+            viewport: window.innerWidth,
+        };
+    }""")
+    assert industry_geometry["cardRight"] <= industry_geometry["viewport"] + 2
+    assert all(row["left"] >= -2 and row["right"] <= industry_geometry["viewport"] + 2
+               for row in industry_geometry["wrappers"]), industry_geometry
+    page.locator("#industryResearch summary").click()
     # Existing exporter remains downloadable without moving to legacy UI.
     with page.expect_download(timeout=30000) as dl:
         page.get_by_role("link", name="전체 엑셀 ↓").click()
