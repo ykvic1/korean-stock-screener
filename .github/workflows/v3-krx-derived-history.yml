@@ -49,13 +49,16 @@ jobs:
           python -m py_compile v3_krx_derived_5day.py v3_krx_derived_backfill.py
           python -m unittest discover -s tests -p 'test_v3_krx_derived_backfill.py' -v
           python -m unittest discover -s tests -p 'test_v3_krx_derived_5day.py' -v
-      - name: Resume up to sixteen historical five-session derived cohorts
+      - name: Resume at most sixteen historical five-session derived cohorts per run
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '4' }}
-          V3_BULK_BATCHES: '16'
+          # The Python limiter caps EACH invocation at 16 cohorts. Bound the
+          # entire workflow to <=16 cohorts / 160 provider calls, too.
+          # Manual 16 -> one invocation; scheduled 4 -> four invocations.
+          V3_BULK_BATCHES: ${{ github.event_name == 'workflow_dispatch' && '1' || '4' }}
         run: |
           set -euo pipefail
           # A canceled run with no jobs indicates cancellation before runner startup;

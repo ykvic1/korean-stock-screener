@@ -201,6 +201,10 @@ class CheckPrivateProgress(unittest.TestCase):
         self.assertIn("types: [completed]",public)
         self.assertIn("github.event.workflow_run.conclusion == 'success'",
                       public)
+        self.assertIn("github.event.workflow_run.conclusion == 'failure'",
+                      public)
+        self.assertIn("github.event.workflow_run.name == 'V3 KRX historical derived-only backfill'",
+                      public)
         self.assertIn("github.event.workflow_run.head_branch == 'main'",
                       public)
         self.assertIn(

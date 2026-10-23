@@ -69,6 +69,13 @@ class FiveSlotDerivedPipelineTests(unittest.TestCase):
         scheduled_calls = 5 * (16 * 10 + 24 * 4)
         self.assertEqual(scheduled_calls, 1280)
         self.assertLess(scheduled_calls, 10000)
+        history_wf = (WF / "v3-krx-derived-history.yml").read_text()
+        self.assertIn("V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '4' }}", history_wf)
+        self.assertIn("V3_BULK_BATCHES: ${{ github.event_name == 'workflow_dispatch' && '1' || '4' }}", history_wf)
+        # A scheduled run gets 4x4 windows, and a manual run can select at
+        # most 16x1 windows. Avoid 16x16 unintentional quota bursts.
+        self.assertEqual(4 * 4 * 10, 160)
+        self.assertEqual(1 * 16 * 10, 160)
         roll_wf = (WF / "v3-krx-derived-rolling-returns.yml").read_text()
         risk_wf = (WF / "v3-krx-derived-corporate-risk-incremental.yml").read_text()
         self.assertNotIn("KRX_API_KEY:", roll_wf)

@@ -12,7 +12,12 @@ OUT = Path("verification")
 OUT.mkdir(exist_ok=True)
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
+    # CI uses verified preinstalled Chrome on the GitHub Ubuntu image;
+    # manual local runs may still use Playwright's bundled Chromium.
+    browser = p.chromium.launch(
+        channel=os.environ.get('V3_MOBILE_BROWSER_CHANNEL') or 'chromium',
+        headless=True,
+    )
     context = browser.new_context(
         viewport={"width": 390, "height": 844},
         device_scale_factor=2, is_mobile=True, has_touch=True, accept_downloads=True
@@ -26,8 +31,15 @@ with sync_playwright() as p:
     # Check the real market source snapshot and the unchanged stock-card UI.
     observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
     evidence = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
-    assert observed["asof"] == evidence["market_asof"]
+    # The price close can advance before the annual DART source and its
+    # coverage audit finish. A prior-day fiscal audit is not a same-day score:
+    # show those points as missing, but keep the mobile price view usable.
+    assert evidence["market_asof"] <= observed["asof"]
     assert observed["listed_total"] == evidence["listed_total"]
+    if evidence["market_asof"] != observed["asof"]:
+        assert observed["observed_issuer_counts"]["financial"] == 0
+        assert observed["observed_issuer_counts"]["valuation"] == 0
+        assert observed["certified_100point_count"] == 0
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "page overflows mobile"
     # The source snapshot overview is deliberately collapsed until requested.
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")

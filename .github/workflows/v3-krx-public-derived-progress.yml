@@ -39,7 +39,16 @@ concurrency:
 
 jobs:
   verified-aggregate:
-    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+    # A source run can persist several fully checked cohorts before its next
+    # provider window fails. Publish ONLY the verified private checkpoint,
+    # even for that source-run failure; never mark failed data as completed.
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository &&
+           (github.event.workflow_run.conclusion == 'success' ||
+            (github.event.workflow_run.name == 'V3 KRX historical derived-only backfill' &&
+             github.event.workflow_run.conclusion == 'failure'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
