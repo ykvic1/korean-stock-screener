@@ -121,6 +121,25 @@ class OriginalEvidenceTests(unittest.TestCase):
             self.assertNotIn("confidential",str(err))
 
 
+    def test_unsafe_path_failure_is_still_blocked_with_only_fixed_path_class(self):
+        samples=(
+            ("folder\\document.xml","backslash_path_separator"),
+            ("/absolute/secret.xml","absolute_or_drive_path"),
+            ("../outside.xml","parent_directory_component"),
+            ("folder/../outside.xml","parent_directory_component"),
+        )
+        for name,expected in samples:
+            with self.assertRaises(original.OriginalEvidenceError) as caught:
+                original._check_zip(zip_source(name))
+            err=caught.exception
+            self.assertEqual(err.safe_zip_validation_stage,
+                             "member_structure_or_security")
+            self.assertEqual(err.safe_zip_member_issue,"unsafe_member_path")
+            self.assertEqual(err.safe_zip_path_issue,expected)
+            self.assertIn(expected,original.SAFE_ZIP_PATH_ISSUES)
+            self.assertNotIn(name,str(err))
+
+
     def test_safe_directory_entries_are_allowed_but_traversal_stays_blocked(self):
         out = BytesIO()
         with ZipFile(out, "w", ZIP_DEFLATED) as z:
