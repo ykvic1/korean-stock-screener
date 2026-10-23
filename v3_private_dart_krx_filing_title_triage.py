@@ -36,10 +36,14 @@ SCHEMA = "v3-private-dart-krx-title-shortlist-v1"
 CHECKPOINT = "derived/quality/dart-krx-title-shortlist-checkpoint.json"
 OUT = "derived/quality/dart-krx-title-shortlists"
 DIGEST = re.compile(r"[a-f0-9]{64}\Z")
-ISSUER = re.compile(r"(?:KOSPI|KOSDAQ):[0-9]{6}\Z")
+ISSUER = re.compile(r"(?:KOSPI|KOSDAQ):[0-9A-Z]{6}\Z")
 RECEIPT = re.compile(r"[0-9]{14}\Z")
 CORP = re.compile(r"[0-9]{8}\Z")
 STOCK = re.compile(r"[0-9]{6}\Z")
+ALLOWED_RISK_KINDS = (
+    "large_four_interval_bucket_change", "large_one_interval_cohort_boundary",
+    "four_interval_change", "cohort_boundary_change",
+)
 MAX_PAIRS = 4000
 MAX_BLOB_BYTES = 950_000
 HINTS = (
@@ -151,7 +155,7 @@ def _shortlist(events, receipts, left, right):
         code = flag.get("issuer_market")
         kind = flag.get("type")
         if (start > end or type(code) is not str or not ISSUER.fullmatch(code)
-            or kind not in ("four_interval_change", "cohort_boundary_change")):
+            or kind not in ALLOWED_RISK_KINDS):
             raise TitleTriageError("invalid_private_title_risk_flag")
         examined += 1
         for receipt, stamp, hints in index.get(code.split(":")[1], ()):
@@ -228,9 +232,12 @@ def run(storage):
                 "confirmed_corporate_actions": 0, "scores_promoted": 0}
     try:
         receipts = _month_receipts(storage, left) + _month_receipts(storage, right)
+    except Exception:
+        raise TitleTriageError("invalid_private_complete_month_receipts") from None
+    try:
         examined, matches = _shortlist(events, receipts, left, right)
     except Exception:
-        raise TitleTriageError("invalid_private_shortlist_inputs") from None
+        raise TitleTriageError("invalid_private_title_candidate_matching") from None
 
     payload = canonical({
         "schema": SCHEMA, "first_month": left, "second_month": right,
@@ -306,6 +313,9 @@ def main():
     try:
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         summary = run(store)
+    except TitleTriageError as exc:
+        # Every TitleTriageError uses a fixed, redaction-safe reason code.
+        raise SystemExit("blocked: " + str(exc)) from None
     except Exception:
         raise SystemExit("blocked: private filing title shortlist validation failed") from None
     print(json.dumps(summary, sort_keys=True))
