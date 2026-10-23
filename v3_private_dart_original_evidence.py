@@ -157,10 +157,18 @@ SAFE_ZIP_VALIDATION_STAGES = frozenset((
     "document_extension", "member_integrity",
 ))
 
+# Fixed source-safe ZIP classification: no member names or receipt identity.
+SAFE_ZIP_MEMBER_ISSUES = frozenset((
+    "missing_or_duplicate_member_name", "unsafe_member_path",
+    "encrypted_or_symlink_member", "invalid_regular_member_size",
+    "invalid_compressed_member_size",
+))
+
 
 def _check_zip(raw):
     """Validate in memory; expose only a fixed stage, never source identity."""
     stage = "payload_envelope"
+    member_issue = None
     try:
         if type(raw) is not bytes or not 0 < len(raw) <= MAX_ZIP_BYTES:
             raise ValueError()
@@ -177,15 +185,21 @@ def _check_zip(raw):
             for f in files:
                 stage = "member_structure_or_security"
                 name = f.filename
-                if (not name or name in names or "\\" in name
-                    or name.startswith("/") or name.startswith("../")
-                    or ".." in name.split("/")
-                    or "\x00" in name
-                    or f.flag_bits & 1
-                    or (f.external_attr >> 16) & 0o170000 == 0o120000
-                    or (f.file_size <= 0 and not f.is_dir())
-                    or f.file_size > MAX_EXPANDED_BYTES
-                    or (f.compress_size <= 0 and not f.is_dir())):
+                if not name or name in names:
+                    member_issue = "missing_or_duplicate_member_name"
+                elif ("\\" in name or name.startswith("/")
+                      or name.startswith("../") or ".." in name.split("/")
+                      or "\x00" in name):
+                    member_issue = "unsafe_member_path"
+                elif (f.flag_bits & 1
+                      or (f.external_attr >> 16) & 0o170000 == 0o120000):
+                    member_issue = "encrypted_or_symlink_member"
+                elif (f.file_size <= 0 and not f.is_dir()
+                      or f.file_size > MAX_EXPANDED_BYTES):
+                    member_issue = "invalid_regular_member_size"
+                elif f.compress_size <= 0 and not f.is_dir():
+                    member_issue = "invalid_compressed_member_size"
+                if member_issue is not None:
                     raise ValueError()
                 names.add(name)
                 total += f.file_size
@@ -208,6 +222,8 @@ def _check_zip(raw):
     except Exception:
         err = OriginalEvidenceError("invalid_or_unsafe_official_document_zip")
         err.safe_zip_validation_stage = stage
+        if stage == "member_structure_or_security" and member_issue in SAFE_ZIP_MEMBER_ISSUES:
+            err.safe_zip_member_issue = member_issue
         raise err from None
 
 def _interpret_response(raw):
@@ -424,8 +440,12 @@ def main():
         stage = getattr(exc, "safe_zip_validation_stage", None)
         if (str(exc) == "invalid_or_unsafe_official_document_zip"
             and stage in SAFE_ZIP_VALIDATION_STAGES):
+            issue = getattr(exc, "safe_zip_member_issue", None)
+            detail = (";zip_member_issue=" + issue
+                      if stage == "member_structure_or_security"
+                      and issue in SAFE_ZIP_MEMBER_ISSUES else "")
             raise SystemExit("blocked: invalid_or_unsafe_official_document_zip"
-                             " [zip_validation_stage=" + stage + "]") from None
+                             " [zip_validation_stage=" + stage + detail + "]") from None
         raise SystemExit("blocked: " + str(exc)) from None
     except Exception:
         raise SystemExit("blocked: private original filing source validation failed") from None
