@@ -1,9 +1,9 @@
-"""Partial 8/10 V3 momentum research from existing relative 20/60-day inputs.
+"""Partial 8/15 V3 momentum research from existing relative 20/60-day inputs.
 
 The source market snapshot supplies relative20/relative60 derived from
 stock-vs-index returns, but not the full dated raw index bars. Therefore
 benchmark date/corporate action evidence is not independently verified,
-the third 2-point positive-days factor is UNAVAILABLE, and the scores are
+the additional 7-point breadth and persistence factors are UNAVAILABLE, and scores are
 never certified. Peers use same-market, same-source-stock-day midranks.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ from datetime import date
 import math
 
 SCHEMA = "v3-observed-market-momentum-8of10-research-0.1"
-WEIGHTS = {"relative20": 4, "relative60": 4, "positive_days20": 2}
+WEIGHTS = {"relative20": 4, "relative60": 4, "positive_days20": 2,\n           "trend_persistence60": 3, "reversal_breadth120": 2}
 MIN_PEERS = 80
 
 
@@ -58,12 +58,12 @@ def market_momentum(source, *, min_peers=MIN_PEERS):
             pct=(bisect_left(array,float(val))+bisect_right(array,float(val)))/(2*len(array))
             parts[field]=round(max_points*pct,6)
             available+=max_points
-        parts["positive_days20"]=None
+        parts["positive_days20"]=None\n        parts["trend_persistence60"]=None\n        parts["reversal_breadth120"]=None
         score=round(sum(v for v in parts.values() if v is not None),6) if available else None
         candidates[s["code"]]={
             "schema":SCHEMA,"asof":asof,"market":s["market"],
             "momentum_parts":parts, "momentum_observed_maximum":available,
-            "momentum_research_candidate":score,"momentum_maximum":10,
+            "momentum_research_candidate":score,"momentum_maximum":15,
             "peer20_count":len(peers[(s["market"],"relative20")]),
             "peer60_count":len(peers[(s["market"],"relative60")]),
             "market_benchmark_date_independently_verified":False,
