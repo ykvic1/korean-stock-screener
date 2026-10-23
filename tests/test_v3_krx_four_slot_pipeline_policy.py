@@ -1,4 +1,4 @@
-"""Scheduled four-stage KRX derived replay stays bounded and aligned (offline)."""
+"""Scheduled five-slot KRX derived replay stays bounded and aligned (offline)."""
 from pathlib import Path
 import re
 import unittest
@@ -14,15 +14,15 @@ def crons(filename):
     return text, values
 
 
-class FourSlotDerivedPipelineTests(unittest.TestCase):
-    def test_daily_pipeline_has_exact_ordered_four_utc_slots(self):
+class FiveSlotDerivedPipelineTests(unittest.TestCase):
+    def test_daily_pipeline_has_exact_ordered_five_utc_slots(self):
         expectations = (
             ("v3-krx-derived-history.yml",
-             ["11 17 * * *", "11 22 * * *", "11 5 * * *", "11 13 * * *"]),
+             ["11 17 * * *", "11 22 * * *", "11 2 * * *", "11 5 * * *", "11 13 * * *"]),
             ("v3-krx-derived-boundaries.yml",
-             ["47 17 * * *", "47 22 * * *", "47 5 * * *", "47 13 * * *"]),
+             ["47 17 * * *", "47 22 * * *", "47 2 * * *", "47 5 * * *", "47 13 * * *"]),
             ("v3-krx-derived-corporate-risk-incremental.yml",
-             ["43 18 * * *", "43 23 * * *", "43 6 * * *", "43 14 * * *"]),
+             ["43 18 * * *", "43 23 * * *", "43 3 * * *", "43 6 * * *", "43 14 * * *"]),
         )
         for name, expected in expectations:
             with self.subTest(workflow=name):
@@ -36,7 +36,7 @@ class FourSlotDerivedPipelineTests(unittest.TestCase):
 
         # Rolling return research is triggered by each successful boundary
         # completion; a single fallback remains for dropped GitHub events.
-        # All four source/boundary API slots remain unchanged.
+        # Five bounded source/boundary API slots, one no-provider fallback.
         rolling_workflow, rolling_slots = crons(
             "v3-krx-derived-rolling-returns.yml")
         self.assertEqual(rolling_slots, ["11 18 * * *"])
@@ -63,7 +63,12 @@ class FourSlotDerivedPipelineTests(unittest.TestCase):
         self.assertIn("MAX_LINKS_PER_RUN=24", bridge)
         self.assertIn("MAX_PER_HORIZON=24", rolling)
         self.assertIn("MAX_DELTA_COHORTS=16", quality)
-        self.assertEqual(4 * (16 * 10 + 24 * 4), 1024)
+        # 5 x (160 source + 96 boundary) = 1,280 max official calls/day.
+        # Stay well below the KRX published 10,000-key daily request ceiling;
+        # a provider's tighter service-side caps always prevail.
+        scheduled_calls = 5 * (16 * 10 + 24 * 4)
+        self.assertEqual(scheduled_calls, 1280)
+        self.assertLess(scheduled_calls, 10000)
         roll_wf = (WF / "v3-krx-derived-rolling-returns.yml").read_text()
         risk_wf = (WF / "v3-krx-derived-corporate-risk-incremental.yml").read_text()
         self.assertNotIn("KRX_API_KEY:", roll_wf)
