@@ -54,7 +54,7 @@ jobs:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
+          V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '4' }}
           V3_BULK_BATCHES: '16'
         run: |
           set -euo pipefail
@@ -63,4 +63,6 @@ jobs:
           for batch in $(seq 1 "$V3_BULK_BATCHES"); do
             echo "Bounded historical collection batch $batch/$V3_BULK_BATCHES"
             python v3_krx_derived_backfill.py
+            # Avoid bursting GitHub private Contents API and KRX endpoints.
+            sleep 3
           done
