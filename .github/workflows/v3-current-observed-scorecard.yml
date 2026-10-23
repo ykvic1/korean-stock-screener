@@ -72,7 +72,7 @@ jobs:
           set -euo pipefail
           # Recompute both independently stored source products if available;
           # source quality always rechecked against the current market census.
-          python v3_current_observed_scorecard.py --mode write
+          python v3_current_observed_scorecard.py --mode write --refresh-derived
       - name: Publish current-day CSV and aggregate evidence counts only
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
