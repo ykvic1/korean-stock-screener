@@ -174,6 +174,9 @@ class FiveDayDerivativeTests(unittest.TestCase):
             d.store_five_day_factors(private,provider)
         self.assertNotIn("untrusted-api-token",str(err.exception))
         self.assertEqual(err.exception.safe_failure_phase,"transport")
+        self.assertEqual(err.exception.safe_source_day,"2026-10-14")
+        self.assertEqual(err.exception.safe_source_market,"KOSDAQ")
+        self.assertEqual(err.exception.safe_completed_market_calls,5)
         self.assertEqual(private.posts,0)
         self.assertEqual(private.blobs,{})
 
@@ -186,6 +189,9 @@ class FiveDayDerivativeTests(unittest.TestCase):
             ) as error:
                 d.derive(FakeKRX())
         self.assertEqual(error.exception.safe_failure_phase,"source_validation")
+        self.assertEqual(error.exception.safe_source_day,"2026-10-12")
+        self.assertEqual(error.exception.safe_source_market,"KOSPI")
+        self.assertEqual(error.exception.safe_completed_market_calls,0)
         self.assertNotIn("RAW_PROVIDER_SECRET",str(error.exception))
 
     def test_only_allowlisted_krx_http_failure_fields_survive(self):
