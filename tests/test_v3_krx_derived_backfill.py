@@ -112,20 +112,48 @@ class HistoricalDerivedTests(unittest.TestCase):
         self.assertEqual(provider.calls,[])
 
     def test_partial_failed_provider_preserves_last_checkpoint_and_next_run_resumes(self):
-        repo=FakePrivate()
+        repo=FakeHistoryPrivate()
         provider=FakeKRX(fail_market=("KOSDAQ","2026-10-21"))
         with self.assertRaises(Exception):
             collect(storage=repo,client=provider,dates=DATES,
                     checksum=DIGEST,windows=2)
-        self.assertNotIn("derived/historical-checkpoint.json",repo.blobs)
+        self.assertIn("derived/historical-checkpoint.json",repo.blobs)
+        self.assertEqual(json.loads(repo.blobs[
+            "derived/historical-checkpoint.json"])["next_window_index"],1)
         self.assertIn("derived/five-session/2026-10-12_2026-10-16.json.gz",repo.blobs)
         fine=FakeKRX()
         report=collect(storage=repo,client=fine,dates=DATES,
                        checksum=DIGEST,windows=2)
         self.assertEqual(report["completed_five_session_cohorts"],2)
-        self.assertEqual(report["current_run_resumed_existing_windows"],1)
+        self.assertEqual(report["current_run_resumed_existing_windows"],0)
         self.assertEqual(report["current_run_api_calls"],10)
         self.assertEqual(len(fine.calls),10)
+
+    def test_three_window_batch_commits_each_verified_window_before_source_failure(self):
+        expanded=DATES[:10]+["2026-10-26","2026-10-27","2026-10-28",
+                             "2026-10-29","2026-10-30"]
+        repo=FakeHistoryPrivate()
+        broken=FakeKRX(fail_market=("KOSDAQ","2026-10-28"))
+        with self.assertRaisesRegex(Exception,
+                                    "official_market_window_or_validation_failed"):
+            collect(storage=repo,client=broken,dates=expanded,
+                    checksum=DIGEST,windows=3)
+        checkpoint=json.loads(repo.blobs["derived/historical-checkpoint.json"])
+        self.assertEqual(checkpoint["next_window_index"],2)
+        self.assertEqual(checkpoint["raw_source_file_count"],0)
+        self.assertIn(
+            "derived/five-session/2026-10-19_2026-10-23.json.gz",
+            repo.blobs)
+        self.assertNotIn(
+            "derived/five-session/2026-10-26_2026-10-30.json.gz",
+            repo.blobs)
+        resumed=FakeKRX()
+        completed=collect(storage=repo,client=resumed,dates=expanded,
+                          checksum=DIGEST,windows=2)
+        self.assertEqual(completed["completed_five_session_cohorts"],3)
+        self.assertEqual(completed["current_run_api_calls"],10)
+        self.assertEqual(len(resumed.calls),10)
+        self.assertEqual(repo.posts,6)  # 3 transformed + 3 checkpoint writes
 
     def test_failure_before_any_call_for_unexpected_repository_or_bad_schedule(self):
         private=FakeHistoryPrivate()

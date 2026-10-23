@@ -107,11 +107,11 @@ def _save_checkpoint(storage,new,sha):
     # requests. Exact bytes matter: a stale/tampered read is never success.
     for attempt in range(4):
         try:
-            observed,_=storage.get_content(CHECKPOINT)
+            observed,observed_sha=storage.get_content(CHECKPOINT)
         except PrivateHistoryError:
-            observed=None
-        if observed==payload:
-            return
+            observed,observed_sha=None,None
+        if observed==payload and type(observed_sha) is str and observed_sha:
+            return observed_sha
         if attempt<3:
             retry_clock.sleep(.7*(attempt+1))
     raise DerivedBackfillError("derived_checkpoint_readback_failed")
@@ -130,40 +130,50 @@ def collect(*,storage,client,dates,checksum,windows=1,progress=None):
     _verify_last(storage,checkpoint,dates)
     next_index=checkpoint["next_window_index"]
     end=min(next_index+windows,len(dates)//5)
-    calls=0;saved_records=0;bytes_written=0;adopted=0;last=None
+    calls=0;adopted=0
+    # The checkpoint is committed AFTER EACH fully verified immutable window.
+    # An unavailable provider day in a later window must never strand already
+    # completed earlier windows behind a batch-level final checkpoint.
+    checkpoint_sha=sha
     for index in range(next_index,end):
         window=dates[5*index:5*(index+1)]
         if progress:progress("derived_window_"+str(index))
         observed,_=storage.get_content(_path(window))
         if observed is not None:
             known=validate_derived_blob(observed,window[0],window[-1])
-            saved_records+=known["complete_five_session_issuer_market_pairs"]
-            bytes_written+=len(observed)
+            records=known["complete_five_session_issuer_market_pairs"]
+            window_bytes=len(observed)
             adopted+=1
             last=sha256(observed).hexdigest()
-            continue
-        if checkpoint["compressed_factor_bytes"]+bytes_written+500000>MAX_DERIVED_BYTES:
+        else:
+            if checkpoint["compressed_factor_bytes"]+500000>MAX_DERIVED_BYTES:
+                raise DerivedBackfillError("private_derived_history_budget_limit")
+            result=store_five_day_factors(storage,client,window)
+            if result["status"]!="persisted_and_readback_verified_derived":
+                raise DerivedBackfillError("unexpected_derived_window_state")
+            calls+=result["source_api_calls"]
+            records=result["complete_issuer_pairs"]
+            window_bytes=result["derived_file_bytes"]
+            verified,_=storage.get_content(_path(window))
+            if verified is None or len(verified)!=window_bytes:
+                raise DerivedBackfillError("recent_private_derived_window_not_read_back")
+            last=sha256(verified).hexdigest()
+        if checkpoint["compressed_factor_bytes"]+window_bytes>MAX_DERIVED_BYTES:
             raise DerivedBackfillError("private_derived_history_budget_limit")
-        result=store_five_day_factors(storage,client,window)
-        if result["status"]!="persisted_and_readback_verified_derived":
-            raise DerivedBackfillError("unexpected_derived_window_state")
-        calls+=result["source_api_calls"]
-        saved_records+=result["complete_issuer_pairs"]
-        bytes_written+=result["derived_file_bytes"]
-        verified,_=storage.get_content(_path(window))
-        last=sha256(verified).hexdigest()
-    if end>next_index:
-        upd={
+        updated={
             "schema":SCHEMA,"start":START,"end":END,
             "calendar_candidate_hash":checksum,
-            "next_window_index":end,
-            "full_issuer_bucket_records":checkpoint["full_issuer_bucket_records"]+saved_records,
-            "compressed_factor_bytes":checkpoint["compressed_factor_bytes"]+bytes_written,
+            "next_window_index":index+1,
+            "full_issuer_bucket_records":checkpoint["full_issuer_bucket_records"]+records,
+            "compressed_factor_bytes":checkpoint["compressed_factor_bytes"]+window_bytes,
             "last_window_file_sha256":last,
             "raw_source_file_count":0,
         }
-        _save_checkpoint(storage,upd,sha)
-        checkpoint=upd
+        # CAS, exact readback and SHA from this successful commit become
+        # the only authority for the NEXT checkpoint advance. Never forge a
+        # checkpoint over a failed source or overwrite a mutated private blob.
+        checkpoint_sha=_save_checkpoint(storage,updated,checkpoint_sha)
+        checkpoint=updated
     return {
         "status":"private_derived_history_checkpoint_verified",
         "completed_five_session_cohorts":checkpoint["next_window_index"],
