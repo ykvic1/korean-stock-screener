@@ -12,7 +12,12 @@ OUT = Path("verification")
 OUT.mkdir(exist_ok=True)
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
+    # CI uses verified preinstalled Chrome on the GitHub Ubuntu image;
+    # manual local runs may still use Playwright's bundled Chromium.
+    browser = p.chromium.launch(
+        channel=os.environ.get('V3_MOBILE_BROWSER_CHANNEL') or 'chromium',
+        headless=True,
+    )
     context = browser.new_context(
         viewport={"width": 390, "height": 844},
         device_scale_factor=2, is_mobile=True, has_touch=True, accept_downloads=True
