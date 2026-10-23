@@ -2,6 +2,12 @@ name: Korean Stock Quant Study v2.1
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/test_v3_observed_momentum.py'
+      - 'tests/test_v3_krx_four_slot_pipeline_policy.py'
+      - 'tests/test_v3_krx_fourth_daily_window_policy.py'
   workflow_run:
     workflows:
       - Korean Stock Screener v2
@@ -19,7 +25,7 @@ concurrency:
 jobs:
   study:
     # Never train/run from a failed source data update.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
