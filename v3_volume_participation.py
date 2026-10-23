@@ -134,8 +134,8 @@ def build(market,catalog):
         "available_point_budget_per_observed_issuer":OBSERVABLE_MAX,
         "not_observed_absorption_max":4,
         "weight_contract_in_this_model":{
-            "volume":20,"technical":25,"financial":15,
-            "valuation":15,"industry":15,"momentum":10},
+            "volume":20,"technical":25,"financial":20,
+            "valuation":20,"momentum":15},
         "subweight_contract":dict(SUBMAX),
         "ias_investor_flow_component_used":False,
         "technical_one_day_volume_not_double_counted":True,
