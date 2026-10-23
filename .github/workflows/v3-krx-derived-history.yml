@@ -2,7 +2,7 @@ name: V3 KRX historical derived-only backfill
 
 on:
   # Resume the approved derived-only history collection on vetted main
-  # merge, then continue through twelve bounded daily windows, with capped private snapshots.
+  # merge, then finish the remaining historical backlog in a resumable batch, with capped private snapshots.
   push:
     branches: [main]
     paths:
@@ -41,7 +41,7 @@ concurrency:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,7 +64,7 @@ jobs:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_DERIVED_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
-          V3_BULK_BATCHES: ${{ github.event_name == 'push' && '4' || '1' }}
+          V3_BULK_BATCHES: ${{ github.event_name == 'push' && '16' || '1' }}
         run: |
           set -euo pipefail
           for batch in $(seq 1 "$V3_BULK_BATCHES"); do
