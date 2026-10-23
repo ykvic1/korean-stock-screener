@@ -239,7 +239,7 @@ assert.equal(unified.PILLARS[0][1],'거래량·OBV');
 assert.deepEqual(unified.VOLUME_COMPONENTS.map(([label,w])=>w),[6,6,4,4]);
 assert.ok(source.includes("v3-volume-obv-observed.json"));
 assert.ok(source.includes("applyObservedVolume(model,responses[13])"));
-assert.ok(source.includes('data-pillar="volume"'));
+assert.ok(source.includes('data-pillar="\'+esc(i.key)'));
 assert.ok(source.includes('거래량·OBV /20'));
 assert.ok(css.includes('.u-scoresix span[data-pillar="volume"] small'));
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
