@@ -339,7 +339,9 @@ assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
 assert.equal(unified.INDUSTRY_COMPONENTS.reduce((a,x)=>a+x[1],0),15);
 assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
 assert.equal(unified.researchComposite(row).pillars.length,5);
-assert.ok(source.includes('산업 15점 내부 배점 (승인 5·4·3·3)'));
+assert.ok(source.includes('산업 순환매 참고지표 · 정식 100점 합계 미포함'));
+assert.ok(!Object.prototype.hasOwnProperty.call(unified.WEIGHTS,'industry'),
+ 'legacy 15-point industry research is not a sixth scored factor');
 assert.equal(typeof unified.fiveAreaResearchView,'undefined');
 const missingVolume=unified.pillarState(row)[0];
 assert.equal(missingVolume.label,'거래량·OBV');
