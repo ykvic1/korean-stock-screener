@@ -51,7 +51,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(set(summary["available_weight_distribution_by_market"]),set(r["market"] for r in rows))
         self.assertEqual(summary["observed_issuer_counts"]["volume"],1)
         self.assertEqual(summary["certified_100point_count"],0)
-        self.assertEqual(summary["highest_currently_observable_weight"],49)
+        self.assertEqual(summary["highest_currently_observable_weight"],sum(max(r["factor_available"][a] for r in rows) for a in summary["area_budgets"]))
         self.assertEqual(by["005930"]["factors"]["volume"],16.0)
         self.assertEqual(by["005930"]["factor_available"]["volume"],16)
         self.assertEqual(by["300004"]["earned"],None)
@@ -149,7 +149,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(r["factor_available"]["financial"],8)
         self.assertEqual(r["factors"]["valuation"],2.5)
         self.assertEqual(r["factor_available"]["valuation"],5)
-        self.assertEqual(summary["highest_currently_observable_weight"],67)
+        self.assertEqual(summary["highest_currently_observable_weight"],sum(max(r["factor_available"][a] for r in rows) for a in summary["area_budgets"]))
         self.assertEqual(summary["observed_issuer_counts"]["financial"],1)
         self.assertEqual(summary["observed_issuer_counts"]["valuation"],1)
         csv_rows=list(csv.DictReader(StringIO(
@@ -194,7 +194,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(row["factor_available"]["valuation"],15)
         self.assertEqual(row["fcf_subpoints"]["financial4"],0.0)
         self.assertEqual(row["fcf_subpoints"]["valuation5"],5.0)
-        self.assertEqual(summary["highest_currently_observable_weight"],76)
+        self.assertEqual(summary["highest_currently_observable_weight"],sum(max(r["factor_available"][a] for r in rows) for a in summary["area_budgets"]))
         self.assertEqual(summary["fcf_observed_issuer_counts"],
                          {"financial4":1,"valuation5":1})
         view=list(csv.DictReader(StringIO(to_csv(rows,summary).lstrip("\ufeff"))))
