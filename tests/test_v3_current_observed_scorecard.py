@@ -207,7 +207,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             generate(market,catalog,v,p,financial={"005930":base},
                      cashflow={"005930":bad})
         bad=copy.deepcopy(base)
-        bad["financial_available_max"]=15
+        bad["financial_available_max"]=21
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,v,p,financial={"005930":bad},
                      cashflow={"005930":item})
