@@ -23,8 +23,8 @@ MAX_YEAR_CALLS = 8
 MAX_TOTAL_CALLS = 9
 PURCHASE = re.compile(r"취득|구입|매입|지급|purchase|acquisit|payment", re.I)
 EXCLUDE = re.compile(r"처분|매각|매도|회수|상환|유입|sale|disposal|proceeds|repayment", re.I)
-PPE_NAME = re.compile(r"유형\\s*자산|건설중인자산|기계장치|토지|건물|property.*plant|equipment", re.I)
-INTANGIBLE_NAME = re.compile(r"무형\\s*자산|소프트웨어|산업재산권|개발비|intangible|software", re.I)
+PPE_NAME = re.compile(r"유형\s*자산|건설중인자산|기계장치|토지|건물|property.*plant|equipment", re.I)
+INTANGIBLE_NAME = re.compile(r"무형\s*자산|소프트웨어|산업재산권|개발비|intangible|software", re.I)
 CLASSES = ("missing_both_capex", "missing_intangible_only", "missing_ppe_only")
 
 
