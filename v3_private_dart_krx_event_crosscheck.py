@@ -33,7 +33,7 @@ from v3_krx_derived_corporate_action_risk import (
 )
 from v3_krx_derived_backfill import (
     CHECKPOINT as SOURCE_CHECKPOINT, _manifest as source_validate,
-    history_candidates,
+    history_candidates, _calendar_hash_matches,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
@@ -81,7 +81,13 @@ def _source_events(storage):
             dates[5 * BASELINE_COHORTS-1], BASELINE_COHORTS)
     except Exception:
         raise CrosscheckError("invalid_private_risk_baseline") from None
-    if baseline.get("historical_calendar_candidate_hash") != digest:
+    # The immutable first-nine-cohort risk baseline can carry the pinned
+    # pre-2026-closure XKRX calendar digest. Accept it ONLY if the dedicated
+    # source validator proves the entire already-consumed 45-session prefix
+    # byte-for-byte identical; arbitrary calendar changes still fail closed.
+    if not _calendar_hash_matches(
+            baseline.get("historical_calendar_candidate_hash"), digest,
+            dates, 5 * BASELINE_COHORTS):
         raise CrosscheckError("risk_baseline_calendar_mismatch")
     events = [{
         "issuer_market": r["issuer_market"], "first_day": r["period_start"],

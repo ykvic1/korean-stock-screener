@@ -203,6 +203,31 @@ class CrosscheckTests(unittest.TestCase):
             same = cross.verify_private_risk_archive(store)
         self.assertEqual(same,r)
         self.assertEqual(store.posts,count)
+        # A former calendar digest must pass the same exact consumed-prefix
+        # validation used by the immutable KRX source archive.
+        import gzip
+        from v3_krx_derived_corporate_action_risk import _file_end
+        baseline_file = _file_end(days, inc.BASELINE_COHORTS)
+        baseline = json.loads(gzip.decompress(store.blobs[baseline_file]))
+        baseline["historical_calendar_candidate_hash"] = "old-pinned-digest"
+        store.blobs[baseline_file] = gzip.compress(
+            json.dumps(baseline, sort_keys=True, ensure_ascii=True,
+                       separators=(",", ":")).encode("utf8"), mtime=0)
+        with (patch.object(cross, "history_candidates",
+                           return_value=(days, DIGEST)),
+              patch.object(cross, "_calendar_hash_matches",
+                           return_value=True) as compatible):
+            resumed = cross.verify_private_risk_archive(store)
+        self.assertEqual(resumed["risk_reviewed_five_session_cohorts"], 27)
+        compatible.assert_called_once_with(
+            "old-pinned-digest", DIGEST, days, 5 * inc.BASELINE_COHORTS)
+        with (patch.object(cross, "history_candidates",
+                           return_value=(days, DIGEST)),
+              patch.object(cross, "_calendar_hash_matches",
+                           return_value=False)):
+            with self.assertRaisesRegex(
+                    cross.CrosscheckError, "risk_baseline_calendar_mismatch"):
+                cross.verify_private_risk_archive(store)
         # Missing middle chunk is not incorrectly treated as an empty result.
         chunk = inc._delta_path(days,9,25)
         store.blobs.pop(chunk)
