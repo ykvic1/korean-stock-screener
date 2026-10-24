@@ -1,6 +1,13 @@
 name: V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
 
 on:
+  # Replay once after a verified production-budget/source validation patch.
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_derived_rolling_returns.py
+      - tests/test_v3_krx_derived_rolling_returns.py
+      - .github/workflows/v3-krx-derived-rolling-returns.yml
   # Recompute right after a successful private boundary join. A delayed
   # scheduled join must not leave newly connected history unrecalculated.
   workflow_run:
@@ -31,6 +38,7 @@ jobs:
   research:
     if: >-
       ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
         github.event_name == 'schedule' ||
         (github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success' &&
