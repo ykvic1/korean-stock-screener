@@ -197,7 +197,15 @@ jobs:
           from datetime import date
           from pathlib import Path
           snapshot=json.loads(Path('docs/data.json').read_text(encoding='utf-8'))
-          print(max(date(2026,10,20), date.fromisoformat(snapshot['date'])).isoformat())
+          # An already-published daily rotation may legitimately be newer
+          # than the latest trading session (weekends/non-trading days).
+          # Rehearse no earlier than its saved run date; the production
+          # validator still rejects invalid/future/stale source evidence.
+          prior=json.loads(Path('docs/v3-weekly-coverage.json').read_text(encoding='utf-8'))
+          assert prior.get('schema') == 'v3-seven-day-research-coverage-0.1'
+          print(max(date(2026,10,20),
+                    date.fromisoformat(snapshot['date']),
+                    date.fromisoformat(prior['run_kst'])).isoformat())
           PY
           )"
           python v3_weekly_rotation.py --when "$DAY" --mode audit
