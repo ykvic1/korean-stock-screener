@@ -19,7 +19,8 @@ GROUPS={
 }
 ALLOWED={
  "cash":("docs/v3-dart-cashflow-reference.json",
-         "docs/v3-dart-fcf-research-preview.json"),
+         "docs/v3-dart-fcf-research-preview.json",
+         "docs/v3-dart-cashflow-gap-summary.json"),
  "industry":("docs/v3-dart-industry-classification.json",
              "docs/v3-dart-industry-earnings-sample.json"),
  "fouryear":("docs/v3-dart-bulk-history.json",
@@ -30,8 +31,10 @@ ALLOWED={
 GUARDS={
  "cash":("python v3_dart_cashflow_enrichment.py --mode rebind",
          "python v3_dart_cashflow_factor_preview.py --mode write",
+         "python v3_dart_cashflow_gap_audit.py --mode write",
          "python v3_dart_cashflow_enrichment.py --mode verify",
-         "python v3_dart_cashflow_factor_preview.py --mode verify"),
+         "python v3_dart_cashflow_factor_preview.py --mode verify",
+         "python v3_dart_cashflow_gap_audit.py --mode verify"),
  "industry":("python v3_dart_industry_codes.py --mode rebind",
              "python v3_dart_industry_earnings_sample.py --mode write",
              "python v3_dart_industry_codes.py --mode verify",
