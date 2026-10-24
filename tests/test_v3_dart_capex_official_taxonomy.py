@@ -106,3 +106,31 @@ class OfficialTaxonomyTests(TestCase):
         with self.assertRaises(t.OfficialTaxonomyError) as err:
             t.official_candidates("x" * 40, bad)
         self.assertEqual(str(err.exception), "official_taxonomy_invalid_response")
+
+    def test_component_structure_never_converts_partial_into_a_total(self):
+        self.assertEqual(t.component_evidence_status([], "ppe"),
+                         "no_official_component")
+        machine = "dart_PurchaseOfMachinery"
+        other = "dart_PurchaseOfOtherPropertyPlantAndEquipment"
+        software = "dart_PurchaseOfComputerSoftware"
+        parent = "dart_PurchaseOfIntangibleAssetsOtherThanGoodwill"
+        cases = [
+            ([(machine, 0)], "ppe",
+             "single_component_completeness_unproven"),
+            ([(machine, 10), (machine, 10)], "ppe",
+             "single_component_completeness_unproven"),
+            ([(machine, 10), (other, 20)], "ppe",
+             "multiple_components_completeness_unproven"),
+            ([(parent, 50), (software, 12)], "intangible",
+             "possible_parent_child_overlap"),
+            ([(machine, -10)], "ppe", "negative_sign_unverified"),
+            ([(machine, 10), (machine, 12)], "ppe",
+             "conflicting_duplicate_amounts"),
+            ([(machine, None)], "ppe", "invalid_or_missing_amount"),
+            ([("unapproved", 10)], "ppe", "invalid_or_missing_amount"),
+        ]
+        for components, kind, expected in cases:
+            self.assertEqual(t.component_evidence_status(components, kind),
+                             expected)
+        with self.assertRaises(t.OfficialTaxonomyError):
+            t.component_evidence_status([], "made-up")

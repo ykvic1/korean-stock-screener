@@ -99,3 +99,52 @@ def novel_account_id(account_id, kind, candidate_ids):
     existing = PPE_IDS if kind == "ppe" else INTANGIBLE_IDS
     return (type(account_id) is str and account_id not in existing and
             account_id in candidate_ids[kind])
+
+
+# These account IDs identify disclosed components, not a complete CAPEX
+# total. In particular, software can sit within intangible assets other
+# than goodwill; adding the two may double-count the same outflow.
+INTANGIBLE_POSSIBLE_PARENT = "dart_PurchaseOfIntangibleAssetsOtherThanGoodwill"
+COMPONENT_GROUP_STATUSES = (
+    "no_official_component",
+    "invalid_or_missing_amount",
+    "conflicting_duplicate_amounts",
+    "negative_sign_unverified",
+    "possible_parent_child_overlap",
+    "multiple_components_completeness_unproven",
+    "single_component_completeness_unproven",
+)
+
+
+def component_evidence_status(observations, kind):
+    """Classify exact source-matched component *structure*, never sum it.
+
+    `observations` holds ephemeral (standard_account_id, parsed_amount)
+    pairs. Return only fixed anonymous labels. Multiple distinct components
+    are NOT proof of a complete partition; one is NOT proof of a total.
+    """
+    if kind not in ("ppe", "intangible"):
+        raise OfficialTaxonomyError("invalid_component_kind")
+    if type(observations) is not list:
+        raise OfficialTaxonomyError("invalid_component_observations")
+    if not observations:
+        return "no_official_component"
+    amounts = {}
+    for entry in observations:
+        if (type(entry) not in (list, tuple) or len(entry) != 2 or
+            type(entry[0]) is not str or not ID.fullmatch(entry[0])):
+            return "invalid_or_missing_amount"
+        ident, amount = entry
+        if type(amount) is not int or abs(amount) > 10**18:
+            return "invalid_or_missing_amount"
+        amounts.setdefault(ident, set()).add(amount)
+    if any(len(v) != 1 for v in amounts.values()):
+        return "conflicting_duplicate_amounts"
+    if any(next(iter(v)) < 0 for v in amounts.values()):
+        return "negative_sign_unverified"
+    if (kind == "intangible" and INTANGIBLE_POSSIBLE_PARENT in amounts
+        and len(amounts) > 1):
+        return "possible_parent_child_overlap"
+    if len(amounts) > 1:
+        return "multiple_components_completeness_unproven"
+    return "single_component_completeness_unproven"
