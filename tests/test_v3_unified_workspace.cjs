@@ -87,6 +87,7 @@ const industryPriceSummary={
  schema:'v3-current-company-industry-relative-strength-observed-v1',
  asof:'2026-10-22',listed_total:100,groups_total:1,
  paired_20_60_observations:85,groups_early_recovery_watch:1,
+ relative120_observations:60,
  historical_krx_sector_membership_pit_verified:false,
  official_industry_15_points_authorized:false,
  investment_grade_100point_scores_authorized:false,
@@ -99,6 +100,8 @@ const industryPriceSummary={
   current_listed_issuers:100,same_day_priced_issuers:85,
   complete_relative20_60_issuer_count:85,
   missing_relative20_60_issuer_count:15,observed_20_60_coverage:.85,
+  relative120_issuer_count:60,missing_relative120_issuer_count:40,
+  observed_120_coverage:.6,median_market_relative_120pct_sample:3.25,
   median_market_relative_20pct_sample:2,
   median_market_relative_60pct_sample:-1,
   positive_relative20_issuers_sample:55,
@@ -116,6 +119,49 @@ const currentSector=unified.industryPriceEvidenceView(
  industryPriceSummary,'2026-10-22',100);
 assert.ok(currentSector&&currentSector.watch===1);
 assert.ok(currentSector.html.includes('관찰 후보 1개'));
+assert.ok(currentSector.html.includes('120일 상대강도'));
+assert.ok(currentSector.html.includes('+3.3%p'));
+assert.equal(currentSector.observed120,60);
+assert.equal(currentSector.byKey.get('KOSPI:20').m120,3.25);
+const bad120=structuredClone(industryPriceSummary);
+bad120.groups[0].relative120_issuer_count=61;
+assert.equal(unified.industryPriceEvidenceView(bad120,'2026-10-22',100),null);
+const no120=structuredClone(industryPriceSummary);
+delete no120.relative120_observations;
+for(const key of ['relative120_issuer_count','missing_relative120_issuer_count',
+ 'observed_120_coverage','median_market_relative_120pct_sample'])
+ delete no120.groups[0][key];
+assert.equal(unified.industryPriceEvidenceView(no120,'2026-10-22',100)
+ .byKey.get('KOSPI:20').m120,null);
+const classifiedRecords={};
+for(let i=1;i<=100;i++)
+ classifiedRecords[String(i).padStart(6,'0')]={
+  market:'KOSPI',status:'observed',industry_code:'20123',
+  checked_on:'2026-10-21',origin:'OpenDART_company_json',
+  historical_pit_verified:false,corporation_identity_digest:'d'.repeat(64)
+ };
+const classified={
+ schema:'v3-dart-current-listed-industry-code-reference-0.1',
+ asof:'2026-10-22',listed_total:100,observed_industry_codes:100,
+ missing_industry_codes:0,not_yet_attempted:0,
+ official_krx_sector_membership_verified:false,
+ past_constituent_membership_pit_verified:false,
+ industry_5433_points_authorized:false,investable_v3_score_certified:false,
+ source_records_digest:'f'.repeat(64),records:classifiedRecords
+};
+const mockModel={date:'2026-10-22',marketEligible:100,rows:[
+ {r:{code:'000001',name:'example',market:'KOSPI'}}
+]};
+const sectorAttached=unified.applyIndustryReference(mockModel,classified,currentSector);
+assert.equal(sectorAttached.mapped,1);
+assert.equal(mockModel.rows[0].r.v3_sector_research.name,'화학제품(의약품 제외)');
+assert.equal(mockModel.rows[0].r.v3_sector_research.group.m120,3.25);
+assert.ok(unified.sectorEvidenceMarkup(mockModel.rows[0].r,true).includes('+3.3%p'));
+assert.ok(unified.sectorEvidenceMarkup(mockModel.rows[0].r,true).includes('점수 배점 제외'));
+const badClassified=structuredClone(classified);
+badClassified.records['000001'].market='KOSDAQ';
+assert.equal(unified.applyIndustryReference(mockModel,badClassified,currentSector),null);
+assert.equal(mockModel.rows[0].r.v3_sector_research.name,'화학제품(의약품 제외)');
 assert.equal(unified.industryPriceEvidenceView(
  industryPriceSummary,'2026-10-21',100),null);
 const forgedIndustryPrice=structuredClone(industryPriceSummary);
@@ -335,11 +381,12 @@ assert.ok(unified.evidence(row,'daily').some(x=>x.label==='RSI 상승다이버�
 assert.equal(unified.technicalCandidate(row),22.8);
 assert.deepEqual(unified.pillarState(row).map(x=>x.candidate),
  [null,22.8,null,null,null]);
-// Approved industry 5+4+3+3 belongs to the same six-area /100 model.
-assert.equal(unified.INDUSTRY_COMPONENTS.reduce((a,x)=>a+x[1],0),15);
-assert.deepEqual(unified.INDUSTRY_COMPONENTS.map(x=>x[1]),[5,4,3,3]);
+// Current five-area total is 100. Industry has no hidden 15-point allocation.
+assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
+assert.equal(unified.INDUSTRY_COMPONENTS,undefined);
+assert.equal(unified.industryParts,undefined);
 assert.equal(unified.researchComposite(row).pillars.length,5);
-assert.ok(source.includes('산업 순환매 참고지표 · 정식 100점 합계 미포함'));
+assert.ok(source.includes('소속 업종 · 시장 대비 20·60·120일 상대강도'));
 assert.ok(!Object.prototype.hasOwnProperty.call(unified.WEIGHTS,'industry'),
  'legacy 15-point industry research is not a sixth scored factor');
 assert.equal(typeof unified.fiveAreaResearchView,'undefined');
