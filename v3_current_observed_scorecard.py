@@ -7,7 +7,8 @@ derived financial <=8/15 and simple valuation <=10/15 are also displayed.
 Independently saved, receipt-matched FY2023-25 DART CF/CAPEX can contribute an
 additional financial <=4 and valuation <=5 when all same-day source joins pass.
 Stale, conflicting or uncertified filings NEVER become new-day points. Industry
-remains EMPTY; no 100-point rescaling or official investment certification.
+is informational ONLY and absent from all five scoring-area CSV columns; no
+100-point rescaling or official investment certification.
 """
 from __future__ import annotations
 import argparse
@@ -157,10 +158,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         code=listed["code"]
         v=volume["records"].get(code)
         p=price["rows"].get(code)
-        values={"volume":None,"technical":None,"financial":None,
-                "valuation":None,"industry":None,"momentum":None}
-        coverage={"volume":0,"technical":0,"financial":0,
-                  "valuation":0,"industry":0,"momentum":0}
+        values={area:None for area in POINT_BUDGET}
+        coverage={area:0 for area in POINT_BUDGET}
         if v is not None:
             values["volume"],coverage["volume"]=_contribution(
                 v["observed_points"],v["observed_available_max"],20)
@@ -276,7 +275,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "available_weight_distribution":available_weight_distribution,
         "available_weight_distribution_by_market":available_weight_by_market,
         "five_area_observed_overlap_by_market":five_area_overlap_by_market,
-        "observed_issuer_counts":{**counts,"industry":0},
+        "observed_issuer_counts":dict(counts),
         "area_budgets":dict(POINT_BUDGET),
         "area_available_weight_distribution":area_available_weight_distribution,
         "unacquired_area_issuer_counts":unacquired_area_issuers,
@@ -321,7 +320,7 @@ def to_csv(rows,summary):
     out.writerow(["종목코드","종목명","시장","가격자료기준일",
         "거래량_OBV_잠정점수","거래량_OBV_산출배점",
         "기술_잠정점수","기술_산출배점",
-        "재무_잠정점수","밸류에이션_잠정점수","산업_잠정점수",
+        "재무_잠정점수","밸류에이션_잠정점수",
         "모멘텀_잠정점수","모멘텀_산출배점",
         "관측잠정합계_100점중","산출가능배점_100점중",
         "미확보배점_100점중","정식투자점수","투자등급",
@@ -335,7 +334,7 @@ def to_csv(rows,summary):
             "" if v["volume"] is None else v["volume"],a["volume"] or "",
             "" if v["technical"] is None else v["technical"],a["technical"] or "",
             "" if v["financial"] is None else v["financial"],
-            "" if v["valuation"] is None else v["valuation"],"",
+            "" if v["valuation"] is None else v["valuation"],
             "" if v["momentum"] is None else v["momentum"],a["momentum"] or "",
             "" if row["earned"] is None else row["earned"],
             row["available"] or "",row["unavailable"],"","미검증 연구용",

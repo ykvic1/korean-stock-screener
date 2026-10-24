@@ -857,6 +857,30 @@ assert.ok(source.includes("'v3-current-observed-all-listed-summary.json'"));
 assert.ok(source.includes('v3-current-observed-all-listed.csv?v='));
 assert.equal(observedPartialSummary.asof,freshModel.date);
 assert.equal(observedPartialSummary.listed_total,freshModel.marketEligible);
+assert.ok(html.includes('id="fiveAreaCoverage"'));
+assert.ok(entry.includes('id="fiveAreaCoverage"'));
+assert.ok(css.includes('.u-coverage-scroll'));
+const actualCoverage=unified.fiveAreaCoverageView(
+ observedPartialSummary,observedPartialSummary.asof,observedPartialSummary.listed_total);
+assert.ok(actualCoverage?.includes('5개 영역 실제 데이터 확보'));
+assert.ok(actualCoverage.includes('산업은 배점에서 제외됩니다'));
+assert.ok(actualCoverage.includes(
+ observedPartialSummary.highest_currently_observable_weight+'/100점'));
+const forgedCoverage=structuredClone(observedPartialSummary);
+forgedCoverage.observed_issuer_counts.financial++;
+assert.equal(unified.fiveAreaCoverageView(
+ forgedCoverage,forgedCoverage.asof,forgedCoverage.listed_total),null);
+const mismatchedCoverage=structuredClone(observedPartialSummary);
+mismatchedCoverage.factor_observed_weight_ceiling.financial++;
+assert.equal(unified.fiveAreaCoverageView(
+ mismatchedCoverage,mismatchedCoverage.asof,mismatchedCoverage.listed_total),null);
+const allegedIndustry=structuredClone(observedPartialSummary);
+allegedIndustry.observed_issuer_counts.industry=10;
+assert.equal(unified.fiveAreaCoverageView(
+ allegedIndustry,allegedIndustry.asof,allegedIndustry.listed_total),null);
+assert.equal(unified.fiveAreaCoverageView(
+ observedPartialSummary,'1900-01-01',observedPartialSummary.listed_total),null);
+
 const overlayCount=unified.applyCurrentObservedFinance(
  freshModel,observedPartialSummary,observedPartialCsv);
 assert.ok(overlayCount>=0&&
