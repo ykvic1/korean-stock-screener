@@ -41,7 +41,8 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(summary["area_budgets"], {"volume":20,"technical":25,"financial":20,"valuation":20,"momentum":15})
         self.assertNotIn("industry",summary["area_budgets"])
         self.assertEqual(sum(summary["area_budgets"].values()),100)
-        self.assertTrue(all(r["factors"]["industry"] is None and r["factor_available"]["industry"] == 0 for r in rows))
+        self.assertTrue(all("industry" not in r["factors"] and
+                            "industry" not in r["factor_available"] for r in rows))
         self.assertEqual(summary["provider_requests"],0)
         self.assertEqual(sum(summary["factor_observed_weight_ceiling"].values())+summary["total_unobserved_weight_gap"],100)
         self.assertEqual(sum(summary["factor_unobserved_weight_gap"].values()),summary["total_unobserved_weight_gap"])
@@ -90,6 +91,8 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertTrue(txt.startswith("\ufeff"))
         csv_rows=list(csv.DictReader(StringIO(txt.lstrip("\ufeff"))))
         self.assertEqual(len(csv_rows),5)
+        self.assertTrue(all("산업_잠정점수" not in r for r in csv_rows))
+        self.assertNotIn("industry",summary["observed_issuer_counts"])
         self.assertEqual(next(r for r in csv_rows if r["종목코드"]=="300004")
                          ["관측잠정합계_100점중"],"")
         self.assertEqual(next(r for r in csv_rows if r["종목코드"]=="300004")
