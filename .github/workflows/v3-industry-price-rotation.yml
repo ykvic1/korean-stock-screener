@@ -102,8 +102,8 @@ jobs:
           from pathlib import Path
           lines=["### V3 업종 상대강도 실제 관측 연구",
                  "현재 DART 회사 업종코드별 집계. 공식 과거 KRX 업종 구성은 검증되지 않았습니다.",
-                 "20·60일 상대수익률은 저장된 가격 추정치이며 지수 날짜/수정주가 독립 검증 전입니다.",
-                 "산업 15점 배점 0, 신규 KRX/DART 호출 0."]
+                 "20·60·120일 상대수익률은 저장된 가격 추정치이며 지수 날짜/수정주가 독립 검증 전입니다.",
+                 "산업은 5개 점수 영역 100점에서 제외, 신규 KRX/DART 호출 0."]
           if os.getenv("READY")!="true":
               lines.append("시장일과 업종코드 자료 날짜가 아직 정합하지 않아 발행 보류.")
           path=Path("docs/v3-industry-observed-relative-strength.json")
@@ -111,6 +111,7 @@ jobs:
               a=json.loads(path.read_text(encoding="utf8"))
               lines+=["최종 저장본 기준일: "+str(a["asof"]),
                       "20일/60일 상대강도 실제 쌍: "+str(a["paired_20_60_observations"]),
+                      "120일 상대강도 실제 표본: "+str(a.get("relative120_observations","미확인")),
                       "관찰 후보 업종코드 그룹: "+str(a["groups_early_recovery_watch"])]
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
               "\n".join(lines)+"\n",encoding="utf8")
