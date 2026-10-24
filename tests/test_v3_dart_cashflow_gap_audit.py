@@ -83,7 +83,7 @@ class GapAuditTests(unittest.TestCase):
         broken = copy.deepcopy(state)
         first = next(iter(broken["records"].values()))
         year = next(iter(first["years"].values()))
-        year["intangible_capex_krw"] = -1
+        year["operating_cashflow_krw"] = 100
         with self.assertRaises(gap.GapAuditError):
             gap.audit_cashflow_gaps(broken, market, catalog, major)
 
