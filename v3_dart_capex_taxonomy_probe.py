@@ -13,11 +13,10 @@ import os
 import re
 from pathlib import Path
 
-from v3_dart_bulk_history import _amount, _mapping, _valid_receipt
+from v3_dart_bulk_history import _amount, _day, _mapping, _valid_receipt
 from v3_dart_cashflow_enrichment import (
-    CFO_IDS, INTANGIBLE_IDS, PPE_IDS, YEARS, CashflowError,
+    INTANGIBLE_IDS, PPE_IDS, CashflowError,
     asof_members, normalize_year, verify_state,
-    verified_company_mapping_cache,
 )
 
 MAX_YEAR_CALLS = 8
@@ -76,7 +75,7 @@ def targets(state, market, catalog, major, limit=MAX_YEAR_CALLS):
     return selected
 
 
-def candidate_fields(row, *, year, scope, corp, stock, receipt):
+def candidate_fields(row, *, year, scope, corp, stock, receipt, cutoff):
     """Only same annual report/scope/receipt KRW CF line-item hints.
 
     Return *hints*, never monetary estimates or alternative IFRS mappings.
@@ -91,7 +90,7 @@ def candidate_fields(row, *, year, scope, corp, stock, receipt):
         row.get("reprt_code") != "11011" or
         ("fs_div" in row and row["fs_div"] != scope) or
         row.get("rcept_no") != receipt or
-        not _valid_receipt(receipt, year, None)):
+        not _valid_receipt(receipt, year, cutoff)):
         return ()
     label = row.get("account_nm")
     if type(label) is not str or len(label) > 160 or not PURCHASE.search(label) or EXCLUDE.search(label):
@@ -104,13 +103,13 @@ def candidate_fields(row, *, year, scope, corp, stock, receipt):
     return tuple(tags)
 
 
-def summarize_candidates(rows, *, stock, corp, year, scope, receipt, missing):
+def summarize_candidates(rows, *, stock, corp, year, scope, receipt, cutoff, missing):
     info = {k: {"rows": 0, "with_numeric_amount": 0, "nonstandard_rows": 0,
                 "already_supported_id_rows": 0} for k in ("ppe", "intangible")}
     observed = {"ppe": False, "intangible": False}
     for row in rows:
         for kind in candidate_fields(row, year=year, scope=scope, corp=corp,
-                                     stock=stock, receipt=receipt):
+                                     stock=stock, receipt=receipt, cutoff=cutoff):
             if not missing[kind]:
                 continue
             info[kind]["rows"] += 1
@@ -148,12 +147,11 @@ def probe(state, market, catalog, major, *, key, session,
     if type(key) is not str or len(key) < 20:
         raise TaxonomyPilotError("official_key_unavailable")
     _, members = asof_members(market, catalog, major)
-    mapping = None
     # Mapping is derived only from official corpCode.xml, never name guesses.
-    response = session.get("https://opendart.fss.or.kr/api/corpCode.xml",
-                           params={"crtfc_key": key}, timeout=(20, 95))
-    result["provider_calls"] += 1
     try:
+        response = session.get("https://opendart.fss.or.kr/api/corpCode.xml",
+                               params={"crtfc_key": key}, timeout=(20, 95))
+        result["provider_calls"] += 1
         response.raise_for_status()
         mapping = _mapping(response.content, set(members))
     except Exception:
@@ -200,7 +198,7 @@ def probe(state, market, catalog, major, *, key, session,
         result["classes_checked"][kind] += 1
         info, hits = summarize_candidates(
             rows, stock=stock, corp=corp, year=year, scope=scope,
-            receipt=old["annual_receipt_id"],
+            receipt=old["annual_receipt_id"], cutoff=_day(state["asof"]),
             missing={"ppe": old["ppe_capex_krw"] is None,
                      "intangible": old["intangible_capex_krw"] is None})
         for name in ("ppe", "intangible"):
