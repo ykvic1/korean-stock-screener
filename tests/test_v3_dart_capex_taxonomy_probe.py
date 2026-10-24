@@ -144,10 +144,53 @@ class DARTCapexTaxonomyPilotTests(TestCase):
         self.assertEqual(report["completed_year_calls"], 1)
         self.assertEqual(report["candidate_numeric_rows"]["intangible"], 1)
         self.assertEqual(report["nonstandard_label_rows"]["intangible"], 1)
+        self.assertEqual(report["saved_supported_id_gap_causes"]["intangible"]["no_supported_flat_id"], 1)
+        self.assertEqual(report["candidate_numeric_account_id_families"]["intangible"]["nonstandard"], 1)
         self.assertTrue(report["no_new_fcf_scores_or_zero_imputation"])
         self.assertNotIn(STOCK, str(report))
         self.assertNotIn(RECEIPT, str(report))
         self.assertEqual(len(session.calls), 2)
+
+    def test_existing_exact_ifrs_id_null_reason_remains_unscored(self):
+        accepted = "ifrs-full_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities"
+        args = {"kind": "ppe", "stock": STOCK, "corp": CORP,
+                "year": YEAR, "scope": "CFS", "receipt": RECEIPT,
+                "cutoff": date(2026, 10, 23)}
+        self.assertEqual(p.supported_gap_cause([], **args),
+                         "no_supported_flat_id")
+        self.assertEqual(p.supported_gap_cause(
+            [row(accepted, "유형자산의 취득", "not_a_number")], **args),
+            "invalid_or_missing_amount")
+        self.assertEqual(p.supported_gap_cause(
+            [row(accepted, "유형자산의 취득", "100"),
+             row(accepted, "유형자산의 취득", "200")], **args),
+            "conflicting_duplicate_amounts")
+        self.assertEqual(p.supported_gap_cause(
+            [row(accepted, "유형자산의 취득", "-100")], **args),
+            "negative_purchase_sign_not_certified")
+        with self.assertRaises(p.TaxonomyPilotError):
+            p.supported_gap_cause(
+                [row(accepted, "유형자산의 취득", "100")], **args)
+        self.assertEqual(p.supported_gap_cause(
+            [row(accepted, "유형자산의 취득", "100",
+                 account_detail="dimensional-item")], **args),
+            "no_supported_flat_id")
+
+    def test_official_account_namespace_is_aggregate_only(self):
+        self.assertEqual(p.candidate_id_family(
+            "ifrs-full_PurchaseOfIntangibleAssetsClassifiedAsInvestingActivities",
+            "intangible"), "already_supported")
+        self.assertEqual(p.candidate_id_family(
+            "ifrs-full_UnreviewedAcquisitionCashflow", "intangible"),
+            "ifrs_other")
+        self.assertEqual(p.candidate_id_family(
+            "dart_ExampleAcquisitionTag", "ppe"), "dart_other")
+        self.assertEqual(p.candidate_id_family(
+            "-표준계정코드 미사용-", "ppe"), "nonstandard")
+        self.assertEqual(p.candidate_id_family(
+            "company-specific-private-tag", "ppe"), "other_or_missing")
+        self.assertEqual(p.candidate_id_family(
+            None, "intangible"), "other_or_missing")
 
     def test_provider_failures_never_print_source_urls_or_secrets(self):
         old = {"ppe_capex_krw": None, "intangible_capex_krw": None}

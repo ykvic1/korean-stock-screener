@@ -124,6 +124,67 @@ def summarize_candidates(rows, *, stock, corp, year, scope, receipt, cutoff, mis
     return info, observed
 
 
+SUPPORTED_GAP_CAUSES = (
+    "no_supported_flat_id",
+    "invalid_or_missing_amount",
+    "conflicting_duplicate_amounts",
+    "negative_purchase_sign_not_certified",
+)
+CANDIDATE_ID_FAMILIES = (
+    "already_supported", "ifrs_other", "dart_other",
+    "nonstandard", "other_or_missing",
+)
+
+
+def candidate_id_family(account_id, kind):
+    """Only fixed taxonomy classes are disclosed, never source identifiers."""
+    known = PPE_IDS if kind == "ppe" else INTANGIBLE_IDS
+    if account_id in known:
+        return "already_supported"
+    if account_id == "-표준계정코드 미사용-":
+        return "nonstandard"
+    if type(account_id) is str and re.fullmatch(r"ifrs(?:-full)?_[A-Za-z0-9]{2,120}", account_id):
+        return "ifrs_other"
+    if type(account_id) is str and re.fullmatch(r"dart_[A-Za-z0-9]{2,120}", account_id):
+        return "dart_other"
+    return "other_or_missing"
+
+
+def supported_gap_cause(rows, *, kind, stock, corp, year, scope, receipt, cutoff):
+    """Explain why an exact supported ID stayed NULL; never repair a figure.
+
+    The previous normalized annual observation must already be proven
+    identical. Ambiguous signs or duplicate amounts remain unscored.
+    """
+    known = PPE_IDS if kind == "ppe" else INTANGIBLE_IDS
+    amounts = []
+    for row in rows:
+        if (type(row) is not dict or row.get("account_id") not in known or
+            row.get("sj_div") != "CF" or
+            row.get("account_detail", "-") not in ("", "-") or
+            row.get("currency") != "KRW" or
+            row.get("corp_code") != corp or
+            ("stock_code" in row and row["stock_code"] != stock) or
+            str(row.get("bsns_year")) != str(year) or
+            row.get("reprt_code") != "11011" or
+            ("fs_div" in row and row["fs_div"] != scope) or
+            row.get("rcept_no") != receipt or
+            not _valid_receipt(receipt, year, cutoff)):
+            continue
+        amounts.append(_amount(row.get("thstrm_amount")))
+    if not amounts:
+        return "no_supported_flat_id"
+    if any(x is None for x in amounts):
+        return "invalid_or_missing_amount"
+    if len(set(amounts)) != 1:
+        return "conflicting_duplicate_amounts"
+    if amounts[0] < 0:
+        return "negative_purchase_sign_not_certified"
+    # Such a nonnegative observation should have been recognized by the
+    # frozen production normalizer. Fail closed on inconsistent evidence.
+    raise TaxonomyPilotError("unexplained_supported_amount_gap")
+
+
 def probe(state, market, catalog, major, *, key, session,
           limit=MAX_YEAR_CALLS):
     selected = targets(state, market, catalog, major, limit)
@@ -138,6 +199,8 @@ def probe(state, market, catalog, major, *, key, session,
         "nonstandard_label_rows": {"ppe": 0, "intangible": 0},
         "previously_supported_id_rows": {"ppe": 0, "intangible": 0},
         "issuer_years_with_candidate": {"ppe": 0, "intangible": 0},
+        "candidate_numeric_account_id_families": {k: {c: 0 for c in CANDIDATE_ID_FAMILIES} for k in ("ppe", "intangible")},
+        "saved_supported_id_gap_causes": {k: {c: 0 for c in SUPPORTED_GAP_CAUSES} for k in ("ppe", "intangible")},
         "no_new_fcf_scores_or_zero_imputation": True,
         "no_company_or_receipt_identity_emitted": True,
         "account_labels_not_accepted_as_accounting_proof": True,
@@ -207,6 +270,20 @@ def probe(state, market, catalog, major, *, key, session,
             result["nonstandard_label_rows"][name] += info[name]["nonstandard_rows"]
             result["previously_supported_id_rows"][name] += info[name]["already_supported_id_rows"]
             result["issuer_years_with_candidate"][name] += int(hits[name])
+            if old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is None:
+                cause = supported_gap_cause(
+                    rows, kind=name, stock=stock, corp=corp, year=year,
+                    scope=scope, receipt=old["annual_receipt_id"],
+                    cutoff=_day(state["asof"]))
+                result["saved_supported_id_gap_causes"][name][cause] += 1
+        for row in rows:
+            for name in candidate_fields(
+                    row, stock=stock, corp=corp, year=year, scope=scope,
+                    receipt=old["annual_receipt_id"],
+                    cutoff=_day(state["asof"])):
+                if old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is None and _amount(row.get("thstrm_amount")) is not None:
+                    family = candidate_id_family(row.get("account_id"), name)
+                    result["candidate_numeric_account_id_families"][name][family] += 1
     return result
 
 
