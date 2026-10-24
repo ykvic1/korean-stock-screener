@@ -6,11 +6,13 @@ on:
     paths:
       - v3_dart_capex_taxonomy_probe.py
       - tests/test_v3_dart_capex_taxonomy_probe.py
+      - v3_dart_capex_official_taxonomy.py
+      - tests/test_v3_dart_capex_official_taxonomy.py
       - .github/workflows/v3-dart-capex-taxonomy-pilot.yml
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Default dry run makes zero DART requests; live allows <=9 official calls'
+        description: 'Default dry run makes zero DART requests; live allows <=13 official calls'
         type: choice
         options: [dry_run, live]
         default: dry_run
@@ -43,8 +45,9 @@ jobs:
       - name: No-network verification of zero-vs-unknown, receipt, privacy and quotas
         run: |
           set -euo pipefail
-          python -m py_compile v3_dart_capex_taxonomy_probe.py
+          python -m py_compile v3_dart_capex_taxonomy_probe.py v3_dart_capex_official_taxonomy.py
           python -m unittest discover -s tests -p 'test_v3_dart_capex_taxonomy_probe.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_capex_official_taxonomy.py' -v
       - name: Install official DART HTTP library
         if: ${{ github.event_name == 'push' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
@@ -54,4 +57,4 @@ jobs:
           PILOT_MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
         run: |
           set -euo pipefail
-          python v3_dart_capex_taxonomy_probe.py --mode "$PILOT_MODE" --limit 8
+          python v3_dart_capex_taxonomy_probe.py --mode "$PILOT_MODE" --limit 8 --official-taxonomy
