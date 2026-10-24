@@ -14,13 +14,14 @@ import re
 from pathlib import Path
 
 from v3_dart_bulk_history import _amount, _day, _mapping, _valid_receipt
+from v3_dart_capex_official_taxonomy import official_candidates, novel_account_id
 from v3_dart_cashflow_enrichment import (
     INTANGIBLE_IDS, PPE_IDS, CashflowError,
     asof_members, normalize_year, verify_state,
 )
 
 MAX_YEAR_CALLS = 8
-MAX_TOTAL_CALLS = 9
+MAX_TOTAL_CALLS = 13  # four published taxonomy sections + mapping + eight annual statements
 PURCHASE = re.compile(r"취득|구입|매입|지급|purchase|acquisit|payment", re.I)
 EXCLUDE = re.compile(r"처분|매각|매도|회수|상환|유입|sale|disposal|proceeds|repayment", re.I)
 PPE_NAME = re.compile(r"유형\s*자산|건설중인자산|기계장치|토지|건물|property.*plant|equipment", re.I)
@@ -186,7 +187,7 @@ def supported_gap_cause(rows, *, kind, stock, corp, year, scope, receipt, cutoff
 
 
 def probe(state, market, catalog, major, *, key, session,
-          limit=MAX_YEAR_CALLS):
+          limit=MAX_YEAR_CALLS, check_official_taxonomy=False):
     selected = targets(state, market, catalog, major, limit)
     result = {
         "status": "official_capex_taxonomy_anonymous_pilot_only",
@@ -204,11 +205,26 @@ def probe(state, market, catalog, major, *, key, session,
         "no_new_fcf_scores_or_zero_imputation": True,
         "no_company_or_receipt_identity_emitted": True,
         "account_labels_not_accepted_as_accounting_proof": True,
+        "official_taxonomy_section_calls": 0,
+        "official_standard_acquisition_id_counts": {"ppe": 0, "intangible": 0},
+        "official_taxonomy_novel_nonnegative_numeric_rows": {"ppe": 0, "intangible": 0},
+        "official_taxonomy_novel_negative_numeric_rows": {"ppe": 0, "intangible": 0},
+        "official_taxonomy_novel_issuer_years": {"ppe": 0, "intangible": 0},
+        "official_taxonomy_novel_matching_ids": {"ppe": [], "intangible": []},
+        "official_taxonomy_match_does_not_certify_sign_or_fcf": True,
     }
     if not selected:
         return result
     if type(key) is not str or len(key) < 20:
         raise TaxonomyPilotError("official_key_unavailable")
+    official = None
+    matched_ids = {"ppe": set(), "intangible": set()}
+    if check_official_taxonomy:
+        official = official_candidates(key, session)
+        result["official_taxonomy_section_calls"] = 4
+        result["provider_calls"] += 4
+        for name in ("ppe", "intangible"):
+            result["official_standard_acquisition_id_counts"][name] = len(official[name])
     _, members = asof_members(market, catalog, major)
     # Mapping is derived only from official corpCode.xml, never name guesses.
     try:
@@ -276,6 +292,7 @@ def probe(state, market, catalog, major, *, key, session,
                     scope=scope, receipt=old["annual_receipt_id"],
                     cutoff=_day(state["asof"]))
                 result["saved_supported_id_gap_causes"][name][cause] += 1
+        year_matches = {"ppe": set(), "intangible": set()}
         for row in rows:
             for name in candidate_fields(
                     row, stock=stock, corp=corp, year=year, scope=scope,
@@ -284,6 +301,18 @@ def probe(state, market, catalog, major, *, key, session,
                 if old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is None and _amount(row.get("thstrm_amount")) is not None:
                     family = candidate_id_family(row.get("account_id"), name)
                     result["candidate_numeric_account_id_families"][name][family] += 1
+                    if official is not None and novel_account_id(row.get("account_id"), name, official):
+                        amount = _amount(row.get("thstrm_amount"))
+                        if amount >= 0:
+                            result["official_taxonomy_novel_nonnegative_numeric_rows"][name] += 1
+                            matched_ids[name].add(row["account_id"])
+                            year_matches[name].add(row["account_id"])
+                        else:
+                            result["official_taxonomy_novel_negative_numeric_rows"][name] += 1
+        for name in ("ppe", "intangible"):
+            result["official_taxonomy_novel_issuer_years"][name] += int(bool(year_matches[name]))
+    for name in ("ppe", "intangible"):
+        result["official_taxonomy_novel_matching_ids"][name] = sorted(matched_ids[name])
     return result
 
 
@@ -295,6 +324,8 @@ def main(argv=None):
     parser.add_argument("--major", default="docs/v3-dart-bulk-history.json")
     parser.add_argument("--mode", choices=("dry_run", "live"), default="dry_run")
     parser.add_argument("--limit", type=int, default=MAX_YEAR_CALLS)
+    parser.add_argument("--official-taxonomy", action="store_true",
+                        help="Cross-check against four official FSS standard CF taxonomies")
     args = parser.parse_args(argv)
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
@@ -309,7 +340,8 @@ def main(argv=None):
     import requests
     report = probe(state, market, catalog, major,
                    key=os.getenv("DART_API_KEY", ""),
-                   session=requests.Session(), limit=args.limit)
+                   session=requests.Session(), limit=args.limit,
+                   check_official_taxonomy=args.official_taxonomy)
     print(json.dumps(report, sort_keys=True, ensure_ascii=False))
 
 
