@@ -14,7 +14,10 @@ import re
 from pathlib import Path
 
 from v3_dart_bulk_history import _amount, _day, _mapping, _valid_receipt
-from v3_dart_capex_official_taxonomy import official_candidates, novel_account_id
+from v3_dart_capex_official_taxonomy import (
+    COMPONENT_GROUP_STATUSES, component_evidence_status,
+    official_candidates, novel_account_id,
+)
 from v3_dart_cashflow_enrichment import (
     INTANGIBLE_IDS, PPE_IDS, CashflowError,
     asof_members, normalize_year, verify_state,
@@ -212,6 +215,10 @@ def probe(state, market, catalog, major, *, key, session,
         "official_taxonomy_novel_issuer_years": {"ppe": 0, "intangible": 0},
         "official_taxonomy_novel_matching_ids": {"ppe": [], "intangible": []},
         "official_taxonomy_match_does_not_certify_sign_or_fcf": True,
+        "official_component_structure": {
+            name: {status: 0 for status in COMPONENT_GROUP_STATUSES}
+            for name in ("ppe", "intangible")},
+        "component_evidence_never_assumed_complete_or_additive": True,
     }
     if not selected:
         return result
@@ -293,24 +300,33 @@ def probe(state, market, catalog, major, *, key, session,
                     cutoff=_day(state["asof"]))
                 result["saved_supported_id_gap_causes"][name][cause] += 1
         year_matches = {"ppe": set(), "intangible": set()}
+        component_rows = {"ppe": [], "intangible": []}
         for row in rows:
             for name in candidate_fields(
                     row, stock=stock, corp=corp, year=year, scope=scope,
                     receipt=old["annual_receipt_id"],
                     cutoff=_day(state["asof"])):
-                if old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is None and _amount(row.get("thstrm_amount")) is not None:
+                if old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is not None:
+                    continue
+                amount = _amount(row.get("thstrm_amount"))
+                if amount is not None:
                     family = candidate_id_family(row.get("account_id"), name)
                     result["candidate_numeric_account_id_families"][name][family] += 1
-                    if official is not None and novel_account_id(row.get("account_id"), name, official):
-                        amount = _amount(row.get("thstrm_amount"))
-                        if amount >= 0:
-                            result["official_taxonomy_novel_nonnegative_numeric_rows"][name] += 1
-                            matched_ids[name].add(row["account_id"])
-                            year_matches[name].add(row["account_id"])
-                        else:
-                            result["official_taxonomy_novel_negative_numeric_rows"][name] += 1
+                if official is not None and novel_account_id(row.get("account_id"), name, official):
+                    component_rows[name].append((row["account_id"], amount))
+                    if amount is None:
+                        continue
+                    if amount >= 0:
+                        result["official_taxonomy_novel_nonnegative_numeric_rows"][name] += 1
+                        matched_ids[name].add(row["account_id"])
+                        year_matches[name].add(row["account_id"])
+                    else:
+                        result["official_taxonomy_novel_negative_numeric_rows"][name] += 1
         for name in ("ppe", "intangible"):
             result["official_taxonomy_novel_issuer_years"][name] += int(bool(year_matches[name]))
+            if official is not None and old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is None:
+                status = component_evidence_status(component_rows[name], name)
+                result["official_component_structure"][name][status] += 1
     for name in ("ppe", "intangible"):
         result["official_taxonomy_novel_matching_ids"][name] = sorted(matched_ids[name])
     return result
