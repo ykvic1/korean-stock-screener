@@ -35,7 +35,7 @@ from v3_krx_derived_backfill import (
     CHECKPOINT as SOURCE_CHECKPOINT, _manifest as source_validate,
     history_candidates,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 
 SCHEMA = "v3-private-dart-krx-monthly-ticker-date-candidates-v1"
@@ -371,6 +371,52 @@ def verify_private_risk_archive(storage):
 
 
 
+# Only these hardcoded codes may leave the private-data workflow.  No vendor,
+# issuer, receipt, token, URL, or arbitrary exception text can reach stdout.
+SAFE_FAILURE_REASONS = frozenset({
+    "dart_category_missing_receipts",
+    "dart_category_pagination_changed",
+    "dart_month_category_unbounded",
+    "dart_receipt_duplicate_across_pages",
+    "dart_receipt_outside_complete_month",
+    "immutable_private_monthly_crosscheck_changed",
+    "invalid_dart_source_receipt_cursor",
+    "invalid_krx_anomaly_day",
+    "invalid_krx_anomaly_issuer",
+    "invalid_krx_source_or_risk_checkpoint",
+    "invalid_or_incomplete_private_dart_month",
+    "invalid_private_match_checkpoint",
+    "invalid_private_risk_baseline",
+    "invalid_private_risk_file_name",
+    "invalid_private_risk_inventory",
+    "invalid_risk_review_cursor",
+    "misaligned_private_risk_interval",
+    "missing_private_crosscheck_source",
+    "private_match_checkpoint_not_read_back",
+    "private_monthly_crosscheck_not_read_back",
+    "private_monthly_match_tail_changed",
+    "private_risk_baseline_tail_changed",
+    "private_risk_flag_count_mismatch",
+    "private_risk_inventory_gap_or_overlap",
+    "private_risk_inventory_incomplete",
+    "private_risk_inventory_unavailable",
+    "private_risk_tail_changed",
+    "public_or_untrusted_private_archive",
+    "risk_baseline_calendar_mismatch",
+    "source_cursors_changed_during_match",
+    "source_cursors_changed_during_risk_preflight",
+    "unmapped_private_risk_interval",
+})
+
+
+def _safe_failure_code(error):
+    if (type(error) is CrosscheckError and len(error.args) == 1
+        and type(error.args[0]) is str
+        and error.args[0] in SAFE_FAILURE_REASONS):
+        return error.args[0]
+    return "unclassified_crosscheck_validation_failure"
+
+
 def main():
     if (os.getenv("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO
         or len(os.getenv("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20):
@@ -382,6 +428,10 @@ def main():
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         result = (verify_private_risk_archive(store)
                   if sys.argv[1:] == ["--risk-preflight"] else run(store))
+    except CrosscheckError as error:
+        raise SystemExit("blocked: private quality " + _safe_failure_code(error)) from None
+    except PrivateHistoryError:
+        raise SystemExit("blocked: private storage transport or size guard") from None
     except Exception:
         raise SystemExit("blocked: private DART KRX candidate review validation failed") from None
     print(json.dumps(result, sort_keys=True))

@@ -227,6 +227,30 @@ class CrosscheckTests(unittest.TestCase):
                     cross.CrosscheckError,"source_cursors_changed_during_risk_preflight"):
                 cross.verify_private_risk_archive(store)
 
+    def test_live_failure_diagnostics_are_static_and_hide_private_text(self):
+        self.assertEqual(
+            cross._safe_failure_code(cross.CrosscheckError(
+                "private_risk_inventory_gap_or_overlap")),
+            "private_risk_inventory_gap_or_overlap")
+        self.assertEqual(
+            cross._safe_failure_code(cross.CrosscheckError(
+                "secret-token-in-vendor-response")),
+            "unclassified_crosscheck_validation_failure")
+        self.assertEqual(
+            cross._safe_failure_code(ValueError("untrusted receipt body")),
+            "unclassified_crosscheck_validation_failure")
+        with (patch.dict(cross.os.environ, {
+                "V3_PRIVATE_ARCHIVE_REPO": cross.PRIVATE_REPO,
+                "V3_PRIVATE_ARCHIVE_TOKEN": "x" * 24}),
+              patch("sys.argv", ["crosscheck", "--risk-preflight"]),
+              patch.object(cross, "PrivateGitStorage", return_value=Private()),
+              patch.object(cross, "verify_private_risk_archive", side_effect=
+                           cross.CrosscheckError("invalid_private_risk_inventory"))):
+            with self.assertRaises(SystemExit) as raised:
+                cross.main()
+        self.assertEqual(str(raised.exception),
+                         "blocked: private quality invalid_private_risk_inventory")
+
     def test_workflow_is_private_and_derived_only_with_untrusted_event_gate(self):
         base=Path(__file__).resolve().parents[1]
         workflow=(base/".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
