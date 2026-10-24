@@ -6,11 +6,11 @@
       "004100"
     ],
     "confirmed_count": 0,
-    "entered": [
-      "004100"
-    ],
+    "entered": [],
     "exited": [],
-    "updated": []
+    "updated": [
+      "004100"
+    ]
   },
   {
     "date": "2026-10-22",
