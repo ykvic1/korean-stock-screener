@@ -314,12 +314,17 @@ function applyCurrentPriceReplay(model,source){
 const CURRENT_COLUMNS=Object.freeze([
  '종목코드','종목명','시장','가격자료기준일','거래량_OBV_잠정점수',
  '거래량_OBV_산출배점','기술_잠정점수','기술_산출배점',
- '재무_잠정점수','밸류에이션_잠정점수','산업_잠정점수',
+ '재무_잠정점수','밸류에이션_잠정점수',
  '모멘텀_잠정점수','모멘텀_산출배점',
  '관측잠정합계_100점중','산출가능배점_100점중',
  '미확보배점_100점중','정식투자점수','투자등급',
  '재무_산출배점','가치_산출배점',
  'FCF자산3년_잠정점수','FCF수익률_잠정점수'
+]);
+// Accept the old CSV only during an atomic hourly publisher transition.
+// The superseded industry column MUST be blank; it never creates points.
+const LEGACY_CURRENT_COLUMNS=Object.freeze([
+ ...CURRENT_COLUMNS.slice(0,10),'산업_잠정점수',...CURRENT_COLUMNS.slice(10)
 ]);
 function parseObservedCsv(input){
  if(typeof input!=='string'||input.length>2000000||input.length<50)return null;
@@ -358,18 +363,23 @@ function applyCurrentObservedFinance(model,summary,csv){
     Object.keys(summary.area_budgets).length!==PILLARS.length||
     PILLARS.some(([key])=>summary.area_budgets[key]!==WEIGHTS[key])||
     !summary.observed_issuer_counts||
-    summary.observed_issuer_counts.industry!==0)return 0;
+    (summary.observed_issuer_counts.industry!==undefined&&
+     summary.observed_issuer_counts.industry!==0))return 0;
  const rows=parseObservedCsv(csv);
- if(!rows||rows.length!==model.marketEligible+1||
-    rows[0].length!==CURRENT_COLUMNS.length||
-    !rows[0].every((name,i)=>name===CURRENT_COLUMNS[i]))return 0;
+ if(!rows||rows.length!==model.marketEligible+1)return 0;
+ const isNew=rows[0].length===CURRENT_COLUMNS.length&&
+   rows[0].every((name,i)=>name===CURRENT_COLUMNS[i]);
+ const isLegacy=rows[0].length===LEGACY_CURRENT_COLUMNS.length&&
+   rows[0].every((name,i)=>name===LEGACY_CURRENT_COLUMNS[i]);
+ if(!isNew&&!isLegacy)return 0;
+ const activeColumns=isNew?CURRENT_COLUMNS:LEGACY_CURRENT_COLUMNS;
  const number=(value,max)=>{
   if(value==='')return null;
   if(typeof value!=='string'||!value.trim()||!Number.isFinite(Number(value)))return NaN;
   const v=Number(value);
   return v>=0&&v<=max?v:NaN;
  };
- const columns=Object.fromEntries(CURRENT_COLUMNS.map((name,i)=>[name,i]));
+ const columns=Object.fromEntries(activeColumns.map((name,i)=>[name,i]));
  const idx=name=>columns[name];
  const stockMap=new Map();
  for(const x of model.rows){
@@ -379,14 +389,14 @@ function applyCurrentObservedFinance(model,summary,csv){
  const proposed=[],seen=new Set();
  let financialCount=0,valuationCount=0;
  for(const record of rows.slice(1)){
-  if(record.length!==CURRENT_COLUMNS.length)return 0;
+  if(record.length!==activeColumns.length)return 0;
   const field=name=>record[idx(name)];
   const code=field('종목코드'),market=field('시장');
   if(!TODAY_CODE.test(code)||seen.has(code)||
      !['KOSPI','KOSDAQ'].includes(market)||
      field('가격자료기준일')!==model.date||
      field('정식투자점수')!==''||
-     field('산업_잠정점수')!==''||
+     (isLegacy&&field('산업_잠정점수')!=='')||
      field('투자등급')!=='미검증 연구용')return 0;
   seen.add(code);
   const financial=number(field('재무_잠정점수'),WEIGHTS.financial);
@@ -1140,9 +1150,64 @@ function industryEvidenceView(raw,asof){
  return {html,rows,coverage:raw.dart_current_industry_codes_observed,
          matched:raw.mapped_industry_issuer_earnings_two_year_matched};
 }
+// A five-pillar data availability audit; counts are evidence, never earned points.
+function fiveAreaCoverageView(raw,asof,listed){
+ if(!raw||raw.schema!=='v3-current-day-all-listed-observed-plus-dart-fcf-0.3'||
+  !validDate(asof)||raw.asof!==asof||
+  !Number.isInteger(listed)||listed<100||raw.listed_total!==listed||
+  raw.certified_100point_count!==0||raw.missing_weight_is_not_zero!==true||
+  raw.not_an_investment_ranking!==true||!raw.area_budgets||
+  !raw.area_available_weight_distribution||!raw.observed_issuer_counts||
+  !raw.complete_area_issuer_counts||!raw.factor_observed_weight_ceiling||
+  !raw.factor_unobserved_weight_gap||
+  Object.keys(raw.area_budgets).length!==PILLARS.length)return null;
+ if(raw.observed_issuer_counts.industry!==undefined&&
+    raw.observed_issuer_counts.industry!==0)return null;
+ let weightCeiling=0,missingWeight=0;
+ const lines=[];
+ for(const [area,title] of PILLARS){
+  const budget=WEIGHTS[area],dist=raw.area_available_weight_distribution[area];
+  const count=raw.observed_issuer_counts[area];
+  if(raw.area_budgets[area]!==budget||
+    !dist||Array.isArray(dist)||typeof dist!=='object'||
+    !Number.isInteger(count)||count<0||count>listed)return null;
+  let total=0,observed=0,ceiling=0;
+  for(const [weight,value] of Object.entries(dist)){
+   if(!/^(0|[1-9][0-9]*)$/.test(weight)||
+     Number(weight)>budget||
+     !Number.isInteger(value)||value<0||value>listed)return null;
+   total+=value;
+   if(Number(weight)>0)observed+=value;
+   if(value>0)ceiling=Math.max(ceiling,Number(weight));
+  }
+  const complete=dist[String(budget)]||0;
+  if(total!==listed||observed!==count||
+    raw.complete_area_issuer_counts[area]!==complete||
+    raw.factor_observed_weight_ceiling[area]!==ceiling||
+    raw.factor_unobserved_weight_gap[area]!==budget-ceiling)return null;
+  weightCeiling+=ceiling;missingWeight+=budget-ceiling;
+  lines.push('<tr><th scope="row">'+esc(title)+'</th>'+
+    '<td>'+count.toLocaleString('ko-KR')+' / '+listed.toLocaleString('ko-KR')+
+    ' <small>('+((count/listed)*100).toFixed(1)+'%)</small></td>'+
+    '<td>'+complete.toLocaleString('ko-KR')+'</td>'+
+    '<td>'+ceiling+' / '+budget+'점</td></tr>');
+ }
+ if(weightCeiling!==raw.highest_currently_observable_weight||
+   weightCeiling+missingWeight!==100)return null;
+ return '<div class="u-coverage-audit"><div class="u-coverage-top">'+
+  '<strong>5개 영역 실제 데이터 확보</strong>'+
+  '<span>현재 관측 가능한 배점 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
+  missingWeight+'점</b></span></div>'+
+  '<div class="u-coverage-scroll"><table class="u-coverage-table"><thead><tr>'+
+  '<th scope="col">영역</th><th scope="col">관측 기업 / 상장 전체</th>'+
+  '<th scope="col">영역 전체 확보</th><th scope="col">관측 가능 배점</th>'+
+  '</tr></thead><tbody>'+lines.join('')+'</tbody></table></div>'+
+  '<p class="u-source">관측 가능 배점은 검증된 투자점수나 개별 종목 실제 획득점수가 아닙니다. '+
+  '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p></div>';
+}
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -1360,6 +1425,9 @@ async function load(){
   // Reject the entire overlay if any header, coverage, identity or subtotal
   // differs. Never double-add its FCF components to the already summed area.
   applyCurrentObservedFinance(model,responses[16],observedCsv);
+  if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
+   fiveAreaCoverageView(responses[16],model.date,model.marketEligible)||
+   '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';
   const industry=industryEvidenceView(responses[12],model.date);
   const industryPrice=industryPriceEvidenceView(responses[15],model.date,model.marketEligible);
   applyIndustryReference(model,responses[17],industryPrice);
