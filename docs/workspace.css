@@ -271,3 +271,21 @@ html,body{max-width:100%}
  .u-stock .u-scoresix span[data-pillar="volume"] small{font-size:11px}
  .u-stock-main>span{min-width:0}
 }
+
+/* Informational KSIC group strength: no extra score factor or page overflow. */
+.u-sector-info{
+ display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;
+ width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+ margin:8px 0;padding:10px 11px;
+ background:#132a2b;border:1px solid #2b5050;border-radius:9px;
+ color:#def4e9;font-size:12px;line-height:1.4;overflow-wrap:anywhere;
+}
+.u-sector-info>span{min-width:0;max-width:100%;font-variant-numeric:tabular-nums}
+.u-sector-info>span b{color:#a0d8ba;font-weight:600}
+.u-sector-info .u-sector-label{flex-basis:100%;font-size:13px}
+.u-sector-info>small{flex-basis:100%;color:#abc8c5;font-size:11px}
+.u-stock .u-sector-info{margin-block:7px}
+@media(max-width:480px){
+ .u-sector-info{gap:5px 10px;padding:9px;font-size:11px}
+ .u-sector-info .u-sector-label{font-size:12px}
+}
