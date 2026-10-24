@@ -1,13 +1,33 @@
 /* Unified single-surface Korean-stock research. Source-aware, no fabricated V3 totals. */
 (function(root){
 'use strict';
-const VERSION='v3-unified-research-workspace-0.3-real-volume-20';
+const VERSION='v3-unified-research-workspace-0.4-informational-sector-rs';
 const WEIGHTS=Object.freeze({volume:20,technical:25,financial:20,valuation:20,momentum:15});
 const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['momentum','모멘텀']]);
-const INDUSTRY_COMPONENTS=Object.freeze([
- ['초기 순환매 신호',5],['업황 바닥 통과·실적 개선',4],
- ['개선기업 확산',3],['과열·쏠림 위험관리',3]
-]);
+const KSIC2_NAMES=Object.freeze({
+ '01':'농업','02':'임업','03':'어업','05':'석탄·원유·천연가스 광업',
+ '06':'금속광업','07':'비금속광물 광업','08':'광업 지원서비스',
+ '10':'식료품','11':'음료','12':'담배','13':'섬유제품','14':'의복·액세서리',
+ '15':'가죽·가방·신발','16':'목재·나무제품','17':'펄프·종이',
+ '18':'인쇄·기록매체','19':'석유정제품','20':'화학제품(의약품 제외)',
+ '21':'의약품','22':'고무·플라스틱','23':'비금속 광물제품','24':'1차 금속',
+ '25':'금속가공제품','26':'전자부품·컴퓨터·통신장비','27':'의료·정밀·광학기기',
+ '28':'전기장비','29':'기타 기계·장비','30':'자동차·트레일러','31':'기타 운송장비',
+ '32':'가구','33':'기타 제품','34':'산업용 기계·장비 수리','35':'전기·가스',
+ '36':'수도','37':'하수·폐수 처리','38':'폐기물 처리·원료재생',
+ '39':'환경 정화·복원','41':'종합 건설','42':'전문직별 공사',
+ '45':'자동차·부품 판매','46':'도매·상품중개','47':'소매(자동차 제외)',
+ '49':'육상 운송','50':'수상 운송','51':'항공 운송','52':'창고·운송지원',
+ '55':'숙박','56':'음식점·주점','58':'출판','59':'영상·음향 콘텐츠',
+ '60':'방송','61':'통신','62':'소프트웨어·시스템통합','63':'정보서비스',
+ '64':'금융','65':'보험·연금','66':'금융·보험 관련 서비스',
+ '68':'부동산','69':'임대(부동산 제외)','70':'연구개발','71':'전문서비스',
+ '72':'엔지니어링·과학기술 서비스','73':'기타 전문·기술 서비스',
+ '74':'사업시설 관리·조경','75':'사업지원 서비스','76':'임대업',
+ '84':'공공행정','85':'교육','86':'보건','87':'사회복지',
+ '90':'창작·예술·여가','91':'스포츠·오락','94':'협회·단체',
+ '95':'수리','96':'기타 개인서비스'
+});
 const VOLUME_COMPONENTS=Object.freeze([
  ['최근20일/이전40일 거래량',6,'sustained_volume'],
  ['60거래일 OBV 방향',6,'obv_60_direction'],
@@ -498,12 +518,6 @@ function researchComposite(r){
   observedPillars:pillars.filter(p=>p.available>0).length,
   complete:available===100,provisional:true,pillars};
 }
-function industryParts(){
- return '<div class="u-pillars">'+INDUSTRY_COMPONENTS.map(([name,max])=>
-  '<div class="u-pillar u-factor-unverified"><span>'+esc(name)+
-  ' <small>/'+max+'</small></span><b>— · 원천 미검증</b></div>').join('')+
-  '</div>';
-}
 function riskState(x,core){
  const r=x.r;
  const distance=core.stopDistance(r);
@@ -877,8 +891,8 @@ function industryPriceEvidenceView(raw,asof,listed){
     !raw.source_sha256||Object.keys(raw.source_sha256).length!==3||
     Object.values(raw.source_sha256).some(v=>typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v)))
     return null;
- let total=0,paired=0,watch=0;
- const seen=new Set(),rows=[];
+ let total=0,paired=0,watch=0,observed120=0;
+ const seen=new Set(),rows=[],byKey=new Map();
  const labels=['insufficient_sample','early_relative_recovery_watch',
                'relative20_extension_caution','no_early_recovery_pattern_observed'];
  for(const g of raw.groups){
@@ -924,6 +938,26 @@ function industryPriceEvidenceView(raw,asof,listed){
           (g.positive_relative20_issuers_sample+g.current_listed_issuers-n)/
             g.current_listed_issuers)>0.000002)return null;
    }
+   // Older same-day files have no 120-day fields; leave them explicitly unknown.
+   const has120=['relative120_issuer_count','missing_relative120_issuer_count',
+     'observed_120_coverage','median_market_relative_120pct_sample']
+     .some(k=>Object.prototype.hasOwnProperty.call(g,k));
+   let n120=0,m120=null;
+   if(has120){
+     n120=g.relative120_issuer_count;
+     m120=g.median_market_relative_120pct_sample;
+     if(!Number.isInteger(n120)||n120<0||n120>g.same_day_priced_issuers||
+        g.missing_relative120_issuer_count!==g.current_listed_issuers-n120||
+        !finite(g.observed_120_coverage)||
+        Math.abs(g.observed_120_coverage-n120/g.current_listed_issuers)>0.000002||
+        (n120<3?m120!==null:!finite(m120)||m120< -100||m120>1000))return null;
+   }
+   observed120+=n120;
+   byKey.set(key,{
+    market:g.market,code:g.current_dart_industry_prefix_2,
+    sample20_60:n, sample120:n120,listed:g.current_listed_issuers,
+    m20:metrics[0],m60:metrics[1],m120
+   });
    const eligible=n>=10&&n/g.current_listed_issuers>=.75;
    const early=g.early_rotation_research_state==='early_relative_recovery_watch';
    if(early&&(!eligible||metrics[0]<=0||metrics[1]>0||
@@ -933,28 +967,94 @@ function industryPriceEvidenceView(raw,asof,listed){
    if(early)rows.push({
      market:g.market,code:g.current_dart_industry_prefix_2,
      n,listed:g.current_listed_issuers,m20:metrics[0],m60:metrics[1],
-     lower:breadth[1],upper:breadth[2]
+     m120, n120,lower:breadth[1],upper:breadth[2]
    });
  }
  if(total!==listed||paired!==raw.paired_20_60_observations||
-    watch!==raw.groups_early_recovery_watch)return null;
+    watch!==raw.groups_early_recovery_watch||
+    (raw.relative120_observations!==undefined&&
+      raw.relative120_observations!==observed120))return null;
  rows.sort((a,b)=>b.n-a.n||a.market.localeCompare(b.market)||
            a.code.localeCompare(b.code));
- const strength=v=>(v>0?'+':'')+v.toFixed(1)+'%';
+ const strength=v=>finite(v)?((v>0?'+':'')+v.toFixed(1)+'%p'):'미확인';
  const html='<h3>업종 상대강도 회복 관찰 · 동일 시장일</h3>'+
   '<p class="u-muted">현재 상장 '+total+'개 중 20·60일 상대강도 동시 확보 '+
   paired+'개 · 관찰 후보 '+watch+'개 업종코드 그룹. 지수 대비 상대강도 표본 중앙값 기준으로 20일 양수·60일 0 이하인 그룹을 연구용으로 추렸습니다. <strong>매수 순위나 산업 15점이 아닙니다.</strong></p>'+
   (rows.length?'<div class="u-scroller"><table><thead><tr>'+
   '<th>시장 · 코드</th><th>관측/전체</th><th>20일 상대강도</th>'+
-  '<th>60일 상대강도</th><th>전체 강세비율 가능한 범위</th></tr></thead><tbody>'+
+  '<th>60일 상대강도</th><th>120일 상대강도</th><th>전체 강세비율 가능한 범위</th></tr></thead><tbody>'+
   rows.slice(0,12).map(g=>
    '<tr><th>'+esc(g.market)+' · '+esc(g.code)+'</th><td>'+g.n+'/'+
    g.listed+'</td><td>'+strength(g.m20)+'</td><td>'+strength(g.m60)+
-   '</td><td>'+(g.lower*100).toFixed(0)+'~'+(g.upper*100).toFixed(0)+
+   '</td><td>'+strength(g.m120)+'</td><td>'+(g.lower*100).toFixed(0)+'~'+(g.upper*100).toFixed(0)+
    '%</td></tr>').join('')+'</tbody></table></div>':
    '<p class="u-muted">현재 엄격한 표본 조건을 충족한 상대강도 회복 관찰 후보가 없습니다.</p>')+
   '<p class="u-muted">* 업종은 현재 DART 회사업종코드 2자리 분류입니다. 과거 구성종목, 수정주가 및 지수별 거래일은 별도 인증 전이며 후보 판정은 매매 신호가 아닙니다.</p>';
- return {html,paired,watch};
+ return {html,paired,watch,byKey,observed120};
+}
+// The current OpenDART code is an issuer classification, not a KRX
+// historical/index sector. Validate the entire issuer census atomically.
+function applyIndustryReference(model,raw,groupEvidence){
+ if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
+    !Number.isInteger(model.marketEligible)||model.marketEligible<100||
+    !raw||raw.schema!=='v3-dart-current-listed-industry-code-reference-0.1'||
+    raw.asof!==model.date||raw.listed_total!==model.marketEligible||
+    raw.observed_industry_codes!==model.marketEligible||
+    raw.missing_industry_codes!==0||raw.not_yet_attempted!==0||
+    raw.official_krx_sector_membership_verified!==false||
+    raw.past_constituent_membership_pit_verified!==false||
+    raw.industry_5433_points_authorized!==false||
+    raw.investable_v3_score_certified!==false||
+    typeof raw.source_records_digest!=='string'||
+    !/^[a-f0-9]{64}$/.test(raw.source_records_digest)||
+    !raw.records||typeof raw.records!=='object'||Array.isArray(raw.records)||
+    Object.keys(raw.records).length!==model.marketEligible)return null;
+ const groups=groupEvidence?.byKey instanceof Map?groupEvidence.byKey:null;
+ const classification=new Map();
+ for(const [code,record] of Object.entries(raw.records)){
+   if(!TODAY_CODE.test(code)||!record||
+      !['KOSPI','KOSDAQ'].includes(record.market)||
+      record.status!=='observed'||record.origin!=='OpenDART_company_json'||
+      record.historical_pit_verified!==false||
+      typeof record.industry_code!=='string'||
+      !/^[0-9]{2,8}$/.test(record.industry_code)||
+      !validDate(record.checked_on)||
+      Date.parse(record.checked_on)>Date.parse(model.date)+2*86400000||
+      Date.parse(record.checked_on)<Date.parse(model.date)-45*86400000||
+      typeof record.corporation_identity_digest!=='string'||
+      !/^[a-f0-9]{64}$/.test(record.corporation_identity_digest))return null;
+   classification.set(code,record);
+ }
+ const updates=[];
+ for(const x of model.rows){
+   const record=classification.get(x?.r?.code);
+   if(!record||record.market!==x.r.market)return null;
+   const prefix=record.industry_code.slice(0,2);
+   updates.push([x.r,{
+     code:record.industry_code,prefix,
+     name:KSIC2_NAMES[prefix]||null,
+     group:groups?.get(record.market+':'+prefix)||null,
+     kind:'current_dart_ksic2_not_krx_index_sector'
+   }]);
+ }
+ for(const [row,sector] of updates)row.v3_sector_research=sector;
+ return {mapped:updates.length,strengthAvailable:updates.filter(x=>x[1].group!==null).length};
+}
+function sectorEvidenceMarkup(r,detail=false){
+ const s=r?.v3_sector_research;
+ const title=s?(s.name||'업종명 미확인')+' · DART '+s.prefix:'업종 미확인';
+ const g=s?.group;
+ const strength=v=>finite(v)?(v>0?'+':'')+v.toFixed(1)+'%p':'미확인';
+ const sample=g?' · 관측 20/60일 '+g.sample20_60+'/'+g.listed+
+   ' · 120일 '+g.sample120+'/'+g.listed:' · 동일일 업종 강도 미확인';
+ return '<div class="u-sector-info" aria-label="업종 시장대비 상대강도 · 점수 미포함">'+
+   '<span class="u-sector-label"><b>업종</b> '+esc(title)+'</span>'+
+   '<span><b>시장대비 20일</b> '+strength(g?.m20)+'</span>'+
+   '<span><b>60일</b> '+strength(g?.m60)+'</span>'+
+   '<span><b>120일</b> '+strength(g?.m120)+'</span>'+
+   (detail?'<small>현재 OpenDART 업종코드 2자리 그룹의 상대강도 중앙값'+sample+
+     '. 같은 시장지수 대비 %p 차이. 과거 업종 구성·수정주가·지수 거래일 독립 검증 전이며 점수 배점 제외.</small>':'')+
+   '</div>';
 }
 function industryEvidenceView(raw,asof){
  if(!raw||raw.schema!=='v3-observed-dart-current-sector-profit-sample-0.1'||
@@ -1041,7 +1141,7 @@ function industryEvidenceView(raw,asof){
          matched:raw.mapped_industry_issuer_earnings_two_year_matched};
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,INDUSTRY_COMPONENTS,industryParts,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1104,9 +1204,9 @@ function renderDetails(x){
  ' · 미검증</b> · 산출 가능 '+composite.available+'/100 · 미확보 '+
  composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
  '<div class="u-pillars">'+part+'</div>'+
- '<h3>산업 순환매 참고지표 · 정식 100점 합계 미포함</h3>'+
- industryParts()+
- '<p class="u-muted">이 5·4·3·3 구성은 과거 산업 15점 연구 설계의 참고자료이며 현행 5영역(20·25·20·20·15) 잠정 합계에 더하지 않습니다. 업종별 실제 이력 및 시점 검증을 통과하기 전까지 투자점수로 사용하지 않습니다.</p>'+
+ '<h3>소속 업종 · 시장 대비 20·60·120일 상대강도</h3>'+
+ sectorEvidenceMarkup(r,true)+
+ '<p class="u-muted">산업·업종은 5개 점수 영역의 배점에 포함하지 않습니다. DART 업종코드 기준 그룹 표본값이며 실제 KRX 업종지수 수익률로 오해하지 마세요.</p>'+
  '<h3>거래량·OBV /20 · 실제 자료 관측</h3>'+
  '<p class="u-muted">'+esc(volumeStatus(pillars.find(p=>p.key==='volume')))+'</p>'+
  volumeParts(r)+
@@ -1179,6 +1279,7 @@ function draw(){
    '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
    x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
    '서로 다른 확보 배점은 직접 비교할 수 없습니다.</p>'+
+   sectorEvidenceMarkup(r)+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
    '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+
@@ -1217,7 +1318,7 @@ function present(data){
   '당일 CSV 재무 잠정점수 표시 '+data.rows.filter(x=>
     x.r.v3_same_day_observed_finance?.financial?.available>0).length+
   '종목(동일 기준일 확인) · 4개년 재무 참고 '+data.rows.filter(x=>x.fourYearRef!==null).length+
-  '종목 (재무 20점 확정 아님). 산업은 점수에서 제외하고 재무·가치·모멘텀에 각각 5점씩 배분했습니다. 추가 배점은 검증된 신규 근거가 확보되기 전까지 미확보로 남습니다. 업종 관측은 점수 외 참고자료입니다.'+
+  '종목 (재무 20점 확정 아님). 업종은 100점 배점에서 제외하고, 종목별 현재 DART 업종과 20·60·120일 시장대비 상대강도를 점수 외 참고자료로 표시합니다. 확인되지 않은 수치는 미확인으로 표시합니다.'+
   weeklyCoverageText(weeklyCoverage,model.date)+
   realSourceCoverageText(realSavedCoverage,model.date)+
   actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);
@@ -1233,7 +1334,8 @@ async function load(){
   'v3-dart-industry-earnings-sample.json','v3-volume-obv-observed.json',
   'v3-current-price-technical-momentum.json',
   'v3-industry-observed-relative-strength.json',
-  'v3-current-observed-all-listed-summary.json'];
+  'v3-current-observed-all-listed-summary.json',
+  'v3-dart-industry-classification.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -1260,6 +1362,7 @@ async function load(){
   applyCurrentObservedFinance(model,responses[16],observedCsv);
   const industry=industryEvidenceView(responses[12],model.date);
   const industryPrice=industryPriceEvidenceView(responses[15],model.date,model.marketEligible);
+  applyIndustryReference(model,responses[17],industryPrice);
   $('industryResearchContent').innerHTML=
     (industryPrice?industryPrice.html:'<p class="u-muted">동일 시장일 업종 상대강도 집계 자료 동기화 대기 중입니다.</p>')+
     (industry?industry.html:
