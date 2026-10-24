@@ -95,6 +95,19 @@ class PrivateKRXDerivedReturnTests(unittest.TestCase):
         self.assertIn("inputs.mode == 'live'",workflow)
         self.assertIn("concurrency:",workflow)
 
+    def test_smaller_production_batch_resumes_without_rereading_or_requerying(self):
+        self.assertEqual(rolling.PRODUCTION_WINDOWS_PER_HORIZON,8)
+        p,candidates=setup_factors(cohorts=33)
+        produced=[]
+        for _ in range(4):
+            result=rolling.run(storage=p,dates=candidates,
+                calendar_hash=DIGEST,
+                limit=rolling.PRODUCTION_WINDOWS_PER_HORIZON,horizons=[20])
+            produced.append(result["horizons"]["20"]["newly_written_or_reused_windows"])
+            self.assertEqual(result["provider_api_calls"],0)
+        self.assertEqual(produced,[8,8,8,6])
+        self.assertEqual(result["horizons"]["20"]["saved_complete_cohort_windows"],30)
+
     def test_twenty_four_windows_per_horizon_with_exact_resume(self):
         p,candidates=setup_factors(cohorts=33)
         first=rolling.run(storage=p,dates=candidates,
