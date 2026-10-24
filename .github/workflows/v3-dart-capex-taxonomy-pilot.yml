@@ -1,0 +1,57 @@
+name: V3 DART Missing CAPEX Account-Label Pilot (anonymous counts only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_capex_taxonomy_probe.py
+      - tests/test_v3_dart_capex_taxonomy_probe.py
+      - .github/workflows/v3-dart-capex-taxonomy-pilot.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Default dry run makes zero DART requests; live allows <=9 official calls'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-dart-capex-taxonomy-observation-only
+  cancel-in-progress: false
+
+jobs:
+  taxonomy-pilot:
+    if: >-
+      ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: No-network verification of zero-vs-unknown, receipt, privacy and quotas
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_capex_taxonomy_probe.py
+          python -m unittest discover -s tests -p 'test_v3_dart_capex_taxonomy_probe.py' -v
+      - name: Install official DART HTTP library
+        if: ${{ github.event_name == 'push' || inputs.mode == 'live' }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Strictly bounded source-only CAPEX taxonomy hints; never publish raw line items or scores
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          PILOT_MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
+        run: |
+          set -euo pipefail
+          python v3_dart_capex_taxonomy_probe.py --mode "$PILOT_MODE" --limit 8
