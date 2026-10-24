@@ -26,14 +26,17 @@ from v3_krx_derived_bridges import (
     CHECKPOINT as BRIDGE_CHECKPOINT,
     _check_progress as _bridge_progress, _link_path, _read_link,
     _readback_with_retry)
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 SCHEMA="v3-krx-private-bucket-composed-unadjusted-return-v1"
 CHECKPOINT_SCHEMA="v3-krx-private-rolling-cohort-return-progress-v1"
 HORIZONS=(20,60,120,250)
-# Process the same bounded 24 newly bridged cohorts per scheduled run.
-# Composition uses only immutable private derived evidence, zero KRX calls.
+# The algorithm supports at most 24 windows for offline replay and recovery.
+# Production uses 8 per horizon to avoid GitHub secondary API throttling while
+# the concurrent bridge, risk and direction jobs read the same private archive.
+# Checkpoints are immutable and resume from the last verified tail. Zero KRX calls.
 MAX_PER_HORIZON=24
+PRODUCTION_WINDOWS_PER_HORIZON=8
 MAX_BLOB=250_000
 MAX_HISTORY_BYTES=40*1024*1024
 
@@ -332,11 +335,17 @@ def main():
         days,digest=history_candidates()
         store=PrivateGitStorage(os.environ["V3_PRIVATE_ARCHIVE_REPO"],
                                 os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
-        outcome=run(storage=store,dates=days,calendar_hash=digest)
+        outcome=run(storage=store,dates=days,calendar_hash=digest,
+                    limit=PRODUCTION_WINDOWS_PER_HORIZON)
         print(json.dumps(outcome,sort_keys=True))
         return 0
     except DerivedReturnError as e:
         print(json.dumps({"status":"blocked","reason":str(e),"raw_data_exposed":False}))
+        return 1
+    except PrivateHistoryError:
+        # Provider-free private GitHub read/write errors remain distinct from
+        # bad source provenance. Never expose response bodies or credentials.
+        print('{"status":"blocked","reason":"private_storage_api_or_size_guard","raw_data_exposed":false}')
         return 1
     except Exception:
         print('{"status":"blocked","reason":"private_derived_factor_read_or_write_failed","raw_data_exposed":false}')
