@@ -1,0 +1,70 @@
+name: V3 Private KRX Historical Rising-Interval Research (No Scores)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_private_momentum_direction.py
+      - tests/test_v3_krx_private_momentum_direction.py
+      - .github/workflows/v3-krx-private-momentum-direction.yml
+  workflow_run:
+    workflows:
+      - V3 KRX Private Derived-Only 20/60/120/250-Session Return Research
+    types: [completed]
+  # One independent fallback if a trusted workflow_run event is dropped.
+  schedule:
+    - cron: '21 8 * * *' # 17:21 KST, source-only non-provider research
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Dry-run keeps the private archive untouched'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-private-directional-momentum
+  cancel-in-progress: false
+
+jobs:
+  research:
+    if: >-
+      ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        github.event_name == 'schedule' ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.head_repository.full_name == github.repository) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing private derived source-validation dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Verify rising day counts, boundary intervals, immutable private storage and no-score contract
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_private_momentum_direction.py
+          python -m unittest discover -s tests -p 'test_v3_krx_private_momentum_direction.py' -v
+      - name: Derive latest private 20-60-120-session positive-interval counts from existing KRX evidence only
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No KRX or DART API key is provided: ZERO new provider calls.
+          # No individual issuer data or provisional 7 points go to public docs.
+          python v3_krx_private_momentum_direction.py
