@@ -1,7 +1,7 @@
 """Current DART company-code industry x saved close-date relative strength.
 
 Zero provider calls, no raw OHLCV publication. These are CURRENT company
-industry prefixes and V2.2 approximate stock-vs-index 20/60 session relative
+industry prefixes and V2.2 approximate stock-vs-index 20/60/120 session relative
 returns, not historical exchange sector membership or certified factor scores.
 Missing, stale, partial, malformed or extremely small samples stay unknown.
 """
@@ -94,7 +94,7 @@ def build(market, catalog, industry):
         observations[code] = row
 
     groups = defaultdict(lambda: {"members": 0, "priced": 0,
-                                  "rel20": [], "rel60": [], "positive20": 0})
+                                  "rel20": [], "rel60": [], "rel120": [], "positive20": 0})
     for code, issuer in members.items():
         classification = classified[code]
         sector = classification.get("industry_code")
@@ -110,6 +110,9 @@ def build(market, catalog, industry):
         if row is None:
             continue
         g["priced"] += 1
+        # Each horizon is an independent observed sample; never interpolate missing 120.
+        if mkt in available and valid_relative(row.get("relative120")):
+            g["rel120"].append(float(row["relative120"]))
         if mkt not in available or not (
             valid_relative(row.get("relative20")) and
             valid_relative(row.get("relative60"))):
@@ -120,7 +123,7 @@ def build(market, catalog, industry):
         g["positive20"] += int(a > 0)
 
     results = []
-    total_members = total_priced = total_observed = 0
+    total_members = total_priced = total_observed = total_observed120 = 0
     candidate_count = 0
     for (mkt, prefix), g in sorted(groups.items()):
         n, priced_count, observed = (g["members"], g["priced"],
@@ -130,6 +133,12 @@ def build(market, catalog, industry):
         total_members += n
         total_priced += priced_count
         total_observed += observed
+        observed120 = len(g["rel120"])
+        if not 0 <= observed120 <= priced_count:
+            raise IndustryPriceError("unreconciled_120_relative_coverage")
+        total_observed120 += observed120
+        relative120 = (round(median(g["rel120"]), 4)
+                       if observed120 >= MIN_DISCLOSE else None)
         enough_for_display = observed >= MIN_DISCLOSE
         robust = (observed >= MIN_SIGNAL
                   and observed / n >= MIN_SIGNAL_COVERAGE)
@@ -158,6 +167,10 @@ def build(market, catalog, industry):
             "complete_relative20_60_issuer_count": observed,
             "missing_relative20_60_issuer_count": n - observed,
             "observed_20_60_coverage": round(observed / n, 6),
+            "relative120_issuer_count": observed120,
+            "missing_relative120_issuer_count": n - observed120,
+            "observed_120_coverage": round(observed120 / n, 6),
+            "median_market_relative_120pct_sample": relative120,
             "median_market_relative_20pct_sample": relative20,
             "median_market_relative_60pct_sample": relative60,
             "positive_relative20_issuers_sample": (
@@ -178,6 +191,7 @@ def build(market, catalog, industry):
         "listed_total": len(members),
         "price_observation_total": len(observations),
         "paired_20_60_observations": total_observed,
+        "relative120_observations": total_observed120,
         "groups_total": len(results),
         "groups_early_recovery_watch": candidate_count,
         "eligible_market_indices": sorted(available),
@@ -195,7 +209,7 @@ def build(market, catalog, industry):
             "catalog": _stable_digest(catalog),
             "current_dart_company_industry_codes": _stable_digest(industry),
         },
-        "note": "Relative20/60 are saved V2.2 stock-vs-index approximations. "
+        "note": "Relative20/60/120 are saved V2.2 stock-vs-index approximations. "
                 "60 sessions include the latest 20. Groups use CURRENT OpenDART "
                 "company-code prefix, not historical PIT KRX sectors. "
                 "Observed medians and positive breadth cannot be treated as "
@@ -220,6 +234,8 @@ def to_csv(report):
         "동일시장일_가격보유기업수", "20_60일상대강도모두확보기업수",
         "20_60일상대강도미확보기업수", "상대강도쌍_실측확보율_%",
         "20일_시장대비상대강도_표본중앙값_%", "60일_시장대비상대강도_표본중앙값_%",
+        "120일_시장대비상대강도_확보기업수", "120일_시장대비상대강도_미확보기업수",
+        "120일_상대강도_실측확보율_%", "120일_시장대비상대강도_표본중앙값_%",
         "20일_시장대비강세기업수_표본3이상", "20일_표본내강세기업비율_%",
         "현재분류전체_강세기업비율하한_%", "현재분류전체_강세기업비율상한_%",
         "초기순환매_관찰상태", "시장자료기준일",
@@ -253,6 +269,10 @@ def to_csv(report):
             rate(row["observed_20_60_coverage"]),
             num(row["median_market_relative_20pct_sample"]),
             num(row["median_market_relative_60pct_sample"]),
+            row["relative120_issuer_count"],
+            row["missing_relative120_issuer_count"],
+            rate(row["observed_120_coverage"]),
+            num(row["median_market_relative_120pct_sample"]),
             ("" if row["positive_relative20_issuers_sample"] is None else
              row["positive_relative20_issuers_sample"]),
             rate(row["positive_relative20_breadth_observed_only"]),
@@ -299,6 +319,7 @@ def main(argv=None):
     print(json.dumps({"status": "saved_industry_price_relative_research",
                       "asof": report["asof"], "listed": report["listed_total"],
                       "paired": report["paired_20_60_observations"],
+                      "observed120": report["relative120_observations"],
                       "groups": report["groups_total"],
                       "early_relative_recovery_watch": report["groups_early_recovery_watch"],
                       "industry_score_issued": 0, "provider_calls": 0}, sort_keys=True))

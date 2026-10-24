@@ -323,7 +323,7 @@ def analyze_history(code,cfg,day):
 
 def load_indexes(day,cfg):
     result={}
-    start=(day-timedelta(days=200)).strftime('%Y-%m-%d')
+    start=(day-timedelta(days=350)).strftime('%Y-%m-%d')
     for code,market in (('KS11','KOSPI'),('KQ11','KOSDAQ')):
         try:
             df=fdr.DataReader(code,start,(day+timedelta(days=1)).strftime('%Y-%m-%d'))
@@ -332,7 +332,9 @@ def load_indexes(day,cfg):
             last=df.index[-1].date()
             if (day.date()-last).days>5:raise ValueError('지수 데이터 갱신 지연 — 비교 불가')
             close=df['Close'].astype(float).to_numpy()
-            result[market]={'r20':pct(close[-1],close[-21]),'r60':pct(close[-1],close[-61]),'date':last.isoformat()}
+            result[market]={'r20':pct(close[-1],close[-21]),'r60':pct(close[-1],close[-61]),
+                            'r120':pct(close[-1],close[-121]) if len(close)>=121 else None,
+                            'date':last.isoformat()}
         except Exception as e:logging.warning('%s 시장 상대강도 제외: %s',market,str(e)[:120])
     return result
 
@@ -483,7 +485,9 @@ def build_rows(day,cfg):
             if ref:
                 r['relative20']=round_or_none(r['price20']-ref['r20'])
                 r['relative60']=round_or_none(r['price60']-ref['r60'])
-            else:r['relative20']=r['relative60']=None
+                r['relative120']=(round_or_none(r['price120']-ref['r120'])
+                                  if r.get('price120') is not None and ref.get('r120') is not None else None)
+            else:r['relative20']=r['relative60']=r['relative120']=None
             r['flows_confirmed']=False
             valid.append(r)
         except InsufficientHistory as e:
@@ -689,6 +693,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'obv_rising':r['obv_rising'],'divergence':r['obv_divergence'],
           'ma120w_gap':r['ma120w_gap'],'high52_gap':r['high52_gap'],
           'relative20':r['relative20'],'relative60':r['relative60'],
+          'relative120':r.get('relative120'),
           'flows_confirmed':bool(r.get('flows_confirmed')),
           'foreign_shares':r.get('foreign_net_shares'),'flow_observations':r.get('flow_observations'),
           'flow_cross_validation':r.get('flow_cross_validation','독립 소스 미검증'),

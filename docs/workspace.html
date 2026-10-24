@@ -32,7 +32,7 @@
    <div><span>기술항목 점수 산출</span><strong id="statTechnical">—</strong></div>
    <div><span>V3 잠정점수 산출 종목</span><strong id="statV3">확인 중</strong></div>
   </div>
-  <p id="sourceNotes" class="u-source">검증된 관측자료만 표시합니다. 외국인·기관 매수주체와 산업 등 미확보 배점은 비워둡니다. 재무·가치도 동일 기준일에 검증된 공시자료만 반영합니다.</p>
+  <p id="sourceNotes" class="u-source">검증된 관측자료만 표시합니다. 외국인·기관 수급 등 미확보 관측점수는 비워둡니다. 산업은 점수에서 제외하며 현재 DART 업종과 20·60·120일 상대강도를 참고정보로 제공합니다. 재무·가치도 동일 기준일에 검증된 공시자료만 반영합니다.</p>
  </details>
  <details class="u-industry-research u-intro" id="industryResearch">
    <summary><strong>산업 실제 실적 관측 · 표본 확산</strong><small id="industryResearchCount">자료 확인 중</small></summary>
@@ -40,8 +40,8 @@
      <p class="u-muted">공식 DART 업종코드 및 실적 자료를 확인하고 있습니다. 미확인 항목은 투자점수가 아닙니다.</p>
    </div>
    <p class="u-source"><a href="v3-industry-observed-profit-breadth.csv" download>업종별 영업이익 개선율·확보율 CSV ↓</a> · <a href="v3-industry-saved-profit-gap-issuers.csv" download>업종 실적 비교 미확보 종목·원인 CSV ↓</a> · 현재 DART 회사업종/저장 공시원장 기준이며 공식 KRX 산업 15점이 아닙니다.</p>
-  <p class="u-source"><strong>업종별 20·60일 상대강도:</strong> <a href="v3-industry-observed-relative-strength.csv" download>실제 표본·초기 회복 관찰 후보 CSV ↓</a> · 현재 DART 업종분류와 저장된 시장 대비 상대강도에 근거합니다. 과거 업종 구성·수정주가·시장지수별 날짜는 독립 검증 전이며 정식 산업 15점은 비워둡니다.</p>
-   <p class="u-source"><strong>가격·실적 동반 회복 관찰:</strong> <a href="v3-industry-dual-evidence-watch.csv" download>가격 상대강도 × DART 영업이익 실제 교차분석 CSV ↓</a> · 시장별 현재 DART 업종코드 그룹의 실측 연구 후보이며, 공식 업종/PIT·수정주가 검증 전입니다. 투자 산업 15점·매수 신호가 아닙니다.</p>
+  <p class="u-source"><strong>업종별 20·60·120일 상대강도:</strong> <a href="v3-industry-observed-relative-strength.csv" download>실제 표본·초기 회복 관찰 후보 CSV ↓</a> · 현재 DART 업종분류와 저장된 시장 대비 상대강도에 근거합니다. 과거 업종 구성·수정주가·시장지수별 날짜는 독립 검증 전이며 산업은 점수 합계에 포함하지 않습니다. 120일은 실제 확보된 그룹만 표시합니다.</p>
+   <p class="u-source"><strong>가격·실적 동반 회복 관찰:</strong> <a href="v3-industry-dual-evidence-watch.csv" download>가격 상대강도 × DART 영업이익 실제 교차분석 CSV ↓</a> · 시장별 현재 DART 업종코드 그룹의 실측 연구 후보이며, 공식 업종/PIT·수정주가 검증 전입니다. 산업 점수·매수 신호가 아닙니다.</p>
  </details>
   <details class="u-intro" id="krxHistoryProgress">
   <summary class="u-intro-top"><span class="u-section-heading">KRX 10년 과거 파생데이터 확보 현황 <small>자세히 보기</small></span>

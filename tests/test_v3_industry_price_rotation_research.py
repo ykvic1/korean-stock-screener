@@ -24,7 +24,8 @@ def fixture(n=20):
         rows.append({"code": code, "market": "KOSPI", "name": f"fixture{i}",
                      "price_history_status": "priced"})
         stocks.append({"code": code, "market": "KOSPI", "name": f"fixture{i}",
-                       "price_date": DAY, "relative20": 2.0, "relative60": -3.0})
+                       "price_date": DAY, "relative20": 2.0, "relative60": -3.0,
+                       "relative120": 4.5})
     market = {"date": DAY, "index_available": ["KOSPI"], "stocks": stocks}
     catalog = {"date": DAY, "listed_total": n, "rows": rows}
     industry = {
@@ -54,6 +55,9 @@ class IndustryPriceResearchTest(unittest.TestCase):
         row = report["groups"][0]
         self.assertEqual(report["listed_total"], 20)
         self.assertEqual(report["paired_20_60_observations"], 20)
+        self.assertEqual(report["relative120_observations"], 20)
+        self.assertEqual(row["relative120_issuer_count"], 20)
+        self.assertEqual(row["median_market_relative_120pct_sample"], 4.5)
         self.assertEqual(report["groups_early_recovery_watch"], 1)
         self.assertEqual(row["early_rotation_research_state"],
                          "early_relative_recovery_watch")
@@ -90,6 +94,29 @@ class IndustryPriceResearchTest(unittest.TestCase):
         row = report["groups"][0]
         self.assertEqual(row["complete_relative20_60_issuer_count"], 19)
         self.assertEqual(row["positive_relative20_issuers_sample"], 19)
+
+    def test_optional_120_never_filled_from_20_or_60(self):
+        data = fixture()
+        for row in data[0]["stocks"][:5]:
+            row.pop("relative120")
+        report = calculate(data)
+        row = report["groups"][0]
+        self.assertEqual(report["paired_20_60_observations"], 20)
+        self.assertEqual(report["relative120_observations"], 15)
+        self.assertEqual(row["relative120_issuer_count"], 15)
+        self.assertEqual(row["missing_relative120_issuer_count"], 5)
+        self.assertEqual(row["observed_120_coverage"], .75)
+        self.assertEqual(row["median_market_relative_120pct_sample"], 4.5)
+
+    def test_120_small_sample_hidden_and_export_empty(self):
+        data = fixture()
+        for row in data[0]["stocks"][2:]:
+            row["relative120"] = None
+        report = calculate(data)
+        group = report["groups"][0]
+        self.assertEqual(group["relative120_issuer_count"], 2)
+        self.assertIsNone(group["median_market_relative_120pct_sample"])
+        self.assertIn("120일_시장대비상대강도_표본중앙값_%", to_csv(report))
 
     def test_low_sample_aggregate_blank_even_when_all_available(self):
         report = calculate(fixture(2))
