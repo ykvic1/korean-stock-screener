@@ -44,7 +44,7 @@ class GapAuditTests(unittest.TestCase):
                 "raw_source_account_rows_published": False,
                 "historical_PIT_certified": False,
             }
-            records.setdefault(code, {"scope": "CFS", "years": {}})[str(year)] = row
+            records.setdefault(code, {"scope": "CFS", "years": {}})["years"][str(year)] = row
         state = cash.summary(asof, members, records, cash.fingerprint(major))
         return market, catalog, major, state, candidates
 
