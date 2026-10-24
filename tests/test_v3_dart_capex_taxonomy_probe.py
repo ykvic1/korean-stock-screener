@@ -68,7 +68,7 @@ class DARTCapexTaxonomyPilotTests(TestCase):
                     row("x", "무형자산의 취득", currency="USD"),
                     row("x", "무형자산의 취득", fs_div="OFS"),
                     row("x", "무형자산의 취득", bsns_year="2024"),
-                    row("x", "무형자산의 취득", rcept_no="20260401000000"),
+                    row("x", "무형자산의 취득", rcept_no="20251231000000"),
                     row("x", "무형자산의 취득", account_detail="entity"),
                     row("x", "무형자산의 취득", sj_div="IS"),
                     row("x", "무형자산의 취득", corp_code="00000000")):
