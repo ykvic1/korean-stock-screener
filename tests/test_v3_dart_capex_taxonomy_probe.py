@@ -208,3 +208,53 @@ class DARTCapexTaxonomyPilotTests(TestCase):
         self.assertEqual(str(caught.exception),
                          "official_mapping_unavailable")
         self.assertNotIn("secret-in-query-string", str(caught.exception))
+
+    def test_exact_official_taxonomy_crossmatch_is_evidence_not_fcf_score(self):
+        from v3_dart_capex_official_taxonomy import SECTIONS
+        official_id = "dart_PurchaseOfPropertyPlantAndEquipment"
+        known = row("ifrs-full_CashFlowsFromUsedInOperatingActivities",
+                    "영업활동현금흐름", "250")
+        candidate = row(official_id, "유형자산의 취득", "70")
+        negative = row("dart_PaymentForAcquisitionOfIntangibleAssets",
+                       "무형자산의 취득", "-40")
+        old = normalize_year([known], code=STOCK, corp=CORP, year=YEAR,
+                             scope="CFS", asof=ASOF, major_receipt=RECEIPT)
+        self.assertIsNone(old["free_cashflow_krw"])
+        state = {"asof": ASOF, "records": {STOCK: {"scope": "CFS",
+                 "years": {str(YEAR): old}}}}
+        major = {"records": {STOCK: {"years": {str(YEAR):
+                 {"CFS": {"receipt_id": RECEIPT}}}}}}
+        standard_rows = [
+            {"sj_div": section, "account_id": entry_id, "account_nm": label,
+             "label_kor": label, "label_eng": "", "data_tp": "X"}
+            for section in SECTIONS
+            for entry_id, label in ((official_id, "유형자산의 취득"),
+                                    ("dart_PaymentForAcquisitionOfIntangibleAssets",
+                                     "무형자산의 취득"))
+        ]
+        responses = [Response(payload={"status": "000", "list": [
+            item for item in standard_rows if item["sj_div"] == section]})
+            for section in SECTIONS]
+        responses += [Response(content=b"companies"),
+                      Response(payload={"status": "000",
+                                        "list": [known, candidate, negative]})]
+        selected = [("missing_both_capex", "KOSPI",
+                     STOCK, YEAR, "CFS", old)]
+        with patch.object(p, "targets", return_value=selected), patch.object(
+                p, "asof_members", return_value=(ASOF,
+                {STOCK: {"market": "KOSPI"}})), patch.object(
+                p, "_mapping", return_value={STOCK: CORP}):
+            report = p.probe(state, {}, {}, major, key="x" * 40,
+                             session=Session(responses), check_official_taxonomy=True)
+        self.assertEqual(report["provider_calls"], 6)
+        self.assertEqual(report["official_taxonomy_section_calls"], 4)
+        self.assertEqual(report["completed_year_calls"], 1)
+        self.assertEqual(report["official_taxonomy_novel_nonnegative_numeric_rows"]["ppe"], 1)
+        self.assertEqual(report["official_taxonomy_novel_negative_numeric_rows"]["intangible"], 1)
+        self.assertEqual(report["official_taxonomy_novel_matching_ids"]["ppe"], [official_id])
+        self.assertEqual(report["official_taxonomy_novel_matching_ids"]["intangible"], [])
+        self.assertTrue(report["no_new_fcf_scores_or_zero_imputation"])
+        self.assertTrue(report["official_taxonomy_match_does_not_certify_sign_or_fcf"])
+        self.assertNotIn(STOCK, str(report))
+        self.assertNotIn(CORP, str(report))
+        self.assertNotIn(RECEIPT, str(report))
