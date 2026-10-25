@@ -3,6 +3,7 @@ import base64
 from datetime import date, timedelta
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -143,6 +144,37 @@ class AdjacentMonthTests(unittest.TestCase):
                           adjacent._checkpoint, b'{"schema":"fake","next_pair_index":1}')
         self.assertRaises(adjacent.AdjacentMonthError,
                           adjacent._checkpoint, b'{"schema":"v3-private-dart-krx-adjacent-month-date-candidates-v1","next_pair_index":true}')
+
+    def test_cli_exposes_only_vetted_static_validation_codes(self):
+        # A normal source-integrity failure must reveal its class so a
+        # repeated scheduled failure can be diagnosed without raw evidence.
+        with (patch.dict(os.environ, {
+                "V3_PRIVATE_ARCHIVE_REPO": adjacent.PRIVATE_REPO,
+                "V3_PRIVATE_ARCHIVE_TOKEN": "x" * 30}),
+              patch.object(adjacent, "PrivateGitStorage", return_value=Private()),
+              patch.object(adjacent, "run",
+                           side_effect=adjacent.AdjacentMonthError(
+                               "invalid_private_dart_receipt_source"))):
+            with self.assertRaises(SystemExit) as caught:
+                adjacent.main()
+            self.assertIn("invalid_private_dart_receipt_source",
+                          str(caught.exception))
+        # Arbitrary exception text is never a loggable reason, even when
+        # raised using the domain error class by an untrusted component.
+        for exc in (
+            adjacent.AdjacentMonthError("secret-private-company-identifier"),
+            RuntimeError("secret-private-transport-token"),
+        ):
+            with (patch.dict(os.environ, {
+                    "V3_PRIVATE_ARCHIVE_REPO": adjacent.PRIVATE_REPO,
+                    "V3_PRIVATE_ARCHIVE_TOKEN": "x" * 30}),
+                  patch.object(adjacent, "PrivateGitStorage", return_value=Private()),
+                  patch.object(adjacent, "run", side_effect=exc)):
+                with self.assertRaises(SystemExit) as caught:
+                    adjacent.main()
+                self.assertNotIn("secret", str(caught.exception))
+                self.assertIn("blocked: private adjacent-month evidence",
+                              str(caught.exception))
 
     def test_schedules_privacy_and_legacy_market_publication_remain_separate(self):
         wf = Path(".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
