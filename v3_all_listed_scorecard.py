@@ -1,4 +1,4 @@
-"""Publish an ALL-LISTED, observed-only six-pillar V3 research score CSV.
+"""Publish an ALL-LISTED, observed-only five-factor V3 research score CSV.
 
 Investor IAS is replaced in this NEW scorecard by research-only volume/OBV
 candidate observations (at most 16 of the 20-point budget initially).
@@ -17,7 +17,6 @@ import math
 from pathlib import Path
 
 from v3_dart_bulk_history import _stable_digest
-from v3_score_contract import INDUSTRY_POINTS
 from v3_real_six_pillar_coverage_audit import coverage, CoverageAuditError
 from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
@@ -26,15 +25,14 @@ from v3_volume_participation import build as observed_volume, OBSERVABLE_MAX
 from v3_current_price_replay import SCHEMA as PRICE_REPLAY_SCHEMA
 from v3_weekly_rotation import TECH_PARTS
 
-AREAS=("volume","technical","financial","valuation","industry","momentum")
-# The user approved the six-domain 100-point contract and industry 5/4/3/3.
-# No five-domain 85-point alternative or rescaling is used.
-INDUSTRY_PARTS=dict(INDUSTRY_POINTS)
-WEIGHTS={"volume":20,"technical":25,"financial":15,
-         "valuation":15,"industry":15,"momentum":10}
+AREAS=("volume","technical","financial","valuation","momentum")
+# Industry is descriptive only. Unavailable source points stay missing;
+# the observed factors must not be inflated to fill their new ceilings.
+WEIGHTS={"volume":20,"technical":25,"financial":20,
+         "valuation":20,"momentum":15}
 NAMES={"volume":"거래량·OBV","technical":"기술","financial":"재무",
-       "valuation":"가치","industry":"산업","momentum":"모멘텀"}
-SCHEMA="v3-all-current-listed-observed-partial-scorecard-0.2-volume-replaces-ias"
+       "valuation":"가치","momentum":"모멘텀"}
+SCHEMA="v3-all-current-listed-observed-five-factor-scorecard-0.3"
 
 
 class FullMarketScorecardError(ValueError):
@@ -325,7 +323,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                          industry_codes.get(code,{}).get("industry_code")),
                      "factors":values,"earned":round(earned,4) if available else None,
                      "available":available,"unavailable":100-available})
-    if (len(rows)!=listed or count["volume"]!=len(volume_rows) or count["industry"]!=0 or
+    if (len(rows)!=listed or count["volume"]!=len(volume_rows) or
         any(r["available"]>100 for r in rows)):
         raise FullMarketScorecardError("false_full_score_or_missing_listed_issuer")
     summary={
@@ -335,8 +333,8 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
         "missing_data_never_zero_filled":True,
         "all_listed_included_even_without_price":True,
         "weights":dict(WEIGHTS),
-        "industry_approved_subweights":dict(INDUSTRY_PARTS),
-        "industry_numeric_score_requires_real_verified_inputs":True,
+        "industry_excluded_from_score_budget":True,
+        "sector_label_is_information_only":True,
         "industry_labels_descriptive_unverified":known_industry_labels,
         "volume20_replaces_unavailable_investor_IAS20":True,
         "legacy_foreign_institutional_IAS_verified_count":0,
@@ -350,7 +348,6 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
         "industry_code_source_attempted":len(industry_codes),
         "industry_code_source_observed":sum(
             r["industry_code"] is not None for r in industry_codes.values()),
-        "industry_code_source_sector15_earned_count":0,
         "provisional_numeric_issuer_counts":count,
         # Counts from the same source-validated snapshot used to calculate
         # the CSV; do not confuse attempted annual requests with 4-year
@@ -387,7 +384,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                 if industry_ref_status=="verified_current_company_classification_only"
                 else None,
         },
-        "notice":"Investor IAS is replaced by observed price-volume/OBV candidates up to 16/20, not identified net buying. Unobserved 4 volume points remain missing. No sector15, corporate-action PIT or certified trading score."
+        "notice":"Investor IAS is replaced by observed price-volume/OBV candidates up to 16/20, not identified net buying. Unobserved 4 volume points remain missing. Industry carries zero point budget; corporate-action PIT and trading scores remain uncertified."
     }
     return rows,summary
 
@@ -459,7 +456,7 @@ def main(argv=None):
              "with_observed_points":summary["at_least_one_numeric_factor_count"],
              "source_by_area":summary["provisional_numeric_issuer_counts"],
              "fcf_joined":summary["fcf_source_added"],
-             "industry_subweights":summary["industry_approved_subweights"],
+             "industry_scoring_excluded":summary["industry_excluded_from_score_budget"],
              "certified_full":0},
              sort_keys=True))
 

@@ -19,8 +19,10 @@ from v3_dart_bulk_history import (
 
 SCHEMA = "v3-real-saved-source-six-pillar-coverage-0.1"
 FIELDS = ("ias","technical","financial","valuation","industry","momentum")
-WEIGHTS = {"ias":20,"technical":25,"financial":15,
-           "valuation":15,"industry":15,"momentum":10}
+# Keep six-source coverage diagnostics, but industry contributes no points.
+# Point ceilings match the public five-factor current-close scorecard.
+WEIGHTS = {"ias":20,"technical":25,"financial":20,
+           "valuation":20,"momentum":15}
 
 class CoverageAuditError(ValueError):
     """No provider/source rows or potentially sensitive contents in errors."""
