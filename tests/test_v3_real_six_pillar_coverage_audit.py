@@ -34,6 +34,11 @@ class RealCoverageAuditTests(unittest.TestCase):
         self.assertEqual(out["historical_dart_distinct_issuer_count"],
                          len(sources[1]["records"]))
         self.assertEqual(out["six_pillar_official_complete_100pt_issuer_count"],0)
+        self.assertEqual(out["weight_contract"],{
+            "ias":20,"technical":25,"financial":20,
+            "valuation":20,"momentum":15})
+        self.assertNotIn("industry",out["weight_contract"])
+        self.assertEqual(sum(out["weight_contract"].values()),100)
         self.assertEqual(out["official_investor_IAS_source_issuer_count"],0)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["ias"],0)
         self.assertEqual(out["six_pillar_numeric_provisional_issuer_counts"]["industry"],0)

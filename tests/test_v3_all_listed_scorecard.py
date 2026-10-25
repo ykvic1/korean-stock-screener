@@ -47,7 +47,7 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(m.WEIGHTS["volume"],20)
         self.assertEqual(report["provisional_numeric_issuer_counts"]["volume"],
                          sum(r["factors"]["volume"][1]>0 for r in rows))
-        self.assertFalse(any(r["factors"]["industry"][1] for r in rows))
+        self.assertTrue(all("industry" not in r["factors"] for r in rows))
         self.assertTrue(all(r["available"]<=100 and
                             r["unavailable"]==100-r["available"] for r in rows))
         self.assertTrue(any(r["available"]>0 for r in rows))
@@ -57,7 +57,7 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(report["legacy_foreign_institutional_IAS_verified_count"],0)
         self.assertEqual(report["volume20_observed_maximum_per_issuer"],16)
         self.assertTrue(report["technical_one_day_volume_not_double_counted"])
-        self.assertEqual(report["provisional_numeric_issuer_counts"]["industry"],0)
+        self.assertNotIn("industry",report["provisional_numeric_issuer_counts"])
         text=m.to_csv(rows,report)
         self.assertTrue(text.startswith("\ufeff"))
         parsed=list(csv.DictReader(StringIO(text.lstrip("\ufeff"))))
@@ -65,7 +65,7 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertIn("거래량·OBV_잠정점수",parsed[0])
         self.assertNotIn("수급_잠정점수",parsed[0])
         self.assertEqual(parsed[0]["종목코드"],rows[0]["code"])
-        self.assertTrue(all(r["산업_잠정점수"]=="" and
+        self.assertTrue(all("산업_잠정점수" not in r and
                             r["정식투자점수"]=="" for r in parsed))
         self.assertTrue(all(r["인증상태"]=="미검증·연구용" for r in parsed))
         never=sum(1 for row in rows if row["available"]==0)
@@ -101,7 +101,7 @@ class AllListedScorecardTests(unittest.TestCase):
             replay["momentum_research_issuer_count"])
         self.assertEqual(report["price_replay_new_provider_calls"],0)
         self.assertEqual(report["full_six_pillar_certified_count"],0)
-        self.assertFalse(any(r["factors"]["industry"][1] for r in rows))
+        self.assertTrue(all("industry" not in r["factors"] for r in rows))
         self.assertEqual(len(rows),len(baseline_rows))
         self.assertTrue(all(r["available"]<=100 for r in rows))
         self.assertTrue(all(r["unavailable"]==100-r["available"] for r in rows))
@@ -130,27 +130,27 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(notice["technical_momentum_price_replay_state"],
                          "source_rejected_or_stale")
 
-    def test_user_approved_six_area_100_with_industry5433(self):
+    def test_user_approved_five_factor_100_with_sector_unscored(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         rows,summary=m.generate(market,catalog,history,parts,weekly,cash,fcf)
+        self.assertEqual(m.WEIGHTS,{
+            "volume":20,"technical":25,"financial":20,
+            "valuation":20,"momentum":15})
         self.assertEqual(sum(m.WEIGHTS.values()),100)
-        self.assertEqual(summary["industry_approved_subweights"],{
-            "early_rotation":5,"profit_transition":4,
-            "improvement_diffusion":3,"overheat_crowding_quality":3})
-        self.assertEqual(sum(summary["industry_approved_subweights"].values()),15)
-        self.assertNotIn("five_area_optional_comparison",summary)
-        self.assertFalse(any(row["factors"]["industry"][1] for row in rows))
+        self.assertTrue(summary["industry_excluded_from_score_budget"])
+        self.assertNotIn("industry_approved_subweights",summary)
+        self.assertNotIn("industry",m.AREAS)
         self.assertEqual(len(rows),2497)
         for row in rows:
             self.assertEqual(row["available"]+row["unavailable"],100)
+            self.assertNotIn("industry",row["factors"])
         csv_data=list(csv.DictReader(StringIO(m.to_csv(
             rows,summary).lstrip("\ufeff"))))
         self.assertEqual(len(csv_data),len(rows))
-        self.assertNotIn("5영역_산업제외_잠정점수_85점중",csv_data[0])
         for got,row in zip(csv_data,rows):
             self.assertEqual(got["산업_분류_참고용"],
                              row["industry_label_unverified"] or "")
-            self.assertEqual(got["산업_잠정점수"],"")
+            self.assertNotIn("산업_잠정점수",got)
             self.assertEqual(got["정식투자점수"],"")
 
     def test_official_current_industry_codes_display_without_industry_points(self):
@@ -164,12 +164,12 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(report["industry_code_source_observed"],
                          industry["observed_industry_codes"])
         self.assertGreater(report["industry_code_source_observed"],0)
-        self.assertEqual(report["industry_code_source_sector15_earned_count"],0)
-        self.assertEqual(report["provisional_numeric_issuer_counts"]["industry"],0)
+        self.assertTrue(report["industry_excluded_from_score_budget"])
+        self.assertNotIn("industry",report["provisional_numeric_issuer_counts"])
         for code,value in industry["records"].items():
             self.assertEqual(by_code[code]["dart_current_industry_code"],
                              value["industry_code"])
-            self.assertEqual(by_code[code]["factors"]["industry"],(None,0))
+            self.assertNotIn("industry",by_code[code]["factors"])
         csv_rows=list(csv.DictReader(StringIO(m.to_csv(
             rows,report).lstrip("\ufeff"))))
         self.assertIn("DART_현재업종코드_산업점수아님",csv_rows[0])
