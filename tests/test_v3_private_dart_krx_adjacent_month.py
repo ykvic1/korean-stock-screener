@@ -3,6 +3,7 @@ import base64
 from datetime import date, timedelta
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -66,6 +67,45 @@ def receipts(_storage, month):
 
 
 class AdjacentMonthTests(unittest.TestCase):
+    def test_actions_failure_reason_is_fixed_and_never_leaks_private_payload(self):
+        self.assertEqual(adjacent.safe_block_reason(adjacent.AdjacentMonthError(
+            "invalid_private_dart_receipt_source")),
+            "invalid_private_dart_receipt_source")
+        for error in (ValueError("corp 005930 secret xyz"),
+                      adjacent.AdjacentMonthError("corp 005930 secret xyz"),
+                      type("Subclass", (adjacent.AdjacentMonthError,), {})(
+                          "adjacent_month_source_cursor_changed")):
+            self.assertEqual(adjacent.safe_block_reason(error),
+                             "private_adjacent_month_unclassified_failure")
+        with (patch.dict(os.environ, {
+                "V3_PRIVATE_ARCHIVE_REPO": adjacent.PRIVATE_REPO,
+                "V3_PRIVATE_ARCHIVE_TOKEN": "synthetic_token_at_least_20_chars"}),
+              patch.object(adjacent, "PrivateGitStorage", return_value=Private()),
+              patch.object(adjacent, "run", side_effect=RuntimeError(
+                  "secret issuer 005930 raw filing body"))):
+            with self.assertRaises(SystemExit) as caught:
+                adjacent.main()
+        self.assertEqual(str(caught.exception),
+                         "blocked: private adjacent-month evidence validation failed "
+                         "(private_adjacent_month_unclassified_failure)")
+
+    def test_receipt_and_match_failures_are_distinct_without_identifiers(self):
+        private = Private()
+        with (patch.object(adjacent, "_source_events", return_value=history()),
+              patch.object(adjacent, "_month_receipts",
+                           side_effect=RuntimeError("private receipt 005930"))):
+            with self.assertRaisesRegex(adjacent.AdjacentMonthError,
+                                        "^invalid_or_incomplete_private_adjacent_month_receipts$"):
+                adjacent.run(private)
+        with (patch.object(adjacent, "_source_events", return_value=history()),
+              patch.object(adjacent, "_month_receipts", side_effect=receipts),
+              patch.object(adjacent, "_count_boundary_candidates",
+                           side_effect=ValueError("raw private filing 20161103"))):
+            with self.assertRaisesRegex(adjacent.AdjacentMonthError,
+                                        "^invalid_private_adjacent_month_candidate_match$"):
+                adjacent.run(private)
+        self.assertEqual(private.puts, 0)
+
     def test_adjacent_month_window_is_additive_private_and_resumable(self):
         private = Private()
         with (patch.object(adjacent, "_source_events", return_value=history()),
