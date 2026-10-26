@@ -176,6 +176,26 @@ class AdjacentMonthTests(unittest.TestCase):
                 self.assertIn("blocked: private adjacent-month evidence",
                               str(caught.exception))
 
+    def test_incomplete_receipts_vs_candidate_matching_are_distinct_safe_blocks(self):
+        private = Private()
+        with (patch.object(adjacent, "_source_events", return_value=history()),
+              patch.object(adjacent, "_month_receipts",
+                           side_effect=RuntimeError("private receipt: 005930"))):
+            with self.assertRaisesRegex(adjacent.AdjacentMonthError,
+                                        "^invalid_or_incomplete_private_adjacent_month_receipts$"):
+                adjacent.run(private)
+        with (patch.object(adjacent, "_source_events", return_value=history()),
+              patch.object(adjacent, "_month_receipts", side_effect=receipts),
+              patch.object(adjacent, "_count_boundary_candidates",
+                           side_effect=ValueError("private filing 20161103"))):
+            with self.assertRaisesRegex(adjacent.AdjacentMonthError,
+                                        "^invalid_private_adjacent_month_candidate_match$"):
+                adjacent.run(private)
+        self.assertEqual(private.puts, 0)
+        for reason in ("invalid_or_incomplete_private_adjacent_month_receipts",
+                       "invalid_private_adjacent_month_candidate_match"):
+            self.assertIn(reason, adjacent.SAFE_ERROR_CODES)
+
     def test_schedules_privacy_and_legacy_market_publication_remain_separate(self):
         wf = Path(".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
         old = Path(".github/workflows/full-market-batches.yml").read_text()
