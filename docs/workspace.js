@@ -1159,11 +1159,11 @@ function fiveAreaCoverageView(raw,asof,listed){
   raw.not_an_investment_ranking!==true||!raw.area_budgets||
   !raw.area_available_weight_distribution||!raw.observed_issuer_counts||
   !raw.complete_area_issuer_counts||!raw.factor_observed_weight_ceiling||
-  !raw.factor_unobserved_weight_gap||
+  !raw.factor_unobserved_weight_gap||!raw.unacquired_weight_issuer_slots||
   Object.keys(raw.area_budgets).length!==PILLARS.length)return null;
  if(raw.observed_issuer_counts.industry!==undefined&&
     raw.observed_issuer_counts.industry!==0)return null;
- let weightCeiling=0,missingWeight=0;
+ let weightCeiling=0,missingWeight=0,missingIssuerWeights=0;
  const lines=[];
  for(const [area,title] of PILLARS){
   const budget=WEIGHTS[area],dist=raw.area_available_weight_distribution[area];
@@ -1171,7 +1171,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   if(raw.area_budgets[area]!==budget||
     !dist||Array.isArray(dist)||typeof dist!=='object'||
     !Number.isInteger(count)||count<0||count>listed)return null;
-  let total=0,observed=0,ceiling=0;
+  let total=0,observed=0,ceiling=0,missingSlots=0;
   for(const [weight,value] of Object.entries(dist)){
    if(!/^(0|[1-9][0-9]*)$/.test(weight)||
      Number(weight)>budget||
@@ -1179,21 +1179,27 @@ function fiveAreaCoverageView(raw,asof,listed){
    total+=value;
    if(Number(weight)>0)observed+=value;
    if(value>0)ceiling=Math.max(ceiling,Number(weight));
+   missingSlots+=(budget-Number(weight))*value;
   }
   const complete=dist[String(budget)]||0;
   if(total!==listed||observed!==count||
     raw.complete_area_issuer_counts[area]!==complete||
     raw.factor_observed_weight_ceiling[area]!==ceiling||
-    raw.factor_unobserved_weight_gap[area]!==budget-ceiling)return null;
+    raw.factor_unobserved_weight_gap[area]!==budget-ceiling||
+    raw.unacquired_weight_issuer_slots[area]!==missingSlots)return null;
   weightCeiling+=ceiling;missingWeight+=budget-ceiling;
+  missingIssuerWeights+=missingSlots;
   lines.push('<tr><th scope="row">'+esc(title)+'</th>'+
     '<td>'+count.toLocaleString('ko-KR')+' / '+listed.toLocaleString('ko-KR')+
     ' <small>('+((count/listed)*100).toFixed(1)+'%)</small></td>'+
     '<td>'+complete.toLocaleString('ko-KR')+'</td>'+
-    '<td>'+ceiling+' / '+budget+'점</td></tr>');
+    '<td>'+ceiling+' / '+budget+'점</td>'+
+    '<td>'+(budget-ceiling)+'점</td></tr>');
  }
  if(weightCeiling!==raw.highest_currently_observable_weight||
-   weightCeiling+missingWeight!==100)return null;
+   weightCeiling+missingWeight!==100||
+   raw.total_unobserved_weight_gap!==missingWeight||
+   raw.total_unacquired_weight_issuer_slots!==missingIssuerWeights)return null;
  return '<div class="u-coverage-audit"><div class="u-coverage-top">'+
   '<strong>5개 영역 실제 데이터 확보</strong>'+
   '<span>현재 관측 가능한 배점 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
@@ -1201,8 +1207,10 @@ function fiveAreaCoverageView(raw,asof,listed){
   '<div class="u-coverage-scroll"><table class="u-coverage-table"><thead><tr>'+
   '<th scope="col">영역</th><th scope="col">관측 기업 / 상장 전체</th>'+
   '<th scope="col">영역 전체 확보</th><th scope="col">관측 가능 배점</th>'+
+  '<th scope="col">미확보 배점</th>'+
   '</tr></thead><tbody>'+lines.join('')+'</tbody></table></div>'+
-  '<p class="u-source">관측 가능 배점은 검증된 투자점수나 개별 종목 실제 획득점수가 아닙니다. '+
+  '<p class="u-source">미확보 배점은 각 영역에서 아직 단 한 종목에도 확인되지 않은 관측 한도입니다. '+
+  '개별 종목별 미확보량은 더 클 수 있으며, 관측 가능 배점은 검증된 투자점수나 실제 획득점수가 아닙니다. '+
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p></div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
