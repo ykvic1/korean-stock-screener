@@ -83,6 +83,35 @@ class SupplementalActionTests(unittest.TestCase):
         waiting = self.process(lambda *args: self.fail("no replay after cursor complete"))
         self.assertEqual(waiting["status"], "waiting_for_private_title_queue")
 
+    def test_four_candidate_default_budget_and_private_remaining_accounting(self):
+        queue = [record(f"201611030000{n:02d}", ["rights_issue", "bonus_issue",
+                 "capital_reduction", "merger_split", "share_exchange"])
+                 for n in range(1, 6)]
+        calls = []
+        def provider(endpoint, corp, begin, end):
+            calls.append(endpoint)
+            return {"status": "013"}
+        with (patch.object(s, "triage_cursor", return_value={"next_pair_index": 1}),
+              patch.object(s, "_candidate_queue", return_value=(queue, "a" * 64, 5))):
+            first = s.run(self.store, provider)
+            self.assertEqual(first["processed_candidates"], 4)
+            self.assertEqual(first["provider_calls"], 20)
+            self.assertEqual(first["source_pair_candidate_count"], 5)
+            self.assertEqual(first["source_pair_next_candidate_index"], 4)
+            self.assertEqual(first["source_pair_remaining_candidates"], 1)
+            self.assertEqual(first["candidate_budget_per_run"], 4)
+            self.assertEqual(first["provider_call_budget_per_run"], 20)
+            self.assertEqual(first["next_pair_index"], 0)
+            second = s.run(self.store, provider)
+            self.assertEqual(second["processed_candidates"], 1)
+            self.assertEqual(second["provider_calls"], 5)
+            self.assertEqual(second["source_pair_remaining_candidates"], 0)
+            self.assertEqual(second["next_pair_index"], 1)
+            self.assertEqual(len(calls), 25)
+            self.assertEqual(self.store.posts, 7)  # five reports + two cursor writes
+            self.assertEqual(second["scores_promoted"], 0)
+            self.assertNotIn(queue[0]["rcept_no"], json.dumps(second))
+
     def test_old_main_three_endpoint_ledger_is_untouched(self):
         self.process(lambda ep, corp, begin, end: {"status": "013"})
         self.assertFalse(any(p.startswith("derived/dart-structured-action-receipts/")

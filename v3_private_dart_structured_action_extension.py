@@ -28,7 +28,9 @@ from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryErro
 SCHEMA = "v3-private-dart-structured-action-extension-v1"
 BASE = "derived/dart-structured-action-extension"
 CHECKPOINT = BASE + "/checkpoint.json"
-MAX_CANDIDATES = 2
+# At most 4 receipts x 5 endpoints x 30s provider timeout = 10 minutes,
+# leaving time for private checkpoint writes in the 15-minute workflow.
+MAX_CANDIDATES = 4
 MAX_PROVIDER_CALLS = MAX_CANDIDATES * len(SUPPLEMENTAL_ENDPOINTS)
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 
@@ -213,6 +215,8 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         last_path, last_digest = path, sha256(encoded).hexdigest()
         j += 1
         advanced += 1
+    pair_end_index = j
+    pair_remaining = len(queue) - pair_end_index
     if j == len(queue):
         i, j, digest = i + 1, 0, None
     if (storage.get_content(TRIAGE_CHECKPOINT)[0] != triage_raw or
@@ -235,6 +239,11 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         "previous_reports_reused": reused,
         "new_exact_receipt_category_matches": matched,
         "candidates_without_supplemental_endpoint": unqueried,
+        "source_pair_candidate_count": len(queue),
+        "source_pair_next_candidate_index": pair_end_index,
+        "source_pair_remaining_candidates": pair_remaining,
+        "candidate_budget_per_run": MAX_CANDIDATES,
+        "provider_call_budget_per_run": MAX_PROVIDER_CALLS,
         "next_pair_index": i, "complete_event_universe_certified": False,
         "corporate_action_effective_dates_certified": False,
         "adjusted_prices_certified": False, "scores_promoted": 0,
