@@ -1,0 +1,63 @@
+name: V3 Private DART Supplementary Action Category Receipt Audit (No Scores)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_private_dart_structured_action_extension.py
+      - v3_private_dart_structured_action_receipts.py
+      - tests/test_v3_private_dart_structured_action_extension.py
+      - .github/workflows/v3-dart-structured-action-extension.yml
+  schedule:
+    # One bounded queue step per day, after the principal private source audit.
+    - cron: '37 3 * * *'  # 12:37 KST
+  workflow_run:
+    workflows:
+      - V3 OpenDART Structured Action JSON Private Pilot
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Manual is offline by default; live needs private archive credentials'
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-dart-private-historical-event-receipts
+  cancel-in-progress: false
+
+jobs:
+  supplementary-action-receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install only private transport and official KRX calendar imports
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Verify supplemental exact-receipt categories and zero-score restrictions
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_private_dart_structured_action_extension.py v3_private_dart_structured_action_receipts.py
+          python -m unittest discover -s tests -p 'test_v3_private_dart_structured_action_extension.py' -v
+      - name: Query only bounded missing decision categories in private OpenDART
+        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No raw rows, receipt/issuer IDs, dates, ZIP or keys are public.
+          # Only exact receipt-category matches are anonymous and non-scoring.
+          python v3_private_dart_structured_action_extension.py
