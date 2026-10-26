@@ -37,6 +37,31 @@ class AdjacentMonthError(ValueError):
     """Never include identifiers, filing bodies or prices in errors."""
 
 
+# Only these hand-written, non-identifying reason codes can reach Actions
+# output. Never print arbitrary exception text from private storage or APIs.
+SAFE_BLOCK_REASONS = frozenset({
+    "untrusted_or_public_adjacent_month_destination",
+    "invalid_private_dart_receipt_source",
+    "invalid_private_adjacent_month_checkpoint",
+    "missing_private_adjacent_month_evidence",
+    "private_adjacent_month_tail_changed",
+    "invalid_private_krx_risk_chain",
+    "invalid_or_incomplete_private_adjacent_month_receipts",
+    "invalid_private_adjacent_month_candidate_match",
+    "adjacent_month_source_cursor_changed",
+    "private_adjacent_month_immutable_collision",
+    "private_adjacent_month_report_readback_failed",
+    "private_adjacent_month_cursor_readback_failed",
+})
+
+
+def safe_block_reason(error):
+    """Fixed-code private failure triage; never echo untrusted text."""
+    if type(error) is AdjacentMonthError and str(error) in SAFE_BLOCK_REASONS:
+        return str(error)
+    return "private_adjacent_month_unclassified_failure"
+
+
 def _read(storage, path):
     body, _ = storage.get_content(path)
     if body is None:
@@ -190,9 +215,12 @@ def run(storage):
     try:
         left_rows = _month_receipts(storage, left)
         right_rows = _month_receipts(storage, right)
+    except Exception:
+        raise AdjacentMonthError("invalid_or_incomplete_private_adjacent_month_receipts") from None
+    try:
         counts = _count_boundary_candidates(events, left_rows, right_rows, left, right)
     except Exception:
-        raise AdjacentMonthError("invalid_or_incomplete_private_adjacent_month_inputs") from None
+        raise AdjacentMonthError("invalid_private_adjacent_month_candidate_match") from None
 
     report = {
         "schema": SCHEMA, "first_month": left, "second_month": right,
@@ -258,8 +286,10 @@ def main():
     try:
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         result = run(store)
-    except Exception:
-        raise SystemExit("blocked: private adjacent-month evidence validation failed") from None
+    except Exception as error:
+        raise SystemExit(
+            "blocked: private adjacent-month evidence validation failed"
+            f" ({safe_block_reason(error)})") from None
     print(json.dumps(result, sort_keys=True))
 
 
