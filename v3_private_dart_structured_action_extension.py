@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 import os
 import re
+import time
 
 from v3_dart_historical_event_receipts import MONTHS, PRIVATE_REPO, _bytes as canonical, _dates
 from v3_private_dart_krx_filing_title_triage import (
@@ -22,7 +23,7 @@ from v3_private_dart_structured_action_receipts import (
     StructuredActionError, _same_bytes, official_fetch, inspect_response,
     SUPPLEMENTAL_ENDPOINTS,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 SCHEMA = "v3-private-dart-structured-action-extension-v1"
 BASE = "derived/dart-structured-action-extension"
@@ -250,12 +251,25 @@ def main():
     try:
         storage = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         key = os.environ["DART_API_KEY"]
-        print(json.dumps(run(storage, lambda ep, corp, start, end:
-                             official_fetch(key, ep, corp, start, end)), sort_keys=True))
-        return 0
+        for attempt in range(3):
+            try:
+                result = run(storage, lambda ep, corp, start, end:
+                             official_fetch(key, ep, corp, start, end))
+                print(json.dumps(result, sort_keys=True))
+                return 0
+            except PrivateHistoryError as exc:
+                # A provider/network error can happen AFTER a private write.
+                # Re-read the checkpoint and immutable report in run() before
+                # retrying. Never retry malformed blobs or privacy guardrails.
+                if str(exc) != "private_storage_api_failed" or attempt == 2:
+                    raise
+                time.sleep(2 * (attempt + 1))
     except (ExtensionError, StructuredActionError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc),
                           "source_identifiers_exposed": False}))
+        return 1
+    except PrivateHistoryError:
+        print('{"status":"blocked","reason":"private_extension_storage_unavailable","source_identifiers_exposed":false}')
         return 1
     except Exception:
         print('{"status":"blocked","reason":"private_extension_unavailable","source_identifiers_exposed":false}')
