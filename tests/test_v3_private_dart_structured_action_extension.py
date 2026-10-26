@@ -1,5 +1,7 @@
 """Offline supplemental official DART category evidence without trading claims."""
 import base64
+from contextlib import redirect_stdout
+import io
 import json
 from pathlib import Path
 import unittest
@@ -137,6 +139,62 @@ class SupplementalActionTests(unittest.TestCase):
         self.assertNotIn("git push", wf)
         self.assertIn("30 9 * * 1-5",
                       Path(".github/workflows/full-market-batches.yml").read_text())
+
+    def test_retry_after_private_readback_error_reuses_receipt_no_duplicate_calls(self):
+        class Flaky(Private):
+            transient = True
+            def get_content(self, path):
+                if (self.transient and path == s._report_path(0, RECORDS[0]["rcept_no"])
+                    and path in self.blobs):
+                    self.transient = False
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return super().get_content(path)
+
+        store = Flaky()
+        store.blobs.update(self.store.blobs)
+        log = io.StringIO()
+        calls = []
+        def official(*args):
+            calls.append(args[0])
+            return {"status": "013"}
+        with (patch.dict(s.os.environ, {"V3_PRIVATE_ARCHIVE_REPO": s.PRIVATE_REPO,
+                                       "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                                       "DART_API_KEY": "A" * 40}),
+              patch.object(s, "PrivateGitStorage", return_value=store),
+              patch.object(s, "triage_cursor", return_value={"next_pair_index": 1}),
+              patch.object(s, "_candidate_queue", return_value=(RECORDS, "a" * 64, 2)),
+              patch.object(s, "official_fetch", side_effect=official),
+              patch.object(s.time, "sleep") as sleep,
+              redirect_stdout(log)):
+            code = s.main()
+        self.assertEqual(code, 0)
+        self.assertEqual(len(calls), 5)
+        self.assertEqual(store.posts, 3)  # two private reports, then checkpoint
+        self.assertTrue(sleep.called)
+        self.assertTrue(json.loads(log.getvalue())["previous_reports_reused"] == 1)
+        self.assertNotIn(RECORDS[0]["rcept_no"], log.getvalue())
+
+    def test_storage_authentication_or_shape_failure_not_retried(self):
+        class InvalidPrivate(Private):
+            calls = 0
+            def get_content(self, path):
+                self.calls += 1
+                raise s.PrivateHistoryError("untrusted_private_blob")
+
+        store = InvalidPrivate()
+        log = io.StringIO()
+        with (patch.dict(s.os.environ, {"V3_PRIVATE_ARCHIVE_REPO": s.PRIVATE_REPO,
+                                       "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                                       "DART_API_KEY": "A" * 40}),
+              patch.object(s, "PrivateGitStorage", return_value=store),
+              patch.object(s.time, "sleep") as sleep,
+              redirect_stdout(log)):
+            code = s.main()
+        self.assertEqual(code, 1)
+        self.assertEqual(store.calls, 1)
+        sleep.assert_not_called()
+        self.assertEqual(json.loads(log.getvalue())["reason"],
+                         "private_extension_storage_unavailable")
 
 
 if __name__ == "__main__":
