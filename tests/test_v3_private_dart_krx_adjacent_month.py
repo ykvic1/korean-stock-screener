@@ -135,6 +135,26 @@ class AdjacentMonthTests(unittest.TestCase):
         self.assertEqual(result["opposite_month_receipt_candidate_pairs"], 1)
         self.assertFalse(result["ticker_history_identity_verified"])
 
+    def test_mixed_six_character_krx_ids_are_unjoinable_not_invalid(self):
+        flags = [
+            {"issuer_market": "KOSPI:00088K", "last_day": "2016-10-31"},
+            {"issuer_market": "KOSPI:005930", "last_day": "2016-10-31"},
+        ]
+        result = adjacent._count_boundary_candidates(
+            flags,
+            [{"stock_code": "005930", "rcept_dt": "20161031"}],
+            [{"stock_code": "005930", "rcept_dt": "20161103"}],
+            "2016-10", "2016-11")
+        self.assertEqual(result["price_discontinuity_events_examined_in_pair"], 2)
+        self.assertEqual(result["opposite_month_nearby_event_count"], 1)
+        self.assertEqual(result["krx_opaque_alphanumeric_events_unjoinable"], 1)
+        self.assertFalse(result["ticker_history_identity_verified"])
+        self.assertTrue(result["absence_is_not_negative_corporate_action_evidence"])
+        with self.assertRaises(adjacent.AdjacentMonthError):
+            adjacent._count_boundary_candidates(
+                [{"issuer_market": "KOSPI:00088k", "last_day": "2016-10-31"}],
+                [], [], "2016-10", "2016-11")
+
     def test_corrupt_checkpoint_private_destination_and_tail_are_rejected(self):
         private = Private()
         private.repository = "ykvic1/korean-stock-screener"
@@ -175,6 +195,26 @@ class AdjacentMonthTests(unittest.TestCase):
                 self.assertNotIn("secret", str(caught.exception))
                 self.assertIn("blocked: private adjacent-month evidence",
                               str(caught.exception))
+
+    def test_incomplete_receipts_vs_candidate_matching_are_distinct_safe_blocks(self):
+        private = Private()
+        with (patch.object(adjacent, "_source_events", return_value=history()),
+              patch.object(adjacent, "_month_receipts",
+                           side_effect=RuntimeError("private receipt: 005930"))):
+            with self.assertRaisesRegex(adjacent.AdjacentMonthError,
+                                        "^invalid_or_incomplete_private_adjacent_month_receipts$"):
+                adjacent.run(private)
+        with (patch.object(adjacent, "_source_events", return_value=history()),
+              patch.object(adjacent, "_month_receipts", side_effect=receipts),
+              patch.object(adjacent, "_count_boundary_candidates",
+                           side_effect=ValueError("private filing 20161103"))):
+            with self.assertRaisesRegex(adjacent.AdjacentMonthError,
+                                        "^invalid_private_adjacent_month_candidate_match$"):
+                adjacent.run(private)
+        self.assertEqual(private.puts, 0)
+        for reason in ("invalid_or_incomplete_private_adjacent_month_receipts",
+                       "invalid_private_adjacent_month_candidate_match"):
+            self.assertIn(reason, adjacent.SAFE_ERROR_CODES)
 
     def test_schedules_privacy_and_legacy_market_publication_remain_separate(self):
         wf = Path(".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()

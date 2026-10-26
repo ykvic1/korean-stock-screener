@@ -31,6 +31,7 @@ CHECKPOINT = "derived/quality/dart-krx-adjacent-month-candidates-checkpoint.json
 OUT = "derived/quality/dart-krx-adjacent-month-candidates"
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 STOCK = re.compile(r"[0-9]{6}\Z")
+KRX_STOCK = re.compile(r"[0-9A-Z]{6}\Z")
 
 
 class AdjacentMonthError(ValueError):
@@ -42,7 +43,8 @@ class AdjacentMonthError(ValueError):
 # must never enter public GitHub Actions logs.
 SAFE_ERROR_CODES = frozenset({
     "adjacent_month_source_cursor_changed",
-    "invalid_or_incomplete_private_adjacent_month_inputs",
+    "invalid_or_incomplete_private_adjacent_month_receipts",
+    "invalid_private_adjacent_month_candidate_match",
     "invalid_private_adjacent_month_checkpoint",
     "invalid_private_adjacent_month_receipt",
     "invalid_private_adjacent_month_ticker",
@@ -130,7 +132,7 @@ def _count_boundary_candidates(events, left_receipts, right_receipts, left, righ
                 mapping.setdefault(ticker, []).append(_day(r["rcept_dt"]))
         by_month[month] = mapping
 
-    examined = matching = pairs = 0
+    examined = matching = pairs = unjoinable_opaque = 0
     for flag in events:
         if type(flag) is not dict:
             raise AdjacentMonthError("invalid_private_krx_candidate")
@@ -146,8 +148,12 @@ def _count_boundary_candidates(events, left_receipts, right_receipts, left, righ
             raise AdjacentMonthError("invalid_private_krx_candidate_ticker")
         parts = issuer_market.split(":")
         if (len(parts) != 2 or parts[0] not in ("KOSPI", "KOSDAQ")
-            or not STOCK.fullmatch(parts[1])):
+            or not KRX_STOCK.fullmatch(parts[1])):
             raise AdjacentMonthError("invalid_private_krx_candidate_market")
+        # Official KRX price IDs allow mixed alphanumeric six-character codes.
+        # DART stock receipt IDs are numeric-only: count these as unjoinable,
+        # without normalizing them or claiming corporate-action absence.
+        unjoinable_opaque += int(STOCK.fullmatch(parts[1]) is None)
         opposite = right if stamp[:7] == left else left
         eligible = sum(
             abs((filing - end).days) <= WINDOW_CALENDAR_DAYS
@@ -160,6 +166,7 @@ def _count_boundary_candidates(events, left_receipts, right_receipts, left, righ
         "price_discontinuity_events_examined_in_pair": examined,
         "opposite_month_nearby_event_count": matching,
         "opposite_month_receipt_candidate_pairs": pairs,
+        "krx_opaque_alphanumeric_events_unjoinable": unjoinable_opaque,
         "absence_is_not_negative_corporate_action_evidence": True,
         "ticker_history_identity_verified": False,
         "filing_kind_or_effective_date_verified": False,
@@ -215,9 +222,12 @@ def run(storage):
     try:
         left_rows = _month_receipts(storage, left)
         right_rows = _month_receipts(storage, right)
+    except Exception:
+        raise AdjacentMonthError("invalid_or_incomplete_private_adjacent_month_receipts") from None
+    try:
         counts = _count_boundary_candidates(events, left_rows, right_rows, left, right)
     except Exception:
-        raise AdjacentMonthError("invalid_or_incomplete_private_adjacent_month_inputs") from None
+        raise AdjacentMonthError("invalid_private_adjacent_month_candidate_match") from None
 
     report = {
         "schema": SCHEMA, "first_month": left, "second_month": right,
