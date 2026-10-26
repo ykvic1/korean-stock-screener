@@ -211,6 +211,63 @@ class OriginalEvidenceTests(unittest.TestCase):
         self.assertEqual(result["scores_promoted"],0)
         self.assertNotIn(original._zip_path(0,"20161031000001"),store.blobs)
 
+    def test_unsafe_official_zip_is_quarantined_and_does_not_block_next_receipt(self):
+        store = Private()
+        seen = []
+        def provider(receipt):
+            seen.append(receipt)
+            return (zip_source("/unsafe/absolute-original.xml")
+                    if receipt.endswith("000001") else zip_source())
+        first = original.run(store, provider, max_calls=1)
+        self.assertEqual(first["provider_calls"], 1)
+        self.assertEqual(first["unsafe_original_zip_receipts_quarantined"], 1)
+        self.assertEqual(first["new_original_zips_archived"], 0)
+        self.assertEqual(first["scores_promoted"], 0)
+        self.assertNotIn(original._zip_path(0, seen[0]), store.blobs)
+        report = json.loads(store.blobs[original._report_path(0, seen[0])])
+        self.assertEqual(report["source_status"],
+                         "unsafe_zip_quarantined_no_negative_inference")
+        self.assertIsNone(report["source_zip_path"])
+        self.assertIsNone(report["zip_metadata"])
+        self.assertFalse(report["corporate_action_authenticated"])
+        self.assertFalse(report["effective_date_authenticated"])
+        self.assertFalse(report["adjusted_prices_authorized"])
+        second = original.run(store, provider, max_calls=1)
+        self.assertEqual(second["new_original_zips_archived"], 1)
+        self.assertEqual(second["unsafe_original_zip_receipts_quarantined"], 0)
+        self.assertEqual(json.loads(store.blobs[original.CHECKPOINT])["next_pair_index"], 1)
+        self.assertEqual(len(seen), 2)
+        self.assertNotIn("20161031000001", json.dumps(first))
+
+    def test_quarantined_receipt_reuse_never_refetches_or_claims_negative_evidence(self):
+        store = Private()
+        receipt = "20161031000001"
+        first = original.run(store, lambda _: zip_source("../private.xml"), max_calls=1)
+        self.assertEqual(first["unsafe_original_zip_receipts_quarantined"], 1)
+        store.blobs[original.CHECKPOINT] = canonical(original._empty())
+        replay = original.run(store, lambda _: self.fail("quarantined ZIP re-fetched"),
+                              max_calls=1)
+        self.assertEqual(replay["already_archived_receipts_reused"], 1)
+        self.assertEqual(replay["provider_calls"], 0)
+        self.assertNotIn(original._zip_path(0, receipt), store.blobs)
+        self.assertEqual(replay["unsafe_original_zip_receipts_quarantined"], 1)
+
+    def test_unknown_document_response_still_aborts_without_cursor_or_quarantine(self):
+        store = Private()
+        with self.assertRaisesRegex(original.OriginalEvidenceError,
+                                    "^dart_document_provider_rejected$"):
+            original.run(store,
+                lambda _: b"<result><status>020</status></result>", max_calls=1)
+        self.assertEqual(store.writes, 0)
+        self.assertNotIn(original.CHECKPOINT, store.blobs)
+        # Even a misleading transport exception containing the parser's
+        # static unsafe-ZIP label must not skip the source-fetch boundary.
+        with self.assertRaises(original.OriginalEvidenceError):
+            original.run(store, lambda _: (_ for _ in ()).throw(
+                original.OriginalEvidenceError("invalid_or_unsafe_official_document_zip")),
+                max_calls=1)
+        self.assertEqual(store.writes, 0)
+
     def test_corrupt_zip_path_traversal_and_quota_status_fail_closed(self):
         for name in ("../escape.xml", "bad\\folder.xml", "x/../../evil.xml"):
             with self.assertRaises(original.OriginalEvidenceError):

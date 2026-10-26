@@ -291,7 +291,8 @@ def _validate_report(raw, index, receipt, record):
             or x.get("scores_authorized") is not False
             or x.get("source_status") not in (
                 "zip_archived_unparsed", "unavailable_no_negative_inference",
-                "source_oversize_not_archived")):
+                "source_oversize_not_archived",
+                "unsafe_zip_quarantined_no_negative_inference")):
             raise ValueError()
         if x["source_status"] == "zip_archived_unparsed":
             if (x.get("source_zip_path") != _zip_path(index, receipt)
@@ -299,7 +300,8 @@ def _validate_report(raw, index, receipt, record):
                 or type(x["zip_metadata"].get("sha256")) is not str
                 or not SHA.fullmatch(x["zip_metadata"]["sha256"])):
                 raise ValueError()
-        elif x.get("source_zip_path") is not None:
+        elif (x.get("source_zip_path") is not None
+              or x.get("zip_metadata") is not None):
             raise ValueError()
         return x
     except Exception:
@@ -337,7 +339,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
 
     # A bounded run may resume previously written immutable ZIPs or reports
     # after a failed checkpoint PUT without repeating the upstream API call.
-    api_calls = saved = unavailable = oversized = reused = advanced = new_zips = 0
+    api_calls = saved = unavailable = oversized = quarantined = reused = advanced = new_zips = 0
     last_path, last_digest = state["last_report_file"], state["last_report_digest"]
     while j < len(queue) and advanced < max_calls:
         record = queue[j]
@@ -360,10 +362,19 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                 try:
                     returned = fetch(receipt)
                     api_calls += 1
-                    kind, details = _interpret_response(returned)
                 except OriginalOversizedError:
                     api_calls += 1
                     kind, details = "oversize", {}
+                else:
+                    try:
+                        kind, details = _interpret_response(returned)
+                    except OriginalEvidenceError as exc:
+                        # Only the ZIP parser may authorize quarantine:
+                        # an arbitrary transport error cannot be swallowed.
+                        # Never store the unsafe bytes or infer no event.
+                        if str(exc) != "invalid_or_unsafe_official_document_zip":
+                            raise
+                        kind, details = "unsafe_zip_quarantined", {}
             if kind == "zip" and archived is None:
                 storage.put_new(source_path, returned,
                                 "Save private official original ZIP source")
@@ -371,9 +382,15 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                 archived, _ = storage.get_content(source_path)
                 if archived != returned:
                     raise OriginalEvidenceError("private_original_zip_not_read_back")
-            status = ("zip_archived_unparsed" if kind == "zip" else
-                      "unavailable_no_negative_inference" if kind == "source_unavailable"
-                      else "source_oversize_not_archived")
+            status_by_kind = {
+                "zip": "zip_archived_unparsed",
+                "source_unavailable": "unavailable_no_negative_inference",
+                "oversize": "source_oversize_not_archived",
+                "unsafe_zip_quarantined": "unsafe_zip_quarantined_no_negative_inference",
+            }
+            if kind not in status_by_kind:
+                raise OriginalEvidenceError("unrecognized_original_document_kind")
+            status = status_by_kind[kind]
             report = {
                 "schema": SCHEMA, "source_pair": _pair_label(i),
                 "rcept_no": receipt, "corp_code": record["corp_code"],
@@ -399,6 +416,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         saved += int(report["source_status"] == "zip_archived_unparsed")
         unavailable += int(report["source_status"] == "unavailable_no_negative_inference")
         oversized += int(report["source_status"] == "source_oversize_not_archived")
+        quarantined += int(report["source_status"] == "unsafe_zip_quarantined_no_negative_inference")
         last_path, last_digest = report_path, sha256(canonical(report)).hexdigest()
         j += 1
         advanced += 1
@@ -431,6 +449,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         "available_original_zip_receipts": saved,
         "source_unavailable_receipts": unavailable,
         "source_oversize_receipts": oversized,
+        "unsafe_original_zip_receipts_quarantined": quarantined,
         "already_archived_receipts_reused": reused,
         "provider_calls": api_calls,
         "remaining_receipts_in_pair": (len(queue)-j if i == state["next_pair_index"] else 0),
