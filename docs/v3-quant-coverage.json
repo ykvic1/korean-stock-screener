@@ -1,15 +1,15 @@
 {
   "schema": "v3-ranked-quant-coverage-v1",
-  "asof": "2026-10-23",
-  "candidate_count": 1,
-  "candidates_in_next_120_stock_study": 1,
-  "study_source_asof": "2026-10-23",
+  "asof": "2026-10-26",
+  "candidate_count": 3,
+  "candidates_in_next_120_stock_study": 3,
+  "study_source_asof": "2026-10-26",
   "quant_study_same_date": true,
-  "candidates_with_usable_historical_periods": 1,
+  "candidates_with_usable_historical_periods": 2,
   "candidate_status_counts": {
-    "research_available": 1,
+    "research_available": 2,
     "research_but_periods_insufficient": 0,
-    "history_insufficient": 0,
+    "history_insufficient": 1,
     "awaiting_fresh_study": 0
   },
   "historical_statistics_exploratory_only": true,
@@ -19,10 +19,10 @@
     {
       "code": "004100",
       "name": "태양금속",
-      "v2_observed_score": 77.1,
+      "v2_observed_score": 74.2,
       "priority_in_next_study": true,
       "state": "research_available",
-      "source_data_date": "2026-10-23",
+      "source_data_date": "2026-10-26",
       "available_historical_periods": [
         "초단기 1주",
         "단기 2주",
@@ -33,6 +33,37 @@
         "장기 1년"
       ],
       "historical_period_count": 7,
+      "out_of_sample_prediction_validated": false,
+      "buy_certified": false
+    },
+    {
+      "code": "016740",
+      "name": "두올",
+      "v2_observed_score": 74.2,
+      "priority_in_next_study": true,
+      "state": "history_insufficient",
+      "source_data_date": "2026-10-26",
+      "available_historical_periods": [],
+      "historical_period_count": 0,
+      "out_of_sample_prediction_validated": false,
+      "buy_certified": false
+    },
+    {
+      "code": "441270",
+      "name": "파인엠텍",
+      "v2_observed_score": 70.0,
+      "priority_in_next_study": true,
+      "state": "research_available",
+      "source_data_date": "2026-10-26",
+      "available_historical_periods": [
+        "초단기 1주",
+        "단기 2주",
+        "스윙 1개월",
+        "스윙 2개월",
+        "중기 3개월",
+        "중기 6개월"
+      ],
+      "historical_period_count": 6,
       "out_of_sample_prediction_validated": false,
       "buy_certified": false
     }
