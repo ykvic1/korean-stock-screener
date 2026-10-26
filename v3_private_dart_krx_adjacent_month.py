@@ -42,7 +42,8 @@ class AdjacentMonthError(ValueError):
 # must never enter public GitHub Actions logs.
 SAFE_ERROR_CODES = frozenset({
     "adjacent_month_source_cursor_changed",
-    "invalid_or_incomplete_private_adjacent_month_inputs",
+    "invalid_or_incomplete_private_adjacent_month_receipts",
+    "invalid_private_adjacent_month_candidate_match",
     "invalid_private_adjacent_month_checkpoint",
     "invalid_private_adjacent_month_receipt",
     "invalid_private_adjacent_month_ticker",
@@ -215,9 +216,12 @@ def run(storage):
     try:
         left_rows = _month_receipts(storage, left)
         right_rows = _month_receipts(storage, right)
+    except Exception:
+        raise AdjacentMonthError("invalid_or_incomplete_private_adjacent_month_receipts") from None
+    try:
         counts = _count_boundary_candidates(events, left_rows, right_rows, left, right)
     except Exception:
-        raise AdjacentMonthError("invalid_or_incomplete_private_adjacent_month_inputs") from None
+        raise AdjacentMonthError("invalid_private_adjacent_month_candidate_match") from None
 
     report = {
         "schema": SCHEMA, "first_month": left, "second_month": right,
