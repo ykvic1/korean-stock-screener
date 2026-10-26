@@ -30,6 +30,10 @@ SCHEMA = "v3-private-dart-structured-action-receipt-v1"
 BASE = "derived/dart-structured-action-receipts"
 CHECKPOINT = BASE + "/checkpoint.json"
 ENDPOINTS = ("cmpMgDecsn", "cmpDvDecsn", "fricDecsn")
+SUPPLEMENTAL_ENDPOINTS = (
+    "piicDecsn", "pifricDecsn", "crDecsn", "cmpDvmgDecsn", "stkExtrDecsn",
+)
+ALLOWED_OFFICIAL_ENDPOINTS = ENDPOINTS + SUPPLEMENTAL_ENDPOINTS
 MAX_CANDIDATES = 2
 MAX_CALLS = MAX_CANDIDATES * len(ENDPOINTS)
 MAX_BODY_BYTES = 1_000_000
@@ -83,7 +87,7 @@ def _path(index, receipt):
 
 
 def _check_request(endpoint, corp, start, end):
-    if (endpoint not in ENDPOINTS or type(corp) is not str or
+    if (endpoint not in ALLOWED_OFFICIAL_ENDPOINTS or type(corp) is not str or
         not RX_CORP.fullmatch(corp) or type(start) is not str or
         type(end) is not str or len(start) != 8 or len(end) != 8):
         raise StructuredActionError("invalid_structured_action_request")
@@ -118,7 +122,7 @@ def official_fetch(api_key, endpoint, corp, start, end):
 
 
 def inspect_response(body, endpoint, corp, receipt):
-    if (endpoint not in ENDPOINTS or type(corp) is not str or not RX_CORP.fullmatch(corp)
+    if (endpoint not in ALLOWED_OFFICIAL_ENDPOINTS or type(corp) is not str or not RX_CORP.fullmatch(corp)
         or type(receipt) is not str or not RX_RECEIPT.fullmatch(receipt)
         or type(body) is not dict):
         raise StructuredActionError("invalid_structured_action_response")
