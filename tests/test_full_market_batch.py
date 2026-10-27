@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
+from datetime import datetime,date,timedelta
 import json
 from pathlib import Path
 import tempfile
@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import full_market_batch as b
 import screener
+from v3_unscored_path_observations import observe
 
 DAY = "2026-10-16"
 
@@ -83,6 +84,28 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             self.assertTrue(combined["market_scan_complete"])
             self.assertFalse(combined["raw_ohlcv_exported"])
             self.assertEqual(set(r["code"] for r in combined["rows"]), set(m["codes"]))
+
+    def test_derived_path_receipt_is_source_guarded_but_never_scored(self):
+        last=date.fromisoformat(DAY)
+        sessions=[last-timedelta(days=120-i) for i in range(121)]
+        evidence=observe([100+i for i in range(121)],[100]*121,
+                         asof=DAY,session_days=sessions)
+        self.assertIsNotNone(evidence)
+        self.assertEqual(evidence["new_v3_available_points"],0)
+        def analyzer(code,cfg,day):
+            return {**mock_history(code,cfg,day),
+                    "v3_unscored_path_observations":evidence}
+        with tempfile.TemporaryDirectory() as tmp:
+            m,_,_=self._plan(tmp,105)
+            folder,_=self._scan_all(tmp,m,analyzer=analyzer)
+            receipts=b.load_receipts(m,folder)
+            self.assertEqual(len(receipts["rows"]),105)
+            tampered=json.loads((folder/"part-000.json").read_text(encoding="utf8"))
+            tampered["rows"][0]["metrics"]["v3_unscored_path_observations"][
+                "new_v3_available_points"]=4
+            with self.assertRaisesRegex(b.BatchError,
+                                        "untrusted_unscored_path_observation"):
+                b.validate_part(m,tampered)
 
     def test_failed_history_still_accounted_for_with_no_fabricated_zero(self):
         def source(code, cfg, day):

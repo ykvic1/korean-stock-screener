@@ -48,7 +48,12 @@ class RealCoverageAuditTests(unittest.TestCase):
         finance=out["six_pillar_numeric_provisional_issuer_counts"]["financial"]
         growth=sources[2]["companies_with_computable_4y_income_scores"]
         margin=sources[2]["companies_with_computable_3y_margin_scores"]
-        self.assertEqual(finance,margin)
+        # Balance-sheet factors added later can make the observed union
+        # larger than operating-margin coverage. Count only real rows with
+        # nonzero AVAILABLE evidence; do not force it to the old margin count.
+        self.assertEqual(finance,sum(
+            r["financial_available_max"]>0 for r in sources[2]["rows"]))
+        self.assertGreaterEqual(finance,margin)
         self.assertGreaterEqual(finance,growth)
         self.assertEqual(
             out["three_year_margin_provisional_score_issuers"],margin)
