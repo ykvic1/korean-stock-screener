@@ -53,6 +53,13 @@ class PricePathCoverageTests(unittest.TestCase):
     def test_partial_daily_counts_are_explicitly_not_a_score(self):
         result = summarize(daily())
         self.assertEqual(result["observed_121_session_paths"], 1)
+        self.assertEqual(len(result["daily_source_sha256"]), 64)
+        modified = daily()
+        modified["stocks"][0]["reference_price"] = 123.4
+        self.assertNotEqual(
+            summarize(modified)["daily_source_sha256"],
+            result["daily_source_sha256"],
+            "unchanged coverage counts cannot authenticate another price file")
         self.assertEqual(result["unavailable_121_session_paths"], 1)
         self.assertEqual(result["path_coverage_pct_of_current"], 50.0)
         self.assertFalse(result["market_scan_complete"])
