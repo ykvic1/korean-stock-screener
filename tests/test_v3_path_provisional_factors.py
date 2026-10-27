@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 from datetime import date, timedelta
 import unittest
+from unittest.mock import patch
 
 from test_v3_dart_rolling_book_reference import fixture
 from v3_unscored_path_observations import observe, SCHEMA as PATH_SCHEMA
@@ -84,6 +85,40 @@ class ProvisionalPathResearchTests(unittest.TestCase):
         self.assertFalse(summary["independent_krx_adjusted_path_certification"])
         self.assertTrue(target["path_provisional_research"]["research_volume_weight_applied"])
         self.assertFalse(target["path_provisional_research"]["research_momentum_weight_applied"])
+
+    def test_full_eight_point_existing_momentum_can_gain_its_observed_seven(self):
+        daily,catalog=market_with_path()
+        # Synthetic peer-qualified CURRENT-day reference. No future source,
+        # provider requests, or claim that actual 80 peers have been fetched.
+        mom={
+            "schema":"v3-observed-market-momentum-8of10-research-0.1",
+            "asof":DAY,"market":"KOSPI",
+            "momentum_parts":{
+                "relative20":3.0,"relative60":3.0,
+                "positive_days20":None,"trend_persistence60":None,
+                "reversal_breadth120":None},
+            "momentum_observed_maximum":8,
+            "momentum_research_candidate":6.0,"momentum_maximum":15,
+            "peer20_count":80,"peer60_count":80,
+            "market_benchmark_date_independently_verified":False,
+            "source_unadjusted_corporate_events_verified":False,
+            "positive_days20_observed":False,
+            "investable_score":None,"buy_certified":False,
+        }
+        with patch("v3_current_price_replay.market_momentum",
+                   return_value={"005930":mom}):
+            v=volume_build(daily,catalog)
+            p=price_build(daily,catalog)
+            rows,summary=generate(daily,catalog,v,p)
+        issuer=next(row for row in rows if row["code"]=="005930")
+        self.assertEqual(issuer["factor_available"]["momentum"],15)
+        self.assertEqual(issuer["factor_available"]["volume"],20)
+        self.assertEqual(issuer["factors"]["momentum"],11.0)
+        self.assertEqual(summary["factor_observed_weight_ceiling"]["momentum"],15)
+        self.assertEqual(summary["path_research_subweight_applied_issuer_counts"],
+                         {"volume4":1,"momentum7":1})
+        self.assertEqual(summary["additional_path_investment_grade_points_authorized"],0)
+        self.assertEqual(summary["certified_100point_count"],0)
 
     def test_old_price_snapshots_keep_missing_weight(self):
         daily,catalog=market_with_path()
