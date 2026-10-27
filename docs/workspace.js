@@ -765,6 +765,12 @@ function applyRotationTechnicalBackfill(model, state){
  return accepted;
 }
 function applyBulkFinancialPreview(model,report){
+ const newSalesFactor=report?.valuation_partial_max_possible===15&&
+   report.five_factor_valuation_budget===20&&
+   Number.isInteger(report.companies_with_computable_sales_to_cap_scores);
+ const previousReference=report?.valuation_partial_max_possible===10&&
+   report.five_factor_valuation_budget===undefined&&
+   report.companies_with_computable_sales_to_cap_scores===undefined;
  if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
     !report||report.schema!=='v3-dart-multi-year-research-parts-0.1'||
     report.asof!==model.date||report.historical_PIT_certified!==false||
@@ -773,7 +779,7 @@ function applyBulkFinancialPreview(model,report){
     report.model_financial_full_points!==15||
     report.model_valuation_full_points!==15||
     report.financial_partial_max_possible!==8||
-    report.valuation_partial_max_possible!==10||
+    !(newSalesFactor||previousReference)||
     !Array.isArray(report.rows)||
     !Number.isInteger(report.listed_total)||report.listed_total<model.rows.length||
     report.rows.length>report.listed_total)return 0;
@@ -786,7 +792,7 @@ function applyBulkFinancialPreview(model,report){
      !Number.isInteger(row.financial_available_max)||
      ![0,4,8].includes(row.financial_available_max)||
      !Number.isInteger(row.valuation_available_max)||
-     ![0,5,10].includes(row.valuation_available_max)||
+     !(newSalesFactor?[0,5,10,15]:[0,5,10]).includes(row.valuation_available_max)||
      !finite(row.combined_provisional_points)||
      row.combined_available_max!==
         row.financial_available_max+row.valuation_available_max||

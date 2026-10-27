@@ -693,20 +693,40 @@ def _three_year_margin(record,fiscal):
     return None
 
 
+def _latest_revenue(record, fiscal, asof):
+    """Actual latest annual KRW sales, with one valid annual receipt/scope.
+
+    A missing latest year, ambiguous receipt, or nonpositive sales cannot be
+    substituted from older years or the current market catalogue.
+    """
+    years=(record or {}).get("years") or {}
+    year=fiscal[-1]
+    source=years.get(str(year),{})
+    for scope in ("CFS","OFS"):
+        item=source.get(scope,{})
+        revenue=item.get("values",{}).get("revenue")
+        if (type(revenue) is int and 0<revenue<=10**18 and
+            _valid_receipt(item.get("receipt_id"),year,_day(asof))):
+            return revenue
+    return None
+
+
 def _midrank(value, ordered, direction):
     left=bisect_left(ordered,value);right=bisect_right(ordered,value)
     pct=(left+right)/(2*len(ordered))
     return pct if direction>0 else 1-pct
 
 
-def research_parts(data,catalog,book,*,minimum_peers=30):
-    """Produce observed 4+4 financial and 5+5 valuation research points.
+def research_parts(data,catalog,book,*,minimum_peers=30,
+                   include_sales_to_cap=True):
+    """Produce observed 4+4 financial and 5+5+5 valuation research points.
 
     Only observed, date-linked inputs with >=30 same-market peers contribute.
     Missing FCF, flow, PIT or other factors stay unavailable, never zero.
     """
     if (type(data) is not dict or data.get("schema")!=SCHEMA or
         type(minimum_peers) is not int or minimum_peers<8 or
+        type(include_sales_to_cap) is not bool or
         catalog.get("date")!=data.get("asof") or
         book.get("asof")!=data.get("asof") or
         catalog.get("listed_total")!=data.get("listed_total") or
@@ -732,6 +752,16 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
     earnings_yield={}
     cap_by_code={r["code"]:r.get("reference_market_cap_eok")
                  for r in catalog["rows"]}
+    sales_to_cap={}
+    if include_sales_to_cap:
+        for code in market:
+            revenue=_latest_revenue(data["records"].get(code),fiscal,data["asof"])
+            cap=cap_by_code.get(code)
+            if (revenue is not None and type(cap) in (float,int) and
+                math.isfinite(cap) and 0<cap<1e12):
+                ratio=revenue/(cap*1e8)
+                if math.isfinite(ratio) and 0<ratio<1e6:
+                    sales_to_cap[code]=round(ratio,8)
     for o in book.get("observations",[]):
         code=o.get("code");v=o.get("pbr_simple_annual_reference")
         a=book_annual.get(code,{}).get("annual",{})
@@ -750,28 +780,35 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
                 and a.get("year")==fiscal[-1]
                 and a.get("currency")=="KRW"):
                 earnings_yield[code]=round(100*profit/(cap*1e8),6)
+    valuation_metrics=(("pbr","earnings_yield_pct")+
+        (("sales_to_market_cap",) if include_sales_to_cap else ()))
+    metric_names=("revenue_cagr_3y_pct","operating_margin_3y_pct")+valuation_metrics
     series={}
     for m in ("KOSPI","KOSDAQ"):
         members=[c for c in market if market[c]==m]
         series[m]={k:sorted(
-            (pbr.get(c) if k=="pbr" else earnings_yield.get(c) if
+            (pbr.get(c) if k=="pbr" else sales_to_cap.get(c) if
+             k=="sales_to_market_cap" else earnings_yield.get(c) if
              k=="earnings_yield_pct" else (selected.get(c) or {}).get(k))
             for c in members if
-            (pbr.get(c) if k=="pbr" else earnings_yield.get(c) if
+            (pbr.get(c) if k=="pbr" else sales_to_cap.get(c) if
+             k=="sales_to_market_cap" else earnings_yield.get(c) if
              k=="earnings_yield_pct" else (selected.get(c) or {}).get(k)) is not None
-        ) for k in ("revenue_cagr_3y_pct","operating_margin_3y_pct",
-                    "pbr","earnings_yield_pct")}
+        ) for k in metric_names}
     output=[]
-    count_fin=0;count_margin=0;count_pb=0;count_earnings=0
+    count_fin=0;count_margin=0;count_pb=0;count_earnings=0;count_sales=0
     for code in sorted(market):
         src=selected.get(code) or {}
         benchmark=series[market[code]]
         pts={};available=0
-        for metric,weight,direction in (("revenue_cagr_3y_pct",4,1),
-                                        ("operating_margin_3y_pct",4,1),
-                                        ("pbr",5,-1),
-                                        ("earnings_yield_pct",5,1)):
+        metric_weights=[("revenue_cagr_3y_pct",4,1),
+                        ("operating_margin_3y_pct",4,1),
+                        ("pbr",5,-1),("earnings_yield_pct",5,1)]
+        if include_sales_to_cap:
+            metric_weights.append(("sales_to_market_cap",5,1))
+        for metric,weight,direction in metric_weights:
             v=(pbr.get(code) if metric=="pbr" else
+               sales_to_cap.get(code) if metric=="sales_to_market_cap" else
                earnings_yield.get(code) if metric=="earnings_yield_pct"
                else src.get(metric))
             peer=benchmark[metric]
@@ -789,6 +826,9 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
             count_pb+=1
         if pts["earnings_yield_pct"]["candidate_points"] is not None:
             count_earnings+=1
+        if (include_sales_to_cap and
+            pts["sales_to_market_cap"]["candidate_points"] is not None):
+            count_sales+=1
         if available:
             output.append({
                 "code":code,"market":market[code],
@@ -804,18 +844,18 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
                     "revenue_cagr_3y_pct","operating_margin_3y_pct")),
                 "valuation_candidate_points":(
                     round(sum(pts[k]["candidate_points"] or 0 for k in
-                              ("pbr","earnings_yield_pct")),6)
+                              valuation_metrics),6)
                     if any(pts[k]["candidate_points"] is not None
-                           for k in ("pbr","earnings_yield_pct")) else None),
+                           for k in valuation_metrics) else None),
                 "valuation_available_max":sum(pts[k]["max_points"] for k in
-                                            ("pbr","earnings_yield_pct")),
+                                            valuation_metrics),
                 "combined_provisional_points":round(
                     sum(z["candidate_points"] or 0 for z in pts.values()),6),
                 "combined_available_max":available,
                 "confirmed_v3_score":None,
                 "scoring_certified":False,
             })
-    return {
+    report={
         "schema":SCORE_SCHEMA,"asof":data["asof"],
         "listed_total":len(market),
         "four_year_income_observed":data["four_year_income_observed_count"],
@@ -825,7 +865,7 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
         "companies_with_computable_earnings_yield_scores":count_earnings,
         "model_financial_full_points":15,"model_valuation_full_points":15,
         "financial_partial_max_possible":8,
-        "valuation_partial_max_possible":10,
+        "valuation_partial_max_possible":15 if include_sales_to_cap else 10,
         "other_four_pillar_points_claimed":0,
         "coverage_peer_minimum":minimum_peers,
         "historical_PIT_certified":False,
@@ -833,6 +873,10 @@ def research_parts(data,catalog,book,*,minimum_peers=30):
         "all_scores_provisional_unverified":True,
         "rows":output,
     }
+    if include_sales_to_cap:
+        report["companies_with_computable_sales_to_cap_scores"]=count_sales
+        report["five_factor_valuation_budget"]=20
+    return report
 
 
 def write_json(path,value):

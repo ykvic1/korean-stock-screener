@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 
 import v3_real_six_pillar_coverage_audit as audit
+from v3_dart_bulk_history import research_parts
 
 
 def actual_inputs():
@@ -72,6 +73,30 @@ class RealCoverageAuditTests(unittest.TestCase):
         self.assertTrue(all(len(h)==64 for h in
                        out["source_sha256_canonical"].values()))
         self.assertEqual(out,audit.coverage(*sources))
+
+    def test_actual_latest_annual_sales_to_market_cap_is_source_replayed(self):
+        catalog,history,_,weekly=actual_inputs()
+        book=json.loads((Path(__file__).resolve().parent.parent/"docs"/
+                         "v3-dart-book-reference.json").read_text(encoding="utf8"))
+        parts=research_parts(history,catalog,book)
+        observed=audit.coverage(catalog,history,parts,weekly)
+        self.assertGreater(parts["companies_with_computable_sales_to_cap_scores"],0)
+        self.assertGreaterEqual(observed["six_pillar_numeric_provisional_issuer_counts"]
+                                ["valuation"],parts["companies_with_computable_sales_to_cap_scores"])
+        self.assertEqual(observed["six_pillar_official_complete_100pt_issuer_count"],0)
+        target=next(r for r in parts["rows"] if
+                    r["unverified_components"]["sales_to_market_cap"]["candidate_points"] is not None)
+        broken=copy.deepcopy(parts)
+        item=next(r for r in broken["rows"] if r["code"]==target["code"])
+        item["unverified_components"]["sales_to_market_cap"]["observed_value"]+=0.1
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "sales_to_cap_source_ratio_mismatch"):
+            audit.coverage(catalog,history,broken,weekly)
+        claimed=copy.deepcopy(parts)
+        claimed["companies_with_computable_sales_to_cap_scores"]+=1
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "research_component_evidence_count_mismatch"):
+            audit.coverage(catalog,history,claimed,weekly)
 
     def test_stale_market_or_fake_full_pillars_fail_closed(self):
         base=actual_inputs()

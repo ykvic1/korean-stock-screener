@@ -70,7 +70,17 @@ def finance_source(catalog,history,parts,annual,audit):
     except (BulkHistoryError,ValueError,TypeError,KeyError):
         return None
     if expected!=parts:
-        return None   # receipt/annual book rebase changed; resync first
+        # Source-only migration: the already-published 10-point annual
+        # valuation reference stays usable only when it exactly replays its
+        # original four observed components. The new 5-point sales/cap
+        # component remains unavailable until a fresh saved report exists.
+        try:
+            previous=research_parts(history,catalog,annual,
+                                    include_sales_to_cap=False)
+        except (BulkHistoryError,ValueError,TypeError,KeyError):
+            return None
+        if previous!=parts:
+            return None   # mismatched old AND new origin: fail closed
     rows={r["code"]:r for r in parts["rows"]}
     if len(rows)!=len(parts["rows"]):
         raise LivePartialScorecardError("duplicate_dart_financial_issuer")
