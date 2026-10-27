@@ -213,9 +213,15 @@ jobs:
           import json
           from pathlib import Path
           r=json.loads(Path('reports/v3-weekly-rotation-audit.json').read_text(encoding='utf-8'))
-          assert r['source_collection_calls']==0 and not r['all_issuers_updated_this_cycle']
-          assert r['processed_today'] <= (r['listed_total']+6)//7
-          print('Real saved 2497-ish source census rehearsed without provider calls:',r['processed_today'])
+          # The current published weekly rotation may have legitimately
+          # completed all seven cohorts. Completion is a valid read-only
+          # rehearsal, not a failure or a reason to invent missing scores.
+          assert r['source_collection_calls']==0
+          assert r['processed_this_cycle'] + r['unprocessed_this_cycle'] == r['listed_total']
+          assert r['all_issuers_updated_this_cycle'] is (r['unprocessed_this_cycle']==0)
+          assert 0 <= r['processed_today'] <= (r['listed_total']+6)//7
+          print('Saved-source rotation audit (no provider calls):',
+                r['processed_today'],'today,',r['unprocessed_this_cycle'],'remaining')
           PY
       - name: v3 complete six-factor and IAS scoring contract offline checks
         run: python -m unittest discover -s tests -p 'test_v3_score_contract.py' -v
