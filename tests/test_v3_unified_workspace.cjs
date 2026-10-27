@@ -891,6 +891,17 @@ assert.ok(actualCoverage.includes(
 assert.ok(actualCoverage.includes('<th scope="col">미확보 배점</th>'));
 assert.ok(actualCoverage.includes(
  '미확보 <b>'+observedPartialSummary.total_unobserved_weight_gap+'점</b>'));
+const withProvisional100=structuredClone(observedPartialSummary);
+withProvisional100.provisional_complete_100point_observation_count=0;
+const provisionalCoverage=unified.fiveAreaCoverageView(
+ withProvisional100,withProvisional100.asof,withProvisional100.listed_total);
+assert.ok(provisionalCoverage.includes('전영역 100점 배점 관측 완료: <b>0개</b>'));
+assert.ok(provisionalCoverage.includes('정식 투자점수 인증: 0개'));
+const forged100Overlap=structuredClone(observedPartialSummary);
+forged100Overlap.provisional_complete_100point_observation_count=observedPartialSummary.listed_total;
+assert.equal(unified.fiveAreaCoverageView(
+ forged100Overlap,forged100Overlap.asof,forged100Overlap.listed_total),null,
+ 'cannot claim complete 100-point source depth beyond smallest area overlap');
 for(const [area,title] of unified.PILLARS){
  const missing=observedPartialSummary.factor_unobserved_weight_gap[area];
  assert.ok(actualCoverage.includes('<td>'+missing+'점</td></tr>'),
