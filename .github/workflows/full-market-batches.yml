@@ -147,6 +147,12 @@ jobs:
           # fail-closed if any attempted stock has no accountably distinct outcome.
           python v22_full_universe_audit.py \
             --daily docs/data.json --output docs/v22-coverage.json
+      - name: Audit research-only daily path source availability (no extra investment points)
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
+        run: |
+          set -euo pipefail
+          python v3_unscored_path_coverage.py --daily docs/data.json --output docs/v3-unscored-path-coverage.json
+          python v3_unscored_path_coverage.py --verify --daily docs/data.json --output docs/v3-unscored-path-coverage.json
       - name: Publish ONE final v2 Pages/Excel snapshot after complete union
         if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         shell: bash
@@ -154,7 +160,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data.json docs/history.json docs/recommendations.json docs/recommendation_history.json docs/v22-coverage.json docs/v22-market-catalog.json docs/v22-partial-history.json docs/reports/ docs/archive/
+          git add docs/data.json docs/history.json docs/recommendations.json docs/recommendation_history.json docs/v22-coverage.json docs/v3-unscored-path-coverage.json docs/v22-market-catalog.json docs/v22-partial-history.json docs/reports/ docs/archive/
           if ! git diff --cached --quiet; then
             git commit -m "Full-market batch-derived v2 screen"
             git pull --rebase origin main
