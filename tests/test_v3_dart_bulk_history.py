@@ -356,7 +356,7 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(scored["rows"],[])
         self.assertEqual(scored["model_financial_full_points"],15)
         self.assertEqual(scored["financial_partial_max_possible"],8)
-        self.assertEqual(scored["valuation_partial_max_possible"],10)
+        self.assertEqual(scored["valuation_partial_max_possible"],15)
 
     def test_stock_code_only_response_as_official_docs_and_strict_identity(self):
         rows=payload_rows(2025)
@@ -796,15 +796,28 @@ class BulkHistoryTests(unittest.TestCase):
         parts=bulk.research_parts(history,catalog,annual,minimum_peers=30)
         self.assertEqual(parts["companies_with_computable_4y_income_scores"],0)
         self.assertEqual(parts["companies_with_computable_3y_margin_scores"],n)
+        self.assertEqual(parts["companies_with_computable_sales_to_cap_scores"],n)
         self.assertEqual(len(parts["rows"]),n)
         for row in parts["rows"]:
             self.assertEqual(row["financial_available_max"],4)
-            self.assertEqual(row["valuation_available_max"],0)
+            self.assertEqual(row["valuation_available_max"],5)
             self.assertIsNone(
                 row["unverified_components"]["revenue_cagr_3y_pct"]["candidate_points"])
             self.assertTrue(
                 0<=row["unverified_components"]["operating_margin_3y_pct"]["candidate_points"]<=4)
             self.assertIsNone(row["confirmed_v3_score"])
+        # A latest annual statement plus a current catalog cap can be
+        # observed even when the oldest CAGR year is missing. Expired or
+        # unproven filing receipts and absent cap values may not be scored.
+        recordset["000000"]["years"]["2025"]["CFS"]["receipt_id"]="20990318000001"
+        catalog_rows[1]["reference_market_cap_eok"]=None
+        guarded=bulk.research_parts(history,catalog,annual,minimum_peers=30)
+        self.assertEqual(guarded["companies_with_computable_sales_to_cap_scores"],n-2)
+        guard_rows={r["code"]:r for r in guarded["rows"]}
+        for code in ("000000","000001"):
+            self.assertIsNone(guard_rows[code]["unverified_components"]
+                              ["sales_to_market_cap"]["candidate_points"])
+            self.assertEqual(guard_rows[code]["valuation_available_max"],0)
         one=recordset["000000"]
         self.assertIsNone(bulk._best_income_window(one,[2022,2023,2024,2025]))
         self.assertIsNotNone(
@@ -853,9 +866,10 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(score["companies_with_computable_pb_scores"],n)
         self.assertEqual(len(score["rows"]),n)
         self.assertEqual(score["companies_with_computable_earnings_yield_scores"],n)
+        self.assertEqual(score["companies_with_computable_sales_to_cap_scores"],n)
         self.assertTrue(all(x["financial_available_max"]==8 and
-                            x["valuation_available_max"]==10 and
-                            x["combined_available_max"]==18 and
+                            x["valuation_available_max"]==15 and
+                            x["combined_available_max"]==23 and
                             x["confirmed_v3_score"] is None and
                             not x["scoring_certified"]
                             for x in score["rows"]))
