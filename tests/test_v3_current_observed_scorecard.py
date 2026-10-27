@@ -12,6 +12,7 @@ from test_v3_dart_rolling_book_reference import fixture
 from v3_all_listed_scorecard import FullMarketScorecardError
 from v3_volume_participation import build as volume_build
 from v3_current_price_replay import build as price_build
+from v3_dart_bulk_history import research_parts
 from v3_current_observed_scorecard import (
     generate,to_csv,main,finance_source,cashflow_source,LivePartialScorecardError,
 )
@@ -345,13 +346,24 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             audit["market_asof"]!=catalog["date"]):
             self.skipTest("official_filing_collection_not_yet_reconciled_with_market")
         aligned=finance_source(catalog,history,parts,annual,audit)
-        self.assertIsNotNone(aligned,"correctly audited same-day 4Y receipts must be reusable")
-        self.assertEqual(sum(r["financial_available_max"]>0
-                             for r in aligned.values()),
-                         audit["six_pillar_numeric_provisional_issuer_counts"]["financial"])
-        self.assertEqual(sum(r["valuation_available_max"]>0
-                             for r in aligned.values()),
-                         audit["six_pillar_numeric_provisional_issuer_counts"]["valuation"])
+        source_replay_matches=any(
+            research_parts(history,catalog,annual,**mode)==parts
+            for mode in ({}, {"include_balance_factors":False},
+                         {"include_balance_factors":False,
+                          "include_sales_to_cap":False}))
+        # A newer annual book may be published after the same-close source
+        # report. This is an expected source-only replay wait, never a
+        # reason to trust a partial report against different filing data.
+        if source_replay_matches:
+            self.assertIsNotNone(aligned,"exact same-day DART source must replay")
+            self.assertEqual(sum(r["financial_available_max"]>0
+                                 for r in aligned.values()),
+                             audit["six_pillar_numeric_provisional_issuer_counts"]["financial"])
+            self.assertEqual(sum(r["valuation_available_max"]>0
+                                 for r in aligned.values()),
+                             audit["six_pillar_numeric_provisional_issuer_counts"]["valuation"])
+        else:
+            self.assertIsNone(aligned,"newer annual source must await replay")
         fake=copy.deepcopy(audit)
         fake["source_sha256_canonical"]["dart_four_year_archive"]="0"*64
         self.assertIsNone(finance_source(catalog,history,parts,annual,fake))
