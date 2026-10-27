@@ -711,6 +711,47 @@ def _latest_revenue(record, fiscal, asof):
     return None
 
 
+def _balance_financial_metrics(record, fiscal, asof):
+    """Same-scope FY-end leverage and three-year operating ROA candidates.
+
+    A valid annual receipt and assets = liabilities + equity are required
+    for every contributed fiscal year. Never equate total liabilities with
+    interest-bearing debt or claim an audited net-debt-to-equity ratio.
+    """
+    years=(record or {}).get("years") or {}
+    day=_day(asof)
+
+    def annual(year,scope):
+        item=years.get(str(year),{}).get(scope,{})
+        vals=item.get("values",{})
+        assets=vals.get("assets")
+        debt=vals.get("liabilities")
+        equity=vals.get("equity")
+        if (not _valid_receipt(item.get("receipt_id"),year,day) or
+            any(type(x) is not int for x in (assets,debt,equity)) or
+            not 0<assets<=10**18 or not 0<=debt<=10**18 or
+            not 0<equity<=10**18 or
+            abs(assets-debt-equity)>max(1,assets*0.01)):
+            return None
+        return vals
+
+    for scope in ("CFS","OFS"):
+        latest=annual(fiscal[-1],scope)
+        if latest is None:
+            continue
+        leverage=round(100*latest["liabilities"]/latest["assets"],6)
+        recent=[annual(year,scope) for year in fiscal[-3:]]
+        roa=None
+        if all(v is not None and type(v.get("operating_income")) is int and
+               abs(v["operating_income"])<=10**18 for v in recent):
+            value=sum(100*v["operating_income"]/v["assets"]
+                      for v in recent)/3
+            if math.isfinite(value) and abs(value)<1e5:
+                roa=round(value,6)
+        return leverage,roa
+    return None,None
+
+
 def _midrank(value, ordered, direction):
     left=bisect_left(ordered,value);right=bisect_right(ordered,value)
     pct=(left+right)/(2*len(ordered))
@@ -718,8 +759,8 @@ def _midrank(value, ordered, direction):
 
 
 def research_parts(data,catalog,book,*,minimum_peers=30,
-                   include_sales_to_cap=True):
-    """Produce observed 4+4 financial and 5+5+5 valuation research points.
+                   include_sales_to_cap=True,include_balance_factors=True):
+    """Produce 4+4+4+4 financial and 5+5+5 valuation research points.
 
     Only observed, date-linked inputs with >=30 same-market peers contribute.
     Missing FCF, flow, PIT or other factors stay unavailable, never zero.
@@ -727,6 +768,7 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
     if (type(data) is not dict or data.get("schema")!=SCHEMA or
         type(minimum_peers) is not int or minimum_peers<8 or
         type(include_sales_to_cap) is not bool or
+        type(include_balance_factors) is not bool or
         catalog.get("date")!=data.get("asof") or
         book.get("asof")!=data.get("asof") or
         catalog.get("listed_total")!=data.get("listed_total") or
@@ -750,8 +792,18 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
     book_annual={r["code"]:r for r in book["records"]}
     pbr={}
     earnings_yield={}
+    leverage={}
+    operating_roa={}
     cap_by_code={r["code"]:r.get("reference_market_cap_eok")
                  for r in catalog["rows"]}
+    if include_balance_factors:
+        for code in market:
+            debt,roa=_balance_financial_metrics(
+                data["records"].get(code),fiscal,data["asof"])
+            if debt is not None:
+                leverage[code]=debt
+            if roa is not None:
+                operating_roa[code]=roa
     sales_to_cap={}
     if include_sales_to_cap:
         for code in market:
@@ -782,21 +834,29 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
                 earnings_yield[code]=round(100*profit/(cap*1e8),6)
     valuation_metrics=(("pbr","earnings_yield_pct")+
         (("sales_to_market_cap",) if include_sales_to_cap else ()))
-    metric_names=("revenue_cagr_3y_pct","operating_margin_3y_pct")+valuation_metrics
+    financial_metrics=(("revenue_cagr_3y_pct","operating_margin_3y_pct")+
+        (("liabilities_to_assets_pct","operating_roa_3y_pct")
+         if include_balance_factors else ()))
+    metric_names=financial_metrics+valuation_metrics
     series={}
     for m in ("KOSPI","KOSDAQ"):
         members=[c for c in market if market[c]==m]
         series[m]={k:sorted(
-            (pbr.get(c) if k=="pbr" else sales_to_cap.get(c) if
+            (leverage.get(c) if k=="liabilities_to_assets_pct" else
+             operating_roa.get(c) if k=="operating_roa_3y_pct" else
+             pbr.get(c) if k=="pbr" else sales_to_cap.get(c) if
              k=="sales_to_market_cap" else earnings_yield.get(c) if
              k=="earnings_yield_pct" else (selected.get(c) or {}).get(k))
             for c in members if
-            (pbr.get(c) if k=="pbr" else sales_to_cap.get(c) if
+            (leverage.get(c) if k=="liabilities_to_assets_pct" else
+             operating_roa.get(c) if k=="operating_roa_3y_pct" else
+             pbr.get(c) if k=="pbr" else sales_to_cap.get(c) if
              k=="sales_to_market_cap" else earnings_yield.get(c) if
              k=="earnings_yield_pct" else (selected.get(c) or {}).get(k)) is not None
         ) for k in metric_names}
     output=[]
     count_fin=0;count_margin=0;count_pb=0;count_earnings=0;count_sales=0
+    count_leverage=0;count_roa=0
     for code in sorted(market):
         src=selected.get(code) or {}
         benchmark=series[market[code]]
@@ -804,10 +864,15 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
         metric_weights=[("revenue_cagr_3y_pct",4,1),
                         ("operating_margin_3y_pct",4,1),
                         ("pbr",5,-1),("earnings_yield_pct",5,1)]
+        if include_balance_factors:
+            metric_weights.extend((("liabilities_to_assets_pct",4,-1),
+                                   ("operating_roa_3y_pct",4,1)))
         if include_sales_to_cap:
             metric_weights.append(("sales_to_market_cap",5,1))
         for metric,weight,direction in metric_weights:
-            v=(pbr.get(code) if metric=="pbr" else
+            v=(leverage.get(code) if metric=="liabilities_to_assets_pct" else
+               operating_roa.get(code) if metric=="operating_roa_3y_pct" else
+               pbr.get(code) if metric=="pbr" else
                sales_to_cap.get(code) if metric=="sales_to_market_cap" else
                earnings_yield.get(code) if metric=="earnings_yield_pct"
                else src.get(metric))
@@ -829,6 +894,12 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
         if (include_sales_to_cap and
             pts["sales_to_market_cap"]["candidate_points"] is not None):
             count_sales+=1
+        if (include_balance_factors and
+            pts["liabilities_to_assets_pct"]["candidate_points"] is not None):
+            count_leverage+=1
+        if (include_balance_factors and
+            pts["operating_roa_3y_pct"]["candidate_points"] is not None):
+            count_roa+=1
         if available:
             output.append({
                 "code":code,"market":market[code],
@@ -836,12 +907,12 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
                 "source_fiscal_years":fiscal,
                 "unverified_components":pts,
                 "financial_candidate_points":(
-                    round(sum(pts[k]["candidate_points"] or 0 for k in (
-                        "revenue_cagr_3y_pct","operating_margin_3y_pct")),6)
-                    if any(pts[k]["candidate_points"] is not None for k in (
-                        "revenue_cagr_3y_pct","operating_margin_3y_pct")) else None),
-                "financial_available_max":sum(pts[k]["max_points"] for k in (
-                    "revenue_cagr_3y_pct","operating_margin_3y_pct")),
+                    round(sum(pts[k]["candidate_points"] or 0 for k in
+                              financial_metrics),6)
+                    if any(pts[k]["candidate_points"] is not None
+                           for k in financial_metrics) else None),
+                "financial_available_max":sum(pts[k]["max_points"]
+                                              for k in financial_metrics),
                 "valuation_candidate_points":(
                     round(sum(pts[k]["candidate_points"] or 0 for k in
                               valuation_metrics),6)
@@ -864,7 +935,7 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
         "companies_with_computable_pb_scores":count_pb,
         "companies_with_computable_earnings_yield_scores":count_earnings,
         "model_financial_full_points":15,"model_valuation_full_points":15,
-        "financial_partial_max_possible":8,
+        "financial_partial_max_possible":16 if include_balance_factors else 8,
         "valuation_partial_max_possible":15 if include_sales_to_cap else 10,
         "other_four_pillar_points_claimed":0,
         "coverage_peer_minimum":minimum_peers,
@@ -876,6 +947,12 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
     if include_sales_to_cap:
         report["companies_with_computable_sales_to_cap_scores"]=count_sales
         report["five_factor_valuation_budget"]=20
+    if include_balance_factors:
+        report["companies_with_computable_liabilities_to_assets_scores"]=count_leverage
+        report["companies_with_computable_operating_roa_scores"]=count_roa
+        report["five_factor_financial_budget"]=20
+        report["balance_factor_peer_limitations"]=(
+            "KOSPI_KOSDAQ_only_not_sector_neutral_unverified_research")
     return report
 
 
