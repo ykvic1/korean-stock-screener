@@ -355,7 +355,7 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(scored["companies_with_computable_4y_income_scores"],0)
         self.assertEqual(scored["rows"],[])
         self.assertEqual(scored["model_financial_full_points"],15)
-        self.assertEqual(scored["financial_partial_max_possible"],8)
+        self.assertEqual(scored["financial_partial_max_possible"],16)
         self.assertEqual(scored["valuation_partial_max_possible"],15)
 
     def test_stock_code_only_response_as_official_docs_and_strict_identity(self):
@@ -797,9 +797,11 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(parts["companies_with_computable_4y_income_scores"],0)
         self.assertEqual(parts["companies_with_computable_3y_margin_scores"],n)
         self.assertEqual(parts["companies_with_computable_sales_to_cap_scores"],n)
+        self.assertEqual(parts["companies_with_computable_liabilities_to_assets_scores"],n)
+        self.assertEqual(parts["companies_with_computable_operating_roa_scores"],n)
         self.assertEqual(len(parts["rows"]),n)
         for row in parts["rows"]:
-            self.assertEqual(row["financial_available_max"],4)
+            self.assertEqual(row["financial_available_max"],12)
             self.assertEqual(row["valuation_available_max"],5)
             self.assertIsNone(
                 row["unverified_components"]["revenue_cagr_3y_pct"]["candidate_points"])
@@ -818,6 +820,8 @@ class BulkHistoryTests(unittest.TestCase):
             self.assertIsNone(guard_rows[code]["unverified_components"]
                               ["sales_to_market_cap"]["candidate_points"])
             self.assertEqual(guard_rows[code]["valuation_available_max"],0)
+        self.assertEqual(guarded["companies_with_computable_liabilities_to_assets_scores"],n-1)
+        self.assertEqual(guarded["companies_with_computable_operating_roa_scores"],n-1)
         one=recordset["000000"]
         self.assertIsNone(bulk._best_income_window(one,[2022,2023,2024,2025]))
         self.assertIsNotNone(
@@ -867,14 +871,38 @@ class BulkHistoryTests(unittest.TestCase):
         self.assertEqual(len(score["rows"]),n)
         self.assertEqual(score["companies_with_computable_earnings_yield_scores"],n)
         self.assertEqual(score["companies_with_computable_sales_to_cap_scores"],n)
-        self.assertTrue(all(x["financial_available_max"]==8 and
+        self.assertEqual(score["companies_with_computable_liabilities_to_assets_scores"],n)
+        self.assertEqual(score["companies_with_computable_operating_roa_scores"],n)
+        self.assertTrue(all(x["financial_available_max"]==16 and
                             x["valuation_available_max"]==15 and
-                            x["combined_available_max"]==23 and
+                            x["combined_available_max"]==31 and
                             x["confirmed_v3_score"] is None and
                             not x["scoring_certified"]
                             for x in score["rows"]))
         self.assertEqual(score["fully_verified_six_pillar_count"],0)
         self.assertTrue(score["all_scores_provisional_unverified"])
+
+    def test_balance_subfactors_require_receipts_identity_and_single_scope(self):
+        years={}
+        for year in (2023,2024,2025):
+            receipt=f"{year+1}0318000001"
+            years[str(year)]={"OFS":{"receipt_id":receipt,
+                "values":{"assets":200,"liabilities":100,"equity":100,
+                          "operating_income":10}}}
+        years["2025"]["CFS"]={"receipt_id":"20260318000001",
+            "values":{"assets":100,"liabilities":40,"equity":60,
+                      "operating_income":12}}
+        latest,roa=bulk._balance_financial_metrics(
+            {"years":years},[2022,2023,2024,2025],DAY)
+        self.assertEqual(latest,40)
+        self.assertIsNone(roa)  # Never fill CFS 2023/24 using OFS rows.
+        years["2025"]["CFS"]["receipt_id"]="20990318000001"
+        latest,roa=bulk._balance_financial_metrics(
+            {"years":years},[2022,2023,2024,2025],DAY)
+        self.assertEqual((latest,roa),(50,5))
+        years["2025"]["OFS"]["values"]["equity"]=120
+        self.assertEqual(bulk._balance_financial_metrics(
+            {"years":years},[2022,2023,2024,2025],DAY),(None,None))
 
 if __name__=="__main__":
     unittest.main()
