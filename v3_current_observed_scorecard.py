@@ -146,7 +146,8 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
     return rows,expected
 
 
-def generate(market,catalog,volume,price,financial=None,cashflow=None):
+def generate(market,catalog,volume,price,financial=None,cashflow=None,
+             path_coverage_receipt=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
     true_volume=volume_build(market,catalog)
     true_price=price_build(market,catalog)
@@ -157,11 +158,17 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         raise LivePartialScorecardError("different_market_date")
     observed={r["code"]:r for r in market["stocks"]}
     if market.get("v3_unscored_path_source") is not None:
-        # Reconcile every current-day path receipt, not just a chosen stock.
-        summarize_path_coverage(market)
-    elif any(s.get("v3_unscored_path_observations") is not None
-             for s in market["stocks"]):
-        raise LivePartialScorecardError("path_observation_without_market_receipt")
+        # Reconcile all issuer receipts AND an independently committed daily
+        # audit tied to the exact original snapshot hash. Similar aggregate
+        # counts never authenticate a different market-file revision.
+        expected_path=summarize_path_coverage(market)
+        if (type(path_coverage_receipt) is not dict or
+            path_coverage_receipt!=expected_path):
+            raise LivePartialScorecardError("missing_or_stale_dated_path_audit")
+    elif (path_coverage_receipt is not None or
+          any(s.get("v3_unscored_path_observations") is not None
+              for s in market["stocks"])):
+        raise LivePartialScorecardError("orphan_path_observation_or_audit")
     output=[]
     counts={"volume":0,"technical":0,"momentum":0,
             "financial":0,"valuation":0}
@@ -363,6 +370,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None):
         "provisional_complete_100point_observation_count":sum(
             r["available"]==100 for r in output),
         "path_observed_121session_issuers":path_observed,
+        "path_independent_saved_audit_sha256":(
+            path_coverage_receipt["daily_source_sha256"]
+            if path_coverage_receipt is not None else None),
         "path_research_subweight_applied_issuer_counts":dict(path_added),
         "additional_path_investment_grade_points_authorized":0,
         "independent_krx_adjusted_path_certification":False,
@@ -428,6 +438,9 @@ def main(argv=None):
     except (OSError,ValueError,KeyError):
         financial=None
     market=read("data.json")
+    path_coverage_receipt=(
+        read("v3-unscored-path-coverage.json")
+        if market.get("v3_unscored_path_source") is not None else None)
     cashflow=None
     if financial is not None:
         try:
@@ -446,7 +459,8 @@ def main(argv=None):
     rows,summary=generate(
         market,catalog,volume,
         price,
-        financial=financial,cashflow=cashflow)
+        financial=financial,cashflow=cashflow,
+        path_coverage_receipt=path_coverage_receipt)
     new_csv=to_csv(rows,summary)
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import date
+from hashlib import sha256
 import json
 from pathlib import Path
 
@@ -75,6 +76,11 @@ def summarize(daily: dict) -> dict:
     return {
         "schema": "v3-unscored-path-source-coverage-0.1",
         "asof": asof,
+        # Hash the canonical daily snapshot, not just its headline coverage
+        # counts: two different issuer paths may have identical aggregates.
+        "daily_source_sha256": sha256(json.dumps(
+            daily, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest(),
         "listed_eligible_issuers": eligible,
         "attempted_issuers": examined,
         "current_price_issuers": candidates,
