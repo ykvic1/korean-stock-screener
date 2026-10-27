@@ -393,7 +393,14 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         if (sources[2]!=volume_build(sources[0],sources[1]) or
             sources[3]!=price_build(sources[0],sources[1])):
             self.skipTest("stored_source_snapshots_not_exactly_replayed")
-        rows,report=generate(*sources)
+        # After the next scheduled full-market scan a dated 121-session
+        # source requires its independently committed same-snapshot audit.
+        # Exercise that real path instead of testing only pre-scan fixtures.
+        path_receipt=None
+        if sources[0].get("v3_unscored_path_source") is not None:
+            path_receipt=json.loads((docs/"v3-unscored-path-coverage.json").read_text(
+                encoding="utf8"))
+        rows,report=generate(*sources,path_coverage_receipt=path_receipt)
         self.assertEqual(len(rows),report["listed_total"])
         self.assertEqual(report["listed_total"],sources[1]["listed_total"])
         self.assertEqual(report["asof"],sources[0]["date"])
@@ -405,7 +412,10 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                          sources[3]["momentum_research_issuer_count"])
         self.assertEqual(report["certified_100point_count"],0)
         self.assertEqual(report["observed_issuer_counts"]["financial"],0)
-        self.assertTrue(all(r["available"]<=49 for r in rows))
+        self.assertTrue(all(r["available"]<=(60 if path_receipt else 49)
+                            for r in rows))
+        self.assertEqual(report["path_independent_saved_audit_sha256"],
+                         path_receipt["daily_source_sha256"] if path_receipt else None)
 
 
     def test_fcf_collection_completion_triggers_same_day_rescore(self):
@@ -413,6 +423,9 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
               ".github/workflows/v3-current-observed-scorecard.yml").read_text(
                   encoding="utf8")
         self.assertIn("workflow_run:",flow)
+        self.assertIn("- Full-Market 100-Stock Batches",flow)
+        self.assertIn("잠정 100점 관측배점 충족 종목",flow)
+        self.assertIn("정식 투자점수 100점 인증 종목",flow)
         self.assertIn(
             "V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)",flow)
         self.assertIn("types: [completed]",flow)

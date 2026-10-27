@@ -29,10 +29,11 @@ on:
     # 4Y batch and before the :17 rolling annual-book publication window.
     # Avoid :26, which sampled a newer book before its provisional score replay.
     - cron: '11 * * * *'
-  # Replay immediately after a completed official DART 4Y/FCF collector;
+  # Replay immediately after full-market scan or official DART 4Y/FCF collector;
   # source commits from GITHUB_TOKEN do not activate normal push triggers.
   workflow_run:
     workflows:
+      - Full-Market 100-Stock Batches
       - V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)
       - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
     types: [completed]
@@ -128,6 +129,9 @@ jobs:
                 "한개 이상 관측: "+str(a["observed_any_factor_issuers"]),
                 "영역별 관측종목: "+str(a["observed_issuer_counts"]),
                 "현재 관측 가능 최대배점: "+str(a["highest_currently_observable_weight"])+"/100",
+                "121거래일 가격경로 관측 종목: "+str(a.get("path_observed_121session_issuers",0)),
+                "잠정 100점 관측배점 충족 종목: "+str(a.get("provisional_complete_100point_observation_count",0)),
+                "정식 투자점수 100점 인증 종목: "+str(a["certified_100point_count"]),
                 "DART FY 근거 상태: "+a["fiscal_reference_join_status"],
                 "영수증 검증 FCF상태: "+a["fcf_reference_join_status"],
                 "FCF 추가 배점 관측 종목: "+str(a["fcf_observed_issuer_counts"]),
