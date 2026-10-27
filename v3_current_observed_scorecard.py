@@ -390,7 +390,7 @@ def to_csv(rows,summary):
     for row in rows:
         v=row["factors"]
         a=row["factor_available"]
-         out.writerow([
+        out.writerow([
             row["code"],row["name"],row["market"],row["asof"],
             "" if v["volume"] is None else v["volume"],a["volume"] or "",
             "" if v["technical"] is None else v["technical"],a["technical"] or "",
