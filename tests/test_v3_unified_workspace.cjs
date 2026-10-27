@@ -691,6 +691,28 @@ assert.equal(unified.pillarState(funded)[3].available,5);
 assert.equal(unified.pillarState(funded)[0].available,0);
 assert.equal(unified.researchComposite(funded).earned,32.3);
 assert.equal(unified.researchComposite(funded).available,38);
+// New 4+4 leverage / operating-ROA source contract is accepted only with
+// bounded observed issuer counts; older published contracts remain usable.
+const balanceFunded={...row,market:'KOSPI'};
+const balanceDisplay={date:'2026-10-20',rows:[{r:balanceFunded}]};
+const balanceParts={...bulkParts,financial_partial_max_possible:16,
+ valuation_partial_max_possible:15,five_factor_financial_budget:20,
+ balance_factor_peer_limitations:'KOSPI_KOSDAQ_only_not_sector_neutral_unverified_research',
+ five_factor_valuation_budget:20,
+ companies_with_computable_liabilities_to_assets_scores:1869,
+ companies_with_computable_operating_roa_scores:1663,
+ companies_with_computable_sales_to_cap_scores:2354,
+ rows:[{...bulkParts.rows[0],financial_candidate_points:11.5,
+   financial_available_max:16,valuation_candidate_points:9,
+   valuation_available_max:15,combined_provisional_points:20.5,
+   combined_available_max:31}]};
+assert.equal(unified.applyBulkFinancialPreview(balanceDisplay,balanceParts),1);
+assert.equal(unified.pillarState(balanceFunded)[2].available,16);
+assert.equal(unified.pillarState(balanceFunded)[3].available,15);
+assert.equal(unified.applyBulkFinancialPreview(balanceDisplay,
+ {...balanceParts,companies_with_computable_operating_roa_scores:9999}),0);
+assert.equal(unified.applyBulkFinancialPreview(balanceDisplay,
+ {...balanceParts,rows:[{...balanceParts.rows[0],financial_available_max:20}]}),0);
 // Actual same-filing OpenDART FCF qualifies extra 4/5 subfactor points,
 // never a new full 15pt financial/valuation score or a 100pt certification.
 const fcfRow={

@@ -460,9 +460,9 @@ function pillarState(r){
   bulk.confirmed_v3_score===null&&bulk.asof===r.price_date&&
   bulk.market===r.market&&
   Number.isInteger(bulk.financial_available_max)&&
-  [0,4,8].includes(bulk.financial_available_max)&&
+  [0,4,8,12,16].includes(bulk.financial_available_max)&&
   Number.isInteger(bulk.valuation_available_max)&&
-  [0,5,10].includes(bulk.valuation_available_max);
+  [0,5,10,15].includes(bulk.valuation_available_max);
  const fcf=r?.v3_dart_fcf_research;
  const fcfReady=fcf&&fcf.asof===r.price_date&&fcf.market===r.market&&
    fcf.scoring_certified===false&&fcf.historical_PIT_certified===false&&
@@ -765,6 +765,21 @@ function applyRotationTechnicalBackfill(model, state){
  return accepted;
 }
 function applyBulkFinancialPreview(model,report){
+ const newBalanceFactors=report?.financial_partial_max_possible===16&&
+   report.five_factor_financial_budget===20&&
+   report.balance_factor_peer_limitations===
+     'KOSPI_KOSDAQ_only_not_sector_neutral_unverified_research'&&
+   Number.isInteger(report.companies_with_computable_liabilities_to_assets_scores)&&
+   Number.isInteger(report.companies_with_computable_operating_roa_scores)&&
+   report.companies_with_computable_liabilities_to_assets_scores>=0&&
+   report.companies_with_computable_operating_roa_scores>=0&&
+   report.companies_with_computable_liabilities_to_assets_scores<=report.listed_total&&
+   report.companies_with_computable_operating_roa_scores<=report.listed_total;
+ const previousFinancial=report?.financial_partial_max_possible===8&&
+   report.five_factor_financial_budget===undefined&&
+   report.balance_factor_peer_limitations===undefined&&
+   report.companies_with_computable_liabilities_to_assets_scores===undefined&&
+   report.companies_with_computable_operating_roa_scores===undefined;
  const newSalesFactor=report?.valuation_partial_max_possible===15&&
    report.five_factor_valuation_budget===20&&
    Number.isInteger(report.companies_with_computable_sales_to_cap_scores);
@@ -778,7 +793,7 @@ function applyBulkFinancialPreview(model,report){
     report.all_scores_provisional_unverified!==true||
     report.model_financial_full_points!==15||
     report.model_valuation_full_points!==15||
-    report.financial_partial_max_possible!==8||
+    !(newBalanceFactors||previousFinancial)||
     !(newSalesFactor||previousReference)||
     !Array.isArray(report.rows)||
     !Number.isInteger(report.listed_total)||report.listed_total<model.rows.length||
@@ -790,7 +805,8 @@ function applyBulkFinancialPreview(model,report){
      !['KOSPI','KOSDAQ'].includes(row.market)||
      row.confirmed_v3_score!==null||row.scoring_certified!==false||
      !Number.isInteger(row.financial_available_max)||
-     ![0,4,8].includes(row.financial_available_max)||
+     !(newBalanceFactors?[0,4,8,12,16]:[0,4,8])
+       .includes(row.financial_available_max)||
      !Number.isInteger(row.valuation_available_max)||
      !(newSalesFactor?[0,5,10,15]:[0,5,10]).includes(row.valuation_available_max)||
      !finite(row.combined_provisional_points)||

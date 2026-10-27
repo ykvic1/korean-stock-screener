@@ -1,4 +1,4 @@
-name: V3 Current Close All-Listed Observed Partial CSV (49 67 or 76/100 Max)
+name: V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
 
 on:
   push:
@@ -112,7 +112,7 @@ jobs:
           path=Path("docs/v3-current-observed-all-listed-summary.json")
           lines=[
             "### V3 당일 기준 전종목 실측 잠정 CSV",
-            "같은날 재무8/가치10 및 연동된 엄격한 CF/CAPEX FCF 재무4/가치5점, 출처 지연 시 해당 영역 결측.",
+            "출처가 확인된 BS/IS, 매출/시총, 동일 영수증 FCF만 관측 배점에 반영. 부채비율·영업자산수익성의 시장 내 비교는 업종중립이 아니며 미확인 항목은 결측.",
             "완성 100점 투자 인증은 0개. 매수·기관 순매수 추정이 아님.",
           ]
           if path.exists():

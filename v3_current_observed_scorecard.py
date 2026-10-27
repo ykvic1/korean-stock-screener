@@ -70,17 +70,20 @@ def finance_source(catalog,history,parts,annual,audit):
     except (BulkHistoryError,ValueError,TypeError,KeyError):
         return None
     if expected!=parts:
-        # Source-only migration: the already-published 10-point annual
-        # valuation reference stays usable only when it exactly replays its
-        # original four observed components. The new 5-point sales/cap
-        # component remains unavailable until a fresh saved report exists.
+        # An older saved four-year research report is still usable only if
+        # it exactly replays one of its prior source component contracts.
+        # New 4+4 financial balance factors remain UNAVAILABLE until their
+        # own derived report and source hash are actually published.
         try:
-            previous=research_parts(history,catalog,annual,
-                                    include_sales_to_cap=False)
+            prior_sales=research_parts(history,catalog,annual,
+                                       include_balance_factors=False)
+            prior_legacy=research_parts(history,catalog,annual,
+                                        include_balance_factors=False,
+                                        include_sales_to_cap=False)
         except (BulkHistoryError,ValueError,TypeError,KeyError):
             return None
-        if previous!=parts:
-            return None   # mismatched old AND new origin: fail closed
+        if parts!=prior_sales and parts!=prior_legacy:
+            return None   # no exact source-contract replay: fail closed
     rows={r["code"]:r for r in parts["rows"]}
     if len(rows)!=len(parts["rows"]):
         raise LivePartialScorecardError("duplicate_dart_financial_issuer")
