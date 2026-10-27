@@ -386,15 +386,11 @@ def to_csv(rows,summary):
         "관측잠정합계_100점중","산출가능배점_100점중",
         "미확보배점_100점중","정식투자점수","투자등급",
         "재무_산출배점","가치_산출배점",
-        "FCF자산3년_잠정점수","FCF수익률_잠정점수",
-        "거래량_매물소화_4점중","모멘텀_상승일_2점중",
-        "모멘텀_지속_3점중","모멘텀_반전_2점중",
-        "121거래일_자료검증상태"])
+        "FCF자산3년_잠정점수","FCF수익률_잠정점수"])
     for row in rows:
         v=row["factors"]
         a=row["factor_available"]
-        path=row["path_provisional_research"]
-        out.writerow([
+         out.writerow([
             row["code"],row["name"],row["market"],row["asof"],
             "" if v["volume"] is None else v["volume"],a["volume"] or "",
             "" if v["technical"] is None else v["technical"],a["technical"] or "",
@@ -407,16 +403,7 @@ def to_csv(rows,summary):
             "" if row["fcf_subpoints"]["financial4"] is None
                 else row["fcf_subpoints"]["financial4"],
             "" if row["fcf_subpoints"]["valuation5"] is None
-                else row["fcf_subpoints"]["valuation5"],
-            "" if path is None or not path["research_volume_weight_applied"]
-                else path["research_volume_post_spike_absorption_points"],
-            "" if path is None or not path["research_momentum_weight_applied"]
-                else path["research_momentum_positive_days20_points"],
-            "" if path is None or not path["research_momentum_weight_applied"]
-                else path["research_momentum_trend_persistence60_points"],
-            "" if path is None or not path["research_momentum_weight_applied"]
-                else path["research_momentum_two_segment_120day_rebound_points"],
-            "미확보" if path is None else "관측-독립KRX수정주가미검증"
+                else row["fcf_subpoints"]["valuation5"]
         ])
     return "\ufeff"+sink.getvalue()
 
