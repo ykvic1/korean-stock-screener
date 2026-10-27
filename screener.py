@@ -272,6 +272,11 @@ def daily_patterns(df):
 def analyze_history(code,cfg,day):
     df,last=last_series(None,code,cfg,day)
     close=df['Close'].to_numpy(dtype=float);volume=df['Volume'].to_numpy(dtype=float)
+    # Capture bounded, unscored path observations while the raw provider
+    # series exists in memory. Persist no daily OHLCV bars or new score.
+    from v3_unscored_path_observations import observe as observe_v3_path
+    v3_unscored_path=observe_v3_path(
+        close,volume,asof=last.isoformat(),session_days=df.index)
     lo=df['Low'].to_numpy(dtype=float);hi=df['High'].to_numpy(dtype=float)
     p=float(close[-1]);m20=ma_last(close,20);m60=ma_last(close,60);m120=ma_last(close,120)
     vol20=float(np.mean(volume[-20:]));volprev=float(np.mean(volume[-60:-20]))
@@ -304,6 +309,7 @@ def analyze_history(code,cfg,day):
     pattern_weekly_research=observe_completed_weekly(df)
     return {
       'price_date':last.isoformat(),'price_latest':p,'price20':round_or_none(price20),
+      'v3_unscored_path_observations':v3_unscored_path,
       'price60':round_or_none(price60),'price120':round_or_none(price120),
       'volume_ratio':round(float(vol20/max(1,volprev)),2),
       'one_day_volume_ratio':round(float(volume[-1]/max(1,np.mean(volume[-21:-1]))),2),
@@ -694,6 +700,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'ma120w_gap':r['ma120w_gap'],'high52_gap':r['high52_gap'],
           'relative20':r['relative20'],'relative60':r['relative60'],
           'relative120':r.get('relative120'),
+          'v3_unscored_path_observations':r.get('v3_unscored_path_observations'),
           'flows_confirmed':bool(r.get('flows_confirmed')),
           'foreign_shares':r.get('foreign_net_shares'),'flow_observations':r.get('flow_observations'),
           'flow_cross_validation':r.get('flow_cross_validation','독립 소스 미검증'),
@@ -717,6 +724,16 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
          'flow_confirmed_count':sum(x['flows_confirmed'] for x in view),
          'fundamental_count':sum(x['pbr'] is not None for x in view),
          'index_available':meta['index_markets'],
+         'v3_unscored_path_source':{
+           'schema':'v3-unscored-price-path-evidence-0.1',
+           'observed_issuer_count':sum(
+             isinstance(x.get('v3_unscored_path_observations'),dict)
+             for x in view),
+           'unavailable_issuer_count':sum(
+             x.get('v3_unscored_path_observations') is None for x in view),
+           'additional_volume_or_momentum_points_authorized':0,
+           'raw_ohlcv_exported':False,
+           'source_exchange_and_adjustments_independently_verified':False},
          'six_pillar_research_sort':[
             {'code':r['code'],
              'provisional_rank':r['v3_pattern_integrated']['provisional_rank'],
