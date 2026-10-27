@@ -12,6 +12,7 @@ from v3_path_provisional_factors import preview, ProvisionalPathFactorError
 from v3_current_observed_scorecard import generate, LivePartialScorecardError
 from v3_volume_participation import build as volume_build
 from v3_current_price_replay import build as price_build
+from v3_unscored_path_coverage import summarize as coverage_summary
 
 DAY = "2026-10-19"
 
@@ -72,7 +73,8 @@ class ProvisionalPathResearchTests(unittest.TestCase):
         daily,catalog=market_with_path()
         volume=volume_build(daily,catalog)
         price=price_build(daily,catalog)
-        rows,summary=generate(daily,catalog,volume,price)
+        rows,summary=generate(daily,catalog,volume,price,
+                              path_coverage_receipt=coverage_summary(daily))
         target=next(x for x in rows if x["code"]=="005930")
         self.assertEqual(target["factor_available"]["volume"],20)
         self.assertEqual(target["factors"]["volume"],20.0)
@@ -109,7 +111,8 @@ class ProvisionalPathResearchTests(unittest.TestCase):
                    return_value={"005930":mom}):
             v=volume_build(daily,catalog)
             p=price_build(daily,catalog)
-            rows,summary=generate(daily,catalog,v,p)
+            rows,summary=generate(daily,catalog,v,p,
+                                  path_coverage_receipt=coverage_summary(daily))
         issuer=next(row for row in rows if row["code"]=="005930")
         self.assertEqual(issuer["factor_available"]["momentum"],15)
         self.assertEqual(issuer["factor_available"]["volume"],20)
@@ -119,6 +122,29 @@ class ProvisionalPathResearchTests(unittest.TestCase):
                          {"volume4":1,"momentum7":1})
         self.assertEqual(summary["additional_path_investment_grade_points_authorized"],0)
         self.assertEqual(summary["certified_100point_count"],0)
+
+    def test_research_100_requires_exact_committed_daily_source_hash(self):
+        daily,catalog=market_with_path()
+        receipt=coverage_summary(daily)
+        self.assertEqual(len(receipt["daily_source_sha256"]),64)
+        vol=volume_build(daily,catalog)
+        price=price_build(daily,catalog)
+        with self.assertRaisesRegex(LivePartialScorecardError,
+                                    "missing_or_stale_dated_path_audit"):
+            generate(daily,catalog,vol,price)
+        forged=copy.deepcopy(receipt)
+        forged["daily_source_sha256"]="0"*64
+        with self.assertRaisesRegex(LivePartialScorecardError,
+                                    "missing_or_stale_dated_path_audit"):
+            generate(daily,catalog,vol,price,path_coverage_receipt=forged)
+        # Same issuer count + same derived event totals still cannot accept
+        # a different daily observation snapshot.
+        changed=copy.deepcopy(daily)
+        changed["stocks"][0]["price"]=64001
+        with self.assertRaisesRegex(LivePartialScorecardError,
+                                    "missing_or_stale_dated_path_audit"):
+            generate(changed,catalog,volume_build(changed,catalog),
+                     price_build(changed,catalog),path_coverage_receipt=receipt)
 
     def test_old_price_snapshots_keep_missing_weight(self):
         daily,catalog=market_with_path()
@@ -138,11 +164,13 @@ class ProvisionalPathResearchTests(unittest.TestCase):
         with self.assertRaises(ProvisionalPathFactorError):
             preview(bad["stocks"][0],asof=DAY)
         with self.assertRaises(ValueError):
-            generate(bad,catalog,volume_build(bad,catalog),price_build(bad,catalog))
+            generate(bad,catalog,volume_build(bad,catalog),price_build(bad,catalog),
+                     path_coverage_receipt=coverage_summary(daily))
         bad=copy.deepcopy(daily)
         bad["v3_unscored_path_source"]["additional_volume_or_momentum_points_authorized"]=11
         with self.assertRaises(ValueError):
-            generate(bad,catalog,volume_build(bad,catalog),price_build(bad,catalog))
+            generate(bad,catalog,volume_build(bad,catalog),price_build(bad,catalog),
+                     path_coverage_receipt=coverage_summary(daily))
         bad=copy.deepcopy(daily)
         bad["stocks"][0]["price_date"]="2026-10-16"
         with self.assertRaises(ProvisionalPathFactorError):
