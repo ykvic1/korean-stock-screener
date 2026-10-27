@@ -866,10 +866,28 @@ assert.ok(actualCoverage?.includes('5개 영역 실제 데이터 확보'));
 assert.ok(actualCoverage.includes('산업은 배점에서 제외됩니다'));
 assert.ok(actualCoverage.includes(
  observedPartialSummary.highest_currently_observable_weight+'/100점'));
+assert.ok(actualCoverage.includes('<th scope="col">미확보 배점</th>'));
+assert.ok(actualCoverage.includes(
+ '미확보 <b>'+observedPartialSummary.total_unobserved_weight_gap+'점</b>'));
+for(const [area,title] of unified.PILLARS){
+ const missing=observedPartialSummary.factor_unobserved_weight_gap[area];
+ assert.ok(actualCoverage.includes('<td>'+missing+'점</td></tr>'),
+  title+' missing ceiling must remain explicitly visible');
+}
 const forgedCoverage=structuredClone(observedPartialSummary);
 forgedCoverage.observed_issuer_counts.financial++;
 assert.equal(unified.fiveAreaCoverageView(
  forgedCoverage,forgedCoverage.asof,forgedCoverage.listed_total),null);
+const forgedMissingSlots=structuredClone(observedPartialSummary);
+forgedMissingSlots.unacquired_weight_issuer_slots.financial++;
+assert.equal(unified.fiveAreaCoverageView(
+ forgedMissingSlots,forgedMissingSlots.asof,forgedMissingSlots.listed_total),null,
+ 'cannot publish inconsistent issuer-weight missingness');
+const forgedMissingCeiling=structuredClone(observedPartialSummary);
+forgedMissingCeiling.total_unobserved_weight_gap++;
+assert.equal(unified.fiveAreaCoverageView(
+ forgedMissingCeiling,forgedMissingCeiling.asof,forgedMissingCeiling.listed_total),null,
+ 'cannot publish contradictory missing weight ceiling');
 const mismatchedCoverage=structuredClone(observedPartialSummary);
 mismatchedCoverage.factor_observed_weight_ceiling.financial++;
 assert.equal(unified.fiveAreaCoverageView(
