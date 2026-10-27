@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 import screener
 from v22_price_error_triage import public_reason
+from v3_unscored_path_observations import valid_observation
 
 SCHEMA = "full-market-batched-100-v0.1"
 CHUNK = 100
@@ -138,6 +139,11 @@ def validate_part(manifest: dict, receipt: dict):
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("metrics"), dict):
             raise BatchError("invalid_technical_observation")
+        if ("v3_unscored_path_observations" in row["metrics"] and
+            not valid_observation(
+                row["metrics"]["v3_unscored_path_observations"],
+                row["metrics"].get("price_date"))):
+            raise BatchError("untrusted_unscored_path_observation")
         recorded.append(row.get("code"))
     for group, length in ((errors, 3), (excluded, 2)):
         for item in group:
@@ -164,6 +170,10 @@ def scan(*, manifest: dict, part: int, out: Path,
             if (type(data) is not dict or not isinstance(data.get("price_date"), str)
                     or "code" in data or "flows_confirmed" in data):
                 raise BatchError("invalid_technical_result")
+            if ("v3_unscored_path_observations" in data and
+                not valid_observation(data["v3_unscored_path_observations"],
+                                      data["price_date"])):
+                raise BatchError("untrusted_unscored_path_observation")
             rows.append({"code": code, "metrics": data})
         except screener.InsufficientHistory:
             excluded.append([code, "insufficient_valid_price_history"])
