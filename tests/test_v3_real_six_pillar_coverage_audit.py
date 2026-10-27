@@ -81,6 +81,8 @@ class RealCoverageAuditTests(unittest.TestCase):
         parts=research_parts(history,catalog,book)
         observed=audit.coverage(catalog,history,parts,weekly)
         self.assertGreater(parts["companies_with_computable_sales_to_cap_scores"],0)
+        self.assertGreater(parts["companies_with_computable_liabilities_to_assets_scores"],0)
+        self.assertGreater(parts["companies_with_computable_operating_roa_scores"],0)
         self.assertGreaterEqual(observed["six_pillar_numeric_provisional_issuer_counts"]
                                 ["valuation"],parts["companies_with_computable_sales_to_cap_scores"])
         self.assertEqual(observed["six_pillar_official_complete_100pt_issuer_count"],0)
@@ -97,6 +99,20 @@ class RealCoverageAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(audit.CoverageAuditError,
                                     "research_component_evidence_count_mismatch"):
             audit.coverage(catalog,history,claimed,weekly)
+        debt=next(r for r in parts["rows"] if r["unverified_components"]
+                  ["liabilities_to_assets_pct"]["candidate_points"] is not None)
+        altered=copy.deepcopy(parts)
+        debt_row=next(r for r in altered["rows"] if r["code"]==debt["code"])
+        debt_row["unverified_components"]["liabilities_to_assets_pct"][
+            "observed_value"]+=0.2
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "balance_source_ratio_mismatch"):
+            audit.coverage(catalog,history,altered,weekly)
+        inflated=copy.deepcopy(parts)
+        inflated["companies_with_computable_operating_roa_scores"]+=1
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "research_component_evidence_count_mismatch"):
+            audit.coverage(catalog,history,inflated,weekly)
 
     def test_stale_market_or_fake_full_pillars_fail_closed(self):
         base=actual_inputs()
