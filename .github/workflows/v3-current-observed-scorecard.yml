@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - v3_current_observed_scorecard.py
+      - v3_path_provisional_factors.py
+      - v3_unscored_path_coverage.py
+      - v3_unscored_path_observations.py
+      - tests/test_v3_path_provisional_factors.py
       - tests/test_v3_current_observed_scorecard.py
       - v3_current_price_replay.py
       - v3_observed_momentum.py
@@ -64,7 +68,8 @@ jobs:
       - name: Reject mismatched source evidence and missing=0 before publication
         run: |
           set -euo pipefail
-          python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py
+          python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_path_provisional_factors.py v3_unscored_path_coverage.py
+          python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
           python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
       - name: Recompute only actually observed current-close evidence
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
