@@ -14,7 +14,7 @@ from pathlib import Path
 
 from v3_dart_bulk_history import (
     SCHEMA as HISTORY_SCHEMA, SCORE_SCHEMA, _best_income_window,
-    _three_year_margin, _latest_revenue, write_json
+    _three_year_margin, _latest_revenue, _balance_financial_metrics, write_json
 )
 
 SCHEMA = "v3-real-saved-source-six-pillar-coverage-0.1"
@@ -174,6 +174,7 @@ def coverage(catalog,history,parts,weekly):
         history.get("observed_nonempty_company_years")!=sum(observed_years.values())):
         raise CoverageAuditError("historical_coverage_claim_mismatch")
     financial=set();valuation=set();pbr=set();earnings=set();sales_cap=set()
+    leverage_provisional=set();roa_provisional=set()
     margin_provisional=set();growth_provisional=set()
     has_independent_margin_parts=(
         "companies_with_computable_3y_margin_scores" in parts)
@@ -190,6 +191,19 @@ def coverage(catalog,history,parts,weekly):
                  "companies_with_computable_sales_to_cap_scores" not in parts)
     if not (sales_mode or legacy_mode):
         raise CoverageAuditError("valuation_source_component_version_untrusted")
+    balance_mode=(parts.get("financial_partial_max_possible")==16 and
+        parts.get("five_factor_financial_budget")==20 and
+        parts.get("balance_factor_peer_limitations")==
+            "KOSPI_KOSDAQ_only_not_sector_neutral_unverified_research" and
+        type(parts.get("companies_with_computable_liabilities_to_assets_scores")) is int and
+        type(parts.get("companies_with_computable_operating_roa_scores")) is int)
+    previous_financial_mode=(parts.get("financial_partial_max_possible")==8 and
+        "five_factor_financial_budget" not in parts and
+        "balance_factor_peer_limitations" not in parts and
+        "companies_with_computable_liabilities_to_assets_scores" not in parts and
+        "companies_with_computable_operating_roa_scores" not in parts)
+    if not (balance_mode or previous_financial_mode):
+        raise CoverageAuditError("financial_source_component_version_untrusted")
     seen_partial_codes=set()
     for row in parts["rows"]:
         code=row.get("code")
@@ -197,7 +211,8 @@ def coverage(catalog,history,parts,weekly):
             or row.get("asof")!=day or
             row.get("confirmed_v3_score") is not None or
             row.get("scoring_certified") is not False or
-            row.get("financial_available_max") not in (0,4,8) or
+            row.get("financial_available_max") not in (
+                (0,4,8,12,16) if balance_mode else (0,4,8)) or
             row.get("valuation_available_max") not in (0,5,10,15)):
             raise CoverageAuditError("untrusted_provisional_pillar_row")
         if code in seen_partial_codes:
@@ -212,6 +227,11 @@ def coverage(catalog,history,parts,weekly):
         }
         if sales_mode:
             weighted["sales_to_market_cap"]=5
+        if balance_mode:
+            weighted["liabilities_to_assets_pct"]=4
+            weighted["operating_roa_3y_pct"]=4
+        if set(comp)!=set(weighted):
+            raise CoverageAuditError("unexpected_financial_component_records")
         for metric,maximum in weighted.items():
             component=comp.get(metric)
             if type(component) is not dict:
@@ -222,8 +242,11 @@ def coverage(catalog,history,parts,weekly):
                 (earned is not None and
                  (not _number(earned) or not 0<=earned<=maximum))):
                 raise CoverageAuditError("invented_partial_component_points")
-        expected_fin=sum(comp[k]["max_points"] for k in
-                         ("revenue_cagr_3y_pct","operating_margin_3y_pct"))
+        fin_keys=(("revenue_cagr_3y_pct","operating_margin_3y_pct",
+                   "liabilities_to_assets_pct","operating_roa_3y_pct")
+                  if balance_mode else
+                  ("revenue_cagr_3y_pct","operating_margin_3y_pct"))
+        expected_fin=sum(comp[k]["max_points"] for k in fin_keys)
         expected_val=sum(comp[k]["max_points"] for k in
                          (("pbr","earnings_yield_pct","sales_to_market_cap")
                           if sales_mode else ("pbr","earnings_yield_pct")))
@@ -233,8 +256,21 @@ def coverage(catalog,history,parts,weekly):
             not _number(row.get("combined_provisional_points")) or
             abs(row["combined_provisional_points"]-sum(
                 comp[k]["candidate_points"] or 0 for k in weighted))>0.00001 or
-            not 0<expected_fin+expected_val<=23):
+            not 0<expected_fin+expected_val<=(31 if balance_mode else 23)):
             raise CoverageAuditError("invented_partial_coverage_or_total")
+        if balance_mode:
+            observed_debt,observed_roa=_balance_financial_metrics(
+                book_rows.get(code),fiscal,day)
+            for metric,observed,target in (
+                ("liabilities_to_assets_pct",observed_debt,leverage_provisional),
+                ("operating_roa_3y_pct",observed_roa,roa_provisional)):
+                entry=comp[metric]
+                if entry["candidate_points"] is not None:
+                    if (observed is None or
+                        not _number(entry.get("observed_value")) or
+                        abs(entry["observed_value"]-observed)>1e-6):
+                        raise CoverageAuditError("balance_source_ratio_mismatch")
+                    target.add(code)
         # Sales/market-cap observations must be independently recoverable
         # from the saved latest annual KRW filing and same-day listed cap.
         # An unknown fiscal revenue or market cap cannot earn even a
@@ -271,7 +307,9 @@ def coverage(catalog,history,parts,weekly):
             margin_provisional.add(code)
         if row["financial_available_max"]>0:
             if (code not in growth_provisional and
-                code not in margin_provisional):
+                code not in margin_provisional and
+                code not in leverage_provisional and
+                code not in roa_provisional):
                 raise CoverageAuditError("financial_score_without_source_component")
             financial.add(code)
         if row["valuation_available_max"]>0:
@@ -286,9 +324,15 @@ def coverage(catalog,history,parts,weekly):
         (has_independent_margin_parts and
          parts.get("companies_with_computable_3y_margin_scores")!=
              len(margin_provisional)) or
-        len(financial)!=(len(growth_provisional|margin_provisional)) or
+        len(financial)!=len(growth_provisional|margin_provisional|
+                            leverage_provisional|roa_provisional) or
         parts.get("companies_with_computable_pb_scores")!=len(pbr) or
         parts.get("companies_with_computable_earnings_yield_scores")!=len(earnings) or
+        (balance_mode and
+         (parts.get("companies_with_computable_liabilities_to_assets_scores")!=
+          len(leverage_provisional) or
+          parts.get("companies_with_computable_operating_roa_scores")!=
+          len(roa_provisional))) or
         (sales_mode and
          parts.get("companies_with_computable_sales_to_cap_scores")!=len(sales_cap))):
         raise CoverageAuditError("research_component_evidence_count_mismatch")
