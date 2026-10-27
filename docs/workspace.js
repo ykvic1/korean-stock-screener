@@ -1222,6 +1222,18 @@ function fiveAreaCoverageView(raw,asof,listed){
    weightCeiling+missingWeight!==100||
    raw.total_unobserved_weight_gap!==missingWeight||
    raw.total_unacquired_weight_issuer_slots!==missingIssuerWeights)return null;
+ // This is a genuine SAME-ISSUER overlap, distinct from combining the
+ // maximum weight of different issuers into an apparent 100 point ceiling.
+ const complete100=raw.provisional_complete_100point_observation_count;
+ const minComplete=Math.min(...PILLARS.map(([key])=>raw.complete_area_issuer_counts[key]));
+ if(complete100!==undefined&&
+    (!Number.isInteger(complete100)||complete100<0||
+     complete100>minComplete||complete100>listed))return null;
+ const completeNote=complete100===undefined
+  ?'<p class="u-source">121거래일 신규 관측값의 전영역 100점 배점 확보 건수는 다음 수집 이후 표시됩니다.</p>'
+  :'<p class="u-source">전영역 100점 배점 관측 완료: <b>'+
+   complete100.toLocaleString('ko-KR')+'개</b> (정식 투자점수 인증: 0개). '+
+   '121거래일 경로 기반 추가 11점은 수정주가·기업행위에 대한 독립 거래소 검증 전인 잠정 연구점수입니다.</p>';
  return '<div class="u-coverage-audit"><div class="u-coverage-top">'+
   '<strong>5개 영역 실제 데이터 확보</strong>'+
   '<span>현재 관측 가능한 배점 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
@@ -1233,7 +1245,8 @@ function fiveAreaCoverageView(raw,asof,listed){
   '</tr></thead><tbody>'+lines.join('')+'</tbody></table></div>'+
   '<p class="u-source">미확보 배점은 각 영역에서 아직 단 한 종목에도 확인되지 않은 관측 한도입니다. '+
   '개별 종목별 미확보량은 더 클 수 있으며, 관측 가능 배점은 검증된 투자점수나 실제 획득점수가 아닙니다. '+
-  '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p></div>';
+  '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
+  completeNote+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
