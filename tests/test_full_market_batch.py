@@ -106,6 +106,12 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             with self.assertRaisesRegex(b.BatchError,
                                         "untrusted_unscored_path_observation"):
                 b.validate_part(m,tampered)
+            rejected=json.loads((folder/"part-000.json").read_text(encoding="utf8"))
+            rejected["rows"][0]["metrics"][
+                "v3_unscored_path_unavailable_reason"]="arbitrary-score-claim"
+            with self.assertRaisesRegex(b.BatchError,
+                                        "invalid_price_path_unavailable_reason"):
+                b.validate_part(m,rejected)
 
     def test_failed_history_still_accounted_for_with_no_fabricated_zero(self):
         def source(code, cfg, day):
