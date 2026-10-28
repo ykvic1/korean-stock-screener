@@ -125,6 +125,37 @@ class StructuredActionTests(unittest.TestCase):
         with self.assertRaises(a.StructuredActionError):
             a._validate_report(a.canonical(report), 0, RECORD)
 
+    def test_checkpoint_pointer_must_follow_real_receipt_order(self):
+        stale = a._path(0, "20161101000009")
+        content = b"verified-but-wrong-cursor-tail"
+        state = {**a._empty(), "next_pair_index": 0,
+                 "next_candidate_index": 1, "queue_sha256": QUEUE_HASH,
+                 "last_report_file": stale,
+                 "last_report_sha256": a.sha256(content).hexdigest()}
+        self.archive.blobs[a.CHECKPOINT] = a.canonical(state)
+        self.archive.blobs[stale] = content
+        with self.assertRaisesRegex(
+                a.StructuredActionError, "checkpoint_queue_tail_mismatch"):
+            self.process(lambda *args: self.fail("no provider on skipped receipt"))
+        self.assertEqual(self.archive.posts, 0)
+
+        for forged in (
+            {**state, "last_report_file": a._path(1, RECORD["rcept_no"])},
+            {**state, "last_report_file":
+             a.BASE + "/reports/201610--201611/../20161101000001.json"},
+            {**state, "last_report_file": None, "last_report_sha256": None},
+            {**state, "next_pair_index": 1, "next_candidate_index": 0,
+             "queue_sha256": None,
+             "last_report_file": a._path(1, RECORD["rcept_no"])},
+        ):
+            with self.assertRaisesRegex(
+                    a.StructuredActionError, "invalid_private_structured_action_checkpoint"):
+                a._cursor(a.canonical(forged))
+        # A genuinely empty later month may legitimately retain an older tail.
+        old = {**state, "next_pair_index": 2, "next_candidate_index": 0,
+               "queue_sha256": None, "last_report_file": a._path(0, RECORD["rcept_no"])}
+        self.assertEqual(a._cursor(a.canonical(old)), old)
+
     def test_request_allowlist_and_date_ranges(self):
         a._check_request("fricDecsn", RECORD["corp_code"], "20161001", "20161130")
         for args in (("document.xml", RECORD["corp_code"], "20161001", "20161130"),

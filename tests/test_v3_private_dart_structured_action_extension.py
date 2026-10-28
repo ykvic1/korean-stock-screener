@@ -146,6 +146,36 @@ class SupplementalActionTests(unittest.TestCase):
                 s._validate_report(s.canonical(bad), 0, RECORDS[0])
         self.assertEqual(s._validate_report(s.canonical(obj), 0, RECORDS[0]), obj)
 
+    def test_supplement_checkpoint_tail_cannot_skip_candidate_or_point_future(self):
+        wrong = s._report_path(0, "20161103000009")
+        content = b"valid-tail-sha-but-wrong-receipt"
+        state = {**s._empty(), "next_pair_index": 0, "next_candidate_index": 1,
+                 "queue_sha256": "a" * 64, "last_report_file": wrong,
+                 "last_report_sha256": s.sha256(content).hexdigest()}
+        self.store.blobs[s.CHECKPOINT] = s.canonical(state)
+        self.store.blobs[wrong] = content
+        with self.assertRaisesRegex(s.ExtensionError,
+                                    "checkpoint_queue_tail_mismatch"):
+            self.process(lambda *args: self.fail("must not query skipped receipt"))
+        self.assertEqual(self.store.posts, 0)
+
+        for forged in (
+            {**state, "last_report_file": s._report_path(1, RECORDS[0]["rcept_no"])},
+            {**state, "last_report_file": s.BASE +
+             "/reports/201610--201611/../20161031000001.json"},
+            {**state, "last_report_file": None, "last_report_sha256": None},
+            {**state, "next_pair_index": 1, "next_candidate_index": 0,
+             "queue_sha256": None,
+             "last_report_file": s._report_path(1, RECORDS[0]["rcept_no"])},
+        ):
+            with self.assertRaisesRegex(s.ExtensionError,
+                                        "invalid_private_extension_checkpoint"):
+                s._cursor(s.canonical(forged))
+        old = {**state, "next_pair_index": 2, "next_candidate_index": 0,
+               "queue_sha256": None,
+               "last_report_file": s._report_path(0, RECORDS[0]["rcept_no"])}
+        self.assertEqual(s._cursor(s.canonical(old)), old)
+
     def test_destination_and_endpoint_restrictions(self):
         self.store.repository = "ykvic1/korean-stock-screener"
         with self.assertRaises(s.ExtensionError):

@@ -56,6 +56,26 @@ def _empty():
     }
 
 
+def _valid_checkpoint_report_pointer(i, j, path, digest, base):
+    """Last private receipt must belong to a genuine, already traversed pair."""
+    if path is None:
+        return digest is None and j == 0
+    if (type(path) is not str or type(digest) is not str or
+        not RX_SHA.fullmatch(digest)):
+        return False
+    prefix = base + "/reports/"
+    if not path.startswith(prefix):
+        return False
+    rest = path[len(prefix):]
+    if re.fullmatch(r"[0-9]{4}-[0-9]{2}--[0-9]{4}-[0-9]{2}/[0-9]{14}\.json", rest) is None:
+        return False
+    pair = rest.split("/", 1)[0]
+    for index in range(len(MONTHS) - 1):
+        if pair == MONTHS[index] + "--" + MONTHS[index + 1]:
+            return index == i if j else index < i
+    return False
+
+
 def _cursor(raw):
     if raw is None:
         return _empty()
@@ -68,9 +88,7 @@ def _cursor(raw):
             not 0 <= j <= 2000 or
             (j == 0 and q is not None) or
             (j > 0 and (type(q) is not str or not RX_SHA.fullmatch(q))) or
-            (p is None and h is not None) or
-            (p is not None and (type(p) is not str or not p.startswith(BASE+"/reports/")
-                                or type(h) is not str or not RX_SHA.fullmatch(h))) or
+            not _valid_checkpoint_report_pointer(i, j, p, h, BASE) or
             x.get("original_source_retained") is not False or
             x.get("effective_dates_certified") is not False or
             x.get("adjusted_prices_authorized") is not False or
@@ -248,6 +266,8 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
     j = state["next_candidate_index"]
     if j > len(queue) or (j and state["queue_sha256"] != queue_digest):
         raise StructuredActionError("private_structured_action_queue_changed")
+    if j and state["last_report_file"] != _path(i, queue[j-1]["rcept_no"]):
+        raise StructuredActionError("private_structured_action_checkpoint_queue_tail_mismatch")
     start = _dates(MONTHS[i])[0]
     end = _dates(MONTHS[i+1])[1]
     calls = advanced = exact_matches = reused = 0

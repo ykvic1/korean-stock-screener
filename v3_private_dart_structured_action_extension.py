@@ -21,7 +21,7 @@ from v3_private_dart_krx_filing_title_triage import (
 from v3_private_dart_original_evidence import _candidate_queue
 from v3_private_dart_structured_action_receipts import (
     StructuredActionError, _same_bytes, official_fetch, inspect_response,
-    SUPPLEMENTAL_ENDPOINTS,
+    SUPPLEMENTAL_ENDPOINTS, _valid_checkpoint_report_pointer,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
@@ -86,10 +86,7 @@ def _cursor(raw):
             not 0 <= j <= 2000 or
             (j == 0 and q is not None) or
             (j > 0 and (type(q) is not str or not SHA.fullmatch(q))) or
-            (p is None and h is not None) or
-            (p is not None and (type(p) is not str or
-                not p.startswith(BASE + "/reports/") or
-                type(h) is not str or not SHA.fullmatch(h))) or
+            not _valid_checkpoint_report_pointer(i, j, p, h, BASE) or
             any(x.get(flag) is not False for flag in (
                 "effective_dates_certified", "adjusted_prices_authorized",
                 "historical_issuer_identity_certified", "scores_authorized"))):
@@ -186,6 +183,8 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
     j = state["next_candidate_index"]
     if j > len(queue) or (j and state["queue_sha256"] != digest):
         raise ExtensionError("private_extension_queue_changed")
+    if j and state["last_report_file"] != _report_path(i, queue[j-1]["rcept_no"]):
+        raise ExtensionError("private_extension_checkpoint_queue_tail_mismatch")
     start = _dates(MONTHS[i])[0]
     end = _dates(MONTHS[i+1])[1]
     calls = advanced = reused = matched = unqueried = 0
