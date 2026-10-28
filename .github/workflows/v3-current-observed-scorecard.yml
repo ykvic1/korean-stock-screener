@@ -135,6 +135,10 @@ jobs:
                 "DART FY 근거 상태: "+a["fiscal_reference_join_status"],
                 "영수증 검증 FCF상태: "+a["fcf_reference_join_status"],
                 "FCF 추가 배점 관측 종목: "+str(a["fcf_observed_issuer_counts"]),
+                "재무/가치 7개 DART 세부항목 및 FCF 2개 항목 관측 종목수: "+
+                   str(a.get("financial_valuation_component_observed_issuers","미확인")),
+                "동일 날짜 출처 검증 상태: "+
+                   str(a.get("financial_valuation_component_observation_status","미확인")),
                 "영역별 근거 전무 종목 수: "+str(a["unacquired_area_issuer_counts"]),
                 "영역별 일부 근거만 확보한 종목 수: "+str(a["partial_area_issuer_counts"]),
                 "전종목 미확보 소스 가중치 합: "+str(a["total_unacquired_weight_issuer_slots"])+" (점수 0 처리 아님)",
