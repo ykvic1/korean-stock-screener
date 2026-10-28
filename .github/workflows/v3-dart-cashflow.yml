@@ -150,6 +150,20 @@ jobs:
                  p.get('financial_fcf4_research_candidate_issuer_count',0))+'**')
               lines.append('- 가치 FCF수익률 5/15 연구점수 후보: **'+str(
                  p.get('valuation_fcf5_research_candidate_issuer_count',0))+'**')
+          gap=Path('docs/v3-dart-cashflow-gap-summary.json')
+          if gap.is_file():
+              g=json.loads(gap.read_text(encoding='utf8'))
+              depth=g.get('three_year_issuer_depth')
+              if isinstance(depth,dict):
+                  lines.append('- 3Y FCF 기업별 미완성 원인(원천 연도 미취득 / 취득 후 계정 미확보 / 영수증 불일치 / 완전 확보): **'+
+                      str(depth.get('saved_incomplete_years','미확인'))+' / '+
+                      str(depth.get('three_years_attempted_missing_accounts','미확인'))+' / '+
+                      str(depth.get('three_years_with_fcf_but_unmatched_receipts','미확인'))+' / '+
+                      str(depth.get('three_year_source_receipt_complete','미확인'))+'**')
+                  lines.append('- 현금흐름 자료를 전혀 저장 못한 종목: **'+
+                      str(depth.get('no_saved_cashflow_years','미확인'))+'**')
+                  lines.append('- 현재 공식 연차 영수증이 있어 추가 수집 가능한 기업·연도: **'+
+                      str(g.get('source_eligible_unfetched_company_years','미확인'))+'**')
           lines.append('미확인 항목 0원 추정 없음; IAS·산업·재무15·가치15·PIT 인증 없음.')
           dest.write_text('\n'.join(lines)+'\n',encoding='utf8')
           PY
