@@ -38,7 +38,8 @@ def fifty_source_matched():
         if scope is None:
             continue
         years=row["years"]
-        if all(type(years[str(y)][scope]["values"].get("assets")) is int and
+        if all(type(years.get(str(y),{}).get(scope,{})
+                    .get("values",{}).get("assets")) is int and
                years[str(y)][scope]["values"]["assets"]>0
                for y in cf.YEARS):
             codes.append(code)
@@ -73,6 +74,22 @@ def fifty_source_matched():
 
 
 class FCFPreviewTests(unittest.TestCase):
+    def test_latest_only_fcf_yield_observed_without_three_year_assets_score(self):
+        market,catalog,bulk=live_inputs()
+        for year in (2023,2024):
+            bulk["records"]["005930"]["years"][str(year)]["CFS"][
+                "receipt_id"]=None
+        bulk["records"]["005930"]["years"]["2025"]["CFS"][
+            "values"]["assets"]=10_000_000_000
+        cash,_=cf.collect(market,catalog,bulk,None,
+            key="synthetic-offline-token-no-provider",
+            session=FakeSession(),issuer_limit=5)
+        observed=factor.real_features(catalog,bulk,cash)
+        self.assertIn("005930",observed)
+        self.assertIsNone(observed["005930"]["financial_fcf_assets_3y_pct"])
+        self.assertIsInstance(observed["005930"]["valuation_fcf_yield_pct"],float)
+        self.assertFalse(cash["official_six_pillar_100pt_certified"])
+
     def test_no_peer_fabrication_even_with_observed_fcf(self):
         market,catalog,bulk,cash=five_complete()
         report=factor.score_preview(market,catalog,bulk,cash,minimum_peers=8)
