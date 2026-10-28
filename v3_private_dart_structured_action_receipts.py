@@ -67,7 +67,7 @@ def _valid_checkpoint_report_pointer(i, j, path, digest, base):
     if not path.startswith(prefix):
         return False
     rest = path[len(prefix):]
-    if re.fullmatch(r"[0-9]{6}--[0-9]{6}/[0-9]{14}\.json", rest) is None:
+    if re.fullmatch(r"[0-9]{4}-[0-9]{2}--[0-9]{4}-[0-9]{2}/[0-9]{14}\.json", rest) is None:
         return False
     pair = rest.split("/", 1)[0]
     for index in range(len(MONTHS) - 1):
