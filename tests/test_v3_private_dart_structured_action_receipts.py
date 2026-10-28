@@ -101,6 +101,80 @@ class StructuredActionTests(unittest.TestCase):
         self.assertEqual(result["status"], "waiting_for_private_title_shortlist")
         self.assertEqual(calls, [])
 
+    def test_transient_private_write_failure_retries_without_extra_dart_calls(self):
+        path = a._path(0, RECORD["rcept_no"])
+        class FailedFirstPut(FakePrivate):
+            failed = False
+            def put_new(self, key, raw, comment):
+                if key == path and not self.failed:
+                    self.failed = True
+                    raise a.PrivateHistoryError("private_storage_api_failed")
+                return super().put_new(key, raw, comment)
+
+        archive = FailedFirstPut()
+        archive.blobs.update(self.archive.blobs)
+        calls = []
+        def fetch(endpoint, corp, start, end):
+            calls.append(endpoint)
+            return official_rows(endpoint)
+        with patch.object(a.time, "sleep") as sleep:
+            result = self.process(fetch, archive=archive)
+        self.assertEqual(result["provider_calls"], len(a.ENDPOINTS))
+        self.assertEqual(calls, list(a.ENDPOINTS))
+        self.assertTrue(sleep.called)
+        self.assertEqual(archive.posts, 2)  # one immutable receipt, one cursor
+        self.assertIn(path, archive.blobs)
+        self.assertIn(a.CHECKPOINT, archive.blobs)
+
+    def test_lost_write_response_adopts_exact_saved_bytes_not_overwrite(self):
+        path = a._path(0, RECORD["rcept_no"])
+        class CommittedButErrored(FakePrivate):
+            failed = False
+            def put_new(self, key, raw, comment):
+                outcome = super().put_new(key, raw, comment)
+                if key == path and not self.failed:
+                    self.failed = True
+                    raise a.PrivateHistoryError("private_storage_api_failed")
+                return outcome
+
+        archive = CommittedButErrored()
+        archive.blobs.update(self.archive.blobs)
+        calls = []
+        with patch.object(a.time, "sleep"):
+            result = self.process(
+                lambda ep, corp, start, end:
+                    (calls.append(ep), official_rows(ep))[1],
+                archive=archive)
+        self.assertEqual(calls, list(a.ENDPOINTS))
+        self.assertEqual(result["provider_calls"], 3)
+        self.assertEqual(archive.posts, 2)
+        self.assertEqual(
+            a._validate_report(archive.blobs[path], 0, RECORD)["scores_authorized"],
+            False)
+
+    def test_conflicting_immutable_report_never_overwritten_or_checkpointed(self):
+        path = a._path(0, RECORD["rcept_no"])
+        class ConflictingPrivate(FakePrivate):
+            def put_new(self, key, raw, comment):
+                if key == path:
+                    self.blobs[key] = b"conflicting private content"
+                    raise a.PrivateHistoryError("private_storage_api_failed")
+                return super().put_new(key, raw, comment)
+
+        archive = ConflictingPrivate()
+        archive.blobs.update(self.archive.blobs)
+        calls = []
+        with patch.object(a.time, "sleep"):
+            with self.assertRaisesRegex(
+                    a.StructuredActionError, "private_structured_action_write_conflict"):
+                self.process(
+                    lambda ep, corp, start, end:
+                        (calls.append(ep), official_rows(ep))[1],
+                    archive=archive)
+        self.assertEqual(calls, list(a.ENDPOINTS))
+        self.assertEqual(archive.blobs[path], b"conflicting private content")
+        self.assertNotIn(a.CHECKPOINT, archive.blobs)
+
     def test_invalid_existing_report_fails_without_fetch(self):
         self.archive.blobs[a._path(0, RECORD["rcept_no"])] = b"invalid"
         with self.assertRaisesRegex(a.StructuredActionError,
