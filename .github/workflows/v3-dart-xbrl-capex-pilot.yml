@@ -1,0 +1,82 @@
+name: V3 DART XBRL Original-File Structural Evidence Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_xbrl_capex_pilot.py
+      - tests/test_v3_dart_xbrl_capex_pilot.py
+      - .github/workflows/v3-dart-xbrl-capex-pilot.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Evidence only; never write fact amounts or investment scores"
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, live]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: korea-stock-screener-dart-xbrl-evidence-pilot
+  cancel-in-progress: false
+
+jobs:
+  inspect-original-xbrl-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline regression tests for source receipt, ZIP and structural tags
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_xbrl_capex_pilot.py
+          python -m unittest discover -s tests -p 'test_v3_dart_xbrl_capex_pilot.py' -v
+      - name: Install official HTTP client only for live mode
+        if: ${{ github.event_name == 'push' || inputs.mode == 'live' }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Probe up to four already-verified annual filing receipts
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
+        run: |
+          set -euo pipefail
+          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 > /tmp/v3-xbrl-evidence-counts.json
+      - name: Report anonymous aggregate-only structure evidence
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          source = Path('/tmp/v3-xbrl-evidence-counts.json')
+          labels = (
+              ('eligible_sampled_issuer_years', '조사 표본 기업·연도'),
+              ('provider_xbrl_file_calls', '공식 XBRL 원본파일 API 호출'),
+              ('valid_zip_files', '유효한 원본 ZIP'),
+              ('no_original_file', '공식 원본파일 없음'),
+              ('xbrl_instances_detected', 'XBRL instance 파일'),
+              ('reports_with_ifrs_cfo_tag_candidate', '영업현금흐름 IFRS 태그가 확인된 보고서'),
+              ('reports_with_ifrs_ppe_tag_candidate', '유형자산 CAPEX IFRS 태그가 확인된 보고서'),
+              ('reports_with_ifrs_intangible_tag_candidate', '무형자산 CAPEX IFRS 태그가 확인된 보고서'),
+              ('reports_with_any_missing_source_tag', '기존 누락항목의 태그 후보가 있는 보고서'),
+          )
+          lines = [
+              '### DART XBRL 원본파일 구조 조사(최대 4건)',
+              '기존 공시 접수번호와 일치하는 사업보고서의 원본 XBRL만 조사합니다.',
+              '태그 후보만 검출하고, 기간/연결범위/통화/금액은 검증하지 않았습니다.',
+              '원본 공시·기업 식별자·접수번호·금액 공개 및 FCF/점수 계산 없음.',
+          ]
+          if source.is_file():
+              report = json.loads(source.read_text(encoding='utf8'))
+              for key, label in labels:
+                  lines.append('- ' + label + ': **' + str(report.get(key, '미확인')) + '**')
+          else:
+              lines.append('- 조사 결과 파일 없음: 테스트·원천 응답 오류를 확인하세요.')
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
+              '\n'.join(lines) + '\n', encoding='utf8')
+          PY
