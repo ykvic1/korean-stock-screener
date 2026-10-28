@@ -42,6 +42,71 @@ RX_RECEIPT = re.compile(r"[0-9]{14}\Z")
 RX_SHA = re.compile(r"[a-f0-9]{64}\Z")
 
 
+# Exact schedule-date keys independently confirmed in official OpenDART DS005
+# guides. These are stated/planned dates, NOT completed corporate actions,
+# exchange adjustments or point-in-time trading evidence.
+SCHEDULE_DATE_FIELDS = {
+    "cmpMgDecsn": ("mgsc_mgdt",),
+    "cmpDvDecsn": ("dvdt",),
+    "fricDecsn": ("nstk_asstd",),
+    "pifricDecsn": ("fric_nstk_asstd",),
+    "crDecsn": ("cr_std",),
+    "cmpDvmgDecsn": ("dvmgsc_dvmgdt",),
+    "stkExtrDecsn": ("extrsc_extrdt",),
+}
+SCHEDULE_DATE_MAX_YEAR = 2100
+
+
+def _schedule_day(value):
+    if type(value) is not str:
+        return None
+    if re.fullmatch(r"[0-9]{8}", value):
+        encoded = value[:4] + "-" + value[4:6] + "-" + value[6:]
+    elif re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        encoded = value
+    else:
+        return None
+    try:
+        parsed = date.fromisoformat(encoded)
+        if not 2015 <= parsed.year <= SCHEDULE_DATE_MAX_YEAR:
+            return None
+        return parsed.isoformat()
+    except ValueError:
+        return None
+
+
+def _reported_schedule_candidates(endpoint, exact_row):
+    if exact_row is None:
+        return []
+    rows = []
+    for field in SCHEDULE_DATE_FIELDS.get(endpoint, ()):
+        when = _schedule_day(exact_row.get(field))
+        if when is not None:
+            rows.append({"field": field, "reported_date": when})
+    return rows
+
+
+def _valid_schedule_candidates(info, endpoint):
+    # Legacy immutable reports without this optional field remain readable;
+    # no candidate is ever interpreted as actual corporate-action completion.
+    if "reported_schedule_date_candidates" not in info:
+        return True
+    rows = info["reported_schedule_date_candidates"]
+    allowed = SCHEDULE_DATE_FIELDS.get(endpoint, ())
+    if (type(rows) is not list or len(rows) > len(allowed) or
+        (rows and info["exact_receipt_match"] is not True)):
+        return False
+    seen = set()
+    for row in rows:
+        if (type(row) is not dict or set(row) != {"field", "reported_date"}
+            or row["field"] not in allowed or row["field"] in seen
+            or type(row["reported_date"]) is not str
+            or _schedule_day(row["reported_date"]) != row["reported_date"]):
+            return False
+        seen.add(row["field"])
+    return [r["field"] for r in rows] == [f for f in allowed if f in seen]
+
+
 class StructuredActionError(ValueError):
     """All raised messages are fixed redacted codes."""
 
@@ -149,7 +214,8 @@ def inspect_response(body, endpoint, corp, receipt):
         if body.get("list") not in (None, []):
             raise StructuredActionError("invalid_structured_action_no_data")
         return {"endpoint": endpoint, "provider_status": "013",
-                "list_rows": 0, "exact_receipt_match": False}
+                "list_rows": 0, "exact_receipt_match": False,
+                "reported_schedule_date_candidates": []}
     if status != "000" or type(body.get("list")) is not list:
         # Never equate auth, quota, maintenance or shape failures to zero events.
         raise StructuredActionError("structured_action_provider_rejected")
@@ -165,8 +231,11 @@ def inspect_response(body, endpoint, corp, receipt):
             or type(code) is not str or code != corp or number in seen):
             raise StructuredActionError("invalid_structured_action_row_identity")
         seen.add(number)
+    exact_row = next((row for row in rows if row["rcept_no"] == receipt), None)
     return {"endpoint": endpoint, "provider_status": "000",
-            "list_rows": len(rows), "exact_receipt_match": receipt in seen}
+            "list_rows": len(rows), "exact_receipt_match": exact_row is not None,
+            "reported_schedule_date_candidates":
+                _reported_schedule_candidates(endpoint, exact_row)}
 
 
 def _report(index, record, details):
@@ -217,7 +286,8 @@ def _validate_report(raw, index, record):
                 type(info.get("exact_receipt_match")) is not bool or
                 (info["provider_status"] == "013" and
                  (info["list_rows"] != 0 or info["exact_receipt_match"])) or
-                (info["exact_receipt_match"] and info["list_rows"] == 0)):
+                (info["exact_receipt_match"] and info["list_rows"] == 0) or
+                not _valid_schedule_candidates(info, endpoint)):
                 raise ValueError()
             if info["exact_receipt_match"]:
                 expected.append(endpoint)
@@ -270,7 +340,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         raise StructuredActionError("private_structured_action_checkpoint_queue_tail_mismatch")
     start = _dates(MONTHS[i])[0]
     end = _dates(MONTHS[i+1])[1]
-    calls = advanced = exact_matches = reused = 0
+    calls = advanced = exact_matches = reused = schedule_candidates = 0
     last_path = state["last_report_file"]
     last_digest = state["last_report_sha256"]
     while j < len(queue) and advanced < limit:
@@ -293,6 +363,9 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
             reused += 1
         validated = _validate_report(encoded, i, record)
         exact_matches += int(validated["official_structured_category_match"])
+        schedule_candidates += sum(
+            len(row.get("reported_schedule_date_candidates", []))
+            for row in validated["endpoint_results"])
         last_path, last_digest = path, sha256(encoded).hexdigest()
         j += 1
         advanced += 1
@@ -321,6 +394,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         "provider_calls": calls, "processed_candidates": advanced,
         "previously_saved_reports_reused": reused,
         "exact_receipt_categories_matched": exact_matches,
+        "reported_schedule_date_candidates_observed": schedule_candidates,
         "next_pair_index": i,
         "corporate_action_effective_dates_certified": False,
         "adjusted_prices_certified": False, "scores_promoted": 0,
