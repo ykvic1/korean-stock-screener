@@ -310,6 +310,28 @@ def _same_bytes(storage, path, expected):
     raise StructuredActionError("private_structured_action_readback_failed")
 
 
+def _put_immutable_report_with_retry(storage, path, encoded):
+    """Recover only transient private-Git write conflicts, without a DART refetch.
+
+    A timed-out PUT may already have committed. Re-read first on every attempt;
+    NEVER overwrite a different blob, and never retry authentication/shape
+    failures. The official three-endpoint response is held in memory throughout.
+    """
+    for attempt in range(4):
+        try:
+            existing, sha = storage.get_content(path)
+            if existing is not None:
+                if existing != encoded or type(sha) is not str or not sha:
+                    raise StructuredActionError("private_structured_action_write_conflict")
+                return
+            storage.put_new(path, encoded, "Save private structured action receipt research")
+            return
+        except PrivateHistoryError as exc:
+            if str(exc) != "private_storage_api_failed" or attempt == 3:
+                raise
+            time.sleep(.7 * (attempt + 1))
+
+
 def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
     def mark(name):
         if stage_hook is not None:
@@ -369,7 +391,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
             report = _report(i, record, checks)
             encoded = canonical(report)
             mark("immutable_report_write")
-            storage.put_new(path, encoded, "Save private structured action receipt research")
+            _put_immutable_report_with_retry(storage, path, encoded)
             mark("immutable_report_readback")
             _same_bytes(storage, path, encoded)
         else:
