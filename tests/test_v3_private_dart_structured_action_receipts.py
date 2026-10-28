@@ -1,5 +1,7 @@
 """Exact-match OpenDART JSON categories, private checkpoint and fail-closed tests."""
 import json
+from contextlib import redirect_stdout
+from io import StringIO
 import unittest
 from unittest.mock import patch
 
@@ -219,6 +221,37 @@ class StructuredActionTests(unittest.TestCase):
                 "fricDecsn"))
         self.assertFalse(a._valid_schedule_candidates(
             {**supported, "exact_receipt_match": False}, "fricDecsn"))
+
+    def test_private_failure_stage_is_static_and_never_logs_source_payload(self):
+        class Broken(FakePrivate):
+            def get_content(self, path):
+                if path == a.TRIAGE_CHECKPOINT:
+                    raise RuntimeError("private-corp-code-00121932-and-secret")
+                return super().get_content(path)
+
+        store = Broken()
+        marks = []
+        with self.assertRaises(RuntimeError):
+            a.run(store, lambda *args: self.fail("no provider request"),
+                  stage_hook=marks.append)
+        self.assertEqual(marks, ["private_auth", "triage_checkpoint_read"])
+        out = StringIO()
+        with (patch.dict(a.os.environ,
+                         {"V3_PRIVATE_ARCHIVE_REPO": a.PRIVATE_REPO,
+                          "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                          "DART_API_KEY": "A" * 40}),
+              patch.object(a, "PrivateGitStorage", return_value=store),
+              redirect_stdout(out)):
+            result = a.main()
+        self.assertEqual(result, 1)
+        observed = json.loads(out.getvalue())
+        self.assertEqual(observed["status"], "blocked")
+        self.assertEqual(observed["phase"], "triage_checkpoint_read")
+        self.assertEqual(observed["error_category"], "unclassified_internal_error")
+        self.assertFalse(observed["provider_source_values_exposed"])
+        self.assertNotIn("00121932", out.getvalue())
+        self.assertNotIn("secret", out.getvalue())
+        self.assertNotIn("DART_API_KEY", out.getvalue())
 
     def test_request_allowlist_and_date_ranges(self):
         a._check_request("fricDecsn", RECORD["corp_code"], "20161001", "20161130")
