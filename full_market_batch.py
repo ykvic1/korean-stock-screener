@@ -289,12 +289,10 @@ def publish(*, manifest: dict, parts_dir: Path,
     for x in merged["rows"]:
         r = listing[x["code"]].copy()
         r.update(x["metrics"])
-        ref = idx.get(r["market"])
-        if ref and r.get("price20") is not None and r.get("price60") is not None:
-            r["relative20"] = screener.round_or_none(r["price20"]-ref["r20"])
-            r["relative60"] = screener.round_or_none(r["price60"]-ref["r60"])
-        else:
-            r["relative20"] = r["relative60"] = None
+        # The scheduled 18:30 publisher must preserve all 20/60/120
+        # source-observed horizons, including unknown=missing (not zero).
+        # Compare only an index close from the same actual issuer price day.
+        r.update(screener.market_relative_returns(r,idx.get(r["market"])))
         r["flows_confirmed"] = False
         valid.append(r)
     if not valid:
