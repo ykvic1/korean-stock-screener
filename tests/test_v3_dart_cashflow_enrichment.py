@@ -181,14 +181,16 @@ class CashflowSourceTests(unittest.TestCase):
         self.assertTrue(cf.verify_state(saved,market,catalog,bulk))
         self.assertFalse(saved["official_six_pillar_100pt_certified"])
 
-    def test_three_year_scope_and_no_lookahead_still_mandatory(self):
+    def test_partial_year_scope_receipts_and_no_lookahead(self):
         market,catalog,bulk=live_inputs()
         row=bulk["records"]["005930"]["years"]
         row["2024"]["CFS"]["receipt_id"]=None
-        self.assertIsNone(cf.matched_scope(bulk["records"]["005930"],
-                                           asof=DAY))
+        self.assertEqual(cf.matched_scope(bulk["records"]["005930"],
+                                          asof=DAY),"CFS")
         _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
-        self.assertNotIn("005930",[item[1] for item in chosen])
+        self.assertEqual(
+            [item[3] for item in chosen if item[1]=="005930"],
+            [[2023,2025]])
         for year in (2023,2024,2025):
             row[str(year)]["OFS"]=copy.deepcopy(row[str(year)]["CFS"])
             row[str(year)]["OFS"]["receipt_id"]=f"{year+1}0318000001"
@@ -196,12 +198,41 @@ class CashflowSourceTests(unittest.TestCase):
                 "revenue":None,"operating_income":None}
         self.assertEqual(cf.matched_scope(bulk["records"]["005930"],
                                           asof=DAY),"OFS")
+        self.assertEqual(cf.matched_scope(bulk["records"]["005930"],
+                                          asof=DAY,preferred_scope="CFS"),"CFS")
         _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
         self.assertEqual(
             [item[2] for item in chosen if item[1]=="005930"],["OFS"])
         row["2025"]["OFS"]["receipt_id"]="20271118000001"
+        self.assertEqual(cf.matched_scope(bulk["records"]["005930"],
+                                          asof=DAY),"CFS")
+        row["2025"]["CFS"]["receipt_id"]="20271118000001"
         self.assertIsNone(cf.matched_scope(bulk["records"]["005930"],
                                            asof=DAY))
+        _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
+        self.assertNotIn("005930",[item[1] for item in chosen])
+
+    def test_latest_only_receipt_is_a_real_one_year_observation_not_three(self):
+        market,catalog,bulk=live_inputs()
+        row=bulk["records"]["005930"]["years"]
+        for year in (2023,2024):
+            row[str(year)]["CFS"]["receipt_id"]=None
+        self.assertEqual(cf.source_receipt_years(
+            bulk["records"]["005930"],"CFS",asof=DAY),(2025,))
+        _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
+        self.assertEqual(
+            [item[3] for item in chosen if item[1]=="005930"],[[2025]])
+        cash,calls=cf.collect(
+            market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=5)
+        self.assertGreater(calls,0)
+        self.assertEqual(list(cash["records"]["005930"]["years"]),["2025"])
+        self.assertEqual(cash["records"]["005930"]["years"]["2025"][
+            "free_cashflow_krw"],800000000)
+        self.assertEqual(cash["metrics"]["three_year_fcf_receipt_matched_issuers"],4)
+        self.assertTrue(cf.verify_state(cash,market,catalog,bulk))
+        self.assertFalse(cash["historical_PIT_certified"])
 
     def test_new_trading_day_carries_only_unchanged_filing_evidence(self):
         market,catalog,bulk=live_inputs()
