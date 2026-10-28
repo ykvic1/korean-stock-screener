@@ -176,6 +176,50 @@ class SupplementalActionTests(unittest.TestCase):
                "last_report_file": s._report_path(0, RECORDS[0]["rcept_no"])}
         self.assertEqual(s._cursor(s.canonical(old)), old)
 
+    def test_supplemental_official_schedule_dates_never_become_effective_proof(self):
+        fields = {
+            "pifricDecsn": ("fric_nstk_asstd", "2026-11-05"),
+            "crDecsn": ("cr_std", "2026-12-10"),
+            "cmpDvmgDecsn": ("dvmgsc_dvmgdt", "2027-01-11"),
+            "stkExtrDecsn": ("extrsc_extrdt", "2027-02-02"),
+        }
+        rows = []
+        for endpoint in s.SUPPLEMENTAL_ENDPOINTS:
+            if endpoint in fields:
+                field, when = fields[endpoint]
+                record_data = {"rcept_no": RECORDS[0]["rcept_no"],
+                               "corp_code": RECORDS[0]["corp_code"],
+                               field: when}
+                outcome = s.inspect_response(
+                    {"status": "000", "list": [record_data]},
+                    endpoint, RECORDS[0]["corp_code"], RECORDS[0]["rcept_no"])
+                self.assertEqual(outcome["reported_schedule_date_candidates"],
+                                 [{"field": field, "reported_date": when}])
+            else:
+                outcome = s.inspect_response(
+                    {"status": "013"}, endpoint,
+                    RECORDS[0]["corp_code"], RECORDS[0]["rcept_no"])
+                self.assertEqual(outcome["reported_schedule_date_candidates"], [])
+            rows.append(outcome)
+        report = s._report(0, RECORDS[0], rows)
+        self.assertEqual(s._validate_report(s.canonical(report), 0, RECORDS[0]),
+                         report)
+        self.assertFalse(report["effective_dates_certified"])
+        self.assertFalse(report["adjusted_prices_authorized"])
+        self.assertFalse(report["scores_authorized"])
+        # Neither field from another endpoint nor invalid dates can enter
+        # a verified receipt report despite a matching receipt number.
+        bad = s._report(0, RECORDS[0], [
+            {**r, "reported_schedule_date_candidates": [
+                {"field": "nstk_asstd", "reported_date": "2026-11-05"}]}
+            if r["endpoint"] == "crDecsn" else r for r in rows])
+        with self.assertRaises(s.ExtensionError):
+            s._validate_report(s.canonical(bad), 0, RECORDS[0])
+        old = s._report(0, RECORDS[0], [
+            {k:v for k,v in r.items() if k != "reported_schedule_date_candidates"}
+            for r in rows])
+        self.assertEqual(s._validate_report(s.canonical(old), 0, RECORDS[0]), old)
+
     def test_destination_and_endpoint_restrictions(self):
         self.store.repository = "ykvic1/korean-stock-screener"
         with self.assertRaises(s.ExtensionError):
