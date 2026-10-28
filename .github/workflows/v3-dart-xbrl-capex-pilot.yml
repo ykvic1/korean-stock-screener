@@ -46,7 +46,7 @@ jobs:
           MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
         run: |
           set -euo pipefail
-          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 > /tmp/v3-xbrl-evidence-counts.json
+          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 | tee /tmp/v3-xbrl-evidence-counts.json
       - name: Report anonymous aggregate-only structure evidence
         if: always()
         run: |
