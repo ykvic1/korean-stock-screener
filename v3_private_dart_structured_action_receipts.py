@@ -24,7 +24,7 @@ from v3_private_dart_krx_filing_title_triage import (
     _path as triage_path,
 )
 from v3_private_dart_original_evidence import _candidate_queue
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 SCHEMA = "v3-private-dart-structured-action-receipt-v1"
 BASE = "derived/dart-structured-action-receipts"
@@ -309,19 +309,27 @@ def _same_bytes(storage, path, expected):
     raise StructuredActionError("private_structured_action_readback_failed")
 
 
-def run(storage, fetch, limit=MAX_CANDIDATES):
+def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
+    def mark(name):
+        if stage_hook is not None:
+            stage_hook(name)
+
+    mark("private_auth")
     if (getattr(storage, "repository", None) != PRIVATE_REPO or
         type(limit) is not int or not 1 <= limit <= MAX_CANDIDATES):
         raise StructuredActionError("invalid_private_structured_action_destination")
     storage.verify_private()
+    mark("triage_checkpoint_read")
     triage_raw, _ = storage.get_content(TRIAGE_CHECKPOINT)
     try:
         triage = triage_cursor(triage_raw)
     except Exception:
         raise StructuredActionError("invalid_private_title_triage_pointer") from None
+    mark("action_checkpoint_read")
     raw, checkpoint_sha = storage.get_content(CHECKPOINT)
     state = _cursor(raw)
     if state["last_report_file"]:
+        mark("last_immutable_report_read")
         last, _ = storage.get_content(state["last_report_file"])
         if (last is None or
             sha256(last).hexdigest() != state["last_report_sha256"]):
@@ -331,6 +339,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         return {"status": "waiting_for_private_title_shortlist",
                 "provider_calls": 0, "processed_candidates": 0,
                 "scores_promoted": 0}
+    mark("candidate_queue_read")
     queue_raw, _ = storage.get_content(triage_path(i))
     queue, queue_digest, _ = _candidate_queue(queue_raw, i)
     j = state["next_candidate_index"]
@@ -346,21 +355,26 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
     while j < len(queue) and advanced < limit:
         record = queue[j]
         path = _path(i, record["rcept_no"])
+        mark("candidate_report_read")
         existing, _ = storage.get_content(path)
         if existing is None:
             checks = []
             for endpoint in ENDPOINTS:
+                mark("official_endpoint_read")
                 result = fetch(endpoint, record["corp_code"], start, end)
                 calls += 1
                 checks.append(inspect_response(
                     result, endpoint, record["corp_code"], record["rcept_no"]))
             report = _report(i, record, checks)
             encoded = canonical(report)
+            mark("immutable_report_write")
             storage.put_new(path, encoded, "Save private structured action receipt research")
+            mark("immutable_report_readback")
             _same_bytes(storage, path, encoded)
         else:
             encoded = existing
             reused += 1
+        mark("report_validation")
         validated = _validate_report(encoded, i, record)
         exact_matches += int(validated["official_structured_category_match"])
         schedule_candidates += sum(
@@ -372,6 +386,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
 
     if j == len(queue):
         i, j, queue_digest = i + 1, 0, None
+    mark("candidate_queue_readback")
     if storage.get_content(triage_path(state["next_pair_index"]))[0] != queue_raw:
         raise StructuredActionError("private_structured_action_source_queue_changed")
     updated = canonical({
@@ -380,6 +395,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         "last_report_file": last_path,
         "last_report_sha256": last_digest,
     })
+    mark("action_checkpoint_write")
     if checkpoint_sha is None:
         storage.put_new(CHECKPOINT, updated, "Start private structured action research cursor")
     else:
@@ -388,6 +404,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
             "content": base64.b64encode(updated).decode("ascii"),
             "sha": checkpoint_sha,
         })
+    mark("action_checkpoint_readback")
     _same_bytes(storage, CHECKPOINT, updated)
     return {
         "status": "private_structured_action_receipt_research",
@@ -408,19 +425,34 @@ def main():
         len(os.getenv("DART_API_KEY", "")) != 40):
         print('{"status":"blocked","reason":"private_dart_research_credentials_missing"}')
         return 1
+    stage = ["private_archive_init"]
     try:
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         key = os.environ["DART_API_KEY"]
         report = run(store, lambda ep, corp, start, end:
-                     official_fetch(key, ep, corp, start, end))
+                     official_fetch(key, ep, corp, start, end),
+                     stage_hook=lambda name: stage.__setitem__(0, name))
         print(json.dumps(report, sort_keys=True))
         return 0
     except StructuredActionError as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc),
                           "provider_source_values_exposed": False}))
         return 1
-    except Exception:
-        print('{"status":"blocked","reason":"private_structured_action_unavailable","provider_source_values_exposed":false}')
+    except Exception as exc:
+        # Static stage + allowlisted class family only. Never log exception
+        # text, URLs, issuer IDs, receipt IDs, private paths or API responses.
+        if isinstance(exc, PrivateHistoryError):
+            category = "private_storage_error"
+        elif isinstance(exc, (TimeoutError, ConnectionError, OSError)):
+            category = "transport_error"
+        elif isinstance(exc, (KeyError, ValueError, TypeError)):
+            category = "unexpected_local_validation_error"
+        else:
+            category = "unclassified_internal_error"
+        print(json.dumps({
+            "status": "blocked", "reason": "private_structured_action_unavailable",
+            "phase": stage[0], "error_category": category,
+            "provider_source_values_exposed": False}, sort_keys=True))
         return 1
 
 
