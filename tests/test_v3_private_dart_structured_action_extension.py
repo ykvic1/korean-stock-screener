@@ -220,6 +220,36 @@ class SupplementalActionTests(unittest.TestCase):
             for r in rows])
         self.assertEqual(s._validate_report(s.canonical(old), 0, RECORDS[0]), old)
 
+    def test_planned_supplemental_listing_days_remain_uncertified(self):
+        cases = {
+            "pifricDecsn": ("fric_nstk_asstd", "fric_nstk_lstprd"),
+            "crDecsn": ("cr_std", "crsc_nstklstprd"),
+            "stkExtrDecsn": ("extrsc_extrdt", "extrsc_nstklstprd"),
+        }
+        for endpoint, fields in cases.items():
+            with self.subTest(endpoint=endpoint):
+                exact = {"rcept_no": RECORDS[0]["rcept_no"],
+                         "corp_code": RECORDS[0]["corp_code"],
+                         fields[0]: "20261105", fields[1]: "20261119",
+                         "bddd": "20261020"}
+                result = s.inspect_response(
+                    {"status": "000", "list": [exact]}, endpoint,
+                    RECORDS[0]["corp_code"], RECORDS[0]["rcept_no"])
+                self.assertEqual(
+                    result["reported_schedule_date_candidates"],
+                    [{"field": fields[0], "reported_date": "2026-11-05"},
+                     {"field": fields[1], "reported_date": "2026-11-19"}])
+                self.assertTrue(s._valid_schedule_candidates(result, endpoint))
+                self.assertFalse(s._valid_schedule_candidates(
+                    {**result, "reported_schedule_date_candidates": [
+                        {"field": fields[0], "reported_date": "2026-11-05"},
+                        {"field": fields[1], "reported_date": "2026-02-30"}]},
+                    endpoint))
+                self.assertFalse(s._valid_schedule_candidates(
+                    {**result, "reported_schedule_date_candidates": [
+                        {"field": "bddd", "reported_date": "2026-10-20"}]},
+                    endpoint))
+
     def test_destination_and_endpoint_restrictions(self):
         self.store.repository = "ykvic1/korean-stock-screener"
         with self.assertRaises(s.ExtensionError):
