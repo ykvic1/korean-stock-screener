@@ -66,6 +66,48 @@ class GapAuditTests(unittest.TestCase):
         self.assertNotIn("annual_receipt_id", report)
         self.assertNotIn("free_cashflow_krw", report)
 
+    def test_three_year_issuer_depth_separates_unfetched_from_missing_accounts(self):
+        market, catalog, major, state, _ = self._fixture()
+        result = gap.audit_cashflow_gaps(state, market, catalog, major)
+        depth = result["three_year_issuer_depth"]
+        self.assertEqual(depth["no_saved_cashflow_years"],
+                         result["listed_issuer_count"] - 3)
+        self.assertEqual(depth["saved_incomplete_years"], 1)
+        self.assertEqual(depth["three_years_attempted_missing_accounts"], 2)
+        self.assertEqual(depth["three_years_with_fcf_but_unmatched_receipts"], 0)
+        self.assertEqual(depth["three_year_source_receipt_complete"], 0)
+        self.assertEqual(sum(depth.values()), result["listed_issuer_count"])
+        self.assertGreaterEqual(result["source_eligible_unfetched_issuer_count"], 0)
+        self.assertLessEqual(result["source_eligible_unfetched_company_years"],
+                             result["listed_issuer_count"] * 3 -
+                             result["attempted_company_years"])
+        self.assertEqual(result["provider_api_calls"], 0)
+        self.assertTrue(result["unattempted_years_not_interpreted_as_zero"])
+
+    def test_complete_and_receipt_unmatched_cohorts_never_mix(self):
+        market, catalog, major, state, candidates = self._fixture()
+        altered = copy.deepcopy(state["records"])
+        for code, matched in ((candidates[0], True), (candidates[1], False)):
+            for year, row in altered[code]["years"].items():
+                row["operating_cashflow_krw"] = 100
+                row["ppe_capex_krw"] = 10
+                row["intangible_capex_krw"] = 20
+                row["total_capex_krw"] = 30
+                row["free_cashflow_krw"] = 70
+                row["major_annual_receipt_matched"] = matched
+                if matched:
+                    row["annual_receipt_id"] = major["records"][code]["years"][
+                        year]["CFS"]["receipt_id"]
+        rebuilt = cash.summary(state["asof"], cash.asof_members(
+            market, catalog, major)[1], altered, cash.fingerprint(major))
+        result = gap.audit_cashflow_gaps(rebuilt, market, catalog, major)
+        depth = result["three_year_issuer_depth"]
+        self.assertEqual(depth["three_year_source_receipt_complete"], 1)
+        self.assertEqual(depth["three_years_with_fcf_but_unmatched_receipts"], 1)
+        self.assertEqual(depth["three_years_attempted_missing_accounts"], 0)
+        self.assertEqual(result["observed_fcf_company_years"], 7)
+        self.assertEqual(result["provider_api_calls"], 0)
+
     def test_zero_capex_is_observed_only_when_both_components_are_real(self):
         row = {"operating_cashflow_krw": 50,
                "ppe_capex_krw": 0, "intangible_capex_krw": 0,
