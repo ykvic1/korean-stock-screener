@@ -52,6 +52,8 @@ def summarize(daily: dict) -> dict:
         raise PathCoverageError("daily_scan_count_mismatch")
     if type(daily.get("history_scan_complete")) is not bool:
         raise PathCoverageError("missing_full_market_completion_status")
+    if any(type(s) is not dict for s in stocks):
+        raise PathCoverageError("invalid_price_path_stock_row")
     observations = []
     symbols = set()
     reason_field_count = sum(
