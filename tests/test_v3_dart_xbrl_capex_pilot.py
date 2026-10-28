@@ -1,5 +1,6 @@
 """Offline XBRL original-file structure pilot safety and issuer isolation."""
 import io
+from datetime import date, timedelta
 import json
 import unittest
 import zipfile
@@ -165,6 +166,51 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(
             pilot.inspect_binary_archive(archive(segmented), year=2025)[
                 "annual_krw_facts"], set())
+
+    def test_recent_prior_market_major_archive_defers_with_zero_provider_calls(self):
+        market, catalog, major, state, code, receipt = self.fixture()
+        asof, members = cash.asof_members(market, catalog, major)
+        older = json.loads(json.dumps(major))
+        older["asof"] = (date.fromisoformat(asof) - timedelta(days=1)).isoformat()
+        session = Session(archive(sample_xml()))
+        report = pilot.run_pilot(
+            market, catalog, older, state, mode="live", key="A" * 40,
+            session=session)
+        self.assertEqual(report["source_readiness"],
+                         "awaiting_same_day_annual_archive")
+        self.assertEqual(report["eligible_sampled_issuer_years"], 0)
+        self.assertEqual(report["provider_xbrl_file_calls"], 0)
+        self.assertEqual(session.requests, [])
+        future = json.loads(json.dumps(major))
+        future["asof"] = (date.fromisoformat(asof) + timedelta(days=1)).isoformat()
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.run_pilot(market, catalog, future, state, mode="dry-run")
+
+    def test_prior_day_cashflow_receipts_are_rechecked_before_any_probe(self):
+        market, catalog, major, current, code, receipt = self.fixture()
+        asof, members = cash.asof_members(market, catalog, major)
+        yesterday = (date.fromisoformat(asof) - timedelta(days=1)).isoformat()
+        prior = cash.summary(yesterday, members, current["records"],
+                             cash.fingerprint(major))
+        report = pilot.run_pilot(market, catalog, major, prior, mode="dry-run")
+        self.assertEqual(report["asof"], asof)
+        self.assertEqual(report["eligible_sampled_issuer_years"], 1)
+        self.assertEqual(report["provider_xbrl_file_calls"], 0)
+        live = pilot.run_pilot(
+            market, catalog, major, prior, mode="live", key="A" * 40,
+            session=Session(archive(sample_xml())))
+        self.assertEqual(live["provider_xbrl_file_calls"], 1)
+        # Changed, even well-formed, receipt IDs cannot survive rollover.
+        changed = json.loads(json.dumps(prior))
+        changed["records"][code]["years"]["2025"]["annual_receipt_id"] = (
+            "20260401000001")
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.run_pilot(market, catalog, major, changed, mode="dry-run")
+        future = cash.summary(
+            (date.fromisoformat(asof) + timedelta(days=1)).isoformat(),
+            members, current["records"], cash.fingerprint(major))
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.run_pilot(market, catalog, major, future, mode="dry-run")
 
     def test_missing_annual_krw_reason_priority_and_cross_instance_conflict(self):
         base = (
