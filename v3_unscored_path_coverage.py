@@ -12,7 +12,8 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
-from v3_unscored_path_observations import SCHEMA, valid_observation
+from v3_unscored_path_observations import (
+    SCHEMA, UNAVAILABLE_REASONS, valid_observation, valid_unavailable_reason)
 
 
 class PathCoverageError(ValueError):
@@ -51,8 +52,15 @@ def summarize(daily: dict) -> dict:
         raise PathCoverageError("daily_scan_count_mismatch")
     if type(daily.get("history_scan_complete")) is not bool:
         raise PathCoverageError("missing_full_market_completion_status")
+    if any(type(s) is not dict for s in stocks):
+        raise PathCoverageError("invalid_price_path_stock_row")
     observations = []
     symbols = set()
+    reason_field_count = sum(
+        "v3_unscored_path_unavailable_reason" in s for s in stocks)
+    if reason_field_count not in (0, len(stocks)):
+        raise PathCoverageError("partially_recorded_path_rejection_reasons")
+    reason_counts = {key: 0 for key in sorted(UNAVAILABLE_REASONS)}
     for stock in stocks:
         if type(stock) is not dict or stock.get("price_date") != asof:
             raise PathCoverageError("mixed_market_session_observation")
@@ -63,6 +71,12 @@ def summarize(daily: dict) -> dict:
         observation = stock.get("v3_unscored_path_observations")
         if not valid_observation(observation, asof):
             raise PathCoverageError("unverified_or_forged_path_observation")
+        if reason_field_count:
+            reason = stock["v3_unscored_path_unavailable_reason"]
+            if not valid_unavailable_reason(observation, reason):
+                raise PathCoverageError("invalid_path_unavailability_reason")
+            if reason is not None:
+                reason_counts[reason] += 1
         if observation is not None:
             observations.append(observation)
     count = len(observations)
@@ -71,9 +85,11 @@ def summarize(daily: dict) -> dict:
             or source.get("unavailable_issuer_count") != candidates-count
             or type(source.get("unavailable_issuer_count")) is not int):
         raise PathCoverageError("source_coverage_receipt_mismatch")
+    if reason_field_count and sum(reason_counts.values()) != candidates - count:
+        raise PathCoverageError("path_reason_count_mismatch")
     # All numbers describe counted bars from an unadjusted auxiliary price
     # feed. None grants new investment-score points, even when count is high.
-    return {
+    report = {
         "schema": "v3-unscored-path-source-coverage-0.1",
         "asof": asof,
         # Hash the canonical daily snapshot, not just its headline coverage
@@ -109,6 +125,14 @@ def summarize(daily: dict) -> dict:
         "investment_grade_score_certified": False,
         "interpretation": "unscored_research_coverage_not_a_buy_signal",
     }
+    # Legacy snapshots have no reason fields: preserve byte-exact replay of
+    # their independently committed original SHA-256 coverage receipt.
+    if reason_field_count:
+        report["unavailable_path_reason_counts"] = {
+            k: v for k, v in reason_counts.items() if v > 0}
+        report["reason_diagnostics_independently_verified"] = False
+        report["reason_diagnostics_scored_points"] = 0
+    return report
 
 
 def main(argv=None):

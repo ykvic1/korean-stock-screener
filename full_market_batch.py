@@ -23,7 +23,8 @@ from zoneinfo import ZoneInfo
 
 import screener
 from v22_price_error_triage import public_reason
-from v3_unscored_path_observations import valid_observation
+from v3_unscored_path_observations import (
+    valid_observation, valid_unavailable_reason)
 
 SCHEMA = "full-market-batched-100-v0.1"
 CHUNK = 100
@@ -144,6 +145,11 @@ def validate_part(manifest: dict, receipt: dict):
                 row["metrics"]["v3_unscored_path_observations"],
                 row["metrics"].get("price_date"))):
             raise BatchError("untrusted_unscored_path_observation")
+        if "v3_unscored_path_unavailable_reason" in row["metrics"]:
+            if not valid_unavailable_reason(
+                    row["metrics"].get("v3_unscored_path_observations"),
+                    row["metrics"]["v3_unscored_path_unavailable_reason"]):
+                raise BatchError("invalid_price_path_unavailable_reason")
         recorded.append(row.get("code"))
     for group, length in ((errors, 3), (excluded, 2)):
         for item in group:

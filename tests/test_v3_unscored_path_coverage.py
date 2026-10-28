@@ -68,6 +68,33 @@ class PricePathCoverageTests(unittest.TestCase):
         self.assertFalse(result["corporate_actions_adjusted_verified"])
         self.assertEqual(result["up_days20_majority_issuer_count"], 1)
 
+    def test_new_rejection_diagnostics_preserve_old_receipt_compatibility(self):
+        old=daily()
+        old_summary=summarize(old)
+        self.assertNotIn("unavailable_path_reason_counts",old_summary)
+        current=copy.deepcopy(old)
+        current["stocks"][0]["v3_unscored_path_unavailable_reason"]=None
+        current["stocks"][1]["v3_unscored_path_unavailable_reason"]="insufficient_121_sessions"
+        report=summarize(current)
+        self.assertEqual(report["unavailable_path_reason_counts"],
+                         {"insufficient_121_sessions":1})
+        self.assertEqual(report["unavailable_121_session_paths"],1)
+        self.assertEqual(report["reason_diagnostics_scored_points"],0)
+        self.assertFalse(report["reason_diagnostics_independently_verified"])
+        self.assertNotEqual(report["daily_source_sha256"],old_summary["daily_source_sha256"])
+        partial=copy.deepcopy(current)
+        partial["stocks"][1].pop("v3_unscored_path_unavailable_reason")
+        with self.assertRaisesRegex(PathCoverageError,"partially_recorded"):
+            summarize(partial)
+        forged=copy.deepcopy(current)
+        forged["stocks"][1]["v3_unscored_path_unavailable_reason"]="API_KEY"
+        with self.assertRaisesRegex(PathCoverageError,"invalid_path_unavailability"):
+            summarize(forged)
+        forged=copy.deepcopy(current)
+        forged["stocks"][0]["v3_unscored_path_unavailable_reason"]="insufficient_121_sessions"
+        with self.assertRaises(PathCoverageError):
+            summarize(forged)
+
     def test_coverage_receipt_rejects_forged_score_mismatch_and_stale_day(self):
         baseline = daily()
         changes = [
