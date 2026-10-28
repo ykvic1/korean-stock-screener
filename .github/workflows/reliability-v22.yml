@@ -25,6 +25,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
+      - name: Install pinned OPTIONAL XKRX calendar for offline candidate-contract tests
+        run: python -m pip install 'exchange-calendars==4.13.1'
       - name: Unit and causal-feature tests
         run: python -m unittest discover -s tests -v
       - name: Freeze source inputs and previous report hashes
