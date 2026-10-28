@@ -132,13 +132,8 @@ def _ifrs_facts(xml_data):
 
 
 
-def _annual_krw_facts(xml_data, year):
-    """Annual-period KRW candidate tags only; statement scope still unknown.
-
-    The exact company is pinned to the filing receipt by the caller. A simple
-    XBRL context can be individual or consolidated, so never promote this
-    candidate into the source cashflow store or investment score.
-    """
+def _annual_krw_evidence(xml_data, year):
+    """Classify missing annual KRW evidence without exposing source amounts."""
     if year not in YEARS:
         raise XbrlPilotError("unsupported_xbrl_fiscal_year")
     if b"<!DOCTYPE" in xml_data.upper() or b"<!ENTITY" in xml_data.upper():
@@ -147,8 +142,13 @@ def _annual_krw_facts(xml_data, year):
         root = ET.fromstring(xml_data)
     except ET.ParseError:
         raise XbrlPilotError("unparseable_xbrl_instance") from None
+    evidence = {
+        kind: {"tag": False, "annual": False, "krw": False,
+               "numeric": False, "values": set()}
+        for kind in FACT_NAMES
+    }
     if root.tag != "{" + XBRL_INSTANCE_NS + "}xbrl":
-        return set()
+        return evidence
     ns = "{" + XBRL_INSTANCE_NS + "}"
     units = set()
     for unit in root.findall(ns + "unit"):
@@ -172,7 +172,6 @@ def _annual_krw_facts(xml_data, year):
             and end == str(year) + "-12-31"
             and type(context.get("id")) is str):
             contexts.add(context.get("id"))
-    amounts = {kind: [] for kind in FACT_NAMES}
     for element in root:
         namespace, local = _qualified_name(element.tag)
         if not namespace.startswith((
@@ -182,20 +181,51 @@ def _annual_krw_facts(xml_data, year):
             "https://www.ifrs.org/",
         )):
             continue
-        if (element.get("contextRef") not in contexts
-            or element.get("unitRef") not in units
-            or element.get("{http://www.w3.org/2001/XMLSchema-instance}nil") == "true"):
-            continue
-        raw = (element.text or "").strip()
-        if not re.fullmatch(r"-?[0-9]{1,18}", raw):
+        if "contextRef" not in element.attrib or "unitRef" not in element.attrib:
             continue
         for kind, names in FACT_NAMES.items():
-            if local in names and (kind == "cfo" or int(raw) >= 0):
-                amounts[kind].append(int(raw))
-    return {
-        kind for kind, values in amounts.items()
-        if values and len(set(values)) == 1
-    }
+            if local not in names:
+                continue
+            found = evidence[kind]
+            found["tag"] = True
+            if element.get("contextRef") not in contexts:
+                continue
+            found["annual"] = True
+            if element.get("unitRef") not in units:
+                continue
+            found["krw"] = True
+            if element.get("{http://www.w3.org/2001/XMLSchema-instance}nil") in ("true", "1"):
+                continue
+            raw = (element.text or "").strip()
+            if not re.fullmatch(r"-?[0-9]{1,18}", raw):
+                continue
+            value = int(raw)
+            if kind != "cfo" and value < 0:
+                continue
+            found["numeric"] = True
+            found["values"].add(value)
+    return evidence
+
+
+def _annual_krw_reasons(evidence):
+    """One mutually exclusive outcome per IFRS fact kind across the ZIP."""
+    reasons = {}
+    for kind, state in evidence.items():
+        if not state["tag"]:
+            reason = "ifrs_tag_missing"
+        elif not state["annual"]:
+            reason = "annual_context_missing"
+        elif not state["krw"]:
+            reason = "krw_unit_missing"
+        elif not state["numeric"]:
+            reason = "numeric_fact_invalid"
+        elif len(state["values"]) != 1:
+            reason = "numeric_values_ambiguous"
+        else:
+            reason = "candidate_scope_unverified"
+        reasons[kind] = reason
+    return reasons
+
 
 def inspect_binary_archive(content, *, year=None):
     """No extraction to filesystem; hard limits before decompression."""
@@ -208,7 +238,8 @@ def inspect_binary_archive(content, *, year=None):
                 root = ET.fromstring(content)
                 status = root.findtext("status")
                 if status in ("013", "014"):
-                    return {"file_absent": True, "instances": 0, "facts": set(), "annual_krw_facts": set()}
+                    return {"file_absent": True, "instances": 0, "facts": set(),
+                            "annual_krw_facts": set(), "annual_krw_reasons": {}}
             except ET.ParseError:
                 pass
         raise XbrlPilotError("unexpected_xbrl_non_zip_provider_response")
@@ -230,7 +261,11 @@ def inspect_binary_archive(content, *, year=None):
                     raise XbrlPilotError("xbrl_zip_decompression_bounds_exceeded")
             instances = 0
             facts = set()
-            annual = set()
+            annual = {
+                kind: {"tag": False, "annual": False, "krw": False,
+                       "numeric": False, "values": set()}
+                for kind in FACT_NAMES
+            }
             for entry in entries:
                 if entry.is_dir() or not entry.filename.lower().endswith(
                     (".xml", ".xbrl")):
@@ -243,9 +278,16 @@ def inspect_binary_archive(content, *, year=None):
                 instances += 1
                 facts.update(identified)
                 if year is not None:
-                    annual.update(_annual_krw_facts(data, year))
+                    observed = _annual_krw_evidence(data, year)
+                    for kind in FACT_NAMES:
+                        for stage in ("tag", "annual", "krw", "numeric"):
+                            annual[kind][stage] |= observed[kind][stage]
+                        annual[kind]["values"].update(observed[kind]["values"])
+            reasons = _annual_krw_reasons(annual) if year is not None else {}
+            candidates = {kind for kind, reason in reasons.items()
+                          if reason == "candidate_scope_unverified"}
             return {"file_absent": False, "instances": instances, "facts": facts,
-                    "annual_krw_facts": annual}
+                    "annual_krw_facts": candidates, "annual_krw_reasons": reasons}
     except (zipfile.BadZipFile, OSError):
         raise XbrlPilotError("xbrl_zip_unreadable") from None
 
@@ -272,7 +314,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.2",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.3",
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
@@ -285,6 +327,15 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "reports_with_ifrs_intangible_tag_candidate": 0,
         "reports_with_any_missing_source_tag": 0,
         "reports_with_missing_annual_krw_candidate": 0,
+        "checked_missing_source_fact_kinds": 0,
+        "missing_source_fact_reasons": {
+            reason: 0 for reason in (
+                "original_file_absent", "ifrs_tag_missing",
+                "annual_context_missing", "krw_unit_missing",
+                "numeric_fact_invalid", "numeric_values_ambiguous",
+                "candidate_scope_unverified",
+            )
+        },
         "missing_not_interpreted_as_zero": True,
         "no_statement_scope_verified": True,
         "annual_krw_facts_not_scored": True,
@@ -313,20 +364,25 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             raise XbrlPilotError("official_xbrl_provider_unavailable") from None
         report["provider_xbrl_file_calls"] += 1
         result = inspect_binary_archive(content, year=year)
-        if result["file_absent"]:
-            report["no_original_file"] += 1
-            continue
-        report["valid_zip_files"] += 1
-        report["xbrl_instances_detected"] += result["instances"]
-        for fact in FACT_NAMES:
-            if fact in result["facts"]:
-                report["reports_with_ifrs_" + fact + "_tag_candidate"] += 1
         missing = {
             "missing_cfo": {"cfo"},
             "missing_both_capex": {"ppe", "intangible"},
             "missing_intangible": {"intangible"},
             "missing_ppe": {"ppe"},
         }[kind]
+        report["checked_missing_source_fact_kinds"] += len(missing)
+        if result["file_absent"]:
+            report["no_original_file"] += 1
+            report["missing_source_fact_reasons"]["original_file_absent"] += len(missing)
+            continue
+        report["valid_zip_files"] += 1
+        report["xbrl_instances_detected"] += result["instances"]
+        for fact in FACT_NAMES:
+            if fact in result["facts"]:
+                report["reports_with_ifrs_" + fact + "_tag_candidate"] += 1
+        for fact in missing:
+            reason = result["annual_krw_reasons"][fact]
+            report["missing_source_fact_reasons"][reason] += 1
         if missing.intersection(result["facts"]):
             report["reports_with_any_missing_source_tag"] += 1
         if missing.intersection(result["annual_krw_facts"]):

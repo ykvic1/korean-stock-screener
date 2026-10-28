@@ -72,10 +72,26 @@ jobs:
               '태그 및 해당연도·KRW 숫자 후보를 조사하나 연결/별도 재무제표 범위 검증은 완료되지 않았습니다.',
               '원본 공시·기업 식별자·접수번호·금액 공개 및 FCF/점수 계산 없음.',
           ]
+          reason_labels = (
+              ('original_file_absent', '원본 XBRL 없음'),
+              ('ifrs_tag_missing', 'IFRS 태그 없음'),
+              ('annual_context_missing', '해당연도 비차원 기간 문맥 없음'),
+              ('krw_unit_missing', '해당연도 문맥의 KRW 단위 없음'),
+              ('numeric_fact_invalid', '숫자·부호·nil 조건 불충족'),
+              ('numeric_values_ambiguous', 'XBRL 파일 간 숫자 후보 불일치'),
+              ('candidate_scope_unverified', '연도·KRW 후보 있음(연결/별도 미확인)'),
+          )
           if source.is_file():
               report = json.loads(source.read_text(encoding='utf8'))
               for key, label in labels:
                   lines.append('- ' + label + ': **' + str(report.get(key, '미확인')) + '**')
+              reason_counts = report.get('missing_source_fact_reasons', {})
+              lines.append('#### 누락 계정 단위 원인별 분류(보고서 수와 다름)')
+              lines.append('- 검사한 누락 계정 종류 수: **' +
+                           str(report.get('checked_missing_source_fact_kinds', '미확인')) + '**')
+              for key, label in reason_labels:
+                  lines.append('- ' + label + ': **' +
+                               str(reason_counts.get(key, '미확인')) + '**')
           else:
               lines.append('- 조사 결과 파일 없음: 테스트·원천 응답 오류를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(

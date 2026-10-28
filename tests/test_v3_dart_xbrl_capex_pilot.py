@@ -166,6 +166,62 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             pilot.inspect_binary_archive(archive(segmented), year=2025)[
                 "annual_krw_facts"], set())
 
+    def test_missing_annual_krw_reason_priority_and_cross_instance_conflict(self):
+        base = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:ifrs="' + IFRS_NS + '">'
+            '<context id="C"><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<ifrs:PurchaseOfIntangibleAssets contextRef="C" unitRef="U">'
+            '12345</ifrs:PurchaseOfIntangibleAssets></xbrl>'
+        ).encode("utf8")
+        cases = (
+            ("ifrs_tag_missing",
+             base.replace(b"PurchaseOfIntangibleAssets", b"OtherAssets")),
+            ("annual_context_missing",
+             base.replace(b"2025-01-01", b"2024-01-01")),
+            ("krw_unit_missing",
+             base.replace(b"iso4217:KRW", b"iso4217:USD")),
+            ("numeric_fact_invalid",
+             base.replace(b">12345<", b">unknown<")),
+            ("candidate_scope_unverified", base),
+        )
+        for reason, xml in cases:
+            with self.subTest(reason=reason):
+                result = pilot.inspect_binary_archive(archive(xml), year=2025)
+                self.assertEqual(
+                    result["annual_krw_reasons"]["intangible"], reason)
+                self.assertEqual(
+                    "intangible" in result["annual_krw_facts"],
+                    reason == "candidate_scope_unverified")
+        # Two otherwise acceptable values in different ZIP instances cannot
+        # be declared unique; statement scope is still unknown either way.
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
+            writer.writestr("one.xbrl", base)
+            writer.writestr("two.xbrl", base.replace(b">12345<", b">67890<"))
+        conflict = pilot.inspect_binary_archive(output.getvalue(), year=2025)
+        self.assertEqual(
+            conflict["annual_krw_reasons"]["intangible"],
+            "numeric_values_ambiguous")
+        self.assertNotIn("intangible", conflict["annual_krw_facts"])
+
+    def test_rejection_counts_are_missing_fact_totals_only(self):
+        market, catalog, major, state, code, receipt = self.fixture()
+        # A tag with neither its annual context nor currency evidence.
+        result = pilot.run_pilot(
+            market, catalog, major, state, mode="live",
+            key="A" * 40, session=Session(archive(sample_xml())))
+        self.assertEqual(result["checked_missing_source_fact_kinds"], 1)
+        self.assertEqual(
+            result["missing_source_fact_reasons"]["annual_context_missing"], 1)
+        self.assertEqual(
+            sum(result["missing_source_fact_reasons"].values()), 1)
+        public = json.dumps(result, ensure_ascii=False)
+        self.assertNotIn(code, public)
+        self.assertNotIn(receipt, public)
+        self.assertNotIn("12345", public)
+
     def test_live_annual_krw_probe_still_never_outputs_amount(self):
         market, catalog, major, state, code, receipt = self.fixture()
         xml = (
@@ -180,6 +236,9 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             market, catalog, major, state, mode="live",
             key="A" * 40, session=Session(archive(xml)))
         self.assertEqual(result["reports_with_missing_annual_krw_candidate"], 1)
+        self.assertEqual(
+            result["missing_source_fact_reasons"]["candidate_scope_unverified"], 1)
+        self.assertEqual(sum(result["missing_source_fact_reasons"].values()), 1)
         public = json.dumps(result, ensure_ascii=False)
         self.assertNotIn("123456789", public)
         self.assertNotIn(code, public)
