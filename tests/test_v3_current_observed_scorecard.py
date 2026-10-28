@@ -240,6 +240,52 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,volume,price,financial={"005930":bad})
 
+    def test_subfactor_coverage_shows_real_zero_and_unknown_separately(self):
+        market,catalog=small()
+        v=volume_build(market,catalog)
+        p=price_build(market,catalog)
+        _,unknown=generate(market,catalog,v,p)
+        missing=unknown["financial_valuation_component_observed_issuers"]
+        self.assertTrue(all(x is None for x in missing.values()))
+        self.assertTrue(unknown["subfactor_missing_is_not_a_zero_score"])
+        self.assertEqual(unknown["financial_valuation_component_observation_status"][
+            "fiscal"],"unavailable_or_legacy_fiscal_component_contract")
+        weights={"revenue_cagr_3y_pct":4,"operating_margin_3y_pct":4,
+                 "liabilities_to_assets_pct":4,"operating_roa_3y_pct":4,
+                 "pbr":5,"earnings_yield_pct":5,"sales_to_market_cap":5}
+        components={key:{"max_points":0,"candidate_points":None}
+                    for key in weights}
+        components["revenue_cagr_3y_pct"]={"max_points":4,
+                                           "candidate_points":0.0}
+        components["pbr"]={"max_points":5,"candidate_points":0.0}
+        fiscal={"code":"005930","market":"KOSPI","asof":market["date"],
+                "financial_candidate_points":0.0,"financial_available_max":4,
+                "valuation_candidate_points":0.0,"valuation_available_max":5,
+                "unverified_components":components,
+                "confirmed_v3_score":None,"scoring_certified":False}
+        rows,summary=generate(market,catalog,v,p,financial={"005930":fiscal})
+        self.assertEqual(summary["financial_valuation_component_observed_issuers"][
+            "revenue_cagr_3y_pct"],1)
+        self.assertEqual(summary["financial_valuation_component_observed_issuers"][
+            "pbr"],1)
+        self.assertEqual(summary["financial_valuation_component_observed_issuers"][
+            "operating_roa_3y_pct"],0)
+        self.assertEqual(summary["financial_valuation_component_unobserved_issuers"][
+            "revenue_cagr_3y_pct"],4)
+        self.assertIsNone(summary["financial_valuation_component_observed_issuers"][
+            "financial_fcf_assets_3y"])
+        self.assertEqual(summary["financial_valuation_component_observation_status"][
+            "fiscal"],"same_day_replayed_component_receipts")
+        scored=next(x for x in rows if x["code"]=="005930")
+        self.assertEqual(scored["factors"]["financial"],0)
+        self.assertEqual(scored["factor_available"]["financial"],4)
+        self.assertIsNone(scored["official_score"])
+        fake=copy.deepcopy(fiscal)
+        fake["unverified_components"]["pbr"]["candidate_points"]=None
+        with self.assertRaisesRegex(
+            LivePartialScorecardError,"untrusted_dart_subfactor_observation"):
+            generate(market,catalog,v,p,financial={"005930":fake})
+
     def test_fcf_receipt_candidate_join_no_double_count_or_false_certification(self):
         market,catalog=small()
         v=volume_build(market,catalog)
