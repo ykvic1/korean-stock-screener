@@ -186,6 +186,43 @@ class StructuredActionTests(unittest.TestCase):
              if k != "reported_schedule_date_candidates"} for item in details])
         self.assertEqual(a._validate_report(a.canonical(legacy), 0, RECORD), legacy)
 
+    def test_planned_new_share_listing_dates_are_private_not_actual_listings(self):
+        # Official DS005 response keys are additional planned dates, not
+        # evidence that the new shares were ever listed or prices adjusted.
+        cases = {
+            "cmpDvDecsn": ("dvdt", "abcr_nstklstprd"),
+            "fricDecsn": ("nstk_asstd", "nstk_lstprd"),
+        }
+        for endpoint, fields in cases.items():
+            with self.subTest(endpoint=endpoint):
+                exact_row = {
+                    "rcept_no": RECORD["rcept_no"],
+                    "corp_code": RECORD["corp_code"],
+                    fields[0]: "20261105",
+                    fields[1]: "20261119",
+                    "bddd": "20261020",
+                }
+                observed = a.inspect_response(
+                    {"status": "000", "list": [exact_row]},
+                    endpoint, RECORD["corp_code"], RECORD["rcept_no"])
+                self.assertEqual(
+                    observed["reported_schedule_date_candidates"],
+                    [{"field": fields[0], "reported_date": "2026-11-05"},
+                     {"field": fields[1], "reported_date": "2026-11-19"}])
+                self.assertTrue(a._valid_schedule_candidates(observed, endpoint))
+                self.assertFalse(a._valid_schedule_candidates(
+                    {**observed,
+                     "reported_schedule_date_candidates":
+                         list(reversed(observed["reported_schedule_date_candidates"]))},
+                    endpoint))
+                self.assertFalse(a._valid_schedule_candidates(
+                    {**observed, "exact_receipt_match": False}, endpoint))
+                unlisted = a.inspect_response(
+                    {"status": "000", "list": [
+                        {**exact_row, "rcept_no": "20161101000003"}]},
+                    endpoint, RECORD["corp_code"], RECORD["rcept_no"])
+                self.assertEqual(unlisted["reported_schedule_date_candidates"], [])
+
     def test_schedule_day_rejects_unknown_invalid_and_nonmatching_source(self):
         self.assertIsNone(a._schedule_day("2026-02-30"))
         self.assertIsNone(a._schedule_day("2026년 10월 29일"))
