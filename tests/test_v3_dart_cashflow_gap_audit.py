@@ -105,7 +105,7 @@ class GapAuditTests(unittest.TestCase):
         self.assertEqual(depth["three_year_source_receipt_complete"], 1)
         self.assertEqual(depth["three_years_with_fcf_but_unmatched_receipts"], 1)
         self.assertEqual(depth["three_years_attempted_missing_accounts"], 0)
-        self.assertEqual(result["observed_fcf_company_years"], 6)
+        self.assertEqual(result["observed_fcf_company_years"], 7)
         self.assertEqual(result["provider_api_calls"], 0)
 
     def test_zero_capex_is_observed_only_when_both_components_are_real(self):
