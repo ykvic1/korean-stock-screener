@@ -19,6 +19,7 @@ import argparse
 import csv
 from io import StringIO
 import json
+import math
 from pathlib import Path
 
 from v3_volume_participation import build as volume_build
@@ -35,6 +36,18 @@ from v3_path_provisional_factors import preview as path_preview
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
               "valuation":20,"momentum":15}
+
+# Exact same-date fiscal research components; informational audit only.
+# Sector is outside the five-area score and official PBR is not inferred.
+FISCAL_COMPONENT_WEIGHTS={
+    "revenue_cagr_3y_pct":4,
+    "operating_margin_3y_pct":4,
+    "liabilities_to_assets_pct":4,
+    "operating_roa_3y_pct":4,
+    "pbr":5,
+    "earnings_yield_pct":5,
+    "sales_to_market_cap":5,
+}
 
 class LivePartialScorecardError(ValueError):
     """Never include raw provider data in failures."""
@@ -173,6 +186,14 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     counts={"volume":0,"technical":0,"momentum":0,
             "financial":0,"valuation":0}
     fcf_counts={"financial4":0,"valuation5":0}
+    # Only publish seven per-component counts if every available DART fiscal
+    # row has the complete source-component contract. Older contracts must
+    # show audit unavailable, not seven misleading zeros.
+    fiscal_components_ready=(financial is not None and bool(financial) and
+        all(type(r.get("unverified_components")) is dict and
+            set(FISCAL_COMPONENT_WEIGHTS)<=set(r["unverified_components"])
+            for r in financial.values()))
+    fiscal_component_counts={key:0 for key in FISCAL_COMPONENT_WEIGHTS}
     path_added={"volume4":0,"momentum7":0}
     path_observed=0
     nonblank=0
@@ -233,6 +254,22 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                 available=fiscal.get(group+"_available_max")
                 values[group],coverage[group]=_contribution(
                     points,available,POINT_BUDGET[group])
+            if fiscal_components_ready:
+                for component,weight in FISCAL_COMPONENT_WEIGHTS.items():
+                    evidence=fiscal["unverified_components"][component]
+                    if type(evidence) is not dict or type(
+                            evidence.get("max_points")) is not int or (
+                            evidence["max_points"] not in (0,weight)):
+                        raise LivePartialScorecardError(
+                            "invalid_dart_subfactor_observation_contract")
+                    if evidence["max_points"]==weight:
+                        earned=evidence.get("candidate_points")
+                        if (type(earned) not in (int,float) or
+                            not math.isfinite(earned) or
+                            not 0<=earned<=weight):
+                            raise LivePartialScorecardError(
+                                "untrusted_dart_subfactor_observation")
+                        fiscal_component_counts[component]+=1
         fcf_earned={"financial4":None,"valuation5":None}
         if cashflow is not None and code in cashflow:
             entry=cashflow[code]
@@ -330,6 +367,16 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                        for area in POINT_BUDGET}
     missing_area_weight={area:POINT_BUDGET[area]-observed_area_max[area]
                          for area in POINT_BUDGET}
+    source_component_counts={
+        k:(v if fiscal_components_ready else None)
+        for k,v in fiscal_component_counts.items()
+    }
+    source_component_counts.update({
+        "financial_fcf_assets_3y":(
+            fcf_counts["financial4"] if cashflow is not None else None),
+        "valuation_fcf_yield_latest":(
+            fcf_counts["valuation5"] if cashflow is not None else None),
+    })
     summary={
         "schema":SCHEMA,"asof":asof,"listed_total":len(output),
         "observed_any_factor_issuers":nonblank,
@@ -356,6 +403,21 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         "highest_currently_observable_weight":sum(observed_area_max.values()),
         "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
+        # Source-observed issuer counts, NOT earned score points. Null means
+        # the source component schema/current-date join is unavailable.
+        "financial_valuation_component_observation_status":{
+            "fiscal":("same_day_replayed_component_receipts"
+                      if fiscal_components_ready else
+                      "unavailable_or_legacy_fiscal_component_contract"),
+            "cashflow":("same_day_receipt_matched_fcf"
+                        if cashflow is not None else
+                        "unavailable_or_not_same_source_day"),
+        },
+        "financial_valuation_component_observed_issuers":source_component_counts,
+        "financial_valuation_component_unobserved_issuers":{
+            key:(len(output)-count if count is not None else None)
+            for key,count in source_component_counts.items()},
+        "subfactor_missing_is_not_a_zero_score":True,
         "fcf_reference_join_status":(
             "same_fiscal_year_scope_receipt_replayed" if cashflow is not None
             else "unavailable_or_not_same_source_day"),
