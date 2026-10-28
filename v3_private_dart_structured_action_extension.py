@@ -22,6 +22,7 @@ from v3_private_dart_original_evidence import _candidate_queue
 from v3_private_dart_structured_action_receipts import (
     StructuredActionError, _same_bytes, official_fetch, inspect_response,
     SUPPLEMENTAL_ENDPOINTS, _valid_checkpoint_report_pointer,
+    _valid_schedule_candidates,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
@@ -147,7 +148,8 @@ def _validate_report(raw, index, record):
                 type(row.get("exact_receipt_match")) is not bool or
                 (row["provider_status"] == "013" and
                  (row["list_rows"] != 0 or row["exact_receipt_match"])) or
-                (row["exact_receipt_match"] and row["list_rows"] == 0)):
+                (row["exact_receipt_match"] and row["list_rows"] == 0) or
+                not _valid_schedule_candidates(row, expected)):
                 raise ValueError()
             if row["exact_receipt_match"]:
                 matched.append(expected)
@@ -187,7 +189,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         raise ExtensionError("private_extension_checkpoint_queue_tail_mismatch")
     start = _dates(MONTHS[i])[0]
     end = _dates(MONTHS[i+1])[1]
-    calls = advanced = reused = matched = unqueried = 0
+    calls = advanced = reused = matched = unqueried = schedule_candidates = 0
     last_path, last_digest = state["last_report_file"], state["last_report_sha256"]
     while j < len(queue) and advanced < limit:
         record = queue[j]
@@ -210,6 +212,9 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
             reused += 1
         checked = _validate_report(encoded, i, record)
         matched += int(bool(checked["exact_receipt_event_categories"]))
+        schedule_candidates += sum(
+            len(row.get("reported_schedule_date_candidates", []))
+            for row in checked["endpoint_results"])
         unqueried += int(not checked["queried_endpoint_scope"])
         last_path, last_digest = path, sha256(encoded).hexdigest()
         j += 1
@@ -237,6 +242,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         "processed_candidates": advanced, "provider_calls": calls,
         "previous_reports_reused": reused,
         "new_exact_receipt_category_matches": matched,
+        "reported_schedule_date_candidates_observed": schedule_candidates,
         "candidates_without_supplemental_endpoint": unqueried,
         "source_pair_candidate_count": len(queue),
         "source_pair_next_candidate_index": pair_end_index,
