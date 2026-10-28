@@ -159,6 +159,50 @@ class CashflowSourceTests(unittest.TestCase):
         self.assertEqual(n,4) # the fifth issuer's 3 fiscal years + master
         self.assertEqual(resumed["metrics"]["three_year_fcf_receipt_matched_issuers"],5)
 
+    def test_valid_three_year_receipts_are_eligible_without_income_fields(self):
+        market,catalog,bulk=live_inputs()
+        # 98 actual saved issuers were excluded solely because the major
+        # BS/IS archive lacked revenue or operating-income values, even
+        # though all three CF filing receipts existed in the same scope.
+        issuer=bulk["records"]["005930"]["years"]
+        for year in (2023,2024,2025):
+            issuer[str(year)]["CFS"]["values"]["revenue"]=None
+            issuer[str(year)]["CFS"]["values"]["operating_income"]=None
+        self.assertEqual(cf.matched_scope(bulk["records"]["005930"],
+                                          asof=DAY),"CFS")
+        _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
+        self.assertIn("005930",[item[1] for item in chosen])
+        saved,calls=cf.collect(
+            market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=5)
+        self.assertEqual(saved["metrics"]["attempted_company_years"],15)
+        self.assertEqual(saved["metrics"]["receipt_matched_fcf_company_years"],15)
+        self.assertTrue(cf.verify_state(saved,market,catalog,bulk))
+        self.assertFalse(saved["official_six_pillar_100pt_certified"])
+
+    def test_three_year_scope_and_no_lookahead_still_mandatory(self):
+        market,catalog,bulk=live_inputs()
+        row=bulk["records"]["005930"]["years"]
+        row["2024"]["CFS"]["receipt_id"]=None
+        self.assertIsNone(cf.matched_scope(bulk["records"]["005930"],
+                                           asof=DAY))
+        _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
+        self.assertNotIn("005930",[item[1] for item in chosen])
+        for year in (2023,2024,2025):
+            row[str(year)]["OFS"]=copy.deepcopy(row[str(year)]["CFS"])
+            row[str(year)]["OFS"]["receipt_id"]=f"{year+1}0318000001"
+            row[str(year)]["OFS"]["values"]={
+                "revenue":None,"operating_income":None}
+        self.assertEqual(cf.matched_scope(bulk["records"]["005930"],
+                                          asof=DAY),"OFS")
+        _,_,_,chosen=cf.plan(market,catalog,bulk,limit=5)
+        self.assertEqual(
+            [item[2] for item in chosen if item[1]=="005930"],["OFS"])
+        row["2025"]["OFS"]["receipt_id"]="20271118000001"
+        self.assertIsNone(cf.matched_scope(bulk["records"]["005930"],
+                                           asof=DAY))
+
     def test_new_trading_day_carries_only_unchanged_filing_evidence(self):
         market,catalog,bulk=live_inputs()
         earlier,_=cf.collect(
