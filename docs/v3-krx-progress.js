@@ -56,6 +56,7 @@ function validate(raw){
  if(total===0?last!==null:!date(last)||last>raw.source_candidate_end||
                                  last<raw.source_candidate_start)return null;
  return {
+  historyStart:raw.source_candidate_start,historyEnd:raw.source_candidate_end,
   completed:total,target:raw.five_session_cohorts_target,
   remaining:raw.five_session_cohorts_remaining,
   bridges:raw.cross_cohort_bridges_completed,
@@ -85,12 +86,13 @@ async function load(){
   if(!response.ok)throw Error('no_checkpoint');
   const o=validate(await response.json());
   if(!o)throw Error('invalid_checkpoint');
-  el.krxProgressStatus.textContent='5일 단위 '+o.coverage.toFixed(1)+'% 확보';
+  el.krxProgressStatus.textContent='고정 과거구간 5일 단위 '+o.coverage.toFixed(1)+'% 확보';
   el.krxHistoryCollected.textContent=pretty(o.completed)+' / '+pretty(o.target);
   el.krxHistoryBridges.textContent=pretty(o.bridges)+' / '+pretty(o.bridgesTarget);
   el.krxHistoryRolling.textContent=[20,60,120,250].map(h=>h+'일 '+o.windows[h]).join(' · ');
   el.krxHistoryRisk.textContent=pretty(o.risk)+' / '+pretty(o.riskTarget);
-  el.krxHistoryNotes.textContent='과거 자료 잔여 '+pretty(o.remaining)+
+  el.krxHistoryNotes.textContent='집계 범위 '+o.historyStart+'~'+o.historyEnd+
+    ' (종료일 이후 거래일은 완료율에 미포함) · 과거 자료 잔여 '+pretty(o.remaining)+
     '개(5거래일 묶음) · 마지막 원천 관측 '+(o.last||'미확인')+
     '. 비공개 저장 파생지표 진행률이며, 과거 상장폐지 종목·수정주가와 '+
     '정식 V3 100점 검증은 포함하지 않습니다.';
