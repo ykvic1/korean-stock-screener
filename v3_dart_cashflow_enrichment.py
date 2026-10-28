@@ -68,23 +68,37 @@ def asof_members(market,catalog,bulk):
     return asof,members
 
 
-def matched_scope(bulk_record, *, asof=None):
-    """Require three genuine annual receipts in one scope, not BS/IS values.
-
-    A company may file valid CF statements despite a missing revenue or
-    operating-income account in the major-account archive. Those missing
-    accounts do not prove that CF is missing. Only same-scope, year-valid,
-    no-lookahead receipts qualify for an official cash-flow request; FCF
-    itself still needs its separately observed CFO and both CAPEX entries.
-    """
+def source_receipt_years(bulk_record, scope, *, asof=None):
+    """Only fiscal years with real, as-of-valid annual receipts in one scope."""
+    if scope not in ("CFS","OFS"):
+        return ()
     years=bulk_record.get("years",{}) if type(bulk_record) is dict else {}
     cutoff=_day(asof) if asof is not None else date.max
+    return tuple(year for year in YEARS if _valid_receipt(
+        years.get(str(year),{}).get(scope,{}).get("receipt_id"),
+        year,cutoff))
+
+
+def matched_scope(bulk_record, *, asof=None, preferred_scope=None):
+    """Require a verified latest-year filing; retain any earlier real years.
+
+    A latest-year CFO/CAPEX can legitimately support a current FCF yield even
+    when older annual receipts are absent. Three-year FCF/assets remains
+    unavailable until ALL three source years are independently observed.
+    Never merge CFS and OFS; prefer the scope with more dated receipts, and
+    preserve a previously source-matched scope across subsequent runs.
+    """
+    qualifying={}
     for scope in ("CFS","OFS"):
-        if all(_valid_receipt(
-                years.get(str(year),{}).get(scope,{}).get("receipt_id"),
-                year,cutoff) for year in YEARS):
-            return scope
-    return None
+        years=source_receipt_years(bulk_record,scope,asof=asof)
+        if YEARS[-1] in years:
+            qualifying[scope]=years
+    if preferred_scope in qualifying:
+        return preferred_scope
+    if not qualifying:
+        return None
+    return max(qualifying,key=lambda scope:(
+        len(qualifying[scope]),scope=="CFS"))
 
 
 def retained_current_market_cashflow(market,catalog,bulk,prior):
@@ -140,15 +154,19 @@ def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS):
     queues={"KOSPI":[],"KOSDAQ":[]}
     for code,row in members.items():
         record=bulk["records"].get(code)
-        scope=matched_scope(record,asof=asof)
+        priorrow=retained.get(code,{})
+        scope=matched_scope(record,asof=asof,
+                            preferred_scope=priorrow.get("scope"))
         if scope is None:
             continue
-        priorrow=retained.get(code,{})
         if priorrow and priorrow.get("scope")!=scope:
             # Source revisions cannot silently combine CFS and OFS observations.
             continue
         observed=priorrow.get("years",{})
-        pending=[y for y in YEARS if str(y) not in observed]
+        # Query only years backed by actual, same-scope major annual receipts.
+        # Missing older filings remain absent, not zero-valued observations.
+        available=source_receipt_years(record,scope,asof=asof)
+        pending=[y for y in available if str(y) not in observed]
         if pending:
             # Finish already-partial real cash-flow chains before starting new.
             queues[row["market"]].append((len(pending),code,scope,pending))
