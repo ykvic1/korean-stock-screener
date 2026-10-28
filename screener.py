@@ -5,6 +5,7 @@ import argparse
 import json
 import logging
 import math
+from numbers import Real
 import os
 import shutil
 import sys
@@ -333,6 +334,31 @@ def analyze_history(code,cfg,day):
       'pattern_weekly_research':pattern_weekly_research,**pat}
 
 
+def market_relative_returns(row, reference):
+    """Only comparable SAME-SESSION observed index and issuer returns.
+
+    Research sector strength is informational, outside the five scoring pillars.
+    Missing 20/60/120 source horizons stay None, never inferred as zero.
+    """
+    result={"relative20":None,"relative60":None,"relative120":None}
+    if (type(row) is not dict or type(reference) is not dict
+            or type(row.get("price_date")) is not str
+            or reference.get("date") != row["price_date"]):
+        return result
+    for horizon in (20,60,120):
+        stock_return=row.get(f"price{horizon}")
+        index_return=reference.get(f"r{horizon}")
+        if (not isinstance(stock_return, Real)
+                or not isinstance(index_return, Real)
+                or isinstance(stock_return, bool)
+                or isinstance(index_return, bool)
+                or not math.isfinite(stock_return)
+                or not math.isfinite(index_return)):
+            continue
+        result[f"relative{horizon}"]=round_or_none(stock_return-index_return)
+    return result
+
+
 def load_indexes(day,cfg):
     result={}
     start=(day-timedelta(days=350)).strftime('%Y-%m-%d')
@@ -493,13 +519,8 @@ def build_rows(day,cfg):
         history_attempted+=1
         try:
             v=analyze_history(r['code'],cfg,day);r.update(v)
-            ref=idx.get(r['market'])
-            if ref:
-                r['relative20']=round_or_none(r['price20']-ref['r20'])
-                r['relative60']=round_or_none(r['price60']-ref['r60'])
-                r['relative120']=(round_or_none(r['price120']-ref['r120'])
-                                  if r.get('price120') is not None and ref.get('r120') is not None else None)
-            else:r['relative20']=r['relative60']=r['relative120']=None
+            # Explicit source-date equality; no stale index/price mixing.
+            r.update(market_relative_returns(r,idx.get(r['market'])))
             r['flows_confirmed']=False
             valid.append(r)
         except InsufficientHistory as e:

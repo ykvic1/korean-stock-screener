@@ -38,6 +38,27 @@ def select(rows, day):
 
 
 class NoMarketSizeOrCountLimitTests(unittest.TestCase):
+    def test_actual_market_relative_20_60_120_requires_same_session(self):
+        row={"price_date":"2026-10-27","price20":8.5,
+             "price60":-1.0,"price120":17.0}
+        index={"date":"2026-10-27","r20":5.0,"r60":-3.0,"r120":6.0}
+        self.assertEqual(screener.market_relative_returns(row,index),
+                         {"relative20":3.5,"relative60":2.0,"relative120":11.0})
+        import numpy as np
+        native_index=dict(index,r120=np.float64(6))
+        self.assertEqual(screener.market_relative_returns(row,native_index)["relative120"],11.0)
+        old=dict(index,date="2026-10-26")
+        self.assertEqual(screener.market_relative_returns(row,old),
+                         {"relative20":None,"relative60":None,"relative120":None})
+        no_120=dict(index,r120=None)
+        self.assertEqual(screener.market_relative_returns(row,no_120),
+                         {"relative20":3.5,"relative60":2.0,"relative120":None})
+        bad=dict(row,price120=float("nan"))
+        self.assertIsNone(screener.market_relative_returns(bad,index)["relative120"])
+        self.assertEqual(screener.market_relative_returns(row,None),
+                         {"relative20":None,"relative60":None,"relative120":None})
+        self.assertFalse("industry" in screener.market_relative_returns(row,index))
+
     def test_config_has_no_arbitrary_company_size_volume_count_or_view_limits(self):
         c = screener.cfg_read()
         for forbidden in ("min_market_cap_eok", "max_market_cap_eok",
