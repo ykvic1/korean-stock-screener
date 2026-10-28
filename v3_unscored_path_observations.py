@@ -10,6 +10,62 @@ from datetime import date
 import math
 
 SCHEMA="v3-unscored-price-path-evidence-0.1"
+UNAVAILABLE_REASONS = frozenset({
+    "insufficient_121_sessions",
+    "missing_or_mismatched_session_index",
+    "irregular_or_stale_session_calendar",
+    "nonpositive_or_invalid_price_volume",
+    "possible_unadjusted_corporate_action",
+    "implausible_two_window_return",
+    "other_path_validation_failure",
+})
+
+
+def valid_unavailable_reason(observation, reason):
+    """New-format scans require a fixed reason only when a path is missing."""
+    if observation is not None:
+        return reason is None
+    return type(reason) is str and reason in UNAVAILABLE_REASONS
+
+
+def classify_unavailable(close, volume, *, asof, session_days=None):
+    """Source-in-memory diagnostic only; rejected paths NEVER gain points."""
+    try:
+        day = date.fromisoformat(asof)
+        if day.isoformat() != asof:
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise ValueError("unscored_path_invalid_asof") from None
+    if len(close) < 121:
+        return "insufficient_121_sessions"
+    if len(close) != len(volume) or session_days is None or len(session_days) != len(close):
+        return "missing_or_mismatched_session_index"
+    dates = []
+    for raw in session_days[-121:]:
+        if callable(getattr(raw, "date", None)):
+            dates.append(raw.date())
+        elif type(raw) is date:
+            dates.append(raw)
+        else:
+            return "missing_or_mismatched_session_index"
+    if dates[-1] != day or any(
+        not 0 < (b - a).days <= 10 for a, b in zip(dates, dates[1:])
+    ):
+        return "irregular_or_stale_session_calendar"
+    closes = list(close[-121:])
+    volumes = list(volume[-121:])
+    if (any(not _number(x, positive=True) for x in closes)
+            or any(not _number(x, positive=True) for x in volumes)):
+        return "nonpositive_or_invalid_price_volume"
+    closes = [float(x) for x in closes]
+    if any(abs(closes[i] / closes[i-1] - 1) > 0.5 for i in range(1, 121)):
+        return "possible_unadjusted_corporate_action"
+    for p in (100 * (closes[60] / closes[0] - 1),
+              100 * (closes[120] / closes[60] - 1)):
+        if not math.isfinite(p) or abs(p) > 1e6:
+            return "implausible_two_window_return"
+    return "other_path_validation_failure"
+
 
 
 def _number(value,*,positive=False):
