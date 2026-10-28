@@ -55,6 +55,7 @@ jobs:
           from pathlib import Path
           source = Path('/tmp/v3-xbrl-evidence-counts.json')
           labels = (
+              ('source_readiness', '원천 일치 상태'),
               ('eligible_sampled_issuer_years', '조사 표본 기업·연도'),
               ('provider_xbrl_file_calls', '공식 XBRL 원본파일 API 호출'),
               ('valid_zip_files', '유효한 원본 ZIP'),
@@ -81,8 +82,13 @@ jobs:
               ('numeric_values_ambiguous', 'XBRL 파일 간 숫자 후보 불일치'),
               ('candidate_scope_unverified', '연도·KRW 후보 있음(연결/별도 미확인)'),
           )
-          if source.is_file():
-              report = json.loads(source.read_text(encoding='utf8'))
+          report = None
+          if source.is_file() and source.stat().st_size:
+              try:
+                  report = json.loads(source.read_text(encoding='utf8'))
+              except (ValueError, OSError):
+                  pass
+          if type(report) is dict:
               for key, label in labels:
                   lines.append('- ' + label + ': **' + str(report.get(key, '미확인')) + '**')
               reason_counts = report.get('missing_source_fact_reasons', {})
@@ -93,7 +99,7 @@ jobs:
                   lines.append('- ' + label + ': **' +
                                str(reason_counts.get(key, '미확인')) + '**')
           else:
-              lines.append('- 조사 결과 파일 없음: 테스트·원천 응답 오류를 확인하세요.')
+              lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
               '\n'.join(lines) + '\n', encoding='utf8')
           PY
