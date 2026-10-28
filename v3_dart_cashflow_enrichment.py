@@ -8,6 +8,7 @@ assumed zero; no cross-filing fiscal/issuer mix, PIT or investment certification
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import hashlib
 import json
 import math
@@ -67,20 +68,21 @@ def asof_members(market,catalog,bulk):
     return asof,members
 
 
-def matched_scope(bulk_record):
-    """Only all-three-year company/accounting-scope matched BS/IS origins."""
+def matched_scope(bulk_record, *, asof=None):
+    """Require three genuine annual receipts in one scope, not BS/IS values.
+
+    A company may file valid CF statements despite a missing revenue or
+    operating-income account in the major-account archive. Those missing
+    accounts do not prove that CF is missing. Only same-scope, year-valid,
+    no-lookahead receipts qualify for an official cash-flow request; FCF
+    itself still needs its separately observed CFO and both CAPEX entries.
+    """
     years=bulk_record.get("years",{}) if type(bulk_record) is dict else {}
+    cutoff=_day(asof) if asof is not None else date.max
     for scope in ("CFS","OFS"):
-        ok=True
-        for year in YEARS:
-            stmt=years.get(str(year),{}).get(scope,{})
-            val=stmt.get("values",{})
-            if (type(val.get("revenue")) is not int or val["revenue"]<=0
-                or type(val.get("operating_income")) is not int
-                or not isinstance(stmt.get("receipt_id"),str)):
-                ok=False
-                break
-        if ok:
+        if all(_valid_receipt(
+                years.get(str(year),{}).get(scope,{}).get("receipt_id"),
+                year,cutoff) for year in YEARS):
             return scope
     return None
 
@@ -138,7 +140,7 @@ def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS):
     queues={"KOSPI":[],"KOSDAQ":[]}
     for code,row in members.items():
         record=bulk["records"].get(code)
-        scope=matched_scope(record)
+        scope=matched_scope(record,asof=asof)
         if scope is None:
             continue
         priorrow=retained.get(code,{})
