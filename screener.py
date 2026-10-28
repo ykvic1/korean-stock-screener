@@ -274,9 +274,14 @@ def analyze_history(code,cfg,day):
     close=df['Close'].to_numpy(dtype=float);volume=df['Volume'].to_numpy(dtype=float)
     # Capture bounded, unscored path observations while the raw provider
     # series exists in memory. Persist no daily OHLCV bars or new score.
-    from v3_unscored_path_observations import observe as observe_v3_path
+    from v3_unscored_path_observations import (
+        observe as observe_v3_path, classify_unavailable as path_unavailable)
     v3_unscored_path=observe_v3_path(
         close,volume,asof=last.isoformat(),session_days=df.index)
+    v3_unscored_path_reason=(
+        path_unavailable(close,volume,asof=last.isoformat(),
+                         session_days=df.index)
+        if v3_unscored_path is None else None)
     lo=df['Low'].to_numpy(dtype=float);hi=df['High'].to_numpy(dtype=float)
     p=float(close[-1]);m20=ma_last(close,20);m60=ma_last(close,60);m120=ma_last(close,120)
     vol20=float(np.mean(volume[-20:]));volprev=float(np.mean(volume[-60:-20]))
@@ -310,6 +315,7 @@ def analyze_history(code,cfg,day):
     return {
       'price_date':last.isoformat(),'price_latest':p,'price20':round_or_none(price20),
       'v3_unscored_path_observations':v3_unscored_path,
+      'v3_unscored_path_unavailable_reason':v3_unscored_path_reason,
       'price60':round_or_none(price60),'price120':round_or_none(price120),
       'volume_ratio':round(float(vol20/max(1,volprev)),2),
       'one_day_volume_ratio':round(float(volume[-1]/max(1,np.mean(volume[-21:-1]))),2),
@@ -701,6 +707,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'relative20':r['relative20'],'relative60':r['relative60'],
           'relative120':r.get('relative120'),
           'v3_unscored_path_observations':r.get('v3_unscored_path_observations'),
+          'v3_unscored_path_unavailable_reason':r.get('v3_unscored_path_unavailable_reason'),
           'flows_confirmed':bool(r.get('flows_confirmed')),
           'foreign_shares':r.get('foreign_net_shares'),'flow_observations':r.get('flow_observations'),
           'flow_cross_validation':r.get('flow_cross_validation','독립 소스 미검증'),
