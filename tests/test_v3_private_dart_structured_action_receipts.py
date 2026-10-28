@@ -156,6 +156,70 @@ class StructuredActionTests(unittest.TestCase):
                "queue_sha256": None, "last_report_file": a._path(0, RECORD["rcept_no"])}
         self.assertEqual(a._cursor(a.canonical(old)), old)
 
+    def test_official_schedule_fields_are_private_candidates_not_effective_dates(self):
+        body = {"status": "000", "list": [
+            {"rcept_no": RECORD["rcept_no"], "corp_code": RECORD["corp_code"],
+             "mgsc_mgdt": "20261105", "bddd": "2026-10-20"},
+            {"rcept_no": "20161101000003", "corp_code": RECORD["corp_code"],
+             "mgsc_mgdt": "2020-01-01"},
+        ]}
+        result = a.inspect_response(body, "cmpMgDecsn",
+                                    RECORD["corp_code"], RECORD["rcept_no"])
+        self.assertEqual(result["reported_schedule_date_candidates"],
+                         [{"field": "mgsc_mgdt", "reported_date": "2026-11-05"}])
+        self.assertTrue(result["exact_receipt_match"])
+        details = [result] + [
+            {"endpoint": name, "provider_status": "013", "list_rows": 0,
+             "exact_receipt_match": False}
+            for name in a.ENDPOINTS[1:]]
+        saved = a._report(0, RECORD, details)
+        self.assertEqual(a._validate_report(a.canonical(saved), 0, RECORD), saved)
+        self.assertFalse(saved["effective_date_authenticated"])
+        self.assertFalse(saved["share_adjustment_authenticated"])
+        self.assertFalse(saved["scores_authorized"])
+        self.assertEqual(a._valid_schedule_candidates(result, "cmpMgDecsn"), True)
+        # Existing immutable reports without the new optional field still load.
+        legacy = a._report(0, RECORD, [
+            {k: v for k, v in item.items()
+             if k != "reported_schedule_date_candidates"} for item in details])
+        self.assertEqual(a._validate_report(a.canonical(legacy), 0, RECORD), legacy)
+
+    def test_schedule_day_rejects_unknown_invalid_and_nonmatching_source(self):
+        self.assertIsNone(a._schedule_day("2026-02-30"))
+        self.assertIsNone(a._schedule_day("2026년 10월 29일"))
+        self.assertIsNone(a._schedule_day("2099-13-01"))
+        self.assertIsNone(a._schedule_day(20261029))
+        self.assertIsNone(a._schedule_day("2014-12-31"))
+        self.assertIsNone(a._schedule_day("2101-01-01"))
+        unmatched = a.inspect_response(
+            {"status": "000", "list": [
+                {"rcept_no": "20161101000003", "corp_code": RECORD["corp_code"],
+                 "mgsc_mgdt": "20261105"}]},
+            "cmpMgDecsn", RECORD["corp_code"], RECORD["rcept_no"])
+        self.assertEqual(unmatched["reported_schedule_date_candidates"], [])
+        nodata = a.inspect_response(
+            {"status": "013"}, "cmpMgDecsn",
+            RECORD["corp_code"], RECORD["rcept_no"])
+        self.assertEqual(nodata["reported_schedule_date_candidates"], [])
+        self.assertFalse(nodata["exact_receipt_match"])
+        supported = {"endpoint": "fricDecsn", "provider_status": "000",
+                     "list_rows": 1, "exact_receipt_match": True,
+                     "reported_schedule_date_candidates": [
+                         {"field": "nstk_asstd", "reported_date": "2026-11-05"}]}
+        self.assertTrue(a._valid_schedule_candidates(supported, "fricDecsn"))
+        for bad in (
+            [{**supported["reported_schedule_date_candidates"][0],
+              "reported_date": "2026-02-30"}],
+            [{"field": "bddd", "reported_date": "2026-11-05"}],
+            [{"field": "nstk_asstd", "reported_date": "2026-11-05"},
+             {"field": "nstk_asstd", "reported_date": "2026-11-05"}],
+        ):
+            self.assertFalse(a._valid_schedule_candidates(
+                {**supported, "reported_schedule_date_candidates": bad},
+                "fricDecsn"))
+        self.assertFalse(a._valid_schedule_candidates(
+            {**supported, "exact_receipt_match": False}, "fricDecsn"))
+
     def test_request_allowlist_and_date_ranges(self):
         a._check_request("fricDecsn", RECORD["corp_code"], "20161001", "20161130")
         for args in (("document.xml", RECORD["corp_code"], "20161001", "20161130"),
