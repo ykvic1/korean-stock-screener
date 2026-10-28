@@ -891,6 +891,56 @@ assert.ok(actualCoverage.includes(
 assert.ok(actualCoverage.includes('<th scope="col">미확보 배점</th>'));
 assert.ok(actualCoverage.includes(
  '미확보 <b>'+observedPartialSummary.total_unobserved_weight_gap+'점</b>'));
+// The nested nine-factor audit must be source-gated and must not turn missing into zero.
+const withNineComponentReceipts=structuredClone(observedPartialSummary);
+withNineComponentReceipts.subfactor_missing_is_not_a_zero_score=true;
+withNineComponentReceipts.financial_valuation_component_observation_status={
+ fiscal:'same_day_replayed_component_receipts',
+ cashflow:'same_day_receipt_matched_fcf'
+};
+withNineComponentReceipts.financial_valuation_component_observed_issuers={};
+withNineComponentReceipts.financial_valuation_component_unobserved_issuers={};
+for(const key of ["earnings_yield_pct","financial_fcf_assets_3y","liabilities_to_assets_pct","operating_margin_3y_pct","operating_roa_3y_pct","pbr","revenue_cagr_3y_pct","sales_to_market_cap","valuation_fcf_yield_latest"]){
+ withNineComponentReceipts.financial_valuation_component_observed_issuers[key]=
+  observedPartialSummary.listed_total-1;
+ withNineComponentReceipts.financial_valuation_component_unobserved_issuers[key]=1;
+}
+const nineMarkup=unified.fiveAreaCoverageView(withNineComponentReceipts,
+ withNineComponentReceipts.asof,withNineComponentReceipts.listed_total);
+assert.ok(nineMarkup.includes('재무·가치평가 9개 세부지표 원천 확보 현황'));
+assert.ok(nineMarkup.includes('3개년 FCF / 자산'));
+assert.ok(nineMarkup.includes('PBR (참고 계산치)'));
+assert.ok(nineMarkup.includes('미확보는 0점이 아닌 미확인'));
+assert.ok(nineMarkup.includes('<details class="u-subfactor-breakdown">'));
+assert.ok(nineMarkup.includes('<div class="u-coverage-scroll"><table'));
+assert.ok(css.includes('.u-subfactor-breakdown'));
+const missingNineSource=structuredClone(withNineComponentReceipts);
+delete missingNineSource.financial_valuation_component_observed_issuers.pbr;
+assert.equal(unified.financialSubfactorCoverageView(missingNineSource,
+ missingNineSource.asof,missingNineSource.listed_total),'');
+const inconsistentNine=structuredClone(withNineComponentReceipts);
+inconsistentNine.financial_valuation_component_unobserved_issuers.pbr=0;
+assert.equal(unified.financialSubfactorCoverageView(inconsistentNine,
+ inconsistentNine.asof,inconsistentNine.listed_total),'');
+const falselyCertifiedNine=structuredClone(withNineComponentReceipts);
+falselyCertifiedNine.certified_100point_count=1;
+assert.equal(unified.financialSubfactorCoverageView(falselyCertifiedNine,
+ falselyCertifiedNine.asof,falselyCertifiedNine.listed_total),'');
+const staleNine=structuredClone(withNineComponentReceipts);
+staleNine.financial_valuation_component_observation_status.cashflow='stale';
+assert.equal(unified.financialSubfactorCoverageView(staleNine,
+ staleNine.asof,staleNine.listed_total),'');
+const explicitlyUnverifiedNine=structuredClone(withNineComponentReceipts);
+explicitlyUnverifiedNine.financial_valuation_component_observed_issuers.pbr=null;
+explicitlyUnverifiedNine.financial_valuation_component_unobserved_issuers.pbr=null;
+assert.ok(unified.financialSubfactorCoverageView(explicitlyUnverifiedNine,
+ explicitlyUnverifiedNine.asof,explicitlyUnverifiedNine.listed_total).includes('미확인'));
+const absentNineAudit=structuredClone(observedPartialSummary);
+delete absentNineAudit.financial_valuation_component_observation_status;
+delete absentNineAudit.financial_valuation_component_observed_issuers;
+delete absentNineAudit.financial_valuation_component_unobserved_issuers;
+assert.ok(!unified.fiveAreaCoverageView(absentNineAudit,
+ absentNineAudit.asof,absentNineAudit.listed_total).includes('9개 세부지표'));
 const withProvisional100=structuredClone(observedPartialSummary);
 withProvisional100.provisional_complete_100point_observation_count=0;
 const provisionalCoverage=unified.fiveAreaCoverageView(
