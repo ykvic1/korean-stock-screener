@@ -83,7 +83,8 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(result["reports_with_any_missing_source_tag"], 1)
         self.assertEqual(result["reports_with_ifrs_intangible_tag_candidate"], 1)
         self.assertTrue(result["no_xbrl_amounts_or_investment_scores_derived"])
-        self.assertTrue(result["no_period_or_scope_or_krw_fact_verified"])
+        self.assertTrue(result["no_statement_scope_verified"])
+        self.assertTrue(result["annual_krw_facts_not_scored"])
         self.assertEqual(len(session.requests), 1)
         url, params, timeout, stream = session.requests[0]
         self.assertTrue(url.endswith("/api/fnlttXbrl.xml"))
@@ -137,6 +138,52 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         state["records"][code]["years"]["2025"]["annual_receipt_id"] = "20260401000001"
         with self.assertRaises(pilot.XbrlPilotError):
             pilot.run_pilot(market, catalog, major, state, mode="dry-run")
+
+
+
+    def test_annual_krw_context_proof_does_not_pretend_scope_is_verified(self):
+        xml = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:ifrs="' + IFRS_NS + '">'
+            '<context id="C"><entity><identifier scheme="synthetic">X</identifier>'
+            '</entity><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="KRW"><measure>iso4217:KRW</measure></unit>'
+            '<ifrs:PurchaseOfIntangibleAssets contextRef="C" unitRef="KRW">'
+            '12345</ifrs:PurchaseOfIntangibleAssets></xbrl>'
+        ).encode("utf8")
+        matched = pilot.inspect_binary_archive(archive(xml), year=2025)
+        self.assertIn("intangible", matched["annual_krw_facts"])
+        self.assertNotIn("ppe", matched["annual_krw_facts"])
+        older = pilot.inspect_binary_archive(archive(xml), year=2024)
+        self.assertEqual(older["annual_krw_facts"], set())
+        usd = xml.replace(b"iso4217:KRW", b"iso4217:USD")
+        self.assertEqual(
+            pilot.inspect_binary_archive(archive(usd), year=2025)["annual_krw_facts"],
+            set())
+        segmented = xml.replace(
+            b"</entity>", b"<segment><other>dimension</other></segment></entity>")
+        self.assertEqual(
+            pilot.inspect_binary_archive(archive(segmented), year=2025)[
+                "annual_krw_facts"], set())
+
+    def test_live_annual_krw_probe_still_never_outputs_amount(self):
+        market, catalog, major, state, code, receipt = self.fixture()
+        xml = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:ifrs="' + IFRS_NS + '">'
+            '<context id="C"><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<ifrs:PurchaseOfIntangibleAssets contextRef="C" unitRef="U">'
+            '123456789</ifrs:PurchaseOfIntangibleAssets></xbrl>'
+        ).encode("utf8")
+        result = pilot.run_pilot(
+            market, catalog, major, state, mode="live",
+            key="A" * 40, session=Session(archive(xml)))
+        self.assertEqual(result["reports_with_missing_annual_krw_candidate"], 1)
+        public = json.dumps(result, ensure_ascii=False)
+        self.assertNotIn("123456789", public)
+        self.assertNotIn(code, public)
+        self.assertNotIn(receipt, public)
 
 
 if __name__ == "__main__":

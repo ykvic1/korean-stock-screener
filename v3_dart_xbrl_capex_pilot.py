@@ -131,7 +131,73 @@ def _ifrs_facts(xml_data):
     return found
 
 
-def inspect_binary_archive(content):
+
+def _annual_krw_facts(xml_data, year):
+    """Annual-period KRW candidate tags only; statement scope still unknown.
+
+    The exact company is pinned to the filing receipt by the caller. A simple
+    XBRL context can be individual or consolidated, so never promote this
+    candidate into the source cashflow store or investment score.
+    """
+    if year not in YEARS:
+        raise XbrlPilotError("unsupported_xbrl_fiscal_year")
+    if b"<!DOCTYPE" in xml_data.upper() or b"<!ENTITY" in xml_data.upper():
+        raise XbrlPilotError("unsafe_xbrl_xml_entities")
+    try:
+        root = ET.fromstring(xml_data)
+    except ET.ParseError:
+        raise XbrlPilotError("unparseable_xbrl_instance") from None
+    if root.tag != "{" + XBRL_INSTANCE_NS + "}xbrl":
+        return set()
+    ns = "{" + XBRL_INSTANCE_NS + "}"
+    units = set()
+    for unit in root.findall(ns + "unit"):
+        measures = unit.findall(ns + "measure")
+        if (len(measures) == 1 and measures[0].text is not None
+            and measures[0].text.strip() == "iso4217:KRW"
+            and type(unit.get("id")) is str):
+            units.add(unit.get("id"))
+    contexts = set()
+    for context in root.findall(ns + "context"):
+        if (context.find(ns + "segment") is not None
+            or context.find(ns + "scenario") is not None
+            or context.find(ns + "entity/" + ns + "segment") is not None):
+            continue
+        periods = context.findall(ns + "period")
+        if len(periods) != 1:
+            continue
+        start = periods[0].findtext(ns + "startDate")
+        end = periods[0].findtext(ns + "endDate")
+        if (start == str(year) + "-01-01"
+            and end == str(year) + "-12-31"
+            and type(context.get("id")) is str):
+            contexts.add(context.get("id"))
+    amounts = {kind: [] for kind in FACT_NAMES}
+    for element in root:
+        namespace, local = _qualified_name(element.tag)
+        if not namespace.startswith((
+            "http://xbrl.ifrs.org/taxonomy/",
+            "https://xbrl.ifrs.org/taxonomy/",
+            "http://www.ifrs.org/",
+            "https://www.ifrs.org/",
+        )):
+            continue
+        if (element.get("contextRef") not in contexts
+            or element.get("unitRef") not in units
+            or element.get("{http://www.w3.org/2001/XMLSchema-instance}nil") == "true"):
+            continue
+        raw = (element.text or "").strip()
+        if not re.fullmatch(r"-?[0-9]{1,18}", raw):
+            continue
+        for kind, names in FACT_NAMES.items():
+            if local in names and (kind == "cfo" or int(raw) >= 0):
+                amounts[kind].append(int(raw))
+    return {
+        kind for kind, values in amounts.items()
+        if values and len(set(values)) == 1
+    }
+
+def inspect_binary_archive(content, *, year=None):
     """No extraction to filesystem; hard limits before decompression."""
     if type(content) is not bytes or not content or len(content) > MAX_RESPONSE_BYTES:
         raise XbrlPilotError("xbrl_binary_response_out_of_bounds")
@@ -142,7 +208,7 @@ def inspect_binary_archive(content):
                 root = ET.fromstring(content)
                 status = root.findtext("status")
                 if status in ("013", "014"):
-                    return {"file_absent": True, "instances": 0, "facts": set()}
+                    return {"file_absent": True, "instances": 0, "facts": set(), "annual_krw_facts": set()}
             except ET.ParseError:
                 pass
         raise XbrlPilotError("unexpected_xbrl_non_zip_provider_response")
@@ -164,6 +230,7 @@ def inspect_binary_archive(content):
                     raise XbrlPilotError("xbrl_zip_decompression_bounds_exceeded")
             instances = 0
             facts = set()
+            annual = set()
             for entry in entries:
                 if entry.is_dir() or not entry.filename.lower().endswith(
                     (".xml", ".xbrl")):
@@ -175,7 +242,10 @@ def inspect_binary_archive(content):
                     continue
                 instances += 1
                 facts.update(identified)
-            return {"file_absent": False, "instances": instances, "facts": facts}
+                if year is not None:
+                    annual.update(_annual_krw_facts(data, year))
+            return {"file_absent": False, "instances": instances, "facts": facts,
+                    "annual_krw_facts": annual}
     except (zipfile.BadZipFile, OSError):
         raise XbrlPilotError("xbrl_zip_unreadable") from None
 
@@ -202,7 +272,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.1",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.2",
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
@@ -214,11 +284,13 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "reports_with_ifrs_ppe_tag_candidate": 0,
         "reports_with_ifrs_intangible_tag_candidate": 0,
         "reports_with_any_missing_source_tag": 0,
+        "reports_with_missing_annual_krw_candidate": 0,
         "missing_not_interpreted_as_zero": True,
-        "no_period_or_scope_or_krw_fact_verified": True,
+        "no_statement_scope_verified": True,
+        "annual_krw_facts_not_scored": True,
         "no_xbrl_amounts_or_investment_scores_derived": True,
         "no_issuer_or_receipt_or_raw_xbrl_published": True,
-        "note": "Tags only, not amount or 3-statement identity validation.",
+        "note": "Annual KRW candidate tags only; financial statement scope unverified.",
     }
     if mode == "dry-run":
         return report
@@ -240,7 +312,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         except Exception:
             raise XbrlPilotError("official_xbrl_provider_unavailable") from None
         report["provider_xbrl_file_calls"] += 1
-        result = inspect_binary_archive(content)
+        result = inspect_binary_archive(content, year=year)
         if result["file_absent"]:
             report["no_original_file"] += 1
             continue
@@ -257,6 +329,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         }[kind]
         if missing.intersection(result["facts"]):
             report["reports_with_any_missing_source_tag"] += 1
+        if missing.intersection(result["annual_krw_facts"]):
+            report["reports_with_missing_annual_krw_candidate"] += 1
     return report
 
 
