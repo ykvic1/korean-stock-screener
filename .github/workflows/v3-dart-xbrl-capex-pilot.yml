@@ -64,11 +64,12 @@ jobs:
               ('reports_with_ifrs_ppe_tag_candidate', '유형자산 CAPEX IFRS 태그가 확인된 보고서'),
               ('reports_with_ifrs_intangible_tag_candidate', '무형자산 CAPEX IFRS 태그가 확인된 보고서'),
               ('reports_with_any_missing_source_tag', '기존 누락항목의 태그 후보가 있는 보고서'),
+              ('reports_with_missing_annual_krw_candidate', '기존 누락항목의 해당연도·원화 숫자 후보가 있는 보고서'),
           )
           lines = [
               '### DART XBRL 원본파일 구조 조사(최대 4건)',
               '기존 공시 접수번호와 일치하는 사업보고서의 원본 XBRL만 조사합니다.',
-              '태그 후보만 검출하고, 기간/연결범위/통화/금액은 검증하지 않았습니다.',
+              '태그 및 해당연도·KRW 숫자 후보를 조사하나 연결/별도 재무제표 범위 검증은 완료되지 않았습니다.',
               '원본 공시·기업 식별자·접수번호·금액 공개 및 FCF/점수 계산 없음.',
           ]
           if source.is_file():
