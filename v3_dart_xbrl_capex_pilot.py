@@ -17,7 +17,8 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from v3_dart_bulk_history import _inputs, _day, _valid_receipt
-from v3_dart_cashflow_enrichment import YEARS, verify_state
+from v3_dart_cashflow_enrichment import (YEARS, verify_state,
+                                         retained_current_market_cashflow)
 
 MAX_PROBES = 4
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
@@ -308,9 +309,25 @@ def _read_response_limited(response):
 def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
               limit=MAX_PROBES):
     try:
-        verify_state(state, market, catalog, major)
+        if mode not in ("dry-run", "live") or type(limit) is not int or not 1 <= limit <= MAX_PROBES:
+            raise XbrlPilotError("invalid_bounded_xbrl_limit_or_mode")
         asof, members = _inputs(market, catalog)
-        choices = select_candidates(state, major, asof=asof, limit=limit)
+        if type(major) is not dict:
+            raise XbrlPilotError("saved_xbrl_source_identity_invalid")
+        # The annual DART archive can legitimately lag today's market scan.
+        # An explicitly recent older snapshot is deferred, never combined with
+        # current-market issuer identities and never sent to the provider.
+        older = major.get("asof")
+        source_pending = (type(older) is str and
+                          0 < (_day(asof) - _day(older)).days <= 5)
+        if source_pending:
+            choices = []
+        else:
+            # Revalidate prior-day observations against the current issuer set
+            # and unchanged major filing receipts, with zero provider requests.
+            state = retained_current_market_cashflow(market, catalog, major, state)
+            verify_state(state, market, catalog, major)
+            choices = select_candidates(state, major, asof=asof, limit=limit)
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
@@ -318,6 +335,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
+        "source_readiness": ("awaiting_same_day_annual_archive"
+                             if source_pending else "receipt_validated"),
         "provider_xbrl_file_calls": 0,
         "valid_zip_files": 0,
         "no_original_file": 0,
@@ -343,7 +362,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "no_issuer_or_receipt_or_raw_xbrl_published": True,
         "note": "Annual KRW candidate tags only; financial statement scope unverified.",
     }
-    if mode == "dry-run":
+    if mode == "dry-run" or source_pending:
         return report
     if (mode != "live" or type(key) is not str or len(key) != 40
         or session is None):
