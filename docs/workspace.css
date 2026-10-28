@@ -300,4 +300,7 @@ html,body{max-width:100%}
 .u-coverage-table thead th{background:#e9f2f4;color:var(--navy);font-weight:700}
 .u-coverage-table td:last-child{font-weight:700}.u-coverage-table small{color:var(--sub)}
 .u-coverage-audit .u-source{margin:10px 0 0;font-size:11px}
+.u-subfactor-breakdown{min-width:0;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.u-subfactor-breakdown summary{cursor:pointer;color:var(--navy);font-size:12px;font-weight:700;line-height:1.5}
+.u-subfactor-breakdown .u-coverage-scroll{margin-top:9px}
 @media(max-width:480px){.u-coverage-audit{padding:9px}.u-coverage-top{font-size:13px}.u-coverage-top span{font-size:11px}}
