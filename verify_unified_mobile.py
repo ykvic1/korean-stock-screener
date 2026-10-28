@@ -111,7 +111,7 @@ with sync_playwright() as p:
     # The V3 landing page must expose real saved-source progress without
     # claiming that current research coverage equals a verified investment rank.
     assert not page.locator("#dataReadiness").evaluate("(el) => el.open")
-    page.locator("#dataReadiness summary").click()
+    page.locator("#dataReadiness > summary").click()
     page.wait_for_function(
         "() => document.getElementById('readinessStatus').textContent.includes('자료 기준일')"
         " || document.getElementById('readinessStatus').textContent.includes('출처 재검증 중')",
@@ -139,13 +139,24 @@ with sync_playwright() as p:
             assert page.locator("#readinessCashflow").inner_text() == "미확인"
             assert "3개년 FCF 갱신 대기" in page.locator("#readinessNotes").inner_text()
         assert page.locator("#readinessCertified").inner_text() == "0종목"
+        # The nested nine-factor audit must be selectable independently of its parent.
+        if observed.get("financial_valuation_component_observed_issuers"):
+            subfactors = page.locator("#fiveAreaCoverage details.u-subfactor-breakdown")
+            assert subfactors.count() == 1
+            subfactors.locator("summary").click()
+            assert subfactors.locator("tbody tr").count() == 9
+            assert "미확보 기업" in subfactors.inner_text()
+            assert page.evaluate(
+                "document.documentElement.scrollWidth <= window.innerWidth"
+            ), "nested factor audit mobile horizontal overflow"
+            subfactors.locator("summary").click()
     else:
         # Market-close transition may leave legitimately mismatched snapshot
         # dates; the UI must show unknown rather than silently merge dates.
         for field in ("Financial", "Price", "Cashflow", "Certified"):
             assert page.locator("#readiness" + field).inner_text() == "미확인"
     assert page.get_by_text("공식 수집 실행 기록 확인 ↗").is_visible()
-    page.locator("#dataReadiness summary").click()
+    page.locator("#dataReadiness > summary").click()
     assert not page.locator("#dataReadiness").evaluate("(el) => el.open")
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
