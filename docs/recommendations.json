@@ -1,15 +1,15 @@
 {
   "schema": "recommendations-v1-research",
-  "asof": "2026-10-27",
+  "asof": "2026-10-28",
   "market_scan_complete": true,
   "market_eligible": 2497,
   "market_examined": 2497,
-  "market_price_valid": 2367,
-  "screened_count": 2367,
-  "score_ready_count": 2367,
-  "downside_screen_pass_count": 1504,
-  "research_eligible_count": 4,
-  "research_dossier_count": 4,
+  "market_price_valid": 2369,
+  "screened_count": 2369,
+  "score_ready_count": 2369,
+  "downside_screen_pass_count": 1613,
+  "research_eligible_count": 3,
+  "research_dossier_count": 3,
   "confirmed_recommendation_count": 0,
   "max_display": 20,
   "recommendations_are_not_forced": true,
@@ -17,29 +17,32 @@
   "verified_expected_rr_primary": true,
   "missing_validation_must_not_invent_expected_return": true,
   "research_source_date": "2026-10-27",
-  "research_source_matched": true,
+  "research_source_matched": false,
   "daily_changes": {
-    "entered": [],
+    "entered": [
+      "089860",
+      "241790"
+    ],
     "updated": [
-      "441270",
-      "091340"
+      "441270"
     ],
-    "unchanged": [
+    "unchanged": [],
+    "exited": [
       "016740",
+      "091340",
       "310870"
-    ],
-    "exited": []
+    ]
   },
   "dossiers": [
     {
-      "code": "441270",
-      "name": "파인엠텍",
-      "asof": "2026-10-27",
-      "market": "KOSDAQ",
-      "price": 9770,
+      "code": "089860",
+      "name": "롯데렌탈",
+      "asof": "2026-10-28",
+      "market": "KOSPI",
+      "price": 52300,
       "v2_score": {
-        "normalized": 74.2,
-        "earned": 52,
+        "normalized": 75.7,
+        "earned": 53,
         "available": 70,
         "coverage_pct": 70,
         "missing": [
@@ -60,160 +63,6 @@
       },
       "qualification": "separate_caution_research_only",
       "trade_action": "손절폭과 별개로 추격·환금성·장기추세 확인 전 관망",
-      "approach_horizon": "6m",
-      "approach_basis": "주봉 장기 전환 관찰, 실적·업황 검증 필요",
-      "long_holding_caution": false,
-      "technical": {
-        "phase": "장기 추세 전환 관찰",
-        "signals": [
-          "역헤드앤숄더 근사 후보",
-          "주봉 120주선 회복"
-        ],
-        "patterns": [
-          "역헤드앤숄더 근사 후보"
-        ],
-        "obv_rising": true,
-        "one_day_volume_ratio": 1.79,
-        "ma120w_gap_pct": 23.2,
-        "price20_pct": 11.7,
-        "price60_pct": 58.6
-      },
-      "downside": {
-        "risk_level": "medium",
-        "stop": {
-          "status": "observed",
-          "risk": "medium",
-          "stop_pct": -12.7,
-          "stop_price": 8530.0,
-          "warning_flags": [
-            "단기 급등 — 추격 주의"
-          ],
-          "non_stop_warning_flags": [
-            "급등·추격 주의"
-          ]
-        },
-        "structural_invalidation_price": 8530.0,
-        "hypothesis": "손절선 이탈 시 일봉/주봉 파동과 투자 가설 재점검"
-      },
-      "flows": {
-        "validated": false,
-        "comment": "기관·외국인·연기금의 중장기 매집 미확인"
-      },
-      "financials": {
-        "validated": false,
-        "comment": "매출·영업이익·현금흐름·부채 3~5년 검증 필요"
-      },
-      "industry": {
-        "validated": false,
-        "comment": "산업 성장성·경기 사이클·공급과잉 해소 미검증"
-      },
-      "valuation": {
-        "validated": false,
-        "pbr": null,
-        "comment": "PBR만으로 저평가 판단 불가, 밸류 미검증"
-      },
-      "historical_quant": {
-        "1m": {
-          "evidence": "historical_exploratory",
-          "mean_historical_net_pct": -0.31,
-          "historical_stop_first_pct": 50.2,
-          "historical_adverse_p75_pct": 13.13,
-          "historical_sample_n": 500,
-          "forward_validated": false
-        },
-        "3m": {
-          "evidence": "historical_exploratory",
-          "mean_historical_net_pct": 2.61,
-          "historical_stop_first_pct": 43.9,
-          "historical_adverse_p75_pct": 20.6,
-          "historical_sample_n": 214,
-          "forward_validated": false
-        },
-        "6m": {
-          "evidence": "historical_exploratory",
-          "mean_historical_net_pct": 3.05,
-          "historical_stop_first_pct": 45.9,
-          "historical_adverse_p75_pct": 26.83,
-          "historical_sample_n": 111,
-          "forward_validated": false
-        },
-        "12m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
-          "forward_validated": false
-        }
-      },
-      "return_assessment": {
-        "expected_gain_pct": null,
-        "expected_return_independently_validated": false,
-        "loss_reference_pct": -12.7,
-        "expected_reward_risk": null,
-        "past_52week_high_used_as_target": false,
-        "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
-      },
-      "scenarios": {
-        "up": {
-          "conditions": "거래량 지속·기술적 돌파 안착·실적/수급 개선 확인",
-          "future_return_pct": null
-        },
-        "neutral": {
-          "conditions": "횡보·거래량 감소 또는 핵심 자료 미확인",
-          "future_return_pct": null
-        },
-        "down": {
-          "conditions": "구조적 지지선 이탈·수급 악화·실적/업황 악화",
-          "invalidation_price": 8530.0,
-          "future_return_pct": null
-        }
-      },
-      "evidence_gaps": [
-        "최근 3~5년 재무·현금흐름",
-        "외국인·기관·연기금 수급 교차검증",
-        "산업 사이클·업황",
-        "실적 근거의 기업가치",
-        "독립 검증된 미래 기대수익"
-      ],
-      "confirmed_buy": false,
-      "prediction_probabilities": null,
-      "elliott_primary": null,
-      "elliott_alternative": null,
-      "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "229d5a895be89d29",
-      "rank": 1,
-      "daily_change": "updated"
-    },
-    {
-      "code": "016740",
-      "name": "두올",
-      "asof": "2026-10-27",
-      "market": "KOSPI",
-      "price": 4355,
-      "v2_score": {
-        "normalized": 72.8,
-        "earned": 51,
-        "available": 70,
-        "coverage_pct": 70,
-        "missing": [
-          {
-            "factor": "수급",
-            "weight": 20
-          },
-          {
-            "factor": "PBR",
-            "weight": 5
-          },
-          {
-            "factor": "실적·현금흐름",
-            "weight": 5
-          }
-        ],
-        "basis": "v2_observed_only_not_v3"
-      },
-      "qualification": "needs_deeper_evidence",
-      "trade_action": "추가 검증 전 관망",
       "approach_horizon": "3m",
       "approach_basis": "일봉 상승 후 수렴 가설",
       "long_holding_caution": false,
@@ -222,30 +71,34 @@
         "signals": [
           "거래량 동반 초기 돌파",
           "상승 후 횡보·수렴 후보",
-          "20일 고점·거래량 돌파",
-          "주봉 120주선 회복"
+          "20일 고점·거래량 돌파"
         ],
         "patterns": [
           "상승 후 횡보·수렴 후보",
           "20일 고점·거래량 돌파"
         ],
         "obv_rising": true,
-        "one_day_volume_ratio": 2.01,
-        "ma120w_gap_pct": 19.2,
-        "price20_pct": 7.8,
-        "price60_pct": 31.4
+        "one_day_volume_ratio": 1.88,
+        "ma120w_gap_pct": 59.1,
+        "price20_pct": 5.5,
+        "price60_pct": 41.4
       },
       "downside": {
-        "risk_level": "medium",
+        "risk_level": "low",
         "stop": {
           "status": "observed",
-          "risk": "medium",
-          "stop_pct": -13.4,
-          "stop_price": 3770.0,
-          "warning_flags": [],
-          "non_stop_warning_flags": []
+          "risk": "low",
+          "stop_pct": -7.9,
+          "stop_price": 48150.0,
+          "warning_flags": [
+            "52주 고점권 — 추격 주의",
+            "단기 급등 — 추격 주의"
+          ],
+          "non_stop_warning_flags": [
+            "급등·추격 주의"
+          ]
         },
-        "structural_invalidation_price": 3770.0,
+        "structural_invalidation_price": 48150.0,
         "hypothesis": "손절선 이탈 시 일봉/주봉 파동과 투자 가설 재점검"
       },
       "flows": {
@@ -302,7 +155,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -13.4,
+        "loss_reference_pct": -7.9,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -318,7 +171,7 @@
         },
         "down": {
           "conditions": "구조적 지지선 이탈·수급 악화·실적/업황 악화",
-          "invalidation_price": 3770.0,
+          "invalidation_price": 48150.0,
           "future_return_pct": null
         }
       },
@@ -334,16 +187,16 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "f782cbbadcf53747",
-      "rank": 2,
-      "daily_change": "unchanged"
+      "evidence_fingerprint": "4d45d5fc147b06c2",
+      "rank": 1,
+      "daily_change": "entered"
     },
     {
-      "code": "091340",
-      "name": "S&K글로벌",
-      "asof": "2026-10-27",
+      "code": "441270",
+      "name": "파인엠텍",
+      "asof": "2026-10-28",
       "market": "KOSDAQ",
-      "price": 2570,
+      "price": 9670,
       "v2_score": {
         "normalized": 70.0,
         "earned": 49,
@@ -367,41 +220,39 @@
       },
       "qualification": "separate_caution_research_only",
       "trade_action": "손절폭과 별개로 추격·환금성·장기추세 확인 전 관망",
-      "approach_horizon": "3m",
-      "approach_basis": "일봉 상승 후 수렴 가설",
+      "approach_horizon": "6m",
+      "approach_basis": "주봉 장기 전환 관찰, 실적·업황 검증 필요",
       "long_holding_caution": false,
       "technical": {
-        "phase": "상승 후 수렴",
+        "phase": "장기 추세 전환 관찰",
         "signals": [
-          "상승 후 횡보·수렴 후보",
           "역헤드앤숄더 근사 후보",
           "주봉 120주선 회복"
         ],
         "patterns": [
-          "상승 후 횡보·수렴 후보",
           "역헤드앤숄더 근사 후보"
         ],
         "obv_rising": true,
-        "one_day_volume_ratio": 0.38,
-        "ma120w_gap_pct": 2.8,
-        "price20_pct": 1.8,
-        "price60_pct": 28.2
+        "one_day_volume_ratio": 1.39,
+        "ma120w_gap_pct": 22.0,
+        "price20_pct": 11.5,
+        "price60_pct": 62.8
       },
       "downside": {
-        "risk_level": "low",
+        "risk_level": "medium",
         "stop": {
           "status": "observed",
-          "risk": "low",
-          "stop_pct": -4.1,
-          "stop_price": 2465.0,
+          "risk": "medium",
+          "stop_pct": -11.6,
+          "stop_price": 8550.0,
           "warning_flags": [
-            "거래대금 부족 — 환금성·호가 스프레드 점검 필요"
+            "단기 급등 — 추격 주의"
           ],
           "non_stop_warning_flags": [
-            "거래대금 부족 · 환금성 주의"
+            "급등·추격 주의"
           ]
         },
-        "structural_invalidation_price": 2465.0,
+        "structural_invalidation_price": 8550.0,
         "hypothesis": "손절선 이탈 시 일봉/주봉 파동과 투자 가설 재점검"
       },
       "flows": {
@@ -423,27 +274,27 @@
       },
       "historical_quant": {
         "1m": {
-          "evidence": "historical_exploratory",
-          "mean_historical_net_pct": -0.16,
-          "historical_stop_first_pct": 43.2,
-          "historical_adverse_p75_pct": 10.49,
-          "historical_sample_n": 500,
+          "evidence": "missing_or_insufficient",
+          "mean_historical_net_pct": null,
+          "historical_stop_first_pct": null,
+          "historical_adverse_p75_pct": null,
+          "historical_sample_n": null,
           "forward_validated": false
         },
         "3m": {
-          "evidence": "historical_exploratory",
-          "mean_historical_net_pct": 1.76,
-          "historical_stop_first_pct": 41.2,
-          "historical_adverse_p75_pct": 17.09,
-          "historical_sample_n": 500,
+          "evidence": "missing_or_insufficient",
+          "mean_historical_net_pct": null,
+          "historical_stop_first_pct": null,
+          "historical_adverse_p75_pct": null,
+          "historical_sample_n": null,
           "forward_validated": false
         },
         "6m": {
-          "evidence": "historical_exploratory",
-          "mean_historical_net_pct": 3.44,
-          "historical_stop_first_pct": 42.0,
-          "historical_adverse_p75_pct": 23.13,
-          "historical_sample_n": 317,
+          "evidence": "missing_or_insufficient",
+          "mean_historical_net_pct": null,
+          "historical_stop_first_pct": null,
+          "historical_adverse_p75_pct": null,
+          "historical_sample_n": null,
           "forward_validated": false
         },
         "12m": {
@@ -458,7 +309,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -4.1,
+        "loss_reference_pct": -11.6,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -474,7 +325,7 @@
         },
         "down": {
           "conditions": "구조적 지지선 이탈·수급 악화·실적/업황 악화",
-          "invalidation_price": 2465.0,
+          "invalidation_price": 8550.0,
           "future_return_pct": null
         }
       },
@@ -490,16 +341,16 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "ac97563fd362affa",
-      "rank": 3,
+      "evidence_fingerprint": "4b49ba5f0f5595cc",
+      "rank": 2,
       "daily_change": "updated"
     },
     {
-      "code": "310870",
-      "name": "디와이씨",
-      "asof": "2026-10-27",
+      "code": "241790",
+      "name": "티이엠씨씨엔에스",
+      "asof": "2026-10-28",
       "market": "KOSDAQ",
-      "price": 1569,
+      "price": 6840,
       "v2_score": {
         "normalized": 70.0,
         "earned": 49,
@@ -521,34 +372,44 @@
         ],
         "basis": "v2_observed_only_not_v3"
       },
-      "qualification": "needs_deeper_evidence",
-      "trade_action": "추가 검증 전 관망",
+      "qualification": "separate_caution_research_only",
+      "trade_action": "손절폭과 별개로 추격·환금성·장기추세 확인 전 관망",
       "approach_horizon": "6m",
       "approach_basis": "주봉 장기 전환 관찰, 실적·업황 검증 필요",
       "long_holding_caution": false,
       "technical": {
         "phase": "장기 추세 전환 관찰",
         "signals": [
+          "거래량 동반 초기 돌파",
+          "역헤드앤숄더 근사 후보",
+          "20일 고점·거래량 돌파",
           "주봉 120주선 회복"
         ],
-        "patterns": [],
-        "obv_rising": true,
-        "one_day_volume_ratio": 1.68,
-        "ma120w_gap_pct": 11.1,
-        "price20_pct": 3.8,
-        "price60_pct": 20.8
+        "patterns": [
+          "역헤드앤숄더 근사 후보",
+          "20일 고점·거래량 돌파"
+        ],
+        "obv_rising": false,
+        "one_day_volume_ratio": 1.5,
+        "ma120w_gap_pct": 5.0,
+        "price20_pct": 9.4,
+        "price60_pct": 57.4
       },
       "downside": {
         "risk_level": "medium",
         "stop": {
           "status": "observed",
           "risk": "medium",
-          "stop_pct": -13.8,
-          "stop_price": 1352.0,
-          "warning_flags": [],
-          "non_stop_warning_flags": []
+          "stop_pct": -14.8,
+          "stop_price": 5830.0,
+          "warning_flags": [
+            "단기 급등 — 추격 주의"
+          ],
+          "non_stop_warning_flags": [
+            "급등·추격 주의"
+          ]
         },
-        "structural_invalidation_price": 1352.0,
+        "structural_invalidation_price": 5830.0,
         "hypothesis": "손절선 이탈 시 일봉/주봉 파동과 투자 가설 재점검"
       },
       "flows": {
@@ -605,7 +466,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -13.8,
+        "loss_reference_pct": -14.8,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -621,7 +482,7 @@
         },
         "down": {
           "conditions": "구조적 지지선 이탈·수급 악화·실적/업황 악화",
-          "invalidation_price": 1352.0,
+          "invalidation_price": 5830.0,
           "future_return_pct": null
         }
       },
@@ -637,9 +498,9 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "b855c5a84c37f3a1",
-      "rank": 4,
-      "daily_change": "unchanged"
+      "evidence_fingerprint": "a982ceb9d8f1bd94",
+      "rank": 3,
+      "daily_change": "entered"
     }
   ]
 }
