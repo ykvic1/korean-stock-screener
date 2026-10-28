@@ -3,7 +3,8 @@ from datetime import date,datetime,time,timedelta
 import copy
 import unittest
 
-from v3_unscored_path_observations import observe,valid_observation,SCHEMA
+from v3_unscored_path_observations import (
+    observe, valid_observation, valid_unavailable_reason, classify_unavailable, SCHEMA)
 
 ASOF="2026-10-16"
 
@@ -47,6 +48,32 @@ class UnscoredPricePathTests(unittest.TestCase):
         volume[119]=700
         last=observe(close,volume,asof=ASOF,session_days=days)
         self.assertEqual(last["complete_post_spike_events_evaluated"],0)
+
+    def test_safe_rejection_reasons_never_promote_missing_price_points(self):
+        close,volume,days=sample()
+        self.assertTrue(valid_unavailable_reason(
+            observe(close,volume,asof=ASOF,session_days=days),None))
+        volume[70]=0
+        self.assertIsNone(observe(close,volume,asof=ASOF,session_days=days))
+        reason=classify_unavailable(close,volume,asof=ASOF,session_days=days)
+        self.assertEqual(reason,"nonpositive_or_invalid_price_volume")
+        self.assertTrue(valid_unavailable_reason(None,reason))
+        self.assertFalse(valid_unavailable_reason(None,None))
+        self.assertFalse(valid_unavailable_reason(None,"SECRET_URL"))
+        self.assertFalse(valid_unavailable_reason({"real":True},reason))
+        volume[70]=100
+        close[70]*=2
+        self.assertEqual(
+            classify_unavailable(close,volume,asof=ASOF,session_days=days),
+            "possible_unadjusted_corporate_action")
+        close,volume,days=sample()
+        self.assertEqual(
+            classify_unavailable(close[:90],volume[:90],asof=ASOF,session_days=days[:90]),
+            "insufficient_121_sessions")
+        days[-1]=days[-2]+timedelta(days=20)
+        self.assertEqual(
+            classify_unavailable(close,volume,asof=ASOF,session_days=days),
+            "irregular_or_stale_session_calendar")
 
     def test_halt_split_staleness_and_forged_scores_fail_closed(self):
         close,volume,days=sample()
