@@ -1172,6 +1172,51 @@ function industryEvidenceView(raw,asof){
  return {html,rows,coverage:raw.dart_current_industry_codes_observed,
          matched:raw.mapped_industry_issuer_earnings_two_year_matched};
 }
+// Nine-component receipt audit; these issuer counts are not earned scores.
+function financialSubfactorCoverageView(raw,asof,listed){
+ if(!raw||!validDate(asof)||raw.asof!==asof||
+  !Number.isInteger(listed)||listed<100||raw.listed_total!==listed||
+  raw.certified_100point_count!==0||
+  raw.subfactor_missing_is_not_a_zero_score!==true)return '';
+ const status=raw.financial_valuation_component_observation_status;
+ const yes=raw.financial_valuation_component_observed_issuers;
+ const no=raw.financial_valuation_component_unobserved_issuers;
+ if(!status||!yes||!no||Array.isArray(yes)||Array.isArray(no)||
+  typeof yes!=='object'||typeof no!=='object'||
+  status.fiscal!=='same_day_replayed_component_receipts'||
+  status.cashflow!=='same_day_receipt_matched_fcf')return '';
+ const factors=[["revenue_cagr_3y_pct","재무","매출 3개년 연평균 성장률"],["operating_margin_3y_pct","재무","3개년 평균 영업이익률"],["liabilities_to_assets_pct","재무","부채 / 자산 비율"],["operating_roa_3y_pct","재무","3개년 영업자산수익률"],["financial_fcf_assets_3y","재무","3개년 FCF / 자산"],["pbr","가치","PBR (참고 계산치)"],["earnings_yield_pct","가치","이익수익률"],["sales_to_market_cap","가치","매출 / 시가총액"],["valuation_fcf_yield_latest","가치","최근 연도 FCF 수익률"]];
+ const rows=[];
+ for(const [key,area,title] of factors){
+  if(!Object.prototype.hasOwnProperty.call(yes,key)||
+   !Object.prototype.hasOwnProperty.call(no,key))return '';
+  const observed=yes[key],missing=no[key];
+  if(observed===null&&missing===null){
+   rows.push('<tr><th scope="row">'+esc(title)+'</th><td>'+area+
+    '</td><td>미확인</td><td>미확인</td><td>—</td></tr>');
+   continue;
+  }
+  if(!Number.isInteger(observed)||observed<0||observed>listed||
+   !Number.isInteger(missing)||missing<0||missing>listed||
+   observed+missing!==listed)return '';
+  rows.push('<tr><th scope="row">'+esc(title)+'</th><td>'+area+
+   '</td><td>'+observed.toLocaleString('ko-KR')+'개</td><td>'+
+   missing.toLocaleString('ko-KR')+'개</td><td>'+
+   (100*observed/listed).toFixed(1)+'%</td></tr>');
+ }
+ return '<details class="u-subfactor-breakdown">'+
+  '<summary>재무·가치평가 9개 세부지표 원천 확보 현황</summary>'+
+  '<div class="u-coverage-scroll"><table class="u-coverage-table">'+
+  '<thead><tr><th scope="col">세부 지표</th><th scope="col">영역</th>'+
+  '<th scope="col">확보 기업</th><th scope="col">미확보 기업</th>'+
+  '<th scope="col">확보율</th></tr></thead><tbody>'+
+  rows.join('')+'</tbody></table></div>'+
+  '<p class="u-source">같은 기준일에 원천자료가 일치하는 기업 수입니다. '+
+  '미확보는 0점이 아닌 미확인입니다. 3개년 FCF는 필요한 연도별 근거를 모두 확보한 경우에만 집계합니다. '+
+  'PBR은 참고 계산치이며 거래소 공식 지표로 검증된 수치가 아닙니다. '+
+  '이 표는 투자점수나 종목 추천 순위가 아닙니다.</p></details>';
+}
+
 // A five-pillar data availability audit; counts are evidence, never earned points.
 function fiveAreaCoverageView(raw,asof,listed){
  if(!raw||raw.schema!=='v3-current-day-all-listed-observed-plus-dart-fcf-0.3'||
@@ -1246,11 +1291,11 @@ function fiveAreaCoverageView(raw,asof,listed){
   '<p class="u-source">미확보 배점은 각 영역에서 아직 단 한 종목에도 확인되지 않은 관측 한도입니다. '+
   '개별 종목별 미확보량은 더 클 수 있으며, 관측 가능 배점은 검증된 투자점수나 실제 획득점수가 아닙니다. '+
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
-  completeNote+'</div>';
+  completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
