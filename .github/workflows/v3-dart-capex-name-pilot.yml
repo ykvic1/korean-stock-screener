@@ -1,0 +1,82 @@
+name: V3 DART CAPEX Nonstandard Name Evidence Pilot (no scores)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_capex_name_pilot.py
+      - tests/test_v3_dart_capex_name_pilot.py
+      - .github/workflows/v3-dart-capex-name-pilot.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, live]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: korea-stock-screener-dart-capex-name-pilot
+  cancel-in-progress: false
+
+jobs:
+  evidence-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Restore verified listed-issuer DART company mapping
+        uses: actions/cache@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Test strict official receipt and name candidate validation offline
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_capex_name_pilot.py
+          python -m unittest discover -s tests -p 'test_v3_dart_capex_name_pilot.py' -v
+      - name: Install official provider HTTP dependencies in live mode only
+        if: ${{ github.event_name == 'push' || inputs.mode == 'live' }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Probe at most 12 existing missing-CAPEX company-years
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
+        run: |
+          set -euo pipefail
+          python v3_dart_capex_name_pilot.py --mode "$MODE" --limit 12 | tee /tmp/v3-capex-pilot-aggregate.json
+      - name: Publish aggregate-only result in workflow summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          source=Path('/tmp/v3-capex-pilot-aggregate.json')
+          lines=[
+              '### 공식 DART 비표준 CAPEX 계정명 소규모 원천 조사',
+              '대상은 기존에 CFO가 있지만 CAPEX 한 항목이 빠진 기업·연도 중 최대 12건입니다.',
+              '계정명·종목코드·금액·접수번호 미공개. 실제 FCF·점수 변경 없음.',
+          ]
+          if source.is_file():
+              report=json.loads(source.read_text(encoding='utf8'))
+              for key,label in (
+                  ('eligible_sampled_issuer_years','표본 기업·연도'),
+                  ('provider_source_calls','실제 공식 재무제표 조회'),
+                  ('unique_exact_name_candidate','유일한 정확한 비표준 계정명 후보'),
+                  ('ambiguous_multiple_candidates','복수 계정명 후보로 검증 불가'),
+                  ('no_exact_name_candidate','일치 계정명 없음'),
+                  ('no_report_rows','원천 응답 자료 없음')):
+                  lines.append('- '+label+': **'+str(report.get(key,'미확인'))+'**')
+          else:
+              lines.append('- 조사 완료 보고서 없음: 원천·테스트 오류 검토 필요')
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
+              '\n'.join(lines)+'\n',encoding='utf8')
+          PY
