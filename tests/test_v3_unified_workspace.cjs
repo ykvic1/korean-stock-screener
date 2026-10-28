@@ -54,6 +54,10 @@ const syntheticKrxProgress={
 const sourceProgress=krxProgress.validate(syntheticKrxProgress);
 assert.ok(sourceProgress);
 assert.equal(sourceProgress.completed,10);
+assert.equal(sourceProgress.historyStart,'2016-10-17');
+assert.equal(sourceProgress.historyEnd,'2026-10-16');
+assert.ok(fs.readFileSync(path.join(__dirname,'../docs/v3-krx-progress.js'),'utf8')
+ .includes('종료일 이후 거래일은 완료율에 미포함'));
 assert.equal(sourceProgress.windows[20],6);
 assert.equal(sourceProgress.risk,9);
 assert.equal(krxProgress.validate({
