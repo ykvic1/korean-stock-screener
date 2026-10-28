@@ -43,16 +43,17 @@ RX_SHA = re.compile(r"[a-f0-9]{64}\Z")
 
 
 # Exact schedule-date keys independently confirmed in official OpenDART DS005
-# guides. These are stated/planned dates, NOT completed corporate actions,
+# guides. These include new-share PLANNED LISTING days; neither an
+# allotment/reference date nor a proposed listing is proof of actual completion,
 # exchange adjustments or point-in-time trading evidence.
 SCHEDULE_DATE_FIELDS = {
     "cmpMgDecsn": ("mgsc_mgdt",),
-    "cmpDvDecsn": ("dvdt",),
-    "fricDecsn": ("nstk_asstd",),
-    "pifricDecsn": ("fric_nstk_asstd",),
-    "crDecsn": ("cr_std",),
+    "cmpDvDecsn": ("dvdt", "abcr_nstklstprd"),
+    "fricDecsn": ("nstk_asstd", "nstk_lstprd"),
+    "pifricDecsn": ("fric_nstk_asstd", "fric_nstk_lstprd"),
+    "crDecsn": ("cr_std", "crsc_nstklstprd"),
     "cmpDvmgDecsn": ("dvmgsc_dvmgdt",),
-    "stkExtrDecsn": ("extrsc_extrdt",),
+    "stkExtrDecsn": ("extrsc_extrdt", "extrsc_nstklstprd"),
 }
 SCHEDULE_DATE_MAX_YEAR = 2100
 
