@@ -75,6 +75,11 @@ jobs:
                   ('no_exact_name_candidate','일치 계정명 없음'),
                   ('no_report_rows','원천 응답 자료 없음')):
                   lines.append('- '+label+': **'+str(report.get(key,'미확인'))+'**')
+              for key,label in (
+                  ('sampled_by_fiscal_year','실제 조사 연도별 표본'),
+                  ('sampled_by_scope','연결/별도 기준 표본'),
+                  ('sampled_by_missing_component','미확보 CAPEX 종류별 표본')):
+                  lines.append('- '+label+': **'+str(report.get(key,'미확인'))+'**')
           else:
               lines.append('- 조사 완료 보고서 없음: 원천·테스트 오류 검토 필요')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(

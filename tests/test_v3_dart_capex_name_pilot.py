@@ -109,10 +109,64 @@ class CapexNamePilotTests(unittest.TestCase):
         with self.assertRaises(pilot.PilotError):
             pilot.candidate_status([invalid],**args)
 
+    def test_bounded_stratified_sample_covers_year_scope_and_component(self):
+        state={"records":{}}
+        major={"records":{}}
+        index=0
+        for year in reversed(cash.YEARS):
+            for scope in ("CFS","OFS"):
+                for kind in ("ppe","intangible"):
+                    index+=1
+                    code=f"{index:06d}"
+                    receipt=f"receipt-{index}"
+                    observation={
+                        "major_annual_receipt_matched":True,
+                        "operating_cashflow_krw":100,
+                        "ppe_capex_krw":None if kind=="ppe" else 10,
+                        "intangible_capex_krw":None if kind=="intangible" else 5,
+                        "annual_receipt_id":receipt,
+                    }
+                    state["records"][code]={
+                        "scope":scope,"years":{str(year):observation}}
+                    major["records"][code]={
+                        "years":{str(year):{scope:{"receipt_id":receipt}}}}
+        chosen=pilot.select_candidates(state,major)
+        self.assertEqual(len(chosen),pilot.MAX_PROBES)
+        self.assertEqual(len({item[0] for item in chosen}),pilot.MAX_PROBES)
+        self.assertEqual({y:sum(item[1]==y for item in chosen)
+                          for y in cash.YEARS},
+                         {y:4 for y in cash.YEARS})
+        self.assertEqual({scope:sum(item[2]==scope for item in chosen)
+                          for scope in ("CFS","OFS")},
+                         {"CFS":6,"OFS":6})
+        self.assertEqual({kind:sum(item[4]==kind for item in chosen)
+                          for kind in ("ppe","intangible")},
+                         {"ppe":6,"intangible":6})
+        self.assertEqual(len(pilot.select_candidates(state,major,limit=5)),5)
+        # One issuer's old-year row never consumes two provider requests.
+        first=sorted(state["records"])[0]
+        state["records"][first]["years"]["2024"]={
+            "major_annual_receipt_matched":True,
+            "operating_cashflow_krw":100,
+            "ppe_capex_krw":None,"intangible_capex_krw":10,
+            "annual_receipt_id":"old-receipt",
+        }
+        major["records"][first]["years"]["2024"]={
+            "CFS":{"receipt_id":"old-receipt"}}
+        chosen=pilot.select_candidates(state,major)
+        self.assertEqual(len(chosen),len({row[0] for row in chosen}))
+        # A changed official annual receipt is never sampled silently.
+        major["records"][first]["years"]["2024"]["CFS"]["receipt_id"]="revision"
+        with self.assertRaises(pilot.PilotError):
+            pilot.select_candidates(state,major)
+
     def test_dry_run_never_uses_credentials_or_provider(self):
         market,catalog,major,state,_,_=self._fixture()
         report=pilot.run_pilot(market,catalog,major,state,mode="dry-run")
         self.assertEqual(report["eligible_sampled_issuer_years"],1)
+        self.assertEqual(sum(report["sampled_by_fiscal_year"].values()),1)
+        self.assertEqual(sum(report["sampled_by_scope"].values()),1)
+        self.assertEqual(sum(report["sampled_by_missing_component"].values()),1)
         self.assertEqual(report["provider_source_calls"],0)
         self.assertEqual(report["unique_exact_name_candidate"],0)
         with self.assertRaises(pilot.PilotError):
