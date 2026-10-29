@@ -304,3 +304,8 @@ html,body{max-width:100%}
 .u-subfactor-breakdown summary{cursor:pointer;color:var(--navy);font-size:12px;font-weight:700;line-height:1.5}
 .u-subfactor-breakdown .u-coverage-scroll{margin-top:9px}
 @media(max-width:480px){.u-coverage-audit{padding:9px}.u-coverage-top{font-size:13px}.u-coverage-top span{font-size:11px}}
+
+/* Compact, expandable source-only FCF missingness; narrow screens wrap naturally. */
+.u-fcf-gap{margin-top:12px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:#f7fafb;min-width:0}
+.u-fcf-gap>summary{cursor:pointer;font-size:13px;font-weight:750;overflow-wrap:anywhere}
+.u-fcf-gap .u-source{margin-top:9px;overflow-wrap:anywhere}
