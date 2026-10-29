@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import copy
+import csv
 from contextlib import redirect_stdout
 from io import StringIO
 import json
 from pathlib import Path
 import unittest
 
-from v3_v30b_release_gate import assess_v30b, main, AREA_WEIGHTS
+from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
+                                    issuer_csv_reconciles)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -47,6 +49,50 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(r["investment_grade_certified_count"], 0)
         self.assertEqual(r["external_provider_calls"], 0)
         self.assertTrue(r["read_only"])
+
+    def test_real_issuer_csv_replays_every_five_area_histogram(self):
+        o, s, h = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        self.assertTrue(issuer_csv_reconciles(o, s, raw))
+        report = assess_v30b(o, s, h, observed_csv_text=raw)
+        self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
+        self.assertTrue(report["public_issuer_csv_reconciled"])
+        self.assertTrue(report["gates"]["published_issuer_csv_coherence"])
+        self.assertFalse(report["confirmed_scoring_authorized"])
+
+    def test_corrupt_issuer_rows_never_reconcile_or_leak_tickers(self):
+        o, s, h = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        original = list(csv.reader(StringIO(raw)))
+        col = {name: i for i, name in enumerate(original[0])}
+        for field, value in (
+                ("산출가능배점_100점중", "99"),
+                ("가격자료기준일", "2026-02-31"),
+                ("정식투자점수", "100"),
+                ("투자등급", "확정 투자등급"),
+                ("거래량_OBV_잠정점수", "500"),
+                ("시장", "UNKNOWN")):
+            with self.subTest(field=field):
+                rows = copy.deepcopy(original)
+                rows[1][col[field]] = value
+                out = StringIO()
+                csv.writer(out, lineterminator="\n").writerows(rows)
+                result = assess_v30b(o, s, h, observed_csv_text=out.getvalue())
+                self.assertFalse(result["public_summary_valid"])
+                self.assertFalse(result["public_issuer_csv_reconciled"])
+                self.assertIn("public_issuer_csv_aggregate_mismatch",
+                              result["blocker_codes"])
+                self.assertFalse(result["v30b_release_ready"])
+                self.assertNotIn(rows[1][0], json.dumps(result))
+        rows = copy.deepcopy(original)
+        rows[2][col["종목코드"]] = rows[1][col["종목코드"]]
+        out = StringIO()
+        csv.writer(out, lineterminator="\n").writerows(rows)
+        self.assertFalse(issuer_csv_reconciles(o, s, out.getvalue()))
+        self.assertFalse(issuer_csv_reconciles(o, s, raw + "EXTRA,ROW\n"))
+        self.assertFalse(issuer_csv_reconciles(o, s, 123))
 
     def test_no_old_ias_or_sector_as_sixth_scoring_area(self):
         self.assertEqual(AREA_WEIGHTS, {
@@ -117,6 +163,7 @@ class V30bReadinessTests(unittest.TestCase):
         displayed = json.loads(buf.getvalue())
         self.assertEqual(displayed["schema"], "v3-v30b-five-area-readiness-audit-0.1")
         self.assertTrue(displayed["public_summary_valid"])
+        self.assertTrue(displayed["public_issuer_csv_reconciled"])
         self.assertEqual(displayed, r)
         self.assertFalse(displayed["v30b_release_ready"])
 
