@@ -111,6 +111,47 @@ class DARTCapexTaxonomyPilotTests(TestCase):
             self.assertRaises(p.TaxonomyPilotError, p.targets,
                               state, {}, {}, {}, limit=9)
 
+    def test_eight_target_sample_balances_year_market_and_missing_kind(self):
+        records, markets = {}, {}
+        n = 0
+        for kind in p.CLASSES:
+            for year in (2023, 2024, 2025):
+                for market in ("KOSPI", "KOSDAQ"):
+                    n += 1
+                    code = f"{n:06d}"
+                    amounts = {
+                        "missing_both_capex": (None, None),
+                        "missing_intangible_only": (4, None),
+                        "missing_ppe_only": (None, 3),
+                    }[kind]
+                    records[code] = {
+                        "scope": "CFS" if market == "KOSPI" else "OFS",
+                        "years": {str(year): {
+                            "ppe_capex_krw": amounts[0],
+                            "intangible_capex_krw": amounts[1]}}}
+                    markets[code] = {"market": market}
+        # Add another historical year for one issuer to ensure one company
+        # never consumes more than one bounded official source request.
+        first = sorted(records)[0]
+        records[first]["years"]["2024"] = {
+            "ppe_capex_krw": None, "intangible_capex_krw": None}
+        state = {"records": records}
+        with patch.object(p, "verify_state"), patch.object(
+                p, "asof_members", return_value=(ASOF, markets)):
+            chosen = p.targets(state, {}, {}, {}, limit=8)
+        self.assertEqual(len(chosen), 8)
+        self.assertEqual(len({x[2] for x in chosen}), 8)
+        for position, allowed_gap in ((0, 1), (1, 1), (3, 1), (4, 1)):
+            distribution = {}
+            for selected in chosen:
+                value = selected[position]
+                distribution[value] = distribution.get(value, 0) + 1
+            self.assertLessEqual(
+                max(distribution.values()) - min(distribution.values()),
+                allowed_gap)
+        self.assertEqual({x[3] for x in chosen}, {2023, 2024, 2025})
+        self.assertEqual({x[1] for x in chosen}, {"KOSPI", "KOSDAQ"})
+
     def test_bounded_live_probe_reuses_unchanged_official_source_only(self):
         known = row(
             "ifrs-full_CashFlowsFromUsedInOperatingActivities",
@@ -142,6 +183,10 @@ class DARTCapexTaxonomyPilotTests(TestCase):
                              session=session)
         self.assertEqual(report["provider_calls"], 2)
         self.assertEqual(report["completed_year_calls"], 1)
+        self.assertEqual(sum(report["sampled_by_fiscal_year"].values()), 1)
+        self.assertEqual(sum(report["sampled_by_market"].values()), 1)
+        self.assertEqual(sum(report["sampled_by_scope"].values()), 1)
+        self.assertEqual(sum(report["sampled_by_missing_class"].values()), 1)
         self.assertEqual(report["candidate_numeric_rows"]["intangible"], 1)
         self.assertEqual(report["nonstandard_label_rows"]["intangible"], 1)
         self.assertEqual(report["saved_supported_id_gap_causes"]["intangible"]["no_supported_flat_id"], 1)

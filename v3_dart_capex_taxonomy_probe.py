@@ -7,7 +7,7 @@ A textual resemblance is NOT proof of the accounting meaning of a cash flow.
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
+from collections import Counter
 import json
 import os
 import re
@@ -54,30 +54,36 @@ def targets(state, market, catalog, major, limit=MAX_YEAR_CALLS):
         _, members = asof_members(market, catalog, major)
     except (CashflowError, TypeError, ValueError):
         raise TaxonomyPilotError("invalid_verified_cashflow_context") from None
-    buckets = defaultdict(list)
-    for code, item in state["records"].items():
+    candidates = []
+    for code, item in sorted(state["records"].items()):
         for year, row in item["years"].items():
             kind = missing_class(row)
-            if kind is not None:
-                buckets[(kind, members[code]["market"])].append(
-                    (code, int(year), item["scope"], row))
-    for v in buckets.values():
-        v.sort(key=lambda entry: (-entry[1], entry[0]))
+            if kind is None:
+                continue
+            candidates.append((
+                kind, members[code]["market"], code, int(year),
+                item["scope"], row))
     selected = []
-    # Balance evidence across deficit types and KOSPI/KOSDAQ; no issuer bias
-    # from one giant alphabetically sorted queue.
+    seen = set()
+    by_kind, by_year, by_market, by_scope = (
+        Counter(), Counter(), Counter(), Counter())
+    # At most eight issuer-years: spread them over missing CAPEX class,
+    # 2023/24/25, exchange and OFS/CFS. Repeated years of one company do
+    # not consume multiple probes; identities and amounts never leave memory.
     while len(selected) < limit:
-        advanced = False
-        for kind in CLASSES:
-            for exchange in ("KOSPI", "KOSDAQ"):
-                bucket = buckets[(kind, exchange)]
-                if bucket and len(selected) < limit:
-                    selected.append((kind, exchange, *bucket.pop(0)))
-                    advanced = True
-        if not advanced:
+        available = [item for item in candidates if item[2] not in seen]
+        if not available:
             break
+        choice = min(available, key=lambda item: (
+            by_kind[item[0]], by_year[item[3]], by_market[item[1]],
+            by_scope[item[4]], -item[3], item[0], item[1], item[2]))
+        selected.append(choice)
+        seen.add(choice[2])
+        by_kind[choice[0]] += 1
+        by_year[choice[3]] += 1
+        by_market[choice[1]] += 1
+        by_scope[choice[4]] += 1
     return selected
-
 
 def candidate_fields(row, *, year, scope, corp, stock, receipt, cutoff):
     """Only same annual report/scope/receipt KRW CF line-item hints.
@@ -196,6 +202,19 @@ def probe(state, market, catalog, major, *, key, session,
         "status": "official_capex_taxonomy_anonymous_pilot_only",
         "asof": state["asof"], "target_year_call_limit": limit,
         "eligible_selected_years": len(selected), "completed_year_calls": 0,
+        "sample_strategy": "unique_issuer_balanced_class_year_market_scope",
+        "sampled_by_fiscal_year": {
+            str(year): sum(item[3] == year for item in selected)
+            for year in (2023, 2024, 2025)},
+        "sampled_by_market": {
+            market: sum(item[1] == market for item in selected)
+            for market in ("KOSPI", "KOSDAQ")},
+        "sampled_by_scope": {
+            scope: sum(item[4] == scope for item in selected)
+            for scope in ("CFS", "OFS")},
+        "sampled_by_missing_class": {
+            kind: sum(item[0] == kind for item in selected)
+            for kind in CLASSES},
         "provider_calls": 0, "source_revision_or_missing_receipt": 0,
         "classes_checked": {n: 0 for n in CLASSES},
         "candidate_line_items": {"ppe": 0, "intangible": 0},
