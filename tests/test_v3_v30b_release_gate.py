@@ -1,0 +1,125 @@
+"""V3.0b five-scored-area release audit must remain research-only."""
+from __future__ import annotations
+
+import copy
+from contextlib import redirect_stdout
+from io import StringIO
+import json
+from pathlib import Path
+import unittest
+
+from v3_v30b_release_gate import assess_v30b, main, AREA_WEIGHTS
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def public_inputs():
+    return tuple(json.loads((ROOT / name).read_text(encoding="utf-8"))
+                 for name in (
+                     "docs/v3-current-observed-all-listed-summary.json",
+                     "docs/v3-all-listed-scorecard-summary.json",
+                     "docs/v3-krx-derived-backfill-progress.json"))
+
+
+class V30bReadinessTests(unittest.TestCase):
+    def test_current_public_sources_are_consistent_but_not_certified(self):
+        observed, scorecard, backfill = public_inputs()
+        r = assess_v30b(observed, scorecard, backfill)
+        self.assertTrue(r["public_summary_valid"], r["blocker_codes"])
+        self.assertEqual(r["listed_total"], observed["listed_total"])
+        self.assertEqual(r["asof"], observed["asof"])
+        self.assertEqual(r["observed_all_five_areas_100weight_count"],
+                         observed["provisional_complete_100point_observation_count"])
+        self.assertEqual(r["missing_all_five_area_observation_count"],
+                         observed["listed_total"] -
+                         observed["provisional_complete_100point_observation_count"])
+        self.assertEqual(r["complete_area_issuer_counts"],
+                         observed["complete_area_issuer_counts"])
+        self.assertEqual(r["area_completion_gaps"],
+                         {key: observed["listed_total"] - value
+                          for key, value in observed["complete_area_issuer_counts"].items()})
+        self.assertTrue(r["gates"]["fixed_window_krx_extraction"])
+        self.assertFalse(r["historical_window_is_pit_or_adjusted_certified"])
+        self.assertFalse(r["v30b_release_ready"])
+        self.assertFalse(r["confirmed_scoring_authorized"])
+        self.assertIsNone(r["certified_rank"])
+        self.assertIsNone(r["certified_score"])
+        self.assertEqual(r["investment_grade_certified_count"], 0)
+        self.assertEqual(r["external_provider_calls"], 0)
+        self.assertTrue(r["read_only"])
+
+    def test_no_old_ias_or_sector_as_sixth_scoring_area(self):
+        self.assertEqual(AREA_WEIGHTS, {
+            "volume": 20, "technical": 25, "financial": 20,
+            "valuation": 20, "momentum": 15})
+        o, s, h = public_inputs()
+        s["weights"]["investor_IAS"] = 20
+        r = assess_v30b(o, s, h)
+        self.assertFalse(r["public_summary_valid"])
+        self.assertIn("five_area_model_mismatch", r["blocker_codes"])
+        self.assertFalse(r["gates"]["investment_grade_scoring"])
+
+    def test_missing_values_never_become_zero_scores(self):
+        o, s, h = public_inputs()
+        o["missing_weight_is_not_zero"] = False
+        r = assess_v30b(o, s, h)
+        self.assertFalse(r["public_summary_valid"])
+        self.assertIn("observed_only_semantics_mismatch", r["blocker_codes"])
+        self.assertFalse(r["missing_factor_as_zero"])
+        self.assertIsNone(r["certified_score"])
+
+    def test_mismatched_count_and_histogram_fail_closed(self):
+        o, s, h = public_inputs()
+        variants = [
+            lambda a, b, c: a.update(listed_total=a["listed_total"] + 1),
+            lambda a, b, c: b.update(asof="2026-10-01"),
+            lambda a, b, c: a.update(
+                provisional_complete_100point_observation_count=1),
+            lambda a, b, c: a["area_available_weight_distribution"]
+                ["financial"].update({"20": 1}),
+            lambda a, b, c: a["available_weight_distribution_by_market"]
+                ["KOSPI"].update({"100": 0}),
+            lambda a, b, c: c.update(five_session_cohorts_completed=1),
+            lambda a, b, c: b.update(full_six_pillar_certified_count=1),
+            lambda a, b, c: a["available_weight_distribution"].update({"101": 1}),
+        ]
+        for mutate in variants:
+            aa, bb, cc = copy.deepcopy(o), copy.deepcopy(s), copy.deepcopy(h)
+            mutate(aa, bb, cc)
+            with self.subTest(mutate=mutate):
+                r = assess_v30b(aa, bb, cc)
+                self.assertFalse(r["public_summary_valid"])
+                self.assertIsNone(r["observed_all_five_areas_100weight_count"])
+                self.assertFalse(r["v30b_release_ready"])
+                self.assertFalse(r["gates"]["investment_grade_scoring"])
+
+    def test_an_untrusted_proof_cannot_enable_authorization(self):
+        o, s, h = public_inputs()
+        r = assess_v30b(o, s, h, proof={
+            "verified": True, "signed": True, "v30b_release_ready": True,
+            "certified_score": 100, "investment_grade_certified_count": 2497})
+        self.assertTrue(r["public_summary_valid"])
+        self.assertFalse(r["v30b_release_ready"])
+        self.assertFalse(r["confirmed_scoring_authorized"])
+        self.assertIsNone(r["certified_score"])
+        self.assertIn("authenticated_source_chain_unverified", r["blocker_codes"])
+
+    def test_invalid_payloads_fail_closed_and_only_codes_returned(self):
+        r = assess_v30b({"private_issuer_id": "000001"}, None, [])
+        self.assertFalse(r["public_summary_valid"])
+        self.assertIsNone(r["listed_total"])
+        self.assertNotIn("000001", json.dumps(r))
+        self.assertIsNone(r["certified_rank"])
+
+    def test_cli_default_is_read_only_and_assert_blocked_succeeds(self):
+        with redirect_stdout(StringIO()) as buf:
+            r = main(["--assert-blocked"])
+        displayed = json.loads(buf.getvalue())
+        self.assertEqual(displayed["schema"], "v3-v30b-five-area-readiness-audit-0.1")
+        self.assertTrue(displayed["public_summary_valid"])
+        self.assertEqual(displayed, r)
+        self.assertFalse(displayed["v30b_release_ready"])
+
+
+if __name__ == "__main__":
+    unittest.main()
