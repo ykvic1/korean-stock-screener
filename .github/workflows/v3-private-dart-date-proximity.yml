@@ -1,0 +1,66 @@
+name: V3 Private DART-KRX Declared Date Proximity (No Scores)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Offline tests by default; live reads ONLY existing private Git evidence"
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+      pair_index:
+        description: "Completed private adjacent-month pair index (nonnegative)"
+        type: string
+        default: "0"
+        required: true
+      start:
+        description: "Unique receipt offset in this pair"
+        type: string
+        default: "0"
+        required: true
+      limit:
+        description: "Maximum receipts to inspect (1-8)"
+        type: string
+        default: "8"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-private-declared-date-krx-risk-readonly
+  cancel-in-progress: false
+
+jobs:
+  proximity-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install minimum private source validation dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Offline synthetic exact-identity/date and no-score tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_private_dart_declared_date_proximity.py
+          python -m unittest discover -s tests -p 'test_v3_private_dart_declared_date_proximity.py' -v
+      - name: Bounded research of existing private immutable reports only
+        if: ${{ inputs.mode == 'live' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          V3_PROX_PAIR_INDEX: ${{ inputs.pair_index }}
+          V3_PROX_START: ${{ inputs.start }}
+          V3_PROX_LIMIT: ${{ inputs.limit }}
+        run: |
+          set -euo pipefail
+          # No KRX, DART, KSD or any market-data provider calls.
+          # No issuer, receipt, date, raw source or scored events in stdout.
+          python v3_private_dart_declared_date_proximity.py
