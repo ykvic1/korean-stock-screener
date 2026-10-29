@@ -15,6 +15,11 @@ on:
         required: true
         default: dry-run
         options: [dry-run, live]
+      cohort_index:
+        description: "Research cohort number for a reproducible manual sample (0..1000000)"
+        type: number
+        required: true
+        default: 0
 
 permissions:
   contents: read
@@ -44,9 +49,10 @@ jobs:
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
+          COHORT_INDEX: ${{ github.event_name == 'push' && github.run_number || inputs.cohort_index }}
         run: |
           set -euo pipefail
-          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 | tee /tmp/v3-xbrl-evidence-counts.json
+          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 --cohort-index "$COHORT_INDEX" | tee /tmp/v3-xbrl-evidence-counts.json
       - name: Report anonymous aggregate-only structure evidence
         if: always()
         run: |
@@ -56,6 +62,9 @@ jobs:
           source = Path('/tmp/v3-xbrl-evidence-counts.json')
           labels = (
               ('source_readiness', '원천 일치 상태'),
+              ('sample_cohort_mode', '표본 순환 방식'),
+              ('sample_cohort_index', '재현 가능한 표본 회차'),
+              ('sample_cohort_distinct_issuers', '서로 다른 표본 기업 수'),
               ('eligible_sampled_issuer_years', '조사 표본 기업·연도'),
               ('provider_xbrl_file_calls', '공식 XBRL 원본파일 API 호출'),
               ('valid_zip_files', '유효한 원본 ZIP'),
