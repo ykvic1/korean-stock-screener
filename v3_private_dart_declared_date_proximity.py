@@ -68,9 +68,8 @@ def _windows(source, pair_index, eligible):
                 raise ValueError()
             key = (row["filing_receipt_no"], row["filing_corp_code"])
             if key not in window_map:
-                # Unhinted source pairs are not structured receipt candidates.
-                if row["title_keyword_hints"]:
-                    raise ValueError()
+                # Other valid receipts can coexist in a bounded source queue;
+                # this run only audits the selected deterministic slice.
                 continue
             issuer = row["heuristic_issuer_market"]
             if type(issuer) is not str or not ISSUER.fullmatch(issuer):
@@ -155,7 +154,7 @@ def reconcile(shortlist_blob, principal_blobs, supplement_blobs, *,
         "schema": SCHEMA,
         "source_pair": MONTHS[pair_index] + "--" + MONTHS[pair_index + 1],
         "selected_unique_receipts": len(selected),
-        "reported_krx_heuristic_pairs": sum(len(v) for v in windows.values()),
+        "distinct_krx_heuristic_end_days": sum(len(v) for v in windows.values()),
         "verified_private_structured_reports": verified,
         "not_yet_saved_report_slots": 2 * len(selected) - verified,
         "exact_receipt_category_matches": matched,
