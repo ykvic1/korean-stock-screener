@@ -343,7 +343,7 @@ class SupplementalActionTests(unittest.TestCase):
               patch.object(s, "PrivateGitStorage", return_value=store),
               patch.object(s, "triage_cursor", return_value={"next_pair_index": 1}),
               patch.object(s, "_candidate_queue", return_value=(RECORDS, "a" * 64, 2)),
-              patch.object(s, "official_fetch", side_effect=lambda ep, *args:
+              patch.object(s, "official_fetch", side_effect=lambda key, ep, *args:
                            (calls.append(ep), {"status": "013"})[1]),
               patch.object(s.time, "sleep") as sleep,
               redirect_stdout(out)):
