@@ -41,7 +41,7 @@ class V30bPublicWordingTests(unittest.TestCase):
         self.assertIn("모멘텀 15점", read("docs/v3-beta.html"))
         self.assertIn("산업은 점수에 포함하지 않습니다", read("docs/v3-beta.html"))
         self.assertIn("정식 투자점수는 미인증", read("docs/v3-ranking.js"))
-        self.assertIn("산업은 정보용", read("docs/v3-manual.html"))
+        self.assertIn("산업은 점수가 아닌 참고 정보입니다", read("docs/v3-manual.html"))
 
     def test_coverage_gate_only_checks_five_current_areas(self):
         source = read("docs/v3-coverage-gate.js")
