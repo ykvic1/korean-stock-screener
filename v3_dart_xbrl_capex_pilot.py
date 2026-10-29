@@ -8,6 +8,7 @@ written to disk or public workflow logs.
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import io
 import json
 import os
@@ -189,7 +190,7 @@ def _annual_krw_evidence(xml_data, year):
         raise XbrlPilotError("unparseable_xbrl_instance") from None
     evidence = {
         kind: {"tag": False, "annual": False, "krw": False,
-               "numeric": False, "values": set()}
+               "numeric": False, "values": set(), "context_shapes": set()}
         for kind in FACT_NAMES
     }
     if root.tag != "{" + XBRL_INSTANCE_NS + "}xbrl":
@@ -202,21 +203,47 @@ def _annual_krw_evidence(xml_data, year):
             and measures[0].text.strip() == "iso4217:KRW"
             and type(unit.get("id")) is str):
             units.add(unit.get("id"))
-    contexts = set()
+    # Diagnose *why* a fact missed the exact annual calendar context.
+    # Never use a near-year, fiscal-offset or dimensional context to accept
+    # a candidate amount; these are anonymous diagnostics only.
+    context_shapes = {}
     for context in root.findall(ns + "context"):
-        if (context.find(ns + "segment") is not None
-            or context.find(ns + "scenario") is not None
-            or context.find(ns + "entity/" + ns + "segment") is not None):
+        ident = context.get("id")
+        if type(ident) is not str or not ident:
             continue
+        if ident in context_shapes:
+            raise XbrlPilotError("duplicate_xbrl_context_reference")
         periods = context.findall(ns + "period")
-        if len(periods) != 1:
-            continue
-        start = periods[0].findtext(ns + "startDate")
-        end = periods[0].findtext(ns + "endDate")
-        if (start == str(year) + "-01-01"
-            and end == str(year) + "-12-31"
-            and type(context.get("id")) is str):
-            contexts.add(context.get("id"))
+        start = end = None
+        if len(periods) == 1:
+            start = periods[0].findtext(ns + "startDate")
+            end = periods[0].findtext(ns + "endDate")
+        dimensional = (
+            context.find(ns + "segment") is not None
+            or context.find(ns + "scenario") is not None
+            or context.find(ns + "entity/" + ns + "segment") is not None)
+        if start == f"{year}-01-01" and end == f"{year}-12-31":
+            shape = ("dimensional_target_year" if dimensional
+                     else "exact_calendar_annual")
+        else:
+            try:
+                first, last = date.fromisoformat(start), date.fromisoformat(end)
+                span = (last - first).days + 1
+            except (ValueError, TypeError):
+                first = last = None
+                span = 0
+            if first is not None and last is not None and span > 0:
+                if (last.year == year and 364 <= span <= 366):
+                    shape = "alternate_fiscal_twelve_months"
+                elif last.year == year - 1 and 364 <= span <= 366:
+                    shape = "comparative_annual_period"
+                elif last.year == year and span < 364:
+                    shape = "short_current_period"
+                else:
+                    shape = "other_period"
+            else:
+                shape = "unresolved_or_instant"
+        context_shapes[ident] = shape
     for element in root:
         namespace, local = _qualified_name(element.tag)
         if not namespace.startswith((
@@ -233,7 +260,10 @@ def _annual_krw_evidence(xml_data, year):
                 continue
             found = evidence[kind]
             found["tag"] = True
-            if element.get("contextRef") not in contexts:
+            shape = context_shapes.get(
+                element.get("contextRef"), "unresolved_or_instant")
+            if shape != "exact_calendar_annual":
+                found["context_shapes"].add(shape)
                 continue
             found["annual"] = True
             if element.get("unitRef") not in units:
@@ -250,6 +280,20 @@ def _annual_krw_evidence(xml_data, year):
             found["numeric"] = True
             found["values"].add(value)
     return evidence
+
+
+CONTEXT_GAP_PRIORITY = (
+    "dimensional_target_year", "alternate_fiscal_twelve_months",
+    "comparative_annual_period", "short_current_period",
+    "other_period", "unresolved_or_instant",
+)
+
+
+def _context_gap_reason(evidence):
+    """Only explain a missing annual context; never upgrade a fact."""
+    return next((shape for shape in CONTEXT_GAP_PRIORITY
+                 if shape in evidence["context_shapes"]),
+                "unresolved_or_instant")
 
 
 def _annual_krw_reasons(evidence):
@@ -284,7 +328,8 @@ def inspect_binary_archive(content, *, year=None):
                 status = root.findtext("status")
                 if status in ("013", "014"):
                     return {"file_absent": True, "instances": 0, "facts": set(),
-                            "annual_krw_facts": set(), "annual_krw_reasons": {}}
+                            "annual_krw_facts": set(), "annual_krw_reasons": {},
+                            "annual_context_gap_subreasons": {}}
             except ET.ParseError:
                 pass
         raise XbrlPilotError("unexpected_xbrl_non_zip_provider_response")
@@ -308,7 +353,7 @@ def inspect_binary_archive(content, *, year=None):
             facts = set()
             annual = {
                 kind: {"tag": False, "annual": False, "krw": False,
-                       "numeric": False, "values": set()}
+                       "numeric": False, "values": set(), "context_shapes": set()}
                 for kind in FACT_NAMES
             }
             for entry in entries:
@@ -328,11 +373,17 @@ def inspect_binary_archive(content, *, year=None):
                         for stage in ("tag", "annual", "krw", "numeric"):
                             annual[kind][stage] |= observed[kind][stage]
                         annual[kind]["values"].update(observed[kind]["values"])
+                        annual[kind]["context_shapes"].update(
+                            observed[kind]["context_shapes"])
             reasons = _annual_krw_reasons(annual) if year is not None else {}
             candidates = {kind for kind, reason in reasons.items()
                           if reason == "candidate_scope_unverified"}
             return {"file_absent": False, "instances": instances, "facts": facts,
-                    "annual_krw_facts": candidates, "annual_krw_reasons": reasons}
+                    "annual_krw_facts": candidates, "annual_krw_reasons": reasons,
+                    "annual_context_gap_subreasons": {
+                        kind: _context_gap_reason(annual[kind])
+                        for kind, reason in reasons.items()
+                        if reason == "annual_context_missing"}}
     except (zipfile.BadZipFile, OSError):
         raise XbrlPilotError("xbrl_zip_unreadable") from None
 
@@ -384,7 +435,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.3",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.4",
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
@@ -409,6 +460,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                 "numeric_fact_invalid", "numeric_values_ambiguous",
                 "candidate_scope_unverified",
             )
+        },
+        "annual_context_gap_subreasons": {
+            shape: 0 for shape in CONTEXT_GAP_PRIORITY
         },
         "missing_not_interpreted_as_zero": True,
         "archived_research_never_promotes_current_day_scores": True,
@@ -458,6 +512,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         for fact in missing:
             reason = result["annual_krw_reasons"][fact]
             report["missing_source_fact_reasons"][reason] += 1
+            if reason == "annual_context_missing":
+                shape = result["annual_context_gap_subreasons"][fact]
+                report["annual_context_gap_subreasons"][shape] += 1
         if missing.intersection(result["facts"]):
             report["reports_with_any_missing_source_tag"] += 1
         if missing.intersection(result["annual_krw_facts"]):
