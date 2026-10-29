@@ -889,5 +889,117 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(hint(doubled), {"not_single_explicit_member"})
 
 
+    def test_zip_local_presentation_hierarchy_is_only_a_structural_hint(self):
+        schema = (
+            '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" '
+            'targetNamespace="http://company.example/extension">'
+            '<xs:element name="CustomPPE" id="co_CustomPPE" type="xs:integer"/>'
+            '<xs:element name="CashflowParent" id="co_CashflowParent" '
+            'type="xs:integer"/>'
+            '</xs:schema>'
+        ).encode("utf8")
+        labels = (
+            '<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase" '
+            'xmlns:xlink="http://www.w3.org/1999/xlink">'
+            '<link:labelLink xlink:type="extended">'
+            '<link:loc xlink:label="P" '
+            'xlink:href="company.xsd#co_CustomPPE"/>'
+            '<link:label xlink:label="R" xml:lang="ko">유형자산의 취득'
+            '</link:label><link:labelArc xlink:from="P" xlink:to="R" '
+            'xlink:arcrole="http://www.xbrl.org/2003/arcrole/concept-label"/>'
+            '</link:labelLink></link:linkbase>'
+        ).encode("utf8")
+        instance = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" '
+            'xmlns:co="http://company.example/extension">'
+            '<context id="C"><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<co:CustomPPE contextRef="C" unitRef="U">'
+            '987654321</co:CustomPPE></xbrl>'
+        ).encode("utf8")
+
+        def presentation(direction, *, extra_role=False, external=False):
+            link_start = (
+                '<link:presentationLink xlink:type="extended" '
+                'xlink:role="http://example.test/role/CF">'
+                '<link:loc xlink:label="P" '
+                'xlink:href="' +
+                ('https://external.test/concept.xsd#co_CustomPPE'
+                 if external else 'company.xsd#co_CustomPPE') + '"/>'
+                '<link:loc xlink:label="Q" '
+                'xlink:href="company.xsd#co_CashflowParent"/>')
+            arcs = {
+                "child": '<link:presentationArc xlink:from="Q" xlink:to="P" ',
+                "parent": '<link:presentationArc xlink:from="P" xlink:to="Q" ',
+                "locator": '',
+            }
+            relation = arcs[direction]
+            if relation:
+                relation += ('xlink:arcrole='
+                             '"http://www.xbrl.org/2003/arcrole/parent-child"/>')
+            first = link_start + relation + '</link:presentationLink>'
+            second = (
+                '<link:presentationLink xlink:type="extended" '
+                'xlink:role="http://example.test/role/notes">'
+                '<link:loc xlink:label="R" '
+                'xlink:href="company.xsd#co_CustomPPE"/>'
+                '</link:presentationLink>'
+                if extra_role else '')
+            return (
+                '<link:linkbase '
+                'xmlns:link="http://www.xbrl.org/2003/linkbase" '
+                'xmlns:xlink="http://www.w3.org/1999/xlink">' +
+                first + second + '</link:linkbase>').encode("utf8")
+
+        def bundle(presentation_blob=None):
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
+                writer.writestr("company.xsd", schema)
+                writer.writestr("labels.xml", labels)
+                writer.writestr("report.xbrl", instance)
+                if presentation_blob is not None:
+                    writer.writestr("presentation.xml", presentation_blob)
+            return output.getvalue()
+
+        cases = (
+            (None, "no_local_presentation_link"),
+            (presentation("child"), "child_only_in_local_role"),
+            (presentation("parent"), "parent_only_in_local_role"),
+            (presentation("locator"), "locator_only_no_parent_child_arc"),
+            (presentation("child", extra_role=True), "multiple_roles_unverified"),
+            (presentation("child", external=True),
+             "concept_not_in_local_presentation"),
+        )
+        for presentation_blob, expected in cases:
+            with self.subTest(expected=expected):
+                result = pilot.inspect_binary_archive(
+                    bundle(presentation_blob), year=2025)
+                extension = result["extension_label_evidence"]
+                self.assertEqual(
+                    extension["extension_local_presentation_shapes"]["ppe"],
+                    expected)
+                self.assertEqual(
+                    extension["exact_extension_label_instance_facts"]["ppe"], 1)
+                self.assertNotIn("987654321", json.dumps(extension))
+                self.assertNotIn("http://example.test/role/CF",
+                                 json.dumps(extension))
+                self.assertNotIn("CustomPPE", json.dumps(extension))
+        market, catalog, major, state, code, receipt = self.fixture()
+        report = pilot.run_pilot(
+            market, catalog, major, state, mode="live", key="A" * 40,
+            session=Session(bundle(presentation("child"))))
+        self.assertEqual(report["provider_xbrl_file_calls"], 1)
+        self.assertEqual(
+            report["extension_local_presentation_shapes"][
+                "child_only_in_local_role"], 1)
+        self.assertTrue(
+            report["presentation_hierarchy_never_certifies_total_or_scope"])
+        self.assertTrue(report["no_xbrl_amounts_or_investment_scores_derived"])
+        public = json.dumps(report)
+        for secret in (code, receipt, "987654321", "CustomPPE"):
+            self.assertNotIn(secret, public)
+
+
 if __name__ == "__main__":
     unittest.main()

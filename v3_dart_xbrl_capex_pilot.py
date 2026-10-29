@@ -623,6 +623,90 @@ def _extension_target_year_ifrs_scope_hints(xml_data, year, matched):
     return result
 
 
+PRESENTATION_SHAPES = (
+    "no_local_presentation_link",
+    "concept_not_in_local_presentation",
+    "locator_only_no_parent_child_arc",
+    "child_only_in_local_role",
+    "parent_only_in_local_role",
+    "parent_and_child_in_local_role",
+    "multiple_roles_unverified",
+)
+
+
+def _extension_presentation_shapes(links, schemas, matched):
+    """Observe ZIP-local presentation parent/child arcs without source leakage.
+
+    A presentational edge is NOT a calculation relationship, a complete CAPEX
+    partition, a primary CF statement, or proof of standalone/CFS scope.
+    External schema references are not resolved; conflicting roles are opaque.
+    """
+    results = {
+        kind: ("no_local_presentation_link" if not links
+               else "concept_not_in_local_presentation")
+        for kind in matched
+    }
+    if not links:
+        return results
+    xlink = "{" + XLINK_NS + "}"
+    linkns = "{" + LINK_NS + "}"
+    references = {kind: set() for kind in matched}
+    direction = {kind: {} for kind in matched}
+    arcs_checked = 0
+    for member, link in links:
+        role = link.get(xlink + "role")
+        if type(role) is not str or not 1 <= len(role) <= 320:
+            continue
+        locators = {}
+        for loc in link.findall(linkns + "loc"):
+            label = loc.get(xlink + "label")
+            if type(label) is not str or not label or len(label) > 160:
+                continue
+            concept = _local_taxonomy_ref(
+                member, loc.get(xlink + "href"), schemas)
+            if concept is None:
+                continue
+            tag = "{" + concept[0] + "}" + concept[1]
+            if label in locators and locators[label] != tag:
+                raise XbrlPilotError("ambiguous_local_presentation_locator")
+            locators[label] = tag
+        for kind, tags in matched.items():
+            if any(tag in tags for tag in locators.values()):
+                references[kind].add(role)
+        for arc in link.findall(linkns + "presentationArc"):
+            arcs_checked += 1
+            if arcs_checked > 50000:
+                raise XbrlPilotError("local_presentation_arc_budget_exceeded")
+            if arc.get(xlink + "arcrole") != (
+                    "http://www.xbrl.org/2003/arcrole/parent-child"):
+                continue
+            parent = locators.get(arc.get(xlink + "from"))
+            child = locators.get(arc.get(xlink + "to"))
+            if parent is None or child is None:
+                continue
+            for kind, tags in matched.items():
+                if parent in tags:
+                    direction[kind].setdefault(role, set()).add("parent")
+                if child in tags:
+                    direction[kind].setdefault(role, set()).add("child")
+    for kind, roles in references.items():
+        if not roles:
+            continue
+        if len(roles) != 1:
+            results[kind] = "multiple_roles_unverified"
+            continue
+        directions = direction[kind].get(next(iter(roles)), set())
+        results[kind] = (
+            "parent_and_child_in_local_role"
+            if directions == {"parent", "child"} else
+            "parent_only_in_local_role"
+            if directions == {"parent"} else
+            "child_only_in_local_role"
+            if directions == {"child"} else
+            "locator_only_no_parent_child_arc")
+    return results
+
+
 def _extension_label_evidence(archive, entries, *, year=None):
     """Match an exact Korean label -> local schema concept -> instance fact.
 
@@ -632,6 +716,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
     """
     schemas = {}
     linkbases = []
+    presentations = []
     instances = set()
     instance_data = []
     schema_files = label_link_files = 0
@@ -663,6 +748,9 @@ def _extension_label_evidence(archive, entries, *, year=None):
         if links:
             label_link_files += 1
             linkbases.extend((entry.filename, link) for link in links)
+        presentations.extend(
+            (entry.filename, link)
+            for link in root.findall(".//{" + LINK_NS + "}presentationLink"))
     matched = {"ppe": set(), "intangible": set()}
     label_leads = set()
     xlink = "{" + XLINK_NS + "}"
@@ -698,6 +786,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
             label_leads.add((kind, tag))
             if tag in instances:
                 matched[kind].add(tag)
+    presentation_shapes = _extension_presentation_shapes(
+        presentations, schemas, matched)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
@@ -752,6 +842,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
     return {
         "local_taxonomy_schema_files": schema_files,
         "local_label_linkbase_files": label_link_files,
+        "local_presentation_link_count": len(presentations),
+        "extension_local_presentation_shapes": presentation_shapes,
         "exact_extension_label_schema_leads": len(label_leads),
         "exact_extension_label_instance_facts": {
             kind: len(tags) for kind, tags in matched.items()},
@@ -934,6 +1026,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         },
         "local_taxonomy_schema_files": 0,
         "local_label_linkbase_files": 0,
+        "local_presentation_link_count": 0,
+        "extension_local_presentation_shapes": {
+            shape: 0 for shape in PRESENTATION_SHAPES},
+        "presentation_hierarchy_never_certifies_total_or_scope": True,
         "exact_extension_label_schema_leads": 0,
         "reports_with_extension_ppe_label_fact": 0,
         "reports_with_extension_intangible_label_fact": 0,
@@ -1003,11 +1099,14 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         extension = result["extension_label_evidence"]
         report["local_taxonomy_schema_files"] += extension["local_taxonomy_schema_files"]
         report["local_label_linkbase_files"] += extension["local_label_linkbase_files"]
+        report["local_presentation_link_count"] += extension["local_presentation_link_count"]
         report["exact_extension_label_schema_leads"] += extension[
             "exact_extension_label_schema_leads"]
         for kind in ("ppe", "intangible"):
             if extension["exact_extension_label_instance_facts"][kind]:
                 report["reports_with_extension_" + kind + "_label_fact"] += 1
+                shape = extension["extension_local_presentation_shapes"][kind]
+                report["extension_local_presentation_shapes"][shape] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
                 if status == "annual_context_missing":
