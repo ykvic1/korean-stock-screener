@@ -166,6 +166,19 @@ jobs:
                   lines.append('- ' + label + ': **' +
                                str(overlap.get(key, '미확인')) + '**')
               lines.append('문맥 공유 여부만 비교하며, 금액·현금흐름표 소속·연결/별도 범위 또는 점수 인증은 하지 않습니다.')
+              lines.append('#### IFRS 연결·별도 차원 QName 단서(후보이며 회계범위 미인증)')
+              scope_hints = report.get('extension_target_year_ifrs_scope_hints', {})
+              for key, label in (
+                  ('ifrs_consolidated_member_hint', 'IFRS 연결 구성원 QName 단서'),
+                  ('ifrs_separate_member_hint', 'IFRS 별도 구성원 QName 단서'),
+                  ('ifrs_scope_axis_other_member', 'IFRS 범위 차원이나 미확인 구성원'),
+                  ('other_axis_member', '다른 차원·구성원'),
+                  ('unresolved_qname', '이름공간 확인 불가'),
+                  ('conflicting_context_hints', '동일 후보의 상충 단서'),
+                  ('not_single_explicit_member', '단일 명시적 구성원 아님')):
+                  lines.append('- ' + label + ': **' +
+                               str(scope_hints.get(key, '미확인')) + '**')
+              lines.append('QName 단서는 정식 DTS 차원 검증·현금흐름표 주석 대조·연결범위 증명이 아닙니다.')
           else:
               lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
