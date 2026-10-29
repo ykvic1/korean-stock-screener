@@ -10,16 +10,26 @@ large unadjusted KRX price move may be unrelated to the filing.
 from __future__ import annotations
 
 from datetime import date
+from hashlib import sha256
 import gzip
 from io import BytesIO
 import json
+import os
 import re
 
-from v3_dart_historical_event_receipts import MONTHS
-from v3_private_dart_krx_filing_title_triage import WINDOW_CALENDAR_DAYS
+from v3_dart_historical_event_receipts import MONTHS, PRIVATE_REPO
+from v3_private_dart_krx_filing_title_triage import (
+    WINDOW_CALENDAR_DAYS, CHECKPOINT as TRIAGE_CHECKPOINT,
+    _cursor as triage_cursor, _path as triage_path,
+)
 from v3_private_dart_original_evidence import _candidate_queue
-from v3_private_dart_structured_action_receipts import _validate_report as principal_report
-from v3_private_dart_structured_action_extension import _validate_report as supplement_report
+from v3_private_dart_structured_action_receipts import (
+    _validate_report as principal_report, _path as principal_path,
+)
+from v3_private_dart_structured_action_extension import (
+    _validate_report as supplement_report, _report_path as supplement_path,
+)
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 SCHEMA = "v3-private-dart-announced-date-krx-risk-proximity-v1"
 MAX_SOURCE_BYTES = 2_000_000
@@ -170,3 +180,95 @@ def reconcile(shortlist_blob, principal_blobs, supplement_blobs, *,
         "scores_promoted": 0,
         "private_identity_or_dates_published": False,
     }
+
+
+def read_only_private_audit(storage, *, pair_index, start=0, limit=MAX_BATCH):
+    """Read an eligible pair and <=8 receipts without any provider call/write."""
+    if getattr(storage, "repository", None) != PRIVATE_REPO:
+        raise ProximityError("private_proximity_wrong_repository")
+    if (type(pair_index) is not int or not 0 <= pair_index < len(MONTHS)-1
+        or type(start) is not int or start < 0
+        or type(limit) is not int or not 1 <= limit <= MAX_BATCH):
+        raise ProximityError("invalid_private_proximity_scope")
+    storage.verify_private()
+    cursor_raw, _ = storage.get_content(TRIAGE_CHECKPOINT)
+    try:
+        cursor = triage_cursor(cursor_raw)
+    except Exception:
+        raise ProximityError("invalid_private_proximity_source_cursor") from None
+    if pair_index >= cursor["next_pair_index"]:
+        return {
+            "status": "waiting_for_complete_private_title_shortlist",
+            "provider_calls": 0, "private_files_written": 0,
+            "scores_promoted": 0,
+        }
+    path = triage_path(pair_index)
+    shortlist_raw, _ = storage.get_content(path)
+    try:
+        queue, _, _ = _candidate_queue(shortlist_raw, pair_index)
+    except Exception:
+        raise ProximityError("invalid_private_proximity_queue") from None
+    if start > len(queue):
+        raise ProximityError("invalid_private_proximity_offset")
+    selected = queue[start:start + limit]
+    principal, supplemental = {}, {}
+    for record in selected:
+        receipt = record["rcept_no"]
+        first, _ = storage.get_content(principal_path(pair_index, receipt))
+        second, _ = storage.get_content(supplement_path(pair_index, receipt))
+        if first is not None:
+            principal[receipt] = first
+        if second is not None:
+            supplemental[receipt] = second
+    # Previously completed private queue and its cursor must remain unchanged
+    # during the bounded read-only audit. No attempt to repair mutable history.
+    if (storage.get_content(path)[0] != shortlist_raw or
+        storage.get_content(TRIAGE_CHECKPOINT)[0] != cursor_raw):
+        raise ProximityError("private_proximity_source_changed_during_read")
+    if (pair_index == cursor["next_pair_index"] - 1 and
+        sha256(shortlist_raw).hexdigest() != cursor["last_digest"]):
+        raise ProximityError("private_proximity_last_completed_pair_mutated")
+    result = reconcile(shortlist_raw, principal, supplemental,
+                       pair_index=pair_index, start=start, limit=limit)
+    return {
+        "status": "private_declared_date_temporal_research",
+        "provider_calls": 0, "private_files_written": 0,
+        "source_receipts_total_in_pair": len(queue),
+        "selected_start_offset": start,
+        "selected_slice_end_offset": start + len(selected),
+        "selected_slice_remaining_receipts": len(queue) - start - len(selected),
+        **result,
+    }
+
+
+def main():
+    """Manual private archive read. No KRX, DART, KSD or exchange API needed."""
+    if (os.getenv("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO or
+        len(os.getenv("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20):
+        print('{"status":"blocked","reason":"private_proximity_credentials_missing"}')
+        return 1
+    try:
+        raw = [os.getenv("V3_PROX_PAIR_INDEX", ""),
+               os.getenv("V3_PROX_START", "0"),
+               os.getenv("V3_PROX_LIMIT", str(MAX_BATCH))]
+        if any(re.fullmatch(r"[0-9]{1,3}", x) is None for x in raw):
+            raise ProximityError("invalid_private_proximity_cli_scope")
+        storage = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
+        outcome = read_only_private_audit(
+            storage, pair_index=int(raw[0]), start=int(raw[1]), limit=int(raw[2]))
+        print(json.dumps(outcome, sort_keys=True))
+        return 0
+    except ProximityError as exc:
+        print(json.dumps({"status": "blocked", "reason": str(exc),
+                          "private_source_fields_exposed": False}))
+        return 1
+    except PrivateHistoryError:
+        print('{"status":"blocked","reason":"private_proximity_archive_unavailable","private_source_fields_exposed":false}')
+        return 1
+    except Exception:
+        print('{"status":"blocked","reason":"private_proximity_unavailable","private_source_fields_exposed":false}')
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
