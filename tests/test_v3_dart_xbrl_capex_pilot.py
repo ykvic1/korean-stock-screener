@@ -612,5 +612,95 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertTrue(dry["no_xbrl_amounts_or_investment_scores_derived"])
 
 
+    def test_extension_context_gap_reports_safe_specific_shapes(self):
+        schema = (
+            '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" '
+            'targetNamespace="http://synthetic.example/extension">'
+            '<xs:element name="PpeCustom" id="co_PpeCustom" '
+            'type="xs:integer"/></xs:schema>'
+        ).encode("utf8")
+        labels = (
+            '<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase" '
+            'xmlns:xlink="http://www.w3.org/1999/xlink">'
+            '<link:labelLink xlink:type="extended">'
+            '<link:loc xlink:label="L" xlink:href="company.xsd#co_PpeCustom"/>'
+            '<link:label xlink:label="R" xml:lang="ko">유형자산 취득</link:label>'
+            '<link:labelArc xlink:arcrole='
+            '"http://www.xbrl.org/2003/arcrole/concept-label" '
+            'xlink:from="L" xlink:to="R"/>'
+            '</link:labelLink></link:linkbase>'
+        ).encode("utf8")
+        def packaged(context):
+            instance = (
+                '<xbrl xmlns="' + INSTANCE_NS + '" '
+                'xmlns:co="http://synthetic.example/extension">'
+                '<context id="C">' + context + '</context>'
+                '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+                '<co:PpeCustom contextRef="C" unitRef="U">'
+                '987654321</co:PpeCustom></xbrl>'
+            ).encode("utf8")
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as dst:
+                dst.writestr("company.xsd", schema)
+                dst.writestr("label.xml", labels)
+                dst.writestr("instance.xbrl", instance)
+            return output.getvalue()
+        cases = [
+            ("dimensional_target_year",
+             '<entity><segment><other>synthetic</other></segment></entity>'
+             '<period><startDate>2025-01-01</startDate>'
+             '<endDate>2025-12-31</endDate></period>'),
+            ("alternate_fiscal_twelve_months",
+             '<period><startDate>2024-10-01</startDate>'
+             '<endDate>2025-09-30</endDate></period>'),
+            ("comparative_annual_period",
+             '<period><startDate>2024-01-01</startDate>'
+             '<endDate>2024-12-31</endDate></period>'),
+        ]
+        for expected, context in cases:
+            with self.subTest(expected=expected):
+                bundle = packaged(context)
+                observation = pilot.inspect_binary_archive(bundle, year=2025)
+                self.assertEqual(observation["extension_label_evidence"][
+                    "extension_annual_context_gap_subreasons"]["ppe"], expected)
+                market, catalog, major, state, code, receipt = self.fixture()
+                # This fixture misses intangible, but XBRL extension evidence
+                # is still observational, independent from a score.
+                report = pilot.run_pilot(
+                    market, catalog, major, state, mode="live",
+                    key="A" * 40, session=Session(bundle))
+                self.assertEqual(report["extension_annual_context_gap_subreasons"][
+                    expected], 1)
+                self.assertEqual(sum(report[
+                    "extension_annual_context_gap_subreasons"].values()), 1)
+                self.assertEqual(report[
+                    "reports_with_extension_ppe_annual_krw_candidate"], 0)
+                public = json.dumps(report, ensure_ascii=False)
+                for sensitive in ("987654321", code, receipt, "co_PpeCustom"):
+                    self.assertNotIn(sensitive, public)
+        # Correct exact-year nondimensional duration is a *candidate* only,
+        # never a missing annual context or certified score.
+        exact = packaged(
+            '<period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period>')
+        good = pilot.inspect_binary_archive(exact, year=2025)
+        self.assertEqual(good["extension_label_evidence"][
+            "extension_annual_krw_status"]["ppe"], "candidate_scope_unverified")
+        self.assertEqual(good["extension_label_evidence"][
+            "extension_annual_context_gap_subreasons"], {})
+
+    def test_cohort_fiscal_year_summary_remains_anonymous_and_bounded(self):
+        market, catalog, major, state, code, receipt = self.fixture()
+        report = pilot.run_pilot(
+            market, catalog, major, state, mode="dry-run", cohort_index=202)
+        self.assertEqual(sum(report["sample_fiscal_year_counts"].values()), 1)
+        self.assertEqual(set(report["sample_fiscal_year_counts"]),
+                         {str(year) for year in cash.YEARS})
+        self.assertEqual(report["sample_cohort_index"], 202)
+        self.assertEqual(report["provider_xbrl_file_calls"], 0)
+        self.assertNotIn(code, json.dumps(report))
+        self.assertNotIn(receipt, json.dumps(report))
+
+
 if __name__ == "__main__":
     unittest.main()
