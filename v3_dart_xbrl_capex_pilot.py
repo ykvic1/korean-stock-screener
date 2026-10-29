@@ -471,6 +471,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
             if tag in instances:
                 matched[kind].add(tag)
     status = {kind: "label_fact_not_present" for kind in matched}
+    extension_context_gaps = {}
     if year is not None:
         checked = {
             kind: {"tag": False, "annual": False, "krw": False,
@@ -492,6 +493,9 @@ def _extension_label_evidence(archive, entries, *, year=None):
                 status[kind] = "multiple_extension_concepts"
             elif matched[kind]:
                 status[kind] = reasons[kind]
+                if reasons[kind] == "annual_context_missing":
+                    extension_context_gaps[kind] = _context_gap_reason(
+                        checked[kind])
     return {
         "local_taxonomy_schema_files": schema_files,
         "local_label_linkbase_files": label_link_files,
@@ -499,6 +503,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "exact_extension_label_instance_facts": {
             kind: len(tags) for kind, tags in matched.items()},
         "extension_annual_krw_status": status,
+        "extension_annual_context_gap_subreasons": extension_context_gaps,
     }
 
 
@@ -631,12 +636,16 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.7",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.8",
         "asof": asof,
         "mode": mode,
         "sample_cohort_mode": "verified_receipt_year_stratified_rotation",
         "sample_cohort_index": cohort_index,
         "sample_cohort_distinct_issuers": len({row[0] for row in choices}),
+        "sample_fiscal_year_counts": {
+            str(year): sum(choice[1] == year for choice in choices)
+            for year in YEARS
+        },
         "eligible_sampled_issuer_years": len(choices),
         "source_readiness": ("verified_archived_receipts_research_only"
                              if archived_research else
@@ -676,6 +685,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         },
         "reports_with_extension_ppe_annual_krw_candidate": 0,
         "reports_with_extension_intangible_annual_krw_candidate": 0,
+        "extension_annual_context_gap_subreasons": {
+            shape: 0 for shape in CONTEXT_GAP_PRIORITY
+        },
         "extension_leads_never_certify_cashflow_amount_or_scope": True,
         "missing_not_interpreted_as_zero": True,
         "archived_research_never_promotes_current_day_scores": True,
@@ -729,6 +741,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                 report["reports_with_extension_" + kind + "_label_fact"] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
+                if status == "annual_context_missing":
+                    shape = extension[
+                        "extension_annual_context_gap_subreasons"][kind]
+                    report["extension_annual_context_gap_subreasons"][shape] += 1
                 if status == "candidate_scope_unverified":
                     report["reports_with_extension_" + kind +
                            "_annual_krw_candidate"] += 1
