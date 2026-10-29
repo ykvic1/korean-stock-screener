@@ -306,6 +306,87 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             "numeric_values_ambiguous")
         self.assertNotIn("intangible", conflict["annual_krw_facts"])
 
+    def test_annual_context_mismatch_is_classified_without_accepting_any_amount(self):
+        cases = (
+            ("dimensional_target_year",
+             "<startDate>2025-01-01</startDate><endDate>2025-12-31</endDate>",
+             "<entity><segment><value>synthetic</value></segment></entity>",
+             "C"),
+            ("alternate_fiscal_twelve_months",
+             "<startDate>2024-10-01</startDate><endDate>2025-09-30</endDate>",
+             "", "C"),
+            ("comparative_annual_period",
+             "<startDate>2024-01-01</startDate><endDate>2024-12-31</endDate>",
+             "", "C"),
+            ("short_current_period",
+             "<startDate>2025-01-01</startDate><endDate>2025-09-30</endDate>",
+             "", "C"),
+            ("other_period",
+             "<startDate>2023-01-01</startDate><endDate>2023-12-31</endDate>",
+             "", "C"),
+            ("unresolved_or_instant",
+             "<startDate>2025-01-01</startDate><endDate>2025-12-31</endDate>",
+             "", "NOT_FOUND"),
+        )
+        for expected, period, dimensions, ref in cases:
+            with self.subTest(expected=expected):
+                xml = (
+                    '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:ifrs="' + IFRS_NS + '">'
+                    '<context id="C">' + dimensions + '<period>' + period +
+                    '</period></context>'
+                    '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+                    '<ifrs:PurchaseOfIntangibleAssets contextRef="' + ref +
+                    '" unitRef="U">123</ifrs:PurchaseOfIntangibleAssets></xbrl>'
+                ).encode("utf8")
+                result = pilot.inspect_binary_archive(archive(xml), year=2025)
+                self.assertEqual(result["annual_krw_reasons"]["intangible"],
+                                 "annual_context_missing")
+                self.assertEqual(result["annual_context_gap_subreasons"]["intangible"],
+                                 expected)
+                self.assertNotIn("intangible", result["annual_krw_facts"])
+                self.assertNotIn("123", json.dumps(result, default=list))
+
+        current = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:ifrs="' + IFRS_NS + '">'
+            '<context id="C"><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<ifrs:PurchaseOfIntangibleAssets contextRef="C" unitRef="U">'
+            '123</ifrs:PurchaseOfIntangibleAssets></xbrl>'
+        ).encode("utf8")
+        result = pilot.inspect_binary_archive(archive(current), year=2025)
+        self.assertEqual(result["annual_krw_reasons"]["intangible"],
+                         "candidate_scope_unverified")
+        self.assertNotIn("intangible", result["annual_context_gap_subreasons"])
+        duplicate = current.replace(
+            b'<unit id="U">', b'<context id="C"></context><unit id="U">')
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.inspect_binary_archive(archive(duplicate), year=2025)
+
+    def test_live_context_subreason_is_bounded_anonymous_aggregate(self):
+        market, catalog, major, state, code, receipt = self.fixture()
+        xml = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:ifrs="' + IFRS_NS + '">'
+            '<context id="C"><period><startDate>2024-10-01</startDate>'
+            '<endDate>2025-09-30</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<ifrs:PurchaseOfIntangibleAssets contextRef="C" unitRef="U">'
+            '123456789</ifrs:PurchaseOfIntangibleAssets></xbrl>'
+        ).encode("utf8")
+        report = pilot.run_pilot(
+            market, catalog, major, state, mode="live",
+            key="A" * 40, session=Session(archive(xml)))
+        self.assertEqual(
+            report["missing_source_fact_reasons"]["annual_context_missing"], 1)
+        self.assertEqual(
+            report["annual_context_gap_subreasons"]["alternate_fiscal_twelve_months"], 1)
+        self.assertEqual(sum(report["annual_context_gap_subreasons"].values()), 1)
+        self.assertEqual(report["reports_with_missing_annual_krw_candidate"], 0)
+        public = json.dumps(report, ensure_ascii=False)
+        self.assertNotIn("123456789", public)
+        self.assertNotIn(code, public)
+        self.assertNotIn(receipt, public)
+
     def test_rejection_counts_are_missing_fact_totals_only(self):
         market, catalog, major, state, code, receipt = self.fixture()
         # A tag with neither its annual context nor currency evidence.
