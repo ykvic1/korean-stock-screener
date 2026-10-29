@@ -212,9 +212,64 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
         return False
 
 
+
+def issuer_catalog_reconciles(observed: Any, catalog: Any, csv_text: Any) -> bool:
+    """Independently match every published issuer to the saved market census.
+
+    Histogram equality alone cannot detect a substituted stock. This check
+    compares the exact six-digit code, Korean name, market and source date;
+    it returns only a boolean and does not certify the KRX feed as official.
+    """
+    if (not isinstance(observed, dict) or not isinstance(catalog, dict)
+            or type(csv_text) is not str
+            or len(csv_text.encode("utf-8")) > MAX_CSV_BYTES):
+        return False
+    try:
+        count = observed["listed_total"]
+        rows = catalog["rows"]
+        if (catalog.get("schema") != "v22-current-listed-catalog-0.1"
+                or catalog.get("date") != observed.get("asof")
+                or catalog.get("scope")
+                != "currently_listed_KOSPI_KOSDAQ_ordinary_shares_only"
+                or type(count) is not int or count <= 0
+                or catalog.get("listed_total") != count
+                or type(rows) is not list or len(rows) != count):
+            return False
+        census = {}
+        for item in rows:
+            if type(item) is not dict:
+                return False
+            code, name, market = (item.get("code"), item.get("name"),
+                                  item.get("market"))
+            if (type(code) is not str
+                    or not re.fullmatch(r"[0-9]{6}", code)
+                    or type(name) is not str or not name or len(name) > 120
+                    or market not in ("KOSPI", "KOSDAQ") or code in census):
+                return False
+            census[code] = (name, market)
+        reader = csv.DictReader(StringIO(csv_text.lstrip("\ufeff"), newline=""),
+                                strict=True)
+        if reader.fieldnames != list(CSV_COLUMNS):
+            return False
+        seen = set()
+        for row in reader:
+            if None in row or any(value is None for value in row.values()):
+                return False
+            code = row["종목코드"]
+            if (code in seen or code not in census
+                    or (row["종목명"], row["시장"]) != census[code]
+                    or row["가격자료기준일"] != observed["asof"]):
+                return False
+            seen.add(code)
+        return len(seen) == len(census)
+    except (ValueError, KeyError, TypeError, AttributeError, csv.Error):
+        return False
+
+
 def assess_v30b(observed: Any, scorecard: Any, history: Any,
                  *, proof: Any = None,
-                 observed_csv_text: Any = None) -> dict:
+                 observed_csv_text: Any = None,
+                 catalog: Any = None) -> dict:
     """Measure validated coverage and fail closed on independent certification.
 
     The optional proof argument is intentionally ignored: unverified assertions
@@ -317,6 +372,12 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     if csv_reconciled is False:
         issues.append("public_issuer_csv_aggregate_mismatch")
 
+    catalog_reconciled = (issuer_catalog_reconciles(o, catalog, observed_csv_text)
+                          if catalog is not None and observed_csv_text is not None
+                          else None)
+    if catalog_reconciled is False:
+        issues.append("public_issuer_catalog_membership_mismatch")
+
     # The old backfill's 490/490 extraction window is *not* adjusted-price or
     # delisted-universe verification, and must never be presented as such.
     cohorts = h.get("five_session_cohorts_completed")
@@ -341,6 +402,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     gates = {
         "public_summary_internal_consistency": snapshot_valid,
         "published_issuer_csv_coherence": snapshot_valid and csv_reconciled is True,
+        "published_issuer_catalog_membership": (
+            snapshot_valid and catalog_reconciled is True),
         "five_area_observation_all_listed": snapshot_valid and full == safe_total,
         "fixed_window_krx_extraction": snapshot_valid and window_complete,
         # No existing public aggregate JSON can independently establish these.
@@ -363,6 +426,7 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "asof": asof if snapshot_valid else None,
         "public_summary_valid": snapshot_valid,
         "public_issuer_csv_reconciled": csv_reconciled,
+        "public_issuer_catalog_reconciled": catalog_reconciled,
         "listed_total": safe_total if snapshot_valid else None,
         "observed_all_five_areas_100weight_count": full,
         "missing_all_five_area_observation_count": missing_count,
@@ -416,13 +480,16 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-krx-derived-backfill-progress.json")
     p.add_argument("--observed-csv", type=Path,
                    default=ROOT / "docs/v3-current-observed-all-listed.csv")
+    p.add_argument("--catalog", type=Path,
+                   default=ROOT / "docs/v22-market-catalog.json")
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
     report = assess_v30b(_read_public_json(a.observed),
                           _read_public_json(a.scorecard),
                           _read_public_json(a.history),
-                          observed_csv_text=_read_public_csv(a.observed_csv))
+                          observed_csv_text=_read_public_csv(a.observed_csv),
+                          catalog=_read_public_json(a.catalog))
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
