@@ -20,9 +20,9 @@ from v3_private_dart_krx_filing_title_triage import (
 )
 from v3_private_dart_original_evidence import _candidate_queue
 from v3_private_dart_structured_action_receipts import (
-    StructuredActionError, _same_bytes, official_fetch, inspect_response,
-    SUPPLEMENTAL_ENDPOINTS, _valid_checkpoint_report_pointer,
-    _valid_schedule_candidates,
+    StructuredActionError, _same_bytes, _put_immutable_report_with_retry,
+    official_fetch, inspect_response, SUPPLEMENTAL_ENDPOINTS,
+    _valid_checkpoint_report_pointer, _valid_schedule_candidates,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
@@ -205,7 +205,17 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
                 observations.append(inspect_response(
                     response, endpoint, record["corp_code"], record["rcept_no"]))
             encoded = canonical(_report(i, record, observations))
-            storage.put_new(path, encoded, "Save private supplemental DART action evidence")
+            try:
+                # Keep all official responses in memory during a transient Git
+                # conflict: a failed/ambiguous private PUT must not cause a
+                # second DART request for the same receipt in this job.
+                _put_immutable_report_with_retry(storage, path, encoded)
+            except PrivateHistoryError as exc:
+                if str(exc) == "private_storage_api_failed":
+                    # Even after bounded retries fail, do NOT allow main()'s
+                    # whole-run retry to exceed this job's provider budget.
+                    raise ExtensionError("private_extension_immutable_write_unavailable") from None
+                raise
             _same_bytes(storage, path, encoded)
         else:
             encoded = existing
