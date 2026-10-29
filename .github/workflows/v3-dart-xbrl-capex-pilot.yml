@@ -65,6 +65,7 @@ jobs:
               ('sample_cohort_mode', '표본 순환 방식'),
               ('sample_cohort_index', '재현 가능한 표본 회차'),
               ('sample_cohort_distinct_issuers', '서로 다른 표본 기업 수'),
+              ('sample_fiscal_year_counts', '표본 회계연도별 건수(익명)'),
               ('eligible_sampled_issuer_years', '조사 표본 기업·연도'),
               ('provider_xbrl_file_calls', '공식 XBRL 원본파일 API 호출'),
               ('valid_zip_files', '유효한 원본 ZIP'),
@@ -137,10 +138,16 @@ jobs:
                   lines.append('- ' + label + ': **' +
                                str(extension_counts.get(key, '미확인')) + '**')
               context_counts = report.get('annual_context_gap_subreasons', {})
-              lines.append('#### 연간 문맥 누락 상세 원인(후보 금액 인정 아님)')
+              lines.append('#### IFRS 표준 계정의 연간 문맥 누락 원인(후보 금액 인정 아님)')
               for key, label in context_labels:
                   lines.append('- ' + label + ': **' +
                                str(context_counts.get(key, '미확인')) + '**')
+              extension_context_counts = report.get(
+                  'extension_annual_context_gap_subreasons', {})
+              lines.append('#### XBRL 확장 계정의 연간 문맥 누락 원인(후보 금액 인정 아님)')
+              for key, label in context_labels:
+                  lines.append('- ' + label + ': **' +
+                               str(extension_context_counts.get(key, '미확인')) + '**')
           else:
               lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
