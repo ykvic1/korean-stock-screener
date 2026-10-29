@@ -17,7 +17,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from v3_dart_bulk_history import _inputs, _day, _valid_receipt
-from v3_dart_cashflow_enrichment import (YEARS, verify_state,
+from v3_dart_cashflow_enrichment import (YEARS, verify_state, summary, fingerprint,
                                          retained_current_market_cashflow)
 
 MAX_PROBES = 4
@@ -95,6 +95,50 @@ def select_candidates(state, major, *, asof, limit=MAX_PROBES):
         if len(selected) == limit:
             break
     return selected
+
+
+def _recent_archived_receipt_candidates(major, state, *, asof, members, limit):
+    """Allow bounded ORIGINAL-FILE research without pretending same-day scoring.
+
+    This is deliberately narrower than market/financial-score rebaselining:
+    independently check a complete cashflow checkpoint, its exact source hash,
+    filing receipts as of the archive's own date, and current ticker membership.
+    A mismatched archive/checkpoint means no calls, never an inferred amount.
+    """
+    archive_day = _day(major.get("asof"))
+    current_day = _day(asof)
+    if (archive_day >= current_day or archive_day.year != current_day.year
+        or (current_day - archive_day).days > 5):
+        raise XbrlPilotError("unsafe_original_archive_age")
+    if type(state) is not dict:
+        raise XbrlPilotError("untrusted_original_archive_checkpoint")
+    checkpoint_day = _day(state.get("asof"))
+    if not (archive_day <= checkpoint_day <= current_day):
+        raise XbrlPilotError("unsafe_original_archive_checkpoint_day")
+    if (type(major.get("records")) is not dict
+        or type(major.get("listed_total")) is not int
+        or not 1 <= major["listed_total"] <= 6000
+        or len(major["records"]) > major["listed_total"]
+        or major.get("fiscal_years") != list(range(archive_day.year - 4, archive_day.year))):
+        raise XbrlPilotError("untrusted_original_annual_archive")
+    source_hash = fingerprint(major)
+    if state.get("source_major_history_sha256") != source_hash:
+        return None
+    records = state.get("records")
+    listed = state.get("listed_total")
+    if (type(records) is not dict or type(listed) is not int
+        or not 1 <= listed <= 6000 or len(records) > listed):
+        raise XbrlPilotError("untrusted_original_archive_checkpoint")
+    # summary validates every stored CFO/CAPEX formula, scope and provenance,
+    # without rewriting the saved as-of or inventing a historical market list.
+    reconstructed = summary(state["asof"], records, records, source_hash)
+    reconstructed["listed_total"] = listed
+    if reconstructed != state:
+        raise XbrlPilotError("tampered_original_archive_checkpoint")
+    eligible = dict(state)
+    eligible["records"] = {code: row for code, row in records.items()
+                           if code in members}
+    return select_candidates(eligible, major, asof=major["asof"], limit=limit)
 
 
 def _qualified_name(tag):
@@ -320,8 +364,17 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         older = major.get("asof")
         source_pending = (type(older) is str and
                           0 < (_day(asof) - _day(older)).days <= 5)
+        archived_research = False
         if source_pending:
-            choices = []
+            # An archived annual source is usable ONLY for read-only original
+            # receipt research if an independently verified checkpoint still
+            # refers to the exact byte-for-byte annual archive. No scores or
+            # current-day financial observations are constructed here.
+            choices = _recent_archived_receipt_candidates(
+                major, state, asof=asof, members=members, limit=limit)
+            archived_research = choices is not None
+            if choices is None:
+                choices = []
         else:
             # Revalidate prior-day observations against the current issuer set
             # and unchanged major filing receipts, with zero provider requests.
@@ -335,7 +388,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
-        "source_readiness": ("awaiting_same_day_annual_archive"
+        "source_readiness": ("verified_archived_receipts_research_only"
+                             if archived_research else
+                             "awaiting_same_day_annual_archive"
                              if source_pending else "receipt_validated"),
         "provider_xbrl_file_calls": 0,
         "valid_zip_files": 0,
@@ -356,13 +411,14 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             )
         },
         "missing_not_interpreted_as_zero": True,
+        "archived_research_never_promotes_current_day_scores": True,
         "no_statement_scope_verified": True,
         "annual_krw_facts_not_scored": True,
         "no_xbrl_amounts_or_investment_scores_derived": True,
         "no_issuer_or_receipt_or_raw_xbrl_published": True,
         "note": "Annual KRW candidate tags only; financial statement scope unverified.",
     }
-    if mode == "dry-run" or source_pending:
+    if mode == "dry-run" or (source_pending and not archived_research):
         return report
     if (mode != "live" or type(key) is not str or len(key) != 40
         or session is None):
