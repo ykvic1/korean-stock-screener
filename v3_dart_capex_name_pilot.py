@@ -64,14 +64,26 @@ def candidate_status(rows, *, code, corp, year, scope, receipt, kind):
 
 
 def select_candidates(state, major, limit=MAX_PROBES):
+    """Balance the tiny 12-call probe across year, scope and missing kind.
+
+    The old first-12 ticker-order sample was mostly the latest CFS year.
+    Stratification diagnoses whether alternate labels differ by financial
+    statement scope or fiscal period, without expanding source calls or
+    publishing any issuer/receipt identity.
+    """
     if type(limit) is not int or not 1 <= limit <= MAX_PROBES:
         raise PilotError("invalid_pilot_limit")
-    choices = []
-    # Sample one latest-year missing CAPEX component per issuer, maximizing
-    # independent issuer breadth and current valuation relevance.
+    kinds = ("ppe", "intangible")
+    scopes = ("CFS", "OFS")
+    strata = tuple((year, scope, kind)
+                   for year in reversed(YEARS)
+                   for scope in scopes for kind in kinds)
+    buckets = {key: [] for key in strata}
     for code in sorted(state["records"]):
         company = state["records"][code]
         scope = company["scope"]
+        if scope not in scopes:
+            raise PilotError("invalid_sample_statement_scope")
         for year in reversed(YEARS):
             found = company["years"].get(str(year))
             if (not found or
@@ -82,18 +94,33 @@ def select_candidates(state, major, limit=MAX_PROBES):
             intangible_missing = found["intangible_capex_krw"] is None
             if ppe_missing == intangible_missing:
                 continue
-            source = major["records"].get(code,{}).get("years",{}).get(
-                str(year),{}).get(scope,{})
+            source = major["records"].get(code, {}).get("years", {}).get(
+                str(year), {}).get(scope, {})
             receipt = found.get("annual_receipt_id")
             if receipt != source.get("receipt_id"):
                 raise PilotError("sample_major_annual_receipt_changed")
-            choices.append((code, year, scope, receipt,
-                            "ppe" if ppe_missing else "intangible"))
+            kind = "ppe" if ppe_missing else "intangible"
+            buckets[(year, scope, kind)].append(
+                (code, year, scope, receipt, kind))
+    chosen = []
+    used_issuers = set()
+    # One per available stratum first. Revisit surplus strata only after
+    # the other year/scope/kind samples have been offered a chance.
+    while len(chosen) < limit:
+        progressed = False
+        for stratum in strata:
+            for candidate in buckets[stratum]:
+                if candidate[0] in used_issuers:
+                    continue
+                chosen.append(candidate)
+                used_issuers.add(candidate[0])
+                progressed = True
+                break
+            if len(chosen) >= limit:
+                break
+        if not progressed:
             break
-        if len(choices) == limit:
-            break
-    return choices
-
+    return chosen
 
 def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
               corp_cache=None, limit=MAX_PROBES):
@@ -108,6 +135,16 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
+        "sample_strategy": "distinct_issuer_year_scope_missing_component_strata",
+        "sampled_by_fiscal_year": {
+            str(year): sum(item[1] == year for item in choices)
+            for year in YEARS},
+        "sampled_by_scope": {
+            scope: sum(item[2] == scope for item in choices)
+            for scope in ("CFS", "OFS")},
+        "sampled_by_missing_component": {
+            kind: sum(item[4] == kind for item in choices)
+            for kind in ("ppe", "intangible")},
         "provider_source_calls": 0,
         "provider_corp_master_calls": 0,
         "unique_exact_name_candidate": 0,
