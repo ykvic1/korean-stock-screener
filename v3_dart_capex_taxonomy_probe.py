@@ -15,7 +15,8 @@ from pathlib import Path
 
 from v3_dart_bulk_history import _amount, _day, _mapping, _valid_receipt
 from v3_dart_capex_official_taxonomy import (
-    COMPONENT_GROUP_STATUSES, component_evidence_status,
+    COMPONENT_GROUP_STATUSES, CONTROL_GROUP_STATUSES,
+    component_evidence_status, reference_total_control_status,
     official_candidates, novel_account_id,
 )
 from v3_dart_cashflow_enrichment import (
@@ -110,7 +111,9 @@ def candidate_fields(row, *, year, scope, corp, stock, receipt, cutoff):
         tags.append("ppe")
     if INTANGIBLE_NAME.search(label):
         tags.append("intangible")
-    return tuple(tags)
+    # An aggregate label naming both asset groups is not a reliable
+    # attribution to either PPE or intangible CAPEX.
+    return tuple(tags) if len(tags) == 1 else ()
 
 
 def summarize_candidates(rows, *, stock, corp, year, scope, receipt, cutoff, missing):
@@ -237,6 +240,11 @@ def probe(state, market, catalog, major, *, key, session,
         "official_component_structure": {
             name: {status: 0 for status in COMPONENT_GROUP_STATUSES}
             for name in ("ppe", "intangible")},
+        "supported_total_control_checked_years": {"ppe": 0, "intangible": 0},
+        "supported_total_control_evidence": {
+            name: {status: 0 for status in CONTROL_GROUP_STATUSES}
+            for name in ("ppe", "intangible")},
+        "supported_total_comparison_never_approves_id_or_score": True,
         "component_evidence_never_assumed_complete_or_additive": True,
     }
     if not selected:
@@ -320,14 +328,22 @@ def probe(state, market, catalog, major, *, key, session,
                 result["saved_supported_id_gap_causes"][name][cause] += 1
         year_matches = {"ppe": set(), "intangible": set()}
         component_rows = {"ppe": [], "intangible": []}
+        control_rows = {"ppe": [], "intangible": []}
         for row in rows:
             for name in candidate_fields(
                     row, stock=stock, corp=corp, year=year, scope=scope,
                     receipt=old["annual_receipt_id"],
                     cutoff=_day(state["asof"])):
-                if old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is not None:
-                    continue
                 amount = _amount(row.get("thstrm_amount"))
+                saved_total = old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"]
+                if saved_total is not None:
+                    # Use the opposite (already observed) CAPEX component
+                    # as an independent control, without a new provider call.
+                    # No novel figure ever replaces the saved IFRS total.
+                    if official is not None and novel_account_id(
+                            row.get("account_id"), name, official):
+                        control_rows[name].append((row["account_id"], amount))
+                    continue
                 if amount is not None:
                     family = candidate_id_family(row.get("account_id"), name)
                     result["candidate_numeric_account_id_families"][name][family] += 1
@@ -343,9 +359,16 @@ def probe(state, market, catalog, major, *, key, session,
                         result["official_taxonomy_novel_negative_numeric_rows"][name] += 1
         for name in ("ppe", "intangible"):
             result["official_taxonomy_novel_issuer_years"][name] += int(bool(year_matches[name]))
-            if official is not None and old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"] is None:
-                status = component_evidence_status(component_rows[name], name)
-                result["official_component_structure"][name][status] += 1
+            saved_total = old["ppe_capex_krw" if name == "ppe" else "intangible_capex_krw"]
+            if official is not None:
+                if saved_total is None:
+                    status = component_evidence_status(component_rows[name], name)
+                    result["official_component_structure"][name][status] += 1
+                else:
+                    result["supported_total_control_checked_years"][name] += 1
+                    status = reference_total_control_status(
+                        control_rows[name], name, saved_total)
+                    result["supported_total_control_evidence"][name][status] += 1
     for name in ("ppe", "intangible"):
         result["official_taxonomy_novel_matching_ids"][name] = sorted(matched_ids[name])
     return result
