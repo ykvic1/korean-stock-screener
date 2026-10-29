@@ -98,6 +98,21 @@ jobs:
               for key, label in reason_labels:
                   lines.append('- ' + label + ': **' +
                                str(reason_counts.get(key, '미확인')) + '**')
+              # Count only the two-stage "annual_context_missing" cases;
+              # never leak source context IDs, company names, years or amounts.
+              context_labels = (
+                  ('dimensional_target_year', '해당연도 기간이나 차원·세그먼트가 붙은 문맥'),
+                  ('alternate_fiscal_twelve_months', '해당연도 종료 비달력 12개월 문맥'),
+                  ('comparative_annual_period', '이전연도 비교자료 문맥'),
+                  ('short_current_period', '해당연도 단기·분기 문맥'),
+                  ('other_period', '그 외 기간 문맥'),
+                  ('unresolved_or_instant', '기간 확인 불가·문맥 미연결'),
+              )
+              context_counts = report.get('annual_context_gap_subreasons', {})
+              lines.append('#### 연간 문맥 누락 상세 원인(후보 금액 인정 아님)')
+              for key, label in context_labels:
+                  lines.append('- ' + label + ': **' +
+                               str(context_counts.get(key, '미확인')) + '**')
           else:
               lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
