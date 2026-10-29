@@ -148,6 +148,16 @@ jobs:
               for key, label in context_labels:
                   lines.append('- ' + label + ': **' +
                                str(extension_context_counts.get(key, '미확인')) + '**')
+              lines.append('#### 해당연도 확장 계정 차원 구조(연결/별도 미인증)')
+              dimensions = report.get('extension_target_year_dimension_shapes', {})
+              for key, label in (
+                  ('typed_member_present', 'typedMember 포함'),
+                  ('multiple_explicit_members', '복수 explicitMember'),
+                  ('single_explicit_member', '단일 explicitMember'),
+                  ('nonstandard_segment_content', '비표준 세그먼트 요소'),
+                  ('dimension_structure_unknown', '차원 구조 미확인')):
+                  lines.append('- ' + label + ': **' +
+                               str(dimensions.get(key, '미확인')) + '**')
           else:
               lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(

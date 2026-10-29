@@ -395,6 +395,77 @@ def _local_taxonomy_ref(from_member, href, schemas):
     return schemas.get((resolved, frag))
 
 
+
+XBRL_DIMENSION_NS = "http://xbrl.org/2006/xbrldi"
+EXTENSION_DIMENSION_SHAPES = (
+    "typed_member_present", "multiple_explicit_members",
+    "single_explicit_member", "nonstandard_segment_content",
+    "dimension_structure_unknown",
+)
+
+
+def _extension_target_year_dimension_shapes(xml_data, year, matched):
+    """Classify only the *structure* of dimensional annual fact contexts.
+
+    Dimension axis/member names, concepts, issuer identities and amounts are
+    never copied to an output. Structural dimensions DO NOT establish CFS/OFS,
+    a primary cash-flow statement, or a validated numeric amount.
+    """
+    root = _safe_xbrl_xml(xml_data)
+    found = {kind: set() for kind in matched}
+    ns = "{" + XBRL_INSTANCE_NS + "}"
+    if root.tag != ns + "xbrl":
+        return found
+    context_kinds = {}
+    for fact in root:
+        reference = fact.get("contextRef")
+        if not reference or "unitRef" not in fact.attrib:
+            continue
+        for kind, tags in matched.items():
+            if fact.tag in tags:
+                context_kinds.setdefault(reference, set()).add(kind)
+    for context in root.findall(ns + "context"):
+        kinds = context_kinds.get(context.get("id"))
+        if not kinds:
+            continue
+        period = context.find(ns + "period")
+        if (period is None or period.findtext(ns + "startDate") !=
+                f"{year}-01-01" or period.findtext(ns + "endDate") !=
+                f"{year}-12-31"):
+            continue
+        blocks = []
+        for path in (ns + "entity/" + ns + "segment",
+                     ns + "segment", ns + "scenario"):
+            node = context.find(path)
+            if node is not None:
+                blocks.append(node)
+        if not blocks:
+            continue
+        explicit = typed = 0
+        nonstandard = False
+        for block in blocks:
+            for child in block:
+                if child.tag == "{" + XBRL_DIMENSION_NS + "}explicitMember":
+                    explicit += 1
+                elif child.tag == "{" + XBRL_DIMENSION_NS + "}typedMember":
+                    typed += 1
+                else:
+                    nonstandard = True
+        if typed:
+            shape = "typed_member_present"
+        elif explicit > 1:
+            shape = "multiple_explicit_members"
+        elif explicit == 1 and not nonstandard:
+            shape = "single_explicit_member"
+        elif nonstandard:
+            shape = "nonstandard_segment_content"
+        else:
+            shape = "dimension_structure_unknown"
+        for kind in kinds:
+            found[kind].add(shape)
+    return found
+
+
 def _extension_label_evidence(archive, entries, *, year=None):
     """Match an exact Korean label -> local schema concept -> instance fact.
 
@@ -472,6 +543,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
                 matched[kind].add(tag)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
+    extension_dimensions = {}
     if year is not None:
         checked = {
             kind: {"tag": False, "annual": False, "krw": False,
@@ -496,6 +568,20 @@ def _extension_label_evidence(archive, entries, *, year=None):
                 if reasons[kind] == "annual_context_missing":
                     extension_context_gaps[kind] = _context_gap_reason(
                         checked[kind])
+        # Structure-only study of the same bundled instance contexts.
+        # At most one fixed enum per extension kind; never infer statement scope.
+        dimensional = {kind: set() for kind in matched}
+        if "dimensional_target_year" in extension_context_gaps.values():
+            for data in instance_data:
+                observed = _extension_target_year_dimension_shapes(
+                    data, year, matched)
+                for kind in matched:
+                    dimensional[kind].update(observed[kind])
+            for kind, reason in extension_context_gaps.items():
+                if reason == "dimensional_target_year":
+                    extension_dimensions[kind] = next((
+                        shape for shape in EXTENSION_DIMENSION_SHAPES
+                        if shape in dimensional[kind]), "dimension_structure_unknown")
     return {
         "local_taxonomy_schema_files": schema_files,
         "local_label_linkbase_files": label_link_files,
@@ -504,6 +590,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
             kind: len(tags) for kind, tags in matched.items()},
         "extension_annual_krw_status": status,
         "extension_annual_context_gap_subreasons": extension_context_gaps,
+        "extension_target_year_dimension_shapes": extension_dimensions,
     }
 
 
@@ -636,7 +723,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.8",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.9",
         "asof": asof,
         "mode": mode,
         "sample_cohort_mode": "verified_receipt_year_stratified_rotation",
@@ -687,6 +774,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "reports_with_extension_intangible_annual_krw_candidate": 0,
         "extension_annual_context_gap_subreasons": {
             shape: 0 for shape in CONTEXT_GAP_PRIORITY
+        },
+        "extension_target_year_dimension_shapes": {
+            shape: 0 for shape in EXTENSION_DIMENSION_SHAPES
         },
         "extension_leads_never_certify_cashflow_amount_or_scope": True,
         "missing_not_interpreted_as_zero": True,
@@ -745,6 +835,11 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                     shape = extension[
                         "extension_annual_context_gap_subreasons"][kind]
                     report["extension_annual_context_gap_subreasons"][shape] += 1
+                    if shape == "dimensional_target_year":
+                        dimension_shape = extension[
+                            "extension_target_year_dimension_shapes"][kind]
+                        report["extension_target_year_dimension_shapes"][
+                            dimension_shape] += 1
                 if status == "candidate_scope_unverified":
                     report["reports_with_extension_" + kind +
                            "_annual_krw_candidate"] += 1

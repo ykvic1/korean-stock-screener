@@ -702,5 +702,81 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertNotIn(receipt, json.dumps(report))
 
 
+    def test_extension_dimensional_shape_is_only_structural_evidence(self):
+        schema = (
+            '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" '
+            'targetNamespace="http://synthetic.example/corp">'
+            '<xs:element name="PpeAdditions" id="co_PpeAdditions" '
+            'type="xs:integer"/></xs:schema>'
+        ).encode("utf8")
+        labels = (
+            '<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase" '
+            'xmlns:xlink="http://www.w3.org/1999/xlink">'
+            '<link:labelLink><link:loc xlink:label="L" '
+            'xlink:href="corp.xsd#co_PpeAdditions"/>'
+            '<link:label xlink:label="R" xml:lang="ko">'
+            '유형자산의 취득</link:label>'
+            '<link:labelArc xlink:arcrole='
+            '"http://www.xbrl.org/2003/arcrole/concept-label" '
+            'xlink:from="L" xlink:to="R"/>'
+            '</link:labelLink></link:linkbase>'
+        ).encode("utf8")
+        def zip_with(segment):
+            instance = (
+                '<xbrl xmlns="' + INSTANCE_NS + '" '
+                'xmlns:di="http://xbrl.org/2006/xbrldi" '
+                'xmlns:co="http://synthetic.example/corp" '
+                'xmlns:d="http://synthetic.example/dim">'
+                '<context id="C"><entity><segment>' + segment +
+                '</segment></entity><period>'
+                '<startDate>2025-01-01</startDate>'
+                '<endDate>2025-12-31</endDate></period></context>'
+                '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+                '<co:PpeAdditions contextRef="C" unitRef="U">'
+                '123456789</co:PpeAdditions></xbrl>'
+            ).encode("utf8")
+            b = io.BytesIO()
+            with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as f:
+                f.writestr("corp.xsd", schema)
+                f.writestr("labels.xml", labels)
+                f.writestr("report.xbrl", instance)
+            return b.getvalue()
+        explicit = ('<di:explicitMember dimension="d:Axis">'
+                    'd:ScopeMember</di:explicitMember>')
+        cases = (
+            ("single_explicit_member", explicit),
+            ("multiple_explicit_members", explicit + explicit),
+            ("typed_member_present",
+             '<di:typedMember dimension="d:Axis"><d:Name>'
+             'dummy</d:Name></di:typedMember>'),
+            ("nonstandard_segment_content", '<other>dummy</other>'),
+        )
+        for shape, segment in cases:
+            with self.subTest(shape=shape):
+                body = zip_with(segment)
+                result = pilot.inspect_binary_archive(body, year=2025)
+                extension = result["extension_label_evidence"]
+                self.assertEqual(extension[
+                    "extension_target_year_dimension_shapes"]["ppe"], shape)
+                self.assertEqual(extension[
+                    "extension_annual_context_gap_subreasons"]["ppe"],
+                    "dimensional_target_year")
+                market, catalog, major, state, code, receipt = self.fixture()
+                report = pilot.run_pilot(
+                    market, catalog, major, state, mode="live",
+                    key="A" * 40, session=Session(body))
+                self.assertEqual(report[
+                    "extension_target_year_dimension_shapes"][shape], 1)
+                self.assertEqual(sum(report[
+                    "extension_target_year_dimension_shapes"].values()), 1)
+                self.assertEqual(report[
+                    "reports_with_extension_ppe_annual_krw_candidate"], 0)
+                self.assertTrue(report["no_statement_scope_verified"])
+                exposed = json.dumps(report, ensure_ascii=False)
+                for private in ("123456789", code, receipt, "PpeAdditions",
+                                "ScopeMember"):
+                    self.assertNotIn(private, exposed)
+
+
 if __name__ == "__main__":
     unittest.main()
