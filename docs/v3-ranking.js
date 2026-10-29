@@ -517,7 +517,7 @@ function init(){
    esc(x.decision.reason)+'</p></div>'+
    '<h3>① 기존 가중치 점수 분해</h3>'+
    '<p>기존 v2.2 점수 '+r.score.toFixed(1)+' / 100 · 관측된 가중치 '+
-   r.coverage_pct.toFixed(0)+'%. <b>v3의 IAS20·기술25·재무15·가치15·산업15·모멘텀10 점수와 다릅니다.</b></p>'+
+   r.coverage_pct.toFixed(0)+'%. <b>v3.0b의 거래량20·기술25·재무20·밸류에이션20·모멘텀15(산업은 정보용) 연구 배점과 다릅니다. 현재 정식 투자점수는 미인증입니다.</b></p>'+
    '<div class="factor-grid">'+parts+'</div>'+
    '<h3>② 매수 무효화 기준과 하락 위험</h3><div class="rank-metrics">'+
    '<div><small>종가</small><b>'+money(r.price)+'</b></div>'+
@@ -557,7 +557,7 @@ function init(){
    '<h3>⑤ 매수 판단 가설</h3><p>매수 검토: 패턴 돌파·거래량 지속·주봉 안착, 재무와 수급 개선 확인.<br>'+
    '관망: 과거 퀀트의 손절빈도 상승 또는 재무·수급 부재.<br>'+
    '무효화: 구조 참고선 이탈 시 차트/업황 가설을 다시 검토.</p>'+
-   '<p class="note">확정 매수 추천이 아니며, v3 공식 6영역 총점과 1·2·3·6·12개월 기대수익률은 실측 데이터 검증 전 미산출입니다.</p>';
+   '<p class="note">확정 매수 추천이 아니며, v3.0b 정식 5영역 총점과 1·2·3·6·12개월 기대수익률은 독립적인 데이터 검증 전 미산출입니다.</p>';
   details.hidden=false;
   $('rankClose').addEventListener('click',()=>{details.hidden=true;});
   details.scrollIntoView({block:'start',behavior:'smooth'});
