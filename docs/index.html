@@ -11,6 +11,7 @@
 <script src="workspace.js" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
+<script src="v3-fcf-gap.js" defer></script>
 </head>
 <body id="unifiedApp">
 <header class="u-header">
@@ -52,6 +53,10 @@
    <div><span>정식 100점 검증 종목</span><strong id="readinessCertified">미확인</strong></div>
   </div>
   <div id="fiveAreaCoverage" class="u-coverage-placeholder" aria-label="영역별 데이터 관측률">5개 영역별 실제 확보율 확인 중…</div>
+  <details class="u-fcf-gap">
+   <summary>3개년 FCF 미확보 원인 · 실제 공시 계정 기준</summary>
+   <p id="fcfMissingness" class="u-source" role="status" aria-live="polite">현금흐름 자료 누락 원인 확인 중…</p>
+  </details>
   <p class="u-source" id="readinessNotes">서로 같은 기준일의 실제 수집 결과만 함께 표시합니다.</p>
   <p class="u-source">KRX 장기 구간은 비공개 파생정보의 수집 현황만 표시합니다. 구간 확보 완료는 정규장·수정주가·기업행위 검증 완료를 뜻하지 않습니다.
    <a href="https://github.com/ykvic1/korean-stock-screener/actions/workflows/v3-krx-derived-history.yml" target="_blank" rel="noopener noreferrer">과거 파생자료 수집 실행 기록 확인 ↗</a>.
