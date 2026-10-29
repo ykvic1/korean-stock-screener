@@ -391,12 +391,12 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             '123456789</co:AcquireIntangibleCustom></xbrl>'
         ).encode("utf8")
 
-        def source_bundle(label=link):
+        def source_bundle(label=link, instance_blob=instance):
             output = io.BytesIO()
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
                 writer.writestr("company.xsd", schema)
                 writer.writestr("labels.xml", label)
-                writer.writestr("report.xbrl", instance)
+                writer.writestr("report.xbrl", instance_blob)
             return output.getvalue()
 
         observed = pilot.inspect_binary_archive(source_bundle(), year=2025)
@@ -409,6 +409,31 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(
             extension["exact_extension_label_instance_facts"]["ppe"], 0)
         self.assertEqual(observed["annual_krw_facts"], set())
+        self.assertEqual(extension["extension_annual_krw_status"]["intangible"],
+                         "annual_context_missing")
+        full_year = (
+            '<context id="C"><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+        ).encode("utf8")
+        valid = instance.replace(b'<co:AcquireIntangibleCustom',
+                                 full_year + b'<co:AcquireIntangibleCustom', 1)
+        annual = pilot.inspect_binary_archive(
+            source_bundle(instance_blob=valid), year=2025)
+        self.assertEqual(annual["extension_label_evidence"][
+            "extension_annual_krw_status"]["intangible"],
+            "candidate_scope_unverified")
+        self.assertEqual(annual["annual_krw_facts"], set())
+        usd = valid.replace(b"iso4217:KRW", b"iso4217:USD")
+        self.assertEqual(pilot.inspect_binary_archive(
+            source_bundle(instance_blob=usd), year=2025)[
+                "extension_label_evidence"]["extension_annual_krw_status"][
+                "intangible"], "krw_unit_missing")
+        negative = valid.replace(b">123456789<", b">-123456789<")
+        self.assertEqual(pilot.inspect_binary_archive(
+            source_bundle(instance_blob=negative), year=2025)[
+                "extension_label_evidence"]["extension_annual_krw_status"][
+                "intangible"], "numeric_fact_invalid")
         self.assertNotIn("123456789", json.dumps(observed, default=list))
         self.assertNotIn("co_AcquireIntangibleCustom",
                          json.dumps(observed, default=list))
@@ -433,6 +458,16 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             key="A" * 40, session=Session(source_bundle()))
         self.assertEqual(report["provider_xbrl_file_calls"], 1)
         self.assertEqual(report["reports_with_extension_intangible_label_fact"], 1)
+        self.assertEqual(report["extension_candidate_validation_reasons"][
+            "annual_context_missing"], 1)
+        verified = pilot.run_pilot(
+            market, catalog, major, state, mode="live",
+            key="A" * 40, session=Session(source_bundle(instance_blob=valid)))
+        self.assertEqual(verified[
+            "reports_with_extension_intangible_annual_krw_candidate"], 1)
+        self.assertTrue(verified[
+            "extension_leads_never_certify_cashflow_amount_or_scope"])
+        self.assertNotIn("123456789", json.dumps(verified))
         self.assertTrue(
             report["extension_leads_never_certify_cashflow_amount_or_scope"])
         self.assertEqual(report["reports_with_missing_annual_krw_candidate"], 0)
