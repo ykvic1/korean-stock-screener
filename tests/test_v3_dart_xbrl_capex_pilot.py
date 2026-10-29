@@ -186,6 +186,60 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         with self.assertRaises(pilot.XbrlPilotError):
             pilot.run_pilot(market, catalog, future, state, mode="dry-run")
 
+    def test_verified_recent_archive_original_research_runs_without_same_day_score(self):
+        market, catalog, major, current, code, receipt = self.fixture()
+        asof, members = cash.asof_members(market, catalog, major)
+        older = json.loads(json.dumps(major))
+        older["asof"] = (date.fromisoformat(asof) - timedelta(days=1)).isoformat()
+        verified = cash.summary(
+            older["asof"], members, current["records"], cash.fingerprint(older))
+        untouched = json.dumps(verified, sort_keys=True)
+        session = Session(archive(sample_xml()))
+        report = pilot.run_pilot(
+            market, catalog, older, verified, mode="live",
+            key="A" * 40, session=session)
+        self.assertEqual(report["source_readiness"],
+                         "verified_archived_receipts_research_only")
+        self.assertEqual(report["eligible_sampled_issuer_years"], 1)
+        self.assertEqual(report["provider_xbrl_file_calls"], 1)
+        self.assertEqual(len(session.requests), 1)
+        self.assertEqual(session.requests[0][1]["rcept_no"], receipt)
+        self.assertTrue(report["archived_research_never_promotes_current_day_scores"])
+        self.assertTrue(report["no_xbrl_amounts_or_investment_scores_derived"])
+        self.assertEqual(untouched, json.dumps(verified, sort_keys=True))
+        self.assertEqual(
+            pilot._recent_archived_receipt_candidates(
+                older, verified, asof=asof, members={}, limit=4), [])
+
+        # The same archive remains usable in dry-run, with no source calls.
+        dry = pilot.run_pilot(
+            market, catalog, older, verified, mode="dry-run")
+        self.assertEqual(dry["provider_xbrl_file_calls"], 0)
+        self.assertEqual(dry["eligible_sampled_issuer_years"], 1)
+
+    def test_archived_original_research_rejects_tampering_and_future_checkpoint(self):
+        market, catalog, major, current, code, receipt = self.fixture()
+        asof, members = cash.asof_members(market, catalog, major)
+        older = json.loads(json.dumps(major))
+        older["asof"] = (date.fromisoformat(asof) - timedelta(days=1)).isoformat()
+        verified = cash.summary(
+            older["asof"], members, current["records"], cash.fingerprint(older))
+        altered = json.loads(json.dumps(verified))
+        altered["records"][code]["years"]["2025"]["annual_receipt_id"] = (
+            "20260401000001")
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.run_pilot(market, catalog, older, altered, mode="dry-run")
+
+        future = json.loads(json.dumps(verified))
+        future["asof"] = (date.fromisoformat(asof) + timedelta(days=1)).isoformat()
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.run_pilot(market, catalog, older, future, mode="dry-run")
+
+        stale = json.loads(json.dumps(older))
+        stale["asof"] = (date.fromisoformat(asof) - timedelta(days=6)).isoformat()
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.run_pilot(market, catalog, stale, verified, mode="dry-run")
+
     def test_prior_day_cashflow_receipts_are_rechecked_before_any_probe(self):
         market, catalog, major, current, code, receipt = self.fixture()
         asof, members = cash.asof_members(market, catalog, major)
