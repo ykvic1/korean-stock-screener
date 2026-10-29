@@ -515,6 +515,114 @@ def _extension_target_year_shared_ifrs_cfo_contexts(xml_data, year, matched):
     return shared
 
 
+
+IFRS_SCOPE_HINTS = (
+    "ifrs_consolidated_member_hint",
+    "ifrs_separate_member_hint",
+    "ifrs_scope_axis_other_member",
+    "other_axis_member",
+    "unresolved_qname",
+    "conflicting_context_hints",
+    "not_single_explicit_member",
+)
+
+
+def _unambiguous_namespace_bindings(xml_data):
+    """Resolve QName prefixes only if globally unambiguous in this instance.
+
+    In-scope prefix rebinding would require a full namespace-aware context
+    parser. Reject those prefixes here; never guess or accept a wrong scope.
+    """
+    bindings, ambiguous = {}, set()
+    for _, pair in ET.iterparse(io.BytesIO(xml_data), events=("start-ns",)):
+        prefix, uri = pair
+        if prefix in bindings and bindings[prefix] != uri:
+            ambiguous.add(prefix)
+        else:
+            bindings.setdefault(prefix, uri)
+    return {prefix: uri for prefix, uri in bindings.items()
+            if prefix not in ambiguous}
+
+
+def _safe_qname(raw, bindings):
+    if type(raw) is not str:
+        return None
+    match = re.fullmatch(
+        r"([A-Za-z_][A-Za-z0-9_.-]{0,80}):"
+        r"([A-Za-z_][A-Za-z0-9_.-]{0,160})", raw.strip())
+    if not match or match.group(1) not in bindings:
+        return None
+    return bindings[match.group(1)], match.group(2)
+
+
+def _ifrs_full_namespace(uri):
+    return type(uri) is str and re.fullmatch(
+        r"https?://xbrl\.ifrs\.org/taxonomy/[0-9]{4}-[0-9]{2}-[0-9]{2}/ifrs-full",
+        uri) is not None
+
+
+def _extension_target_year_ifrs_scope_hints(xml_data, year, matched):
+    """Only anonymous QName shape hints; never taxonomy validation or CFS proof.
+
+    An exact explicit IFRS axis/member QName suggests the reported statement
+    type, but proving the target role, taxonomy membership and filing scope
+    requires independent authoritative verification before any score.
+    """
+    root = _safe_xbrl_xml(xml_data)
+    result = {kind: set() for kind in matched}
+    ns = "{" + XBRL_INSTANCE_NS + "}"
+    if root.tag != ns + "xbrl":
+        return result
+    bindings = _unambiguous_namespace_bindings(xml_data)
+    kinds_by_context = {}
+    for fact in root:
+        ref = fact.get("contextRef")
+        if not ref or "unitRef" not in fact.attrib:
+            continue
+        for kind, tags in matched.items():
+            if fact.tag in tags:
+                kinds_by_context.setdefault(ref, set()).add(kind)
+    for context in root.findall(ns + "context"):
+        kinds = kinds_by_context.get(context.get("id"))
+        if not kinds:
+            continue
+        period = context.find(ns + "period")
+        if (period is None or period.findtext(ns + "startDate") !=
+                f"{year}-01-01" or period.findtext(ns + "endDate") !=
+                f"{year}-12-31"):
+            continue
+        parts = []
+        for path in (ns + "entity/" + ns + "segment",
+                     ns + "segment", ns + "scenario"):
+            part = context.find(path)
+            if part is not None:
+                parts.append(part)
+        explicit = [child for part in parts for child in part
+                    if child.tag == "{" + XBRL_DIMENSION_NS + "}explicitMember"]
+        other = [child for part in parts for child in part
+                 if child.tag != "{" + XBRL_DIMENSION_NS + "}explicitMember"]
+        if len(explicit) != 1 or other:
+            hint = "not_single_explicit_member"
+        else:
+            axis = _safe_qname(explicit[0].get("dimension"), bindings)
+            member = _safe_qname(explicit[0].text, bindings)
+            if axis is None or member is None:
+                hint = "unresolved_qname"
+            elif (axis[1] == "ConsolidatedAndSeparateFinancialStatementsAxis"
+                    and _ifrs_full_namespace(axis[0])):
+                if member == (axis[0], "ConsolidatedMember"):
+                    hint = "ifrs_consolidated_member_hint"
+                elif member == (axis[0], "SeparateMember"):
+                    hint = "ifrs_separate_member_hint"
+                else:
+                    hint = "ifrs_scope_axis_other_member"
+            else:
+                hint = "other_axis_member"
+        for kind in kinds:
+            result[kind].add(hint)
+    return result
+
+
 def _extension_label_evidence(archive, entries, *, year=None):
     """Match an exact Korean label -> local schema concept -> instance fact.
 
@@ -594,6 +702,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
     extension_context_gaps = {}
     extension_dimensions = {}
     extension_shared_cfo = {kind: False for kind in matched}
+    extension_scope_hints = {kind: set() for kind in matched}
     if year is not None:
         checked = {
             kind: {"tag": False, "annual": False, "krw": False,
@@ -630,8 +739,11 @@ def _extension_label_evidence(archive, entries, *, year=None):
             for data in instance_data:
                 overlap = _extension_target_year_shared_ifrs_cfo_contexts(
                     data, year, matched)
+                hints = _extension_target_year_ifrs_scope_hints(
+                    data, year, matched)
                 for kind in matched:
                     extension_shared_cfo[kind] |= overlap[kind]
+                    extension_scope_hints[kind].update(hints[kind])
             for kind, reason in extension_context_gaps.items():
                 if reason == "dimensional_target_year":
                     extension_dimensions[kind] = next((
@@ -647,6 +759,11 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "extension_annual_context_gap_subreasons": extension_context_gaps,
         "extension_target_year_dimension_shapes": extension_dimensions,
         "extension_target_year_shared_ifrs_cfo_contexts": extension_shared_cfo,
+        "extension_target_year_ifrs_scope_hints": {
+            kind: (next(iter(hints)) if len(hints) == 1 else
+                   "conflicting_context_hints" if hints else
+                   "not_single_explicit_member")
+            for kind, hints in extension_scope_hints.items()},
     }
 
 
@@ -837,6 +954,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "extension_target_year_ifrs_cfo_context_overlap": {
             "shared": 0, "not_shared": 0,
         },
+        "extension_target_year_ifrs_scope_hints": {
+            name: 0 for name in IFRS_SCOPE_HINTS
+        },
         "extension_leads_never_certify_cashflow_amount_or_scope": True,
         "missing_not_interpreted_as_zero": True,
         "archived_research_never_promotes_current_day_scores": True,
@@ -903,6 +1023,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                             "extension_target_year_shared_ifrs_cfo_contexts"][kind]
                         report["extension_target_year_ifrs_cfo_context_overlap"][
                             "shared" if shared else "not_shared"] += 1
+                        hint = extension[
+                            "extension_target_year_ifrs_scope_hints"][kind]
+                        report["extension_target_year_ifrs_scope_hints"][
+                            hint] += 1
                 if status == "candidate_scope_unverified":
                     report["reports_with_extension_" + kind +
                            "_annual_krw_candidate"] += 1
