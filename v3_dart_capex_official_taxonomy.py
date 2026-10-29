@@ -148,3 +148,37 @@ def component_evidence_status(observations, kind):
     if len(amounts) > 1:
         return "multiple_components_completeness_unproven"
     return "single_component_completeness_unproven"
+
+# Comparison of an independently observed, already-supported total with a
+# separate official taxonomy component from the SAME annual statement.
+# This is only a calibration control: even exact equality in a small sample
+# does not establish full coverage for another issuer or fiscal year.
+CONTROL_GROUP_STATUSES = tuple(
+    value for value in COMPONENT_GROUP_STATUSES
+    if value != "single_component_completeness_unproven"
+) + (
+    "zero_reference_match_uninformative",
+    "single_novel_equals_supported_total",
+    "single_novel_below_supported_total",
+    "single_novel_exceeds_supported_total",
+)
+
+
+def reference_total_control_status(observations, kind, known_total):
+    """Anonymous structure/equality evidence, never a mapping approval.
+
+    Only an already recognized nonnegative purchase total can be a control.
+    Multiple components stay non-additive even if their sum happens to match.
+    A zero/zero equality is not meaningful evidence of account equivalence.
+    """
+    if (type(known_total) is not int or not 0 <= known_total <= 10**18):
+        raise OfficialTaxonomyError("invalid_supported_reference_total")
+    structure = component_evidence_status(observations, kind)
+    if structure != "single_component_completeness_unproven":
+        return structure
+    amount = observations[0][1]
+    if amount == known_total:
+        return ("zero_reference_match_uninformative" if amount == 0
+                else "single_novel_equals_supported_total")
+    return ("single_novel_below_supported_total" if amount < known_total
+            else "single_novel_exceeds_supported_total")
