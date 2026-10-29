@@ -155,7 +155,7 @@ with sync_playwright() as p:
         # dates; the UI must show unknown rather than silently merge dates.
         for field in ("Financial", "Price", "Cashflow", "Certified"):
             assert page.locator("#readiness" + field).inner_text() == "미확인"
-    assert page.get_by_text("공식 수집 실행 기록 확인 ↗").is_visible()
+    assert page.get_by_text("과거 파생자료 수집 실행 기록 확인 ↗").is_visible()
     page.locator("#dataReadiness > summary").click()
     assert not page.locator("#dataReadiness").evaluate("(el) => el.open")
     assert page.evaluate(
