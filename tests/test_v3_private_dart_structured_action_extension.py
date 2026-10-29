@@ -273,6 +273,114 @@ class SupplementalActionTests(unittest.TestCase):
         self.assertIn("30 9 * * 1-5",
                       Path(".github/workflows/full-market-batches.yml").read_text())
 
+    def test_transient_supplement_upload_retries_without_provider_refetch(self):
+        path = s._report_path(0, RECORDS[0]["rcept_no"])
+        class OnceUnavailable(Private):
+            failed = False
+            def put_new(self, key, raw, comment):
+                if key == path and not self.failed:
+                    self.failed = True
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return super().put_new(key, raw, comment)
+
+        self.store = OnceUnavailable()
+        self.store.blobs[s.TRIAGE_CHECKPOINT] = b"private-triage-cursor"
+        self.store.blobs[s.triage_path(0)] = b"private verified queue"
+        calls = []
+        with patch.object(s.time, "sleep") as sleep:
+            result = self.process(
+                lambda ep, corp, start, end:
+                    (calls.append(ep), {"status": "013"})[1])
+        self.assertEqual(calls, list(s.SUPPLEMENTAL_ENDPOINTS))
+        self.assertTrue(sleep.called)
+        self.assertEqual(result["provider_calls"], 5)
+        self.assertEqual(self.store.posts, 3)
+        self.assertEqual(result["scores_promoted"], 0)
+
+    def test_ambiguous_supplement_upload_adopts_identical_report(self):
+        path = s._report_path(0, RECORDS[0]["rcept_no"])
+        class LostReply(Private):
+            failed = False
+            def put_new(self, key, raw, comment):
+                result = super().put_new(key, raw, comment)
+                if key == path and not self.failed:
+                    self.failed = True
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return result
+
+        self.store = LostReply()
+        self.store.blobs[s.TRIAGE_CHECKPOINT] = b"private-triage-cursor"
+        self.store.blobs[s.triage_path(0)] = b"private verified queue"
+        calls = []
+        with patch.object(s.time, "sleep"):
+            result = self.process(
+                lambda ep, corp, start, end:
+                    (calls.append(ep), {"status": "013"})[1])
+        self.assertEqual(calls, list(s.SUPPLEMENTAL_ENDPOINTS))
+        self.assertEqual(result["provider_calls"], 5)
+        self.assertEqual(self.store.posts, 3)
+        self.assertFalse(s._validate_report(
+            self.store.blobs[path], 0, RECORDS[0])["scores_authorized"])
+
+    def test_exhausted_supplement_upload_never_replays_provider_from_main(self):
+        path = s._report_path(0, RECORDS[0]["rcept_no"])
+        class PersistentlyUnavailable(Private):
+            failures = 0
+            def put_new(self, key, raw, comment):
+                if key == path:
+                    self.failures += 1
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return super().put_new(key, raw, comment)
+
+        store = PersistentlyUnavailable()
+        store.blobs[s.TRIAGE_CHECKPOINT] = b"private-triage-cursor"
+        store.blobs[s.triage_path(0)] = b"private verified queue"
+        out = io.StringIO()
+        calls = []
+        with (patch.dict(s.os.environ, {"V3_PRIVATE_ARCHIVE_REPO": s.PRIVATE_REPO,
+                                       "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                                       "DART_API_KEY": "A" * 40}),
+              patch.object(s, "PrivateGitStorage", return_value=store),
+              patch.object(s, "triage_cursor", return_value={"next_pair_index": 1}),
+              patch.object(s, "_candidate_queue", return_value=(RECORDS, "a" * 64, 2)),
+              patch.object(s, "official_fetch", side_effect=lambda ep, *args:
+                           (calls.append(ep), {"status": "013"})[1]),
+              patch.object(s.time, "sleep") as sleep,
+              redirect_stdout(out)):
+            code = s.main()
+        self.assertEqual(code, 1)
+        self.assertEqual(store.failures, 4)
+        self.assertEqual(calls, list(s.SUPPLEMENTAL_ENDPOINTS))
+        self.assertEqual(store.posts, 0)
+        self.assertNotIn(s.CHECKPOINT, store.blobs)
+        self.assertTrue(sleep.called)
+        result = json.loads(out.getvalue())
+        self.assertEqual(result["reason"], "private_extension_immutable_write_unavailable")
+        self.assertFalse(result["source_identifiers_exposed"])
+        self.assertNotIn(RECORDS[0]["rcept_no"], out.getvalue())
+
+    def test_conflicting_supplement_receipt_never_overwritten(self):
+        path = s._report_path(0, RECORDS[0]["rcept_no"])
+        class Conflict(Private):
+            def put_new(self, key, raw, comment):
+                if key == path:
+                    self.blobs[key] = b"other private content"
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return super().put_new(key, raw, comment)
+
+        self.store = Conflict()
+        self.store.blobs[s.TRIAGE_CHECKPOINT] = b"private-triage-cursor"
+        self.store.blobs[s.triage_path(0)] = b"private verified queue"
+        calls = []
+        with patch.object(s.time, "sleep"):
+            with self.assertRaisesRegex(
+                    s.StructuredActionError, "private_structured_action_write_conflict"):
+                self.process(lambda ep, corp, start, end:
+                             (calls.append(ep), {"status": "013"})[1])
+        self.assertEqual(calls, list(s.SUPPLEMENTAL_ENDPOINTS))
+        self.assertEqual(self.store.blobs[path], b"other private content")
+        self.assertNotIn(s.CHECKPOINT, self.store.blobs)
+
     def test_retry_after_private_readback_error_reuses_receipt_no_duplicate_calls(self):
         class Flaky(Private):
             transient = True
