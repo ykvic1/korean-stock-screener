@@ -67,8 +67,8 @@ def _points(points: Any, available: Any, maximum: int) -> bool:
         return False
     if available == 0:
         return points is None
-    return (type(points) in (int, float) and math.isfinite(points)
-            and 0 <= points <= maximum)
+    return (type(points) in (int, float) and 0 <= points <= maximum
+            and math.isfinite(points))
 
 
 def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
@@ -98,6 +98,10 @@ def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
             and preview.get("raw_source_rows_stored") is False
             and preview.get("source_same_filing_scope_receipt_checked") is True
             and preview.get("joined_to_main_v3_ranking") is False
+            and preview.get("four_year_financial15_complete") is False
+            and preview.get("valuation15_complete") is False
+            and preview.get("financial_fcf_weight_available_max") == 4
+            and preview.get("valuation_fcf_weight_available_max") == 5
             and preview.get("buy_recommendations_authorized") is False
             and preview.get("six_pillar_confirmed_100pt") is None
             and observed.get("certified_100point_count") == 0
@@ -168,7 +172,8 @@ def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
     _assert(finance == preview.get("financial_fcf4_research_candidate_issuer_count")
             and valuation == preview.get("valuation_fcf5_research_candidate_issuer_count")
             and len(rows) == preview.get("real_latest_fcf_yield_raw_issuer_count")
-            and preview.get("real_fcf_assets_three_year_raw_issuer_count") >= finance,
+            and _count(preview.get("real_fcf_assets_three_year_raw_issuer_count"))
+            and preview["real_fcf_assets_three_year_raw_issuer_count"] >= finance,
             "fcf_preview_counts_do_not_reconcile")
     _assert(len(rows) <= by_year["2025"]["fcf_observed_receipt_matched"]
             and finance <= depth["three_year_source_receipt_complete"],
