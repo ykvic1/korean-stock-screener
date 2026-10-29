@@ -1,5 +1,5 @@
 /* v3 사용자 모의검증 베타. 기존 공개 v2.2 관측값을 활용하는 연구용 화면.
- * NO v3 six-pillar official score, NO observed future performance claim.
+ * NO V3.0b five-area official investment score, NO observed future performance claim.
  * User's paper records reside in own browser localStorage only.
  */
 (function(root) {
@@ -343,7 +343,7 @@
         ?'기준일 '+view.date+' · 데이터가 오래되어 신규 모의 관찰 기록을 중단했습니다.'
         :'기준일 '+view.date+' · 공개 v2.2 가격 관측값으로 v3 사용자 모의검증 진행 중';
       msgs.className=stale?'status error':'status';
-      by('v3Notice').textContent='v3 확정 6영역 점수·예측 수익률·실거래 추천은 아직 제공하지 않습니다. 패턴·거래량·주봉120주·손절 참고선은 기존 v2.2 출처의 잠정 관측이며 공식 KRX 10년 백테스트 인증이 아닙니다.';
+      by('v3Notice').textContent='v3.0b의 거래량20·기술25·재무20·밸류에이션20·모멘텀15에 대한 정식 인증 점수·예측 수익률·실거래 추천은 아직 제공하지 않습니다. 산업은 정보용이며 100점 배점에 포함되지 않습니다. 패턴·거래량·주봉120주·손절 참고선은 기존 v2.2 출처의 잠정 관측이며 공식 KRX 10년 백테스트 인증이 아닙니다.';
     }
     async function load(){
       try{
