@@ -17,9 +17,12 @@
   if (Object.values(ids).some(x => !x)) return;
   const fmt = value => value.toLocaleString('ko-KR');
   const count = (n, max) => Number.isSafeInteger(n) && n >= 0 && n <= max;
-  const date = text => typeof text === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(text) &&
-    !Number.isNaN(Date.parse(text + 'T00:00:00Z'));
+  const date = text => {
+    if (typeof text !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+    const stamp = Date.parse(text + 'T00:00:00Z');
+    return Number.isFinite(stamp) &&
+      new Date(stamp).toISOString().slice(0, 10) === text;
+  };
   const percent = (value, total) => (100 * value / total).toFixed(1) + '%';
   const reset = () => {
     for (const name of ['financial', 'price', 'cashflow', 'certified']) {
@@ -68,6 +71,16 @@
         score.observed_source_depth ?
         score.observed_source_depth.three_year_receipt_matched_fcf_issuers : null;
       const certified = current.certified_100point_count;
+      // Public aggregate JSON is not independent proof of a certified score.
+      // Fail closed if a future publisher accidentally flips certification
+      // before a separately verified source-chain gate is implemented.
+      if (certified !== 0 ||
+          current.independent_krx_adjusted_path_certification !== false ||
+          current.not_an_investment_ranking !== true ||
+          (score && score.asof === asof && score.listed_total === listed &&
+           score.full_six_pillar_certified_count !== 0)) {
+        throw new Error('independent score certification not established');
+      }
       if (attempted < 1 || !count(priced, listed) ||
           (fcf !== null && !count(fcf, listed)) || !count(certified, listed) ||
           !count(current.observed_any_factor_issuers, listed)) {
@@ -84,7 +97,7 @@
         (fcf === null ? ' · 3개년 FCF 갱신 대기' :
           ' · 3개년 FCF ' + percent(fcf, listed)) +
         '. 이는 데이터 확보율이며 매수 검증률이 아닙니다. ' +
-        '미확보 항목은 0점으로 처리하지 않습니다.';
+        '정식 투자점수는 독립 인증 전이며 미확보 항목은 0점으로 처리하지 않습니다.';
     } catch (_) {
       reset();
       ids.status.textContent = '출처 재검증 중';
