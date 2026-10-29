@@ -64,10 +64,18 @@ def _classify(record):
     return None
 
 
-def select_candidates(state, major, *, asof, limit=MAX_PROBES):
-    """One issuer per missingness class, with newest verified receipt first."""
+def select_candidates(state, major, *, asof, limit=MAX_PROBES,
+                      cohort_index=0):
+    """Rotate verified, distinct issuer-years across missingness and fiscal years.
+
+    For a fixed cohort index, receipt selection is reproducible. Each next
+    cohort rotates fiscal-year strata and then issuer order; no identifiers
+    are emitted to the public report. No new receipts or scores are inferred.
+    """
     if type(limit) is not int or not 1 <= limit <= MAX_PROBES:
         raise XbrlPilotError("invalid_bounded_xbrl_limit")
+    if type(cohort_index) is not int or not 0 <= cohort_index <= 1000000:
+        raise XbrlPilotError("invalid_xbrl_cohort_index")
     choices = {kind: [] for kind in CLASSES}
     for code, issuer in state["records"].items():
         scope = issuer["scope"]
@@ -88,18 +96,37 @@ def select_candidates(state, major, *, asof, limit=MAX_PROBES):
             break
     used = set()
     selected = []
-    for kind in CLASSES:
-        for choice in sorted(choices[kind], key=lambda x: (-x[1], x[0])):
-            if choice[0] not in used:
-                selected.append(choice)
-                used.add(choice[0])
-                break
+    for class_index, kind in enumerate(CLASSES):
+        by_year = {}
+        for choice in choices[kind]:
+            by_year.setdefault(choice[1], []).append(choice)
+        years = sorted(by_year, reverse=True)
+        if not years:
+            continue
+        # Spread a four-call cohort across different eligible fiscal years,
+        # then advance through issuers inside each year's verified pool.
+        # All selection happens *after* receipt validation, never before it.
+        fiscal_start = (cohort_index + class_index) % len(years)
+        for fiscal_offset in range(len(years)):
+            year = years[(fiscal_start + fiscal_offset) % len(years)]
+            rows = sorted(by_year[year], key=lambda item: item[0])
+            issuer_start = (cohort_index // len(years) + class_index) % len(rows)
+            for offset in range(len(rows)):
+                choice = rows[(issuer_start + offset) % len(rows)]
+                if choice[0] not in used:
+                    selected.append(choice)
+                    used.add(choice[0])
+                    break
+            else:
+                continue
+            break
         if len(selected) == limit:
             break
     return selected
 
 
-def _recent_archived_receipt_candidates(major, state, *, asof, members, limit):
+def _recent_archived_receipt_candidates(
+        major, state, *, asof, members, limit, cohort_index=0):
     """Allow bounded ORIGINAL-FILE research without pretending same-day scoring.
 
     This is deliberately narrower than market/financial-score rebaselining:
@@ -140,7 +167,8 @@ def _recent_archived_receipt_candidates(major, state, *, asof, members, limit):
     eligible = dict(state)
     eligible["records"] = {code: row for code, row in records.items()
                            if code in members}
-    return select_candidates(eligible, major, asof=major["asof"], limit=limit)
+    return select_candidates(eligible, major, asof=major["asof"],
+                             limit=limit, cohort_index=cohort_index)
 
 
 def _qualified_name(tag):
@@ -565,10 +593,12 @@ def _read_response_limited(response):
 
 
 def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
-              limit=MAX_PROBES):
+              limit=MAX_PROBES, cohort_index=0):
     try:
         if mode not in ("dry-run", "live") or type(limit) is not int or not 1 <= limit <= MAX_PROBES:
             raise XbrlPilotError("invalid_bounded_xbrl_limit_or_mode")
+        if type(cohort_index) is not int or not 0 <= cohort_index <= 1000000:
+            raise XbrlPilotError("invalid_xbrl_cohort_index")
         asof, members = _inputs(market, catalog)
         if type(major) is not dict:
             raise XbrlPilotError("saved_xbrl_source_identity_invalid")
@@ -585,7 +615,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             # refers to the exact byte-for-byte annual archive. No scores or
             # current-day financial observations are constructed here.
             choices = _recent_archived_receipt_candidates(
-                major, state, asof=asof, members=members, limit=limit)
+                major, state, asof=asof, members=members, limit=limit,
+                cohort_index=cohort_index)
             archived_research = choices is not None
             if choices is None:
                 choices = []
@@ -594,13 +625,18 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             # and unchanged major filing receipts, with zero provider requests.
             state = retained_current_market_cashflow(market, catalog, major, state)
             verify_state(state, market, catalog, major)
-            choices = select_candidates(state, major, asof=asof, limit=limit)
+            choices = select_candidates(
+                state, major, asof=asof, limit=limit,
+                cohort_index=cohort_index)
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.6",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.7",
         "asof": asof,
         "mode": mode,
+        "sample_cohort_mode": "verified_receipt_year_stratified_rotation",
+        "sample_cohort_index": cohort_index,
+        "sample_cohort_distinct_issuers": len({row[0] for row in choices}),
         "eligible_sampled_issuer_years": len(choices),
         "source_readiness": ("verified_archived_receipts_research_only"
                              if archived_research else
@@ -720,6 +756,8 @@ def main(argv=None):
     parser.add_argument("--state", default="docs/v3-dart-cashflow-reference.json")
     parser.add_argument("--mode", choices=("dry-run", "live"), default="dry-run")
     parser.add_argument("--limit", type=int, default=MAX_PROBES)
+    parser.add_argument("--cohort-index", type=int, default=0,
+                        help="Nonnegative bounded research cohort (0..1000000)")
     args = parser.parse_args(argv)
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
@@ -730,7 +768,7 @@ def main(argv=None):
     report = run_pilot(
         read(args.market), read(args.catalog), read(args.major), read(args.state),
         mode=args.mode, key=os.getenv("DART_API_KEY", ""), session=session,
-        limit=args.limit,
+        limit=args.limit, cohort_index=args.cohort_index,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
 
