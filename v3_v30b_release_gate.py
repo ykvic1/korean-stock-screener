@@ -3,13 +3,17 @@
 Public summaries measure availability, not independently authenticated market
 facts. This module never turns a self-reported flag, a full observed weight, a
 completed historical extraction window, or a caller's proof into a trade score.
-It reads only already-published aggregate JSON; no provider calls or writes.
+It crosschecks already-published aggregate JSON and issuer CSV; no provider calls or writes.
 The older six-pillar v3_release_gate remains unchanged for compatibility.
 """
 from __future__ import annotations
 
 import argparse
+import csv
 from collections import Counter
+from decimal import Decimal, InvalidOperation
+from io import StringIO
+import re
 from datetime import date
 import json
 from pathlib import Path
@@ -17,6 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 MAX_INPUT_BYTES = 2_000_000
+MAX_CSV_BYTES = 4_000_000
 AREA_WEIGHTS = {
     "volume": 20, "technical": 25, "financial": 20,
     "valuation": 20, "momentum": 15,
@@ -66,8 +71,150 @@ def _valid_iso_day(value: Any) -> bool:
         return False
 
 
+
+# Independent replay of the already-public issuer CSV against aggregate JSON.
+# This is publication coherence, NEVER KRX price, DART scope or PIT proof.
+CSV_COLUMNS = (
+    "종목코드", "종목명", "시장", "가격자료기준일",
+    "거래량_OBV_잠정점수", "거래량_OBV_산출배점",
+    "기술_잠정점수", "기술_산출배점",
+    "재무_잠정점수", "밸류에이션_잠정점수",
+    "모멘텀_잠정점수", "모멘텀_산출배점",
+    "관측잠정합계_100점중", "산출가능배점_100점중",
+    "미확보배점_100점중", "정식투자점수", "투자등급",
+    "재무_산출배점", "가치_산출배점",
+    "FCF자산3년_잠정점수", "FCF수익률_잠정점수",
+)
+CSV_AREA_FIELDS = {
+    "volume": ("거래량_OBV_산출배점", "거래량_OBV_잠정점수"),
+    "technical": ("기술_산출배점", "기술_잠정점수"),
+    "financial": ("재무_산출배점", "재무_잠정점수"),
+    "valuation": ("가치_산출배점", "밸류에이션_잠정점수"),
+    "momentum": ("모멘텀_산출배점", "모멘텀_잠정점수"),
+}
+
+
+def _csv_integer(raw: Any, maximum: int) -> int:
+    if raw == "":
+        return 0
+    if (not isinstance(raw, str) or not re.fullmatch(r"0|[1-9][0-9]{0,2}", raw)
+            or int(raw) > maximum):
+        raise ValueError("invalid_weight")
+    return int(raw)
+
+
+def _csv_points(raw: Any, maximum: int) -> Decimal | None:
+    if raw == "":
+        return None
+    if not isinstance(raw, str) or len(raw) > 60:
+        raise ValueError("invalid_points")
+    try:
+        number = Decimal(raw)
+    except InvalidOperation:
+        raise ValueError("invalid_points") from None
+    if not number.is_finite() or number < 0 or number > maximum:
+        raise ValueError("invalid_points")
+    return number
+
+
+def issuer_csv_reconciles(observed: Any, scorecard: Any,
+                          csv_text: Any) -> bool:
+    """Recompute all 2,497 issuer weights/histograms; return only a boolean.
+
+    Names, tickers and amounts are intentionally never returned to the report.
+    A matching CSV cannot independently certify source data or trading scores.
+    """
+    if (not isinstance(observed, dict) or not isinstance(scorecard, dict)
+            or type(csv_text) is not str
+            or len(csv_text.encode("utf-8")) > MAX_CSV_BYTES):
+        return False
+    try:
+        reader = csv.DictReader(StringIO(csv_text.lstrip("\ufeff"), newline=""),
+                                strict=True)
+        if reader.fieldnames != list(CSV_COLUMNS):
+            return False
+        area_hist = {key: Counter() for key in AREA_WEIGHTS}
+        total_hist, market_hist = Counter(), {"KOSPI": Counter(), "KOSDAQ": Counter()}
+        complete, partial, missing = {}, {}, {}
+        seen = set()
+        overlaps = 0
+        for row in reader:
+            if (None in row or any(v is None for v in row.values())
+                    or not re.fullmatch(r"[0-9]{6}", row["종목코드"])):
+                return False
+            code = row["종목코드"]
+            market = row["시장"]
+            if (code in seen or market not in market_hist
+                    or row["가격자료기준일"] != observed.get("asof")
+                    or not row["종목명"] or len(row["종목명"]) > 120
+                    or row["정식투자점수"] != ""
+                    or row["투자등급"] != "미검증 연구용"):
+                return False
+            seen.add(code)
+            weights = {}
+            earned = Decimal(0)
+            for area, (weight_key, points_key) in CSV_AREA_FIELDS.items():
+                weight = _csv_integer(row[weight_key], AREA_WEIGHTS[area])
+                points = _csv_points(row[points_key], weight)
+                if (weight == 0) != (points is None):
+                    return False
+                weights[area] = weight
+                area_hist[area][weight] += 1
+                if points is not None:
+                    earned += points
+            available = sum(weights.values())
+            if (_csv_integer(row["산출가능배점_100점중"], 100) != available
+                    or _csv_integer(row["미확보배점_100점중"], 100)
+                    != 100 - available):
+                return False
+            reported = _csv_points(row["관측잠정합계_100점중"], 100)
+            if available == 0:
+                if reported is not None:
+                    return False
+            elif reported is None or abs(reported - earned) > Decimal("0.001"):
+                return False
+            total_hist[available] += 1
+            market_hist[market][available] += 1
+            overlaps += all(weight > 0 for weight in weights.values())
+            if len(seen) > observed.get("listed_total", 0):
+                return False
+        if len(seen) != observed.get("listed_total"):
+            return False
+        for area, bins in area_hist.items():
+            maximum = AREA_WEIGHTS[area]
+            complete[area] = bins[maximum]
+            missing[area] = bins[0]
+            partial[area] = sum(count for w, count in bins.items()
+                                if 0 < w < maximum)
+        return (
+            dict(total_hist) == {
+                int(k): v for k, v in observed["available_weight_distribution"].items()}
+            and {market: dict(bins) for market, bins in market_hist.items()} == {
+                market: {int(k): v for k, v in hist.items()}
+                for market, hist in observed["available_weight_distribution_by_market"].items()}
+            and {area: {str(k): v for k, v in hist.items()}
+                 for area, hist in area_hist.items()} ==
+                observed["area_available_weight_distribution"]
+            and complete == observed["complete_area_issuer_counts"]
+            and partial == observed["partial_area_issuer_counts"]
+            and missing == observed["unacquired_area_issuer_counts"]
+            and {area: complete[area] + partial[area] for area in AREA_WEIGHTS}
+                == observed["observed_issuer_counts"]
+            and observed["five_area_observed_overlap_issuers"] == overlaps
+            and observed["observed_any_factor_issuers"]
+                == len(seen) - total_hist[0]
+            and observed["provisional_complete_100point_observation_count"]
+                == total_hist[100]
+            and scorecard["provisional_numeric_issuer_counts"]
+                == observed["observed_issuer_counts"]
+        )
+    except (ValueError, KeyError, TypeError, AttributeError, csv.Error):
+        return False
+
+
 def assess_v30b(observed: Any, scorecard: Any, history: Any,
-                 *, proof: Any = None) -> dict:
+                 *, proof: Any = None,
+                 observed_csv_text: Any = None) -> dict:
     """Measure validated coverage and fail closed on independent certification.
 
     The optional proof argument is intentionally ignored: unverified assertions
@@ -165,6 +312,11 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
                    or dict(combined) == dist,
                    issues, "market_total_coverage_mismatch")
 
+    csv_reconciled = (issuer_csv_reconciles(o, s, observed_csv_text)
+                      if observed_csv_text is not None else None)
+    if csv_reconciled is False:
+        issues.append("public_issuer_csv_aggregate_mismatch")
+
     # The old backfill's 490/490 extraction window is *not* adjusted-price or
     # delisted-universe verification, and must never be presented as such.
     cohorts = h.get("five_session_cohorts_completed")
@@ -188,6 +340,7 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     missing_count = safe_total - full if snapshot_valid and full is not None else None
     gates = {
         "public_summary_internal_consistency": snapshot_valid,
+        "published_issuer_csv_coherence": snapshot_valid and csv_reconciled is True,
         "five_area_observation_all_listed": snapshot_valid and full == safe_total,
         "fixed_window_krx_extraction": snapshot_valid and window_complete,
         # No existing public aggregate JSON can independently establish these.
@@ -209,6 +362,7 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "schema": "v3-v30b-five-area-readiness-audit-0.1",
         "asof": asof if snapshot_valid else None,
         "public_summary_valid": snapshot_valid,
+        "public_issuer_csv_reconciled": csv_reconciled,
         "listed_total": safe_total if snapshot_valid else None,
         "observed_all_five_areas_100weight_count": full,
         "missing_all_five_area_observation_count": missing_count,
@@ -243,6 +397,15 @@ def _read_public_json(path: Path) -> dict:
         raise V30bInputError("public_summary_unreadable") from None
 
 
+def _read_public_csv(path: Path) -> str:
+    try:
+        if path.stat().st_size > MAX_CSV_BYTES:
+            raise V30bInputError("public_issuer_csv_too_large")
+        return path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeError):
+        raise V30bInputError("public_issuer_csv_unreadable") from None
+
+
 def main(argv: list[str] | None = None) -> dict:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--observed", type=Path,
@@ -251,12 +414,15 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-all-listed-scorecard-summary.json")
     p.add_argument("--history", type=Path,
                    default=ROOT / "docs/v3-krx-derived-backfill-progress.json")
+    p.add_argument("--observed-csv", type=Path,
+                   default=ROOT / "docs/v3-current-observed-all-listed.csv")
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
     report = assess_v30b(_read_public_json(a.observed),
                           _read_public_json(a.scorecard),
-                          _read_public_json(a.history))
+                          _read_public_json(a.history),
+                          observed_csv_text=_read_public_csv(a.observed_csv))
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
