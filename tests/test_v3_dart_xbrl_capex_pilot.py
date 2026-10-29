@@ -363,6 +363,83 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         with self.assertRaises(pilot.XbrlPilotError):
             pilot.inspect_binary_archive(archive(duplicate), year=2025)
 
+    def test_local_label_schema_extension_fact_is_discovery_not_score(self):
+        schema = (
+            '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" '
+            'targetNamespace="http://company.example/extension">'
+            '<xs:element name="AcquireIntangibleCustom" '
+            'id="co_AcquireIntangibleCustom" type="xs:integer"/>'
+            '</xs:schema>'
+        ).encode("utf8")
+        link = (
+            '<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase" '
+            'xmlns:xlink="http://www.w3.org/1999/xlink">'
+            '<link:labelLink xlink:type="extended">'
+            '<link:loc xlink:type="locator" xlink:label="L" '
+            'xlink:href="company.xsd#co_AcquireIntangibleCustom"/>'
+            '<link:label xlink:type="resource" xlink:label="R" '
+            'xml:lang="ko">무형자산의 취득</link:label>'
+            '<link:labelArc xlink:type="arc" '
+            'xlink:arcrole="http://www.xbrl.org/2003/arcrole/concept-label" '
+            'xlink:from="L" xlink:to="R"/>'
+            '</link:labelLink></link:linkbase>'
+        ).encode("utf8")
+        instance = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" '
+            'xmlns:co="http://company.example/extension">'
+            '<co:AcquireIntangibleCustom contextRef="C" unitRef="U">'
+            '123456789</co:AcquireIntangibleCustom></xbrl>'
+        ).encode("utf8")
+
+        def source_bundle(label=link):
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
+                writer.writestr("company.xsd", schema)
+                writer.writestr("labels.xml", label)
+                writer.writestr("report.xbrl", instance)
+            return output.getvalue()
+
+        observed = pilot.inspect_binary_archive(source_bundle(), year=2025)
+        extension = observed["extension_label_evidence"]
+        self.assertEqual(extension["local_taxonomy_schema_files"], 1)
+        self.assertEqual(extension["local_label_linkbase_files"], 1)
+        self.assertEqual(extension["exact_extension_label_schema_leads"], 1)
+        self.assertEqual(
+            extension["exact_extension_label_instance_facts"]["intangible"], 1)
+        self.assertEqual(
+            extension["exact_extension_label_instance_facts"]["ppe"], 0)
+        self.assertEqual(observed["annual_krw_facts"], set())
+        self.assertNotIn("123456789", json.dumps(observed, default=list))
+        self.assertNotIn("co_AcquireIntangibleCustom",
+                         json.dumps(observed, default=list))
+
+        # Fuzzy labels, remotely hosted schema refs, and wrong concepts do
+        # not become leads and are never fetched from external URLs.
+        for mismatch in (
+            link.replace("무형자산의 취득".encode(), "무형자산의 처분".encode()),
+            link.replace(b'company.xsd#', b'https://elsewhere.example/co.xsd#'),
+            link.replace(b'co_AcquireIntangibleCustom', b'co_OtherAccount'),
+        ):
+            with self.subTest(link=mismatch[:60]):
+                nope = pilot.inspect_binary_archive(
+                    source_bundle(mismatch), year=2025)
+                self.assertEqual(
+                    nope["extension_label_evidence"][
+                        "exact_extension_label_instance_facts"]["intangible"], 0)
+
+        market, catalog, major, state, code, receipt = self.fixture()
+        report = pilot.run_pilot(
+            market, catalog, major, state, mode="live",
+            key="A" * 40, session=Session(source_bundle()))
+        self.assertEqual(report["provider_xbrl_file_calls"], 1)
+        self.assertEqual(report["reports_with_extension_intangible_label_fact"], 1)
+        self.assertTrue(
+            report["extension_leads_never_certify_cashflow_amount_or_scope"])
+        self.assertEqual(report["reports_with_missing_annual_krw_candidate"], 0)
+        self.assertNotIn("123456789", json.dumps(report))
+        self.assertNotIn(code, json.dumps(report))
+        self.assertNotIn(receipt, json.dumps(report))
+
     def test_live_context_subreason_is_bounded_anonymous_aggregate(self):
         market, catalog, major, state, code, receipt = self.fixture()
         xml = (
