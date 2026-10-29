@@ -158,6 +158,14 @@ jobs:
                   ('dimension_structure_unknown', '차원 구조 미확인')):
                   lines.append('- ' + label + ': **' +
                                str(dimensions.get(key, '미확인')) + '**')
+              lines.append('#### 차원 CAPEX와 IFRS CFO의 동일 문맥 교집합(회계범위 미확인)')
+              overlap = report.get('extension_target_year_ifrs_cfo_context_overlap', {})
+              for key, label in (
+                  ('shared', '동일 XBRL 파일·연도·차원 문맥 공유'),
+                  ('not_shared', '동일 차원 문맥 미공유')):
+                  lines.append('- ' + label + ': **' +
+                               str(overlap.get(key, '미확인')) + '**')
+              lines.append('문맥 공유 여부만 비교하며, 금액·현금흐름표 소속·연결/별도 범위 또는 점수 인증은 하지 않습니다.')
           else:
               lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(

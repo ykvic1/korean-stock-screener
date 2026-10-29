@@ -721,11 +721,12 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             'xlink:from="L" xlink:to="R"/>'
             '</link:labelLink></link:linkbase>'
         ).encode("utf8")
-        def zip_with(segment):
+        def zip_with(segment, extra_fact=""):
             instance = (
                 '<xbrl xmlns="' + INSTANCE_NS + '" '
                 'xmlns:di="http://xbrl.org/2006/xbrldi" '
                 'xmlns:co="http://synthetic.example/corp" '
+                'xmlns:ifrs="' + IFRS_NS + '" '
                 'xmlns:d="http://synthetic.example/dim">'
                 '<context id="C"><entity><segment>' + segment +
                 '</segment></entity><period>'
@@ -733,7 +734,7 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                 '<endDate>2025-12-31</endDate></period></context>'
                 '<unit id="U"><measure>iso4217:KRW</measure></unit>'
                 '<co:PpeAdditions contextRef="C" unitRef="U">'
-                '123456789</co:PpeAdditions></xbrl>'
+                '123456789</co:PpeAdditions>' + extra_fact + '</xbrl>'
             ).encode("utf8")
             b = io.BytesIO()
             with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as f:
@@ -776,6 +777,44 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                 for private in ("123456789", code, receipt, "PpeAdditions",
                                 "ScopeMember"):
                     self.assertNotIn(private, exposed)
+
+
+        # Same contextRef is evidence of co-location only; it cannot prove
+        # primary cash-flow statement membership or CFS/OFS consolidation.
+        cfo = ('<ifrs:CashFlowsFromUsedInOperatingActivities '
+               'contextRef="C" unitRef="U">7654321'
+               '</ifrs:CashFlowsFromUsedInOperatingActivities>')
+        matching = zip_with(explicit, cfo)
+        matched = pilot.inspect_binary_archive(matching, year=2025)
+        evidence = matched["extension_label_evidence"]
+        self.assertTrue(evidence[
+            "extension_target_year_shared_ifrs_cfo_contexts"]["ppe"])
+        market, catalog, major, state, code, receipt = self.fixture()
+        shared_report = pilot.run_pilot(
+            market, catalog, major, state, mode="live", key="A" * 40,
+            session=Session(matching))
+        self.assertEqual(shared_report[
+            "extension_target_year_ifrs_cfo_context_overlap"]["shared"], 1)
+        self.assertEqual(shared_report[
+            "extension_target_year_ifrs_cfo_context_overlap"]["not_shared"], 0)
+        self.assertTrue(shared_report["no_statement_scope_verified"])
+        self.assertEqual(shared_report[
+            "reports_with_extension_ppe_annual_krw_candidate"], 0)
+        # Another context ID—even in the same instance—is not a match.
+        mismatch = zip_with(explicit, cfo.replace(
+            'contextRef="C"', 'contextRef="OTHER"'))
+        no_shared = pilot.inspect_binary_archive(mismatch, year=2025)
+        self.assertFalse(no_shared["extension_label_evidence"][
+            "extension_target_year_shared_ifrs_cfo_contexts"]["ppe"])
+        mismatch_report = pilot.run_pilot(
+            market, catalog, major, state, mode="live", key="A" * 40,
+            session=Session(mismatch))
+        self.assertEqual(mismatch_report[
+            "extension_target_year_ifrs_cfo_context_overlap"]["not_shared"], 1)
+        public = json.dumps(shared_report) + json.dumps(mismatch_report)
+        for sensitive in ("123456789", "7654321", code, receipt,
+                          "PpeAdditions", "ScopeMember"):
+            self.assertNotIn(sensitive, public)
 
 
 if __name__ == "__main__":

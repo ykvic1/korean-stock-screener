@@ -466,6 +466,55 @@ def _extension_target_year_dimension_shapes(xml_data, year, matched):
     return found
 
 
+
+def _extension_target_year_shared_ifrs_cfo_contexts(xml_data, year, matched):
+    """Anonymous contextRef overlap with IFRS CFO; never a scope/amount proof.
+
+    Only same-instance, exact-calendar-year, dimensional contexts qualify.
+    Fact texts and amounts are deliberately not inspected.
+    """
+    root = _safe_xbrl_xml(xml_data)
+    shared = {kind: False for kind in matched}
+    ns = "{" + XBRL_INSTANCE_NS + "}"
+    if root.tag != ns + "xbrl":
+        return shared
+    contexts = set()
+    for context in root.findall(ns + "context"):
+        period = context.find(ns + "period")
+        if (period is None or period.findtext(ns + "startDate") !=
+                f"{year}-01-01" or period.findtext(ns + "endDate") !=
+                f"{year}-12-31"):
+            continue
+        if (context.find(ns + "entity/" + ns + "segment") is None
+                and context.find(ns + "segment") is None
+                and context.find(ns + "scenario") is None):
+            continue
+        if context.get("id"):
+            contexts.add(context.get("id"))
+    if not contexts:
+        return shared
+    cfo_refs = set()
+    extension_refs = {kind: set() for kind in matched}
+    for fact in root:
+        reference = fact.get("contextRef")
+        if reference not in contexts or "unitRef" not in fact.attrib:
+            continue
+        namespace, local = _qualified_name(fact.tag)
+        if (namespace.startswith((
+                "http://xbrl.ifrs.org/taxonomy/",
+                "https://xbrl.ifrs.org/taxonomy/",
+                "http://www.ifrs.org/",
+                "https://www.ifrs.org/"))
+                and local in FACT_NAMES["cfo"]):
+            cfo_refs.add(reference)
+        for kind, tags in matched.items():
+            if fact.tag in tags:
+                extension_refs[kind].add(reference)
+    for kind in matched:
+        shared[kind] = bool(cfo_refs.intersection(extension_refs[kind]))
+    return shared
+
+
 def _extension_label_evidence(archive, entries, *, year=None):
     """Match an exact Korean label -> local schema concept -> instance fact.
 
@@ -544,6 +593,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
+    extension_shared_cfo = {kind: False for kind in matched}
     if year is not None:
         checked = {
             kind: {"tag": False, "annual": False, "krw": False,
@@ -577,6 +627,11 @@ def _extension_label_evidence(archive, entries, *, year=None):
                     data, year, matched)
                 for kind in matched:
                     dimensional[kind].update(observed[kind])
+            for data in instance_data:
+                overlap = _extension_target_year_shared_ifrs_cfo_contexts(
+                    data, year, matched)
+                for kind in matched:
+                    extension_shared_cfo[kind] |= overlap[kind]
             for kind, reason in extension_context_gaps.items():
                 if reason == "dimensional_target_year":
                     extension_dimensions[kind] = next((
@@ -591,6 +646,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "extension_annual_krw_status": status,
         "extension_annual_context_gap_subreasons": extension_context_gaps,
         "extension_target_year_dimension_shapes": extension_dimensions,
+        "extension_target_year_shared_ifrs_cfo_contexts": extension_shared_cfo,
     }
 
 
@@ -778,6 +834,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "extension_target_year_dimension_shapes": {
             shape: 0 for shape in EXTENSION_DIMENSION_SHAPES
         },
+        "extension_target_year_ifrs_cfo_context_overlap": {
+            "shared": 0, "not_shared": 0,
+        },
         "extension_leads_never_certify_cashflow_amount_or_scope": True,
         "missing_not_interpreted_as_zero": True,
         "archived_research_never_promotes_current_day_scores": True,
@@ -840,6 +899,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                             "extension_target_year_dimension_shapes"][kind]
                         report["extension_target_year_dimension_shapes"][
                             dimension_shape] += 1
+                        shared = extension[
+                            "extension_target_year_shared_ifrs_cfo_contexts"][kind]
+                        report["extension_target_year_ifrs_cfo_context_overlap"][
+                            "shared" if shared else "not_shared"] += 1
                 if status == "candidate_scope_unverified":
                     report["reports_with_extension_" + kind +
                            "_annual_krw_candidate"] += 1
