@@ -71,6 +71,8 @@ jobs:
               ('exact_extension_label_schema_leads', '정확 계정명과 ZIP 내부 스키마가 연결된 후보 태그 수'),
               ('reports_with_extension_ppe_label_fact', '유형자산 취득 확장 태그를 실제로 포함한 보고서 수'),
               ('reports_with_extension_intangible_label_fact', '무형자산 취득 확장 태그를 실제로 포함한 보고서 수'),
+              ('reports_with_extension_ppe_annual_krw_candidate', '유형자산 확장 태그 해당연도·KRW 후보(범위 미확인)'),
+              ('reports_with_extension_intangible_annual_krw_candidate', '무형자산 확장 태그 해당연도·KRW 후보(범위 미확인)'),
           )
           lines = [
               '### DART XBRL 원본파일 구조 조사(최대 4건)',
@@ -114,6 +116,17 @@ jobs:
                   ('other_period', '그 외 기간 문맥'),
                   ('unresolved_or_instant', '기간 확인 불가·문맥 미연결'),
               )
+              extension_counts = report.get('extension_candidate_validation_reasons', {})
+              lines.append('#### 원본 확장 계정 후보의 연간 원화 검증 단계(후보이며 점수 반영 없음)')
+              for key, label in (
+                  ('multiple_extension_concepts', '복수 태그로 총액 불명확'),
+                  ('annual_context_missing', '해당연도 문맥 미검증'),
+                  ('krw_unit_missing', 'KRW 단위 미검증'),
+                  ('numeric_fact_invalid', '숫자·부호 검증 실패'),
+                  ('numeric_values_ambiguous', '원본 숫자 후보 불일치'),
+                  ('candidate_scope_unverified', '해당연도·KRW 일치, 연결/별도 범위 미검증')):
+                  lines.append('- ' + label + ': **' +
+                               str(extension_counts.get(key, '미확인')) + '**')
               context_counts = report.get('annual_context_gap_subreasons', {})
               lines.append('#### 연간 문맥 누락 상세 원인(후보 금액 인정 아님)')
               for key, label in context_labels:

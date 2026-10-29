@@ -179,7 +179,7 @@ def _ifrs_facts(xml_data):
 
 
 
-def _annual_krw_evidence(xml_data, year):
+def _annual_krw_evidence(xml_data, year, *, explicit_tags=None):
     """Classify missing annual KRW evidence without exposing source amounts."""
     if year not in YEARS:
         raise XbrlPilotError("unsupported_xbrl_fiscal_year")
@@ -246,19 +246,24 @@ def _annual_krw_evidence(xml_data, year):
                 shape = "unresolved_or_instant"
         context_shapes[ident] = shape
     for element in root:
-        namespace, local = _qualified_name(element.tag)
-        if not namespace.startswith((
-            "http://xbrl.ifrs.org/taxonomy/",
-            "https://xbrl.ifrs.org/taxonomy/",
-            "http://www.ifrs.org/",
-            "https://www.ifrs.org/",
-        )):
-            continue
         if "contextRef" not in element.attrib or "unitRef" not in element.attrib:
             continue
-        for kind, names in FACT_NAMES.items():
-            if local not in names:
+        if explicit_tags is None:
+            namespace, local = _qualified_name(element.tag)
+            if not namespace.startswith((
+                "http://xbrl.ifrs.org/taxonomy/",
+                "https://xbrl.ifrs.org/taxonomy/",
+                "http://www.ifrs.org/",
+                "https://www.ifrs.org/",
+            )):
                 continue
+            kinds = [kind for kind, names in FACT_NAMES.items()
+                     if local in names]
+        else:
+            # Research-only exact QName set proven by a local ZIP label link.
+            kinds = [kind for kind, tags in explicit_tags.items()
+                     if element.tag in tags]
+        for kind in kinds:
             found = evidence[kind]
             found["tag"] = True
             shape = context_shapes.get(
@@ -362,7 +367,7 @@ def _local_taxonomy_ref(from_member, href, schemas):
     return schemas.get((resolved, frag))
 
 
-def _extension_label_evidence(archive, entries):
+def _extension_label_evidence(archive, entries, *, year=None):
     """Match an exact Korean label -> local schema concept -> instance fact.
 
     Linked labels are only a discovery lead: the cash-flow statement location,
@@ -372,6 +377,7 @@ def _extension_label_evidence(archive, entries):
     schemas = {}
     linkbases = []
     instances = set()
+    instance_data = []
     schema_files = label_link_files = 0
     for entry in entries:
         if entry.is_dir() or not entry.filename.lower().endswith(
@@ -393,6 +399,7 @@ def _extension_label_evidence(archive, entries):
                     raise XbrlPilotError("ambiguous_local_taxonomy_element")
                 schemas[key] = (namespace, name)
         if root.tag == "{" + XBRL_INSTANCE_NS + "}xbrl":
+            instance_data.append(archive.read(entry))
             for fact in root:
                 if "contextRef" in fact.attrib and "unitRef" in fact.attrib:
                     instances.add(fact.tag)
@@ -435,12 +442,35 @@ def _extension_label_evidence(archive, entries):
             label_leads.add((kind, tag))
             if tag in instances:
                 matched[kind].add(tag)
+    status = {kind: "label_fact_not_present" for kind in matched}
+    if year is not None:
+        checked = {
+            kind: {"tag": False, "annual": False, "krw": False,
+                   "numeric": False, "values": set(), "context_shapes": set()}
+            for kind in FACT_NAMES
+        }
+        for data in instance_data:
+            observed = _annual_krw_evidence(
+                data, year, explicit_tags=matched)
+            for kind in matched:
+                for stage in ("tag", "annual", "krw", "numeric"):
+                    checked[kind][stage] |= observed[kind][stage]
+                checked[kind]["values"].update(observed[kind]["values"])
+                checked[kind]["context_shapes"].update(
+                    observed[kind]["context_shapes"])
+        reasons = _annual_krw_reasons(checked)
+        for kind in matched:
+            if len(matched[kind]) > 1:
+                status[kind] = "multiple_extension_concepts"
+            elif matched[kind]:
+                status[kind] = reasons[kind]
     return {
         "local_taxonomy_schema_files": schema_files,
         "local_label_linkbase_files": label_link_files,
         "exact_extension_label_schema_leads": len(label_leads),
         "exact_extension_label_instance_facts": {
             kind: len(tags) for kind, tags in matched.items()},
+        "extension_annual_krw_status": status,
     }
 
 
@@ -506,7 +536,7 @@ def inspect_binary_archive(content, *, year=None):
                             observed[kind]["context_shapes"])
             # ZIP-bundled labels and schema IDs are checked locally, without
             # following external taxonomy references or interpreting amounts.
-            extension = _extension_label_evidence(archive, entries)
+            extension = _extension_label_evidence(archive, entries, year=year)
             reasons = _annual_krw_reasons(annual) if year is not None else {}
             candidates = {kind for kind, reason in reasons.items()
                           if reason == "candidate_scope_unverified"}
@@ -568,7 +598,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.5",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.6",
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
@@ -602,6 +632,14 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "exact_extension_label_schema_leads": 0,
         "reports_with_extension_ppe_label_fact": 0,
         "reports_with_extension_intangible_label_fact": 0,
+        "extension_candidate_validation_reasons": {
+            reason: 0 for reason in (
+                "multiple_extension_concepts", "annual_context_missing",
+                "krw_unit_missing", "numeric_fact_invalid",
+                "numeric_values_ambiguous", "candidate_scope_unverified")
+        },
+        "reports_with_extension_ppe_annual_krw_candidate": 0,
+        "reports_with_extension_intangible_annual_krw_candidate": 0,
         "extension_leads_never_certify_cashflow_amount_or_scope": True,
         "missing_not_interpreted_as_zero": True,
         "archived_research_never_promotes_current_day_scores": True,
@@ -653,6 +691,11 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         for kind in ("ppe", "intangible"):
             if extension["exact_extension_label_instance_facts"][kind]:
                 report["reports_with_extension_" + kind + "_label_fact"] += 1
+                status = extension["extension_annual_krw_status"][kind]
+                report["extension_candidate_validation_reasons"][status] += 1
+                if status == "candidate_scope_unverified":
+                    report["reports_with_extension_" + kind +
+                           "_annual_krw_candidate"] += 1
         for fact in FACT_NAMES:
             if fact in result["facts"]:
                 report["reports_with_ifrs_" + fact + "_tag_candidate"] += 1
