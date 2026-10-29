@@ -1,11 +1,18 @@
 """Synthetic private DART planned-date x KRX heuristic-only reconciliation."""
 import gzip
+from contextlib import redirect_stdout
+from hashlib import sha256
+from io import StringIO
 import json
+from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import v3_private_dart_declared_date_proximity as p
 import v3_private_dart_structured_action_receipts as principal
 import v3_private_dart_structured_action_extension as extension
+import v3_private_dart_krx_filing_title_triage as triage
+from test_v3_krx_derived_5day import FakePrivate
 from v3_private_dart_krx_filing_title_triage import SCHEMA as SHORTLIST_SCHEMA
 
 
@@ -132,6 +139,82 @@ class DateProximityTests(unittest.TestCase):
         with self.assertRaises(p.ProximityError):
             p.reconcile(base, {RECEIPTS[0]["rcept_no"]:
                         principal.canonical(forged)}, {}, pair_index=0)
+
+    def test_real_private_readonly_adapter_reads_only_saved_receipts(self):
+        store = FakePrivate()
+        blob = private_shortlist()
+        store.blobs[triage.CHECKPOINT] = principal.canonical({
+            **triage._empty(), "next_pair_index": 1,
+            "last_file": triage._path(0),
+            "last_digest": sha256(blob).hexdigest(),
+        })
+        store.blobs[triage._path(0)] = blob
+        store.blobs[principal._path(0, RECEIPTS[0]["rcept_no"])] = principal_blob()
+        store.blobs[extension._report_path(0, RECEIPTS[0]["rcept_no"])] = supplement_blob()
+        original = dict(store.blobs)
+        outcome = p.read_only_private_audit(store, pair_index=0)
+        self.assertEqual(outcome["status"], "private_declared_date_temporal_research")
+        self.assertEqual(outcome["source_receipts_total_in_pair"], 2)
+        self.assertEqual(outcome["selected_slice_remaining_receipts"], 0)
+        self.assertEqual(outcome["verified_private_structured_reports"], 2)
+        self.assertEqual(outcome["declared_dates_near_krx_risk_window"], 1)
+        self.assertEqual(outcome["provider_calls"], 0)
+        self.assertEqual(outcome["private_files_written"], 0)
+        self.assertEqual(store.posts, 0)
+        self.assertEqual(store.blobs, original)
+        self.assertNotIn(RECEIPTS[0]["rcept_no"], json.dumps(outcome))
+
+        out = StringIO()
+        with (patch.dict(p.os.environ, {
+                    "V3_PRIVATE_ARCHIVE_REPO": p.PRIVATE_REPO,
+                    "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                    "V3_PROX_PAIR_INDEX": "0",
+                    "V3_PROX_START": "0",
+                    "V3_PROX_LIMIT": "8"}),
+              patch.object(p, "PrivateGitStorage", return_value=store),
+              redirect_stdout(out)):
+            code = p.main()
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out.getvalue())["provider_calls"], 0)
+        self.assertNotIn(RECEIPTS[0]["rcept_no"], out.getvalue())
+        self.assertNotIn("00121932", out.getvalue())
+
+    def test_private_runner_waits_or_rejects_changed_completed_source(self):
+        store = FakePrivate()
+        store.blobs[triage.CHECKPOINT] = principal.canonical(triage._empty())
+        waiting = p.read_only_private_audit(store, pair_index=0)
+        self.assertEqual(waiting["status"], "waiting_for_complete_private_title_shortlist")
+        self.assertEqual(waiting["provider_calls"], 0)
+        self.assertEqual(store.posts, 0)
+
+        blob = private_shortlist()
+        store.blobs[triage.CHECKPOINT] = principal.canonical({
+            **triage._empty(), "next_pair_index": 1,
+            "last_file": triage._path(0), "last_digest": "f" * 64,
+        })
+        store.blobs[triage._path(0)] = blob
+        with self.assertRaisesRegex(
+                p.ProximityError, "private_proximity_last_completed_pair_mutated"):
+            p.read_only_private_audit(store, pair_index=0)
+        self.assertEqual(store.posts, 0)
+
+        store.repository = "ykvic1/korean-stock-screener"
+        with self.assertRaisesRegex(
+                p.ProximityError, "private_proximity_wrong_repository"):
+            p.read_only_private_audit(store, pair_index=0)
+
+    def test_manual_runner_workflow_never_has_schedule_or_source_credentials(self):
+        workflow = Path(
+            ".github/workflows/v3-private-dart-date-proximity.yml").read_text()
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("options: [dry_run, live]", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("contents: read", workflow)
+        self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN:", workflow)
+        self.assertNotIn("DART_API_KEY:", workflow)
+        self.assertNotIn("KRX_API_KEY:", workflow)
+        self.assertNotIn("schedule:", workflow)
+        self.assertNotIn("git push", workflow)
 
     def test_shortlist_duplicates_and_invalid_calendar_fail_closed(self):
         with self.assertRaisesRegex(
