@@ -322,6 +322,7 @@ jobs:
           PY
       - name: JavaScript syntax
         run: |
+          node --check docs/v3-fcf-gap.js
           python - <<'PY'
           from pathlib import Path
           import re, subprocess
