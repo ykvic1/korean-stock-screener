@@ -65,6 +65,7 @@ class DARTCapexTaxonomyPilotTests(TestCase):
         self.assertEqual(p.candidate_fields(row("x", "유형자산의 취득"), **args),
                          ("ppe",))
         for bad in (row("x", "무형자산의 처분"),
+                    row("x", "유형자산 및 무형자산의 취득"),
                     row("x", "무형자산의 취득", currency="USD"),
                     row("x", "무형자산의 취득", fs_div="OFS"),
                     row("x", "무형자산의 취득", bsns_year="2024"),
@@ -306,3 +307,66 @@ class DARTCapexTaxonomyPilotTests(TestCase):
         self.assertNotIn(STOCK, str(report))
         self.assertNotIn(CORP, str(report))
         self.assertNotIn(RECEIPT, str(report))
+
+
+    def test_same_statement_supported_total_is_control_only_without_extra_calls(self):
+        from v3_dart_capex_official_taxonomy import SECTIONS
+        known = row(
+            "ifrs-full_CashFlowsFromUsedInOperatingActivities",
+            "영업활동현금흐름", "250")
+        known_ppe = row(
+            "ifrs-full_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+            "유형자산의 취득", "50")
+        novel_ppe = row("dart_PurchaseOfMachinery", "기계장치의 취득", "10")
+        novel_intangible = row(
+            "dart_PurchaseOfIntangibleAssetsOtherThanGoodwill",
+            "무형자산의 취득", "30")
+        rows = [known, known_ppe, novel_ppe, novel_intangible]
+        old = normalize_year([known, known_ppe], code=STOCK, corp=CORP,
+                             year=YEAR, scope="CFS", asof=ASOF,
+                             major_receipt=RECEIPT)
+        self.assertEqual(old["ppe_capex_krw"], 50)
+        self.assertIsNone(old["intangible_capex_krw"])
+        self.assertIsNone(old["free_cashflow_krw"])
+        state = {"asof": ASOF, "records": {STOCK: {"scope": "CFS",
+                 "years": {str(YEAR): old}}}}
+        major = {"records": {STOCK: {"years": {str(YEAR):
+                 {"CFS": {"receipt_id": RECEIPT}}}}}}
+        section_responses = []
+        for section in SECTIONS:
+            entries = [
+                {"sj_div": section, "account_id": candidate["account_id"],
+                 "account_nm": candidate["account_nm"],
+                 "label_kor": candidate["account_nm"],
+                 "label_eng": "", "data_tp": "X"}
+                for candidate in (novel_ppe, novel_intangible)
+            ]
+            section_responses.append(Response(
+                payload={"status": "000", "list": entries}))
+        session = Session(section_responses + [
+            Response(content=b"companies"),
+            Response(payload={"status": "000", "list": rows})])
+        selected = [("missing_intangible_only", "KOSPI",
+                     STOCK, YEAR, "CFS", old)]
+        with patch.object(p, "targets", return_value=selected), patch.object(
+                p, "asof_members", return_value=(ASOF,
+                {STOCK: {"market": "KOSPI"}})), patch.object(
+                p, "_mapping", return_value={STOCK: CORP}):
+            report = p.probe(state, {}, {}, major, key="x" * 40,
+                             session=session, check_official_taxonomy=True)
+        self.assertEqual(report["provider_calls"], 6)
+        self.assertEqual(report["supported_total_control_checked_years"],
+                         {"ppe": 1, "intangible": 0})
+        self.assertEqual(
+            report["supported_total_control_evidence"]["ppe"][
+                "single_novel_below_supported_total"], 1)
+        self.assertEqual(
+            report["official_component_structure"]["intangible"][
+                "single_component_completeness_unproven"], 1)
+        self.assertEqual(
+            report["official_taxonomy_novel_issuer_years"]["intangible"], 1)
+        self.assertTrue(report["supported_total_comparison_never_approves_id_or_score"])
+        self.assertTrue(report["no_new_fcf_scores_or_zero_imputation"])
+        self.assertNotIn(STOCK, str(report))
+        self.assertNotIn(RECEIPT, str(report))
+        self.assertEqual(len(session.calls), 6)

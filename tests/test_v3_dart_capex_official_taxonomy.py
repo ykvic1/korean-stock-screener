@@ -134,3 +134,45 @@ class OfficialTaxonomyTests(TestCase):
                              expected)
         with self.assertRaises(t.OfficialTaxonomyError):
             t.component_evidence_status([], "made-up")
+
+
+    def test_supported_total_calibration_never_certifies_component_mapping(self):
+        machine = "dart_PurchaseOfMachinery"
+        equipment = "dart_PurchaseOfEquipment"
+        self.assertEqual(t.reference_total_control_status([], "ppe", 50),
+                         "no_official_component")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, 50)], "ppe", 50),
+            "single_novel_equals_supported_total")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, 0)], "ppe", 0),
+            "zero_reference_match_uninformative")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, 20)], "ppe", 50),
+            "single_novel_below_supported_total")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, 70)], "ppe", 50),
+            "single_novel_exceeds_supported_total")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, 20), (equipment, 30)], "ppe", 50),
+            "multiple_components_completeness_unproven")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, 20), (machine, 30)], "ppe", 50),
+            "conflicting_duplicate_amounts")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, None)], "ppe", 50),
+            "invalid_or_missing_amount")
+        self.assertEqual(t.reference_total_control_status(
+            [(machine, -20)], "ppe", 50),
+            "negative_sign_unverified")
+        for unsupported in (-1, None, 1.2, True, 10**19):
+            with self.assertRaises(t.OfficialTaxonomyError):
+                t.reference_total_control_status([], "ppe", unsupported)
+        self.assertEqual(
+            set(t.CONTROL_GROUP_STATUSES) -
+            {"zero_reference_match_uninformative",
+             "single_novel_equals_supported_total",
+             "single_novel_below_supported_total",
+             "single_novel_exceeds_supported_total"},
+            set(t.COMPONENT_GROUP_STATUSES) -
+            {"single_component_completeness_unproven"})
