@@ -1019,3 +1019,67 @@ assert.ok(badOverlayModel.rows.every(x=>
  'reject an entire source batch on any mismatched row');
 
 console.log('Unified workspace: V3 provisional sum, missing-data safety, refreshed research scoring, mobile source handling, real-market compatibility PASS; records='+actualAll.length);
+
+
+// Public readiness must not promote forged self-reported "certified" counts.
+// The fixed public JSON schema can show source coverage, never independent proof.
+const vmForReadiness = require('node:vm');
+const readinessSource = fs.readFileSync(
+ path.join(__dirname,'../docs/v3-data-readiness.js'),'utf8');
+const readinessHistory = JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-real-source-six-area-coverage.json'),'utf8'));
+const readinessScore = JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-all-listed-scorecard-summary.json'),'utf8'));
+assert.ok(entry.includes('공시 근거로 잠정 계산'));
+assert.ok(entry.includes('정규장·수정주가·기업행위 검증 완료를 뜻하지 않습니다'));
+assert.ok(!entry.includes('공식 수집 실행 기록 확인'));
+async function simulateReadiness(current, history=readinessHistory, score=readinessScore){
+ const ids=['readinessStatus','readinessFinancial','readinessPrice',
+  'readinessCashflow','readinessCertified','readinessNotes','reload'];
+ const elements=Object.fromEntries(ids.map(id=>[id,{
+  textContent:'',addEventListener(){}}]));
+ const contents={
+  'v3-current-observed-all-listed-summary.json':current,
+  'v3-real-source-six-area-coverage.json':history,
+  'v3-all-listed-scorecard-summary.json':score
+ };
+ const document={getElementById(id){return elements[id]||null;}};
+ const fetch=async path=>({
+  ok:contents[path]!==undefined&&contents[path]!==null,
+  json:async()=>contents[path]
+ });
+ vmForReadiness.runInNewContext(readinessSource,{document,fetch},
+  {timeout:1000});
+ await new Promise(resolve=>setImmediate(resolve));
+ return elements;
+}
+(async()=>{
+ const base=structuredClone(observedPartialSummary);
+ const good=await simulateReadiness(base);
+ assert.equal(good.readinessCertified.textContent,'0종목');
+ assert.ok(good.readinessStatus.textContent.includes(base.asof));
+ assert.ok(good.readinessNotes.textContent.includes('독립 인증 전'));
+ const forgedCount=structuredClone(base);
+ forgedCount.certified_100point_count=1;
+ const badCount=await simulateReadiness(forgedCount);
+ assert.equal(badCount.readinessCertified.textContent,'미확인');
+ assert.equal(badCount.readinessStatus.textContent,'출처 재검증 중');
+ const forgedProvider=structuredClone(base);
+ forgedProvider.independent_krx_adjusted_path_certification=true;
+ const badProvider=await simulateReadiness(forgedProvider);
+ assert.equal(badProvider.readinessCertified.textContent,'미확인');
+ const forgedScore=structuredClone(readinessScore);
+ forgedScore.full_six_pillar_certified_count=1;
+ const badScore=await simulateReadiness(base,readinessHistory,forgedScore);
+ assert.equal(badScore.readinessCertified.textContent,'미확인');
+ const impossibleDay=structuredClone(base);
+ const impossibleHistory=structuredClone(readinessHistory);
+ impossibleDay.asof='2026-02-31';
+ impossibleHistory.market_asof=impossibleDay.asof;
+ const badDay=await simulateReadiness(impossibleDay,impossibleHistory);
+ assert.equal(badDay.readinessStatus.textContent,'출처 재검증 중');
+ const missingOptional=await simulateReadiness(base,readinessHistory,null);
+ assert.equal(missingOptional.readinessCashflow.textContent,'미확인');
+ assert.equal(missingOptional.readinessCertified.textContent,'0종목');
+ console.log('Readiness UI: bad certification, invalid date, optional FCF fail-closed PASS');
+})().catch(error=>{console.error(error);process.exitCode=1;});
