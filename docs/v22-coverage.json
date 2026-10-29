@@ -1,21 +1,21 @@
 {
   "schema": "v22-full-market-accounting-0.1",
-  "asof": "2026-10-28",
+  "asof": "2026-10-29",
   "status": "census_accounted_with_unresolved_quality",
   "market_listing_size": 2497,
   "attempted_stock_count": 2497,
   "complete_batch_census": true,
-  "priced_current_session_count": 2369,
-  "price_coverage_pct": 94.87,
-  "not_priced_total": 128,
-  "price_failure_count": 106,
-  "insufficient_price_history_count": 22,
+  "priced_current_session_count": 2367,
+  "price_coverage_pct": 94.79,
+  "not_priced_total": 130,
+  "price_failure_count": 109,
+  "insufficient_price_history_count": 21,
   "unattempted_batch_count": 0,
   "price_issue_types": {
-    "price_zero_latest_volume": 106
+    "price_zero_latest_volume": 109
   },
   "priced_by_market": {
-    "KOSPI": 802,
+    "KOSPI": 800,
     "KOSDAQ": 1567
   },
   "flow_confirmed_count": 0,
