@@ -538,5 +538,79 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertNotIn(receipt, public)
 
 
+    def test_rotating_cohorts_span_eligible_years_and_issuers_without_leaks(self):
+        market, catalog, major, state, code, receipt = self.fixture()
+        asof, _ = cash.asof_members(market, catalog, major)
+        # Synthetic verified receipts only; never call an outside provider.
+        choices_by_class = {
+            "missing_both_capex": (100, None, None),
+            "missing_intangible": (100, 20, None),
+            "missing_ppe": (100, None, 10),
+            "missing_cfo": (None, 20, 10),
+        }
+        records, sources = {}, {}
+        for kind_index, (kind, fields) in enumerate(choices_by_class.items()):
+            for issuer_index in range(3):
+                fake_code = f"{910000 + kind_index * 10 + issuer_index:06d}"
+                year = (2025, 2024, 2023)[issuer_index]
+                observation = {
+                    "major_annual_receipt_matched": True,
+                    "annual_receipt_id": receipt,
+                    "operating_cashflow_krw": fields[0],
+                    "ppe_capex_krw": fields[1],
+                    "intangible_capex_krw": fields[2],
+                }
+                records[fake_code] = {
+                    "scope": "CFS", "years": {str(year): observation}}
+                sources[fake_code] = {
+                    "years": {str(year): {"CFS": {"receipt_id": receipt}}}}
+        synthetic_state = {"records": records}
+        synthetic_major = {"records": sources}
+        cohorts = [
+            pilot.select_candidates(
+                synthetic_state, synthetic_major, asof=asof, cohort_index=i)
+            for i in range(3)
+        ]
+        for cohort in cohorts:
+            self.assertEqual(len(cohort), 4)
+            self.assertEqual({item[4] for item in cohort}, set(pilot.CLASSES))
+            self.assertEqual(len({item[0] for item in cohort}), 4)
+            self.assertEqual({item[1] for item in cohort}, {2023, 2024, 2025})
+        self.assertNotEqual(
+            [item[0] for item in cohorts[0]],
+            [item[0] for item in cohorts[1]])
+        self.assertEqual(
+            cohorts[0],
+            pilot.select_candidates(
+                synthetic_state, synthetic_major, asof=asof, cohort_index=0))
+        self.assertEqual(len(
+            pilot.select_candidates(synthetic_state, synthetic_major,
+                                    asof=asof, cohort_index=2, limit=2)), 2)
+
+        # A mismatching receipt is rejected BEFORE rotation/provider calls.
+        synthetic_major["records"][cohorts[1][0][0]]["years"][
+            str(cohorts[1][0][1])]["CFS"]["receipt_id"] = "20210101000001"
+        with self.assertRaises(pilot.XbrlPilotError):
+            pilot.select_candidates(
+                synthetic_state, synthetic_major, asof=asof, cohort_index=1)
+
+    def test_invalid_cohort_index_rejected_before_any_provider_call(self):
+        market, catalog, major, state, _, _ = self.fixture()
+        for invalid in (-1, 1000001, True, "1", 1.5):
+            with self.subTest(value=invalid):
+                with self.assertRaises(pilot.XbrlPilotError):
+                    pilot.run_pilot(
+                        market, catalog, major, state,
+                        mode="live", key="A" * 40,
+                        session=Session(archive(sample_xml())),
+                        cohort_index=invalid)
+        dry = pilot.run_pilot(
+            market, catalog, major, state, mode="dry-run", cohort_index=25)
+        self.assertEqual(dry["sample_cohort_index"], 25)
+        self.assertEqual(dry["sample_cohort_distinct_issuers"], 1)
+        self.assertEqual(dry["provider_xbrl_file_calls"], 0)
+        self.assertTrue(dry["no_xbrl_amounts_or_investment_scores_derived"])
+
+
 if __name__ == "__main__":
     unittest.main()
