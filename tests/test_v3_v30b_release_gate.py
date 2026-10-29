@@ -10,7 +10,8 @@ from pathlib import Path
 import unittest
 
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
-                                    issuer_csv_reconciles)
+                                    issuer_csv_reconciles,
+                                    issuer_catalog_reconciles)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -60,6 +61,57 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertTrue(report["public_issuer_csv_reconciled"])
         self.assertTrue(report["gates"]["published_issuer_csv_coherence"])
         self.assertFalse(report["confirmed_scoring_authorized"])
+
+    def test_catalog_census_exactly_matches_all_real_public_issuer_rows(self):
+        o, s, h = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        catalog = json.loads((ROOT / "docs/v22-market-catalog.json").read_text(
+            encoding="utf-8"))
+        self.assertTrue(issuer_catalog_reconciles(o, catalog, raw))
+        audit = assess_v30b(o, s, h, observed_csv_text=raw, catalog=catalog)
+        self.assertTrue(audit["public_issuer_catalog_reconciled"])
+        self.assertTrue(audit["gates"]["published_issuer_catalog_membership"])
+        self.assertTrue(audit["public_summary_valid"])
+        self.assertEqual(audit["investment_grade_certified_count"], 0)
+
+    def test_substituted_or_misnamed_issuer_rejected_even_when_weights_match(self):
+        o, s, h = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        catalog = json.loads((ROOT / "docs/v22-market-catalog.json").read_text(
+            encoding="utf-8"))
+        original = list(csv.reader(StringIO(raw)))
+        col = {name: i for i, name in enumerate(original[0])}
+        for field, value in (
+                ("종목코드", "999999"),
+                ("종목명", "잘못 연결된 기업"),
+                ("시장", "KOSDAQ" if original[1][col["시장"]] == "KOSPI"
+                              else "KOSPI")):
+            with self.subTest(field=field):
+                rows = copy.deepcopy(original)
+                rows[1][col[field]] = value
+                out = StringIO()
+                csv.writer(out, lineterminator="\n").writerows(rows)
+                self.assertFalse(
+                    issuer_catalog_reconciles(o, catalog, out.getvalue()))
+                audit = assess_v30b(o, s, h, observed_csv_text=out.getvalue(),
+                                    catalog=catalog)
+                self.assertFalse(audit["public_issuer_catalog_reconciled"])
+                self.assertIn("public_issuer_catalog_membership_mismatch",
+                              audit["blocker_codes"])
+                self.assertFalse(audit["v30b_release_ready"])
+                self.assertNotIn(rows[1][col["종목명"]],
+                                 json.dumps(audit, ensure_ascii=False))
+        altered = copy.deepcopy(catalog)
+        altered["rows"][1]["code"] = altered["rows"][0]["code"]
+        self.assertFalse(issuer_catalog_reconciles(o, altered, raw))
+        altered = copy.deepcopy(catalog)
+        altered["date"] = "2026-10-01"
+        self.assertFalse(issuer_catalog_reconciles(o, altered, raw))
+        altered = copy.deepcopy(catalog)
+        altered["rows"].pop()
+        self.assertFalse(issuer_catalog_reconciles(o, altered, raw))
 
     def test_corrupt_issuer_rows_never_reconcile_or_leak_tickers(self):
         o, s, h = public_inputs()
