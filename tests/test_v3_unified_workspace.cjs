@@ -1031,6 +1031,8 @@ const readinessHistory = JSON.parse(fs.readFileSync(
 const readinessScore = JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/v3-all-listed-scorecard-summary.json'),'utf8'));
 assert.ok(entry.includes('공시 근거로 잠정 계산'));
+assert.ok(html.includes('공시 근거로 잠정 계산'));
+assert.ok(!html.includes('검증된 관측자료만'));
 assert.ok(entry.includes('정규장·수정주가·기업행위 검증 완료를 뜻하지 않습니다'));
 assert.ok(!entry.includes('공식 수집 실행 기록 확인'));
 async function simulateReadiness(current, history=readinessHistory, score=readinessScore){
