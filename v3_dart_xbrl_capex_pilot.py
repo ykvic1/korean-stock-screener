@@ -12,6 +12,7 @@ from datetime import date
 import io
 import json
 import os
+import posixpath
 import re
 import zipfile
 from pathlib import Path
@@ -316,6 +317,133 @@ def _annual_krw_reasons(evidence):
     return reasons
 
 
+XSD_NS = "http://www.w3.org/2001/XMLSchema"
+LINK_NS = "http://www.xbrl.org/2003/linkbase"
+XLINK_NS = "http://www.w3.org/1999/xlink"
+XML_NS = "http://www.w3.org/XML/1998/namespace"
+EXACT_CAPEX_LABELS = {
+    "ppe": frozenset(("유형자산의취득", "유형자산취득")),
+    "intangible": frozenset(("무형자산의취득", "무형자산취득")),
+}
+
+
+def _safe_xbrl_xml(data):
+    """Never expand DTD entities or fetch referenced taxonomy URLs."""
+    if b"<!DOCTYPE" in data.upper() or b"<!ENTITY" in data.upper():
+        raise XbrlPilotError("unsafe_xbrl_xml_entities")
+    try:
+        return ET.fromstring(data)
+    except ET.ParseError:
+        raise XbrlPilotError("unparseable_xbrl_archive_member") from None
+
+
+def _exact_extension_capex_label(text):
+    if type(text) is not str or len(text) > 160:
+        return None
+    label = "".join(text.split())
+    matching = [kind for kind, names in EXACT_CAPEX_LABELS.items()
+                if label in names]
+    return matching[0] if len(matching) == 1 else None
+
+
+def _local_taxonomy_ref(from_member, href, schemas):
+    """Resolve a ZIP-contained schema fragment only; never follow a URL."""
+    if (type(href) is not str or len(href) > 320
+        or href.count("#") != 1):
+        return None
+    path, frag = href.split("#")
+    if (not path or path.startswith("/") or ":" in path
+        or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,150}", frag)):
+        return None
+    resolved = posixpath.normpath(posixpath.join(
+        posixpath.dirname(from_member), path))
+    if resolved == ".." or resolved.startswith("../"):
+        return None
+    return schemas.get((resolved, frag))
+
+
+def _extension_label_evidence(archive, entries):
+    """Match an exact Korean label -> local schema concept -> instance fact.
+
+    Linked labels are only a discovery lead: the cash-flow statement location,
+    amount completeness, consolidation scope and annual KRW context remain
+    UNVERIFIED. This function never reads, stores or outputs amounts.
+    """
+    schemas = {}
+    linkbases = []
+    instances = set()
+    schema_files = label_link_files = 0
+    for entry in entries:
+        if entry.is_dir() or not entry.filename.lower().endswith(
+            (".xml", ".xbrl", ".xsd")):
+            continue
+        root = _safe_xbrl_xml(archive.read(entry))
+        if root.tag == "{" + XSD_NS + "}schema":
+            schema_files += 1
+            namespace = root.get("targetNamespace")
+            if not namespace or len(namespace) > 320:
+                continue
+            for element in root.findall("{" + XSD_NS + "}element"):
+                name, ident = element.get("name"), element.get("id")
+                if (type(name) is not str or len(name) > 160
+                    or type(ident) is not str or len(ident) > 160):
+                    continue
+                key = (entry.filename, ident)
+                if key in schemas and schemas[key] != (namespace, name):
+                    raise XbrlPilotError("ambiguous_local_taxonomy_element")
+                schemas[key] = (namespace, name)
+        if root.tag == "{" + XBRL_INSTANCE_NS + "}xbrl":
+            for fact in root:
+                if "contextRef" in fact.attrib and "unitRef" in fact.attrib:
+                    instances.add(fact.tag)
+        links = root.findall(".//{" + LINK_NS + "}labelLink")
+        if links:
+            label_link_files += 1
+            linkbases.extend((entry.filename, link) for link in links)
+    matched = {"ppe": set(), "intangible": set()}
+    label_leads = set()
+    xlink = "{" + XLINK_NS + "}"
+    for member, link in linkbases:
+        locators = {
+            loc.get(xlink + "label"): _local_taxonomy_ref(
+                member, loc.get(xlink + "href"), schemas)
+            for loc in link.findall("{" + LINK_NS + "}loc")
+            if loc.get(xlink + "label")
+        }
+        labels = {}
+        for label in link.findall("{" + LINK_NS + "}label"):
+            lang = label.get("{" + XML_NS + "}lang", "")
+            if lang.lower() not in ("ko", "ko-kr"):
+                continue
+            kind = _exact_extension_capex_label(label.text)
+            if kind and label.get(xlink + "label"):
+                labels[label.get(xlink + "label")] = kind
+        for arc in link.findall("{" + LINK_NS + "}labelArc"):
+            if arc.get(xlink + "arcrole") != (
+                "http://www.xbrl.org/2003/arcrole/concept-label"):
+                continue
+            concept = locators.get(arc.get(xlink + "from"))
+            kind = labels.get(arc.get(xlink + "to"))
+            if not kind or not concept:
+                continue
+            namespace, local = concept
+            if namespace.startswith((
+                "http://xbrl.ifrs.org/", "https://xbrl.ifrs.org/",
+                "http://www.ifrs.org/", "https://www.ifrs.org/")):
+                continue
+            tag = "{" + namespace + "}" + local
+            label_leads.add((kind, tag))
+            if tag in instances:
+                matched[kind].add(tag)
+    return {
+        "local_taxonomy_schema_files": schema_files,
+        "local_label_linkbase_files": label_link_files,
+        "exact_extension_label_schema_leads": len(label_leads),
+        "exact_extension_label_instance_facts": {
+            kind: len(tags) for kind, tags in matched.items()},
+    }
+
+
 def inspect_binary_archive(content, *, year=None):
     """No extraction to filesystem; hard limits before decompression."""
     if type(content) is not bytes or not content or len(content) > MAX_RESPONSE_BYTES:
@@ -329,7 +457,8 @@ def inspect_binary_archive(content, *, year=None):
                 if status in ("013", "014"):
                     return {"file_absent": True, "instances": 0, "facts": set(),
                             "annual_krw_facts": set(), "annual_krw_reasons": {},
-                            "annual_context_gap_subreasons": {}}
+                            "annual_context_gap_subreasons": {},
+                            "extension_label_evidence": None}
             except ET.ParseError:
                 pass
         raise XbrlPilotError("unexpected_xbrl_non_zip_provider_response")
@@ -375,6 +504,9 @@ def inspect_binary_archive(content, *, year=None):
                         annual[kind]["values"].update(observed[kind]["values"])
                         annual[kind]["context_shapes"].update(
                             observed[kind]["context_shapes"])
+            # ZIP-bundled labels and schema IDs are checked locally, without
+            # following external taxonomy references or interpreting amounts.
+            extension = _extension_label_evidence(archive, entries)
             reasons = _annual_krw_reasons(annual) if year is not None else {}
             candidates = {kind for kind, reason in reasons.items()
                           if reason == "candidate_scope_unverified"}
@@ -383,7 +515,8 @@ def inspect_binary_archive(content, *, year=None):
                     "annual_context_gap_subreasons": {
                         kind: _context_gap_reason(annual[kind])
                         for kind, reason in reasons.items()
-                        if reason == "annual_context_missing"}}
+                        if reason == "annual_context_missing"},
+                    "extension_label_evidence": extension}
     except (zipfile.BadZipFile, OSError):
         raise XbrlPilotError("xbrl_zip_unreadable") from None
 
@@ -435,7 +568,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.4",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.5",
         "asof": asof,
         "mode": mode,
         "eligible_sampled_issuer_years": len(choices),
@@ -464,6 +597,12 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "annual_context_gap_subreasons": {
             shape: 0 for shape in CONTEXT_GAP_PRIORITY
         },
+        "local_taxonomy_schema_files": 0,
+        "local_label_linkbase_files": 0,
+        "exact_extension_label_schema_leads": 0,
+        "reports_with_extension_ppe_label_fact": 0,
+        "reports_with_extension_intangible_label_fact": 0,
+        "extension_leads_never_certify_cashflow_amount_or_scope": True,
         "missing_not_interpreted_as_zero": True,
         "archived_research_never_promotes_current_day_scores": True,
         "no_statement_scope_verified": True,
@@ -506,6 +645,14 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             continue
         report["valid_zip_files"] += 1
         report["xbrl_instances_detected"] += result["instances"]
+        extension = result["extension_label_evidence"]
+        report["local_taxonomy_schema_files"] += extension["local_taxonomy_schema_files"]
+        report["local_label_linkbase_files"] += extension["local_label_linkbase_files"]
+        report["exact_extension_label_schema_leads"] += extension[
+            "exact_extension_label_schema_leads"]
+        for kind in ("ppe", "intangible"):
+            if extension["exact_extension_label_instance_facts"][kind]:
+                report["reports_with_extension_" + kind + "_label_fact"] += 1
         for fact in FACT_NAMES:
             if fact in result["facts"]:
                 report["reports_with_ifrs_" + fact + "_tag_candidate"] += 1
