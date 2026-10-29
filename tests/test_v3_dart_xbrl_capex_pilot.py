@@ -770,6 +770,13 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                     "extension_target_year_dimension_shapes"][shape], 1)
                 self.assertEqual(sum(report[
                     "extension_target_year_dimension_shapes"].values()), 1)
+                expected_hint = ("other_axis_member" if
+                                 shape == "single_explicit_member" else
+                                 "not_single_explicit_member")
+                self.assertEqual(report[
+                    "extension_target_year_ifrs_scope_hints"][expected_hint], 1)
+                self.assertEqual(sum(report[
+                    "extension_target_year_ifrs_scope_hints"].values()), 1)
                 self.assertEqual(report[
                     "reports_with_extension_ppe_annual_krw_candidate"], 0)
                 self.assertTrue(report["no_statement_scope_verified"])
@@ -815,6 +822,71 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         for sensitive in ("123456789", "7654321", code, receipt,
                           "PpeAdditions", "ScopeMember"):
             self.assertNotIn(sensitive, public)
+
+
+    def test_ifrs_scope_axis_qname_hints_fail_closed_and_never_certify(self):
+        # IFRS scope axis/member is a hint, not the original taxonomy DTS
+        # domain validation or cash-flow-statement role evidence.
+        axis = "ConsolidatedAndSeparateFinancialStatementsAxis"
+        prefix = "ifrs"
+        member = "ConsolidatedMember"
+        dim = "http://xbrl.org/2006/xbrldi"
+        instance = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" '
+            'xmlns:di="' + dim + '" '
+            'xmlns:ifrs="' + IFRS_NS + '" '
+            'xmlns:co="http://synthetic.example/issuer">'
+            '<context id="C"><entity><segment>'
+            '<di:explicitMember dimension="' + prefix + ':' + axis + '">'
+            + prefix + ':' + member + '</di:explicitMember>'
+            '</segment></entity><period>'
+            '<startDate>2025-01-01</startDate><endDate>2025-12-31'
+            '</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<co:CapitalSpending contextRef="C" unitRef="U">'
+            '2468013579</co:CapitalSpending></xbrl>'
+        ).encode("utf8")
+        matched = {
+            "ppe": {"{http://synthetic.example/issuer}CapitalSpending"},
+            "intangible": set(),
+        }
+        def hint(data):
+            result = pilot._extension_target_year_ifrs_scope_hints(
+                data, 2025, matched)
+            self.assertEqual(result["intangible"], set())
+            self.assertNotIn("2468013579", json.dumps(
+                {kind: sorted(values) for kind, values in result.items()}))
+            return result["ppe"]
+        self.assertEqual(hint(instance),
+                         {"ifrs_consolidated_member_hint"})
+        self.assertEqual(hint(instance.replace(
+            b"ConsolidatedMember", b"SeparateMember")),
+            {"ifrs_separate_member_hint"})
+        self.assertEqual(hint(instance.replace(
+            b"ConsolidatedMember", b"OtherMember")),
+            {"ifrs_scope_axis_other_member"})
+        self.assertEqual(hint(instance.replace(
+            b"ConsolidatedAndSeparateFinancialStatementsAxis",
+            b"OtherAxis")),
+            {"other_axis_member"})
+        self.assertEqual(hint(instance.replace(
+            b"ifrs:ConsolidatedMember", b"missing:ConsolidatedMember")),
+            {"unresolved_qname"})
+        # A rebinding of the SAME prefix elsewhere must not be guessed
+        # from a document-global prefix map.
+        rebound = instance.replace(
+            b'<unit id="U">',
+            b'<unused xmlns:ifrs="urn:other"></unused><unit id="U">')
+        self.assertEqual(hint(rebound), {"unresolved_qname"})
+        # A date mismatch cannot reuse an apparently familiar axis.
+        self.assertEqual(hint(instance.replace(
+            b"2025-12-31", b"2024-12-31")), set())
+        # Multiple explicit members cannot produce a scope hint.
+        doubled = instance.replace(
+            b'</di:explicitMember>', b'</di:explicitMember>'
+            b'<di:explicitMember dimension="ifrs:OtherAxis">'
+            b'ifrs:ConsolidatedMember</di:explicitMember>')
+        self.assertEqual(hint(doubled), {"not_single_explicit_member"})
 
 
 if __name__ == "__main__":
