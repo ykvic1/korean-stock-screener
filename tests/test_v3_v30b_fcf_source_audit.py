@@ -26,6 +26,31 @@ def sources():
 
 
 class FCFSourceAuditTests(unittest.TestCase):
+    def setUp(self):
+        positive_live_checks = {
+            "test_current_published_source_counts_reconcile_without_issuing_scores",
+            "test_no_unverified_issuer_or_money_values_are_republished",
+            "test_modified_source_counts_dates_receipts_and_flags_fail_closed",
+            "test_cli_uses_existing_public_files_only",
+        }
+        if (self._testMethodName in positive_live_checks and
+                (self.observed.get("asof") != self.gap.get("asof") or
+                 self.observed.get("asof") != self.preview.get("asof"))):
+            self.skipTest("market_day_rolled_before_independent_fcf_sources")
+
+    def test_older_fcf_sources_are_rejected_without_any_score(self):
+        observed, gap, preview = (copy.deepcopy(self.observed),
+                                  copy.deepcopy(self.gap),
+                                  copy.deepcopy(self.preview))
+        if observed.get("asof") == gap.get("asof") == preview.get("asof"):
+            gap["asof"] = "2026-10-01"
+        else:
+            self.assertLess(gap["asof"], observed["asof"])
+            self.assertLess(preview["asof"], observed["asof"])
+        with self.assertRaisesRegex(FCFReconciliationError,
+                                    "fcf_source_day_mismatch"):
+            audit_fcf_sources(observed, gap, preview)
+
     @classmethod
     def setUpClass(cls):
         cls.observed, cls.gap, cls.preview = sources()

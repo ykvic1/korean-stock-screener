@@ -25,10 +25,15 @@ class FcfGapPublicViewTests(unittest.TestCase):
                              .read_text(encoding="utf8"))
         gap = json.loads((d / "v3-dart-cashflow-gap-summary.json")
                          .read_text(encoding="utf8"))
-        self.assertEqual(gap["asof"], current["asof"])
-        self.assertEqual(gap["listed_issuer_count"], current["listed_total"])
+        if gap["asof"] != current["asof"]:
+            # Safe day rollover: old cashflow snapshot is not a current
+            # investment input and must never be displayed as up to date.
+            self.assertLess(gap["asof"], current["asof"])
+            self.assertLessEqual(gap["listed_issuer_count"], current["listed_total"])
+        else:
+            self.assertEqual(gap["listed_issuer_count"], current["listed_total"])
         depth = gap["three_year_issuer_depth"]
-        self.assertEqual(sum(depth.values()), current["listed_total"])
+        self.assertEqual(sum(depth.values()), gap["listed_issuer_count"])
         self.assertEqual(sum(gap["categories"].values()),
                          gap["attempted_company_years"])
         self.assertEqual(gap["observed_fcf_company_years"] +
@@ -61,14 +66,24 @@ async function once(change) {
   return el.textContent;
 }
 (async()=>{
-  const ok=await once(null);
+  const live=await once(null);
+  if(c.asof===g.asof&&c.listed_total===g.listed_issuer_count) {
+    assert.match(live,/동일 연도·범위·접수번호/);
+  } else {
+    assert.match(live,/표시를 보류/);
+    assert.match(live,/결측은 0원으로 대체하지 않습니다/);
+  }
+  // Test the successful display using the cashflow snapshot's own census,
+  // without falsely presenting it as the latest market-day data.
+  const aligned=(a,b)=>{b.asof=a.asof;b.listed_total=a.listed_issuer_count;};
+  const ok=await once(aligned);
   assert.match(ok,/동일 연도·범위·접수번호/);
   assert.ok(ok.includes(g.three_year_issuer_depth.three_year_source_receipt_complete.toLocaleString('ko-KR')));
   assert.ok(ok.includes(g.three_year_issuer_depth.three_years_attempted_missing_accounts.toLocaleString('ko-KR')));
   assert.match(ok,/0원으로 처리하지 않으며/);
-  assert.match(await once(a=>{a.asof='2026-10-01'}),/표시를 보류/);
-  assert.match(await once(a=>{a.categories.missing_both_capex+=1}),/표시를 보류/);
-  assert.match(await once(a=>{a.three_year_issuer_depth.no_saved_cashflow_years+=1}),/표시를 보류/);
+  assert.match(await once((a,b)=>{aligned(a,b);a.asof='2026-10-01'}),/표시를 보류/);
+  assert.match(await once((a,b)=>{aligned(a,b);a.categories.missing_both_capex+=1}),/표시를 보류/);
+  assert.match(await once((a,b)=>{aligned(a,b);a.three_year_issuer_depth.no_saved_cashflow_years+=1}),/표시를 보류/);
   console.log('source-only FCF audit display: pass');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 """

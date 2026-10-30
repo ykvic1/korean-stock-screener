@@ -118,10 +118,18 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
         lagged_bulk["asof"]=old_day
         current_bulk=copy.deepcopy(self.bulk)
         current_bulk["asof"]=new_day
+        # A same-day source must have actually collected the new census.
+        current_bulk["listed_total"]=catalog["listed_total"]
         self.assertTrue(source_join_ready(
             market,catalog,self.codes,current_bulk))
         self.assertFalse(source_join_ready(
             market,catalog,self.codes,lagged_bulk))
+        # A merely redated older census is tampered evidence, not readiness.
+        mislabeled=copy.deepcopy(lagged_bulk)
+        mislabeled["asof"]=new_day
+        with self.assertRaisesRegex(
+                IndustryEarningsError,"industry_join_same_day_census_mismatch"):
+            source_join_ready(market,catalog,self.codes,mislabeled)
         # The old "build" operation is still STRICT, even when this
         # explicitly bounded, standalone publication option can defer.
         with self.assertRaises(IndustryEarningsError):
