@@ -11,6 +11,9 @@
     financial: document.getElementById('readinessFinancial'),
     price: document.getElementById('readinessPrice'),
     cashflow: document.getElementById('readinessCashflow'),
+    financialIssuers: document.getElementById('readinessFinancialIssuers'),
+    valuationIssuers: document.getElementById('readinessValuationIssuers'),
+    provisional100: document.getElementById('readinessProvisional100'),
     certified: document.getElementById('readinessCertified'),
     notes: document.getElementById('readinessNotes')
   };
@@ -25,7 +28,7 @@
   };
   const percent = (value, total) => (100 * value / total).toFixed(1) + '%';
   const reset = () => {
-    for (const name of ['financial', 'price', 'cashflow', 'certified']) {
+    for (const name of ['financial', 'price', 'cashflow', 'financialIssuers', 'valuationIssuers', 'provisional100', 'certified']) {
       ids[name].textContent = '미확인';
     }
   };
@@ -70,6 +73,9 @@
       const fcf = score && score.asof === asof && score.listed_total === listed &&
         score.observed_source_depth ?
         score.observed_source_depth.three_year_receipt_matched_fcf_issuers : null;
+      const financialIssuers = current.observed_issuer_counts.financial;
+      const valuationIssuers = current.observed_issuer_counts.valuation;
+      const provisional100 = current.provisional_complete_100point_observation_count;
       const certified = current.certified_100point_count;
       // Public aggregate JSON is not independent proof of a certified score.
       // Fail closed if a future publisher accidentally flips certification
@@ -81,18 +87,28 @@
            score.full_six_pillar_certified_count !== 0)) {
         throw new Error('independent score certification not established');
       }
+      // 100 available weight means observed source coverage, NOT investment certification.
+      // A corrupt or stale aggregate fails closed instead of showing a misleading zero.
       if (attempted < 1 || !count(priced, listed) ||
           (fcf !== null && !count(fcf, listed)) || !count(certified, listed) ||
+          !count(financialIssuers, listed) || !count(valuationIssuers, listed) ||
+          !count(provisional100, listed) ||
+          provisional100 > Math.min(priced, financialIssuers, valuationIssuers) ||
           !count(current.observed_any_factor_issuers, listed)) {
         throw new Error('invalid source-derived coverage');
       }
       ids.financial.textContent = fmt(actual) + ' / ' + fmt(attempted);
       ids.price.textContent = fmt(priced) + ' / ' + fmt(listed);
       ids.cashflow.textContent = fcf === null ? '미확인' : fmt(fcf) + ' / ' + fmt(listed);
+      ids.financialIssuers.textContent = fmt(financialIssuers) + ' / ' + fmt(listed);
+      ids.valuationIssuers.textContent = fmt(valuationIssuers) + ' / ' + fmt(listed);
+      ids.provisional100.textContent = fmt(provisional100) + '종목 · 미인증';
       ids.certified.textContent = fmt(certified) + '종목';
       ids.status.textContent = '자료 기준일 ' + asof;
       ids.notes.textContent =
         'DART 4개년 재무 ' + percent(actual, attempted) +
+        ' · 재무영역 일부 관측 ' + percent(financialIssuers, listed) +
+        ' · 가치평가영역 일부 관측 ' + percent(valuationIssuers, listed) +
         ' · 기술분석 관측 ' + percent(priced, listed) +
         (fcf === null ? ' · 3개년 FCF 갱신 대기' :
           ' · 3개년 FCF ' + percent(fcf, listed)) +

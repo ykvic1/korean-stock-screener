@@ -191,6 +191,29 @@ class V30bReadinessTests(unittest.TestCase):
                 self.assertFalse(r["v30b_release_ready"])
                 self.assertFalse(r["gates"]["investment_grade_scoring"])
 
+    def test_fcf_only_secondary_scorecard_lag_is_bounded_not_certified(self):
+        observed, scorecard, backfill = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        self.assertTrue(issuer_csv_reconciles(observed, scorecard, raw))
+        self.assertTrue(assess_v30b(observed, scorecard, backfill)[
+            "public_summary_valid"])
+        # A same-day older scorecard can omit legitimately source-replayed FCF
+        # names; this is not 100-point investment score certification.
+        self.assertFalse(assess_v30b(observed, scorecard, backfill)[
+            "v30b_release_ready"])
+        for area, value in (
+                ("valuation", observed["observed_issuer_counts"]["valuation"] + 1),
+                ("technical", max(0, observed["observed_issuer_counts"]["technical"] - 1)),
+                ("financial", -1)):
+            with self.subTest(area=area):
+                damaged = copy.deepcopy(scorecard)
+                damaged["provisional_numeric_issuer_counts"][area] = value
+                self.assertFalse(issuer_csv_reconciles(observed, damaged, raw))
+                report = assess_v30b(observed, damaged, backfill)
+                self.assertFalse(report["public_summary_valid"])
+                self.assertIn("area_count_or_source_mismatch", report["blocker_codes"])
+
     def test_an_untrusted_proof_cannot_enable_authorization(self):
         o, s, h = public_inputs()
         r = assess_v30b(o, s, h, proof={

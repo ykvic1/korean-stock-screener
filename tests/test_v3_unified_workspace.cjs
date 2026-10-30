@@ -1037,7 +1037,8 @@ assert.ok(entry.includes('정규장·수정주가·기업행위 검증 완료를
 assert.ok(!entry.includes('공식 수집 실행 기록 확인'));
 async function simulateReadiness(current, history=readinessHistory, score=readinessScore){
  const ids=['readinessStatus','readinessFinancial','readinessPrice',
-  'readinessCashflow','readinessCertified','readinessNotes','reload'];
+  'readinessCashflow','readinessFinancialIssuers','readinessValuationIssuers',
+  'readinessProvisional100','readinessCertified','readinessNotes','reload'];
  const elements=Object.fromEntries(ids.map(id=>[id,{
   textContent:'',addEventListener(){}}]));
  const contents={
@@ -1058,6 +1059,12 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
 (async()=>{
  const base=structuredClone(observedPartialSummary);
  const good=await simulateReadiness(base);
+ assert.equal(good.readinessFinancialIssuers.textContent,
+  base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+base.listed_total.toLocaleString('ko-KR'));
+ assert.equal(good.readinessValuationIssuers.textContent,
+  base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+base.listed_total.toLocaleString('ko-KR'));
+ assert.equal(good.readinessProvisional100.textContent,
+  base.provisional_complete_100point_observation_count.toLocaleString('ko-KR')+'종목 · 미인증');
  assert.equal(good.readinessCertified.textContent,'0종목');
  assert.ok(good.readinessStatus.textContent.includes(base.asof));
  assert.ok(good.readinessNotes.textContent.includes('독립 인증 전'));

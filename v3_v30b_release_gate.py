@@ -117,6 +117,47 @@ def _csv_points(raw: Any, maximum: int) -> Decimal | None:
     return number
 
 
+def _secondary_scorecard_counts_bounded_by_matched_fcf(
+        observed: Any, base_counts: Any) -> bool:
+    """Allow only source-attributed FCF enlargement over the older scorecard.
+
+    The independently source-replayed current CSV is authoritative for current
+    coverage. The slower auxiliary research scorecard may omit a few FCF-only
+    companies even for the same market date. Technical/volume/momentum must
+    still agree exactly; no arbitrary missing data can be promoted.
+    """
+    if (not isinstance(observed, dict) or not isinstance(base_counts, dict)
+            or set(base_counts) != set(AREA_WEIGHTS)):
+        return False
+    live = observed.get("observed_issuer_counts")
+    if not isinstance(live, dict) or set(live) != set(AREA_WEIGHTS):
+        return False
+    listed = observed.get("listed_total")
+    if not _is_count(listed) or listed == 0:
+        return False
+    fcf = observed.get("fcf_observed_issuer_counts")
+    for area in AREA_WEIGHTS:
+        current = live.get(area)
+        baseline = base_counts.get(area)
+        if (not _is_count(current) or current > listed
+                or not _is_count(baseline) or baseline > current):
+            return False
+        if area in ("volume", "technical", "momentum"):
+            if baseline != current:
+                return False
+            continue
+        if baseline < current:
+            key = "financial4" if area == "financial" else "valuation5"
+            if (observed.get("fcf_reference_join_status") !=
+                    "same_fiscal_year_scope_receipt_replayed"
+                    or not isinstance(fcf, dict)
+                    or not _is_count(fcf.get(key))
+                    or fcf[key] > listed
+                    or current - baseline > fcf[key]):
+                return False
+    return True
+
+
 def issuer_csv_reconciles(observed: Any, scorecard: Any,
                           csv_text: Any) -> bool:
     """Recompute all 2,497 issuer weights/histograms; return only a boolean.
@@ -205,8 +246,8 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
                 == len(seen) - total_hist[0]
             and observed["provisional_complete_100point_observation_count"]
                 == total_hist[100]
-            and scorecard["provisional_numeric_issuer_counts"]
-                == observed["observed_issuer_counts"]
+            and _secondary_scorecard_counts_bounded_by_matched_fcf(
+                observed, scorecard.get("provisional_numeric_issuer_counts"))
         )
     except (ValueError, KeyError, TypeError, AttributeError, csv.Error):
         return False
@@ -335,7 +376,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
                    and partly_observed == partial.get(area)
                    and never_observed == missing.get(area)
                    and fully_observed + partly_observed == observed_counts.get(area)
-                   and observed_counts.get(area) == score_counts.get(area),
+                   and _secondary_scorecard_counts_bounded_by_matched_fcf(
+                       o, score_counts),
                    issues, "area_count_or_source_mismatch")
             validated_area_counts[area] = fully_observed
     if dist is not None:
