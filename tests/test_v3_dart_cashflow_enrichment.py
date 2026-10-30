@@ -271,13 +271,40 @@ class CashflowSourceTests(unittest.TestCase):
         altered=copy.deepcopy(next_bulk)
         altered["records"]["005930"]["years"]["2024"]["CFS"]["receipt_id"]=(
             "20250318000002")
-        blocked=FakeSession()
-        with self.assertRaisesRegex(
-            cf.CashflowError,"cashflow_major_receipt_changed"):
-            cf.collect(next_market,next_catalog,altered,earlier,
-                key="synthetic-non-sensitive-DART-api-key",
-                session=blocked,issuer_limit=2)
-        self.assertEqual(blocked.calls,[])
+        # Only the revised FY2024 is quarantined. The other company/year
+        # receipts remain observed; a new provider call must obtain FY2024.
+        quarantined=cf.retained_current_market_cashflow(
+            next_market,next_catalog,altered,earlier)
+        self.assertNotIn("2024",quarantined["records"]["005930"]["years"])
+        self.assertIn("2023",quarantined["records"]["005930"]["years"])
+        self.assertIn("2025",quarantined["records"]["005930"]["years"])
+        self.assertEqual(quarantined["metrics"]["attempted_company_years"],5)
+        _,_,_,requery=cf.plan(
+            next_market,next_catalog,altered,earlier,limit=1)
+        self.assertEqual(requery[0][1:],
+                         ("005930","CFS",[2024]))
+
+        class RevisedSession(FakeSession):
+            def get(self,url,params,timeout):
+                result=super().get(url,params,timeout)
+                if (url.endswith("fnlttSinglAcntAll.json")
+                    and params["corp_code"]==CORPS["005930"]
+                    and params["bsns_year"]=="2024"):
+                    for row in result.body["list"]:
+                        row["rcept_no"]="20250318000002"
+                return result
+
+        revised_source=RevisedSession()
+        healed,n=cf.collect(next_market,next_catalog,altered,earlier,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=revised_source,issuer_limit=1)
+        self.assertEqual(n,2)  # corpCode mapping + ONE revised FY
+        self.assertEqual(healed["metrics"]["attempted_company_years"],6)
+        self.assertTrue(healed["records"]["005930"]["years"]["2024"][
+            "major_annual_receipt_matched"])
+        self.assertEqual(healed["records"]["005930"]["years"]["2024"][
+            "annual_receipt_id"],"20250318000002")
+        self.assertTrue(cf.verify_state(healed,next_market,next_catalog,altered))
         tampered=copy.deepcopy(earlier)
         tampered["metrics"]["fcf_company_years"]+=1
         with self.assertRaisesRegex(
@@ -307,12 +334,67 @@ class CashflowSourceTests(unittest.TestCase):
                                     "cashflow_major_receipt_changed"):
             cf.verify_state(saved,market,catalog,changed,
                             strict_fingerprint=False)
+        # The stale receipt must still FAIL strict direct verification.
+        # Reconciliation never labels the previous FCF amount as the new
+        # filing; it removes the one changed FY before the next query.
+        retained=cf.retained_current_market_cashflow(
+            market,catalog,changed,saved)
+        self.assertNotIn("2025",retained["records"]["005930"]["years"])
+        self.assertIn("2023",retained["records"]["005930"]["years"])
+        self.assertIn("2024",retained["records"]["005930"]["years"])
+        self.assertEqual(retained["metrics"]["attempted_company_years"],5)
+        self.assertTrue(cf.verify_state(retained,market,catalog,changed))
         source=FakeSession()
-        with self.assertRaisesRegex(cf.CashflowError,
-                                    "cashflow_major_receipt_changed"):
-            cf.collect(market,catalog,changed,saved,
-                key="synthetic-non-sensitive-DART-api-key",session=source)
-        self.assertEqual(source.calls,[], "reject conflicting source before HTTP")
+        refreshed,n=cf.collect(market,catalog,changed,saved,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=source,issuer_limit=1)
+        self.assertEqual(n,2)
+        # A provider that still returns the old receipt is OBSERVED but
+        # UNMATCHED; it must never become certified financial evidence.
+        latest=refreshed["records"]["005930"]["years"]["2025"]
+        self.assertEqual(latest["annual_receipt_id"],"20260318000001")
+        self.assertFalse(latest["major_annual_receipt_matched"])
+        self.assertEqual(refreshed["metrics"]["three_year_fcf_receipt_matched_issuers"],1)
+        self.assertTrue(cf.verify_state(refreshed,market,catalog,changed))
+
+    def test_revised_only_year_withdrawal_drops_empty_issuer_record(self):
+        market,catalog,bulk=live_inputs()
+        for year in (2023,2024):
+            bulk["records"]["005930"]["years"][str(year)]["CFS"]["receipt_id"]=None
+        saved,_=cf.collect(market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=5)
+        self.assertEqual(list(saved["records"]["005930"]["years"]),["2025"])
+        revised=copy.deepcopy(bulk)
+        revised["records"]["005930"]["years"]["2025"]["CFS"]["receipt_id"]=None
+        carry=cf.retained_current_market_cashflow(
+            market,catalog,revised,saved)
+        self.assertNotIn("005930",carry["records"])
+        self.assertEqual(carry["metrics"]["attempted_company_years"],
+                         saved["metrics"]["attempted_company_years"]-1)
+        self.assertTrue(cf.verify_state(carry,market,catalog,revised))
+        _,_,_,pending=cf.plan(market,catalog,revised,saved,limit=5)
+        self.assertNotIn("005930",[item[1] for item in pending])
+
+    def test_same_date_unrelated_major_archive_growth_rebinds_provenance(self):
+        market,catalog,bulk=live_inputs()
+        saved,_=cf.collect(market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=2)
+        altered=copy.deepcopy(bulk)
+        altered["records"]["300005"]["years"]["2022"]["CFS"]["values"]["revenue"]+=7
+        refreshed=cf.retained_current_market_cashflow(
+            market,catalog,altered,saved)
+        self.assertEqual(refreshed["records"],saved["records"])
+        self.assertNotEqual(refreshed["source_major_history_sha256"],
+                            saved["source_major_history_sha256"])
+        self.assertTrue(cf.verify_state(refreshed,market,catalog,altered))
+        tampered=copy.deepcopy(saved)
+        tampered["metrics"]["fcf_company_years"]+=1
+        with self.assertRaisesRegex(
+            cf.CashflowError,"untrusted_previous_cashflow_source"):
+            cf.retained_current_market_cashflow(
+                market,catalog,altered,tampered)
 
     def test_partial_checkpoint_after_real_http_failure_and_no_retry_of_saved_year(self):
         market,catalog,bulk=live_inputs()
