@@ -342,6 +342,50 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             generate(market,catalog,v,p,financial={"005930":bad},
                      cashflow={"005930":item})
 
+    def test_independent_fcf_published_even_when_annual_book_is_absent(self):
+        # A delayed BS/IS annual book cannot erase separately receipt-matched
+        # CFO/CAPEX evidence. This reproduces the live 0/20+0/20 regression
+        # while keeping all missing fiscal factors NULL, never invented.
+        from test_v3_dart_cashflow_enrichment import live_inputs, FakeSession
+        from v3_dart_cashflow_enrichment import collect
+        from v3_dart_cashflow_factor_preview import score_preview
+        market,catalog,major=live_inputs()
+        # Match the same catalog/stock naming contract as small().
+        for stock in market["stocks"]:
+            next(row for row in catalog["rows"] if row["code"]==stock["code"])[
+                "name"]=stock["name"]
+        observed,_=collect(
+            market,catalog,major,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=5)
+        preview=score_preview(market,catalog,major,observed)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name,data in {
+                "data.json":market,
+                "v22-market-catalog.json":catalog,
+                "v3-dart-bulk-history.json":major,
+                "v3-dart-cashflow-reference.json":observed,
+                "v3-dart-fcf-research-preview.json":preview,
+            }.items():
+                (root/name).write_text(json.dumps(data),encoding="utf8")
+            # NO annual book, provisional BS/IS, or coverage audit exists.
+            main(["--docs",str(root),"--mode","write","--refresh-derived"])
+            summary=json.loads((root/"v3-current-observed-all-listed-summary.json")
+                               .read_text(encoding="utf8"))
+            self.assertEqual(summary["fiscal_reference_join_status"],
+                             "not_ready_or_unverified_annual_source")
+            self.assertEqual(summary["fcf_reference_join_status"],
+                             "same_fiscal_year_scope_receipt_replayed")
+            self.assertEqual(summary["financial_valuation_component_observed_issuers"][
+                             "financial_fcf_assets_3y"],0)
+            self.assertEqual(summary["financial_valuation_component_observed_issuers"][
+                             "valuation_fcf_yield_latest"],0)
+            self.assertIsNone(summary["financial_valuation_component_observed_issuers"][
+                              "revenue_cagr_3y_pct"])
+            self.assertEqual(summary["provider_requests"],0)
+            main(["--docs",str(root),"--mode","verify","--refresh-derived"])
+
     def test_real_stored_three_year_receipts_replay_before_publish(self):
         docs=DOCS
         names=("data.json","v22-market-catalog.json",
