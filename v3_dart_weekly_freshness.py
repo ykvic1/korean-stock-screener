@@ -55,14 +55,32 @@ def prepare(market, catalog, archive, when, part):
         raise AuditError("stale_or_future_weekly_audit_market_date")
     fiscal = list(range(market_day.year - 4, market_day.year))
     if (type(archive) is not dict or archive.get("schema") != bulk.SCHEMA or
-            archive.get("listed_total") != len(members) or
             archive.get("fiscal_years") != fiscal or
-            type(archive.get("records")) is not dict or
-            set(archive["records"]) != set(members)):
+            type(archive.get("records")) is not dict):
         raise AuditError("untrusted_annual_history_snapshot")
     baseline_day = bulk._day(archive.get("asof"))
     if baseline_day > market_day or (market_day - baseline_day).days > 10:
         raise AuditError("stale_or_future_annual_history_baseline")
+    prior_codes = set(archive["records"])
+    current_codes = set(members)
+    if archive.get("listed_total") != len(members) or prior_codes != current_codes:
+        # The KRX listing census can change before the independent annual
+        # collector refreshes its snapshot. Never compare two issuer rosters.
+        # A bounded, self-consistent *older* baseline can only WAIT: it must
+        # not reach the official API or claim that any source was verified.
+        if (baseline_day < market_day
+            and type(archive.get("listed_total")) is int
+            and archive["listed_total"] == len(prior_codes)
+            and archive.get("attempted_company_count") == len(prior_codes)
+            and len(prior_codes.symmetric_difference(current_codes)) <= 25
+            and all(type(code) is str and bulk.CODE.fullmatch(code)
+                    and type(row) is dict and type(row.get("years")) is dict
+                    for code, row in archive["records"].items())):
+            return {"ready": False, "asof": asof, "baseline_asof": archive["asof"],
+                    "members": members, "fiscal": fiscal, "previous": {},
+                    "slot": None, "selected": [],
+                    "wait_status": "waiting_for_same_roster_annual_history"}
+        raise AuditError("untrusted_annual_history_snapshot")
     previous = bulk._validate_prior(archive, asof, members)
     if (archive.get("attempted_company_count") != len(members) or
             len(previous) != len(members) or
@@ -121,7 +139,8 @@ def run(market, catalog, archive, *, when, part, mode, key=None, session=None):
         ).hexdigest(),
     }
     if not state["ready"]:
-        return {**base, "status": "waiting_for_first_complete_dart_backfill"}
+        return {**base, "status": state.get(
+            "wait_status", "waiting_for_first_complete_dart_backfill")}
     if mode == "audit":
         return {**base, "status": "bounded_rotation_plan_only"}
     if not isinstance(key, str) or len(key) < 20 or session is None:

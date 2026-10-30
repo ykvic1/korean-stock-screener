@@ -108,6 +108,39 @@ class SevenDaySourceAuditTests(unittest.TestCase):
         self.assertEqual(result["source_api_calls"], 0)
         self.assertEqual(caller.calls, [])
 
+    def test_prior_day_roster_change_waits_without_official_calls(self):
+        market, catalog, history = archived()
+        preserved = copy.deepcopy(history)
+        market["date"] = TODAY.isoformat()
+        catalog["date"] = TODAY.isoformat()
+        for row in market["stocks"]:
+            row["price_date"] = TODAY.isoformat()
+        # A yesterday-snapshot with one fewer issuer is a valid independent
+        # collector lag, not today's auditable financial source universe.
+        history["records"].pop(CODES[-1])
+        history["listed_total"] -= 1
+        history["attempted_company_count"] -= 1
+        caller = FakeDART()
+        report = fresh.run(market, catalog, history, when=TODAY,
+                           part=0, mode="live", key=KEY, session=caller)
+        self.assertEqual(report["status"], "waiting_for_same_roster_annual_history")
+        self.assertEqual(report["source_api_calls"], 0)
+        self.assertEqual(report["selected_company_count"], 0)
+        self.assertFalse(report["historical_PIT_certified"])
+        self.assertFalse(report["buy_signals_authorized"])
+        self.assertEqual(caller.calls, [])
+
+        # A same-day mismatch or a forged prior count is never deferred.
+        history["asof"] = TODAY.isoformat()
+        with self.assertRaisesRegex(fresh.AuditError, "untrusted_annual"):
+            fresh.run(market, catalog, history, when=TODAY,
+                      part=0, mode="audit")
+        history["asof"] = preserved["asof"]
+        history["listed_total"] += 1
+        with self.assertRaisesRegex(fresh.AuditError, "untrusted_annual"):
+            fresh.run(market, catalog, history, when=TODAY,
+                      part=0, mode="audit")
+
     def test_quota_and_invalid_sources_fail_closed(self):
         market, catalog, history = archived()
         caller = FakeDART(fail_year=2023)

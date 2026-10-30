@@ -116,6 +116,12 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
         old_day=(date.fromisoformat(new_day)-timedelta(days=1)).isoformat()
         lagged_bulk=copy.deepcopy(self.bulk)
         lagged_bulk["asof"]=old_day
+        # Build a genuinely older, smaller issuer census. On today's saved
+        # data the annual collector may already have caught up, so simply
+        # relabeling its asof would not test an actual roster mismatch.
+        lagged_bulk["records"].pop(next(iter(lagged_bulk["records"])))
+        lagged_bulk["listed_total"]-=1
+        lagged_bulk["attempted_company_count"]-=1
         current_bulk=copy.deepcopy(self.bulk)
         current_bulk["asof"]=new_day
         # A same-day source must have actually collected the new census.

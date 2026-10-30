@@ -24,6 +24,14 @@ def saved():
     ]
 
 
+def complete_saved_gap_source_ready(market,catalog,industry,bulk):
+    # The *sample* join may use a partial company-industry lookup, but this
+    # separate marketwide gap report requires all current listings classified.
+    # Mirror the production workflow's second gate while source dates roll.
+    return (source_join_ready(market,catalog,industry,bulk)
+            and industry.get("observed_industry_codes") == catalog["listed_total"])
+
+
 def statement(year,op=50,revenue=300,ambiguous=None,receipt=None):
     if receipt is None:
         receipt=f"{year+1}0318001162"
@@ -102,8 +110,8 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
 
     def test_current_saved_real_source_reconciles_all_groups(self):
         market,catalog,industry,bulk=saved()
-        if not source_join_ready(market,catalog,industry,bulk):
-            self.skipTest("source_market_day_not_yet_rolled_to_latest_annual")
+        if not complete_saved_gap_source_ready(market,catalog,industry,bulk):
+            self.skipTest("industry_profile_or_annual_source_not_yet_same_market_census")
         result,missing=build(market,catalog,industry,bulk)
         sample=sample_build(market,catalog,industry,bulk)
         self.assertEqual(result["schema"],SCHEMA)
@@ -189,8 +197,8 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
 
     def test_forged_current_company_profile_and_future_history_fail(self):
         market,catalog,industry,bulk=saved()
-        if not source_join_ready(market,catalog,industry,bulk):
-            self.skipTest("independent_annual_source_not_same_day")
+        if not complete_saved_gap_source_ready(market,catalog,industry,bulk):
+            self.skipTest("industry_profile_or_annual_source_not_yet_same_market_census")
         altered=copy.deepcopy(industry)
         code=next(iter(altered["records"]))
         altered["records"][code]["industry_code"]="99999"
@@ -233,8 +241,8 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
 
     def test_observed_industry_breadth_excel_csv_preserves_missingness(self):
         market,catalog,industry,bulk=saved()
-        if not source_join_ready(market,catalog,industry,bulk):
-            self.skipTest("independent_annual_source_not_same_day")
+        if not complete_saved_gap_source_ready(market,catalog,industry,bulk):
+            self.skipTest("industry_profile_or_annual_source_not_yet_same_market_census")
         stats,_=build(market,catalog,industry,bulk)
         body=industry_breadth_csv(stats)
         self.assertTrue(body.startswith("\ufeff"))
@@ -269,8 +277,8 @@ class IndustryEarningsMissingnessTests(unittest.TestCase):
 
     def test_cli_writes_both_outputs_verifies_and_rejects_tamper(self):
         market,catalog,industry,bulk=saved()
-        if not source_join_ready(market,catalog,industry,bulk):
-            self.skipTest("annual_source_not_same_day")
+        if not complete_saved_gap_source_ready(market,catalog,industry,bulk):
+            self.skipTest("industry_profile_or_annual_source_not_yet_same_market_census")
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
             for file,source in zip((
