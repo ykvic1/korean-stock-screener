@@ -8,7 +8,7 @@ on:
       - tests/test_v3_dart_historical_event_receipts.py
       - .github/workflows/v3-dart-historical-event-receipts.yml
   # Four bounded daily private metadata batches; max 72 official DART calls
-  # per run. Do not conflict with the independent official KRX schedule.
+  # per run. Push only validates offline; do not spend provider quota on merges.
   schedule:
     - cron: '19 20 * * *' # 05:19 KST
     - cron: '19 2 * * *'  # 11:19 KST
@@ -50,7 +50,7 @@ jobs:
           python -m py_compile v3_dart_historical_event_receipts.py
           python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
       - name: Save bounded historical official DART B C E I receipt metadata in PRIVATE repo
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
