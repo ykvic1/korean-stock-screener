@@ -952,10 +952,12 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                 'xmlns:xlink="http://www.w3.org/1999/xlink">' +
                 first + second + '</link:linkbase>').encode("utf8")
 
-        def bundle(presentation_blob=None, calculation_blob=None):
+        def bundle(presentation_blob=None, calculation_blob=None,
+                   schema_blob=None):
             output = io.BytesIO()
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
-                writer.writestr("company.xsd", schema)
+                writer.writestr("company.xsd", schema if schema_blob is None
+                                else schema_blob)
                 writer.writestr("labels.xml", labels)
                 writer.writestr("report.xbrl", instance)
                 if presentation_blob is not None:
@@ -1068,6 +1070,77 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(report["local_calculation_link_count"], 1)
         self.assertTrue(report["calculation_arcs_never_certify_total_or_scope"])
         for secret in (code, receipt, "987654321", "CustomPPE"):
+            self.assertNotIn(secret, json.dumps(report))
+
+        def with_roles(cf_definition, note_definition=None, conflict=False):
+            def role(uri, definition):
+                return (
+                    '<link:roleType roleURI="http://example.test/role/' +
+                    uri + '"><link:definition>' + definition +
+                    '</link:definition><link:usedOn>'
+                    'link:presentationLink</link:usedOn></link:roleType>')
+            block = role("CF", cf_definition)
+            if note_definition is not None:
+                block += role("notes", note_definition)
+            if conflict:
+                block += role("CF", "주석: 현금흐름표")
+            text = (
+                '<xs:annotation><xs:appinfo '
+                'xmlns:link="http://www.xbrl.org/2003/linkbase">' +
+                block + '</xs:appinfo></xs:annotation>')
+            return schema.replace(b"</xs:schema>",
+                                  text.encode("utf8") + b"</xs:schema>")
+
+        role_cases = (
+            ("현금흐름표", False, None,
+             "cashflow_statement_role_hint"),
+            ("현금흐름표 주석", False, None, "cashflow_note_role_only"),
+            ("유형자산 취득내역", False, None, "non_cashflow_role_only"),
+            ("별도현금흐름표", True, "현금흐름표 주석",
+             "mixed_cashflow_statement_note_roles_unverified"),
+            ("연결현금흐름표", True, "차입금 설명",
+             "mixed_cashflow_statement_other_roles_unverified"),
+        )
+        for definition, extra, second, expected in role_cases:
+            with self.subTest(role=expected):
+                evidence = pilot.inspect_binary_archive(
+                    bundle(presentation("child", extra_role=extra),
+                           schema_blob=with_roles(definition, second)),
+                    year=2025)["extension_label_evidence"]
+                self.assertEqual(
+                    evidence["extension_cashflow_role_hints"]["ppe"],
+                    expected)
+                self.assertEqual(
+                    evidence["local_presentation_role_definition_count"],
+                    1 + int(second is not None))
+                self.assertNotIn(
+                    "http://example.test/role/CF", json.dumps(evidence))
+                self.assertNotIn("CustomPPE", json.dumps(evidence))
+                self.assertNotIn("987654321", json.dumps(evidence))
+        unknown = pilot.inspect_binary_archive(
+            bundle(presentation("child")), year=2025)["extension_label_evidence"]
+        self.assertEqual(
+            unknown["extension_cashflow_role_hints"]["ppe"],
+            "local_role_definition_missing")
+        conflict = pilot.inspect_binary_archive(
+            bundle(presentation("child"),
+                   schema_blob=with_roles("현금흐름표", conflict=True)),
+            year=2025)["extension_label_evidence"]
+        self.assertEqual(
+            conflict["extension_cashflow_role_hints"]["ppe"],
+            "conflicting_role_definitions_unverified")
+        report = pilot.run_pilot(
+            market, catalog, major, state, mode="live", key="A" * 40,
+            session=Session(bundle(
+                presentation("child"),
+                schema_blob=with_roles("현금흐름표"))))
+        self.assertEqual(
+            report["extension_cashflow_role_hints"][
+                "cashflow_statement_role_hint"], 1)
+        self.assertTrue(
+            report["primary_statement_role_never_certified_from_local_definition"])
+        for secret in (code, receipt, "987654321", "CustomPPE",
+                       "http://example.test/role/CF"):
             self.assertNotIn(secret, json.dumps(report))
 
 

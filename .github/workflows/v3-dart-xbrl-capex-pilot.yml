@@ -194,6 +194,25 @@ jobs:
                                str(shapes.get(key, '미확인')) + '**')
               lines.append('표시계층 관계는 금액 합산 관계 또는 전체 CAPEX 여부, 연결/별도 범위, 과거 시점 사용 가능성의 증거가 아닙니다.')
 
+              lines.append('#### ZIP 로컬 역할 정의와 CAPEX 현금흐름표 본문 후보')
+              lines.append('- 로컬 역할 정의 수: **' + str(
+                  report.get('local_presentation_role_definition_count', '미확인')) + '**')
+              hints = report.get('extension_cashflow_role_hints', {})
+              for key, label in (
+                  ('no_local_presentation_role', 'CAPEX 연결 표시역할 없음'),
+                  ('local_role_definition_missing', 'ZIP 로컬 역할 설명 없음'),
+                  ('non_cashflow_role_only', '현금흐름표 외 역할만 관찰'),
+                  ('cashflow_note_role_only', '현금흐름표 주석 역할만 관찰'),
+                  ('cashflow_statement_role_hint', '현금흐름표 본문 역할 가능성'),
+                  ('mixed_cashflow_statement_note_roles_unverified', '본문/주석 역할이 함께 나와 미확정'),
+                  ('mixed_cashflow_statement_other_roles_unverified', '본문/기타 역할이 함께 나와 미확정'),
+                  ('multiple_cashflow_statement_roles_unverified', '본문 역할 복수로 미확정'),
+                  ('conflicting_role_definitions_unverified', '역할 설명 충돌로 미확정'),
+                  ('multiple_extension_concepts_unverified', 'CAPEX 계정 태그 복수로 미확정')):
+                  lines.append('- ' + label + ': **' + str(
+                      hints.get(key, '미확인')) + '**')
+              lines.append('역할 설명 문자열은 계정 개념의 분류 단서이며 XBRL 숫자 문맥·연결/별도·총액·PIT 및 점수 인증이 아닙니다.')
+
               lines.append('#### CAPEX 확장 태그 로컬 계산계층(금액·총액·점수 미인증)')
               lines.append('- ZIP 내부 계산계층 링크 수: **' +
                            str(report.get('local_calculation_link_count', '미확인')) + '**')

@@ -625,6 +625,106 @@ def _extension_target_year_ifrs_scope_hints(xml_data, year, matched):
 
 
 
+
+CASHFLOW_ROLE_HINTS = (
+    "no_local_presentation_role",
+    "local_role_definition_missing",
+    "non_cashflow_role_only",
+    "cashflow_note_role_only",
+    "cashflow_statement_role_hint",
+    "mixed_cashflow_statement_note_roles_unverified",
+    "mixed_cashflow_statement_other_roles_unverified",
+    "multiple_cashflow_statement_roles_unverified",
+    "conflicting_role_definitions_unverified",
+    "multiple_extension_concepts_unverified",
+)
+
+
+def _local_presentation_role_types(root, definitions):
+    """Read only ZIP-bundled roleType definitions; never expose raw text."""
+    for role in root.findall(".//{" + LINK_NS + "}roleType"):
+        uri = role.get("roleURI")
+        if type(uri) is not str or not 1 <= len(uri) <= 320:
+            continue
+        kinds = [
+            (used.text or "").strip().rsplit(":", 1)[-1]
+            for used in role.findall("{" + LINK_NS + "}usedOn")
+        ]
+        value = "other"
+        definition = role.find("{" + LINK_NS + "}definition")
+        if "presentationLink" in kinds and definition is not None:
+            phrase = " ".join((definition.text or "").split()).lower()
+            if len(phrase) > 500:
+                value = "conflict"
+            elif (("현금흐름표" in phrase or
+                   "statement of cash flows" in phrase or
+                   "statement of cashflows" in phrase or
+                   "cash flow statement" in phrase or
+                   "cashflow statement" in phrase)):
+                value = (
+                    "note" if ("주석" in phrase or "notes" in phrase or
+                               "disclosure" in phrase)
+                    else "statement")
+        if uri in definitions and definitions[uri] != value:
+            definitions[uri] = "conflict"
+        else:
+            definitions.setdefault(uri, value)
+
+
+def _extension_cashflow_role_hints(links, schemas, matched, definitions):
+    """Correlate CAPEX concepts with local CF role definitions only.
+
+    Presentation roles index *concepts*, NOT numeric fact contextRef values.
+    A cash-flow-looking role is only a non-certifying primary-statement hint.
+    """
+    xlink, linkns = "{" + XLINK_NS + "}", "{" + LINK_NS + "}"
+    results = {}
+    for kind, tags in matched.items():
+        if not tags or not links:
+            results[kind] = "no_local_presentation_role"
+            continue
+        roles = set()
+        for member, link in links:
+            role = link.get(xlink + "role")
+            if type(role) is not str or not 1 <= len(role) <= 320:
+                continue
+            for loc in link.findall(linkns + "loc"):
+                concept = _local_taxonomy_ref(
+                    member, loc.get(xlink + "href"), schemas)
+                if concept and "{" + concept[0] + "}" + concept[1] in tags:
+                    roles.add(role)
+                    break
+        if not roles:
+            results[kind] = "no_local_presentation_role"
+            continue
+        if len(tags) > 1:
+            results[kind] = "multiple_extension_concepts_unverified"
+            continue
+        buckets = [definitions.get(role, "unknown") for role in roles]
+        primary = buckets.count("statement")
+        notes = buckets.count("note")
+        unknown = buckets.count("unknown")
+        other = buckets.count("other")
+        if "conflict" in buckets:
+            status = "conflicting_role_definitions_unverified"
+        elif primary > 1:
+            status = "multiple_cashflow_statement_roles_unverified"
+        elif primary and notes:
+            status = "mixed_cashflow_statement_note_roles_unverified"
+        elif primary and (other or unknown):
+            status = "mixed_cashflow_statement_other_roles_unverified"
+        elif primary == 1:
+            status = "cashflow_statement_role_hint"
+        elif notes:
+            status = "cashflow_note_role_only"
+        elif unknown:
+            status = "local_role_definition_missing"
+        else:
+            status = "non_cashflow_role_only"
+        results[kind] = status
+    return results
+
+
 CALCULATION_SHAPES = (
     "no_local_calculation_link", "concept_not_in_local_calculation",
     "locator_only_no_summation_arc",
@@ -820,6 +920,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
     linkbases = []
     presentations = []
     calculations = []
+    role_definitions = {}
     instances = set()
     instance_data = []
     schema_files = label_link_files = 0
@@ -828,6 +929,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
             (".xml", ".xbrl", ".xsd")):
             continue
         root = _safe_xbrl_xml(archive.read(entry))
+        _local_presentation_role_types(root, role_definitions)
         if root.tag == "{" + XSD_NS + "}schema":
             schema_files += 1
             namespace = root.get("targetNamespace")
@@ -896,6 +998,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         presentations, schemas, matched)
     calculation_shapes = _extension_calculation_shapes(
         calculations, schemas, matched)
+    role_hints = _extension_cashflow_role_hints(
+        presentations, schemas, matched, role_definitions)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
@@ -952,6 +1056,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "local_label_linkbase_files": label_link_files,
         "local_presentation_link_count": len(presentations),
         "local_calculation_link_count": len(calculations),
+        "local_presentation_role_definition_count": len(role_definitions),
+        "extension_cashflow_role_hints": role_hints,
         "extension_local_calculation_shapes": calculation_shapes,
         "extension_local_presentation_shapes": presentation_shapes,
         "exact_extension_label_schema_leads": len(label_leads),
@@ -1138,6 +1244,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "local_label_linkbase_files": 0,
         "local_presentation_link_count": 0,
         "local_calculation_link_count": 0,
+        "local_presentation_role_definition_count": 0,
+        "extension_cashflow_role_hints": {
+            name: 0 for name in CASHFLOW_ROLE_HINTS},
+        "primary_statement_role_never_certified_from_local_definition": True,
         "extension_local_calculation_shapes": {
             shape: 0 for shape in CALCULATION_SHAPES},
         "calculation_arcs_never_certify_total_or_scope": True,
@@ -1215,6 +1325,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         report["local_label_linkbase_files"] += extension["local_label_linkbase_files"]
         report["local_presentation_link_count"] += extension["local_presentation_link_count"]
         report["local_calculation_link_count"] += extension["local_calculation_link_count"]
+        report["local_presentation_role_definition_count"] += extension[
+            "local_presentation_role_definition_count"]
         report["exact_extension_label_schema_leads"] += extension[
             "exact_extension_label_schema_leads"]
         for kind in ("ppe", "intangible"):
@@ -1224,6 +1336,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                 report["extension_local_presentation_shapes"][shape] += 1
                 shape = extension["extension_local_calculation_shapes"][kind]
                 report["extension_local_calculation_shapes"][shape] += 1
+                hint = extension["extension_cashflow_role_hints"][kind]
+                report["extension_cashflow_role_hints"][hint] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
                 if status == "annual_context_missing":
