@@ -193,6 +193,25 @@ jobs:
                   lines.append('- ' + label + ': **' +
                                str(shapes.get(key, '미확인')) + '**')
               lines.append('표시계층 관계는 금액 합산 관계 또는 전체 CAPEX 여부, 연결/별도 범위, 과거 시점 사용 가능성의 증거가 아닙니다.')
+
+              lines.append('#### CAPEX 확장 태그 로컬 계산계층(금액·총액·점수 미인증)')
+              lines.append('- ZIP 내부 계산계층 링크 수: **' +
+                           str(report.get('local_calculation_link_count', '미확인')) + '**')
+              calc_shapes = report.get('extension_local_calculation_shapes', {})
+              for key, label in (
+                  ('no_local_calculation_link', 'ZIP 내부 계산 링크 없음'),
+                  ('concept_not_in_local_calculation', '계산링크 내 해당 CAPEX 계정 참조 없음'),
+                  ('locator_only_no_summation_arc', '계정 참조만 있고 합산 연결 없음'),
+                  ('summation_child_positive_single_role', '단일 역할 양수 가중치 하위 항목'),
+                  ('summation_child_negative_single_role', '단일 역할 음수 가중치 하위 항목'),
+                  ('summation_parent_single_role', '단일 역할 합산 상위 항목'),
+                  ('nonunit_or_invalid_weight_unverified', '비단위/잘못된 가중치로 미확인'),
+                  ('mixed_directions_unverified', '상하 관계나 가중치 혼재'),
+                  ('multiple_roles_unverified', '복수 역할로 미확정'),
+                  ('multiple_extension_concepts_unverified', '복수 계정 태그로 미확정')):
+                  lines.append('- ' + label + ': **' +
+                               str(calc_shapes.get(key, '미확인')) + '**')
+              lines.append('계산 간선 존재만으로 누락·중복 없는 취득총액, 재무제표 본문, 연결범위, PIT 또는 점수 인정을 할 수 없습니다.')
           else:
               lines.append('- 유효한 조사 결과 없음: 소스 검증 또는 원천 응답 실패. 해당 단계 로그를 확인하세요.')
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
