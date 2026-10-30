@@ -1107,14 +1107,20 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
   if(readinessHistory.schema==='v3-real-saved-source-six-pillar-coverage-0.1' &&
      base.asof.slice(0,4)===readinessHistory.market_asof.slice(0,4) &&
      Number.isInteger(lag)&&lag>=1&&lag<=10){
-   assert.ok(live.readinessStatus.textContent.includes('DART 동기화 대기'));
+   assert.ok(live.readinessStatus.textContent.includes('당일 재무 잠정근거 확보'));
    assert.equal(live.readinessPrice.textContent,
     base.observed_issuer_counts.technical.toLocaleString('ko-KR')+' / '+
     base.listed_total.toLocaleString('ko-KR'));
-   for(const id of ['readinessFinancial','readinessCashflow',
-       'readinessFinancialIssuers','readinessValuationIssuers','readinessProvisional100']){
-    assert.equal(live[id].textContent,'동기화 대기');
-   }
+   assert.equal(live.readinessFinancial.textContent,'동기화 대기');
+   assert.equal(live.readinessFinancialIssuers.textContent,
+    base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+
+    base.listed_total.toLocaleString('ko-KR'));
+   assert.equal(live.readinessValuationIssuers.textContent,
+    base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
+    base.listed_total.toLocaleString('ko-KR'));
+   assert.equal(live.readinessCashflow.textContent,
+    readinessScore.observed_source_depth.three_year_receipt_matched_fcf_issuers.toLocaleString('ko-KR')+
+    ' / '+base.listed_total.toLocaleString('ko-KR'));
    assert.equal(live.readinessCertified.textContent,'0종목');
    assert.ok(live.readinessNotes.textContent.includes('독립 인증 전'));
   }else{
@@ -1130,20 +1136,33 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  const alignedHistory=structuredClone(readinessHistory);
  alignedHistory.market_asof=base.asof;
  alignedHistory.listed_total=base.listed_total;
- // Explicit source-day matrix: only older, bounded DART gives partial
- // *technical* coverage. Same-day census mismatch and malformed dates fail.
+ // Explicit source-day matrix: bounded older six-area DART totals must not
+ // suppress independently replayed same-day research scores.
  const oneDayOldHistory=structuredClone(alignedHistory);
  oneDayOldHistory.market_asof=new Date(Date.parse(base.asof+'T00:00:00Z')-86400000)
   .toISOString().slice(0,10);
  oneDayOldHistory.listed_total=base.listed_total-2;
  const partial=await simulateReadiness(base,oneDayOldHistory);
- assert.ok(partial.readinessStatus.textContent.includes('DART 동기화 대기'));
+ assert.ok(partial.readinessStatus.textContent.includes('당일 재무 잠정근거 확보'));
  assert.equal(partial.readinessPrice.textContent,
   base.observed_issuer_counts.technical.toLocaleString('ko-KR')+' / '+
   base.listed_total.toLocaleString('ko-KR'));
- assert.equal(partial.readinessFinancialIssuers.textContent,'동기화 대기');
- assert.equal(partial.readinessValuationIssuers.textContent,'동기화 대기');
+ assert.equal(partial.readinessFinancial.textContent,'동기화 대기');
+ assert.equal(partial.readinessFinancialIssuers.textContent,
+  base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+
+  base.listed_total.toLocaleString('ko-KR'));
+ assert.equal(partial.readinessValuationIssuers.textContent,
+  base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
+  base.listed_total.toLocaleString('ko-KR'));
  assert.equal(partial.readinessCertified.textContent,'0종목');
+ const staleAuxiliary=structuredClone(readinessScore);
+ staleAuxiliary.asof=oneDayOldHistory.market_asof;
+ const noReplay=await simulateReadiness(base,oneDayOldHistory,staleAuxiliary);
+ assert.ok(noReplay.readinessStatus.textContent.includes('DART 동기화 대기'));
+ for(const id of ['readinessFinancial','readinessCashflow',
+   'readinessFinancialIssuers','readinessValuationIssuers','readinessProvisional100']){
+  assert.equal(noReplay[id].textContent,'동기화 대기');
+ }
  const mismatchedSameDay=structuredClone(alignedHistory);
  mismatchedSameDay.listed_total=base.listed_total-1;
  const censusConflict=await simulateReadiness(base,mismatchedSameDay);
@@ -1203,5 +1222,5 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  const missingOptional=await simulateReadiness(base,alignedHistory,null);
  assert.equal(missingOptional.readinessCashflow.textContent,'미확인');
  assert.equal(missingOptional.readinessCertified.textContent,'0종목');
- console.log('Readiness UI: bounded DART lag shows current technical only; census/date/certification falsification fail closed PASS');
+ console.log('Readiness UI: bounded DART lag preserves validated same-day finance; stale auxiliary/census/date/certification fail closed PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});

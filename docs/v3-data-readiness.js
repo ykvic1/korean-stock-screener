@@ -95,6 +95,21 @@
       const valuationIssuers = current.observed_issuer_counts.valuation;
       const provisional100 = current.provisional_complete_100point_observation_count;
       const certified = current.certified_100point_count;
+      // The six-area audit can trail the market date solely because its
+      // weekly technical rotation has not caught up. Its four-year DART
+      // aggregate must wait, but a separately replayed, SAME-DAY research
+      // scorecard can independently account for financial/value issuers.
+      const independentSameDay = score && score.asof === asof &&
+        score.listed_total === listed &&
+        score.schema === 'v3-all-current-listed-observed-five-factor-scorecard-0.3' &&
+        score.score_state === 'provisional_observed_only_not_investment_grade' &&
+        score.industry_excluded_from_score_budget === true &&
+        score.missing_data_never_zero_filled === true &&
+        score.provisional_numeric_issuer_counts &&
+        score.provisional_numeric_issuer_counts.financial === financialIssuers &&
+        score.provisional_numeric_issuer_counts.valuation === valuationIssuers &&
+        score.provisional_numeric_issuer_counts.technical === priced &&
+        score.full_six_pillar_certified_count === 0;
       // Public aggregate JSON is not independent proof of a certified score.
       // Fail closed if a future publisher accidentally flips certification
       // before a separately verified source-chain gate is implemented.
@@ -117,13 +132,25 @@
       }
       if (historyWaiting) {
         ids.price.textContent = fmt(priced) + ' / ' + fmt(listed);
-        for (const name of ['financial', 'cashflow', 'financialIssuers',
-          'valuationIssuers', 'provisional100']) {
-          ids[name].textContent = '동기화 대기';
-        }
+        ids.financial.textContent = '동기화 대기';
+        ids.cashflow.textContent = independentSameDay && fcf !== null ?
+          fmt(fcf) + ' / ' + fmt(listed) : '동기화 대기';
+        ids.financialIssuers.textContent = independentSameDay ?
+          fmt(financialIssuers) + ' / ' + fmt(listed) : '동기화 대기';
+        ids.valuationIssuers.textContent = independentSameDay ?
+          fmt(valuationIssuers) + ' / ' + fmt(listed) : '동기화 대기';
+        ids.provisional100.textContent = independentSameDay ?
+          fmt(provisional100) + '종목 · 미인증' : '동기화 대기';
         ids.certified.textContent = '0종목';
-        ids.status.textContent = '자료 기준일 ' + asof + ' · DART 동기화 대기';
-        ids.notes.textContent =
+        ids.status.textContent = '자료 기준일 ' + asof +
+          (independentSameDay ? ' · 당일 재무 잠정근거 확보' : ' · DART 동기화 대기');
+        ids.notes.textContent = independentSameDay ?
+          'DART 4개년 연도별 집계는 ' + history.market_asof +
+          ' 기준이므로 동기화 대기입니다. 다만 당일 별도 공시 근거를 재검증해 ' +
+          '재무영역 일부 ' + percent(financialIssuers, listed) +
+          ' · 가치평가영역 일부 ' + percent(valuationIssuers, listed) +
+          ' · 기술분석 ' + percent(priced, listed) + '을 관측했습니다. ' +
+          '정식 투자점수는 독립 인증 전이며 미확보 항목은 0점으로 처리하지 않습니다.' :
           '현재 기술분석 관측 ' + percent(priced, listed) + ' (' +
           fmt(priced) + '/' + fmt(listed) + '종목). DART 출처는 ' +
           history.market_asof + ' 기준으로 현재 시장 종목 수와 합산하지 않습니다. ' +
