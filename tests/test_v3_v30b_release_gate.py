@@ -26,6 +26,49 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def setUp(self):
+        # Date-atomic *positive* integration checks only apply once the
+        # independent scorecard and market publisher have both rolled over.
+        positive_live_checks = {
+            "test_current_public_sources_are_consistent_but_not_certified",
+            "test_real_issuer_csv_replays_every_five_area_histogram",
+            "test_exact_per_issuer_fcf_candidate_and_receipt_joins",
+            "test_catalog_census_exactly_matches_all_real_public_issuer_rows",
+            "test_fcf_csv_subscores_cannot_bypass_five_area_reconciliation",
+            "test_fcf_only_secondary_scorecard_lag_is_bounded_not_certified",
+            "test_an_untrusted_proof_cannot_enable_authorization",
+            "test_dart_receipt_checkpoint_is_counted_but_never_certified",
+            "test_even_120_complete_filing_months_is_not_independent_pit_proof",
+        }
+        if self._testMethodName in positive_live_checks:
+            observed, scorecard, _ = public_inputs()
+            docs = ROOT / "docs"
+            preview = json.loads((docs / "v3-dart-fcf-research-preview.json")
+                                 .read_text(encoding="utf-8"))
+            gap = json.loads((docs / "v3-dart-cashflow-gap-summary.json")
+                             .read_text(encoding="utf-8"))
+            if (observed.get("asof") != scorecard.get("asof") or
+                    observed.get("listed_total") != scorecard.get("listed_total") or
+                    observed.get("asof") != preview.get("asof") or
+                    observed.get("asof") != gap.get("asof") or
+                    observed.get("listed_total") != gap.get("listed_issuer_count")):
+                self.skipTest("market_day_rolled_before_independent_public_sources")
+
+    def test_current_market_older_scorecard_must_fail_closed(self):
+        observed, scorecard, backfill = public_inputs()
+        audit = assess_v30b(observed, scorecard, backfill)
+        if (observed.get("asof") != scorecard.get("asof") or
+                observed.get("listed_total") != scorecard.get("listed_total")):
+            self.assertFalse(audit["public_summary_valid"])
+            self.assertIn("public_snapshot_asof_mismatch", audit["blocker_codes"])
+            self.assertIn("listed_universe_mismatch", audit["blocker_codes"])
+        else:
+            self.assertTrue(audit["public_summary_valid"], audit["blocker_codes"])
+        self.assertFalse(audit["v30b_release_ready"])
+        self.assertFalse(audit["confirmed_scoring_authorized"])
+        self.assertEqual(audit["investment_grade_certified_count"], 0)
+        self.assertIsNone(audit["certified_score"])
+
     def test_current_public_sources_are_consistent_but_not_certified(self):
         observed, scorecard, backfill = public_inputs()
         r = assess_v30b(observed, scorecard, backfill)
@@ -409,29 +452,36 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(report["investment_grade_certified_count"], 0)
 
     def test_cli_default_is_read_only_and_assert_blocked_succeeds(self):
-        # The deployed market can roll forward BEFORE the independently
-        # published DART FCF receipt/preview source. The CLI must still
-        # succeed in --assert-blocked mode, without claiming source parity.
+        # A mismatched public date is a real, explicitly blocked validation
+        # failure (exit 2), never a successful green readiness audit.
         with redirect_stdout(StringIO()) as buf:
-            r = main(["--assert-blocked"])
+            try:
+                result = main(["--assert-blocked"])
+                exit_code = None
+            except SystemExit as error:
+                result = None
+                exit_code = error.code
         displayed = json.loads(buf.getvalue())
         self.assertEqual(displayed["schema"], "v3-v30b-five-area-readiness-audit-0.1")
-        self.assertTrue(displayed["public_issuer_csv_reconciled"])
-        self.assertEqual(displayed, r)
         self.assertFalse(displayed["v30b_release_ready"])
         self.assertFalse(displayed["confirmed_scoring_authorized"])
         self.assertEqual(displayed["investment_grade_certified_count"], 0)
+        if displayed["public_summary_valid"]:
+            self.assertIsNone(exit_code)
+            self.assertEqual(displayed, result)
+            self.assertTrue(displayed["public_issuer_csv_reconciled"])
+        else:
+            self.assertEqual(exit_code, 2)
+            self.assertIsNone(result)
+            self.assertTrue(
+                {"public_snapshot_asof_mismatch",
+                 "public_fcf_receipt_source_aggregate_mismatch",
+                 "public_fcf_issuer_subscore_source_mismatch"}
+                & set(displayed["blocker_codes"]), displayed["blocker_codes"])
         self.assertEqual(
             displayed["gates"]["published_fcf_issuer_subscore_source"],
             displayed["public_fcf_issuer_subscores_reconciled"] and
             displayed["public_fcf_receipt_source_reconciled"])
-        if not displayed["public_summary_valid"]:
-            self.assertTrue(
-                {"public_fcf_receipt_source_aggregate_mismatch",
-                 "public_fcf_issuer_subscore_source_mismatch"}
-                & set(displayed["blocker_codes"]), displayed["blocker_codes"])
-            self.assertFalse(
-                displayed["gates"]["published_fcf_issuer_subscore_source"])
 
 
 if __name__ == "__main__":
