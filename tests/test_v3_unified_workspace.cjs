@@ -71,6 +71,47 @@ assert.ok(entry.includes('id="krxHistoryProgress"'));
 assert.ok(entry.includes('v3-krx-progress.js'));
 
 
+// Private OpenDART receipt history is an independent research collection
+// progress indicator, never a company score or corporate-action certification.
+const dartHistoryProgress=require('../docs/v3-dart-receipt-progress.js');
+const actualDartProgress=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-dart-historical-receipt-progress.json'),'utf8'));
+const validDartProgress=dartHistoryProgress.validate(actualDartProgress);
+assert.ok(validDartProgress,'the private cursor aggregate must validate for display');
+assert.equal(validDartProgress.total,120);
+assert.equal(validDartProgress.completed,actualDartProgress.filing_months_checkpointed);
+assert.equal(validDartProgress.pages,actualDartProgress.private_receipt_pages_checkpointed);
+assert.equal(validDartProgress.receipts,actualDartProgress.private_filing_receipts_checkpointed);
+for(const [field,value] of [
+ ['historical_adjusted_prices_certified',true],
+ ['corporate_actions_or_effective_dates_certified',true],
+ ['historical_issuer_universe_pit_certified',true],
+ ['v3_trade_scores_promoted',true],
+ ['provider_api_calls',1],
+ ['private_checkpoint_stable_during_read',false],
+ ['full_historical_archive_independently_audited',true],
+ ['private_tail_digest_and_schema_verified',false],
+ ['filing_months_remaining',-1],
+ ['current_collection_filing_month','2019-03'],
+ ['private_filing_receipts_checkpointed',200000001],
+ ['filing_months_checkpointed_ratio',1],
+ ['filing_category_scope',['B','C','E']]
+]){
+ const spoof=structuredClone(actualDartProgress);
+ spoof[field]=value;
+ assert.equal(dartHistoryProgress.validate(spoof),null,
+  'research-only receipt progress must reject forged '+field);
+}
+assert.ok(entry.includes('id="dartHistoryProgress"'));
+assert.ok(html.includes('id="dartHistoryProgress"'));
+assert.ok(entry.includes('v3-dart-receipt-progress.js'));
+assert.ok(html.includes('v3-dart-receipt-progress.js'));
+assert.ok(entry.includes('완료 개월 수는 기업행위 효력일'));
+assert.ok(!fs.readFileSync(
+ path.join(__dirname,'../docs/v3-dart-receipt-progress.js'),'utf8')
+ .includes('document.write('));
+
+
 // Industry earnings dashboard is a source-coverage tool, not a scored
 // signal. Reject forged source dates, wrong rubrics or sample leakage.
 const officialIndustrySample=JSON.parse(fs.readFileSync(
