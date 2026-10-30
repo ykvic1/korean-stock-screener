@@ -92,7 +92,7 @@ for(const [field,value] of [
  ['full_historical_archive_independently_audited',true],
  ['private_tail_digest_and_schema_verified',false],
  ['filing_months_remaining',-1],
- ['current_collection_filing_month','2019-03'],
+ ['current_collection_filing_month','1900-01'],
  ['private_filing_receipts_checkpointed',200000001],
  ['filing_months_checkpointed_ratio',1],
  ['filing_category_scope',['B','C','E']]
