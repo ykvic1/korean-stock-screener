@@ -1083,7 +1083,7 @@ def main(argv=None):
     p.add_argument("--groups",type=int,default=3)
     p.add_argument("--prioritize-latest-earnings",action="store_true",
                    help="reserve 20 of each market's 50 seats for unqueried FY2024/25")
-    p.add_argument("--mode",choices=("dry-run","live","verify"),default="dry-run")
+    p.add_argument("--mode",choices=("dry-run","live","verify","replay"),default="dry-run")
     args=p.parse_args(argv)
     market=json.loads(Path(args.market).read_text(encoding="utf8"))
     catalog=json.loads(Path(args.catalog).read_text(encoding="utf8"))
@@ -1093,6 +1093,31 @@ def main(argv=None):
     asof,members,_,years,cohorts=plan(
         market,catalog,prior=prior,groups=args.groups,
         recent_pair_priority=args.prioritize_latest_earnings)
+    if args.mode=="replay":
+        # The rolling annual-book collector may finish AFTER the bulk job.
+        # Re-score only the already published, same-day BS/IS source rows.
+        # No OpenDART requests, source archive rewrite, or PIT certification.
+        if (prior is None or prior.get("schema")!=SCHEMA
+            or prior.get("asof")!=asof
+            or prior.get("listed_total")!=len(members)
+            or prior.get("fiscal_years")!=years
+            or prior.get("historical_PIT_source_certified") is not False
+            or prior.get("raw_source_rows_published") is not False
+            or type(prior.get("records")) is not dict
+            or len(prior["records"])>len(members)):
+            raise BulkHistoryError("replay_bulk_source_day_or_provenance_invalid")
+        # research_parts checks market, official annual reference and fiscal
+        # dates; leave missing values as unavailable, never scoring zero.
+        replayed=research_parts(prior,catalog,annual)
+        write_json(args.scores,replayed)
+        print(json.dumps({
+            "status":"replayed_saved_annual_book_finance_only",
+            "source_calls":0,"asof":asof,
+            "financial_observed":replayed["companies_with_computable_4y_income_scores"],
+            "pbr_simple_provisional_observed":replayed["companies_with_computable_pb_scores"],
+            "full_v3_ready":False,
+        },sort_keys=True))
+        return
     if args.mode=="verify":
         if (prior is None or prior["asof"]!=asof or
             prior["listed_total"]!=len(members) or
