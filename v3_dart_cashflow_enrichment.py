@@ -145,6 +145,11 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
     reconstructed["listed_total"]=prior["listed_total"]
     if reconstructed!=prior:
         raise CashflowError("untrusted_previous_cashflow_source")
+    # If the byte-for-byte major archive did NOT change, a previously
+    # matched receipt cannot spontaneously differ. That indicates a
+    # tampered/invalid checkpoint, NOT a legitimate filing revision.
+    archive_unchanged=(
+        prior.get("source_major_history_sha256")==fingerprint(bulk))
     current_records={}
     for code,issuer in old_records.items():
         if code not in members:
@@ -162,6 +167,8 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
                          if type(major) is dict else None)
                 if (not _valid_receipt(receipt,int(year),current_day)
                     or receipt!=observation.get("annual_receipt_id")):
+                    if archive_unchanged:
+                        raise CashflowError("cashflow_major_receipt_changed")
                     # Revised/withdrawn or no longer date-valid annual source.
                     # The old numeric FCF must never be rebased onto it.
                     continue
