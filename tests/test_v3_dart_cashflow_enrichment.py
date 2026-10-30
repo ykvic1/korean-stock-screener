@@ -396,6 +396,22 @@ class CashflowSourceTests(unittest.TestCase):
             cf.retained_current_market_cashflow(
                 market,catalog,altered,tampered)
 
+    def test_prior_day_checkpoint_receipt_tamper_with_unchanged_archive_rejected(self):
+        market,catalog,bulk=live_inputs()
+        observed,_=cf.collect(market,catalog,bulk,None,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=FakeSession(),issuer_limit=2)
+        yesterday=copy.deepcopy(observed)
+        yesterday["asof"]="2026-10-19"
+        yesterday["records"]["005930"]["years"]["2025"][
+            "annual_receipt_id"]="20260401000001"
+        # The numeric formulas and aggregate checksum remain internally
+        # consistent, but the unchanged annual archive disproves this ID.
+        with self.assertRaisesRegex(
+            cf.CashflowError,"cashflow_major_receipt_changed"):
+            cf.retained_current_market_cashflow(
+                market,catalog,bulk,yesterday)
+
     def test_partial_checkpoint_after_real_http_failure_and_no_retry_of_saved_year(self):
         market,catalog,bulk=live_inputs()
         snapshots=[]
