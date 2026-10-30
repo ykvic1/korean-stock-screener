@@ -65,6 +65,23 @@ class ScorecardMarketDayGateTests(unittest.TestCase):
         self.assertNotIn("KRX_API_KEY:",wf)
         self.assertNotIn("git push --force",wf)
 
+    def test_publisher_rechecks_market_and_source_dates_after_every_rebase(self):
+        wf=(ROOT/".github/workflows/v3-all-listed-scorecard.yml").read_text(encoding="utf8")
+        publish=wf.split("for attempt in 1 2 3; do",1)[1]
+        self.assertLess(publish.index("git pull --rebase origin main"),
+                        publish.index('REBASE_READY="$(python v3_scorecard_source_day_preflight.py'))
+        self.assertLess(publish.index('REBASE_READY="$(python v3_scorecard_source_day_preflight.py'),
+                        publish.index("python v3_all_listed_scorecard.py --mode write"))
+        self.assertLess(publish.index("python v3_all_listed_scorecard.py --mode verify"),
+                        publish.index("git push origin HEAD:main"))
+        self.assertIn('if [[ "$REBASE_READY" == \'false\' ]]; then',publish)
+        self.assertIn("scorecard_publish_deferred_after_rebase",publish)
+        self.assertIn("exit 0",publish.split("scorecard_publish_deferred_after_rebase",1)[1].split("fi",1)[0])
+        # Script-level fail-closed errors MUST propagate out of the pipeline;
+        # only an actual boolean false is a routine defer state.
+        self.assertIn("set -euo pipefail",wf)
+        self.assertIn('assert type(x) is bool',publish)
+
 
 if __name__=="__main__":
     unittest.main()
