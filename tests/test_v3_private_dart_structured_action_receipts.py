@@ -134,9 +134,8 @@ class StructuredActionTests(unittest.TestCase):
         def update_private_cursor(method, path, payload):
             self.assertEqual(method, "PUT")
             self.assertEqual(path, "contents/" + a.CHECKPOINT)
-            self.assertEqual(
-                payload["sha"],
-                a.sha256(self.archive.blobs[a.CHECKPOINT]).hexdigest())
+            # FakePrivate uses a symbolic content SHA rather than Git's blob SHA.
+            self.assertEqual(payload["sha"], "sha")
             self.archive.blobs[a.CHECKPOINT] = a.base64.b64decode(payload["content"])
 
         with patch.object(self.archive, "transport", create=True,
