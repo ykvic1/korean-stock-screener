@@ -7,6 +7,7 @@ on:
     paths:
       - v3_dart_bulk_history.py
       - v3_real_six_pillar_coverage_audit.py
+      - v3_dart_source_day_preflight.py
       - .github/workflows/v3-dart-bulk-four-year.yml
   schedule:
     - cron: '29 * * * *'
@@ -58,6 +59,7 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_dart_bulk_history.py v3_real_six_pillar_coverage_audit.py
           python -m unittest discover -s tests -p 'test_v3_dart_bulk_history.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_source_day_preflight.py' -v
           python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
           python -m unittest discover -s tests -p 'test_v3_real_source_progress_ledger.py' -v
           python -m unittest discover -s tests -p 'test_v3_real_six_pillar_coverage_audit.py' -v
