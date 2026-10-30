@@ -17,6 +17,7 @@ from hashlib import sha256
 import json
 import os
 import re
+import time
 
 from v3_dart_historical_event_receipts import (
     CHECKPOINT as DART_CHECKPOINT, MONTHS, CATEGORIES, PRIVATE_REPO,
@@ -54,10 +55,16 @@ class CrosscheckError(ValueError):
 
 
 def _read(storage, path):
-    body, _ = storage.get_content(path)
-    if body is None:
-        raise CrosscheckError("missing_private_crosscheck_source")
-    return body
+    # The private GitHub contents API can briefly return a missing page while
+    # an immutable file is being committed. Retry reads only; never fabricate
+    # missing evidence, rewind checkpoints, write source or call KRX/OpenDART.
+    for attempt in range(3):
+        body, _ = storage.get_content(path)
+        if body is not None:
+            return body
+        if attempt < 2:
+            time.sleep(0.5 * (attempt + 1))
+    raise CrosscheckError("missing_private_crosscheck_source")
 
 
 def _source_events(storage):
