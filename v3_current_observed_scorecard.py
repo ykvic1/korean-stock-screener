@@ -503,17 +503,21 @@ def main(argv=None):
     path_coverage_receipt=(
         read("v3-unscored-path-coverage.json")
         if market.get("v3_unscored_path_source") is not None else None)
+    # Annual BS/IS book-readiness and the separately source-verified CF/FCF
+    # checkpoint are independent. A lagging annual-book/scorecard audit
+    # must NOT hide valid same-day, same-receipt CAPEX/CFO observations.
+    # cashflow_source independently checks issuer/date/scope/receipt against
+    # the current major archive; do not turn missing BS/IS into FCF=0.
     cashflow=None
-    if financial is not None:
-        try:
-            candidate=cashflow_source(
-                market,catalog,read("v3-dart-bulk-history.json"),
-                read("v3-dart-cashflow-reference.json"),
-                read("v3-dart-fcf-research-preview.json"))
-            if candidate is not None:
-                cashflow,_=candidate
-        except (OSError,ValueError,KeyError):
-            cashflow=None
+    try:
+        candidate=cashflow_source(
+            market,catalog,read("v3-dart-bulk-history.json"),
+            read("v3-dart-cashflow-reference.json"),
+            read("v3-dart-fcf-research-preview.json"))
+        if candidate is not None:
+            cashflow,_=candidate
+    except (OSError,ValueError,KeyError):
+        cashflow=None
     volume=(volume_build(market,catalog) if args.refresh_derived
             else read("v3-volume-obv-observed.json"))
     price=(price_build(market,catalog) if args.refresh_derived
