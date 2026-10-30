@@ -85,11 +85,13 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official FY2023-2025 cashflow/CAPEX observations (no scores)"
             # Three bounded compare/rebase retries; not a second DART fetch.
-            # Source revisions, stale market days or file conflicts fail closed.
+            # Revised fiscal receipts are quarantined issuer/year-locally before publication;
+            # stale market days, invalid snapshots and file conflicts fail closed.
             for attempt in 1 2 3; do
               git pull --rebase origin main
               # A concurrent major-account backfill may append new firms.
-              # Rebind only when each same issuer/year/scope/receipt matches.
+              # Rebind unchanged receipts only; any superseded fiscal year is
+              # removed until independently refetched and matched.
               python v3_dart_cashflow_enrichment.py --mode rebind
               python v3_dart_cashflow_factor_preview.py --mode write
               python v3_dart_cashflow_gap_audit.py --mode write
