@@ -238,6 +238,88 @@ class StructuredActionTests(unittest.TestCase):
         self.assertIn(path, archive.blobs)
         self.assertIn(a.CHECKPOINT, archive.blobs)
 
+    def test_transient_private_cursor_put_retries_without_provider_refetch(self):
+        self.archive.blobs[a.CHECKPOINT] = a.canonical(a._empty())
+        provider_calls, cursor_attempts = [], []
+        def put(method, path, payload):
+            cursor_attempts.append((method, path))
+            if len(cursor_attempts) == 1:
+                raise a.PrivateHistoryError("private_storage_api_failed")
+            self.archive.blobs[a.CHECKPOINT] = a.base64.b64decode(payload["content"])
+        def fetch(endpoint, *args):
+            provider_calls.append(endpoint)
+            return official_rows(endpoint)
+        with patch.object(self.archive, "transport", create=True, side_effect=put):
+            with patch.object(a.time, "sleep") as sleep:
+                out = self.process(fetch)
+        self.assertTrue(sleep.called)
+        self.assertEqual(len(cursor_attempts), 2)
+        self.assertEqual(provider_calls, list(a.ENDPOINTS))
+        self.assertEqual(out["provider_calls"], 3)
+        self.assertIn(a._path(0, RECORD["rcept_no"]), self.archive.blobs)
+        self.assertFalse(a._cursor(self.archive.blobs[a.CHECKPOINT])["scores_authorized"])
+
+    def test_cursor_put_lost_response_adopts_existing_bytes_without_overwrite(self):
+        self.archive.blobs[a.CHECKPOINT] = a.canonical(a._empty())
+        calls, put_attempts = [], []
+        def put(method, path, payload):
+            put_attempts.append(path)
+            if len(put_attempts) > 1:
+                self.fail("already committed checkpoint must not be rewritten")
+            self.archive.blobs[a.CHECKPOINT] = a.base64.b64decode(payload["content"])
+            raise a.PrivateHistoryError("private_storage_api_failed")
+        with patch.object(self.archive, "transport", create=True, side_effect=put):
+            with patch.object(a.time, "sleep"):
+                out = self.process(lambda ep, *args:
+                                   (calls.append(ep), official_rows(ep))[1])
+        self.assertEqual(len(put_attempts), 1)
+        self.assertEqual(calls, list(a.ENDPOINTS))
+        self.assertEqual(out["provider_calls"], 3)
+        self.assertEqual(a._cursor(self.archive.blobs[a.CHECKPOINT])
+                         ["next_pair_index"], 1)
+
+    def test_concurrent_cursor_change_is_never_overwritten_after_transport_error(self):
+        self.archive.blobs[a.CHECKPOINT] = a.canonical(a._empty())
+        writer_calls, provider_calls = [], []
+        changed = b"another-private-writer-checkpoint"
+        def put(method, path, payload):
+            writer_calls.append(path)
+            self.archive.blobs[a.CHECKPOINT] = changed
+            raise a.PrivateHistoryError("private_storage_api_failed")
+        with patch.object(self.archive, "transport", create=True, side_effect=put):
+            with patch.object(a.time, "sleep"):
+                with self.assertRaisesRegex(
+                        a.StructuredActionError,
+                        "private_structured_action_checkpoint_changed"):
+                    self.process(lambda ep, *args:
+                                 (provider_calls.append(ep), official_rows(ep))[1])
+        self.assertEqual(len(writer_calls), 1)
+        self.assertEqual(provider_calls, list(a.ENDPOINTS))
+        self.assertEqual(self.archive.blobs[a.CHECKPOINT], changed)
+
+    def test_new_cursor_commit_then_lost_response_is_reused_without_duplicate(self):
+        class CommittedCursorThenError(FakePrivate):
+            failed = False
+            def put_new(self, path, blob, message):
+                result = super().put_new(path, blob, message)
+                if path == a.CHECKPOINT and not self.failed:
+                    self.failed = True
+                    raise a.PrivateHistoryError("private_storage_api_failed")
+                return result
+
+        archive = CommittedCursorThenError()
+        archive.blobs.update(self.archive.blobs)
+        calls = []
+        with patch.object(a.time, "sleep"):
+            out = self.process(lambda ep, *args:
+                               (calls.append(ep), official_rows(ep))[1],
+                               archive=archive)
+        self.assertEqual(calls, list(a.ENDPOINTS))
+        self.assertEqual(out["provider_calls"], 3)
+        self.assertEqual(archive.posts, 2)
+        self.assertEqual(a._cursor(archive.blobs[a.CHECKPOINT])
+                         ["next_pair_index"], 1)
+
     def test_lost_write_response_adopts_exact_saved_bytes_not_overwrite(self):
         path = a._path(0, RECORD["rcept_no"])
         class CommittedButErrored(FakePrivate):
