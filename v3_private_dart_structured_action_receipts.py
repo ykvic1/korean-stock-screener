@@ -381,11 +381,29 @@ def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
         mark("candidate_report_read")
         existing, _ = storage.get_content(path)
         if existing is None:
+            # A transient provider timeout may consume a real API request.
+            # Count ATTEMPTS before fetch, retry once only for the fixed
+            # transport/JSON code, and never exceed six calls per job.
+            # Do not start a partial candidate when fewer than three
+            # endpoints can be requested within the remaining budget.
+            if MAX_CALLS - calls < len(ENDPOINTS):
+                break
             checks = []
-            for endpoint in ENDPOINTS:
+            for endpoint_index, endpoint in enumerate(ENDPOINTS):
                 mark("official_endpoint_read")
-                result = fetch(endpoint, record["corp_code"], start, end)
                 calls += 1
+                try:
+                    result = fetch(endpoint, record["corp_code"], start, end)
+                except StructuredActionError as error:
+                    if (str(error) != "official_structured_action_transport_or_json_failed"
+                            or calls + len(ENDPOINTS) - endpoint_index > MAX_CALLS):
+                        raise
+                    # Only transient transport/JSON failures retry. Provider
+                    # auth/quota/status/identity errors NEVER retry and an
+                    # incomplete receipt is NEVER persisted as a false match.
+                    time.sleep(0.5)
+                    calls += 1
+                    result = fetch(endpoint, record["corp_code"], start, end)
                 checks.append(inspect_response(
                     result, endpoint, record["corp_code"], record["rcept_no"]))
             report = _report(i, record, checks)

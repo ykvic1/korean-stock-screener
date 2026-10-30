@@ -91,6 +91,118 @@ class StructuredActionTests(unittest.TestCase):
             self.process(lambda *args: result)
         self.assertEqual(self.archive.posts, 0)
 
+    def test_one_transient_dart_timeout_retries_within_six_attempt_budget(self):
+        requests = []
+        def fetch(endpoint, corp, start, end):
+            requests.append(endpoint)
+            if len(requests) == 1:
+                raise a.StructuredActionError(
+                    "official_structured_action_transport_or_json_failed")
+            return official_rows(endpoint, exact=True)
+        with patch.object(a.time, "sleep") as sleep:
+            out = self.process(fetch)
+        self.assertEqual(out["provider_calls"], 4)
+        self.assertEqual(requests, [a.ENDPOINTS[0], *a.ENDPOINTS])
+        self.assertTrue(sleep.called)
+        self.assertEqual(out["processed_candidates"], 1)
+        self.assertEqual(out["scores_promoted"], 0)
+        self.assertIn(a._path(0, RECORD["rcept_no"]), self.archive.blobs)
+
+    def test_retry_consumes_budget_and_resumes_next_candidate_without_extra_calls(self):
+        second = {**RECORD, "rcept_no": "20161103000002"}
+        queue = [RECORD, second]
+        attempts = []
+        def fetch(endpoint, corp, start, end):
+            attempts.append(endpoint)
+            if len(attempts) == 1:
+                raise a.StructuredActionError(
+                    "official_structured_action_transport_or_json_failed")
+            return official_rows(endpoint)
+        with patch.object(a, "triage_cursor", return_value={"next_pair_index": 1}):
+            with patch.object(a, "_candidate_queue",
+                              return_value=(queue, QUEUE_HASH, 2)):
+                with patch.object(a.time, "sleep"):
+                    out = a.run(self.archive, fetch)
+        self.assertEqual(out["provider_calls"], 4)
+        self.assertEqual(out["processed_candidates"], 1)
+        self.assertNotIn(a._path(0, second["rcept_no"]), self.archive.blobs)
+        cursor = a._cursor(self.archive.blobs[a.CHECKPOINT])
+        self.assertEqual(cursor["next_candidate_index"], 1)
+        self.assertFalse(cursor["scores_authorized"])
+
+        next_calls = []
+        def update_private_cursor(method, path, payload):
+            self.assertEqual(method, "PUT")
+            self.assertEqual(path, "contents/" + a.CHECKPOINT)
+            # FakePrivate uses a symbolic content SHA rather than Git's blob SHA.
+            self.assertEqual(payload["sha"], "sha")
+            self.archive.blobs[a.CHECKPOINT] = a.base64.b64decode(payload["content"])
+
+        with patch.object(self.archive, "transport", create=True,
+                          side_effect=update_private_cursor):
+            with patch.object(a, "triage_cursor", return_value={"next_pair_index": 1}):
+                with patch.object(a, "_candidate_queue",
+                                  return_value=(queue, QUEUE_HASH, 2)):
+                    out2 = a.run(self.archive,
+                                 lambda endpoint, *rest:
+                                     (next_calls.append(endpoint),
+                                      official_rows(endpoint))[1])
+        self.assertEqual(next_calls, list(a.ENDPOINTS))
+        self.assertEqual(out2["provider_calls"], 3)
+        self.assertEqual(out2["previously_saved_reports_reused"], 0)
+        self.assertEqual(out2["processed_candidates"], 1)
+
+    def test_no_retry_of_unverified_provider_status_and_no_false_report(self):
+        calls = []
+        def fetch(*args):
+            calls.append(args)
+            return {"status": "020"}
+        with self.assertRaisesRegex(
+                a.StructuredActionError, "structured_action_provider_rejected"):
+            self.process(fetch)
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn(a._path(0, RECORD["rcept_no"]), self.archive.blobs)
+        self.assertNotIn(a.CHECKPOINT, self.archive.blobs)
+
+    def test_two_transient_timeouts_abort_without_checkpoint_or_score(self):
+        calls = []
+        def fetch(*args):
+            calls.append(args)
+            raise a.StructuredActionError(
+                "official_structured_action_transport_or_json_failed")
+        with patch.object(a.time, "sleep"):
+            with self.assertRaisesRegex(
+                    a.StructuredActionError,
+                    "official_structured_action_transport_or_json_failed"):
+                self.process(fetch)
+        self.assertEqual(len(calls), 2)
+        self.assertNotIn(a.CHECKPOINT, self.archive.blobs)
+        self.assertNotIn(a._path(0, RECORD["rcept_no"]), self.archive.blobs)
+
+    def test_second_candidate_transient_cannot_exceed_six_request_budget(self):
+        second = {**RECORD, "rcept_no": "20161103000002"}
+        queue = [RECORD, second]
+        calls = []
+        def fetch(endpoint, corp, start, end):
+            calls.append(endpoint)
+            if len(calls) == 4:
+                raise a.StructuredActionError(
+                    "official_structured_action_transport_or_json_failed")
+            return official_rows(endpoint)
+        with patch.object(a, "triage_cursor", return_value={"next_pair_index": 1}):
+            with patch.object(a, "_candidate_queue",
+                              return_value=(queue, QUEUE_HASH, 2)):
+                with patch.object(a.time, "sleep") as sleep:
+                    with self.assertRaisesRegex(
+                            a.StructuredActionError,
+                            "official_structured_action_transport_or_json_failed"):
+                        a.run(self.archive, fetch)
+        self.assertEqual(len(calls), 4)
+        self.assertFalse(sleep.called)
+        self.assertIn(a._path(0, RECORD["rcept_no"]), self.archive.blobs)
+        self.assertNotIn(a._path(0, second["rcept_no"]), self.archive.blobs)
+        self.assertNotIn(a.CHECKPOINT, self.archive.blobs)
+
     def test_second_run_reuses_immutable_report_no_extra_dart_calls(self):
         self.process(lambda ep, corp, start, end: official_rows(ep, exact=True))
         report_path = a._path(0, RECORD["rcept_no"])
