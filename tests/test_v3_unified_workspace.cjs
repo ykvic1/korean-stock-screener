@@ -1099,7 +1099,21 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
 }
 (async()=>{
  const base=structuredClone(observedPartialSummary);
- const good=await simulateReadiness(base);
+ const live=await simulateReadiness(base);
+ if(base.asof!==readinessHistory.market_asof||
+    base.listed_total!==readinessHistory.listed_total){
+  assert.equal(live.readinessStatus.textContent,'출처 재검증 중');
+  assert.equal(live.readinessFinancialIssuers.textContent,'미확인');
+  assert.equal(live.readinessCertified.textContent,'미확인');
+ }else{
+  assert.ok(live.readinessStatus.textContent.includes(base.asof));
+ }
+ // Isolate positive browser rendering with a same-day synthetic history;
+ // never redatetime or publish the real old DART source.
+ const alignedHistory=structuredClone(readinessHistory);
+ alignedHistory.market_asof=base.asof;
+ alignedHistory.listed_total=base.listed_total;
+ const good=await simulateReadiness(base,alignedHistory);
  assert.equal(good.readinessFinancialIssuers.textContent,
   base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+base.listed_total.toLocaleString('ko-KR'));
  assert.equal(good.readinessValuationIssuers.textContent,
@@ -1111,25 +1125,27 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.ok(good.readinessNotes.textContent.includes('독립 인증 전'));
  const forgedCount=structuredClone(base);
  forgedCount.certified_100point_count=1;
- const badCount=await simulateReadiness(forgedCount);
+ const badCount=await simulateReadiness(forgedCount,alignedHistory);
  assert.equal(badCount.readinessCertified.textContent,'미확인');
  assert.equal(badCount.readinessStatus.textContent,'출처 재검증 중');
  const forgedProvider=structuredClone(base);
  forgedProvider.independent_krx_adjusted_path_certification=true;
- const badProvider=await simulateReadiness(forgedProvider);
+ const badProvider=await simulateReadiness(forgedProvider,alignedHistory);
  assert.equal(badProvider.readinessCertified.textContent,'미확인');
  const forgedScore=structuredClone(readinessScore);
+ forgedScore.asof=base.asof;
+ forgedScore.listed_total=base.listed_total;
  forgedScore.full_six_pillar_certified_count=1;
- const badScore=await simulateReadiness(base,readinessHistory,forgedScore);
+ const badScore=await simulateReadiness(base,alignedHistory,forgedScore);
  assert.equal(badScore.readinessCertified.textContent,'미확인');
  const impossibleDay=structuredClone(base);
- const impossibleHistory=structuredClone(readinessHistory);
+ const impossibleHistory=structuredClone(alignedHistory);
  impossibleDay.asof='2026-02-31';
  impossibleHistory.market_asof=impossibleDay.asof;
  const badDay=await simulateReadiness(impossibleDay,impossibleHistory);
  assert.equal(badDay.readinessStatus.textContent,'출처 재검증 중');
- const missingOptional=await simulateReadiness(base,readinessHistory,null);
+ const missingOptional=await simulateReadiness(base,alignedHistory,null);
  assert.equal(missingOptional.readinessCashflow.textContent,'미확인');
  assert.equal(missingOptional.readinessCertified.textContent,'0종목');
- console.log('Readiness UI: bad certification, invalid date, optional FCF fail-closed PASS');
+ console.log('Readiness UI: source-day lag, bad certification and optional FCF fail-closed PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
