@@ -167,6 +167,30 @@ with sync_playwright() as p:
     assert page.get_by_text("과거 파생자료 수집 실행 기록 확인 ↗").is_visible()
     page.locator("#dataReadiness > summary").click()
     assert not page.locator("#dataReadiness").evaluate("(el) => el.open")
+    # Historical OpenDART receipts have their own private-source checkpoint
+    # timeline, never mixed with the current market-day score readiness.
+    assert not page.locator("#dartHistoryProgress").evaluate("(el) => el.open")
+    page.locator("#dartHistoryProgress > summary").click()
+    page.wait_for_function(
+        "() => document.getElementById('dartHistoryStatus').textContent.includes('수집 기간')"
+        " || document.getElementById('dartHistoryStatus').textContent.includes('재검증 중')",
+        timeout=15000
+    )
+    history_status = page.locator("#dartHistoryStatus").inner_text()
+    if "수집 기간" in history_status:
+        assert "연구용" in history_status
+        assert page.locator("#dartHistoryMonths").inner_text().endswith("개월")
+        assert page.locator("#dartHistoryPages").inner_text().endswith("페이지")
+        assert "접수 메타데이터" in page.locator("#dartHistoryReceipts").inner_text()
+        assert "인증 전" in page.locator("#dartHistoryNotes").inner_text()
+    else:
+        for field in ("Months", "Pages", "Receipts"):
+            assert page.locator("#dartHistory" + field).inner_text() == "미확인"
+    assert page.evaluate(
+        "document.documentElement.scrollWidth <= window.innerWidth"
+    ), "historical DART progress panel mobile overflow"
+    page.locator("#dartHistoryProgress > summary").click()
+    assert not page.locator("#dartHistoryProgress").evaluate("(el) => el.open")
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
     ), "unified mobile horizontal overflow"
