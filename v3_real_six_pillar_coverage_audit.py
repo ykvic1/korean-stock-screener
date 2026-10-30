@@ -28,6 +28,49 @@ class CoverageAuditError(ValueError):
     """No provider/source rows or potentially sensitive contents in errors."""
 
 
+def publication_alignment(catalog, history, parts, weekly):
+    """Gate cross-source publication, not independent annual evidence storage.
+
+    A newly closed market can precede the seven-day technical replay. Keep the
+    previous combined audit unchanged until all source dates and universes
+    agree; do not invent a fresh zero or certify stale cross-factor coverage.
+    """
+    if (any(type(x) is not dict for x in (catalog, history, parts, weekly))
+        or history.get("schema") != HISTORY_SCHEMA
+        or parts.get("schema") != SCORE_SCHEMA
+        or weekly.get("schema") != "v3-seven-day-research-source-rotation-0.1"
+        or history.get("historical_PIT_source_certified") is not False
+        or history.get("four_year_complete_financial15_certified") is not False
+        or parts.get("historical_PIT_certified") is not False
+        or parts.get("all_scores_provisional_unverified") is not True
+        or parts.get("fully_verified_six_pillar_count") != 0
+        or weekly.get("v3_live_full_six_pillar_score_claimed") is not False):
+        raise CoverageAuditError("unsafe_source_alignment_flags")
+    try:
+        dates = [date.fromisoformat(x) for x in (
+            catalog["date"], history["asof"], parts["asof"],
+            weekly["market_asof"])]
+        if any(d.isoformat() != s for d, s in zip(dates, (
+                catalog["date"], history["asof"], parts["asof"],
+                weekly["market_asof"]))):
+            raise ValueError()
+    except (KeyError, TypeError, ValueError):
+        raise CoverageAuditError("invalid_source_alignment_dates") from None
+    market, annual, provisional, technical = dates
+    counts = [x.get("listed_total") for x in (catalog, history, parts, weekly)]
+    if (any(type(n) is not int or not 0 < n <= 10000 for n in counts)
+        or annual != provisional or counts[1] != counts[2]
+        or any(not 0 <= (market - d).days <= 9 for d in dates[1:])):
+        raise CoverageAuditError("invalid_source_alignment_scope")
+    if annual == market and technical == market:
+        if counts != [counts[0]] * 4:
+            raise CoverageAuditError("current_source_universe_mismatch")
+        return "aligned"
+    if annual < market:
+        return "deferred_dart"
+    return "deferred_weekly"
+
+
 def _canonical_hash(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,
             ensure_ascii=False,separators=(",",":"),allow_nan=False
@@ -412,12 +455,16 @@ def main(argv=None):
     ap.add_argument("--partials",default="docs/v3-dart-bulk-provisional.json")
     ap.add_argument("--weekly",default="docs/v3-weekly-rotation.json")
     ap.add_argument("--out",default="docs/v3-real-source-six-area-coverage.json")
-    ap.add_argument("--mode",choices=("write","verify"),default="write")
+    ap.add_argument("--mode",choices=("write","verify","alignment"),default="write")
     args=ap.parse_args(argv)
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
-    result=coverage(read(args.catalog),read(args.history),
-                    read(args.partials),read(args.weekly))
+    sources=(read(args.catalog),read(args.history),
+             read(args.partials),read(args.weekly))
+    if args.mode=="alignment":
+        print(publication_alignment(*sources))
+        return
+    result=coverage(*sources)
     target=Path(args.out)
     if args.mode=="verify":
         if not target.is_file() or read(target)!=result:

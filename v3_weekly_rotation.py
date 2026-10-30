@@ -101,17 +101,29 @@ def source_tables(market, catalog, book, four=None):
         annual[c] = row
     four_source = {}
     if four is not None:
-        if (four.get("schema") != "v3-four-year-dart-financial-evidence-0.1" or
-            four.get("listed_total") != len(members) or
-            day(four.get("asof")) > day(asof) or
+        if (type(four) is not dict or
+            four.get("schema") != "v3-four-year-dart-financial-evidence-0.1" or
             four.get("full_v3_ready") is not False or
             four.get("four_years_all_financial_pillars_certified") is not False):
             raise RotationError("untrusted_four_year_reference")
-        for row in four.get("records", []):
-            c = row.get("code") if type(row) is dict else None
-            if c not in members or c in four_source:
-                raise RotationError("duplicate_or_unlisted_four_year_source")
-            four_source[c] = row
+        four_day = day(four.get("asof"))
+        if (four_day > day(asof) or
+            type(four.get("listed_total")) is not int or
+            not 0 < four["listed_total"] <= 6000 or
+            type(four.get("records")) is not list):
+            raise RotationError("untrusted_four_year_reference")
+        if four_day == day(asof):
+            if four["listed_total"] != len(members):
+                raise RotationError("untrusted_four_year_reference")
+            for row in four["records"]:
+                c = row.get("code") if type(row) is dict else None
+                if c not in members or c in four_source:
+                    raise RotationError("duplicate_or_unlisted_four_year_source")
+                four_source[c] = row
+        # A previous market day's optional 4Y reference may have a different
+        # listed universe. Ignore its individual rows altogether. Current
+        # technical/momentum research can still advance using dated prices;
+        # no old financial evidence is borrowed or scored as current.
     return asof, members, prices, annual, four_source
 
 
@@ -373,6 +385,15 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
                  for key in ("technical_parts", "momentum_partial", "annual_receipt", "current_four_year_core",
                              "simple_pb_unverified", "sector_label",
                              "price_20_60_relative_pair", "legacy_flow_not_ias")}
+    # A retained prior cohort member may still carry an old 4Y flag.
+    # Preserve its historical record, but never count that flag as a current
+    # financial reference unless the same-day source independently confirms it.
+    breakdown["current_four_year_core"] = sum(
+        row.get("market_source_asof") == asof
+        and isinstance(four_source.get(row["code"]), dict)
+        and four_source[row["code"]].get("current_core_financial_research_observed") is True
+        and four_source[row["code"]].get("four_year_financial_pit_authenticated") is False
+        for row in current)
     points = sum(r.get("research_score_points") is not None for r in current)
     provisional = sum(r.get("research_provisional_sum") is not None for r in current)
     # Source references are NOT computed 100-point pillar scores. The values

@@ -86,8 +86,16 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          python v3_real_six_pillar_coverage_audit.py --mode write
-          python v3_real_source_progress_ledger.py --mode write
+          ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"
+          if [[ "$ALIGNMENT" == 'aligned' ]]; then
+            python v3_real_six_pillar_coverage_audit.py --mode write
+            python v3_real_source_progress_ledger.py --mode write
+          elif [[ "$ALIGNMENT" == 'deferred_weekly' ]]; then
+            echo 'DART source can publish; combined six-area audit awaits same-day weekly evidence.'
+          else
+            echo '::error::fouryear_source_alignment_invalid_or_annual_lag'
+            exit 1
+          fi
           git add docs/v3-dart-bulk-history.json docs/v3-dart-bulk-provisional.json docs/v3-real-source-six-area-coverage.json docs/v3-real-source-six-area-progress.json
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official 100-company annual 4-year DART batch (derived source)"
@@ -97,8 +105,15 @@ jobs:
             for attempt in 1 2 3; do
               git pull --rebase origin main
               python v3_dart_bulk_history.py --mode verify
-              python v3_real_six_pillar_coverage_audit.py --mode verify
-              python v3_real_source_progress_ledger.py --mode verify
+              POST_ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"
+              if [[ "$POST_ALIGNMENT" != "$ALIGNMENT" ]]; then
+                echo '::error::fouryear_alignment_changed_after_rebase'
+                exit 1
+              fi
+              if [[ "$ALIGNMENT" == 'aligned' ]]; then
+                python v3_real_six_pillar_coverage_audit.py --mode verify
+                python v3_real_source_progress_ledger.py --mode verify
+              fi
               if git push origin HEAD:main; then
                 echo "verified_fouryear_evidence_published"
                 break

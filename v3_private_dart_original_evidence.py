@@ -26,7 +26,7 @@ from v3_private_dart_krx_filing_title_triage import (
     CHECKPOINT as TRIAGE_CHECKPOINT, SCHEMA as TRIAGE_SCHEMA,
     _cursor as triage_cursor, _path as triage_path,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 
 SCHEMA = "v3-private-opendart-original-document-evidence-v1"
@@ -166,6 +166,16 @@ SAFE_ZIP_MEMBER_ISSUES = frozenset((
 SAFE_ZIP_PATH_ISSUES = frozenset((
     "backslash_path_separator", "absolute_or_drive_path",
     "parent_directory_component", "embedded_null_character",
+))
+
+# Transport has already replaced URLs, credentials and HTTP bodies with
+# fixed codes. Print only these known private-storage codes in public logs.
+SAFE_PRIVATE_STORAGE_ISSUES = frozenset((
+    "private_storage_api_failed", "private_api_response_too_large",
+    "target_repo_not_confirmed_private", "private_repo_size_not_reported",
+    "private_repository_budget_exceeded", "untrusted_private_blob",
+    "invalid_private_blob_base64", "invalid_private_blob_length",
+    "invalid_private_archive_commit", "private_repository_or_token_not_configured",
 ))
 
 
@@ -485,6 +495,12 @@ def main():
             raise SystemExit("blocked: invalid_or_unsafe_official_document_zip"
                              " [zip_validation_stage=" + stage + detail + "]") from None
         raise SystemExit("blocked: " + str(exc)) from None
+    except PrivateHistoryError as exc:
+        reason = str(exc)
+        if reason not in SAFE_PRIVATE_STORAGE_ISSUES:
+            reason = "unclassified_private_storage_error"
+        raise SystemExit("blocked: private original source archive [storage_reason="
+                         + reason + "]") from None
     except Exception:
         raise SystemExit("blocked: private original filing source validation failed") from None
     print(json.dumps(result, sort_keys=True))

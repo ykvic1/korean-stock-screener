@@ -268,6 +268,22 @@ class OriginalEvidenceTests(unittest.TestCase):
                 max_calls=1)
         self.assertEqual(store.writes, 0)
 
+    def test_private_storage_failures_only_expose_allowlisted_reason(self):
+        env = {"DART_API_KEY":"K"*40,
+               "V3_PRIVATE_ARCHIVE_REPO": original.PRIVATE_REPO,
+               "V3_PRIVATE_ARCHIVE_TOKEN":"T"*30}
+        with patch.dict("os.environ", env):
+            for code, expected in (
+                ("private_storage_api_failed", "private_storage_api_failed"),
+                ("opaque-secret-403", "unclassified_private_storage_error"),
+            ):
+                with patch.object(original, "PrivateGitStorage", side_effect=
+                                  original.PrivateHistoryError(code)):
+                    with self.assertRaises(SystemExit) as caught:
+                        original.main()
+                self.assertIn("storage_reason="+expected, str(caught.exception))
+                self.assertNotIn("opaque-secret", str(caught.exception))
+
     def test_corrupt_zip_path_traversal_and_quota_status_fail_closed(self):
         for name in ("../escape.xml", "bad\\folder.xml", "x/../../evil.xml"):
             with self.assertRaises(original.OriginalEvidenceError):
