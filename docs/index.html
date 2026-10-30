@@ -10,6 +10,7 @@
 <script src="v3-ranking.js" defer></script>
 <script src="workspace.js" defer></script>
 <script src="v3-krx-progress.js" defer></script>
+<script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
 <script src="v3-fcf-gap.js" defer></script>
 </head>
@@ -78,6 +79,17 @@
   </div>
   <p class="u-source" id="krxHistoryNotes">비공개 원본 대신 검증된 수집 구간 수만 보여드립니다. 미확인 항목은 자동 배점에 반영되지 않습니다.</p>
   <p class="u-source"><a href="v3-krx-derived-backfill-progress.json">실제 4단계 확보·미확보 원천 요약 JSON ↗</a> · 비공개 파생근거만 계산하며 개별 시세 및 과거 상장폐지 종목 PIT 검증 완료를 의미하지 않습니다.</p>
+ </details>
+ <details class="u-intro" id="dartHistoryProgress">
+  <summary class="u-intro-top"><span class="u-section-heading">DART 10년 과거 공시 수집 현황 <small>자세히 보기</small></span>
+   <span id="dartHistoryStatus" class="u-state" role="status" aria-live="polite">공시 원장 확인 중…</span></summary>
+  <div class="u-stats" aria-label="과거 OpenDART 공시 접수자료 수집 진행률">
+   <div><span>과거 공시 수집 완료 월 / 전체</span><strong id="dartHistoryMonths">미확인</strong></div>
+   <div><span>비공개 저장 공시 페이지</span><strong id="dartHistoryPages">미확인</strong></div>
+   <div><span>비공개 저장 공시 접수기록</span><strong id="dartHistoryReceipts">미확인</strong></div>
+  </div>
+  <p class="u-source" id="dartHistoryNotes">공시 수집 기록을 비식별로 검증 중입니다. 기업행위·수정주가 인증 자료는 아닙니다.</p>
+  <p class="u-source"><a href="v3-dart-historical-receipt-progress.json">실제 수집 진행률 원천 집계 JSON ↗</a> · 완료 개월 수는 기업행위 효력일·상장폐지 종목·과거 수정주가·정식 100점 투자점수 검증을 뜻하지 않습니다.</p>
  </details>
  <section class="u-controls" aria-label="종목 발굴 조건">
   <label class="u-quick-search" for="stockSearch">종목 검색
