@@ -480,8 +480,9 @@ class V30bReadinessTests(unittest.TestCase):
                 & set(displayed["blocker_codes"]), displayed["blocker_codes"])
         self.assertEqual(
             displayed["gates"]["published_fcf_issuer_subscore_source"],
-            displayed["public_fcf_issuer_subscores_reconciled"] and
-            displayed["public_fcf_receipt_source_reconciled"])
+            displayed["public_summary_valid"] and
+            displayed["public_fcf_issuer_subscores_reconciled"] is True and
+            displayed["public_fcf_receipt_source_reconciled"] is True)
 
 
 if __name__ == "__main__":
