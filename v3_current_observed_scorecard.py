@@ -17,6 +17,7 @@ is informational ONLY and absent from all five scoring-area CSV columns; no
 from __future__ import annotations
 import argparse
 import csv
+from datetime import date
 from io import StringIO
 import json
 import math
@@ -27,7 +28,10 @@ from v3_current_price_replay import build as price_build
 from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points
 from v3_dart_bulk_history import _stable_digest, research_parts, BulkHistoryError
-from v3_real_six_pillar_coverage_audit import _canonical_hash
+from v3_real_six_pillar_coverage_audit import (
+    _canonical_hash, coverage as independently_replayed_coverage,
+    CoverageAuditError,
+)
 from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError, fingerprint
 from v3_unscored_path_coverage import summarize as summarize_path_coverage
@@ -53,21 +57,42 @@ class LivePartialScorecardError(ValueError):
     """Never include raw provider data in failures."""
 
 
-def finance_source(catalog,history,parts,annual,audit):
+def finance_source(catalog,history,parts,annual,audit,*,weekly=None):
     """Use ONLY the already-public audited DART files from this market close.
 
-    If the yearly collector is behind today's close, leave its weights blank;
-    never copy yesterday's 4-year financial rank to today's price row.
-    Recompute from real stored fiscal receipts rather than trust a score CSV.
+    A lagged seven-day technical rotation must not hide independently current
+    DART annual evidence. In that case recreate the complete coverage audit
+    in memory with old weekly observations EXCLUDED, then independently replay
+    fiscal score components. Nothing is written or certified by this fallback.
+    The default path remains strict unless the actual weekly source is given.
     """
     today=catalog["date"]
     docs=(history,parts,annual,audit)
     if any(type(x) is not dict for x in docs):
         return None
-    days=(history.get("asof"),parts.get("asof"),
-          annual.get("asof"),audit.get("market_asof"))
+    days=(history.get("asof"),parts.get("asof"),annual.get("asof"))
     if any(day!=today for day in days):
         return None
+    if (audit.get("investment_grade_scores_confirmed") is not False or
+        audit.get("six_pillar_official_complete_100pt_issuer_count")!=0 or
+        audit.get("official_pbr_verified_count")!=0):
+        raise LivePartialScorecardError("forged_dart_source_or_certification")
+    if audit.get("market_asof")!=today:
+        if type(weekly) is not dict:
+            return None
+        try:
+            lag=(date.fromisoformat(today)-date.fromisoformat(
+                audit["market_asof"])).days
+            if not 0<lag<=9:
+                return None
+            # Audit the new financial source directly. Never relabel the
+            # previous combined report or score its old technical records.
+            audit=independently_replayed_coverage(
+                catalog,history,parts,weekly,allow_lagged_weekly=True)
+        except (CoverageAuditError,KeyError,TypeError,ValueError):
+            return None
+        if audit.get("market_asof")!=today:
+            return None
     if (history.get("historical_PIT_source_certified") is not False or
         history.get("raw_source_rows_published") is not False or
         parts.get("historical_PIT_certified") is not False or
@@ -505,11 +530,13 @@ def main(argv=None):
         return json.loads((root/name).read_text(encoding="utf8"))
     catalog=read("v22-market-catalog.json")
     try:
+        audit=read("v3-real-source-six-area-coverage.json")
         financial=finance_source(
             catalog,read("v3-dart-bulk-history.json"),
             read("v3-dart-bulk-provisional.json"),
-            read("v3-dart-book-reference.json"),
-            read("v3-real-source-six-area-coverage.json"))
+            read("v3-dart-book-reference.json"),audit,
+            weekly=(read("v3-weekly-rotation.json")
+                    if audit.get("market_asof")!=catalog["date"] else None))
     except (OSError,ValueError,KeyError):
         financial=None
     market=read("data.json")
