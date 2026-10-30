@@ -11,7 +11,8 @@ import unittest
 
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
                                     issuer_csv_reconciles,
-                                    issuer_catalog_reconciles)
+                                    issuer_catalog_reconciles,
+                                    issuer_fcf_preview_reconciles)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -61,6 +62,77 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertTrue(report["public_issuer_csv_reconciled"])
         self.assertTrue(report["gates"]["published_issuer_csv_coherence"])
         self.assertFalse(report["confirmed_scoring_authorized"])
+
+    def test_exact_per_issuer_fcf_candidate_and_receipt_joins(self):
+        o, s, h = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        preview = json.loads((ROOT / "docs/v3-dart-fcf-research-preview.json")
+                             .read_text(encoding="utf-8"))
+        gap = json.loads((ROOT / "docs/v3-dart-cashflow-gap-summary.json")
+                         .read_text(encoding="utf-8"))
+        self.assertTrue(issuer_fcf_preview_reconciles(o, raw, preview))
+        baseline = assess_v30b(o, s, h, observed_csv_text=raw,
+                               fcf_preview=preview, fcf_cashflow_gap=gap)
+        self.assertTrue(baseline["public_summary_valid"], baseline["blocker_codes"])
+        self.assertTrue(baseline["public_fcf_issuer_subscores_reconciled"])
+        self.assertTrue(baseline["public_fcf_receipt_source_reconciled"])
+        self.assertTrue(baseline["gates"]["published_fcf_issuer_subscore_source"])
+        self.assertFalse(baseline["v30b_release_ready"])
+        self.assertEqual(baseline["investment_grade_certified_count"], 0)
+
+        # Change a plausible score for ONE stock. Aggregate counts, bounds,
+        # and the original five-area CSV replay can still pass.
+        rows = list(csv.reader(StringIO(raw)))
+        col = {name: i for i, name in enumerate(rows[0])}
+        for row in rows[1:]:
+            if (row[col["FCF수익률_잠정점수"]]
+                    and float(row[col["FCF수익률_잠정점수"]]) > 0):
+                row[col["FCF수익률_잠정점수"]] = "0"
+                break
+        else:
+            self.fail("expected at least one observed positive FCF subscore")
+        out = StringIO()
+        csv.writer(out, lineterminator="\n").writerows(rows)
+        substituted = out.getvalue()
+        self.assertTrue(issuer_csv_reconciles(o, s, substituted))
+        self.assertFalse(issuer_fcf_preview_reconciles(o, substituted, preview))
+        report = assess_v30b(o, s, h, observed_csv_text=substituted,
+                             fcf_preview=preview, fcf_cashflow_gap=gap)
+        self.assertIn("public_fcf_issuer_subscore_source_mismatch",
+                      report["blocker_codes"])
+        self.assertFalse(report["public_summary_valid"])
+        self.assertFalse(report["gates"]["published_fcf_issuer_subscore_source"])
+        self.assertFalse(report["confirmed_scoring_authorized"])
+
+        # A plausible-looking modified preview is not source proof. The
+        # individual match must detect it even if count/fingerprint still match.
+        altered = copy.deepcopy(preview)
+        for record in altered["rows"]:
+            value = record["valuation_fcf_yield_candidate_points"]
+            if value is not None and value < 4:
+                record["valuation_fcf_yield_candidate_points"] = value + 0.000001
+                break
+        else:
+            self.fail("expected a preview candidate below four points")
+        self.assertFalse(issuer_fcf_preview_reconciles(o, raw, altered))
+        report = assess_v30b(o, s, h, observed_csv_text=raw,
+                             fcf_preview=altered, fcf_cashflow_gap=gap)
+        self.assertTrue(report["public_fcf_receipt_source_reconciled"])
+        self.assertIn("public_fcf_issuer_subscore_source_mismatch",
+                      report["blocker_codes"])
+
+        # A conflicting cashflow snapshot hash must invalidate a matching
+        # CSV/preview pair; provenance consistency is a separate requirement.
+        changed_gap = copy.deepcopy(gap)
+        changed_gap["source_cashflow_sha256"] = "0" * 64
+        report = assess_v30b(o, s, h, observed_csv_text=raw,
+                             fcf_preview=preview, fcf_cashflow_gap=changed_gap)
+        self.assertTrue(report["public_fcf_issuer_subscores_reconciled"])
+        self.assertFalse(report["public_fcf_receipt_source_reconciled"])
+        self.assertIn("public_fcf_receipt_source_aggregate_mismatch",
+                      report["blocker_codes"])
+        self.assertFalse(report["gates"]["published_fcf_issuer_subscore_source"])
 
     def test_catalog_census_exactly_matches_all_real_public_issuer_rows(self):
         o, s, h = public_inputs()
@@ -343,6 +415,9 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(displayed["schema"], "v3-v30b-five-area-readiness-audit-0.1")
         self.assertTrue(displayed["public_summary_valid"])
         self.assertTrue(displayed["public_issuer_csv_reconciled"])
+        self.assertTrue(displayed["public_fcf_issuer_subscores_reconciled"])
+        self.assertTrue(displayed["public_fcf_receipt_source_reconciled"])
+        self.assertTrue(displayed["gates"]["published_fcf_issuer_subscore_source"])
         self.assertEqual(displayed, r)
         self.assertFalse(displayed["v30b_release_ready"])
 
