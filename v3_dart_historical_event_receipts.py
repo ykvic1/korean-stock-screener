@@ -237,6 +237,23 @@ def _check_cursor(raw):
         raise DARTEventReceiptError("invalid_private_dart_receipt_cursor") from None
 
 
+def _check_page_sequence(previous, current):
+    """Fail closed on snapshot drift or overlapping receipts across DART pages.
+
+    A valid individual response is not enough: page 2 could have been fetched
+    from a different result set if historical filings were reindexed mid-run.
+    This check never claims that DART's pagination is a signed snapshot.
+    """
+    if (previous["month"] != current["month"]
+        or previous["filing_category"] != current["filing_category"]
+        or previous["page"] + 1 != current["page"]
+        or previous["total_count"] != current["total_count"]
+        or previous["total_pages"] != current["total_pages"]
+        or {r["rcept_no"] for r in previous["receipts"]}.intersection(
+            r["rcept_no"] for r in current["receipts"])):
+        raise DARTEventReceiptError("inconsistent_dart_page_sequence")
+
+
 def run(storage, fetch, max_calls=MAX_API_CALLS):
     if (storage.repository != PRIVATE_REPO or type(max_calls) is not int
         or not 1 <= max_calls <= MAX_API_CALLS):
@@ -244,6 +261,8 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
     storage.verify_private()
     raw, oldsha = storage.get_content(CHECKPOINT)
     cursor = _check_cursor(raw)
+    tail = None
+    tail_page = None
     if cursor["last_page_file"] is not None:
         tail, _ = storage.get_content(cursor["last_page_file"])
         if (tail is None or sha256(tail).hexdigest() != cursor["last_page_sha256"]):
@@ -254,17 +273,31 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                        cursor["page"])
         month, category = MONTHS[mi], CATEGORIES[ci]
         path = _path(month, category, pn)
+        if pn > 1:
+            if cursor["last_page_file"] != _path(month, category, pn - 1):
+                raise DARTEventReceiptError("private_dart_receipt_cursor_chain_gap")
+            if tail_page is None:
+                tail_page = _decode(tail, month, category, pn - 1)
+        else:
+            tail_page = None
         saved, _ = storage.get_content(path)
         if saved is None:
             result = fetch(month, category, pn)
             calls += 1
             packed = parse_official_response(result, month, category, pn)
+            page = _decode(packed, month, category, pn)
+            if tail_page is not None:
+                _check_page_sequence(tail_page, page)
+            # Check the adjacent-page evidence BEFORE creating immutable storage:
+            # a mismatched provider page must not poison every later retry.
             storage.put_new(path, packed, "Save private OpenDART historic filing receipt page")
             saved = packed
             new_pages += 1
         else:
+            page = _decode(saved, month, category, pn)
+            if tail_page is not None:
+                _check_page_sequence(tail_page, page)
             reused_pages += 1
-        page = _decode(saved, month, category, pn)
         n = len(page["receipts"])
         new_receipts += n
         if page["total_pages"] == 0 or pn == page["total_pages"]:
@@ -294,6 +327,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         if observed != encoded or type(oldsha) is not str:
             raise DARTEventReceiptError("private_dart_cursor_readback_failed")
         cursor = checkpoint
+        tail, tail_page = saved, page
         # An already-completed immutable page reuses evidence without API.
         # A hard cap on recovered orphan pages prevents unbounded loops.
         if reused_pages > max_calls:

@@ -174,6 +174,53 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         with self.assertRaises(DARTEventReceiptError):
             parse_official_response({"status": "013"}, "2016-10", "B", 2)
 
+    def test_adjacent_pages_reject_snapshot_drift_or_duplicate_without_orphan(self):
+        """A valid single page cannot silently corrupt a multi-page result."""
+        first_rows = [row(f"{i:014d}") for i in range(1, 101)]
+        valid_second = [row(f"{i:014d}") for i in range(101, 201)]
+        issues = {
+            "changed_total": response(2, 202, valid_second),
+            "overlapping_receipt": response(
+                2, 201, [row(f"{i:014d}") for i in [100, *range(101, 200)]]),
+        }
+        for label, bad_second in issues.items():
+            with self.subTest(problem=label):
+                private = FakePrivate()
+                run(private, lambda *_: response(1, 201, first_rows),
+                    max_calls=1)
+                with self.assertRaisesRegex(
+                        DARTEventReceiptError, "inconsistent_dart_page_sequence"):
+                    run(private, lambda *_: bad_second, max_calls=1)
+                # The rejected response never enters immutable private storage;
+                # after a corrected source response the original cursor resumes.
+                self.assertNotIn(_path("2016-10", "B", 2), private.files)
+                self.assertEqual(json.loads(private.files[CHECKPOINT])["page"], 2)
+                healthy = run(
+                    private, lambda *_: response(2, 201, valid_second),
+                    max_calls=1)
+                self.assertEqual(healthy["provider_calls"], 1)
+                self.assertEqual(healthy["cumulative_pages"], 2)
+                self.assertEqual(healthy["cumulative_receipts"], 200)
+                self.assertFalse(healthy["historical_adjusted_prices_certified"])
+
+    def test_mid_category_cursor_must_point_to_immediately_previous_page(self):
+        private = FakePrivate()
+        first = [row(f"{i:014d}") for i in range(1, 101)]
+        run(private, lambda *_: response(1, 201, first), max_calls=1)
+        cur = json.loads(private.files[CHECKPOINT])
+        # An internally valid SHA and stored blob are insufficient when a
+        # tampered cursor points to a different category's previous page.
+        wrong_path = _path("2016-10", "C", 1)
+        private.files[wrong_path] = private.files[cur["last_page_file"]]
+        cur["last_page_file"] = wrong_path
+        private.files[CHECKPOINT] = json.dumps(cur).encode("utf-8")
+        fetches = []
+        with self.assertRaisesRegex(
+                DARTEventReceiptError, "private_dart_receipt_cursor_chain_gap"):
+            run(private, lambda *args: fetches.append(args), max_calls=1)
+        self.assertEqual(fetches, [])
+        self.assertNotIn(_path("2016-10", "B", 2), private.files)
+
     def test_private_tail_and_wrong_destination_never_fall_back_public(self):
         private = FakePrivate()
         run(private, lambda *_: {"status": "013"}, max_calls=1)
@@ -194,6 +241,13 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         wf = (base / ".github/workflows/v3-dart-historical-event-receipts.yml").read_text()
         self.assertIn("workflow_dispatch:", wf)
         self.assertIn("default: dry_run", wf)
+        # Code pushes still run offline checks but do not silently spend
+        # another 72 provider calls beyond the four scheduled daily budgets.
+        self.assertIn(
+            "if: ${{ github.event_name == 'schedule' || "
+            "(github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}",
+            wf)
+        self.assertNotIn("github.event_name == 'push' ||", wf)
         self.assertIn("DART_API_KEY: ${{ secrets.DART_API_KEY }}", wf)
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}", wf)
         self.assertIn("v3_dart_historical_event_receipts.py", wf)
