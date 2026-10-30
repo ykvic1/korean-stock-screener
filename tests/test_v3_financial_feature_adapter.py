@@ -114,6 +114,12 @@ class AnnualRawFinancialFeatureTests(unittest.TestCase):
             "repeated_year": lambda r: r[-1].update(fiscal_year=2024),
             "skipped_year": lambda r: r[1].update(fiscal_year=2019),
             "bad_receipt": lambda r: r[-1].update(rcept_no="fake"),
+            "reused_receipt": lambda r: r[-1].update(
+                rcept_no=r[-2]["rcept_no"]),
+            "mismatched_receipt_date": lambda r: r[-1].update(
+                rcept_dt="20260302"),
+            "malformed_receipt_date": lambda r: r[-1].update(
+                rcept_dt="2026-03-01"),
             "bad_digest": lambda r: r[-1].update(original_sha256="unverified"),
             "unreasonable_number": lambda r: r[-1]["accounts"].update(
                 revenue_krw=10**30),
@@ -131,6 +137,18 @@ class AnnualRawFinancialFeatureTests(unittest.TestCase):
                 mutator(rows)
                 with self.assertRaises(FinancialFeatureError):
                     compute(rows)
+
+    def test_independent_dart_receipt_date_contract_stays_research_only(self):
+        rows = fixture()
+        for row in rows:
+            row["rcept_dt"] = row["published_on"].replace("-", "")
+        report = compute(rows)
+        self.assertIsNotNone(report["features"]["valuation_pbr"])
+        # A matching API receipt date prevents one class of mislabeled
+        # statements but is NOT authentication of the source filing.
+        self.assertFalse(report["receipt_and_sha_strings_authenticated"])
+        self.assertFalse(report["revision_history_pit_certified"])
+        self.assertFalse(report["full_v3_scoring_authorized"])
 
     def test_market_cap_wrong_date_and_nonpositive_blocked(self):
         for value in (0, -1, True, 1.2):
