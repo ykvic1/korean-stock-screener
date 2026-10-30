@@ -77,7 +77,7 @@ def calculate_financial_raw_features(statements, *, asof, issuer_id,
             or not isinstance(statements, list)
             or not 4 <= len(statements) <= 5):
         raise FinancialFeatureError("missing_four_year_issuer_cohort")
-    seen_years, scopes, records = set(), set(), []
+    seen_years, seen_receipts, scopes, records = set(), set(), set(), []
     for row in statements:
         if not isinstance(row, dict) or row.get("issuer_id") != issuer_id:
             raise FinancialFeatureError("cross_issuer_statement")
@@ -98,6 +98,20 @@ def calculate_financial_raw_features(statements, *, asof, issuer_id,
                 or not re.fullmatch("[a-f0-9]{64}", row["original_sha256"])):
             raise FinancialFeatureError("statement_receipt_or_digest_missing")
         filing = _day(row.get("published_on"))
+        # One annual report per fiscal year: a single receipt carrying
+        # comparative tables must not impersonate four separate filings.
+        receipt_no = row["rcept_no"]
+        if receipt_no in seen_receipts:
+            raise FinancialFeatureError("reused_annual_receipt_across_years")
+        seen_receipts.add(receipt_no)
+        # The official list API reports rcept_dt independently of rcept_no.
+        # Compare it to the caller's publication date when that source field
+        # is available; NEVER infer the date from receipt-number digits.
+        received = row.get("rcept_dt")
+        if received is not None and (
+                type(received) is not str or len(received) != 8
+                or received != filing.strftime("%Y%m%d")):
+            raise FinancialFeatureError("receipt_publication_day_mismatch")
         if not date(year, 12, 31) < filing < cutoff:
             raise FinancialFeatureError("not_publicly_available_by_prior_date")
         accounts = row.get("accounts")
