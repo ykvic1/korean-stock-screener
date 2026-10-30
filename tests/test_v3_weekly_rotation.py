@@ -59,6 +59,32 @@ def fixture(n=2497):
 
 
 class RotationTests(unittest.TestCase):
+    def test_stale_optional_four_year_reference_does_not_block_current_prices(self):
+        market, catalog, book = fixture(n=8)
+        four = {
+            "schema": "v3-four-year-dart-financial-evidence-0.1",
+            "asof": "2026-10-18", "listed_total": 7,
+            "full_v3_ready": False,
+            "four_years_all_financial_pillars_certified": False,
+            "records": [{"code": "000001", "financial_evidence": "stale"}],
+        }
+        state, report = recalculate(market, catalog, book,
+                                    when="2026-10-20", four=four)
+        self.assertEqual(report["listed_total"], 8)
+        self.assertEqual(report["source_collection_calls"], 0)
+        self.assertEqual(
+            report["source_reference_counts_this_cycle"]["current_four_year_core"], 0)
+        self.assertFalse(state["v3_live_full_six_pillar_score_claimed"])
+        for invalid in (
+            {**four, "asof": "2026-10-20"},
+            {**four, "asof": "2026-10-19"},
+            {**four, "full_v3_ready": True},
+        ):
+            with self.assertRaisesRegex(RotationError,
+                                        "untrusted_four_year_reference"):
+                recalculate(market, catalog, book, when="2026-10-20",
+                            four=invalid)
+
     def test_cohorts_run_once_per_seven_days_and_coverage(self):
         market, catalog, book = fixture()
         state = None

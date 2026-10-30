@@ -101,17 +101,29 @@ def source_tables(market, catalog, book, four=None):
         annual[c] = row
     four_source = {}
     if four is not None:
-        if (four.get("schema") != "v3-four-year-dart-financial-evidence-0.1" or
-            four.get("listed_total") != len(members) or
-            day(four.get("asof")) > day(asof) or
+        if (type(four) is not dict or
+            four.get("schema") != "v3-four-year-dart-financial-evidence-0.1" or
             four.get("full_v3_ready") is not False or
             four.get("four_years_all_financial_pillars_certified") is not False):
             raise RotationError("untrusted_four_year_reference")
-        for row in four.get("records", []):
-            c = row.get("code") if type(row) is dict else None
-            if c not in members or c in four_source:
-                raise RotationError("duplicate_or_unlisted_four_year_source")
-            four_source[c] = row
+        four_day = day(four.get("asof"))
+        if (four_day > day(asof) or
+            type(four.get("listed_total")) is not int or
+            not 0 < four["listed_total"] <= 6000 or
+            type(four.get("records")) is not list):
+            raise RotationError("untrusted_four_year_reference")
+        if four_day == day(asof):
+            if four["listed_total"] != len(members):
+                raise RotationError("untrusted_four_year_reference")
+            for row in four["records"]:
+                c = row.get("code") if type(row) is dict else None
+                if c not in members or c in four_source:
+                    raise RotationError("duplicate_or_unlisted_four_year_source")
+                four_source[c] = row
+        # A previous market day's optional 4Y reference may have a different
+        # listed universe. Ignore its individual rows altogether. Current
+        # technical/momentum research can still advance using dated prices;
+        # no old financial evidence is borrowed or scored as current.
     return asof, members, prices, annual, four_source
 
 
