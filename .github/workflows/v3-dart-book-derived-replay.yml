@@ -1,0 +1,70 @@
+name: V3 DART Annual Book Derived Financial Sync (0 API)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_bulk_history.py
+      - .github/workflows/v3-dart-book-derived-replay.yml
+  workflow_run:
+    workflows:
+      - Rolling OpenDART Annual Book Reference - Current Listed
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-book-derived-finance-sync
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check derived replay contract offline
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_dart_book_derived_replay.py' -v
+      - name: Replay saved fiscal book after any official annual collection
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # A competing annual/market publication can move main mid-job.
+          # Start every bounded retry from the newest main, and recalculate
+          # only three derived outputs from immutable checked-in sources.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git switch -C v3-derived-finance-replay origin/main
+            python v3_dart_bulk_history.py --mode replay
+            python v3_real_six_pillar_coverage_audit.py --mode write
+            python v3_real_source_progress_ledger.py --mode write
+            python v3_dart_bulk_history.py --mode verify
+            python v3_real_six_pillar_coverage_audit.py --mode verify
+            python v3_real_source_progress_ledger.py --mode verify
+            git add docs/v3-dart-bulk-provisional.json docs/v3-real-source-six-area-coverage.json docs/v3-real-source-six-area-progress.json
+            if git diff --cached --quiet; then
+              echo "already_synced_current_saved_annual_book_0_api"
+              exit 0
+            fi
+            git commit -m "Replay current-listed DART book into provisional fiscal factors (0 API)"
+            if git push origin HEAD:main; then
+              echo "derived_financial_and_coverage_synced"
+              exit 0
+            fi
+            echo "Retrying latest main after concurrent source publication"
+          done
+          echo "::error::derived_financial_sync_retries_exhausted_or_source_mismatch"
+          exit 1
+      - name: Research-only provenance notice
+        if: always()
+        run: echo "Derived fiscal reference only; no API calls, official PBR, PIT, certified 100-point scores or trading orders."
