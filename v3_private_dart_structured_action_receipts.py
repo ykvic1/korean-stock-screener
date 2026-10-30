@@ -332,6 +332,44 @@ def _put_immutable_report_with_retry(storage, path, encoded):
             time.sleep(.7 * (attempt + 1))
 
 
+def _write_checkpoint_with_retry(storage, previous, updated):
+    """Compare-and-swap a private cursor; adopt an ambiguous successful write.
+
+    Every retry first re-reads the checkpoint. A different cursor is a genuine
+    concurrent update, never something to overwrite or merge. Provider
+    responses have already been saved in immutable per-receipt reports, so
+    these storage retries make ZERO additional DART requests.
+    """
+    for attempt in range(4):
+        try:
+            current, sha = storage.get_content(CHECKPOINT)
+            if current == updated:
+                if type(sha) is not str or not sha:
+                    raise StructuredActionError(
+                        "private_structured_action_checkpoint_sha_missing")
+                return
+            if current != previous:
+                raise StructuredActionError(
+                    "private_structured_action_checkpoint_changed")
+            if current is None:
+                storage.put_new(
+                    CHECKPOINT, updated, "Start private structured action research cursor")
+            else:
+                if type(sha) is not str or not sha:
+                    raise StructuredActionError(
+                        "private_structured_action_checkpoint_sha_missing")
+                storage.transport("PUT", "contents/" + CHECKPOINT, {
+                    "message": "Advance private structured action receipt cursor",
+                    "content": base64.b64encode(updated).decode("ascii"),
+                    "sha": sha,
+                })
+            return
+        except PrivateHistoryError as error:
+            if str(error) != "private_storage_api_failed" or attempt == 3:
+                raise
+            time.sleep(.7 * (attempt + 1))
+
+
 def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
     def mark(name):
         if stage_hook is not None:
@@ -349,7 +387,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
     except Exception:
         raise StructuredActionError("invalid_private_title_triage_pointer") from None
     mark("action_checkpoint_read")
-    raw, checkpoint_sha = storage.get_content(CHECKPOINT)
+    raw, _ = storage.get_content(CHECKPOINT)
     state = _cursor(raw)
     if state["last_report_file"]:
         mark("last_immutable_report_read")
@@ -437,14 +475,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):
         "last_report_sha256": last_digest,
     })
     mark("action_checkpoint_write")
-    if checkpoint_sha is None:
-        storage.put_new(CHECKPOINT, updated, "Start private structured action research cursor")
-    else:
-        storage.transport("PUT", "contents/" + CHECKPOINT, {
-            "message": "Advance private structured action receipt cursor",
-            "content": base64.b64encode(updated).decode("ascii"),
-            "sha": checkpoint_sha,
-        })
+    _write_checkpoint_with_retry(storage, raw, updated)
     mark("action_checkpoint_readback")
     _same_bytes(storage, CHECKPOINT, updated)
     return {
