@@ -131,13 +131,23 @@ class StructuredActionTests(unittest.TestCase):
         self.assertFalse(cursor["scores_authorized"])
 
         next_calls = []
-        with patch.object(a, "triage_cursor", return_value={"next_pair_index": 1}):
-            with patch.object(a, "_candidate_queue",
-                              return_value=(queue, QUEUE_HASH, 2)):
-                out2 = a.run(self.archive,
-                             lambda endpoint, *rest:
-                                 (next_calls.append(endpoint),
-                                  official_rows(endpoint))[1])
+        def update_private_cursor(method, path, payload):
+            self.assertEqual(method, "PUT")
+            self.assertEqual(path, "contents/" + a.CHECKPOINT)
+            self.assertEqual(
+                payload["sha"],
+                a.sha256(self.archive.blobs[a.CHECKPOINT]).hexdigest())
+            self.archive.blobs[a.CHECKPOINT] = a.base64.b64decode(payload["content"])
+
+        with patch.object(self.archive, "transport", create=True,
+                          side_effect=update_private_cursor):
+            with patch.object(a, "triage_cursor", return_value={"next_pair_index": 1}):
+                with patch.object(a, "_candidate_queue",
+                                  return_value=(queue, QUEUE_HASH, 2)):
+                    out2 = a.run(self.archive,
+                                 lambda endpoint, *rest:
+                                     (next_calls.append(endpoint),
+                                      official_rows(endpoint))[1])
         self.assertEqual(next_calls, list(a.ENDPOINTS))
         self.assertEqual(out2["provider_calls"], 3)
         self.assertEqual(out2["previously_saved_reports_reused"], 0)
