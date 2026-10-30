@@ -271,6 +271,105 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
 
 
 
+def issuer_fcf_preview_reconciles(
+        observed: Any, csv_text: Any, preview: Any) -> bool:
+    """Exact issuer-by-issuer FCF subscore replay from the public DART preview.
+
+    This closes a cross-issuer substitution gap that simple subfactor counts
+    cannot detect. It verifies only published research consistency, never
+    validates original DART filings, historical PIT, or investment approval.
+    """
+    if (not isinstance(observed, dict) or not isinstance(preview, dict)
+            or type(csv_text) is not str
+            or len(csv_text.encode("utf-8")) > MAX_CSV_BYTES
+            or preview.get("schema") !=
+            "v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1"
+            or preview.get("asof") != observed.get("asof")
+            or preview.get("listed_total") != observed.get("listed_total")
+            or preview.get("source_same_filing_scope_receipt_checked") is not True
+            or preview.get("hist_PIT_verified") is not False
+            or preview.get("joined_to_main_v3_ranking") is not False
+            or preview.get("buy_recommendations_authorized") is not False):
+        return False
+    try:
+        rows = preview["rows"]
+        if (type(rows) is not list
+                or len(rows) > observed["listed_total"]):
+            return False
+        expected = {}
+        for item in rows:
+            if type(item) is not dict:
+                return False
+            code = item.get("code")
+            if (type(code) is not str
+                    or not re.fullmatch(r"[0-9]{6}", code)
+                    or code in expected
+                    or item.get("asof") != observed["asof"]
+                    or item.get("market") not in ("KOSPI", "KOSDAQ")
+                    or item.get("strict_receipt_scope_matched") is not True
+                    or item.get("scoring_certified") is not False
+                    or item.get("historical_PIT_certified") is not False):
+                return False
+            points = {}
+            for label, cap, weight_key, value_key in (
+                    ("FCF자산3년_잠정점수", 4,
+                     "financial_fcf_assets_available_max",
+                     "financial_fcf_assets_candidate_points"),
+                    ("FCF수익률_잠정점수", 5,
+                     "valuation_fcf_yield_available_max",
+                     "valuation_fcf_yield_candidate_points")):
+                weight = item.get(weight_key)
+                value = item.get(value_key)
+                if type(weight) is not int or weight not in (0, cap):
+                    return False
+                if weight == 0:
+                    if value is not None:
+                        return False
+                    points[label] = None
+                else:
+                    if (type(value) not in (int, float)
+                            or not 0 <= value <= cap):
+                        return False
+                    numeric = Decimal(str(value))
+                    if not numeric.is_finite():
+                        return False
+                    points[label] = numeric
+            expected[code] = (item["market"], points)
+
+        reader = csv.DictReader(
+            StringIO(csv_text.lstrip("\ufeff"), newline=""), strict=True)
+        if reader.fieldnames != list(CSV_COLUMNS):
+            return False
+        seen = set()
+        counts = {"financial4": 0, "valuation5": 0}
+        for row in reader:
+            if None in row or any(v is None for v in row.values()):
+                return False
+            code = row["종목코드"]
+            if (code in seen or not re.fullmatch(r"[0-9]{6}", code)
+                    or row["가격자료기준일"] != observed["asof"]):
+                return False
+            seen.add(code)
+            source = expected.get(code)
+            for field, cap, count_key in (
+                    ("FCF자산3년_잠정점수", 4, "financial4"),
+                    ("FCF수익률_잠정점수", 5, "valuation5")):
+                shown = _csv_points(row[field], cap)
+                correct = source[1][field] if source is not None else None
+                if shown != correct:
+                    return False
+                if shown is not None:
+                    counts[count_key] += 1
+            if source is not None and row["시장"] != source[0]:
+                return False
+        return (len(seen) == observed["listed_total"]
+                and set(expected).issubset(seen)
+                and counts == observed.get("fcf_observed_issuer_counts"))
+    except (ValueError, KeyError, TypeError, AttributeError, csv.Error,
+            InvalidOperation):
+        return False
+
+
 def issuer_catalog_reconciles(observed: Any, catalog: Any, csv_text: Any) -> bool:
     """Independently match every published issuer to the saved market census.
 
@@ -379,7 +478,9 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
                  *, proof: Any = None,
                  observed_csv_text: Any = None,
                  catalog: Any = None,
-                 dart_receipt_progress: Any = None) -> dict:
+                 dart_receipt_progress: Any = None,
+                 fcf_preview: Any = None,
+                 fcf_cashflow_gap: Any = None) -> dict:
     """Measure validated coverage and fail closed on independent certification.
 
     The optional proof argument is intentionally ignored: unverified assertions
@@ -493,6 +594,23 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     if catalog_reconciled is False:
         issues.append("public_issuer_catalog_membership_mismatch")
 
+    fcf_source_reconciled = None
+    fcf_issuer_reconciled = None
+    if fcf_preview is not None or fcf_cashflow_gap is not None:
+        fcf_issuer_reconciled = issuer_fcf_preview_reconciles(
+            o, observed_csv_text, fcf_preview)
+        try:
+            from v3_v30b_fcf_source_audit import (
+                audit_fcf_sources, FCFReconciliationError)
+            audit_fcf_sources(o, fcf_cashflow_gap, fcf_preview)
+            fcf_source_reconciled = True
+        except (FCFReconciliationError, KeyError, TypeError, ValueError):
+            fcf_source_reconciled = False
+        if not fcf_source_reconciled:
+            issues.append("public_fcf_receipt_source_aggregate_mismatch")
+        if not fcf_issuer_reconciled:
+            issues.append("public_fcf_issuer_subscore_source_mismatch")
+
     # The old backfill's 490/490 extraction window is *not* adjusted-price or
     # delisted-universe verification, and must never be presented as such.
     cohorts = h.get("five_session_cohorts_completed")
@@ -519,6 +637,9 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "published_issuer_csv_coherence": snapshot_valid and csv_reconciled is True,
         "published_issuer_catalog_membership": (
             snapshot_valid and catalog_reconciled is True),
+        "published_fcf_issuer_subscore_source": (
+            snapshot_valid and fcf_issuer_reconciled is True
+            and fcf_source_reconciled is True),
         "five_area_observation_all_listed": snapshot_valid and full == safe_total,
         "fixed_window_krx_extraction": snapshot_valid and window_complete,
         "dart_receipt_checkpoint_coherence": snapshot_valid and dart_counts is not None,
@@ -549,6 +670,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "public_summary_valid": snapshot_valid,
         "public_issuer_csv_reconciled": csv_reconciled,
         "public_issuer_catalog_reconciled": catalog_reconciled,
+        "public_fcf_issuer_subscores_reconciled": fcf_issuer_reconciled,
+        "public_fcf_receipt_source_reconciled": fcf_source_reconciled,
         "listed_total": safe_total if snapshot_valid else None,
         "observed_all_five_areas_100weight_count": full,
         "missing_all_five_area_observation_count": missing_count,
@@ -613,6 +736,10 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-current-observed-all-listed.csv")
     p.add_argument("--catalog", type=Path,
                    default=ROOT / "docs/v22-market-catalog.json")
+    p.add_argument("--fcf-preview", type=Path,
+                   default=ROOT / "docs/v3-dart-fcf-research-preview.json")
+    p.add_argument("--fcf-gap", type=Path,
+                   default=ROOT / "docs/v3-dart-cashflow-gap-summary.json")
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
@@ -621,7 +748,9 @@ def main(argv: list[str] | None = None) -> dict:
                           _read_public_json(a.history),
                           observed_csv_text=_read_public_csv(a.observed_csv),
                           catalog=_read_public_json(a.catalog),
-                          dart_receipt_progress=_read_public_json(a.dart_receipts))
+                          dart_receipt_progress=_read_public_json(a.dart_receipts),
+                          fcf_preview=_read_public_json(a.fcf_preview),
+                          fcf_cashflow_gap=_read_public_json(a.fcf_gap))
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
