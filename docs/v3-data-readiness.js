@@ -51,21 +51,39 @@
       } catch (_) { /* Optional FCF source may legitimately lag. */ }
       const asof = current.asof;
       const listed = current.listed_total;
-      if (!date(asof) || asof !== history.market_asof ||
-          !Number.isSafeInteger(listed) || listed < 100 ||
-          listed !== history.listed_total ||
-          !current.observed_issuer_counts || !history.historical_dart_company_years_attempted_by_fiscal ||
-          !history.historical_dart_company_years_with_accounts_by_fiscal) {
+      if (!date(asof) || !Number.isSafeInteger(listed) || listed < 100 ||
+          !current.observed_issuer_counts ||
+          history.schema !== 'v3-real-saved-source-six-pillar-coverage-0.1' ||
+          !history.historical_dart_company_years_attempted_by_fiscal ||
+          !history.historical_dart_company_years_with_accounts_by_fiscal ||
+          !date(history.market_asof) ||
+          !Number.isSafeInteger(history.listed_total) || history.listed_total < 100) {
+        throw new Error('invalid source date or market census');
+      }
+      // An older DART census cannot be joined with today's market census.
+      // A bounded, explicitly older source is a WAIT state, not corrupt same-day
+      // coverage. Show independently checked current-day price coverage only.
+      const historyAligned = history.market_asof === asof &&
+        history.listed_total === listed;
+      const lagDays = (Date.parse(asof + 'T00:00:00Z') -
+        Date.parse(history.market_asof + 'T00:00:00Z')) / 86400000;
+      const historyWaiting = history.market_asof.slice(0, 4) === asof.slice(0, 4) &&
+        Number.isInteger(lagDays) && lagDays >= 1 && lagDays <= 10 &&
+        count(history.listed_total, 6000);
+      if (!historyAligned && !historyWaiting) {
         throw new Error('source date or market census mismatch');
       }
-      const fiscalYears = Array.from({length: 4}, (_, i) => String(Number(asof.slice(0, 4)) - 4 + i));
       let attempted = 0, actual = 0;
-      for (const year of fiscalYears) {
-        const a = history.historical_dart_company_years_attempted_by_fiscal[year];
-        const b = history.historical_dart_company_years_with_accounts_by_fiscal[year];
-        if (!count(a, listed) || !count(b, a)) throw new Error('invalid fiscal coverage');
-        attempted += a;
-        actual += b;
+      if (historyAligned) {
+        const fiscalYears = Array.from({length: 4}, (_, i) =>
+          String(Number(asof.slice(0, 4)) - 4 + i));
+        for (const year of fiscalYears) {
+          const a = history.historical_dart_company_years_attempted_by_fiscal[year];
+          const b = history.historical_dart_company_years_with_accounts_by_fiscal[year];
+          if (!count(a, listed) || !count(b, a)) throw new Error('invalid fiscal coverage');
+          attempted += a;
+          actual += b;
+        }
       }
       const priced = current.observed_issuer_counts.technical;
       // FCF must be same-market-day, but never suppress financial/price
@@ -89,13 +107,29 @@
       }
       // 100 available weight means observed source coverage, NOT investment certification.
       // A corrupt or stale aggregate fails closed instead of showing a misleading zero.
-      if (attempted < 1 || !count(priced, listed) ||
+      if ((historyAligned && attempted < 1) || !count(priced, listed) ||
           (fcf !== null && !count(fcf, listed)) || !count(certified, listed) ||
           !count(financialIssuers, listed) || !count(valuationIssuers, listed) ||
           !count(provisional100, listed) ||
           provisional100 > Math.min(priced, financialIssuers, valuationIssuers) ||
           !count(current.observed_any_factor_issuers, listed)) {
         throw new Error('invalid source-derived coverage');
+      }
+      if (historyWaiting) {
+        ids.price.textContent = fmt(priced) + ' / ' + fmt(listed);
+        for (const name of ['financial', 'cashflow', 'financialIssuers',
+          'valuationIssuers', 'provisional100']) {
+          ids[name].textContent = '동기화 대기';
+        }
+        ids.certified.textContent = '0종목';
+        ids.status.textContent = '자료 기준일 ' + asof + ' · DART 동기화 대기';
+        ids.notes.textContent =
+          '현재 기술분석 관측 ' + percent(priced, listed) + ' (' +
+          fmt(priced) + '/' + fmt(listed) + '종목). DART 출처는 ' +
+          history.market_asof + ' 기준으로 현재 시장 종목 수와 합산하지 않습니다. ' +
+          '재무·가치평가·3개년 현금흐름과 100점 확보율은 동기화 후 표시합니다. ' +
+          '정식 투자점수는 독립 인증 전이며 미확보 항목은 0점으로 처리하지 않습니다.';
+        return;
       }
       ids.financial.textContent = fmt(actual) + ' / ' + fmt(attempted);
       ids.price.textContent = fmt(priced) + ' / ' + fmt(listed);
