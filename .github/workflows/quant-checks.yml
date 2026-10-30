@@ -241,7 +241,12 @@ jobs:
                       == report['listed_total'])
               assert (report['all_issuers_updated_this_cycle'] is
                       (report['unprocessed_this_cycle'] == 0))
-              assert 0 <= report['processed_today'] <= (report['listed_total']+6)//7
+              # The fixed-roster unit test proves the normal 1/7 cadence.
+              # A newly listed issuer can shift sorted bucket boundaries;
+              # legitimate same-cycle catch-up may exceed a single seventh.
+              assert (0 <= report['processed_today']
+                      <= report['processed_this_cycle']
+                      <= report['listed_total'])
               print('Saved-source rotation audit (no provider calls):',
                     report['processed_today'], 'today,',
                     report['unprocessed_this_cycle'], 'remaining')
