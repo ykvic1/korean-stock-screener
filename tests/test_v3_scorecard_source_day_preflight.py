@@ -43,6 +43,25 @@ class ScorecardMarketDayGateTests(unittest.TestCase):
                          ["dart_annual","dart_factors","rotating_technical"])
         self.assertEqual(status["new_provider_calls"],0)
 
+    def test_only_weekly_technical_lag_can_be_explicitly_omitted(self):
+        h,p,w=sources()
+        w["market_asof"]="2026-10-20"
+        strict=preflight_day(DAY,h,p,w)
+        self.assertFalse(strict["ready"])
+        partial=preflight_day(DAY,h,p,w,permit_weekly_only_lag=True)
+        self.assertTrue(partial["ready"])
+        self.assertTrue(partial["technical_weekly_excluded"])
+        self.assertEqual(partial["lagging_sources"],["rotating_technical"])
+        self.assertFalse(partial["official_100_point_scores_certified"])
+        self.assertEqual(partial["new_provider_calls"],0)
+        h["asof"]="2026-10-20"
+        deferred=preflight_day(DAY,h,p,w,permit_weekly_only_lag=True)
+        self.assertFalse(deferred["ready"])
+        self.assertFalse(deferred["technical_weekly_excluded"])
+        w["market_asof"]="2026-10-22"
+        with self.assertRaises(ScorecardReadinessError):
+            preflight_day(DAY,h,p,w,permit_weekly_only_lag=True)
+
     def test_fraudulent_or_incompatible_reference_is_error_not_deferred(self):
         for field in ("future","too_old","wrong_pit","wrong_schema","wrong_years"):
             h,p,w=sources()
@@ -64,7 +83,6 @@ class ScorecardMarketDayGateTests(unittest.TestCase):
         self.assertNotIn("DART_API_KEY:",wf)
         self.assertNotIn("KRX_API_KEY:",wf)
         self.assertNotIn("git push --force",wf)
-
 
 if __name__=="__main__":
     unittest.main()
