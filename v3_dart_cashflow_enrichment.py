@@ -102,10 +102,14 @@ def matched_scope(bulk_record, *, asof=None, preferred_scope=None):
 
 
 def retained_current_market_cashflow(market,catalog,bulk,prior):
-    """Carry genuine FY receipts to the next trading-day market snapshot.
+    """Retain genuine source receipts, isolating revised fiscal statements.
 
-    Only current-listed issuers, same fiscal window and unchanged exact
-    major-account receipts survive. No provider call or inferred zero.
+    An updated major-account archive may replace one exact annual receipt.
+    Quarantine ONLY that stale issuer/year observation, while retaining
+    other receipt-matched fiscal years and unrelated issuers. The missing
+    year becomes eligible for a fresh official provider query in plan().
+    No old amount is silently relabeled with a newly received receipt.
+    Neither a source mismatch nor a removed issuer can survive validation.
     """
     asof,members=asof_members(market,catalog,bulk)
     if prior is None:
@@ -118,9 +122,6 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
         current_day=_day(asof)
     except (ValueError,TypeError):
         raise CashflowError("untrusted_previous_cashflow_date") from None
-    if previous_day==current_day:
-        verify_state(prior,market,catalog,bulk,strict_fingerprint=False)
-        return prior
     if (previous_day>current_day or previous_day.year!=current_day.year
         or (current_day-previous_day).days>45
         or type(prior.get("listed_total")) is not int
@@ -128,21 +129,48 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
         or type(prior.get("records")) is not dict
         or len(prior["records"])>prior["listed_total"]):
         raise CashflowError("unsafe_cashflow_market_day_rollover")
+    if (previous_day==current_day
+        and prior.get("source_major_history_sha256")==fingerprint(bulk)):
+        # Fast path retains the preexisting strict provenance check.
+        verify_state(prior,market,catalog,bulk,strict_fingerprint=True)
+        return prior
     old_records=prior["records"]
     if any(type(c) is not str or not re.fullmatch(r"[0-9]{6}",c)
            for c in old_records):
         raise CashflowError("invalid_prior_company_identity")
-    # Revalidate the old immutable snapshot independently of today's
-    # membership without fabricating yesterday's entire listed universe.
+    # Validate the entire immutable old snapshot BEFORE source reconciliation.
+    # Yesterday's listed universe cannot be reconstructed from today's one.
     reconstructed=summary(previous,old_records,old_records,
                           prior.get("source_major_history_sha256"))
     reconstructed["listed_total"]=prior["listed_total"]
     if reconstructed!=prior:
         raise CashflowError("untrusted_previous_cashflow_source")
-    current_records={c:rec for c,rec in old_records.items() if c in members}
-    now=summary(asof,members,current_records,fingerprint(bulk))
-    verify_state(now,market,catalog,bulk,strict_fingerprint=True)
-    return now
+    current_records={}
+    for code,issuer in old_records.items():
+        if code not in members:
+            continue
+        scope=issuer["scope"]
+        major_company=bulk["records"].get(code,{})
+        major_years=(major_company.get("years",{})
+                     if type(major_company) is dict else {})
+        unchanged={}
+        for year,observation in issuer["years"].items():
+            if observation.get("major_annual_receipt_matched") is True:
+                fiscal=major_years.get(year,{})
+                major=(fiscal.get(scope,{}) if type(fiscal) is dict else {})
+                receipt=(major.get("receipt_id")
+                         if type(major) is dict else None)
+                if (not _valid_receipt(receipt,int(year),current_day)
+                    or receipt!=observation.get("annual_receipt_id")):
+                    # Revised/withdrawn or no longer date-valid annual source.
+                    # The old numeric FCF must never be rebased onto it.
+                    continue
+            unchanged[year]=observation
+        if unchanged:
+            current_records[code]={"scope":scope,"years":unchanged}
+    rebound=summary(asof,members,current_records,fingerprint(bulk))
+    verify_state(rebound,market,catalog,bulk,strict_fingerprint=True)
+    return rebound
 
 
 def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS):
@@ -441,9 +469,12 @@ def main(argv=None):
         refreshed=retained_current_market_cashflow(
             market,catalog,bulk,prior)
         refreshed=summary(asof,members,refreshed["records"],fingerprint(bulk))
+        removed_years=(prior["metrics"]["attempted_company_years"]
+                       -refreshed["metrics"]["attempted_company_years"])
         write_json(state_path,refreshed)
-        print(json.dumps({"status":"receipt_rebound_same_market_date",
-             "source_calls":0,"persisted_issuer_years":
+        print(json.dumps({"status":"receipt_rebound_revised_years_quarantined",
+             "source_calls":0,"quarantined_stale_company_years":removed_years,
+             "persisted_issuer_years":
              refreshed["metrics"]["attempted_company_years"],
              "full_v3_ready":False},sort_keys=True))
         return
