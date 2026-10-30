@@ -5,6 +5,7 @@ from io import StringIO
 import csv
 import json
 import os
+from datetime import date
 from playwright.sync_api import sync_playwright
 
 # Production by default; CI also tests real checked-in market snapshots
@@ -36,9 +37,18 @@ with sync_playwright() as p:
     # The price close can advance before the annual DART source and its
     # coverage audit finish. A prior-day fiscal audit is not a same-day score:
     # show those points as missing, but keep the mobile price view usable.
-    assert evidence["market_asof"] <= observed["asof"]
-    assert observed["listed_total"] == evidence["listed_total"]
-    if evidence["market_asof"] != observed["asof"]:
+    market_day = date.fromisoformat(observed["asof"])
+    dart_day = date.fromisoformat(evidence["market_asof"])
+    dart_lag = (market_day - dart_day).days
+    assert 0 <= dart_lag <= 10, "historical DART source must be a bounded prior market day"
+    if dart_lag == 0:
+        assert observed["listed_total"] == evidence["listed_total"], (
+            "same-day DART issuer census mismatch must fail closed"
+        )
+    else:
+        # Prior-day DART data is never joined with today's issuer census,
+        # which can change when new symbols list or delist overnight.
+        assert market_day.year == dart_day.year
         assert observed["observed_issuer_counts"]["financial"] == 0
         assert observed["observed_issuer_counts"]["valuation"] == 0
         assert observed["certified_100point_count"] == 0
@@ -118,7 +128,19 @@ with sync_playwright() as p:
         timeout=15000
     )
     readiness = page.locator("#readinessStatus").inner_text()
-    if "자료 기준일" in readiness:
+    if "DART 동기화 대기" in readiness:
+        assert dart_lag >= 1
+        assert page.locator("#readinessPrice").inner_text() == (
+            f"{observed['observed_issuer_counts']['technical']:,} / {observed['listed_total']:,}"
+        )
+        for field in ("Financial", "Cashflow", "FinancialIssuers",
+                      "ValuationIssuers", "Provisional100"):
+            assert page.locator("#readiness" + field).inner_text() == "동기화 대기"
+        assert page.locator("#readinessCertified").inner_text() == "0종목"
+        assert "독립 인증 전" in page.locator("#readinessNotes").inner_text()
+    elif "자료 기준일" in readiness:
+        assert dart_lag == 0
+        assert observed["listed_total"] == evidence["listed_total"]
         observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
         historical = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
         joined = context.request.get(URL + "v3-all-listed-scorecard-summary.json").json()
