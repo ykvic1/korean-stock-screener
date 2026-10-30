@@ -10,6 +10,7 @@ import unittest
 import v3_all_listed_scorecard as m
 from v3_dart_cashflow_factor_preview import score_preview
 from v3_current_price_replay import build as same_day_price_replay
+from v3_real_six_pillar_coverage_audit import CoverageAuditError
 
 DOCS=Path(__file__).resolve().parent.parent/"docs"
 
@@ -27,13 +28,13 @@ def sources():
 
 class AllListedScorecardTests(unittest.TestCase):
     def setUp(self):
-        # Live integration assertions require the exact same closing date.
-        # Market close may run ahead of bounded official DART backfills.
+        # The market/annual/partial inputs must align; independently saved
+        # older WEEKLY technical data is excluded, not a blocker to all other
+        # currently observed five-factor research contributions.
         snapshot,catalog,bulk,parts,weekly,_,_=sources()
         day=catalog["date"]
         if any(value!=day for value in (
-                snapshot["date"],bulk["asof"],parts["asof"],
-                weekly["market_asof"])):
+                snapshot["date"],bulk["asof"],parts["asof"])):
             self.skipTest("source_day_rollover_waiting_for_official_dart_backfill")
     def test_every_catalog_issuer_even_without_usable_price(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
@@ -130,6 +131,51 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(notice["technical_momentum_price_replay_state"],
                          "source_rejected_or_stale")
 
+    def test_current_annual_points_publish_with_old_weekly_completely_excluded(self):
+        market,catalog,history,parts,weekly,_,_=sources()
+        day=catalog["date"]
+        previous=(date.fromisoformat(day)-timedelta(days=1)).isoformat()
+        lagged=copy.deepcopy(weekly)
+        lagged["market_asof"]=previous
+        for rec in lagged["records"].values():
+            if rec["market_source_asof"]>previous:
+                rec["market_source_asof"]=previous
+
+        baseline,old=m.generate(market,catalog,history,parts,lagged)
+        self.assertEqual(old["asof"],day)
+        self.assertEqual(len(baseline),catalog["listed_total"])
+        self.assertEqual(old["technical_weekly_source_state"],
+                         "older_market_day_excluded_no_carryover")
+        self.assertEqual(old["provisional_numeric_issuer_counts"]["technical"],0)
+        self.assertEqual(old["provisional_numeric_issuer_counts"]["momentum"],0)
+        self.assertGreater(old["provisional_numeric_issuer_counts"]["financial"],0)
+        self.assertFalse(old["full_six_pillar_certified_count"])
+
+        replay=same_day_price_replay(market,catalog)
+        rows,report=m.generate(market,catalog,history,parts,lagged,
+                               price_replay=replay)
+        self.assertEqual(report["technical_momentum_price_replay_state"],
+                         "same_market_digest_verified_research_only")
+        self.assertEqual(report["provisional_numeric_issuer_counts"]["technical"],
+                         replay["technical_research_issuer_count"])
+        self.assertEqual(report["provisional_numeric_issuer_counts"]["momentum"],
+                         replay["momentum_research_issuer_count"])
+        self.assertTrue(all(r["available"]+r["unavailable"]==100 for r in rows))
+        self.assertTrue(all(r["factors"]["technical"][1]==0 for r in baseline))
+        self.assertEqual(report["full_six_pillar_certified_count"],0)
+
+        # A week-old source cannot smuggle a today-dated technical row, and
+        # old annual evidence cannot be silently promoted as current.
+        forged=copy.deepcopy(lagged)
+        first=next(iter(forged["records"]))
+        forged["records"][first]["market_source_asof"]=day
+        with self.assertRaises(CoverageAuditError):
+            m.generate(market,catalog,history,parts,forged)
+        outdated=copy.deepcopy(history)
+        outdated["asof"]=previous
+        with self.assertRaises(CoverageAuditError):
+            m.generate(market,catalog,outdated,parts,lagged)
+
     def test_user_approved_five_factor_100_with_sector_unscored(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         rows,summary=m.generate(market,catalog,history,parts,weekly,cash,fcf)
@@ -140,7 +186,7 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertTrue(summary["industry_excluded_from_score_budget"])
         self.assertNotIn("industry_approved_subweights",summary)
         self.assertNotIn("industry",m.AREAS)
-        self.assertEqual(len(rows),2497)
+        self.assertEqual(len(rows),catalog["listed_total"])
         for row in rows:
             self.assertEqual(row["available"]+row["unavailable"],100)
             self.assertNotIn("industry",row["factors"])
@@ -196,7 +242,8 @@ class AllListedScorecardTests(unittest.TestCase):
         rows,report=m.generate(market,catalog,history,parts,weekly,cash,fcf,
                                industry)
         from v3_real_six_pillar_coverage_audit import coverage
-        actual=coverage(catalog,history,parts,weekly)
+        actual=coverage(catalog,history,parts,weekly,
+                        allow_lagged_weekly=True)
         depth=report["observed_source_depth"]
         self.assertEqual(depth["four_year_dart_attempted_issuers"],
                          actual["historical_dart_distinct_issuer_count"])
@@ -215,7 +262,7 @@ class AllListedScorecardTests(unittest.TestCase):
                          m._stable_digest(parts))
         self.assertEqual(report["source_sha256"]["weekly"],
                          m._stable_digest(weekly))
-        self.assertEqual(len(rows),2497)
+        self.assertEqual(len(rows),catalog["listed_total"])
         self.assertEqual(report["full_six_pillar_certified_count"],0)
 
         corrupted=copy.deepcopy(cash)
