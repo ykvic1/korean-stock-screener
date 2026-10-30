@@ -138,6 +138,15 @@ with sync_playwright() as p:
         else:
             assert page.locator("#readinessCashflow").inner_text() == "미확인"
             assert "3개년 FCF 갱신 대기" in page.locator("#readinessNotes").inner_text()
+        assert page.locator("#readinessFinancialIssuers").inner_text() == (
+            f"{observed['observed_issuer_counts']['financial']:,} / {observed['listed_total']:,}"
+        )
+        assert page.locator("#readinessValuationIssuers").inner_text() == (
+            f"{observed['observed_issuer_counts']['valuation']:,} / {observed['listed_total']:,}"
+        )
+        assert page.locator("#readinessProvisional100").inner_text() == (
+            f"{observed['provisional_complete_100point_observation_count']:,}종목 · 미인증"
+        )
         assert page.locator("#readinessCertified").inner_text() == "0종목"
         # The nested nine-factor audit must be selectable independently of its parent.
         if observed.get("financial_valuation_component_observed_issuers"):
@@ -153,7 +162,7 @@ with sync_playwright() as p:
     else:
         # Market-close transition may leave legitimately mismatched snapshot
         # dates; the UI must show unknown rather than silently merge dates.
-        for field in ("Financial", "Price", "Cashflow", "Certified"):
+        for field in ("Financial", "Price", "Cashflow", "FinancialIssuers", "ValuationIssuers", "Provisional100", "Certified"):
             assert page.locator("#readiness" + field).inner_text() == "미확인"
     assert page.get_by_text("과거 파생자료 수집 실행 기록 확인 ↗").is_visible()
     page.locator("#dataReadiness > summary").click()
