@@ -117,6 +117,50 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         with self.assertRaises(LivePartialScorecardError):
             generate(market,catalog,v,bad)
 
+    def test_unlisted_dart_candidate_never_silently_skipped(self):
+        market,catalog=small()
+        volume=volume_build(market,catalog)
+        price=price_build(market,catalog)
+        fiscal={"code":"005930","market":"KOSPI","asof":market["date"],
+                "financial_candidate_points":3.0,
+                "financial_available_max":8,
+                "valuation_candidate_points":4.0,
+                "valuation_available_max":10,
+                "confirmed_v3_score":None,"scoring_certified":False}
+        fcf={"code":"005930","market":"KOSPI","asof":market["date"],
+             "financial_fcf_assets_candidate_points":0.0,
+             "financial_fcf_assets_available_max":4,
+             "valuation_fcf_yield_candidate_points":1.0,
+             "valuation_fcf_yield_available_max":5,
+             "strict_receipt_scope_matched":True,
+             "historical_PIT_certified":False,"scoring_certified":False}
+        # Valid, correctly joined DART evidence continues to display ONLY
+        # as provisional research and never produces a certified investment score.
+        rows,summary=generate(market,catalog,volume,price,
+                              financial={"005930":fiscal},
+                              cashflow={"005930":fcf})
+        self.assertEqual(len(rows),catalog["listed_total"])
+        self.assertEqual(summary["certified_100point_count"],0)
+        self.assertTrue(all(row["official_score"] is None for row in rows))
+
+        ghost_fiscal=copy.deepcopy(fiscal)
+        ghost_fiscal["code"]="999999"
+        with self.assertRaisesRegex(
+                LivePartialScorecardError,"unlisted_fiscal_research_issuer"):
+            generate(market,catalog,volume,price,
+                     financial={"005930":fiscal,"999999":ghost_fiscal})
+        ghost_fcf=copy.deepcopy(fcf)
+        ghost_fcf["code"]="999999"
+        with self.assertRaisesRegex(
+                LivePartialScorecardError,"unlisted_fcf_research_issuer"):
+            generate(market,catalog,volume,price,
+                     financial={"005930":fiscal},
+                     cashflow={"005930":fcf,"999999":ghost_fcf})
+        # A list mistakenly used as a source map is also not a valid empty map.
+        with self.assertRaisesRegex(
+                LivePartialScorecardError,"unlisted_fiscal_research_issuer"):
+            generate(market,catalog,volume,price,financial=[])
+
     def test_cli_write_then_verify_then_tamper_csv_rejected(self):
         market,catalog=small()
         with tempfile.TemporaryDirectory() as t:
