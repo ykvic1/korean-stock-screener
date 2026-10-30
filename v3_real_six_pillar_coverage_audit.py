@@ -145,7 +145,16 @@ def weekly_current_day_evidence(weekly,day,members):
     return technical,momentum,old_weekly_issuer_count,len(active_weekly)
 
 
-def coverage(catalog,history,parts,weekly):
+def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False):
+    # The combined source audit remains STRICT by default. Only the separate
+    # observed-only scorecard may explicitly ask to ignore a bounded, older
+    # weekly source after today's official annual/partial ledgers align.
+    weekly_deferred=False
+    if allow_lagged_weekly:
+        alignment=publication_alignment(catalog,history,parts,weekly)
+        if alignment=="deferred_dart":
+            raise CoverageAuditError("annual_source_not_ready_for_partial_scorecard")
+        weekly_deferred=alignment=="deferred_weekly"
     day=catalog.get("date")
     if not isinstance(day,str):
         raise CoverageAuditError("missing_saved_market_date")
@@ -158,7 +167,7 @@ def coverage(catalog,history,parts,weekly):
         parts.get("schema")!=SCORE_SCHEMA or
         weekly.get("schema")!="v3-seven-day-research-source-rotation-0.1" or
         history.get("asof")!=day or parts.get("asof")!=day or
-        weekly.get("market_asof")!=day or
+        (weekly.get("market_asof")!=day and not weekly_deferred) or
         history.get("historical_PIT_source_certified") is not False or
         history.get("four_year_complete_financial15_certified") is not False or
         parts.get("historical_PIT_certified") is not False or
@@ -184,7 +193,7 @@ def coverage(catalog,history,parts,weekly):
     if (total<=0 or catalog.get("listed_total")!=total or
         history.get("listed_total")!=total or
         parts.get("listed_total")!=total or
-        weekly.get("listed_total")!=total):
+        (weekly.get("listed_total")!=total and not weekly_deferred)):
         raise CoverageAuditError("market_universe_count_mismatch")
     fiscal=history.get("fiscal_years")
     if (fiscal!=list(range(int(day[:4])-4,int(day[:4]))) or
@@ -379,8 +388,45 @@ def coverage(catalog,history,parts,weekly):
         (sales_mode and
          parts.get("companies_with_computable_sales_to_cap_scores")!=len(sales_cap))):
         raise CoverageAuditError("research_component_evidence_count_mismatch")
-    technical,momentum,old_weekly_issuer_count,active_weekly_count=(
-        weekly_current_day_evidence(weekly,day,members))
+    if weekly_deferred:
+        # This source is not today's market cohort. Its identities, point
+        # counts and historic labels are NEVER reused in today's scorecard.
+        # Even a malicious future-dated record cannot sneak through as a
+        # current-close price observation.
+        old_day=date.fromisoformat(weekly["market_asof"])
+        old_active={code:row for code,row in weekly["records"].items()
+                    if type(row) is dict and
+                    row.get("cycle")==weekly.get("cycle_start")}
+        if (weekly.get("processed_this_cycle")!=len(old_active) or
+            weekly.get("unprocessed_this_cycle")!=
+                weekly["listed_total"]-len(old_active)):
+            raise CoverageAuditError("untrusted_lagged_weekly_cohort_counts")
+        observed_technical=0
+        for code,record in weekly["records"].items():
+            if (type(code) is not str or type(record) is not dict or
+                record.get("code")!=code or
+                type(record.get("market_source_asof")) is not str):
+                raise CoverageAuditError("invalid_lagged_weekly_record")
+            try:
+                observed=date.fromisoformat(record["market_source_asof"])
+            except ValueError:
+                raise CoverageAuditError("invalid_lagged_weekly_record") from None
+            if (observed.isoformat()!=record["market_source_asof"] or
+                observed>old_day):
+                raise CoverageAuditError("future_lagged_weekly_record")
+            if code in old_active and (
+                _number(record.get("research_score_points")) and
+                _number(record.get("available_weight")) and
+                0<record["available_weight"]<=25 and
+                0<=record["research_score_points"]<=record["available_weight"]):
+                observed_technical+=1
+        if weekly.get("numeric_technical_candidates_this_cycle")!=observed_technical:
+            raise CoverageAuditError("untrusted_lagged_weekly_technical_counts")
+        technical,momentum,old_weekly_issuer_count,active_weekly_count=(
+            set(),set(),0,0)
+    else:
+        technical,momentum,old_weekly_issuer_count,active_weekly_count=(
+            weekly_current_day_evidence(weekly,day,members))
     industry_labels={code for code,row in members.items()
                      if isinstance(row.get("sector"),str) and row["sector"].strip()}
     # Category labels are useful data but NOT independently scored industry
@@ -445,6 +491,10 @@ def coverage(catalog,history,parts,weekly):
         "buy_recommendations_authorized":False,
         "investment_grade_scores_confirmed":False,
     }
+    if weekly_deferred:
+        result["technical_weekly_deferred"]=True
+        result["limitations"].append(
+            "Previous-market-day weekly technical and momentum observations excluded from current scorecard")
     return result
 
 

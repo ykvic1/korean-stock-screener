@@ -33,7 +33,7 @@ def _day(value):
     return val
 
 
-def preflight_day(day,history,parts,weekly):
+def preflight_day(day,history,parts,weekly,*,permit_weekly_only_lag=False):
     """Only a real, bounded market-day SOURCE LAG may return deferred."""
     current=_day(day)
     sources=(
@@ -62,9 +62,18 @@ def preflight_day(day,history,parts,weekly):
             raise ScorecardReadinessError("invalid_or_expired_scorecard_source_day")
         if age>0:
             lagged.append(name)
-    return {"ready":not lagged,"market_asof":day,"lagging_sources":lagged,
-            "status":"same_day_source_ready" if not lagged
-                else "deferred_waiting_for_saved_annual_and_weekly_source",
+    # Unlike the combined six-area audit, today's five-factor RESEARCH CSV
+    # can safely omit an older weekly cohort. This is only possible with both
+    # current-day financial sources; any stale annual/partial input still waits.
+    weekly_omitted=(permit_weekly_only_lag and
+                    lagged==["rotating_technical"])
+    ready=not lagged or weekly_omitted
+    return {"ready":ready,"market_asof":day,"lagging_sources":lagged,
+            "technical_weekly_excluded":weekly_omitted,
+            "status":("same_day_source_ready" if not lagged
+                else "current_day_financial_with_prior_weekly_excluded"
+                  if weekly_omitted
+                else "deferred_waiting_for_saved_annual_and_weekly_source"),
             "official_100_point_scores_certified":False,
             "new_provider_calls":0}
 
@@ -85,11 +94,13 @@ def main(argv=None):
     history=read("v3-dart-bulk-history.json")
     parts=read("v3-dart-bulk-provisional.json")
     weekly=read("v3-weekly-rotation.json")
-    status=preflight_day(day,history,parts,weekly)
+    status=preflight_day(day,history,parts,weekly,
+                         permit_weekly_only_lag=True)
     if status["ready"]:
         # Same date alone is not proof of correctness: audit the entire
-        # saved ledger contract before authorizing CSV regeneration.
-        coverage(catalog,history,parts,weekly)
+        # saved ledger contract before authorizing CSV regeneration. An older
+        # technical source is a true omission, not re-dated to today's close.
+        coverage(catalog,history,parts,weekly,allow_lagged_weekly=True)
     if os.getenv("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as fp:
             fp.write("ready="+str(status["ready"]).lower()+"\n")
