@@ -34,7 +34,12 @@ def _date(raw):
 
 
 def check(market,catalog,reference,*,kind):
-    """Return evidence-only readiness; an incompatible reference must error."""
+    """Allow dated older DART census ONLY as a nonpublishing wait state.
+
+    A listing change between close and annual collection is normal. Source
+    metadata must still be valid; a mislabeled SAME-DAY census is corrupt.
+    No provider calls or score publication are authorized in either state.
+    """
     if kind not in ("annual","major"):
         raise SourceDayGateError("invalid_source_reference_kind")
     try:
@@ -43,32 +48,45 @@ def check(market,catalog,reference,*,kind):
         raise SourceDayGateError("untrusted_current_market_census") from None
     if type(reference) is not dict:
         raise SourceDayGateError("untrusted_dart_reference")
-    if kind=="annual":
-        if (reference.get("market_listed_total")!=len(members)
-            or reference.get("historical_point_in_time_verified") is not False
-            or reference.get("official_exchange_pbr_verified") is not False
-            or type(reference.get("observations")) is not list):
-            raise SourceDayGateError("annual_reference_not_source_verified")
-    else:
-        expected=list(range(_date(asof).year-4,_date(asof).year))
-        if (reference.get("schema")!=BULK_SCHEMA
-            or reference.get("listed_total")!=len(members)
-            or reference.get("fiscal_years")!=expected
-            or reference.get("historical_PIT_source_certified") is not False
-            or reference.get("raw_source_rows_published") is not False
-            or type(reference.get("records")) is not dict):
-            raise SourceDayGateError("major_reference_not_source_verified")
     market_day=_date(asof)
     reference_day=_date(reference.get("asof"))
     lag=(market_day-reference_day).days
     if (lag<0 or lag>10 or market_day.year!=reference_day.year):
         raise SourceDayGateError("invalid_or_expired_dart_source_lag")
+
+    if kind=="annual":
+        from v3_dart_rolling_book_reference import SCHEMA as ANNUAL_SCHEMA
+        prior_count=reference.get("market_listed_total")
+        if (reference.get("schema")!=ANNUAL_SCHEMA
+            or type(prior_count) is not int or not 1<=prior_count<=6000
+            or reference.get("historical_point_in_time_verified") is not False
+            or reference.get("official_exchange_pbr_verified") is not False
+            or type(reference.get("observations")) is not list):
+            raise SourceDayGateError("annual_reference_not_source_verified")
+    else:
+        prior_count=reference.get("listed_total")
+        expected=list(range(reference_day.year-4,reference_day.year))
+        if (reference.get("schema")!=BULK_SCHEMA
+            or type(prior_count) is not int or not 1<=prior_count<=6000
+            or reference.get("fiscal_years")!=expected
+            or reference.get("historical_PIT_source_certified") is not False
+            or reference.get("raw_source_rows_published") is not False
+            or type(reference.get("records")) is not dict):
+            raise SourceDayGateError("major_reference_not_source_verified")
+
+    if lag==0 and prior_count!=len(members):
+        raise SourceDayGateError(
+            "annual_reference_not_source_verified" if kind=="annual"
+            else "major_reference_not_source_verified")
     return {
         "market_asof":asof,"source_asof":reference_day.isoformat(),
         "source_kind":kind,"day_lag":lag,
         "ready":lag==0,
         "status":"same_market_day_source_ready" if lag==0
                  else "deferred_waiting_for_dart_same_market_day",
+        "source_listed_total":prior_count,
+        "current_listed_total":len(members),
+        "census_changed_while_waiting":lag>0 and prior_count!=len(members),
         "full_v3_100pt_certified":False,
         "extra_official_calls":0,
     }
