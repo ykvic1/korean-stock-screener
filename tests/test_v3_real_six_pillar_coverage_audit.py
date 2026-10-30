@@ -19,6 +19,69 @@ def actual_inputs():
     ]
 
 
+class PublicationAlignmentTests(unittest.TestCase):
+    def sources(self):
+        catalog, history, parts, weekly = actual_inputs()
+        # Fixture source content is real, but the alignment gate itself only
+        # needs the authenticated headers and does not alter any source rows.
+        history = {**history, "asof": catalog["date"],
+                   "listed_total": catalog["listed_total"]}
+        parts = {**parts, "asof": catalog["date"],
+                 "listed_total": catalog["listed_total"]}
+        weekly = {**weekly, "market_asof": catalog["date"],
+                  "listed_total": catalog["listed_total"]}
+        return [catalog, history, parts, weekly]
+
+    def test_aligned_headers_allow_full_validation(self):
+        self.assertEqual(audit.publication_alignment(*self.sources()), "aligned")
+
+    def test_yesterdays_weekly_never_blocks_dart_source_only_publication(self):
+        base = self.sources()
+        base[3]["market_asof"] = "2026-10-29"
+        base[3]["listed_total"] = base[0]["listed_total"] - 2
+        self.assertEqual(audit.publication_alignment(*base), "deferred_weekly")
+        # The previous combined result stays on its original 29th source day.
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "incompatible_saved_source_status"):
+            audit.coverage(*base)
+
+    def test_weekly_source_can_publish_before_later_annual_replay(self):
+        base = self.sources()
+        base[1]["asof"] = base[2]["asof"] = "2026-10-29"
+        base[1]["listed_total"] = base[2]["listed_total"] = 2497
+        self.assertEqual(audit.publication_alignment(*base), "deferred_dart")
+
+    def test_mixed_fiscal_dates_future_and_false_certification_fail_closed(self):
+        base = self.sources()
+        bad = copy.deepcopy(base)
+        bad[2]["asof"] = "2026-10-29"
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "invalid_source_alignment_scope"):
+            audit.publication_alignment(*bad)
+        bad = copy.deepcopy(base)
+        bad[3]["market_asof"] = "2026-10-31"
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "invalid_source_alignment_scope"):
+            audit.publication_alignment(*bad)
+        bad = copy.deepcopy(base)
+        bad[1]["historical_PIT_source_certified"] = True
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "unsafe_source_alignment_flags"):
+            audit.publication_alignment(*bad)
+
+    def test_publisher_defers_combined_audit_until_weekly_replay(self):
+        root = Path(__file__).resolve().parent.parent
+        bulk = (root/".github/workflows/v3-dart-bulk-four-year.yml").read_text()
+        weekly = (root/".github/workflows/v3-weekly-rotation.yml").read_text()
+        self.assertIn('ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"', bulk)
+        self.assertIn("deferred_weekly", bulk)
+        self.assertIn("fouryear_alignment_changed_after_rebase", bulk)
+        self.assertIn('POST_ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"', weekly)
+        self.assertIn("python v3_real_source_progress_ledger.py --mode verify", weekly)
+        self.assertIn("'43 11 * * *'", weekly)
+        self.assertIn("'29 * * * *'", bulk)
+
+
 class RealCoverageAuditTests(unittest.TestCase):
     def setUp(self):
         catalog,bulk,parts,weekly=actual_inputs()

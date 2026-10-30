@@ -65,13 +65,30 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/v3-weekly-rotation.json docs/v3-weekly-coverage.json
+          ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"
+          if [[ "$ALIGNMENT" == 'aligned' ]]; then
+            python v3_real_six_pillar_coverage_audit.py --mode write
+            python v3_real_source_progress_ledger.py --mode write
+          else
+            echo 'Combined six-area audit deferred until saved source dates agree.'
+          fi
+          git add docs/v3-weekly-rotation.json docs/v3-weekly-coverage.json \
+            docs/v3-real-source-six-area-coverage.json docs/v3-real-source-six-area-progress.json
           if ! git diff --cached --quiet; then
             git commit -m "V3 rotating research source coverage (one seventh of market)"
             git pull --rebase origin main
             # Abort if post-rebase full market snapshot moved to a new trading
             # date. Do NOT publish stale partially refreshed market totals.
             python v3_weekly_rotation.py --when "$KST_DAY" --mode verify
+            POST_ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"
+            if [[ "$POST_ALIGNMENT" != "$ALIGNMENT" ]]; then
+              echo '::error::weekly_cross_source_alignment_changed_after_rebase'
+              exit 1
+            fi
+            if [[ "$ALIGNMENT" == 'aligned' ]]; then
+              python v3_real_six_pillar_coverage_audit.py --mode verify
+              python v3_real_source_progress_ledger.py --mode verify
+            fi
             git push origin HEAD:main
           fi
       - name: Keep source availability summary for operator review
