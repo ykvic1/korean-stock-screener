@@ -36,6 +36,8 @@ class DateLagOfflinePilotTests(unittest.TestCase):
         market,catalog,book,prior=sources()
         revised=copy.deepcopy(book)
         revised["asof"]=market["date"]
+        # A caught-up annual book must include the new actual listed census.
+        revised["market_listed_total"]=catalog["listed_total"]
         r=report(market,catalog,revised,prior=prior,limit=2)
         self.assertEqual(r["annual_book_lag_days"],0)
         self.assertEqual(r["candidate_plan_status"],
