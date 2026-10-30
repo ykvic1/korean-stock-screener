@@ -350,6 +350,10 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         from v3_dart_cashflow_enrichment import collect
         from v3_dart_cashflow_factor_preview import score_preview
         market,catalog,major=live_inputs()
+        # Match the same catalog/stock naming contract as small().
+        for stock in market["stocks"]:
+            next(row for row in catalog["rows"] if row["code"]==stock["code"])[
+                "name"]=stock["name"]
         observed,_=collect(
             market,catalog,major,None,
             key="synthetic-non-sensitive-DART-api-key",
