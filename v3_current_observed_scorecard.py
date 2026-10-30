@@ -170,6 +170,19 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     if asof!=market["date"] or volume["asof"]!=asof or price["asof"]!=asof:
         raise LivePartialScorecardError("different_market_date")
     observed={r["code"]:r for r in market["stocks"]}
+    # A DART-derived candidate that no longer belongs to the same-day
+    # listed universe must fail closed, not disappear during catalog iteration.
+    # Checked before any per-issuer score or availability is published.
+    listed_codes={r["code"] for r in catalog["rows"]}
+    if (len(listed_codes)!=len(catalog["rows"]) or
+        len(listed_codes)!=catalog["listed_total"]):
+        raise LivePartialScorecardError("duplicate_or_incomplete_listed_census")
+    for source_name,source_rows in (("fiscal",financial),("fcf",cashflow)):
+        if source_rows is not None and (
+                type(source_rows) is not dict or
+                not set(source_rows).issubset(listed_codes)):
+            raise LivePartialScorecardError(
+                "unlisted_"+source_name+"_research_issuer")
     if market.get("v3_unscored_path_source") is not None:
         # Reconcile all issuer receipts AND an independently committed daily
         # audit tied to the exact original snapshot hash. Similar aggregate
