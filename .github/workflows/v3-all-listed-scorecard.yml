@@ -77,6 +77,21 @@ jobs:
             # No source file is staged or overwritten, even after a retry.
             for attempt in 1 2 3; do
               git pull --rebase origin main
+              # A later collector may have published the new market census
+              # while this job computed the previous day's provisional CSV.
+              # Defer the UNPUSHED local commit when dates roll; do not
+              # relabel stale inputs or let a routine source lag fail Actions.
+              # A forged/future/expired source still makes preflight fail.
+              REBASE_READY="$(python v3_scorecard_source_day_preflight.py | \
+                python -c 'import json,sys; x=json.load(sys.stdin)["ready"]; assert type(x) is bool; print(str(x).lower())')"
+              if [[ "$REBASE_READY" == 'false' ]]; then
+                echo 'scorecard_publish_deferred_after_rebase: source_date_not_aligned'
+                exit 0
+              fi
+              if [[ "$REBASE_READY" != 'true' ]]; then
+                echo '::error::invalid_scorecard_rebase_preflight_state'
+                exit 1
+              fi
               python v3_all_listed_scorecard.py --mode write
               git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
               if ! git diff --cached --quiet; then
