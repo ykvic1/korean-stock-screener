@@ -75,6 +75,12 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(
             report["source_reference_counts_this_cycle"]["current_four_year_core"], 0)
         self.assertFalse(state["v3_live_full_six_pillar_score_claimed"])
+        old_code = next(iter(state["records"]))
+        state["records"][old_code]["source_observed"]["current_four_year_core"] = True
+        _, later = recalculate(market, catalog, book,
+                               when="2026-10-21", prior=state, four=four)
+        self.assertEqual(
+            later["source_reference_counts_this_cycle"]["current_four_year_core"], 0)
         for invalid in (
             {**four, "asof": "2026-10-20"},
             {**four, "asof": "2026-10-19"},

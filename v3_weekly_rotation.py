@@ -385,6 +385,15 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
                  for key in ("technical_parts", "momentum_partial", "annual_receipt", "current_four_year_core",
                              "simple_pb_unverified", "sector_label",
                              "price_20_60_relative_pair", "legacy_flow_not_ias")}
+    # A retained prior cohort member may still carry an old 4Y flag.
+    # Preserve its historical record, but never count that flag as a current
+    # financial reference unless the same-day source independently confirms it.
+    breakdown["current_four_year_core"] = sum(
+        row.get("market_source_asof") == asof
+        and isinstance(four_source.get(row["code"]), dict)
+        and four_source[row["code"]].get("current_core_financial_research_observed") is True
+        and four_source[row["code"]].get("four_year_financial_pit_authenticated") is False
+        for row in current)
     points = sum(r.get("research_score_points") is not None for r in current)
     provisional = sum(r.get("research_provisional_sum") is not None for r in current)
     # Source references are NOT computed 100-point pillar scores. The values
