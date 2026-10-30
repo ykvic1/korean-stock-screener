@@ -13,6 +13,7 @@ from v3_all_listed_scorecard import FullMarketScorecardError
 from v3_volume_participation import build as volume_build
 from v3_current_price_replay import build as price_build
 from v3_dart_bulk_history import research_parts
+from v3_real_six_pillar_coverage_audit import coverage as replay_coverage
 from v3_current_observed_scorecard import (
     generate,to_csv,main,finance_source,cashflow_source,LivePartialScorecardError,
 )
@@ -471,15 +472,27 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         root=DOCS
         names=("v22-market-catalog.json","v3-dart-bulk-history.json",
                "v3-dart-bulk-provisional.json","v3-dart-book-reference.json",
-               "v3-real-source-six-area-coverage.json")
-        catalog,history,parts,annual,audit=[
+               "v3-real-source-six-area-coverage.json",
+               "v3-weekly-rotation.json")
+        catalog,history,parts,annual,audit,weekly=[
             json.loads((root/name).read_text(encoding="utf8"))
             for name in names]
         if (history["asof"]!=catalog["date"] or
-            annual["asof"]!=catalog["date"] or
-            audit["market_asof"]!=catalog["date"]):
+            parts["asof"]!=catalog["date"] or
+            annual["asof"]!=catalog["date"]):
             self.skipTest("official_filing_collection_not_yet_reconciled_with_market")
-        aligned=finance_source(catalog,history,parts,annual,audit)
+        stale_audit=audit["market_asof"]!=catalog["date"]
+        if stale_audit:
+            # This was the observed 2026-10-30 production blocker: the
+            # 7-day weekly source held the combined report at Oct 29 even
+            # though official annual sources were already current-day.
+            self.assertIsNone(finance_source(catalog,history,parts,annual,audit))
+            expected_audit=replay_coverage(
+                catalog,history,parts,weekly,allow_lagged_weekly=True)
+            self.assertTrue(expected_audit["technical_weekly_deferred"])
+        else:
+            expected_audit=audit
+        aligned=finance_source(catalog,history,parts,annual,audit,weekly=weekly)
         source_replay_matches=any(
             research_parts(history,catalog,annual,**mode)==parts
             for mode in ({}, {"include_balance_factors":False},
@@ -492,22 +505,37 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             self.assertIsNotNone(aligned,"exact same-day DART source must replay")
             self.assertEqual(sum(r["financial_available_max"]>0
                                  for r in aligned.values()),
-                             audit["six_pillar_numeric_provisional_issuer_counts"]["financial"])
+                             expected_audit["six_pillar_numeric_provisional_issuer_counts"]["financial"])
             self.assertEqual(sum(r["valuation_available_max"]>0
                                  for r in aligned.values()),
-                             audit["six_pillar_numeric_provisional_issuer_counts"]["valuation"])
+                             expected_audit["six_pillar_numeric_provisional_issuer_counts"]["valuation"])
         else:
             self.assertIsNone(aligned,"newer annual source must await replay")
-        fake=copy.deepcopy(audit)
+        fake=copy.deepcopy(expected_audit)
         fake["source_sha256_canonical"]["dart_four_year_archive"]="0"*64
-        self.assertIsNone(finance_source(catalog,history,parts,annual,fake))
+        self.assertIsNone(finance_source(catalog,history,parts,annual,fake,weekly=weekly))
         ahead=copy.deepcopy(history)
         ahead["asof"]=(date.fromisoformat(catalog["date"])+timedelta(days=1)).isoformat()
-        self.assertIsNone(finance_source(catalog,ahead,parts,annual,audit))
+        self.assertIsNone(finance_source(catalog,ahead,parts,annual,audit,weekly=weekly))
         forged=copy.deepcopy(annual)
         forged["official_exchange_pbr_verified"]=True
         with self.assertRaises(LivePartialScorecardError):
-            finance_source(catalog,history,parts,forged,audit)
+            finance_source(catalog,history,parts,forged,audit,weekly=weekly)
+        if stale_audit:
+            future=copy.deepcopy(audit)
+            future["market_asof"]=(date.fromisoformat(catalog["date"])+
+                                   timedelta(days=1)).isoformat()
+            self.assertIsNone(finance_source(
+                catalog,history,parts,annual,future,weekly=weekly))
+            bogus_weekly=copy.deepcopy(weekly)
+            bogus_weekly["v3_live_full_six_pillar_score_claimed"]=True
+            self.assertIsNone(finance_source(
+                catalog,history,parts,annual,audit,weekly=bogus_weekly))
+            forged_audit=copy.deepcopy(audit)
+            forged_audit["investment_grade_scores_confirmed"]=True
+            with self.assertRaises(LivePartialScorecardError):
+                finance_source(catalog,history,parts,annual,forged_audit,
+                               weekly=weekly)
 
     def test_real_saved_market_reconciles_without_rescanning_prices(self):
         docs=DOCS

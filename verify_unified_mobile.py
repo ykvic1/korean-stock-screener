@@ -34,9 +34,11 @@ with sync_playwright() as p:
     # Check the real market source snapshot and the unchanged stock-card UI.
     observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
     evidence = context.request.get(URL + "v3-real-source-six-area-coverage.json").json()
-    # The price close can advance before the annual DART source and its
-    # coverage audit finish. A prior-day fiscal audit is not a same-day score:
-    # show those points as missing, but keep the mobile price view usable.
+    independent = context.request.get(URL + "v3-all-listed-scorecard-summary.json").json()
+    # The six-area aggregate can lag because weekly technical evidence rotates
+    # separately. Never use yesterday's DART census for today's annual totals;
+    # a same-day, independently replayed scorecard may nonetheless contain
+    # actual new DART receipts with valid provisional financial/value scores.
     market_day = date.fromisoformat(observed["asof"])
     dart_day = date.fromisoformat(evidence["market_asof"])
     dart_lag = (market_day - dart_day).days
@@ -46,11 +48,15 @@ with sync_playwright() as p:
             "same-day DART issuer census mismatch must fail closed"
         )
     else:
-        # Prior-day DART data is never joined with today's issuer census,
-        # which can change when new symbols list or delist overnight.
         assert market_day.year == dart_day.year
-        assert observed["observed_issuer_counts"]["financial"] == 0
-        assert observed["observed_issuer_counts"]["valuation"] == 0
+        assert independent["asof"] == observed["asof"]
+        assert independent["listed_total"] == observed["listed_total"]
+        assert independent["provisional_numeric_issuer_counts"]["financial"] == (
+            observed["observed_issuer_counts"]["financial"]
+        )
+        assert independent["provisional_numeric_issuer_counts"]["valuation"] == (
+            observed["observed_issuer_counts"]["valuation"]
+        )
         assert observed["certified_100point_count"] == 0
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "page overflows mobile"
     # The source snapshot overview is deliberately collapsed until requested.
@@ -137,6 +143,24 @@ with sync_playwright() as p:
                       "ValuationIssuers", "Provisional100"):
             assert page.locator("#readiness" + field).inner_text() == "동기화 대기"
         assert page.locator("#readinessCertified").inner_text() == "0종목"
+        assert "독립 인증 전" in page.locator("#readinessNotes").inner_text()
+    elif "당일 재무 잠정근거 확보" in readiness:
+        assert dart_lag >= 1
+        assert page.locator("#readinessFinancial").inner_text() == "동기화 대기"
+        for field, key in (("Price", "technical"), ("FinancialIssuers", "financial"),
+                           ("ValuationIssuers", "valuation")):
+            assert page.locator("#readiness" + field).inner_text() == (
+                f"{observed['observed_issuer_counts'][key]:,} / {observed['listed_total']:,}"
+            )
+        assert page.locator("#readinessCashflow").inner_text() == (
+            f"{independent['observed_source_depth']['three_year_receipt_matched_fcf_issuers']:,} / "
+            f"{observed['listed_total']:,}"
+        )
+        assert page.locator("#readinessProvisional100").inner_text() == (
+            f"{observed['provisional_complete_100point_observation_count']:,}종목 · 미인증"
+        )
+        assert page.locator("#readinessCertified").inner_text() == "0종목"
+        assert "DART 4개년 연도별 집계" in page.locator("#readinessNotes").inner_text()
         assert "독립 인증 전" in page.locator("#readinessNotes").inner_text()
     elif "자료 기준일" in readiness:
         assert dart_lag == 0
