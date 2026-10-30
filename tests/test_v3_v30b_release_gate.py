@@ -409,17 +409,29 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(report["investment_grade_certified_count"], 0)
 
     def test_cli_default_is_read_only_and_assert_blocked_succeeds(self):
+        # The deployed market can roll forward BEFORE the independently
+        # published DART FCF receipt/preview source. The CLI must still
+        # succeed in --assert-blocked mode, without claiming source parity.
         with redirect_stdout(StringIO()) as buf:
             r = main(["--assert-blocked"])
         displayed = json.loads(buf.getvalue())
         self.assertEqual(displayed["schema"], "v3-v30b-five-area-readiness-audit-0.1")
-        self.assertTrue(displayed["public_summary_valid"])
         self.assertTrue(displayed["public_issuer_csv_reconciled"])
-        self.assertTrue(displayed["public_fcf_issuer_subscores_reconciled"])
-        self.assertTrue(displayed["public_fcf_receipt_source_reconciled"])
-        self.assertTrue(displayed["gates"]["published_fcf_issuer_subscore_source"])
         self.assertEqual(displayed, r)
         self.assertFalse(displayed["v30b_release_ready"])
+        self.assertFalse(displayed["confirmed_scoring_authorized"])
+        self.assertEqual(displayed["investment_grade_certified_count"], 0)
+        self.assertEqual(
+            displayed["gates"]["published_fcf_issuer_subscore_source"],
+            displayed["public_fcf_issuer_subscores_reconciled"] and
+            displayed["public_fcf_receipt_source_reconciled"])
+        if not displayed["public_summary_valid"]:
+            self.assertTrue(
+                {"public_fcf_receipt_source_aggregate_mismatch",
+                 "public_fcf_issuer_subscore_source_mismatch"}
+                & set(displayed["blocker_codes"]), displayed["blocker_codes"])
+            self.assertFalse(
+                displayed["gates"]["published_fcf_issuer_subscore_source"])
 
 
 if __name__ == "__main__":
