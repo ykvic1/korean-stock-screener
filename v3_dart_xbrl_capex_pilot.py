@@ -8,6 +8,7 @@ written to disk or public workflow logs.
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal, InvalidOperation
 from datetime import date
 import io
 import json
@@ -623,6 +624,107 @@ def _extension_target_year_ifrs_scope_hints(xml_data, year, matched):
     return result
 
 
+
+CALCULATION_SHAPES = (
+    "no_local_calculation_link", "concept_not_in_local_calculation",
+    "locator_only_no_summation_arc",
+    "summation_child_positive_single_role",
+    "summation_child_negative_single_role",
+    "summation_parent_single_role",
+    "nonunit_or_invalid_weight_unverified",
+    "mixed_directions_unverified", "multiple_roles_unverified",
+    "multiple_extension_concepts_unverified",
+)
+
+
+def _extension_calculation_shapes(links, schemas, matched):
+    """Inspect ZIP-local summation edges only, never infer CAPEX totals.
+
+    Calculation weights and roles are evidence hints, not proof of a complete
+    financial statement, correct CFS/OFS scope, PIT availability, or amounts.
+    Only local schema fragments may resolve; never fetch external DTS files.
+    """
+    results = {
+        kind: ("no_local_calculation_link" if not links
+               else "concept_not_in_local_calculation")
+        for kind in matched
+    }
+    if not links:
+        return results
+    xlink, linkns = "{" + XLINK_NS + "}", "{" + LINK_NS + "}"
+    references = {kind: set() for kind in matched}
+    directions = {kind: {} for kind in matched}
+    arcs_checked = 0
+    for member, link in links:
+        role = link.get(xlink + "role")
+        if type(role) is not str or not 1 <= len(role) <= 320:
+            continue
+        locators = {}
+        for loc in link.findall(linkns + "loc"):
+            label = loc.get(xlink + "label")
+            if type(label) is not str or not label or len(label) > 160:
+                continue
+            concept = _local_taxonomy_ref(
+                member, loc.get(xlink + "href"), schemas)
+            if concept is None:
+                continue
+            tag = "{" + concept[0] + "}" + concept[1]
+            if label in locators and locators[label] != tag:
+                raise XbrlPilotError("ambiguous_local_calculation_locator")
+            locators[label] = tag
+        for kind, tags in matched.items():
+            if any(tag in tags for tag in locators.values()):
+                references[kind].add(role)
+        for arc in link.findall(linkns + "calculationArc"):
+            arcs_checked += 1
+            if arcs_checked > 50000:
+                raise XbrlPilotError("local_calculation_arc_budget_exceeded")
+            if arc.get(xlink + "arcrole") != (
+                    "http://www.xbrl.org/2003/arcrole/summation-item"):
+                continue
+            parent = locators.get(arc.get(xlink + "from"))
+            child = locators.get(arc.get(xlink + "to"))
+            if parent is None or child is None:
+                continue
+            raw_weight = arc.get("weight")
+            sign = "unverified"
+            if type(raw_weight) is str and 0 < len(raw_weight) <= 64:
+                try:
+                    weight = Decimal(raw_weight)
+                    if weight.is_finite():
+                        sign = ("positive" if weight == 1
+                                else "negative" if weight == -1
+                                else "unverified")
+                except InvalidOperation:
+                    pass
+            for kind, tags in matched.items():
+                if parent in tags:
+                    directions[kind].setdefault(role, set()).add("parent")
+                if child in tags:
+                    directions[kind].setdefault(role, set()).add(
+                        "child_" + sign)
+    for kind, roles in references.items():
+        if not roles:
+            continue
+        if len(matched[kind]) > 1:
+            results[kind] = "multiple_extension_concepts_unverified"
+        elif len(roles) != 1:
+            results[kind] = "multiple_roles_unverified"
+        else:
+            relations = directions[kind].get(next(iter(roles)), set())
+            results[kind] = (
+                "locator_only_no_summation_arc" if not relations else
+                "summation_parent_single_role" if relations == {"parent"} else
+                "summation_child_positive_single_role"
+                if relations == {"child_positive"} else
+                "summation_child_negative_single_role"
+                if relations == {"child_negative"} else
+                "nonunit_or_invalid_weight_unverified"
+                if relations == {"child_unverified"} else
+                "mixed_directions_unverified")
+    return results
+
+
 PRESENTATION_SHAPES = (
     "no_local_presentation_link",
     "concept_not_in_local_presentation",
@@ -717,6 +819,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
     schemas = {}
     linkbases = []
     presentations = []
+    calculations = []
     instances = set()
     instance_data = []
     schema_files = label_link_files = 0
@@ -751,6 +854,9 @@ def _extension_label_evidence(archive, entries, *, year=None):
         presentations.extend(
             (entry.filename, link)
             for link in root.findall(".//{" + LINK_NS + "}presentationLink"))
+        calculations.extend(
+            (entry.filename, link)
+            for link in root.findall(".//{" + LINK_NS + "}calculationLink"))
     matched = {"ppe": set(), "intangible": set()}
     label_leads = set()
     xlink = "{" + XLINK_NS + "}"
@@ -788,6 +894,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
                 matched[kind].add(tag)
     presentation_shapes = _extension_presentation_shapes(
         presentations, schemas, matched)
+    calculation_shapes = _extension_calculation_shapes(
+        calculations, schemas, matched)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
@@ -843,6 +951,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "local_taxonomy_schema_files": schema_files,
         "local_label_linkbase_files": label_link_files,
         "local_presentation_link_count": len(presentations),
+        "local_calculation_link_count": len(calculations),
+        "extension_local_calculation_shapes": calculation_shapes,
         "extension_local_presentation_shapes": presentation_shapes,
         "exact_extension_label_schema_leads": len(label_leads),
         "exact_extension_label_instance_facts": {
@@ -1027,6 +1137,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "local_taxonomy_schema_files": 0,
         "local_label_linkbase_files": 0,
         "local_presentation_link_count": 0,
+        "local_calculation_link_count": 0,
+        "extension_local_calculation_shapes": {
+            shape: 0 for shape in CALCULATION_SHAPES},
+        "calculation_arcs_never_certify_total_or_scope": True,
         "extension_local_presentation_shapes": {
             shape: 0 for shape in PRESENTATION_SHAPES},
         "presentation_hierarchy_never_certifies_total_or_scope": True,
@@ -1100,6 +1214,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         report["local_taxonomy_schema_files"] += extension["local_taxonomy_schema_files"]
         report["local_label_linkbase_files"] += extension["local_label_linkbase_files"]
         report["local_presentation_link_count"] += extension["local_presentation_link_count"]
+        report["local_calculation_link_count"] += extension["local_calculation_link_count"]
         report["exact_extension_label_schema_leads"] += extension[
             "exact_extension_label_schema_leads"]
         for kind in ("ppe", "intangible"):
@@ -1107,6 +1222,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                 report["reports_with_extension_" + kind + "_label_fact"] += 1
                 shape = extension["extension_local_presentation_shapes"][kind]
                 report["extension_local_presentation_shapes"][shape] += 1
+                shape = extension["extension_local_calculation_shapes"][kind]
+                report["extension_local_calculation_shapes"][shape] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
                 if status == "annual_context_missing":

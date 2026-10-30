@@ -952,7 +952,7 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                 'xmlns:xlink="http://www.w3.org/1999/xlink">' +
                 first + second + '</link:linkbase>').encode("utf8")
 
-        def bundle(presentation_blob=None):
+        def bundle(presentation_blob=None, calculation_blob=None):
             output = io.BytesIO()
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
                 writer.writestr("company.xsd", schema)
@@ -960,6 +960,8 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                 writer.writestr("report.xbrl", instance)
                 if presentation_blob is not None:
                     writer.writestr("presentation.xml", presentation_blob)
+                if calculation_blob is not None:
+                    writer.writestr("calculation.xml", calculation_blob)
             return output.getvalue()
 
         cases = (
@@ -999,6 +1001,74 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         public = json.dumps(report)
         for secret in (code, receipt, "987654321", "CustomPPE"):
             self.assertNotIn(secret, public)
+
+        def calculation(weight="-1", *, reverse=False, second_role=False,
+                        external=False, skip_arc=False):
+            source = (
+                "https://external.test/concept.xsd#co_CustomPPE"
+                if external else "company.xsd#co_CustomPPE")
+            edge = (
+                '<link:calculationArc xlink:from="' +
+                ("P" if reverse else "Q") + '" xlink:to="' +
+                ("Q" if reverse else "P") + '" weight="' + weight + '" '
+                'xlink:arcrole="http://www.xbrl.org/2003/arcrole/'
+                'summation-item"/>' if not skip_arc else '')
+            other = (
+                '<link:calculationLink xlink:type="extended" '
+                'xlink:role="http://example.test/role/notes">'
+                '<link:loc xlink:label="N" '
+                'xlink:href="company.xsd#co_CustomPPE"/>'
+                '</link:calculationLink>'
+                if second_role else '')
+            return (
+                '<link:linkbase '
+                'xmlns:link="http://www.xbrl.org/2003/linkbase" '
+                'xmlns:xlink="http://www.w3.org/1999/xlink">'
+                '<link:calculationLink xlink:type="extended" '
+                'xlink:role="http://example.test/role/CF">'
+                '<link:loc xlink:label="P" xlink:href="' + source + '"/>'
+                '<link:loc xlink:label="Q" '
+                'xlink:href="company.xsd#co_CashflowParent"/>' +
+                edge + '</link:calculationLink>' + other +
+                '</link:linkbase>').encode("utf8")
+
+        calculation_cases = (
+            (None, "no_local_calculation_link"),
+            (calculation(), "summation_child_negative_single_role"),
+            (calculation("1.0"), "summation_child_positive_single_role"),
+            (calculation(reverse=True), "summation_parent_single_role"),
+            (calculation("0.5"), "nonunit_or_invalid_weight_unverified"),
+            (calculation("NaN"), "nonunit_or_invalid_weight_unverified"),
+            (calculation("bad"), "nonunit_or_invalid_weight_unverified"),
+            (calculation(skip_arc=True), "locator_only_no_summation_arc"),
+            (calculation(second_role=True), "multiple_roles_unverified"),
+            (calculation(external=True), "concept_not_in_local_calculation"),
+        )
+        for calculation_blob, expected in calculation_cases:
+            with self.subTest(calculation=expected):
+                evidence = pilot.inspect_binary_archive(
+                    bundle(presentation("child"), calculation_blob),
+                    year=2025)["extension_label_evidence"]
+                self.assertEqual(
+                    evidence["extension_local_calculation_shapes"]["ppe"],
+                    expected)
+                self.assertEqual(
+                    evidence["local_calculation_link_count"],
+                    0 if calculation_blob is None else
+                    2 if expected == "multiple_roles_unverified" else 1)
+                for secret in ("987654321", "CustomPPE",
+                               "http://example.test/role/CF"):
+                    self.assertNotIn(secret, json.dumps(evidence))
+        report = pilot.run_pilot(
+            market, catalog, major, state, mode="live", key="A" * 40,
+            session=Session(bundle(presentation("child"), calculation())))
+        self.assertEqual(
+            report["extension_local_calculation_shapes"][
+                "summation_child_negative_single_role"], 1)
+        self.assertEqual(report["local_calculation_link_count"], 1)
+        self.assertTrue(report["calculation_arcs_never_certify_total_or_scope"])
+        for secret in (code, receipt, "987654321", "CustomPPE"):
+            self.assertNotIn(secret, json.dumps(report))
 
 
 if __name__ == "__main__":
