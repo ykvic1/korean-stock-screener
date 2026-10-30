@@ -394,8 +394,7 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         def source_bundle(label=link, instance_blob=instance):
             output = io.BytesIO()
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
-                writer.writestr("company.xsd", schema if schema_blob is None
-                                else schema_blob)
+                writer.writestr("company.xsd", schema)
                 writer.writestr("labels.xml", label)
                 writer.writestr("report.xbrl", instance_blob)
             return output.getvalue()
@@ -957,7 +956,8 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                    schema_blob=None):
             output = io.BytesIO()
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as writer:
-                writer.writestr("company.xsd", schema)
+                writer.writestr("company.xsd", schema if schema_blob is None
+                                else schema_blob)
                 writer.writestr("labels.xml", labels)
                 writer.writestr("report.xbrl", instance)
                 if presentation_blob is not None:
