@@ -36,6 +36,7 @@ on:
       - Full-Market 100-Stock Batches
       - V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)
       - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
+      - V3 DART Annual Book Derived Financial Sync (0 API)
     types: [completed]
   workflow_dispatch:
     inputs:
