@@ -232,6 +232,72 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertNotIn("000001", json.dumps(r))
         self.assertIsNone(r["certified_rank"])
 
+    def test_dart_receipt_checkpoint_is_counted_but_never_certified(self):
+        o, s, h = public_inputs()
+        receipt = json.loads((ROOT / "docs/v3-dart-historical-receipt-progress.json")
+                             .read_text(encoding="utf-8"))
+        report = assess_v30b(o, s, h, dart_receipt_progress=receipt)
+        self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
+        self.assertTrue(report["dart_historical_receipt_checkpoint_valid"])
+        self.assertTrue(report["gates"]["dart_receipt_checkpoint_coherence"])
+        self.assertEqual(report["dart_historical_receipts_completed_months"],
+                         receipt["filing_months_checkpointed"])
+        self.assertEqual(report["dart_historical_receipts_remaining_months"],
+                         receipt["filing_months_remaining"])
+        self.assertFalse(report["gates"]["dart_120month_receipt_collection_complete"])
+        self.assertIn("dart_historical_receipts_incomplete", report["blocker_codes"])
+        self.assertFalse(report["dart_receipt_collection_is_pit_or_adjusted_certified"])
+        self.assertIsNone(report["certified_score"])
+
+    def test_dart_receipt_tampering_fails_closed_without_private_issuer_leak(self):
+        o, s, h = public_inputs()
+        original = json.loads((ROOT / "docs/v3-dart-historical-receipt-progress.json")
+                              .read_text(encoding="utf-8"))
+        variants = (
+            ("filing_months_remaining", 0),
+            ("filing_months_checkpointed", True),
+            ("filing_months_checkpointed_ratio", 0.99999),
+            ("last_checkpointed_filing_month", "2026-09"),
+            ("current_collection_filing_month", "2018-02"),
+            ("filing_category_scope", ["B", "C"]),
+            ("private_receipt_pages_checkpointed", 999999),
+            ("private_tail_digest_and_schema_verified", False),
+            ("public_issuer_receipts_or_source_raw_published", True),
+            ("historical_adjusted_prices_certified", True),
+            ("historical_issuer_universe_pit_certified", True),
+            ("v3_trade_scores_promoted", True),
+        )
+        for key, value in variants:
+            with self.subTest(key=key):
+                altered = copy.deepcopy(original)
+                altered[key] = value
+                altered["private_issuer_id"] = "SECRET-ISSUER-NAME"
+                audit = assess_v30b(o, s, h, dart_receipt_progress=altered)
+                self.assertFalse(audit["public_summary_valid"])
+                self.assertFalse(audit["dart_historical_receipt_checkpoint_valid"])
+                self.assertIn("invalid_dart_historical_receipt_checkpoint",
+                              audit["blocker_codes"])
+                self.assertFalse(audit["confirmed_scoring_authorized"])
+                self.assertIsNone(audit["certified_score"])
+                self.assertNotIn("SECRET-ISSUER-NAME", json.dumps(audit))
+
+    def test_even_120_complete_filing_months_is_not_independent_pit_proof(self):
+        o, s, h = public_inputs()
+        receipt = json.loads((ROOT / "docs/v3-dart-historical-receipt-progress.json")
+                             .read_text(encoding="utf-8"))
+        receipt.update(filing_months_checkpointed=120,
+                       filing_months_remaining=0,
+                       filing_months_checkpointed_ratio=1.0,
+                       last_checkpointed_filing_month="2026-09",
+                       current_collection_filing_month=None)
+        report = assess_v30b(o, s, h, dart_receipt_progress=receipt)
+        self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
+        self.assertTrue(report["gates"]["dart_120month_receipt_collection_complete"])
+        self.assertFalse(report["gates"]["authenticated_point_in_time_source_chain"])
+        self.assertFalse(report["dart_receipt_collection_is_pit_or_adjusted_certified"])
+        self.assertFalse(report["v30b_release_ready"])
+        self.assertEqual(report["investment_grade_certified_count"], 0)
+
     def test_cli_default_is_read_only_and_assert_blocked_succeeds(self):
         with redirect_stdout(StringIO()) as buf:
             r = main(["--assert-blocked"])

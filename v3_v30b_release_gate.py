@@ -307,10 +307,62 @@ def issuer_catalog_reconciles(observed: Any, catalog: Any, csv_text: Any) -> boo
         return False
 
 
+def _dart_receipt_counts(progress: Any) -> tuple[int, int] | None:
+    """Validate anonymous receipt checkpoint arithmetic, never source authenticity.
+
+    The source is only a public aggregate of privately archived filing metadata.
+    Even 120/120 months says nothing about adjusted prices, PIT or delisted names.
+    """
+    if not isinstance(progress, dict) or progress.get("schema") != (
+            "v3-public-dart-historical-receipt-progress-v1"):
+        return None
+    completed = progress.get("filing_months_checkpointed")
+    remaining = progress.get("filing_months_remaining")
+    total = progress.get("filing_months_total")
+    ratio = progress.get("filing_months_checkpointed_ratio")
+    pages = progress.get("private_receipt_pages_checkpointed")
+    receipts = progress.get("private_filing_receipts_checkpointed")
+    if not (all(_is_count(x) for x in (completed, remaining, total,
+                                       pages, receipts))
+            and total == 120 and completed <= total
+            and remaining == total - completed
+            and type(ratio) in (int, float)
+            and 0 <= ratio <= 1
+            and abs(ratio - completed / total) <= 0.000001
+            and (completed == 0 or 0 < pages <= receipts)
+            and progress.get("filing_category_scope") == ["B", "C", "E", "I"]):
+        return None
+
+    def month_at(offset: int) -> str:
+        # First month 2016-10; the archive covers 120 contiguous months.
+        m = 9 + offset
+        return f"{2016 + m // 12:04d}-{m % 12 + 1:02d}"
+
+    if (progress.get("last_checkpointed_filing_month") != (
+            month_at(completed - 1) if completed else None)
+            or progress.get("current_collection_filing_month") != (
+                month_at(completed) if completed < total else None)):
+        return None
+    if (progress.get("private_checkpoint_stable_during_read") is not True
+            or progress.get("private_tail_digest_and_schema_verified") is not True
+            or not _is_count(progress.get("provider_api_calls"))
+            or progress.get("provider_api_calls") != 0
+            or progress.get("public_issuer_receipts_or_source_raw_published") is not False
+            or any(progress.get(k) is not False for k in (
+                "corporate_actions_or_effective_dates_certified",
+                "historical_adjusted_prices_certified",
+                "historical_issuer_universe_pit_certified",
+                "full_historical_archive_independently_audited",
+                "v3_trade_scores_promoted"))):
+        return None
+    return completed, remaining
+
+
 def assess_v30b(observed: Any, scorecard: Any, history: Any,
                  *, proof: Any = None,
                  observed_csv_text: Any = None,
-                 catalog: Any = None) -> dict:
+                 catalog: Any = None,
+                 dart_receipt_progress: Any = None) -> dict:
     """Measure validated coverage and fail closed on independent certification.
 
     The optional proof argument is intentionally ignored: unverified assertions
@@ -321,6 +373,10 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     s = scorecard if isinstance(scorecard, dict) else {}
     h = history if isinstance(history, dict) else {}
     issues: list[str] = []
+    dart_counts = (_dart_receipt_counts(dart_receipt_progress)
+                   if dart_receipt_progress is not None else None)
+    if dart_receipt_progress is not None and dart_counts is None:
+        issues.append("invalid_dart_historical_receipt_checkpoint")
     _check(all(isinstance(x, dict) for x in (observed, scorecard, history)),
            issues, "missing_or_invalid_public_summary")
     total = o.get("listed_total")
@@ -448,6 +504,9 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
             snapshot_valid and catalog_reconciled is True),
         "five_area_observation_all_listed": snapshot_valid and full == safe_total,
         "fixed_window_krx_extraction": snapshot_valid and window_complete,
+        "dart_receipt_checkpoint_coherence": snapshot_valid and dart_counts is not None,
+        "dart_120month_receipt_collection_complete": (
+            snapshot_valid and dart_counts is not None and dart_counts[1] == 0),
         # No existing public aggregate JSON can independently establish these.
         "independent_adjusted_price_and_corporate_actions": False,
         "historical_delisted_pit_universe": False,
@@ -457,6 +516,10 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     blockers = set(issues)
     if snapshot_valid and missing_count:
         blockers.add("all_listed_observation_incomplete")
+    if dart_counts is None:
+        blockers.add("dart_historical_receipt_checkpoint_unavailable")
+    elif dart_counts[1]:
+        blockers.add("dart_historical_receipts_incomplete")
     blockers.update({
         "independent_adjusted_price_and_corporate_actions_unverified",
         "historical_delisted_pit_universe_unverified",
@@ -476,6 +539,13 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "area_completion_gaps": (
             {k: safe_total - v for k, v in counts.items()} if counts else None),
         "historical_fixed_window_extracted": snapshot_valid and window_complete,
+        "dart_historical_receipt_checkpoint_valid": (
+            dart_counts is not None if dart_receipt_progress is not None else None),
+        "dart_historical_receipts_completed_months": (
+            dart_counts[0] if snapshot_valid and dart_counts else None),
+        "dart_historical_receipts_remaining_months": (
+            dart_counts[1] if snapshot_valid and dart_counts else None),
+        "dart_receipt_collection_is_pit_or_adjusted_certified": False,
         "historical_window_is_pit_or_adjusted_certified": False,
         "industry_in_100point_score": False,
         "missing_factor_as_zero": False,
@@ -520,6 +590,8 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-all-listed-scorecard-summary.json")
     p.add_argument("--history", type=Path,
                    default=ROOT / "docs/v3-krx-derived-backfill-progress.json")
+    p.add_argument("--dart-receipts", type=Path,
+                   default=ROOT / "docs/v3-dart-historical-receipt-progress.json")
     p.add_argument("--observed-csv", type=Path,
                    default=ROOT / "docs/v3-current-observed-all-listed.csv")
     p.add_argument("--catalog", type=Path,
@@ -531,7 +603,8 @@ def main(argv: list[str] | None = None) -> dict:
                           _read_public_json(a.scorecard),
                           _read_public_json(a.history),
                           observed_csv_text=_read_public_csv(a.observed_csv),
-                          catalog=_read_public_json(a.catalog))
+                          catalog=_read_public_json(a.catalog),
+                          dart_receipt_progress=_read_public_json(a.dart_receipts))
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
