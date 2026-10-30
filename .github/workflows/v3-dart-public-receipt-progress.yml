@@ -1,0 +1,96 @@
+name: V3 Private OpenDART Historical Receipt Progress (Anonymous Public Aggregate)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_private_progress_report.py
+      - tests/test_v3_dart_private_progress_report.py
+      - .github/workflows/v3-dart-public-receipt-progress.yml
+  # Source collector has four fixed KST slots. Two independent fallbacks
+  # reread the already-saved private cursor (ZERO OpenDART/KRX calls).
+  schedule:
+    - cron: '7 1,13 * * *' # 10:07 / 22:07 KST
+  workflow_run:
+    workflows:
+      - V3 Private Historical OpenDART Filing Receipts (Research Only)
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [verify, write]
+        default: verify
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v3-public-dart-historical-receipt-progress
+  cancel-in-progress: false
+
+jobs:
+  anonymous-progress:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private-read transport only
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Validate source cursor, immutable tail, anti-race and no-leak contracts offline
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_private_progress_report.py
+          python -m unittest discover -s tests -p 'test_v3_dart_private_progress_report.py' -v
+      - name: Build anonymous public counters from private checkpoint only
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_dart_private_progress_report.py --mode write
+      - name: Publish only bounded anonymous counts
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-historical-receipt-progress.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish anonymous private OpenDART historical receipt progress"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              # Refresh private cursor AFTER pulling, never push stale counts.
+              python v3_dart_private_progress_report.py --mode write
+              git add docs/v3-dart-historical-receipt-progress.json
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              python v3_dart_private_progress_report.py --mode verify
+              if git push origin HEAD:main; then
+                echo "verified_anonymous_dart_receipt_progress_published"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::anonymous_dart_progress_publish_retry_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Verify exact previously published counts on manual request
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_dart_private_progress_report.py --mode verify
