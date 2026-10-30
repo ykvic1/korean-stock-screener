@@ -175,31 +175,38 @@ def build(market,catalog,industry,bulk):
 
 
 def source_join_ready(market,catalog,industry,bulk):
-    """Defer ONLY a bounded older major-account snapshot after market close.
+    """Defer a bounded older DART census without relabeling its old receipts.
 
-    Both independent sources retain their actual asof; never relabel an old
-    fiscal sample with a new market date or hide malformed source evidence.
+    A new market day can legitimately gain or lose listed issuers before the
+    annual-account collector finishes. Reject census mismatch for SAME-day
+    input; allow an independently dated older census only as a nonpublishing
+    wait state. Invalid metadata and future source days still hard-fail.
     """
     try:
         asof,members=_inputs(market,catalog)
+        # Validate saved industry profile against its own immutable digest;
+        # the helper safely intersects older known firms with current names.
         prior_records(industry,asof,members)
         if (type(bulk) is not dict or bulk.get("schema")!=BULK_SCHEMA
-            or bulk.get("listed_total")!=len(members)
             or bulk.get("historical_PIT_source_certified") is not False
-            or bulk.get("raw_source_rows_published") is not False
-            or bulk.get("fiscal_years")!=
-                list(range(_day(asof).year-4,_day(asof).year))):
+            or bulk.get("raw_source_rows_published") is not False):
             raise IndustryEarningsError("industry_join_source_not_verified")
         old_day=_day(bulk.get("asof"))
         new_day=_day(asof)
+        old_count=bulk.get("listed_total")
+        if (type(old_count) is not int or not 1<=old_count<=6000
+            or bulk.get("fiscal_years")!=
+                list(range(old_day.year-4,old_day.year))):
+            raise IndustryEarningsError("industry_join_source_not_verified")
     except (ValueError,KeyError,TypeError):
         raise IndustryEarningsError("industry_join_source_not_verified") from None
     if old_day==new_day:
+        if old_count!=len(members):
+            raise IndustryEarningsError("industry_join_same_day_census_mismatch")
         return True
     if old_day<new_day and (new_day-old_day).days<=10:
-        return False
+        return False  # Never score or publish yesterday's company universe.
     raise IndustryEarningsError("industry_join_source_day_incompatible")
-
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
