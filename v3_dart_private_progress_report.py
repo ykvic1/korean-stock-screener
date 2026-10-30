@@ -74,7 +74,7 @@ def collect(storage):
         last_file = cursor["last_page_file"]
         partition = re.escape("derived/dart-filing-receipts/" +
                               month + "/" + category + "/")
-        match = (re.fullmatch(partition + r"([0-9]{4,6})\\.json\\.gz",
+        match = (re.fullmatch(partition + r"([0-9]{4,6})\.json\.gz",
                               last_file) if type(last_file) is str else None)
         if match is None:
             raise DARTProgressError("private_dart_progress_tail_wrong_partition")
