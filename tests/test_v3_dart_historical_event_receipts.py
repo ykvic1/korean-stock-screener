@@ -241,6 +241,13 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         wf = (base / ".github/workflows/v3-dart-historical-event-receipts.yml").read_text()
         self.assertIn("workflow_dispatch:", wf)
         self.assertIn("default: dry_run", wf)
+        # Code pushes still run offline checks but do not silently spend
+        # another 72 provider calls beyond the four scheduled daily budgets.
+        self.assertIn(
+            "if: ${{ github.event_name == 'schedule' || "
+            "(github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}",
+            wf)
+        self.assertNotIn("github.event_name == 'push' ||", wf)
         self.assertIn("DART_API_KEY: ${{ secrets.DART_API_KEY }}", wf)
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}", wf)
         self.assertIn("v3_dart_historical_event_receipts.py", wf)
