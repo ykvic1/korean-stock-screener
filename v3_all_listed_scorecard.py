@@ -187,7 +187,11 @@ def _verified_price_replay(source,market,catalog,day,members):
 def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
              industry_source=None,price_replay=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
-    audit=coverage(catalog,history,parts,weekly)
+    # An older WEEKLY research cohort may be omitted when the official
+    # market/DART annual ledgers already agree today. Its stale scores never
+    # survive this path; same-day price replay remains independently audited.
+    audit=coverage(catalog,history,parts,weekly,allow_lagged_weekly=True)
+    weekly_deferred=audit.get("technical_weekly_deferred") is True
     day=audit["market_asof"]
     listed=audit["listed_total"]
     members={r["code"]:r for r in catalog["rows"]}
@@ -275,7 +279,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                 values[area]=_contribution(
                     part[area+"_candidate_points"],
                     part[area+"_available_max"],WEIGHTS[area])
-        rec=weekly["records"].get(code)
+        rec=None if weekly_deferred else weekly["records"].get(code)
         if rec and rec.get("market_source_asof")==day and rec.get(
                 "six_pillar_research_score_confirmed") is False:
             tech_avail=rec.get("available_weight")
@@ -342,6 +346,9 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
         "volume20_unobserved_absorption_points":4,
         "technical_one_day_volume_not_double_counted":True,
         "technical_momentum_price_replay_state":replay_state,
+        "technical_weekly_source_state":(
+            "older_market_day_excluded_no_carryover" if weekly_deferred
+            else "same_market_day_source_audited"),
         "technical_momentum_price_replay_issuer_count":len(replay_rows),
         "price_replay_new_provider_calls":0,
         "industry_current_company_source_status":industry_ref_status,
@@ -384,7 +391,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                 if industry_ref_status=="verified_current_company_classification_only"
                 else None,
         },
-        "notice":"Investor IAS is replaced by observed price-volume/OBV candidates up to 16/20, not identified net buying. Unobserved 4 volume points remain missing. Industry carries zero point budget; corporate-action PIT and trading scores remain uncertified."
+        "notice":"Investor IAS is replaced by observed price-volume/OBV candidates up to 16/20, not identified net buying. Unobserved 4 volume points remain missing. Industry carries zero point budget; corporate-action PIT and trading scores remain uncertified. Previous-market-day rotating technical evidence, if any, contributes zero current-day points."
     }
     return rows,summary
 
