@@ -69,6 +69,60 @@ def setup(*,completed=1,receipt=True):
     return store, days, event, review
 
 
+class PrivateReadRetryTests(unittest.TestCase):
+    def test_short_missing_private_read_recovers_without_source_write(self):
+        class Flaky:
+            def __init__(self):
+                self.calls = 0
+            def get_content(self, path):
+                self.calls += 1
+                self.last_path = path
+                if self.calls < 3:
+                    return None, None
+                return b"same-immutable-evidence", "sha"
+
+        storage = Flaky()
+        with patch.object(cross.time, "sleep") as pause:
+            self.assertEqual(cross._read(storage, "private/evidence.json"),
+                             b"same-immutable-evidence")
+        self.assertEqual(storage.calls, 3)
+        self.assertEqual(storage.last_path, "private/evidence.json")
+        self.assertEqual(
+            [call.args[0] for call in pause.call_args_list], [0.5, 1.0])
+
+    def test_persistently_missing_private_evidence_still_fails_closed(self):
+        class Absent:
+            def __init__(self):
+                self.calls = 0
+            def get_content(self, path):
+                self.calls += 1
+                return None, None
+
+        storage = Absent()
+        with patch.object(cross.time, "sleep") as pause:
+            with self.assertRaisesRegex(
+                    cross.CrosscheckError,
+                    "^missing_private_crosscheck_source$"):
+                cross._read(storage, "private/missing.json")
+        self.assertEqual(storage.calls, 3)
+        self.assertEqual(pause.call_count, 2)
+
+    def test_permission_error_is_never_retried_as_missing_evidence(self):
+        class Denied:
+            def __init__(self):
+                self.calls = 0
+            def get_content(self, path):
+                self.calls += 1
+                raise PermissionError("untrusted private access")
+
+        storage = Denied()
+        with patch.object(cross.time, "sleep") as pause:
+            with self.assertRaises(PermissionError):
+                cross._read(storage, "private/not-authorized.json")
+        self.assertEqual(storage.calls, 1)
+        pause.assert_not_called()
+
+
 class CrosscheckTests(unittest.TestCase):
     def test_partial_month_is_not_accepted_as_no_corporate_action(self):
         store,days,event,review = setup(completed=0)
