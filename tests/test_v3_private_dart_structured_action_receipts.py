@@ -140,7 +140,8 @@ class StructuredActionTests(unittest.TestCase):
                                   official_rows(endpoint))[1])
         self.assertEqual(next_calls, list(a.ENDPOINTS))
         self.assertEqual(out2["provider_calls"], 3)
-        self.assertEqual(out2["previously_saved_reports_reused"], 1)
+        self.assertEqual(out2["previously_saved_reports_reused"], 0)
+        self.assertEqual(out2["processed_candidates"], 1)
 
     def test_no_retry_of_unverified_provider_status_and_no_false_report(self):
         calls = []
