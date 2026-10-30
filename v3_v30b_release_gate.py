@@ -175,6 +175,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
         if reader.fieldnames != list(CSV_COLUMNS):
             return False
         area_hist = {key: Counter() for key in AREA_WEIGHTS}
+        fcf_subfactor_counts = {"financial4": 0, "valuation5": 0}
         total_hist, market_hist = Counter(), {"KOSPI": Counter(), "KOSDAQ": Counter()}
         complete, partial, missing = {}, {}, {}
         seen = set()
@@ -193,6 +194,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
                 return False
             seen.add(code)
             weights = {}
+            points_by_area = {}
             earned = Decimal(0)
             for area, (weight_key, points_key) in CSV_AREA_FIELDS.items():
                 weight = _csv_integer(row[weight_key], AREA_WEIGHTS[area])
@@ -200,9 +202,23 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
                 if (weight == 0) != (points is None):
                     return False
                 weights[area] = weight
+                points_by_area[area] = points
                 area_hist[area][weight] += 1
                 if points is not None:
                     earned += points
+            # The two separately sourced FCF subfactors are displayed in the
+            # public CSV. Validate them too: an unverified or forged subscore
+            # must never pass merely because the five-pillar totals match.
+            for label, area, maximum, key in (
+                    ("FCF자산3년_잠정점수", "financial", 4, "financial4"),
+                    ("FCF수익률_잠정점수", "valuation", 5, "valuation5")):
+                subpoints = _csv_points(row[label], maximum)
+                if subpoints is not None:
+                    if (weights[area] < maximum
+                            or points_by_area[area] is None
+                            or subpoints > points_by_area[area]):
+                        return False
+                    fcf_subfactor_counts[key] += 1
             available = sum(weights.values())
             if (_csv_integer(row["산출가능배점_100점중"], 100) != available
                     or _csv_integer(row["미확보배점_100점중"], 100)
@@ -246,6 +262,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
                 == len(seen) - total_hist[0]
             and observed["provisional_complete_100point_observation_count"]
                 == total_hist[100]
+            and observed.get("fcf_observed_issuer_counts") == fcf_subfactor_counts
             and _secondary_scorecard_counts_bounded_by_matched_fcf(
                 observed, scorecard.get("provisional_numeric_issuer_counts"))
         )
