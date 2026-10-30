@@ -146,6 +146,44 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertFalse(issuer_csv_reconciles(o, s, raw + "EXTRA,ROW\n"))
         self.assertFalse(issuer_csv_reconciles(o, s, 123))
 
+    def test_fcf_csv_subscores_cannot_bypass_five_area_reconciliation(self):
+        observed, scorecard, backfill = public_inputs()
+        raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(
+            encoding="utf-8-sig")
+        rows = list(csv.reader(StringIO(raw)))
+        columns = {name: index for index, name in enumerate(rows[0])}
+        self.assertTrue(issuer_csv_reconciles(observed, scorecard, raw))
+
+        for field, max_points in (
+                ("FCF자산3년_잠정점수", 4),
+                ("FCF수익률_잠정점수", 5)):
+            index = columns[field]
+            source_row = next(
+                i for i, row in enumerate(rows[1:], 1) if row[index] != "")
+            for altered_value in ("", str(max_points + 1), "-1", "NaN"):
+                with self.subTest(field=field, altered=altered_value):
+                    changed = copy.deepcopy(rows)
+                    changed[source_row][index] = altered_value
+                    sink = StringIO()
+                    csv.writer(sink, lineterminator="\n").writerows(changed)
+                    forged = sink.getvalue()
+                    self.assertFalse(
+                        issuer_csv_reconciles(observed, scorecard, forged))
+                    audit = assess_v30b(
+                        observed, scorecard, backfill,
+                        observed_csv_text=forged)
+                    self.assertIn(
+                        "public_issuer_csv_aggregate_mismatch",
+                        audit["blocker_codes"])
+                    self.assertFalse(audit["v30b_release_ready"])
+                    self.assertEqual(audit["investment_grade_certified_count"], 0)
+
+        # Even a forged summary count cannot reclassify the CSV as certified.
+        changed_summary = copy.deepcopy(observed)
+        changed_summary["fcf_observed_issuer_counts"]["financial4"] += 1
+        self.assertFalse(issuer_csv_reconciles(
+            changed_summary, scorecard, raw))
+
     def test_no_old_ias_or_sector_as_sixth_scoring_area(self):
         self.assertEqual(AREA_WEIGHTS, {
             "volume": 20, "technical": 25, "financial": 20,
