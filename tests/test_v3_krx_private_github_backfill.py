@@ -5,6 +5,8 @@ import gzip
 import hashlib
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+from urllib.error import HTTPError
 
 import v3_krx_private_github_backfill as h
 from test_v3_krx_history_collection import FakeClient
@@ -56,6 +58,48 @@ def session_days():
 
 
 class HistoricalPrivateGithubTests(unittest.TestCase):
+    def test_private_storage_retries_only_transient_reads_not_permission_or_writes(self):
+        class Reply:
+            def __enter__(self): return self
+            def __exit__(self,*_): return False
+            def read(self,limit): return b'{"private":true}'
+        store=h.PrivateGitStorage("ykvic1/private-market-research",
+                                  "fake_TOKEN_at_least_20_characters")
+        def http_error(code):
+            return HTTPError("https://api.github.com",code,"blocked",{},None)
+        with patch.object(h.request,"urlopen",side_effect=[http_error(503),Reply()]) as get:
+            with patch.object(h.time,"sleep") as delay:
+                self.assertEqual(store._http("GET",""),{"private":True})
+            self.assertEqual(get.call_count,2)
+            delay.assert_called_once_with(0.25)
+        with patch.object(h.request,"urlopen",side_effect=http_error(403)) as get:
+            with patch.object(h.time,"sleep") as delay:
+                with self.assertRaisesRegex(h.PrivateHistoryError,"private_storage_api_failed"):
+                    store._http("GET","")
+            self.assertEqual(get.call_count,1)
+            delay.assert_not_called()
+        with patch.object(h.request,"urlopen",side_effect=http_error(503)) as exhausted:
+            with patch.object(h.time,"sleep") as delay:
+                with self.assertRaisesRegex(h.PrivateHistoryError,"private_storage_api_failed"):
+                    store._http("GET","")
+            self.assertEqual(exhausted.call_count,3)
+            self.assertEqual(delay.call_count,2)
+        with patch.object(h.request,"urlopen",side_effect=http_error(503)) as put:
+            with patch.object(h.time,"sleep") as delay:
+                with self.assertRaisesRegex(h.PrivateHistoryError,"private_storage_api_failed"):
+                    store._http("PUT","contents/derived/private.zip",{"content":"eA=="})
+            self.assertEqual(put.call_count,1)
+            delay.assert_not_called()
+        with patch.object(h.request,"urlopen",side_effect=http_error(404)) as missing:
+            self.assertIsNone(store._http("GET","contents/derived/absent.zip"))
+            self.assertEqual(missing.call_count,1)
+        class Oversized(Reply):
+            def read(self,limit): return b" " * 2_000_001
+        with patch.object(h.request,"urlopen",return_value=Oversized()) as huge:
+            with self.assertRaisesRegex(h.PrivateHistoryError,"private_api_response_too_large"):
+                store._http("GET","")
+            self.assertEqual(huge.call_count,1)
+
     def test_five_days_ten_calls_and_only_private_zipped_source(self):
         gh=SimulatedPrivateGithub()
         fake=FakeClient()
