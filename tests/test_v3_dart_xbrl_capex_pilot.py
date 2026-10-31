@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import unittest
 import zipfile
+from xml.etree import ElementTree as ET
 
 import v3_dart_bulk_history as bulk
 import v3_dart_cashflow_enrichment as cash
@@ -55,6 +56,123 @@ class Session:
 
 
 class OriginalXbrlEvidenceTests(unittest.TestCase):
+    def test_duplicate_extension_label_concepts_have_anonymous_local_topology(self):
+        ns = "http://synthetic.example/cashflow"
+        tags = {"ppe": {"{" + ns + "}CapexA", "{" + ns + "}CapexB"},
+                "intangible": set()}
+        schemas = {
+            ("issuer.xsd", "co_A"): (ns, "CapexA"),
+            ("issuer.xsd", "co_B"): (ns, "CapexB"),
+            ("issuer.xsd", "co_T"): (ns, "Parent"),
+        }
+
+        def link(kind, role, concepts, edges=()):
+            arcrole = ("summation-item" if kind == "calculation"
+                       else "parent-child")
+            locators = "".join(
+                '<link:loc xlink:label="' + name + '" xlink:href="issuer.xsd#co_' +
+                name + '"/>' for name in concepts)
+            arcs = "".join(
+                '<link:' + kind + 'Arc xlink:from="' + source +
+                '" xlink:to="' + target + '" xlink:arcrole="' +
+                'http://www.xbrl.org/2003/arcrole/' + arcrole + '"/>'
+                for source, target in edges)
+            raw = (
+                '<link:' + kind + 'Link '
+                'xmlns:link="http://www.xbrl.org/2003/linkbase" '
+                'xmlns:xlink="http://www.w3.org/1999/xlink" '
+                'xlink:role="http://hidden.example/' + role + '">' +
+                locators + arcs + '</link:' + kind + 'Link>')
+            return ("taxonomy.xml", ET.fromstring(raw))
+
+        scenarios = (
+            ([link("calculation", "cf", "AB", [("A", "B")])], [],
+             "direct_calculation_parent_child_observed"),
+            ([link("calculation", "cf", "ABT", [("T", "A"), ("T", "B")])], [],
+             "shared_calculation_parent_observed"),
+            ([], [link("presentation", "cf", "AB", [("A", "B")])],
+             "direct_presentation_parent_child_observed"),
+            ([], [link("presentation", "cf", "ABT", [("T", "A"), ("T", "B")])],
+             "shared_presentation_parent_observed"),
+            ([], [link("presentation", "cf", "AB")],
+             "shared_local_role_only"),
+            ([], [link("presentation", "cf", "AB", [("A", "A")])],
+             "shared_local_role_only"),
+            ([], [link("presentation", "cf", "A"),
+                  link("presentation", "notes", "B")],
+             "separate_local_roles_only"),
+            ([], [], "no_local_linkage"),
+        )
+        for calc, presentation, expected in scenarios:
+            with self.subTest(expected=expected):
+                found = pilot._multiple_extension_local_linkages(
+                    presentation, calc, schemas, tags)
+                self.assertEqual(found["ppe"], expected)
+                self.assertEqual(found["intangible"],
+                                 "not_multiple_extension_concepts")
+                self.assertNotIn("hidden.example", json.dumps(found))
+                self.assertNotIn("CapexA", json.dumps(found))
+
+        # Confirm the public pilot uses only a counter for a duplicate pair,
+        # even if two valid KRW facts exist (neither is a certified total).
+        schema = (
+            '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" '
+            'targetNamespace="' + ns + '">'
+            '<xs:element id="co_A" name="CapexA" type="xs:integer"/>'
+            '<xs:element id="co_B" name="CapexB" type="xs:integer"/>'
+            '</xs:schema>')
+        labels = (
+            '<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase" '
+            'xmlns:xlink="http://www.w3.org/1999/xlink">'
+            '<link:labelLink xlink:type="extended">'
+            '<link:loc xlink:label="A" xlink:href="issuer.xsd#co_A"/>'
+            '<link:loc xlink:label="B" xlink:href="issuer.xsd#co_B"/>'
+            '<link:label xlink:label="LA" xml:lang="ko">유형자산의 취득</link:label>'
+            '<link:label xlink:label="LB" xml:lang="ko">유형자산 취득</link:label>'
+            '<link:labelArc xlink:from="A" xlink:to="LA" '
+            'xlink:arcrole="http://www.xbrl.org/2003/arcrole/concept-label"/>'
+            '<link:labelArc xlink:from="B" xlink:to="LB" '
+            'xlink:arcrole="http://www.xbrl.org/2003/arcrole/concept-label"/>'
+            '</link:labelLink></link:linkbase>')
+        instance = (
+            '<xbrl xmlns="' + INSTANCE_NS + '" xmlns:co="' + ns + '">'
+            '<context id="C"><period><startDate>2025-01-01</startDate>'
+            '<endDate>2025-12-31</endDate></period></context>'
+            '<unit id="U"><measure>iso4217:KRW</measure></unit>'
+            '<co:CapexA contextRef="C" unitRef="U">987654321</co:CapexA>'
+            '<co:CapexB contextRef="C" unitRef="U">123456789</co:CapexB>'
+            '</xbrl>')
+        presentation = (
+            b'<link:linkbase xmlns:link="http://www.xbrl.org/2003/linkbase">'
+            + ET.tostring(link(
+                "presentation", "cf", "AB", [("A", "B")])[1])
+            + b'</link:linkbase>')
+        doc = io.BytesIO()
+        with zipfile.ZipFile(doc, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("issuer.xsd", schema)
+            z.writestr("labels.xml", labels)
+            z.writestr("report.xbrl", instance)
+            z.writestr("presentation.xml", presentation)
+        observed = pilot.inspect_binary_archive(doc.getvalue(), year=2025)
+        result = observed["extension_label_evidence"]
+        self.assertEqual(result["extension_annual_krw_status"]["ppe"],
+                         "multiple_extension_concepts")
+        self.assertEqual(result[
+            "extension_multiple_concept_local_linkages"]["ppe"],
+            "direct_presentation_parent_child_observed")
+        market, catalog, major, state, code, receipt = self.fixture()
+        report = pilot.run_pilot(market, catalog, major, state,
+                                 mode="live", key="A" * 40,
+                                 session=Session(doc.getvalue()))
+        self.assertEqual(report["extension_multiple_concept_local_linkages"]
+                         ["direct_presentation_parent_child_observed"], 1)
+        self.assertEqual(report["reports_with_extension_ppe_annual_krw_candidate"], 0)
+        self.assertTrue(report["extension_duplicate_label_topology_never_certifies_capex_total"])
+        public = json.dumps(report)
+        for secret in (code, receipt, "CapexA", "CapexB", "987654321",
+                       "123456789", "hidden.example"):
+            self.assertNotIn(secret, public)
+
     def test_weekly_original_archive_probe_is_bounded_and_source_only(self):
         workflow=(Path(__file__).resolve().parents[1]/
                   ".github/workflows/v3-dart-xbrl-capex-pilot.yml").read_text()
