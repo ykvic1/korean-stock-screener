@@ -7,6 +7,10 @@ on:
       - v3_dart_xbrl_capex_pilot.py
       - tests/test_v3_dart_xbrl_capex_pilot.py
       - .github/workflows/v3-dart-xbrl-capex-pilot.yml
+  schedule:
+    # Sunday 13:13 KST, after the smaller official-account-name pilot.
+    # Four original-file reads max; no source files or scores are published.
+    - cron: '13 4 * * 0'
   workflow_dispatch:
     inputs:
       mode:
@@ -43,13 +47,13 @@ jobs:
           python -m py_compile v3_dart_xbrl_capex_pilot.py
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_capex_pilot.py' -v
       - name: Install official HTTP client only for live mode
-        if: ${{ github.event_name == 'push' || inputs.mode == 'live' }}
+        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
       - name: Probe up to four already-verified annual filing receipts
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
-          COHORT_INDEX: ${{ github.event_name == 'push' && github.run_number || inputs.cohort_index }}
+          MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode }}
+          COHORT_INDEX: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && github.run_number || inputs.cohort_index }}
         run: |
           set -euo pipefail
           python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 --cohort-index "$COHORT_INDEX" | tee /tmp/v3-xbrl-evidence-counts.json

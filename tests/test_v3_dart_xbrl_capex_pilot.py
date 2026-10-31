@@ -2,6 +2,7 @@
 import io
 from datetime import date, timedelta
 import json
+from pathlib import Path
 import unittest
 import zipfile
 
@@ -54,6 +55,16 @@ class Session:
 
 
 class OriginalXbrlEvidenceTests(unittest.TestCase):
+    def test_weekly_original_archive_probe_is_bounded_and_source_only(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/v3-dart-xbrl-capex-pilot.yml").read_text()
+        self.assertIn("cron: '13 4 * * 0'",workflow)
+        self.assertIn("contents: read",workflow)
+        self.assertNotIn("contents: write",workflow)
+        self.assertIn("--limit 4 --cohort-index",workflow)
+        self.assertIn("github.run_number",workflow)
+        self.assertIn("원본 공시·기업 식별자·접수번호·금액 공개 및 FCF/점수 계산 없음",workflow)
+
     def fixture(self):
         market, catalog, major = live_inputs()
         asof, members = cash.asof_members(market, catalog, major)
