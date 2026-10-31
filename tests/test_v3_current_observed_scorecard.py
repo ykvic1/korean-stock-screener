@@ -15,7 +15,8 @@ from v3_current_price_replay import build as price_build
 from v3_dart_bulk_history import research_parts
 from v3_real_six_pillar_coverage_audit import coverage as replay_coverage
 from v3_current_observed_scorecard import (
-    generate,to_csv,main,finance_source,cashflow_source,LivePartialScorecardError,
+    generate,to_csv,main,finance_source,cashflow_source,
+    rounded_observed_total,LivePartialScorecardError,
 )
 
 DOCS=Path(__file__).resolve().parents[1]/"docs"
@@ -33,6 +34,15 @@ def small():
 
 
 class CurrentAllListedScorecardTests(unittest.TestCase):
+    def test_published_total_rounding_is_decimal_and_order_stable(self):
+        # Python 3.11/3.12 previously differed by 0.0001 in six genuine
+        # published issuer rows when factor sums landed on a float tie.
+        observed=[5.227308,13.959342,1.3775]
+        self.assertEqual(rounded_observed_total(observed),20.5642)
+        self.assertEqual(rounded_observed_total(reversed(observed)),20.5642)
+        self.assertEqual(rounded_observed_total([None,*observed]),20.5642)
+        self.assertEqual(rounded_observed_total([0.125,0.125]),0.25)
+
     def test_only_true_observations_are_scored_and_missing_is_not_zero(self):
         market,catalog=small()
         volume=volume_build(market,catalog)

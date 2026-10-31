@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import date
+from decimal import Decimal
 from io import StringIO
 import json
 import math
@@ -40,6 +41,17 @@ from v3_path_provisional_factors import preview as path_preview
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
               "valuation":20,"momentum":15}
+
+
+def rounded_observed_total(values):
+    """Sum published factor decimals, not binary float intermediate ties.
+
+    Python runtimes must produce the same published 4-decimal provisional
+    total from identical independently observed factor values. This does not
+    add any missing factor or certify the result as an investment score.
+    """
+    return float(round(sum((Decimal(str(value)) for value in values
+                            if value is not None), Decimal(0)), 4))
 
 # Exact same-date fiscal research components; informational audit only.
 # Sector is outside the five-area score and official PBR is not inferred.
@@ -389,7 +401,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         available_weight_distribution[str(available)]=available_weight_distribution.get(str(available),0)+1
         output.append({
             "code":code,"name":listed["name"],"market":listed["market"],
-            "asof":asof,"earned":round(earned,4) if available else None,
+            "asof":asof,"earned":rounded_observed_total(values.values())
+                                  if available else None,
             "available":available,"unavailable":100-available,
             "factors":values,"factor_available":coverage,
             "fcf_subpoints":fcf_earned,

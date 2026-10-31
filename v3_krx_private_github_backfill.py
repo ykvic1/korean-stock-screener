@@ -15,6 +15,7 @@ import gzip
 import json
 import os
 import re
+import time
 from urllib import request, error
 
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
@@ -140,17 +141,32 @@ class PrivateGitStorage:
         data=_canonical(body) if body is not None else None
         if body is not None:headers["Content-Type"]="application/json"
         req=request.Request(url,headers=headers,data=data,method=method)
-        try:
-            with request.urlopen(req,timeout=30) as reply:
-                answer=reply.read(2_000_001)
-                if len(answer)>2_000_000:raise PrivateHistoryError("private_api_response_too_large")
-                return json.loads(answer)
-        except error.HTTPError as exc:
-            if exc.code==404 and method=="GET" and path.startswith("contents/"):
-                return None
-            raise PrivateHistoryError("private_storage_api_failed") from None
-        except (ValueError,TimeoutError,OSError):
-            raise PrivateHistoryError("private_storage_api_failed") from None
+        # Only read-only GETs may be retried. An ambiguous PUT failure could
+        # already have committed the private original ZIP/checkpoint, and must
+        # instead be reconciled by the caller's subsequent readback/resume.
+        for attempt in range(3):
+            try:
+                with request.urlopen(req,timeout=30) as reply:
+                    answer=reply.read(2_000_001)
+                    if len(answer)>2_000_000:
+                        raise PrivateHistoryError("private_api_response_too_large")
+                    return json.loads(answer)
+            except error.HTTPError as exc:
+                if exc.code==404 and method=="GET" and path.startswith("contents/"):
+                    return None
+                # Never retry 401/403 permission blocks or generic 404.
+                if method=="GET" and exc.code in (500,502,503,504) and attempt<2:
+                    time.sleep(0.25*(attempt+1))
+                    continue
+                raise PrivateHistoryError("private_storage_api_failed") from None
+            except PrivateHistoryError:
+                # Size/validation circuit breakers are not transport glitches.
+                raise
+            except (ValueError,TimeoutError,OSError):
+                if method=="GET" and attempt<2:
+                    time.sleep(0.25*(attempt+1))
+                    continue
+                raise PrivateHistoryError("private_storage_api_failed") from None
 
     def verify_private(self):
         info=self.transport("GET","")
