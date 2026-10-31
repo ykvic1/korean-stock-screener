@@ -1,13 +1,13 @@
 {
   "schema": "v3-ranked-quant-coverage-v1",
-  "asof": "2026-10-28",
-  "candidate_count": 3,
-  "candidates_in_next_120_stock_study": 3,
-  "study_source_asof": "2026-10-28",
+  "asof": "2026-10-30",
+  "candidate_count": 0,
+  "candidates_in_next_120_stock_study": 0,
+  "study_source_asof": "2026-10-30",
   "quant_study_same_date": true,
-  "candidates_with_usable_historical_periods": 3,
+  "candidates_with_usable_historical_periods": 0,
   "candidate_status_counts": {
-    "research_available": 3,
+    "research_available": 0,
     "research_but_periods_insufficient": 0,
     "history_insufficient": 0,
     "awaiting_fresh_study": 0
@@ -15,63 +15,5 @@
   "historical_statistics_exploratory_only": true,
   "survivorship_bias_unresolved": true,
   "predicted_profit_or_buy_certified": false,
-  "stocks": [
-    {
-      "code": "089860",
-      "name": "롯데렌탈",
-      "v2_observed_score": 75.7,
-      "priority_in_next_study": true,
-      "state": "research_available",
-      "source_data_date": "2026-10-28",
-      "available_historical_periods": [
-        "초단기 1주",
-        "단기 2주",
-        "스윙 1개월",
-        "스윙 2개월",
-        "중기 3개월",
-        "중기 6개월"
-      ],
-      "historical_period_count": 6,
-      "out_of_sample_prediction_validated": false,
-      "buy_certified": false
-    },
-    {
-      "code": "441270",
-      "name": "파인엠텍",
-      "v2_observed_score": 70.0,
-      "priority_in_next_study": true,
-      "state": "research_available",
-      "source_data_date": "2026-10-28",
-      "available_historical_periods": [
-        "초단기 1주",
-        "단기 2주",
-        "스윙 1개월",
-        "스윙 2개월",
-        "중기 3개월",
-        "중기 6개월"
-      ],
-      "historical_period_count": 6,
-      "out_of_sample_prediction_validated": false,
-      "buy_certified": false
-    },
-    {
-      "code": "241790",
-      "name": "티이엠씨씨엔에스",
-      "v2_observed_score": 70.0,
-      "priority_in_next_study": true,
-      "state": "research_available",
-      "source_data_date": "2026-10-28",
-      "available_historical_periods": [
-        "초단기 1주",
-        "단기 2주",
-        "스윙 1개월",
-        "스윙 2개월",
-        "중기 3개월",
-        "중기 6개월"
-      ],
-      "historical_period_count": 6,
-      "out_of_sample_prediction_validated": false,
-      "buy_certified": false
-    }
-  ]
+  "stocks": []
 }

@@ -16,15 +16,13 @@
   "selection_basis": "all_actual_valid_symbols_before_display_limit",
   "verified_expected_rr_primary": true,
   "missing_validation_must_not_invent_expected_return": true,
-  "research_source_date": "2026-10-28",
-  "research_source_matched": false,
+  "research_source_date": "2026-10-30",
+  "research_source_matched": true,
   "daily_changes": {
     "entered": [],
     "updated": [],
     "unchanged": [],
-    "exited": [
-      "066670"
-    ]
+    "exited": []
   },
   "dossiers": []
 }
