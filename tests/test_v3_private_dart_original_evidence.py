@@ -6,12 +6,14 @@ from io import BytesIO
 import json
 from pathlib import Path
 import unittest
+from urllib.error import HTTPError
 from unittest.mock import patch
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from v3_dart_historical_event_receipts import _bytes as canonical
 import v3_private_dart_krx_filing_title_triage as triage
 import v3_private_dart_original_evidence as original
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 
 def zip_source(name="original.xml"):
@@ -76,6 +78,58 @@ class Private:
 
 
 class OriginalEvidenceTests(unittest.TestCase):
+    def test_private_http_failures_are_safe_and_actionable_without_path_or_token(self):
+        # The previous production failure flattened every transport error to
+        # private_storage_api_failed. Preserve that stable error identifier,
+        # while distinguishing permission, rate limit and concurrent writes.
+        store = PrivateGitStorage(original.PRIVATE_REPO, "s" * 24)
+        cases = (
+            ("GET", "", 401, {}, "read_repository_metadata", "http_401"),
+            ("GET", "contents/secret-private-source.json", 403, {},
+             "read_private_content", "http_403"),
+            ("GET", "contents/secret-private-source.json", 403,
+             {"X-RateLimit-Remaining": "0"},
+             "read_private_content", "http_403_rate_limited"),
+            ("PUT", "contents/secret-private-source.json", 409, {},
+             "write_private_content", "http_409"),
+            ("PUT", "contents/secret-private-source.json", 422, {},
+             "write_private_content", "http_422"),
+            ("GET", "", 404, {}, "read_repository_metadata", "http_404"),
+        )
+        for method, path, code, headers, operation, status in cases:
+            with self.subTest(code=code, method=method, status=status):
+                denial = HTTPError(
+                    "https://secret-private-url.test/source", code,
+                    "secret-denial", headers, None)
+                with patch("v3_krx_private_github_backfill.request.urlopen",
+                           side_effect=denial):
+                    with self.assertRaises(PrivateHistoryError) as caught:
+                        store._http(method, path, {"test": True} if method == "PUT" else None)
+                exc = caught.exception
+                self.assertEqual(str(exc), "private_storage_api_failed")
+                self.assertEqual(exc.safe_http_operation, operation)
+                self.assertEqual(exc.safe_http_status, status)
+                public = original._private_storage_failure_message(exc)
+                self.assertIn("operation=" + operation, public)
+                self.assertIn("http_status=" + status, public)
+                for secret in ("secret", "private-url", original.PRIVATE_REPO, "s" * 24):
+                    self.assertNotIn(secret, public)
+        # A missing content file remains normal 'not yet saved' evidence.
+        with patch("v3_krx_private_github_backfill.request.urlopen",
+                   side_effect=HTTPError("https://hidden", 404, "secret", {}, None)):
+            self.assertIsNone(store._http("GET", "contents/new-source.json"))
+
+    def test_private_error_diagnostics_reject_injected_or_unknown_values(self):
+        exc = PrivateHistoryError("private_storage_api_failed")
+        exc.safe_http_operation = "read_private_content;receipt=123456789"
+        exc.safe_http_status = "http_403;token=secret"
+        public = original._private_storage_failure_message(exc)
+        self.assertEqual(public,
+                         "blocked: private original source archive "
+                         "[storage_reason=private_storage_api_failed]")
+        self.assertNotIn("secret", public)
+        self.assertNotIn("123456789", public)
+
     def test_zip_failure_stage_is_fixed_and_never_exposes_file_identity(self):
         # Only allowlisted phase labels are safe for public Actions logs.
         # An unsafe member stays rejected; diagnostics do not relax ZIP rules.

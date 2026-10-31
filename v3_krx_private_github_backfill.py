@@ -158,7 +158,24 @@ class PrivateGitStorage:
                 if method=="GET" and exc.code in (500,502,503,504) and attempt<2:
                     time.sleep(0.25*(attempt+1))
                     continue
-                raise PrivateHistoryError("private_storage_api_failed") from None
+                # A fixed, path-free diagnostic is safe for public CI logs.
+                # Never expose the private URL, request/response body, headers,
+                # token, or GitHub's potentially sensitive error message.
+                issue=PrivateHistoryError("private_storage_api_failed")
+                issue.safe_http_operation=(
+                    "read_repository_metadata" if method=="GET" and not path
+                    else "read_private_content" if method=="GET"
+                    else "write_private_content" if method=="PUT"
+                    else "other_private_operation")
+                response_headers=exc.headers or {}
+                if exc.code==403 and (response_headers.get("Retry-After") is not None
+                                      or response_headers.get("X-RateLimit-Remaining")=="0"):
+                    issue.safe_http_status="http_403_rate_limited"
+                elif exc.code in (401,403,404,409,422,429,500,502,503,504):
+                    issue.safe_http_status=f"http_{exc.code}"
+                else:
+                    issue.safe_http_status="http_other"
+                raise issue from None
             except PrivateHistoryError:
                 # Size/validation circuit breakers are not transport glitches.
                 raise
@@ -166,7 +183,14 @@ class PrivateGitStorage:
                 if method=="GET" and attempt<2:
                     time.sleep(0.25*(attempt+1))
                     continue
-                raise PrivateHistoryError("private_storage_api_failed") from None
+                issue=PrivateHistoryError("private_storage_api_failed")
+                issue.safe_http_operation=(
+                    "read_repository_metadata" if method=="GET" and not path
+                    else "read_private_content" if method=="GET"
+                    else "write_private_content" if method=="PUT"
+                    else "other_private_operation")
+                issue.safe_http_status="transport_or_response"
+                raise issue from None
 
     def verify_private(self):
         info=self.transport("GET","")

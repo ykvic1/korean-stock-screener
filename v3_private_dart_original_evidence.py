@@ -177,6 +177,30 @@ SAFE_PRIVATE_STORAGE_ISSUES = frozenset((
     "invalid_private_blob_base64", "invalid_private_blob_length",
     "invalid_private_archive_commit", "private_repository_or_token_not_configured",
 ))
+SAFE_PRIVATE_HTTP_OPERATIONS = frozenset((
+    "read_repository_metadata", "read_private_content",
+    "write_private_content", "other_private_operation",
+))
+SAFE_PRIVATE_HTTP_STATUSES = frozenset((
+    "http_401", "http_403", "http_403_rate_limited", "http_404",
+    "http_409", "http_422", "http_429", "http_500", "http_502",
+    "http_503", "http_504", "http_other", "transport_or_response",
+))
+
+
+def _private_storage_failure_message(exc):
+    """Redact private HTTP failure to a fixed operation and status only."""
+    reason = str(exc)
+    if reason not in SAFE_PRIVATE_STORAGE_ISSUES:
+        reason = "unclassified_private_storage_error"
+    detail = ""
+    if reason == "private_storage_api_failed":
+        operation = getattr(exc, "safe_http_operation", None)
+        status = getattr(exc, "safe_http_status", None)
+        if (operation in SAFE_PRIVATE_HTTP_OPERATIONS
+            and status in SAFE_PRIVATE_HTTP_STATUSES):
+            detail = ";operation=" + operation + ";http_status=" + status
+    return "blocked: private original source archive [storage_reason=" + reason + detail + "]"
 
 
 def _check_zip(raw):
@@ -496,11 +520,7 @@ def main():
                              " [zip_validation_stage=" + stage + detail + "]") from None
         raise SystemExit("blocked: " + str(exc)) from None
     except PrivateHistoryError as exc:
-        reason = str(exc)
-        if reason not in SAFE_PRIVATE_STORAGE_ISSUES:
-            reason = "unclassified_private_storage_error"
-        raise SystemExit("blocked: private original source archive [storage_reason="
-                         + reason + "]") from None
+        raise SystemExit(_private_storage_failure_message(exc)) from None
     except Exception:
         raise SystemExit("blocked: private original filing source validation failed") from None
     print(json.dumps(result, sort_keys=True))
