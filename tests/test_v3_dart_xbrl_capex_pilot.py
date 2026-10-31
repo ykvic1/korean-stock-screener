@@ -56,6 +56,68 @@ class Session:
 
 
 class OriginalXbrlEvidenceTests(unittest.TestCase):
+    def test_duplicate_extension_roles_partition_only_into_noncertifying_hints(self):
+        ns = "http://synthetic.example/extension"
+        tags = {"ppe": {"{" + ns + "}AcquisitionA", "{" + ns + "}AcquisitionB"},
+                "intangible": set()}
+        schemas = {
+            ("issuer.xsd", "co_A"): (ns, "AcquisitionA"),
+            ("issuer.xsd", "co_B"): (ns, "AcquisitionB"),
+        }
+
+        def local_role(role, concepts):
+            locators = "".join(
+                '<link:loc xlink:label="' + label +
+                '" xlink:href="issuer.xsd#co_' + label + '"/>'
+                for label in concepts)
+            xml = (
+                '<link:presentationLink '
+                'xmlns:link="http://www.xbrl.org/2003/linkbase" '
+                'xmlns:xlink="http://www.w3.org/1999/xlink" '
+                'xlink:role="http://confidential.example/' + role + '">' +
+                locators + '</link:presentationLink>')
+            return ("taxonomy.xml", ET.fromstring(xml))
+
+        cases = (
+            ([], {}, "missing_concept_presentation_role"),
+            ([local_role("cf", "A"), local_role("notes", "B")],
+             {"cf": "statement", "notes": "note"},
+             "single_statement_concept_other_notes_hint"),
+            ([local_role("cf", "A"), local_role("other", "B")],
+             {"cf": "statement", "other": "other"},
+             "single_statement_concept_other_noncf_hint"),
+            ([local_role("cf", "A"), local_role("notes", "B"),
+              local_role("other", "B")],
+             {"cf": "statement", "notes": "note", "other": "other"},
+             "single_statement_concept_mixed_nonprimary_hint"),
+            ([local_role("cf", "AB")], {"cf": "statement"},
+             "multiple_statement_concepts_unverified"),
+            ([local_role("cf", "A"), local_role("notes", "A"),
+              local_role("other", "B")],
+             {"cf": "statement", "notes": "note", "other": "other"},
+             "concept_mixed_statement_other_roles_unverified"),
+            ([local_role("notes", "A"), local_role("other", "B")],
+             {"notes": "note", "other": "other"},
+             "no_statement_concept_hint"),
+            ([local_role("cf", "A"), local_role("notes", "B")],
+             {"cf": "statement"}, "unresolved_role_definitions_unverified"),
+            ([local_role("cf", "A"), local_role("notes", "B")],
+             {"cf": "statement", "notes": "conflict"},
+             "unresolved_role_definitions_unverified"),
+        )
+        for links, codes, expected in cases:
+            with self.subTest(expected=expected, codes=codes):
+                definitions = {
+                    "http://confidential.example/" + key: value
+                    for key, value in codes.items()}
+                found = pilot._multiple_extension_role_partition(
+                    links, schemas, tags, definitions)
+                self.assertEqual(found["ppe"], expected)
+                self.assertEqual(found["intangible"],
+                                 "not_multiple_extension_concepts")
+                self.assertNotIn("confidential.example", json.dumps(found))
+                self.assertNotIn("AcquisitionA", json.dumps(found))
+
     def test_duplicate_extension_label_concepts_have_anonymous_local_topology(self):
         ns = "http://synthetic.example/cashflow"
         tags = {"ppe": {"{" + ns + "}CapexA", "{" + ns + "}CapexB"},
@@ -166,8 +228,11 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                                  session=Session(doc.getvalue()))
         self.assertEqual(report["extension_multiple_concept_local_linkages"]
                          ["direct_presentation_parent_child_observed"], 1)
+        self.assertEqual(report["extension_multiple_concept_role_partitions"]
+                         ["unresolved_role_definitions_unverified"], 1)
         self.assertEqual(report["reports_with_extension_ppe_annual_krw_candidate"], 0)
         self.assertTrue(report["extension_duplicate_label_topology_never_certifies_capex_total"])
+        self.assertTrue(report["local_role_partition_never_certifies_capex_or_statement_scope"])
         public = json.dumps(report)
         for secret in (code, receipt, "CapexA", "CapexB", "987654321",
                        "123456789", "hidden.example"):

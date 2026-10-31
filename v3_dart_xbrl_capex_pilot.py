@@ -725,6 +725,78 @@ def _extension_cashflow_role_hints(links, schemas, matched, definitions):
     return results
 
 
+MULTI_EXTENSION_ROLE_PARTITIONS = (
+    "not_multiple_extension_concepts",
+    "missing_concept_presentation_role",
+    "unresolved_role_definitions_unverified",
+    "concept_mixed_statement_other_roles_unverified",
+    "multiple_statement_concepts_unverified",
+    "single_statement_concept_other_notes_hint",
+    "single_statement_concept_other_noncf_hint",
+    "single_statement_concept_mixed_nonprimary_hint",
+    "no_statement_concept_hint",
+)
+
+
+def _multiple_extension_role_partition(links, schemas, matched, definitions):
+    """Partition duplicate CAPEX concepts by their *own* local role hints.
+
+    The local roleType definition may be user-authored or incomplete. Even an
+    apparently unique statement concept is NOT accepted as the CAPEX amount,
+    CFS/OFS provenance, a verified XBRL taxonomy or PIT financial evidence.
+    Return only fixed labels, never company concepts or role definitions.
+    """
+    xlink, linkns = "{" + XLINK_NS + "}", "{" + LINK_NS + "}"
+    result = {}
+    for kind, tags in matched.items():
+        if len(tags) < 2:
+            result[kind] = "not_multiple_extension_concepts"
+            continue
+        by_concept = {tag: set() for tag in tags}
+        for member, link in links:
+            role = link.get(xlink + "role")
+            if type(role) is not str or not 1 <= len(role) <= 320:
+                continue
+            for loc in link.findall(linkns + "loc"):
+                ref = _local_taxonomy_ref(
+                    member, loc.get(xlink + "href"), schemas)
+                if ref is None:
+                    continue
+                tag = "{" + ref[0] + "}" + ref[1]
+                if tag in by_concept:
+                    by_concept[tag].add(role)
+        buckets = [
+            {definitions.get(role, "unknown") for role in roles}
+            for roles in by_concept.values()
+        ]
+        if any(not role_set for role_set in buckets):
+            status = "missing_concept_presentation_role"
+        elif any(role_set.intersection({"unknown", "conflict"})
+                 for role_set in buckets):
+            status = "unresolved_role_definitions_unverified"
+        elif any("statement" in role_set and len(role_set) > 1
+                 for role_set in buckets):
+            status = "concept_mixed_statement_other_roles_unverified"
+        else:
+            statement_count = sum(role_set == {"statement"}
+                                  for role_set in buckets)
+            if statement_count > 1:
+                status = "multiple_statement_concepts_unverified"
+            elif statement_count == 1:
+                remaining = [role_set for role_set in buckets
+                             if role_set != {"statement"}]
+                if all(role_set == {"note"} for role_set in remaining):
+                    status = "single_statement_concept_other_notes_hint"
+                elif all(role_set == {"other"} for role_set in remaining):
+                    status = "single_statement_concept_other_noncf_hint"
+                else:
+                    status = "single_statement_concept_mixed_nonprimary_hint"
+            else:
+                status = "no_statement_concept_hint"
+        result[kind] = status
+    return result
+
+
 CALCULATION_SHAPES = (
     "no_local_calculation_link", "concept_not_in_local_calculation",
     "locator_only_no_summation_arc",
@@ -1101,6 +1173,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         presentations, calculations, schemas, matched)
     role_hints = _extension_cashflow_role_hints(
         presentations, schemas, matched, role_definitions)
+    role_partitions = _multiple_extension_role_partition(
+        presentations, schemas, matched, role_definitions)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
@@ -1159,6 +1233,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "local_calculation_link_count": len(calculations),
         "local_presentation_role_definition_count": len(role_definitions),
         "extension_cashflow_role_hints": role_hints,
+        "extension_multiple_concept_role_partitions": role_partitions,
         "extension_local_calculation_shapes": calculation_shapes,
         "extension_multiple_concept_local_linkages": multi_linkages,
         "extension_local_presentation_shapes": presentation_shapes,
@@ -1306,7 +1381,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.10",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.11",
         "asof": asof,
         "mode": mode,
         "sample_cohort_mode": "verified_receipt_year_stratified_rotation",
@@ -1349,6 +1424,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "local_presentation_role_definition_count": 0,
         "extension_cashflow_role_hints": {
             name: 0 for name in CASHFLOW_ROLE_HINTS},
+        "extension_multiple_concept_role_partitions": {
+            name: 0 for name in MULTI_EXTENSION_ROLE_PARTITIONS},
+        "local_role_partition_never_certifies_capex_or_statement_scope": True,
         "primary_statement_role_never_certified_from_local_definition": True,
         "extension_local_calculation_shapes": {
             shape: 0 for shape in CALCULATION_SHAPES},
@@ -1447,6 +1525,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                     report["extension_multiple_concept_local_linkages"][linkage] += 1
                 hint = extension["extension_cashflow_role_hints"][kind]
                 report["extension_cashflow_role_hints"][hint] += 1
+                partition = extension[
+                    "extension_multiple_concept_role_partitions"][kind]
+                if partition != "not_multiple_extension_concepts":
+                    report["extension_multiple_concept_role_partitions"][partition] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
                 if status == "annual_context_missing":
