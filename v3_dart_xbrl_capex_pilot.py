@@ -836,6 +836,105 @@ PRESENTATION_SHAPES = (
 )
 
 
+MULTI_EXTENSION_LINKAGES = (
+    "not_multiple_extension_concepts",
+    "direct_calculation_parent_child_observed",
+    "shared_calculation_parent_observed",
+    "direct_presentation_parent_child_observed",
+    "shared_presentation_parent_observed",
+    "shared_local_role_only",
+    "separate_local_roles_only",
+    "no_local_linkage",
+)
+
+
+def _multiple_extension_local_linkages(presentations, calculations, schemas, matched):
+    """Anonymous topology for duplicate exact-label concepts, never totals.
+
+    An edge between *concepts* can explain duplicate labels, but it cannot
+    prove that a reporting concept sums all investments, that a calculation is
+    complete, or even that an extension belongs to the cash-flow statement.
+    No numeric facts, issuer identifiers, ZIP names or role names leave here.
+    """
+    xlink, linkns = "{" + XLINK_NS + "}", "{" + LINK_NS + "}"
+    results = {}
+    for kind, tags in matched.items():
+        if len(tags) < 2:
+            results[kind] = "not_multiple_extension_concepts"
+            continue
+        roles = {tag: set() for tag in tags}
+        direct_calc = shared_calc = direct_present = shared_present = False
+        for links, arcname, target in (
+            (calculations, "calculationArc", "calc"),
+            (presentations, "presentationArc", "present"),
+        ):
+            arcs_seen = 0
+            for member, link in links:
+                role = link.get(xlink + "role")
+                if type(role) is not str or not 1 <= len(role) <= 320:
+                    continue
+                locators = {}
+                for loc in link.findall(linkns + "loc"):
+                    label = loc.get(xlink + "label")
+                    if type(label) is not str or not 1 <= len(label) <= 160:
+                        continue
+                    ref = _local_taxonomy_ref(
+                        member, loc.get(xlink + "href"), schemas)
+                    if ref is None:
+                        continue
+                    tag = "{" + ref[0] + "}" + ref[1]
+                    if label in locators and locators[label] != tag:
+                        raise XbrlPilotError("ambiguous_extension_linkage_locator")
+                    locators[label] = tag
+                    if tag in roles:
+                        roles[tag].add(role)
+                by_parent = {}
+                for arc in link.findall(linkns + arcname):
+                    arcs_seen += 1
+                    if arcs_seen > 50000:
+                        raise XbrlPilotError("extension_linkage_arc_budget_exceeded")
+                    arcrole = arc.get(xlink + "arcrole")
+                    expected = (
+                        "http://www.xbrl.org/2003/arcrole/summation-item"
+                        if target == "calc" else
+                        "http://www.xbrl.org/2003/arcrole/parent-child")
+                    if arcrole != expected:
+                        continue
+                    parent = locators.get(arc.get(xlink + "from"))
+                    child = locators.get(arc.get(xlink + "to"))
+                    if parent is None or child is None:
+                        continue
+                    if parent != child and parent in tags and child in tags:
+                        if target == "calc":
+                            direct_calc = True
+                        else:
+                            direct_present = True
+                    if child in tags:
+                        by_parent.setdefault(parent, set()).add(child)
+                if any(len(children) > 1 for children in by_parent.values()):
+                    if target == "calc":
+                        shared_calc = True
+                    else:
+                        shared_present = True
+        if direct_calc:
+            result = "direct_calculation_parent_child_observed"
+        elif shared_calc:
+            result = "shared_calculation_parent_observed"
+        elif direct_present:
+            result = "direct_presentation_parent_child_observed"
+        elif shared_present:
+            result = "shared_presentation_parent_observed"
+        elif any(a.intersection(b) for i, a in enumerate(roles.values())
+                 for j, b in enumerate(roles.values()) if i < j):
+            result = "shared_local_role_only"
+        elif all(roles.values()):
+            result = "separate_local_roles_only"
+        else:
+            result = "no_local_linkage"
+        results[kind] = result
+    return results
+
+
 def _extension_presentation_shapes(links, schemas, matched):
     """Observe ZIP-local presentation parent/child arcs without source leakage.
 
@@ -998,6 +1097,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         presentations, schemas, matched)
     calculation_shapes = _extension_calculation_shapes(
         calculations, schemas, matched)
+    multi_linkages = _multiple_extension_local_linkages(
+        presentations, calculations, schemas, matched)
     role_hints = _extension_cashflow_role_hints(
         presentations, schemas, matched, role_definitions)
     status = {kind: "label_fact_not_present" for kind in matched}
@@ -1059,6 +1160,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "local_presentation_role_definition_count": len(role_definitions),
         "extension_cashflow_role_hints": role_hints,
         "extension_local_calculation_shapes": calculation_shapes,
+        "extension_multiple_concept_local_linkages": multi_linkages,
         "extension_local_presentation_shapes": presentation_shapes,
         "exact_extension_label_schema_leads": len(label_leads),
         "exact_extension_label_instance_facts": {
@@ -1204,7 +1306,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
-        "schema": "v3-xbrl-archive-capex-structure-pilot-0.9",
+        "schema": "v3-xbrl-archive-capex-structure-pilot-0.10",
         "asof": asof,
         "mode": mode,
         "sample_cohort_mode": "verified_receipt_year_stratified_rotation",
@@ -1250,6 +1352,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "primary_statement_role_never_certified_from_local_definition": True,
         "extension_local_calculation_shapes": {
             shape: 0 for shape in CALCULATION_SHAPES},
+        "extension_multiple_concept_local_linkages": {
+            name: 0 for name in MULTI_EXTENSION_LINKAGES},
+        "extension_duplicate_label_topology_never_certifies_capex_total": True,
         "calculation_arcs_never_certify_total_or_scope": True,
         "extension_local_presentation_shapes": {
             shape: 0 for shape in PRESENTATION_SHAPES},
@@ -1336,6 +1441,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                 report["extension_local_presentation_shapes"][shape] += 1
                 shape = extension["extension_local_calculation_shapes"][kind]
                 report["extension_local_calculation_shapes"][shape] += 1
+                linkage = extension[
+                    "extension_multiple_concept_local_linkages"][kind]
+                if linkage != "not_multiple_extension_concepts":
+                    report["extension_multiple_concept_local_linkages"][linkage] += 1
                 hint = extension["extension_cashflow_role_hints"][kind]
                 report["extension_cashflow_role_hints"][hint] += 1
                 status = extension["extension_annual_krw_status"][kind]
