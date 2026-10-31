@@ -7,6 +7,10 @@ on:
       - v3_dart_capex_name_pilot.py
       - tests/test_v3_dart_capex_name_pilot.py
       - .github/workflows/v3-dart-capex-name-pilot.yml
+  schedule:
+    # Sunday 12:47 KST. Twelve bounded official reads, rotating issuer
+    # strata weekly rather than repeatedly querying the first cohort.
+    - cron: '47 3 * * 0'
   workflow_dispatch:
     inputs:
       mode:
@@ -14,6 +18,10 @@ on:
         required: true
         default: dry-run
         options: [dry-run, live]
+      cohort_index:
+        type: number
+        required: false
+        default: 0
 
 permissions:
   contents: read
@@ -44,15 +52,19 @@ jobs:
           python -m py_compile v3_dart_capex_name_pilot.py
           python -m unittest discover -s tests -p 'test_v3_dart_capex_name_pilot.py' -v
       - name: Install official provider HTTP dependencies in live mode only
-        if: ${{ github.event_name == 'push' || inputs.mode == 'live' }}
+        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
-      - name: Probe at most 12 existing missing-CAPEX company-years
+      - name: Probe at most 12 rotated missing-CAPEX company-years
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          MODE: ${{ github.event_name == 'push' && 'live' || inputs.mode }}
+          MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode }}
+          COHORT_INDEX: ${{ github.event_name == 'schedule' && 'auto' || inputs.cohort_index || '0' }}
         run: |
           set -euo pipefail
-          python v3_dart_capex_name_pilot.py --mode "$MODE" --limit 12 | tee /tmp/v3-capex-pilot-aggregate.json
+          if [[ "$COHORT_INDEX" == "auto" ]]; then
+            COHORT_INDEX="$(python -c 'from datetime import date,datetime,timezone; print(1+max(0,(datetime.now(timezone.utc).date()-date(2026,10,31)).days)//7)')"
+          fi
+          python v3_dart_capex_name_pilot.py --mode "$MODE" --limit 12 --cohort-index "$COHORT_INDEX" | tee /tmp/v3-capex-pilot-aggregate.json
       - name: Publish aggregate-only result in workflow summary
         if: always()
         run: |
@@ -68,6 +80,7 @@ jobs:
           if source.is_file():
               report=json.loads(source.read_text(encoding='utf8'))
               for key,label in (
+                  ('cohort_index','순환 표본 회차'),
                   ('eligible_sampled_issuer_years','표본 기업·연도'),
                   ('provider_source_calls','실제 공식 재무제표 조회'),
                   ('unique_exact_name_candidate','유일한 정확한 비표준 계정명 후보'),

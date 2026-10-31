@@ -63,7 +63,7 @@ def candidate_status(rows, *, code, corp, year, scope, receipt, kind):
             else "ambiguous_multiple_candidates")
 
 
-def select_candidates(state, major, limit=MAX_PROBES):
+def select_candidates(state, major, limit=MAX_PROBES, cohort_index=0):
     """Balance the tiny 12-call probe across year, scope and missing kind.
 
     The old first-12 ticker-order sample was mostly the latest CFS year.
@@ -73,6 +73,8 @@ def select_candidates(state, major, limit=MAX_PROBES):
     """
     if type(limit) is not int or not 1 <= limit <= MAX_PROBES:
         raise PilotError("invalid_pilot_limit")
+    if type(cohort_index) is not int or not 0 <= cohort_index <= 1000000:
+        raise PilotError("invalid_pilot_cohort_index")
     kinds = ("ppe", "intangible")
     scopes = ("CFS", "OFS")
     strata = tuple((year, scope, kind)
@@ -102,6 +104,14 @@ def select_candidates(state, major, limit=MAX_PROBES):
             kind = "ppe" if ppe_missing else "intangible"
             buckets[(year, scope, kind)].append(
                 (code, year, scope, receipt, kind))
+    # Offset EACH fiscal-year / scope / component stratum independently.
+    # Re-running the same cohort is deterministic, while the next cohort
+    # explores a different available issuer instead of polling the same
+    # first twelve candidates forever. No IDs leave the private call path.
+    for key, rows in buckets.items():
+        if rows:
+            offset=cohort_index % len(rows)
+            buckets[key]=rows[offset:]+rows[:offset]
     chosen = []
     used_issuers = set()
     # One per available stratum first. Revisit surplus strata only after
@@ -123,17 +133,18 @@ def select_candidates(state, major, limit=MAX_PROBES):
     return chosen
 
 def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
-              corp_cache=None, limit=MAX_PROBES):
+              corp_cache=None, limit=MAX_PROBES, cohort_index=0):
     try:
         verify_state(state, market, catalog, major)
         asof, members = _inputs(market, catalog)
     except (ValueError, TypeError, KeyError):
         raise PilotError("invalid_saved_source_and_market_identity") from None
-    choices = select_candidates(state, major, limit)
+    choices = select_candidates(state, major, limit, cohort_index)
     report = {
         "schema": "v3-capex-nonstandard-label-pilot-0.1",
         "asof": asof,
         "mode": mode,
+        "cohort_index": cohort_index,
         "eligible_sampled_issuer_years": len(choices),
         "sample_strategy": "distinct_issuer_year_scope_missing_component_strata",
         "sampled_by_fiscal_year": {
@@ -209,6 +220,7 @@ def main(argv=None):
     parser.add_argument("--cache",default=".cache/v3-dart-company-codes.json")
     parser.add_argument("--mode",choices=("dry-run","live"),default="dry-run")
     parser.add_argument("--limit",type=int,default=MAX_PROBES)
+    parser.add_argument("--cohort-index",type=int,default=0)
     args = parser.parse_args(argv)
     def read(name):
         return json.loads(Path(name).read_text(encoding="utf8"))
@@ -220,7 +232,7 @@ def main(argv=None):
         read(args.market),read(args.catalog),read(args.major),read(args.state),
         mode=args.mode,key=os.getenv("DART_API_KEY",""),session=session,
         corp_cache=read(args.cache) if Path(args.cache).is_file() else None,
-        limit=args.limit)
+        limit=args.limit,cohort_index=args.cohort_index)
     print(json.dumps(report,ensure_ascii=False,sort_keys=True))
 
 

@@ -1,6 +1,7 @@
 """Offline source/identity regression for bounded nonstandard CAPEX name pilot."""
 import json
 import unittest
+from pathlib import Path
 
 import v3_dart_bulk_history as bulk
 import v3_dart_cashflow_enrichment as cash
@@ -30,6 +31,16 @@ class Session:
 
 
 class CapexNamePilotTests(unittest.TestCase):
+    def test_weekly_research_workflow_stays_readonly_and_bounded(self):
+        workflow=(Path(__file__).resolve().parents[1]/
+                  ".github/workflows/v3-dart-capex-name-pilot.yml").read_text()
+        self.assertIn("cron: '47 3 * * 0'",workflow)
+        self.assertIn("contents: read",workflow)
+        self.assertNotIn("contents: write",workflow)
+        self.assertIn("--limit 12 --cohort-index",workflow)
+        self.assertIn("COHORT_INDEX",workflow)
+        self.assertIn("no scores",workflow)
+
     def _fixture(self):
         market,catalog,major=live_inputs()
         asof,members=cash.asof_members(market,catalog,major)
@@ -160,9 +171,48 @@ class CapexNamePilotTests(unittest.TestCase):
         with self.assertRaises(pilot.PilotError):
             pilot.select_candidates(state,major)
 
+    def test_weekly_cohorts_rotate_distinct_official_receipt_candidates(self):
+        state={"records":{}}
+        major={"records":{}}
+        index=0
+        for year in reversed(cash.YEARS):
+            for scope in ("CFS","OFS"):
+                for kind in ("ppe","intangible"):
+                    for _ in range(3):
+                        index+=1
+                        code=f"{index:06d}"
+                        receipt=f"synthetic-receipt-{index}"
+                        state["records"][code]={
+                            "scope":scope,"years":{str(year):{
+                                "major_annual_receipt_matched":True,
+                                "operating_cashflow_krw":100,
+                                "ppe_capex_krw":None if kind=="ppe" else 10,
+                                "intangible_capex_krw":None if kind=="intangible" else 5,
+                                "annual_receipt_id":receipt,
+                            }}}
+                        major["records"][code]={
+                            "years":{str(year):{scope:{"receipt_id":receipt}}}}
+        weeks=[pilot.select_candidates(state,major,cohort_index=i)
+               for i in range(4)]
+        self.assertTrue(all(len(w)==pilot.MAX_PROBES for w in weeks))
+        for i in range(3):
+            self.assertEqual(len({row[0] for row in weeks[i]}),pilot.MAX_PROBES)
+        self.assertTrue(all(not ({row[0] for row in weeks[i]} &
+                                 {row[0] for row in weeks[j]})
+                            for i in range(3) for j in range(i+1,3)))
+        self.assertEqual(weeks[0],weeks[3])
+        self.assertEqual(weeks[1],pilot.select_candidates(state,major,cohort_index=1))
+        for invalid in (-1,1000001,True,1.2,"1"):
+            with self.subTest(invalid=invalid),self.assertRaises(pilot.PilotError):
+                pilot.select_candidates(state,major,cohort_index=invalid)
+
     def test_dry_run_never_uses_credentials_or_provider(self):
         market,catalog,major,state,_,_=self._fixture()
         report=pilot.run_pilot(market,catalog,major,state,mode="dry-run")
+        self.assertEqual(report["cohort_index"],0)
+        alternate=pilot.run_pilot(market,catalog,major,state,mode="dry-run",
+                                  cohort_index=1)
+        self.assertEqual(alternate["cohort_index"],1)
         self.assertEqual(report["eligible_sampled_issuer_years"],1)
         self.assertEqual(sum(report["sampled_by_fiscal_year"].values()),1)
         self.assertEqual(sum(report["sampled_by_scope"].values()),1)
