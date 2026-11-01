@@ -207,6 +207,26 @@ const badClassified=structuredClone(classified);
 badClassified.records['000001'].market='KOSDAQ';
 assert.equal(unified.applyIndustryReference(mockModel,badClassified,currentSector),null);
 assert.equal(mockModel.rows[0].r.v3_sector_research.name,'화학제품(의약품 제외)');
+const partialClassified=structuredClone(classified);
+delete partialClassified.records['000100'];
+partialClassified.observed_industry_codes=99;
+partialClassified.not_yet_attempted=1;
+const partialModel={date:'2026-10-22',marketEligible:100,rows:[
+  {r:{code:'000001',name:'present',market:'KOSPI'}},
+  {r:{code:'000100',name:'pending',market:'KOSPI'}}
+]};
+const partialResult=unified.applyIndustryReference(partialModel,partialClassified,null);
+assert.equal(partialResult.mapped,1);
+assert.equal(partialResult.missing,1);
+assert.ok(unified.sectorEvidenceMarkup(partialModel.rows[0].r).includes('화학제품'));
+assert.ok(unified.sectorEvidenceMarkup(partialModel.rows[1].r).includes('업종 미확인'));
+assert.equal(partialModel.rows[1].r.v3_sector_research,null);
+const corruptPartial=structuredClone(partialClassified);
+corruptPartial.not_yet_attempted=0;
+assert.equal(unified.applyIndustryReference(partialModel,corruptPartial,null),null);
+corruptPartial.not_yet_attempted=1;
+corruptPartial.records['999998']=structuredClone(corruptPartial.records['000001']);
+assert.equal(unified.applyIndustryReference(partialModel,corruptPartial,null),null);
 assert.equal(unified.industryPriceEvidenceView(
  industryPriceSummary,'2026-10-21',100),null);
 const forgedIndustryPrice=structuredClone(industryPriceSummary);
