@@ -116,6 +116,7 @@ def candidate_status(rows, *, code, corp, year, scope, receipt, kind):
     if kind not in LABELS or type(rows) is not list or len(rows) > 18000:
         raise PilotError("invalid_capex_probe_input")
     values = []
+    unverified_amount = False
     for row in rows:
         if type(row) is not dict:
             raise PilotError("invalid_capex_probe_row")
@@ -134,8 +135,15 @@ def candidate_status(rows, *, code, corp, year, scope, receipt, kind):
             raise PilotError("candidate_account_identity_or_receipt_mismatch")
         value = _amount(row.get("thstrm_amount"))
         if value is None or value < 0:
-            raise PilotError("candidate_account_amount_unverified")
-        values.append(value)
+            # Provider amounts may be signed or absent. Neither is trusted
+            # as positive CAPEX, and one invalid row poisons the whole match.
+            # Only the anonymous quarantine count is published; keep probing
+            # the other eligible filings under the same 12-call budget.
+            unverified_amount = True
+        else:
+            values.append(value)
+    if unverified_amount:
+        return "unverified_exact_name_amount"
     if not values:
         return "no_exact_name_candidate"
     return ("unique_exact_name_candidate" if len(values) == 1
@@ -245,6 +253,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "provider_source_calls": 0,
         "provider_corp_master_calls": 0,
         "unique_exact_name_candidate": 0,
+        "unverified_exact_name_amount": 0,
         "ambiguous_multiple_candidates": 0,
         "no_exact_name_candidate": 0,
         "no_report_rows": 0,
