@@ -29,7 +29,8 @@ def fixture(n=20):
     market = {"date": DAY, "index_available": ["KOSPI"], "stocks": stocks}
     catalog = {"date": DAY, "listed_total": n, "rows": rows}
     industry = {
-        "asof": DAY, "listed_total": n, "observed_industry_codes": n,
+        "asof": DAY, "listed_total": n, "attempted_company_profiles": n,
+        "observed_industry_codes": n,
         "missing_industry_codes": 0, "not_yet_attempted": 0,
         "records": classified,
         "official_krx_sector_membership_verified": False,
@@ -156,6 +157,55 @@ class IndustryPriceResearchTest(unittest.TestCase):
             calculate(data)
         data = fixture()
         data[2]["observed_industry_codes"] -= 1
+        self.assertFalse(source_ready(*data[:3]))
+
+    def test_nearly_complete_census_keeps_unknown_out_of_group(self):
+        data = fixture(200)
+        market, catalog, industry, _, records = data
+        for code in sorted(records)[-2:]:
+            del records[code]
+        industry["observed_industry_codes"] = 198
+        industry["attempted_company_profiles"] = 198
+        industry["not_yet_attempted"] = 2
+        self.assertTrue(source_ready(market, catalog, industry))
+        report = calculate(data)
+        row = report["groups"][0]
+        self.assertEqual(report["listed_total"], 200)
+        self.assertEqual(report["classified_company_count"], 198)
+        self.assertEqual(report["unclassified_company_count"], 2)
+        self.assertEqual(report["unclassified_priced_issuers"], 2)
+        self.assertEqual(report["price_observation_total"], 200)
+        self.assertEqual(row["current_listed_issuers"], 198)
+        self.assertEqual(row["complete_relative20_60_issuer_count"], 198)
+        self.assertIn("업종미확인기업수", to_csv(report))
+        self.assertFalse(report["official_industry_15_points_authorized"])
+
+    def test_no_code_company_is_not_imputed_to_group(self):
+        data = fixture(200)
+        industry, records = data[2], data[4]
+        last_code = sorted(records)[-1]
+        records[last_code]["status"] = "industry_unavailable"
+        records[last_code]["industry_code"] = None
+        industry["observed_industry_codes"] = 199
+        industry["missing_industry_codes"] = 1
+        self.assertTrue(source_ready(*data[:3]))
+        report = calculate(data)
+        self.assertEqual(report["classified_company_count"], 199)
+        self.assertEqual(report["unclassified_company_count"], 1)
+        self.assertEqual(report["groups"][0]["current_listed_issuers"], 199)
+
+    def test_sparse_census_or_counter_inconsistency_still_defers(self):
+        data = fixture(100)
+        industry, records = data[2], data[4]
+        for code in sorted(records)[-2:]:
+            del records[code]
+        industry["observed_industry_codes"] = 98
+        industry["attempted_company_profiles"] = 98
+        industry["not_yet_attempted"] = 2
+        self.assertFalse(source_ready(*data[:3]))
+        with self.assertRaises(IndustryPriceError):
+            calculate(data)
+        industry["not_yet_attempted"] = 1
         self.assertFalse(source_ready(*data[:3]))
 
     def test_provenance_and_csv_guard(self):
