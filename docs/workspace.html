@@ -12,6 +12,7 @@
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-fcf-gap.js" defer></script>
+<script src="v3-live-progress.js" defer></script>
 </head>
 <body id="unifiedApp">
 <header class="u-header">
@@ -21,6 +22,7 @@
    <p>일봉·주봉·거래량·OBV부터 실적과 손실 위험까지 한 화면에서 분석</p></div>
   <div class="u-header-actions"><a href="v3-current-observed-all-listed.csv" download>당일 실측 잠정점수 CSV ↓</a><a href="v3-dart-industry-earnings-sample.json">DART 업종 실적 표본 근거</a><a href="reports/latest.xlsx" download>전체 엑셀 ↓</a>
    <button type="button" id="reload">자료 새로고침</button>
+   <a href="patch-notes.html">변경 내역</a>
    <a href="legacy.html">이전 화면</a></div>
  </div>
 </header>
@@ -36,6 +38,18 @@
   </div>
   <p id="sourceNotes" class="u-source">수집 원장으로 확인한 잠정 관측자료만 표시하며 정규장·수정주가·공시시점 독립 인증은 완료되지 않았습니다. 외국인·기관 수급 등 미확보 관측점수는 비워둡니다. 산업은 점수에서 제외하며 현재 DART 업종과 20·60·120일 상대강도를 참고정보로 제공합니다. 재무·가치는 동일 기준일에 확보된 공시 근거로 잠정 계산하며 투자용 확정점수가 아닙니다.</p>
  </details>
+ <section class="u-live-updates" id="liveUpdates" aria-label="최근 공개 자료 업데이트">
+  <div class="u-live-updates-header">
+   <strong>최근 데이터 업데이트 <small>연구용 · 자동 갱신</small></strong>
+   <a href="patch-notes.html">개발 변경 내역 보기</a>
+  </div>
+  <div class="u-live-updates-grid">
+   <div><span>시장 자료 기준일</span><b id="liveProgressAsOf">확인 중</b></div>
+   <div><span>100점 배점 관측 · 미인증</span><b id="liveProgressCoverage">확인 중</b></div>
+   <div><span>10년 DART 접수 수집</span><b id="liveProgressDart">확인 중</b></div>
+  </div>
+  <p id="liveProgressNotice" class="u-live-updates-note" role="status" aria-live="polite">공개 집계의 기준일과 확보 상태를 확인 중입니다. 정식 투자점수는 아직 인증되지 않았습니다.</p>
+ </section>
  <details class="u-industry-research u-intro" id="industryResearch">
    <summary><strong>산업 실제 실적 관측 · 표본 확산</strong><small id="industryResearchCount">자료 확인 중</small></summary>
    <div id="industryResearchContent">

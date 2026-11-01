@@ -63,6 +63,22 @@ with sync_playwright() as p:
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
     assert not page.locator("#advancedFilters").evaluate("(el) => el.open")
     assert page.locator("#stockSearch").is_visible()
+    assert page.locator("#liveUpdates").is_visible()
+    assert page.locator('.u-header-actions a[href="patch-notes.html"]').is_visible()
+    page.wait_for_function(
+        "() => document.querySelector('#liveProgressCoverage')?.textContent.includes('종목')",
+        timeout=20000,
+    )
+    public_receipts = context.request.get(
+        URL + "v3-dart-historical-receipt-progress.json"
+    ).json()
+    assert page.locator("#liveProgressAsOf").inner_text() == observed["asof"]
+    assert page.locator("#liveProgressCoverage").inner_text() == (
+        f'{observed["provisional_complete_100point_observation_count"]:,} / {observed["listed_total"]:,}종목'
+    )
+    assert page.locator("#liveProgressDart").inner_text() == (
+        f'{public_receipts["filing_months_checkpointed"]:,} / 120개월'
+    )
     page.get_by_role("button", name="전 종목", exact=True).click()
     page.locator(".u-stock").first.wait_for(timeout=45000)
     assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
@@ -300,7 +316,9 @@ with sync_playwright() as p:
             };
             const selectors = [
                 '.u-wrap', '.u-header-inner', '.u-header-actions',
-                '.u-header-actions > *', '.u-intro', '.u-intro > summary',
+                '.u-header-actions > *', '.u-live-updates',
+                '.u-live-updates-grid', '.u-live-updates-grid > div',
+                '.u-intro', '.u-intro > summary',
                 '.u-controls', '.u-quick-search', '#stockSearch', '.u-tabs',
                 '.u-results', '.u-list-area', '.u-stock',
                 '.u-stock .u-scoresix', '.u-stock .u-scoresix span'
@@ -332,7 +350,7 @@ with sync_playwright() as p:
         assert mobile_geometry["docWidth"] <= viewport_width + 1, mobile_geometry
         assert mobile_geometry["bodyWidth"] <= viewport_width + 1, mobile_geometry
         assert not mobile_geometry["overflow"], mobile_geometry
-        assert mobile_geometry["actionCount"] == 4, mobile_geometry
+        assert mobile_geometry["actionCount"] == 5, mobile_geometry
         assert mobile_geometry["factorCount"] == 5, mobile_geometry
     page.set_viewport_size({"width": 390, "height": 844})
     page.locator("#industryResearch summary").click()
