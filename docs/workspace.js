@@ -1031,8 +1031,13 @@ function applyIndustryReference(model,raw,groupEvidence){
     !Number.isInteger(model.marketEligible)||model.marketEligible<100||
     !raw||raw.schema!=='v3-dart-current-listed-industry-code-reference-0.1'||
     raw.asof!==model.date||raw.listed_total!==model.marketEligible||
-    raw.observed_industry_codes!==model.marketEligible||
-    raw.missing_industry_codes!==0||raw.not_yet_attempted!==0||
+    !Number.isInteger(raw.observed_industry_codes)||
+    !Number.isInteger(raw.missing_industry_codes)||
+    !Number.isInteger(raw.not_yet_attempted)||
+    raw.observed_industry_codes<0||raw.missing_industry_codes<0||
+    raw.not_yet_attempted<0||
+    raw.observed_industry_codes+raw.missing_industry_codes+
+      raw.not_yet_attempted!==model.marketEligible||
     raw.official_krx_sector_membership_verified!==false||
     raw.past_constituent_membership_pit_verified!==false||
     raw.industry_5433_points_authorized!==false||
@@ -1040,7 +1045,7 @@ function applyIndustryReference(model,raw,groupEvidence){
     typeof raw.source_records_digest!=='string'||
     !/^[a-f0-9]{64}$/.test(raw.source_records_digest)||
     !raw.records||typeof raw.records!=='object'||Array.isArray(raw.records)||
-    Object.keys(raw.records).length!==model.marketEligible)return null;
+    Object.keys(raw.records).length!==raw.observed_industry_codes)return null;
  const groups=groupEvidence?.byKey instanceof Map?groupEvidence.byKey:null;
  const classification=new Map();
  for(const [code,record] of Object.entries(raw.records)){
@@ -1059,8 +1064,14 @@ function applyIndustryReference(model,raw,groupEvidence){
  }
  const updates=[];
  for(const x of model.rows){
-   const record=classification.get(x?.r?.code);
-   if(!record||record.market!==x.r.market)return null;
+   if(!x?.r||!TODAY_CODE.test(x.r.code))return null;
+   const record=classification.get(x.r.code);
+   // Unknown issuer codes remain unavailable, without hiding other issuers.
+   if(!record){
+     updates.push([x.r,null]);
+     continue;
+   }
+   if(record.market!==x.r.market)return null;
    const prefix=record.industry_code.slice(0,2);
    updates.push([x.r,{
      code:record.industry_code,prefix,
@@ -1070,7 +1081,11 @@ function applyIndustryReference(model,raw,groupEvidence){
    }]);
  }
  for(const [row,sector] of updates)row.v3_sector_research=sector;
- return {mapped:updates.length,strengthAvailable:updates.filter(x=>x[1].group!==null).length};
+ return {
+   mapped:updates.filter(x=>x[1]!==null).length,
+   missing:updates.filter(x=>x[1]===null).length,
+   strengthAvailable:updates.filter(x=>x[1]?.group!==null).length
+ };
 }
 function sectorEvidenceMarkup(r,detail=false){
  const s=r?.v3_sector_research;
