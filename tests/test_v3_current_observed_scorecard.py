@@ -451,6 +451,22 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         if any(x["asof"]!=catalog["date"] for x in (history,cash,preview)):
             self.skipTest("real_FCF_sources_not_same_asof")
         actual=cashflow_source(market,catalog,history,cash,preview)
+        if actual is None:
+            # A concurrent official major-account run can replace an annual
+            # receipt before its independently scheduled FCF rebind completes.
+            # Keep the OLD receipt quarantined and test the validated local
+            # rebind only; never relabel the old FCF as freshly observed.
+            from v3_dart_cashflow_enrichment import (
+                retained_current_market_cashflow,
+            )
+            rebound=retained_current_market_cashflow(
+                market,catalog,history,cash)
+            self.assertLess(rebound["metrics"]["attempted_company_years"],
+                            cash["metrics"]["attempted_company_years"])
+            self.assertIsNone(cashflow_source(
+                market,catalog,history,cash,preview))
+            cash=rebound
+            actual=cashflow_source(market,catalog,history,cash,preview)
         self.assertIsNotNone(actual)
         rows,source=actual
         self.assertEqual(sum(r["financial_fcf_assets_available_max"]==4
