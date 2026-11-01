@@ -79,7 +79,7 @@ jobs:
           source=Path('/tmp/v3-capex-pilot-aggregate.json')
           lines=[
               '### 공식 DART 비표준 CAPEX 계정명 소규모 원천 조사',
-              '대상은 기존에 CFO가 있지만 CAPEX 한 항목이 빠진 기업·연도 중 최대 12건입니다.',
+              '대상은 CFO가 있지만 유형·무형 CAPEX 한쪽 또는 양쪽이 미확인인 기업·연도 최대 12건입니다.',
               '계정명·종목코드·금액·접수번호 미공개. 실제 FCF·점수 변경 없음.',
           ]
           if source.is_file() and source.stat().st_size:
@@ -88,7 +88,8 @@ jobs:
                   ('cohort_index','순환 표본 회차'),
                   ('eligible_sampled_issuer_years','표본 기업·연도'),
                   ('provider_source_calls','실제 공식 재무제표 조회'),
-                  ('unique_exact_name_candidate','유일한 정확한 비표준 계정명 후보'),
+                  ('component_name_evaluations','누락 CAPEX 구성요소별 계정명 검사'),
+                  ('unique_exact_name_candidate','구성요소별 유일한 정확명 후보(금액 미인증)'),
                   ('ambiguous_multiple_candidates','복수 계정명 후보로 검증 불가'),
                   ('no_exact_name_candidate','일치 계정명 없음'),
                   ('no_report_rows','원천 응답 자료 없음')):
@@ -110,6 +111,7 @@ jobs:
                   ('variant_other_code_top_level','변형명·기타코드·본문'),
                   ('variant_other_code_detail','변형명·기타코드·세부')):
                   lines.append('- '+label+': **'+str(gap_shapes.get(shape,'미확인'))+'**')
+              lines.append('공시 1회에서 두 누락 요소를 검사할 수 있으므로 구성요소 검사 건수는 조회 횟수를 초과할 수 있습니다.')
               lines.append('기타 계정코드는 표준 분류 인증을 뜻하지 않으며, 합산·FCF·투자점수에 반영하지 않습니다.')
               for key,label in (
                   ('sampled_by_fiscal_year','실제 조사 연도별 표본'),
