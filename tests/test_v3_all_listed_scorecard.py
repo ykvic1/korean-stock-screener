@@ -300,11 +300,32 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(real["full_six_pillar_certified_count"],0)
 
     def test_older_fcf_preview_recalculated_from_saved_real_receipts(self):
-        market,catalog,history,parts,weekly,cash,_=sources()
+        market,catalog,history,parts,weekly,cash,stored=sources()
         if cash["asof"]!=market["date"]:
             self.skipTest("older_cashflow_receipts_cannot_be_attached_to_new_market_date")
-        current=score_preview(market,catalog,history,cash,
-                              minimum_peers=30)
+        from v3_dart_cashflow_enrichment import (
+            CashflowError, retained_current_market_cashflow,
+        )
+        try:
+            current=score_preview(market,catalog,history,cash,
+                                  minimum_peers=30)
+        except CashflowError as exc:
+            # The official bulk archive can advance between the scheduled
+            # FY collector and the separate cashflow job. A changed receipt
+            # must be withheld, not a failing assumption about live fixtures.
+            self.assertEqual(str(exc),"cashflow_major_receipt_changed")
+            _,blocked=m.generate(
+                market,catalog,history,parts,weekly,cash,stored)
+            self.assertFalse(blocked["fcf_source_added"])
+            self.assertEqual(blocked["fcf_source_state"],
+                             "fcf_unavailable_until_source_reconciliation")
+            rebound=retained_current_market_cashflow(
+                market,catalog,history,cash)
+            self.assertLess(rebound["metrics"]["attempted_company_years"],
+                            cash["metrics"]["attempted_company_years"])
+            cash=rebound
+            current=score_preview(market,catalog,history,cash,
+                                  minimum_peers=30)
         stale=copy.deepcopy(current)
         stale["major_history_sha256"]="0"*64
         rows,report=m.generate(
