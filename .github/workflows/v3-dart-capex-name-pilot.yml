@@ -7,6 +7,12 @@ on:
       - v3_dart_capex_name_pilot.py
       - tests/test_v3_dart_capex_name_pilot.py
       - .github/workflows/v3-dart-capex-name-pilot.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - v3_dart_capex_name_pilot.py
+      - tests/test_v3_dart_capex_name_pilot.py
+      - .github/workflows/v3-dart-capex-name-pilot.yml
   schedule:
     # Sunday 12:47 KST. Twelve bounded official reads, rotating issuer
     # strata weekly rather than repeatedly querying the first cohort.
@@ -36,8 +42,6 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -57,7 +61,7 @@ jobs:
       - name: Probe at most 12 rotated missing-CAPEX company-years
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode }}
+          MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode || 'dry-run' }}
           COHORT_INDEX: ${{ github.event_name == 'schedule' && 'auto' || inputs.cohort_index || '0' }}
         run: |
           set -euo pipefail
@@ -77,7 +81,7 @@ jobs:
               '대상은 기존에 CFO가 있지만 CAPEX 한 항목이 빠진 기업·연도 중 최대 12건입니다.',
               '계정명·종목코드·금액·접수번호 미공개. 실제 FCF·점수 변경 없음.',
           ]
-          if source.is_file():
+          if source.is_file() and source.stat().st_size:
               report=json.loads(source.read_text(encoding='utf8'))
               for key,label in (
                   ('cohort_index','순환 표본 회차'),
@@ -88,6 +92,24 @@ jobs:
                   ('no_exact_name_candidate','일치 계정명 없음'),
                   ('no_report_rows','원천 응답 자료 없음')):
                   lines.append('- '+label+': **'+str(report.get(key,'미확인'))+'**')
+              gap_shapes=report.get('name_gap_shapes',{})
+              lines.append('#### CAPEX 계정명·코드·본문/세부항목 차이(익명 연구용)')
+              for shape,label in (
+                  ('no_name_lead','계정명 단서 없음'),
+                  ('multiple_name_leads_unverified','복수 계정명 단서(미인증)'),
+                  ('name_lead_missing_code_unverified','계정코드 누락·형식 이상'),
+                  ('name_lead_detail_unverified','세부항목 위치 형식 불명'),
+                  ('name_lead_non_krw_unverified','비원화 계정명 단서'),
+                  ('exact_nonstandard_top_level','정확명·비표준코드·본문'),
+                  ('exact_nonstandard_detail','정확명·비표준코드·세부'),
+                  ('exact_other_code_top_level','정확명·기타코드·본문'),
+                  ('exact_other_code_detail','정확명·기타코드·세부'),
+                  ('variant_nonstandard_top_level','변형명·비표준코드·본문'),
+                  ('variant_nonstandard_detail','변형명·비표준코드·세부'),
+                  ('variant_other_code_top_level','변형명·기타코드·본문'),
+                  ('variant_other_code_detail','변형명·기타코드·세부')):
+                  lines.append('- '+label+': **'+str(gap_shapes.get(shape,'미확인'))+'**')
+              lines.append('기타 계정코드는 표준 분류 인증을 뜻하지 않으며, 합산·FCF·투자점수에 반영하지 않습니다.')
               for key,label in (
                   ('sampled_by_fiscal_year','실제 조사 연도별 표본'),
                   ('sampled_by_scope','연결/별도 기준 표본'),

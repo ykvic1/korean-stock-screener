@@ -24,6 +24,85 @@ LABELS = {
 }
 
 
+# Descriptive hints only. No label variant is accepted as a CAPEX amount.
+NAME_VARIANTS = {
+    "ppe": frozenset((
+        "유형자산의취득액", "유형자산취득액",
+        "유형자산의취득으로인한현금유출액",
+        "유형자산취득에따른현금유출액",
+    )),
+    "intangible": frozenset((
+        "무형자산의취득액", "무형자산취득액",
+        "무형자산의취득으로인한현금유출액",
+        "무형자산취득에따른현금유출액",
+    )),
+}
+NAME_GAP_SHAPES = (
+    "no_name_lead",
+    "multiple_name_leads_unverified",
+    "name_lead_missing_code_unverified",
+    "name_lead_detail_unverified",
+    "name_lead_non_krw_unverified",
+) + tuple(
+    f"{name}_{source}_{location}"
+    for name in ("exact", "variant")
+    for source in ("nonstandard", "other_code")
+    for location in ("top_level", "detail")
+)
+
+
+def candidate_name_gap_shape(rows, *, code, corp, year, scope, receipt, kind):
+    """Classify *only* a bounded name lead, never a CAPEX fact or score.
+
+    Exact/nonexact name, account-code class and main/detail location are
+    observational axes. "other_code" does not certify an IFRS/DART taxonomy.
+    A unique shape is NOT proof of a unique item or amount.
+    """
+    if kind not in LABELS or type(rows) is not list or len(rows) > 18000:
+        raise PilotError("invalid_capex_probe_input")
+    leads = []
+    for row in rows:
+        if type(row) is not dict:
+            raise PilotError("invalid_capex_probe_row")
+        if row.get("sj_div") != "CF":
+            continue
+        label = _label(row.get("account_nm"))
+        if label in LABELS[kind]:
+            name_shape = "exact"
+        elif label in NAME_VARIANTS[kind]:
+            name_shape = "variant"
+        else:
+            continue
+        # Reject mixed issuer, filing year, statement or revision evidence.
+        if (row.get("corp_code") != corp or
+            ("stock_code" in row and row["stock_code"] != code) or
+            str(row.get("bsns_year")) != str(year) or
+            row.get("reprt_code") != "11011" or
+            ("fs_div" in row and row["fs_div"] != scope) or
+            row.get("rcept_no") != receipt):
+            raise PilotError("candidate_account_identity_or_receipt_mismatch")
+        if row.get("currency") != "KRW":
+            leads.append("name_lead_non_krw_unverified")
+            continue
+        account_id = row.get("account_id")
+        if account_id == NONSTANDARD:
+            source_shape = "nonstandard"
+        elif type(account_id) is str and 0 < len(account_id) <= 160:
+            source_shape = "other_code"
+        else:
+            leads.append("name_lead_missing_code_unverified")
+            continue
+        detail = row.get("account_detail", "-")
+        if type(detail) is not str or len(detail) > 320:
+            leads.append("name_lead_detail_unverified")
+            continue
+        location = "top_level" if detail in ("", "-") else "detail"
+        leads.append(f"{name_shape}_{source_shape}_{location}")
+    if not leads:
+        return "no_name_lead"
+    return leads[0] if len(leads) == 1 else "multiple_name_leads_unverified"
+
+
 class PilotError(ValueError):
     """Do not expose any company code, receipt, account text or amount."""
 
@@ -141,7 +220,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         raise PilotError("invalid_saved_source_and_market_identity") from None
     choices = select_candidates(state, major, limit, cohort_index)
     report = {
-        "schema": "v3-capex-nonstandard-label-pilot-0.1",
+        "schema": "v3-capex-nonstandard-label-pilot-0.2",
         "asof": asof,
         "mode": mode,
         "cohort_index": cohort_index,
@@ -162,6 +241,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "ambiguous_multiple_candidates": 0,
         "no_exact_name_candidate": 0,
         "no_report_rows": 0,
+        "name_gap_shapes": {shape: 0 for shape in NAME_GAP_SHAPES},
+        "name_variants_observational_only": True,
         "missing_amount_never_interpreted_as_zero": True,
         "no_derived_fcf_or_investment_score": True,
         "no_raw_names_ids_amounts_or_receipts_published": True,
@@ -208,6 +289,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         result = candidate_status(payload["list"],code=code,corp=mapping[code],
                                   year=year,scope=scope,receipt=receipt,kind=kind)
         report[result] += 1
+        shape = candidate_name_gap_shape(
+            payload["list"], code=code, corp=mapping[code], year=year,
+            scope=scope, receipt=receipt, kind=kind)
+        report["name_gap_shapes"][shape] += 1
     return report
 
 
