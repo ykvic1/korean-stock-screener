@@ -222,6 +222,9 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(result[
             "extension_multiple_concept_local_linkages"]["ppe"],
             "direct_presentation_parent_child_observed")
+        self.assertEqual(result[
+            "extension_multiple_concept_annual_fact_shapes"]["ppe"],
+            "multiple_valid_annual_krw_concepts_unverified")
         market, catalog, major, state, code, receipt = self.fixture()
         report = pilot.run_pilot(market, catalog, major, state,
                                  mode="live", key="A" * 40,
@@ -231,12 +234,40 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(report["extension_multiple_concept_role_partitions"]
                          ["unresolved_role_definitions_unverified"], 1)
         self.assertEqual(report["reports_with_extension_ppe_annual_krw_candidate"], 0)
+        self.assertEqual(report["extension_multiple_concept_annual_fact_shapes"]
+                         ["multiple_valid_annual_krw_concepts_unverified"], 1)
+        self.assertTrue(report["duplicate_concept_annual_facts_never_certify_capex_total"])
         self.assertTrue(report["extension_duplicate_label_topology_never_certifies_capex_total"])
         self.assertTrue(report["local_role_partition_never_certifies_capex_or_statement_scope"])
         public = json.dumps(report)
         for secret in (code, receipt, "CapexA", "CapexB", "987654321",
                        "123456789", "hidden.example"):
             self.assertNotIn(secret, public)
+
+        for first,second,expected in (
+            ("987654321", "123456789",
+             "multiple_valid_annual_krw_concepts_unverified"),
+            ("987654321", "-20",
+             "single_valid_annual_krw_concept_unverified"),
+            ("-10", "-20", "no_valid_annual_krw_concept"),
+        ):
+            with self.subTest(expected=expected):
+                variant=(instance.replace("987654321",first)
+                         .replace("123456789",second)).encode("utf8")
+                hints=pilot._multiple_extension_annual_fact_shapes(
+                    [variant],2025,tags)
+                self.assertEqual(hints["ppe"],expected)
+                self.assertEqual(hints["intangible"],
+                                 "not_multiple_extension_concepts")
+                self.assertNotIn(first,json.dumps(hints))
+                self.assertNotIn(second,json.dumps(hints))
+                self.assertNotIn("Capex",json.dumps(hints))
+        self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
+            [],None,tags)["ppe"],"target_fiscal_year_not_checked")
+        overcrowded={"ppe":{"{"+ns+"}Capex"+str(n) for n in range(9)}}
+        self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
+            [],2025,overcrowded)["ppe"],
+            "too_many_extension_concepts_unverified")
 
     def test_weekly_original_archive_probe_is_bounded_and_source_only(self):
         workflow=(Path(__file__).resolve().parents[1]/

@@ -737,6 +737,54 @@ MULTI_EXTENSION_ROLE_PARTITIONS = (
     "no_statement_concept_hint",
 )
 
+MULTI_EXTENSION_ANNUAL_FACT_SHAPES = (
+    "not_multiple_extension_concepts",
+    "target_fiscal_year_not_checked",
+    "too_many_extension_concepts_unverified",
+    "no_valid_annual_krw_concept",
+    "single_valid_annual_krw_concept_unverified",
+    "multiple_valid_annual_krw_concepts_unverified",
+)
+
+
+def _multiple_extension_annual_fact_shapes(instance_data, year, matched):
+    """Count independently usable *concepts*, not an invented CAPEX total.
+
+    Two identically labeled tags can have different XBRL contexts and units.
+    The aggregate count is a future source-review lead only: a single annual
+    KRW concept does NOT establish primary CF statement or CFS/OFS scope.
+    Never return source QNames, values, context IDs, or the selected concept.
+    """
+    result = {}
+    for kind, tags in matched.items():
+        if len(tags) < 2:
+            result[kind] = "not_multiple_extension_concepts"
+            continue
+        if year is None:
+            result[kind] = "target_fiscal_year_not_checked"
+            continue
+        if len(tags) > 8:
+            result[kind] = "too_many_extension_concepts_unverified"
+            continue
+        valid = 0
+        for tag in sorted(tags):
+            found = {"tag": False, "annual": False, "krw": False,
+                     "numeric": False, "values": set()}
+            for data in instance_data:
+                candidate = _annual_krw_evidence(
+                    data, year, explicit_tags={kind: {tag}})[kind]
+                for stage in ("tag", "annual", "krw", "numeric"):
+                    found[stage] |= candidate[stage]
+                found["values"].update(candidate["values"])
+            valid += int(all(found[k] for k in (
+                "tag", "annual", "krw", "numeric")) and
+                len(found["values"]) == 1)
+        result[kind] = (
+            "no_valid_annual_krw_concept" if valid == 0 else
+            "single_valid_annual_krw_concept_unverified" if valid == 1 else
+            "multiple_valid_annual_krw_concepts_unverified")
+    return result
+
 
 def _multiple_extension_role_partition(links, schemas, matched, definitions):
     """Partition duplicate CAPEX concepts by their *own* local role hints.
@@ -1175,6 +1223,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         presentations, schemas, matched, role_definitions)
     role_partitions = _multiple_extension_role_partition(
         presentations, schemas, matched, role_definitions)
+    annual_concept_shapes = _multiple_extension_annual_fact_shapes(
+        instance_data, year, matched)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
@@ -1234,6 +1284,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "local_presentation_role_definition_count": len(role_definitions),
         "extension_cashflow_role_hints": role_hints,
         "extension_multiple_concept_role_partitions": role_partitions,
+        "extension_multiple_concept_annual_fact_shapes": annual_concept_shapes,
         "extension_local_calculation_shapes": calculation_shapes,
         "extension_multiple_concept_local_linkages": multi_linkages,
         "extension_local_presentation_shapes": presentation_shapes,
@@ -1426,6 +1477,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             name: 0 for name in CASHFLOW_ROLE_HINTS},
         "extension_multiple_concept_role_partitions": {
             name: 0 for name in MULTI_EXTENSION_ROLE_PARTITIONS},
+        "extension_multiple_concept_annual_fact_shapes": {
+            name: 0 for name in MULTI_EXTENSION_ANNUAL_FACT_SHAPES},
+        "duplicate_concept_annual_facts_never_certify_capex_total": True,
         "local_role_partition_never_certifies_capex_or_statement_scope": True,
         "primary_statement_role_never_certified_from_local_definition": True,
         "extension_local_calculation_shapes": {
@@ -1529,6 +1583,10 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                     "extension_multiple_concept_role_partitions"][kind]
                 if partition != "not_multiple_extension_concepts":
                     report["extension_multiple_concept_role_partitions"][partition] += 1
+                annual_shape = extension[
+                    "extension_multiple_concept_annual_fact_shapes"][kind]
+                if annual_shape != "not_multiple_extension_concepts":
+                    report["extension_multiple_concept_annual_fact_shapes"][annual_shape] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
                 if status == "annual_context_missing":
