@@ -205,11 +205,75 @@ class CapexNamePilotTests(unittest.TestCase):
         self.assertTrue(all(not ({row[0] for row in weeks[i]} &
                                  {row[0] for row in weeks[j]})
                             for i in range(3) for j in range(i+1,3)))
-        self.assertEqual(weeks[0],weeks[3])
+        # The larger 18-stratum sampling wheel does not stop after 3 weeks.
+        self.assertNotEqual(weeks[0],weeks[3])
+        self.assertEqual(weeks[0],pilot.select_candidates(
+            state,major,cohort_index=18))
         self.assertEqual(weeks[1],pilot.select_candidates(state,major,cohort_index=1))
         for invalid in (-1,1000001,True,1.2,"1"):
             with self.subTest(invalid=invalid),self.assertRaises(pilot.PilotError):
                 pilot.select_candidates(state,major,cohort_index=invalid)
+
+    def test_both_missing_capex_gets_two_name_checks_per_single_call(self):
+        market,catalog,major,state,cached,row=self._fixture()
+        state["records"][row["stock_code"]]["years"]["2025"]["ppe_capex_krw"]=None
+        asof,members=cash.asof_members(market,catalog,major)
+        state=cash.summary(asof,members,state["records"],cash.fingerprint(major))
+        ppe=dict(row,account_nm="유형자산의 취득",thstrm_amount="700")
+        session=Session({"status":"000","list":[row,ppe]})
+        report=pilot.run_pilot(
+            market,catalog,major,state,mode="live",key="x"*40,
+            session=session,corp_cache=cached)
+        self.assertEqual(report["eligible_sampled_issuer_years"],1)
+        self.assertEqual(report["sampled_by_missing_component"]["both"],1)
+        self.assertEqual(report["provider_source_calls"],1)
+        self.assertEqual(report["component_name_evaluations"],2)
+        self.assertEqual(report["unique_exact_name_candidate"],2)
+        self.assertEqual(report["name_gap_shapes"][
+            "exact_nonstandard_top_level"],2)
+        self.assertEqual(session.calls,1)
+        self.assertTrue(report["no_derived_fcf_or_investment_score"])
+        self.assertTrue(report["no_raw_names_ids_amounts_or_receipts_published"])
+        serialized=json.dumps(report,ensure_ascii=False)
+        for private in (row["corp_code"],row["stock_code"],row["rcept_no"],
+                        row["account_nm"],ppe["account_nm"],"700","1,200"):
+            self.assertNotIn(private,serialized)
+
+    def test_eighteen_year_scope_gap_strata_rotate_with_twelve_calls(self):
+        state={"records":{}}
+        major={"records":{}}
+        idx=0
+        for year in reversed(cash.YEARS):
+            for scope in ("CFS","OFS"):
+                for kind in ("ppe","intangible","both"):
+                    idx+=1
+                    code=f"{idx:06d}"
+                    receipt=f"synthetic-receipt-{idx}"
+                    state["records"][code]={"scope":scope,"years":{
+                        str(year):{
+                            "major_annual_receipt_matched":True,
+                            "operating_cashflow_krw":100,
+                            "ppe_capex_krw":None if kind in ("ppe","both") else 10,
+                            "intangible_capex_krw":None if kind in ("intangible","both") else 5,
+                            "annual_receipt_id":receipt,
+                        }}}
+                    major["records"][code]={"years":{
+                        str(year):{scope:{"receipt_id":receipt}}}}
+        selected=pilot.select_candidates(state,major)
+        self.assertEqual(len(selected),pilot.MAX_PROBES)
+        self.assertEqual(len({x[0] for x in selected}),pilot.MAX_PROBES)
+        self.assertEqual({year:sum(x[1]==year for x in selected)
+                          for year in cash.YEARS},{year:4 for year in cash.YEARS})
+        self.assertEqual({scope:sum(x[2]==scope for x in selected)
+                          for scope in ("CFS","OFS")},{"CFS":6,"OFS":6})
+        self.assertEqual({kind:sum(x[4]==kind for x in selected)
+                          for kind in ("ppe","intangible","both")},
+                         {"ppe":4,"intangible":4,"both":4})
+        next_cohort=pilot.select_candidates(state,major,cohort_index=1)
+        self.assertEqual(len(next_cohort),pilot.MAX_PROBES)
+        self.assertNotEqual(selected,next_cohort)
+        self.assertGreater(len({x[0] for x in selected+next_cohort}),
+                           pilot.MAX_PROBES)
 
     def test_dry_run_never_uses_credentials_or_provider(self):
         market,catalog,major,state,_,_=self._fixture()

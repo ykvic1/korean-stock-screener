@@ -143,22 +143,27 @@ def candidate_status(rows, *, code, corp, year, scope, receipt, kind):
 
 
 def select_candidates(state, major, limit=MAX_PROBES, cohort_index=0):
-    """Balance the tiny 12-call probe across year, scope and missing kind.
+    """Balance 12 official reads across year, scope and all CAPEX gap shapes.
 
-    The old first-12 ticker-order sample was mostly the latest CFS year.
-    Stratification diagnoses whether alternate labels differ by financial
-    statement scope or fiscal period, without expanding source calls or
-    publishing any issuer/receipt identity.
+    One source filing missing BOTH CAPEX components costs only one API read:
+    that response can provide two independent anonymous name observations.
+    Stratum rotation reaches 18 year/scope/gap combinations over multiple
+    cohorts without increasing the 12-call source budget.
     """
     if type(limit) is not int or not 1 <= limit <= MAX_PROBES:
         raise PilotError("invalid_pilot_limit")
     if type(cohort_index) is not int or not 0 <= cohort_index <= 1000000:
         raise PilotError("invalid_pilot_cohort_index")
-    kinds = ("ppe", "intangible")
+    kinds = ("ppe", "intangible", "both")
     scopes = ("CFS", "OFS")
-    strata = tuple((year, scope, kind)
-                   for year in reversed(YEARS)
-                   for scope in scopes for kind in kinds)
+    all_strata = tuple((year, scope, kind)
+                       for year in reversed(YEARS)
+                       for scope in scopes for kind in kinds)
+    # With 18 strata but only 12 requests, a coprime stride prevents the
+    # first year or the new both-missing stratum from monopolizing a run.
+    # Cohort rotation covers the six otherwise unsampled strata over time.
+    strata = tuple(all_strata[(i * 7 + cohort_index) % len(all_strata)]
+                   for i in range(len(all_strata)))
     buckets = {key: [] for key in strata}
     for code in sorted(state["records"]):
         company = state["records"][code]
@@ -173,14 +178,15 @@ def select_candidates(state, major, limit=MAX_PROBES, cohort_index=0):
                 continue
             ppe_missing = found["ppe_capex_krw"] is None
             intangible_missing = found["intangible_capex_krw"] is None
-            if ppe_missing == intangible_missing:
+            if not (ppe_missing or intangible_missing):
                 continue
             source = major["records"].get(code, {}).get("years", {}).get(
                 str(year), {}).get(scope, {})
             receipt = found.get("annual_receipt_id")
             if receipt != source.get("receipt_id"):
                 raise PilotError("sample_major_annual_receipt_changed")
-            kind = "ppe" if ppe_missing else "intangible"
+            kind = ("both" if ppe_missing and intangible_missing else
+                    "ppe" if ppe_missing else "intangible")
             buckets[(year, scope, kind)].append(
                 (code, year, scope, receipt, kind))
     # Offset EACH fiscal-year / scope / component stratum independently.
@@ -234,7 +240,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             for scope in ("CFS", "OFS")},
         "sampled_by_missing_component": {
             kind: sum(item[4] == kind for item in choices)
-            for kind in ("ppe", "intangible")},
+            for kind in ("ppe", "intangible", "both")},
+        "component_name_evaluations": 0,
         "provider_source_calls": 0,
         "provider_corp_master_calls": 0,
         "unique_exact_name_candidate": 0,
@@ -286,13 +293,19 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             continue
         if payload.get("status") != "000" or type(payload.get("list")) is not list:
             raise PilotError("pilot_provider_status_not_success")
-        result = candidate_status(payload["list"],code=code,corp=mapping[code],
-                                  year=year,scope=scope,receipt=receipt,kind=kind)
-        report[result] += 1
-        shape = candidate_name_gap_shape(
-            payload["list"], code=code, corp=mapping[code], year=year,
-            scope=scope, receipt=receipt, kind=kind)
-        report["name_gap_shapes"][shape] += 1
+        # A both-missing filing is fetched ONCE but examined for each absent
+        # component separately. Counts are component observations, not issuer
+        # counts, source-verified amounts or recovered FCF.
+        for component in (("ppe", "intangible") if kind == "both" else (kind,)):
+            result = candidate_status(
+                payload["list"],code=code,corp=mapping[code],year=year,
+                scope=scope,receipt=receipt,kind=component)
+            report[result] += 1
+            shape = candidate_name_gap_shape(
+                payload["list"], code=code, corp=mapping[code], year=year,
+                scope=scope, receipt=receipt, kind=component)
+            report["name_gap_shapes"][shape] += 1
+            report["component_name_evaluations"] += 1
     return report
 
 
