@@ -145,7 +145,37 @@ def weekly_current_day_evidence(weekly,day,members):
     return technical,momentum,old_weekly_issuer_count,len(active_weekly)
 
 
-def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False):
+def same_market_price_evidence(market,catalog,price_replay,day,members):
+    """Union only a byte-for-byte reproducible, zero-call SAME-DAY replay.
+
+    The seven-day weekly rotation is an acquisition schedule, not the limit
+    on how many saved current-close prices can be calculated offline. Replay
+    is always research-only; invalid/stale evidence contributes no issuers.
+    Recomputing the output prevents a matching source digest from laundering
+    modified factor references or inflated issuer counts.
+    """
+    if market is None or price_replay is None:
+        return set(),set(),"source_not_available"
+    try:
+        if (type(market) is not dict or type(price_replay) is not dict or
+            price_replay.get("asof")!=day or
+            price_replay.get("listed_total")!=len(members)):
+            raise CoverageAuditError("stale_price_replay")
+        from v3_current_price_replay import build as rebuild_price_replay
+        expected=rebuild_price_replay(market,catalog)
+        if price_replay!=expected:
+            raise CoverageAuditError("unreproducible_price_replay")
+        technical={code for code,rec in expected["rows"].items()
+                   if rec["technical_research_reference"] is not None}
+        momentum={code for code,rec in expected["rows"].items()
+                  if rec["momentum_research_reference"] is not None}
+        return technical,momentum,"same_market_recomputed_research_only"
+    except (ValueError,TypeError,KeyError,OverflowError):
+        return set(),set(),"source_rejected_or_stale"
+
+
+def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False,
+             market=None,price_replay=None):
     # The combined source audit remains STRICT by default. Only the separate
     # observed-only scorecard may explicitly ask to ignore a bounded, older
     # weekly source after today's official annual/partial ledgers align.
@@ -427,6 +457,12 @@ def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False):
     else:
         technical,momentum,old_weekly_issuer_count,active_weekly_count=(
             weekly_current_day_evidence(weekly,day,members))
+    weekly_same_day_technical=len(technical)
+    weekly_same_day_momentum=len(momentum)
+    replay_technical,replay_momentum,replay_state=same_market_price_evidence(
+        market,catalog,price_replay,day,members)
+    technical|=replay_technical
+    momentum|=replay_momentum
     industry_labels={code for code,row in members.items()
                      if isinstance(row.get("sector"),str) and row["sector"].strip()}
     # Category labels are useful data but NOT independently scored industry
@@ -462,6 +498,11 @@ def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False):
         "official_investor_IAS_source_issuer_count":0,
         "technical_weekly_source_processed_issuer_count":active_weekly_count,
         "technical_weekly_prior_market_day_records_excluded":old_weekly_issuer_count,
+        "technical_weekly_same_market_day_candidate_count":weekly_same_day_technical,
+        "momentum_weekly_same_market_day_candidate_count":weekly_same_day_momentum,
+        "same_day_price_replay_state":replay_state,
+        "same_day_price_replay_technical_candidate_count":len(replay_technical),
+        "same_day_price_replay_momentum_candidate_count":len(replay_momentum),
         "historical_dart_distinct_issuer_count":len(book_rows),
         "historical_dart_company_years_attempted_by_fiscal":attempted_years,
         "historical_dart_company_years_with_accounts_by_fiscal":observed_years,
@@ -487,10 +528,14 @@ def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False):
             "IAS20 and industry rotation have zero verified numeric scoring source",
             "Four-domain sample is for engineering data-tests, NOT investment ranking",
             "Missing components have no zero scores and full model100 is unavailable",
+            "Same-day price replay is provisional, unadjusted, and is NOT official technical or momentum certification",
         ],
         "buy_recommendations_authorized":False,
         "investment_grade_scores_confirmed":False,
     }
+    if replay_state=="same_market_recomputed_research_only":
+        result["source_sha256_canonical"]["same_day_price_replay"]=(
+            _canonical_hash(price_replay))
     if weekly_deferred:
         result["technical_weekly_deferred"]=True
         result["limitations"].append(
@@ -504,6 +549,8 @@ def main(argv=None):
     ap.add_argument("--history",default="docs/v3-dart-bulk-history.json")
     ap.add_argument("--partials",default="docs/v3-dart-bulk-provisional.json")
     ap.add_argument("--weekly",default="docs/v3-weekly-rotation.json")
+    ap.add_argument("--market",default="docs/data.json")
+    ap.add_argument("--price-replay",default="docs/v3-current-price-technical-momentum.json")
     ap.add_argument("--out",default="docs/v3-real-source-six-area-coverage.json")
     ap.add_argument("--mode",choices=("write","verify","alignment"),default="write")
     args=ap.parse_args(argv)
@@ -514,7 +561,11 @@ def main(argv=None):
     if args.mode=="alignment":
         print(publication_alignment(*sources))
         return
-    result=coverage(*sources)
+    # The market/replay may be published before or after the rotating DART
+    # ledgers. Only exact same-day, reproducible inputs expand coverage.
+    market=read(args.market) if Path(args.market).is_file() else None
+    replay=read(args.price_replay) if Path(args.price_replay).is_file() else None
+    result=coverage(*sources,market=market,price_replay=replay)
     target=Path(args.out)
     if args.mode=="verify":
         if not target.is_file() or read(target)!=result:
