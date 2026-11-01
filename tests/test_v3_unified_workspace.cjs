@@ -10,6 +10,63 @@ const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+
+// Compact visible progress is a SOURCE-DATED research bar, never a score promotion.
+const liveProgress=require('../docs/v3-live-progress.js');
+const liveObserved=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-current-observed-all-listed-summary.json'),'utf8'));
+const liveReceipts=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-dart-historical-receipt-progress.json'),'utf8'));
+const visibleMarket=liveProgress.observedSummary(liveObserved);
+const visibleDart=liveProgress.dartSummary(liveReceipts);
+assert.ok(visibleMarket,'same-day observed source must validate for progress display');
+assert.ok(visibleDart,'anonymous DART checkpoint must validate for progress display');
+assert.equal(visibleMarket.observed,liveObserved.provisional_complete_100point_observation_count);
+assert.equal(visibleMarket.total,liveObserved.listed_total);
+assert.equal(visibleDart.complete,liveReceipts.filing_months_checkpointed);
+assert.equal(visibleDart.remaining,120-visibleDart.complete);
+for(const [field,value] of [
+ ['certified_100point_count',1],
+ ['not_an_investment_ranking',false],
+ ['independent_krx_adjusted_path_certification',true],
+ ['missing_weight_is_not_zero',false],
+ ['provisional_complete_100point_observation_count',liveObserved.listed_total+1],
+ ['area_budgets',{...liveObserved.area_budgets,industry:15}],
+ ['asof','2026-02-30']
+]){
+ const forged=structuredClone(liveObserved);forged[field]=value;
+ assert.equal(liveProgress.observedSummary(forged),null,'reject forged '+field);
+}
+for(const [field,value] of [
+ ['filing_months_remaining',-1],
+ ['filing_months_checkpointed',121],
+ ['private_tail_digest_and_schema_verified',false],
+ ['private_checkpoint_stable_during_read',false],
+ ['full_historical_archive_independently_audited',true],
+ ['historical_adjusted_prices_certified',true],
+ ['historical_issuer_universe_pit_certified',true],
+ ['v3_trade_scores_promoted',true],
+ ['provider_api_calls',1]
+]){
+ const forged=structuredClone(liveReceipts);forged[field]=value;
+ assert.equal(liveProgress.dartSummary(forged),null,'reject forged '+field);
+}
+for(const page of [entry,html]){
+ assert.ok(page.includes('id="liveUpdates"'));
+ assert.ok(page.includes('id="liveProgressAsOf"'));
+ assert.ok(page.includes('id="liveProgressCoverage"'));
+ assert.ok(page.includes('id="liveProgressDart"'));
+ assert.ok(page.includes('v3-live-progress.js'));
+ assert.ok(page.includes('patch-notes.html'));
+}
+assert.ok(css.includes('.u-live-updates-grid'));
+const patchNotes=fs.readFileSync(path.join(__dirname,'../docs/patch-notes.html'),'utf8');
+assert.ok(patchNotes.includes('2026-11-02'));
+assert.ok(patchNotes.includes('산업·섹터'));
+assert.ok(!patchNotes.includes('실전 6영역 점수체계'));
+assert.ok(!fs.readFileSync(path.join(__dirname,'../docs/v3-live-progress.js'),'utf8')
+ .includes('innerHTML'));
+
 // Verified PRIVATE KRX derived backfill is a separate research progress meter.
 // It NEVER claims adjusted-history price certification or historical PIT.
 const krxProgress=require('../docs/v3-krx-progress.js');
