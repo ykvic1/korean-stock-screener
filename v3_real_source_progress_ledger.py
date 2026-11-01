@@ -104,12 +104,32 @@ def observation(audit):
         areas["financial"]):
         raise ProgressLedgerError("inconsistent_real_source_cohorts")
     sources=audit.get("source_sha256_canonical")
+    base_sources={"market_catalog","dart_four_year_archive",
+                  "dart_partial_score","weekly_technical"}
+    replay_state=audit.get("same_day_price_replay_state")
+    valid_states=(None,"source_not_available","source_rejected_or_stale",
+                  "same_market_recomputed_research_only")
+    replay_accepted=replay_state=="same_market_recomputed_research_only"
     if (type(sources) is not dict or
-        set(sources)!={"market_catalog","dart_four_year_archive",
-                      "dart_partial_score","weekly_technical"} or
+        set(sources)!=(base_sources|({"same_day_price_replay"}
+                                     if replay_accepted else set())) or
+        replay_state not in valid_states or
         any(type(v) is not str or not SHA256.fullmatch(v)
             for v in sources.values())):
         raise ProgressLedgerError("invalid_saved_source_fingerprints")
+    if replay_state is not None:
+        for key,area in (
+            ("technical_weekly_same_market_day_candidate_count","technical"),
+            ("momentum_weekly_same_market_day_candidate_count","momentum"),
+            ("same_day_price_replay_technical_candidate_count","technical"),
+            ("same_day_price_replay_momentum_candidate_count","momentum"),
+        ):
+            if not _int(audit.get(key),areas[area]):
+                raise ProgressLedgerError("invalid_price_replay_coverage_counts")
+        if not replay_accepted and any(audit.get(k)!=0 for k in (
+            "same_day_price_replay_technical_candidate_count",
+            "same_day_price_replay_momentum_candidate_count")):
+            raise ProgressLedgerError("unaccepted_price_replay_coverage_counts")
     return {
         "market_asof":asof,
         "listed_total":total,

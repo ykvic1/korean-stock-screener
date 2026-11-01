@@ -5,6 +5,8 @@ from pathlib import Path
 import unittest
 
 import v3_real_six_pillar_coverage_audit as audit
+import v3_real_source_progress_ledger as progress
+from v3_current_price_replay import build as price_replay_build
 from v3_dart_bulk_history import research_parts
 
 
@@ -324,3 +326,69 @@ class RealCoverageRolloverTests(unittest.TestCase):
         altered["asof"]="2026-10-19" if catalog["date"]!="2026-10-19" else "2026-10-18"
         with self.assertRaises(audit.CoverageAuditError):
             audit.coverage(catalog,altered,parts,weekly)
+
+
+class SameDayPriceCoverageEvidenceTests(unittest.TestCase):
+    def test_reproducible_saved_price_replay_expands_only_provisional_counts(self):
+        sources=actual_inputs()
+        catalog,history,parts,weekly=sources
+        day=catalog["date"]
+        if any(s.get(k)!=day for s,k in (
+                (history,"asof"),(parts,"asof"),(weekly,"market_asof"))):
+            self.skipTest("saved_sources_not_yet_on_same_market_day")
+        market=json.loads((Path(__file__).resolve().parent.parent/
+                           "docs/data.json").read_text(encoding="utf8"))
+        replay=price_replay_build(market,catalog)
+        weekly_only=audit.coverage(*sources)
+        joined=audit.coverage(*sources,market=market,price_replay=replay)
+        technical={c for c,r in replay["rows"].items()
+                   if r["technical_research_reference"] is not None}
+        momentum={c for c,r in replay["rows"].items()
+                  if r["momentum_research_reference"] is not None}
+        self.assertEqual(joined["same_day_price_replay_state"],
+                         "same_market_recomputed_research_only")
+        self.assertEqual(joined["same_day_price_replay_technical_candidate_count"],
+                         len(technical))
+        self.assertEqual(joined["same_day_price_replay_momentum_candidate_count"],
+                         len(momentum))
+        for factor,codes in (("technical",technical),("momentum",momentum)):
+            self.assertGreaterEqual(
+                joined["six_pillar_numeric_provisional_issuer_counts"][factor],
+                len(codes))
+            self.assertGreaterEqual(
+                joined["six_pillar_numeric_provisional_issuer_counts"][factor],
+                weekly_only["six_pillar_numeric_provisional_issuer_counts"][factor])
+        for factor in ("ias","financial","valuation","industry"):
+            self.assertEqual(
+                joined["six_pillar_numeric_provisional_issuer_counts"][factor],
+                weekly_only["six_pillar_numeric_provisional_issuer_counts"][factor])
+        self.assertEqual(joined["technical_weekly_same_market_day_candidate_count"],
+                         weekly_only["six_pillar_numeric_provisional_issuer_counts"]["technical"])
+        self.assertEqual(joined["six_pillar_official_complete_100pt_issuer_count"],0)
+        self.assertFalse(joined["investment_grade_scores_confirmed"])
+        self.assertFalse(joined["buy_recommendations_authorized"])
+        self.assertIn("same_day_price_replay",joined["source_sha256_canonical"])
+        self.assertEqual(progress.observation(joined)["provisional_issuers_by_area"],
+                         joined["six_pillar_numeric_provisional_issuer_counts"])
+        unproven=copy.deepcopy(joined)
+        del unproven["source_sha256_canonical"]["same_day_price_replay"]
+        with self.assertRaisesRegex(progress.ProgressLedgerError,"fingerprints"):
+            progress.observation(unproven)
+
+        for corrupted in (
+            {**replay,"asof":"2026-10-29"},
+            {**replay,"source_market_sha256":"unverifiable"},
+            {**replay,"technical_research_issuer_count":len(technical)+1},
+            {**replay,"certified_100point_investment_issuers":1},
+        ):
+            rejected=audit.coverage(*sources,market=market,price_replay=corrupted)
+            self.assertEqual(rejected["same_day_price_replay_state"],
+                             "source_rejected_or_stale")
+            self.assertEqual(rejected["six_pillar_numeric_provisional_issuer_counts"],
+                             weekly_only["six_pillar_numeric_provisional_issuer_counts"])
+            self.assertNotIn("same_day_price_replay",rejected["source_sha256_canonical"])
+
+        missing=audit.coverage(*sources,market=market)
+        self.assertEqual(missing["same_day_price_replay_state"],"source_not_available")
+        self.assertEqual(missing["six_pillar_numeric_provisional_issuer_counts"],
+                         weekly_only["six_pillar_numeric_provisional_issuer_counts"])
