@@ -242,6 +242,22 @@ jobs:
                   ('multiple_valid_annual_krw_concepts_unverified', '숫자 조건 충족 계정 복수(총액 불명확)')):
                   lines.append('- ' + label + ': **' + str(
                       annual_shapes.get(key, '미확인')) + '**')
+              lines.append('#### 중복 CAPEX 계정의 연간 원화 숫자 불충족 세부 원인')
+              annual_gaps = report.get('extension_multiple_concept_annual_gap_reasons', {})
+              for key, label in (
+                  ('valid_annual_krw_concept_still_unverified', '숫자 형식 충족(총액·연결범위 미인증)'),
+                  ('no_matching_instance_fact', '원본 인스턴스에 해당 계정 없음'),
+                  ('no_exact_annual_context_dimensional_target_year', '대상연도 차원 포함 문맥만 확인'),
+                  ('no_exact_annual_context_alternate_fiscal_twelve_months', '대상연도 비달력 결산기간만 확인'),
+                  ('no_exact_annual_context_comparative_annual_period', '과거 비교연도 문맥만 확인'),
+                  ('no_exact_annual_context_short_current_period', '대상연도 단기 문맥만 확인'),
+                  ('no_exact_annual_context_other_period', '기타 기간 문맥만 확인'),
+                  ('no_exact_annual_context_unresolved_or_instant', '기간 판독 불가 또는 시점 문맥'),
+                  ('krw_unit_missing', '원화 단위 미확인'),
+                  ('numeric_or_sign_invalid', '숫자·부호 조건 불충족'),
+                  ('conflicting_annual_numeric_values', '동일 계정의 숫자 충돌')):
+                  lines.append('- ' + label + ': **' + str(
+                      annual_gaps.get(key, '미확인')) + '**')
               lines.append('중복 계정 구분은 금액·연결범위·원본 분류 검증이나 FCF 계산을 뜻하지 않습니다.')
 
               lines.append('#### CAPEX 확장 태그 로컬 계산계층(금액·총액·점수 미인증)')

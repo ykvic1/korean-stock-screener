@@ -746,8 +746,21 @@ MULTI_EXTENSION_ANNUAL_FACT_SHAPES = (
     "multiple_valid_annual_krw_concepts_unverified",
 )
 
+MULTI_EXTENSION_ANNUAL_GAP_REASONS = (
+    "not_multiple_extension_concepts",
+    "target_fiscal_year_not_checked",
+    "too_many_extension_concepts_unverified",
+    "valid_annual_krw_concept_still_unverified",
+    "no_matching_instance_fact",
+    *("no_exact_annual_context_" + shape for shape in CONTEXT_GAP_PRIORITY),
+    "krw_unit_missing",
+    "numeric_or_sign_invalid",
+    "conflicting_annual_numeric_values",
+)
 
-def _multiple_extension_annual_fact_shapes(instance_data, year, matched):
+
+def _multiple_extension_annual_fact_shapes(instance_data, year, matched,
+                                           *, include_gaps=False):
     """Count independently usable *concepts*, not an invented CAPEX total.
 
     Two identically labeled tags can have different XBRL contexts and units.
@@ -756,26 +769,37 @@ def _multiple_extension_annual_fact_shapes(instance_data, year, matched):
     Never return source QNames, values, context IDs, or the selected concept.
     """
     result = {}
+    gaps = {}
     for kind, tags in matched.items():
         if len(tags) < 2:
             result[kind] = "not_multiple_extension_concepts"
+            gaps[kind] = "not_multiple_extension_concepts"
             continue
         if year is None:
             result[kind] = "target_fiscal_year_not_checked"
+            gaps[kind] = "target_fiscal_year_not_checked"
             continue
         if len(tags) > 8:
             result[kind] = "too_many_extension_concepts_unverified"
+            gaps[kind] = "too_many_extension_concepts_unverified"
             continue
         valid = 0
+        combined = {"tag": False, "annual": False, "krw": False,
+                    "numeric": False, "context_shapes": set()}
         for tag in sorted(tags):
             found = {"tag": False, "annual": False, "krw": False,
-                     "numeric": False, "values": set()}
+                     "numeric": False, "values": set(),
+                     "context_shapes": set()}
             for data in instance_data:
                 candidate = _annual_krw_evidence(
                     data, year, explicit_tags={kind: {tag}})[kind]
                 for stage in ("tag", "annual", "krw", "numeric"):
                     found[stage] |= candidate[stage]
                 found["values"].update(candidate["values"])
+                found["context_shapes"].update(candidate["context_shapes"])
+            for stage in ("tag", "annual", "krw", "numeric"):
+                combined[stage] |= found[stage]
+            combined["context_shapes"].update(found["context_shapes"])
             valid += int(all(found[k] for k in (
                 "tag", "annual", "krw", "numeric")) and
                 len(found["values"]) == 1)
@@ -783,7 +807,20 @@ def _multiple_extension_annual_fact_shapes(instance_data, year, matched):
             "no_valid_annual_krw_concept" if valid == 0 else
             "single_valid_annual_krw_concept_unverified" if valid == 1 else
             "multiple_valid_annual_krw_concepts_unverified")
-    return result
+        if valid:
+            gaps[kind] = "valid_annual_krw_concept_still_unverified"
+        elif not combined["tag"]:
+            gaps[kind] = "no_matching_instance_fact"
+        elif not combined["annual"]:
+            gaps[kind] = ("no_exact_annual_context_" +
+                          _context_gap_reason(combined))
+        elif not combined["krw"]:
+            gaps[kind] = "krw_unit_missing"
+        elif not combined["numeric"]:
+            gaps[kind] = "numeric_or_sign_invalid"
+        else:
+            gaps[kind] = "conflicting_annual_numeric_values"
+    return (result, gaps) if include_gaps else result
 
 
 def _multiple_extension_role_partition(links, schemas, matched, definitions):
@@ -1223,8 +1260,8 @@ def _extension_label_evidence(archive, entries, *, year=None):
         presentations, schemas, matched, role_definitions)
     role_partitions = _multiple_extension_role_partition(
         presentations, schemas, matched, role_definitions)
-    annual_concept_shapes = _multiple_extension_annual_fact_shapes(
-        instance_data, year, matched)
+    annual_concept_shapes, annual_concept_gaps = _multiple_extension_annual_fact_shapes(
+        instance_data, year, matched, include_gaps=True)
     status = {kind: "label_fact_not_present" for kind in matched}
     extension_context_gaps = {}
     extension_dimensions = {}
@@ -1285,6 +1322,7 @@ def _extension_label_evidence(archive, entries, *, year=None):
         "extension_cashflow_role_hints": role_hints,
         "extension_multiple_concept_role_partitions": role_partitions,
         "extension_multiple_concept_annual_fact_shapes": annual_concept_shapes,
+        "extension_multiple_concept_annual_gap_reasons": annual_concept_gaps,
         "extension_local_calculation_shapes": calculation_shapes,
         "extension_multiple_concept_local_linkages": multi_linkages,
         "extension_local_presentation_shapes": presentation_shapes,
@@ -1479,6 +1517,8 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             name: 0 for name in MULTI_EXTENSION_ROLE_PARTITIONS},
         "extension_multiple_concept_annual_fact_shapes": {
             name: 0 for name in MULTI_EXTENSION_ANNUAL_FACT_SHAPES},
+        "extension_multiple_concept_annual_gap_reasons": {
+            name: 0 for name in MULTI_EXTENSION_ANNUAL_GAP_REASONS},
         "duplicate_concept_annual_facts_never_certify_capex_total": True,
         "local_role_partition_never_certifies_capex_or_statement_scope": True,
         "primary_statement_role_never_certified_from_local_definition": True,
@@ -1587,6 +1627,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
                     "extension_multiple_concept_annual_fact_shapes"][kind]
                 if annual_shape != "not_multiple_extension_concepts":
                     report["extension_multiple_concept_annual_fact_shapes"][annual_shape] += 1
+                    gap = extension[
+                        "extension_multiple_concept_annual_gap_reasons"][kind]
+                    report["extension_multiple_concept_annual_gap_reasons"][gap] += 1
                 status = extension["extension_annual_krw_status"][kind]
                 report["extension_candidate_validation_reasons"][status] += 1
                 if status == "annual_context_missing":

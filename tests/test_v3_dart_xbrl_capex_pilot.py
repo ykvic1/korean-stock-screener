@@ -225,6 +225,9 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(result[
             "extension_multiple_concept_annual_fact_shapes"]["ppe"],
             "multiple_valid_annual_krw_concepts_unverified")
+        self.assertEqual(result[
+            "extension_multiple_concept_annual_gap_reasons"]["ppe"],
+            "valid_annual_krw_concept_still_unverified")
         market, catalog, major, state, code, receipt = self.fixture()
         report = pilot.run_pilot(market, catalog, major, state,
                                  mode="live", key="A" * 40,
@@ -236,6 +239,8 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(report["reports_with_extension_ppe_annual_krw_candidate"], 0)
         self.assertEqual(report["extension_multiple_concept_annual_fact_shapes"]
                          ["multiple_valid_annual_krw_concepts_unverified"], 1)
+        self.assertEqual(report["extension_multiple_concept_annual_gap_reasons"]
+                         ["valid_annual_krw_concept_still_unverified"], 1)
         self.assertTrue(report["duplicate_concept_annual_facts_never_certify_capex_total"])
         self.assertTrue(report["extension_duplicate_label_topology_never_certifies_capex_total"])
         self.assertTrue(report["local_role_partition_never_certifies_capex_or_statement_scope"])
@@ -244,29 +249,66 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                        "123456789", "hidden.example"):
             self.assertNotIn(secret, public)
 
-        for first,second,expected in (
+        for first,second,expected,gap in (
             ("987654321", "123456789",
-             "multiple_valid_annual_krw_concepts_unverified"),
+             "multiple_valid_annual_krw_concepts_unverified",
+             "valid_annual_krw_concept_still_unverified"),
             ("987654321", "-20",
-             "single_valid_annual_krw_concept_unverified"),
-            ("-10", "-20", "no_valid_annual_krw_concept"),
+             "single_valid_annual_krw_concept_unverified",
+             "valid_annual_krw_concept_still_unverified"),
+            ("-10", "-20", "no_valid_annual_krw_concept",
+             "numeric_or_sign_invalid"),
         ):
             with self.subTest(expected=expected):
                 variant=(instance.replace("987654321",first)
                          .replace("123456789",second)).encode("utf8")
-                hints=pilot._multiple_extension_annual_fact_shapes(
-                    [variant],2025,tags)
+                hints,gaps=pilot._multiple_extension_annual_fact_shapes(
+                    [variant],2025,tags,include_gaps=True)
                 self.assertEqual(hints["ppe"],expected)
+                self.assertEqual(gaps["ppe"],gap)
                 self.assertEqual(hints["intangible"],
+                                 "not_multiple_extension_concepts")
+                self.assertEqual(gaps["intangible"],
                                  "not_multiple_extension_concepts")
                 self.assertNotIn(first,json.dumps(hints))
                 self.assertNotIn(second,json.dumps(hints))
                 self.assertNotIn("Capex",json.dumps(hints))
+                self.assertNotIn("Capex",json.dumps(gaps))
+
+        for variant, expected_gap in (
+            (instance.replace('<context id="C">',
+                              '<context id="C"><segment/>'),
+             "no_exact_annual_context_dimensional_target_year"),
+            (instance.replace("2025-01-01", "2024-01-01")
+                     .replace("2025-12-31", "2024-12-31"),
+             "no_exact_annual_context_comparative_annual_period"),
+            (instance.replace("iso4217:KRW", "iso4217:USD"),
+             "krw_unit_missing"),
+            (instance.replace("</xbrl>",
+                              '<co:CapexA contextRef="C" unitRef="U">11</co:CapexA>'
+                              '<co:CapexB contextRef="C" unitRef="U">22</co:CapexB>'
+                              '</xbrl>'),
+             "conflicting_annual_numeric_values"),
+        ):
+            with self.subTest(gap=expected_gap):
+                shapes,gaps=pilot._multiple_extension_annual_fact_shapes(
+                    [variant.encode("utf8")],2025,tags,include_gaps=True)
+                self.assertEqual(shapes["ppe"],"no_valid_annual_krw_concept")
+                self.assertEqual(gaps["ppe"],expected_gap)
+                self.assertNotIn("Capex",json.dumps(gaps))
+                self.assertNotIn("987654321",json.dumps(gaps))
+                self.assertNotIn("123456789",json.dumps(gaps))
         self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
             [],None,tags)["ppe"],"target_fiscal_year_not_checked")
+        self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
+            [],None,tags,include_gaps=True)[1]["ppe"],
+            "target_fiscal_year_not_checked")
         overcrowded={"ppe":{"{"+ns+"}Capex"+str(n) for n in range(9)}}
         self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
             [],2025,overcrowded)["ppe"],
+            "too_many_extension_concepts_unverified")
+        self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
+            [],2025,overcrowded,include_gaps=True)[1]["ppe"],
             "too_many_extension_concepts_unverified")
 
     def test_weekly_original_archive_probe_is_bounded_and_source_only(self):
