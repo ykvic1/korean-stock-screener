@@ -650,6 +650,11 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "historical_delisted_pit_universe": False,
         "authenticated_point_in_time_source_chain": False,
         "investment_grade_scoring": False,
+        # Structural horizon-readiness tests use frozen *synthetic* cohorts;
+        # none are actual after-signal KRX adjusted total returns or
+        # loss-first walk-forward outcomes on a certified delisted universe.
+        "verified_1_2_3_6_12month_forward_outcomes": False,
+        "validated_loss_first_stop_target_mfe_mae": False,
     }
     blockers = set(issues)
     if snapshot_valid and missing_count:
@@ -663,6 +668,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "historical_delisted_pit_universe_unverified",
         "authenticated_source_chain_unverified",
         "investment_grade_scoring_not_authorized",
+        "five_forward_horizon_outcomes_unverified",
+        "loss_first_stop_target_mfe_mae_unverified",
     })
     return {
         "schema": "v3-v30b-five-area-readiness-audit-0.1",
@@ -687,6 +694,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
             dart_counts[1] if snapshot_valid and dart_counts else None),
         "dart_receipt_collection_is_pit_or_adjusted_certified": False,
         "historical_window_is_pit_or_adjusted_certified": False,
+        "forward_1_2_3_6_12month_returns_certified": False,
+        "loss_first_risk_backtest_certified": False,
         "industry_in_100point_score": False,
         "missing_factor_as_zero": False,
         "gates": gates,
