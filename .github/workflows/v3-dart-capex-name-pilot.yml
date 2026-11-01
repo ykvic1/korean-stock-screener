@@ -61,7 +61,7 @@ jobs:
       - name: Probe at most 12 rotated missing-CAPEX company-years
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode }}
+          MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode || 'dry-run' }}
           COHORT_INDEX: ${{ github.event_name == 'schedule' && 'auto' || inputs.cohort_index || '0' }}
         run: |
           set -euo pipefail
@@ -81,7 +81,7 @@ jobs:
               '대상은 기존에 CFO가 있지만 CAPEX 한 항목이 빠진 기업·연도 중 최대 12건입니다.',
               '계정명·종목코드·금액·접수번호 미공개. 실제 FCF·점수 변경 없음.',
           ]
-          if source.is_file():
+          if source.is_file() and source.stat().st_size:
               report=json.loads(source.read_text(encoding='utf8'))
               for key,label in (
                   ('cohort_index','순환 표본 회차'),
