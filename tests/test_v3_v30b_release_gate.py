@@ -451,6 +451,37 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertFalse(report["v30b_release_ready"])
         self.assertEqual(report["investment_grade_certified_count"], 0)
 
+    def test_synthetic_forward_horizon_readiness_never_means_live_outcome_proof(self):
+        o, s, h = public_inputs()
+        receipt = json.loads((ROOT / "docs/v3-dart-historical-receipt-progress.json")
+                             .read_text(encoding="utf-8"))
+        # Even 120/120 historical receipt months are not real, independently
+        # certified 1/2/3/6/12 month outcomes or downside-first validation.
+        receipt.update(filing_months_checkpointed=120,
+                       filing_months_remaining=0,
+                       filing_months_checkpointed_ratio=1.0,
+                       last_checkpointed_filing_month="2026-09",
+                       current_collection_filing_month=None)
+        report = assess_v30b(o, s, h, dart_receipt_progress=receipt,
+                             proof={"forward_horizons_verified": True,
+                                    "loss_first_backtest_passed": True})
+        self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
+        self.assertTrue(report["gates"]["dart_120month_receipt_collection_complete"])
+        self.assertFalse(report["gates"][
+            "verified_1_2_3_6_12month_forward_outcomes"])
+        self.assertFalse(report["gates"][
+            "validated_loss_first_stop_target_mfe_mae"])
+        self.assertFalse(report["forward_1_2_3_6_12month_returns_certified"])
+        self.assertFalse(report["loss_first_risk_backtest_certified"])
+        self.assertIn("five_forward_horizon_outcomes_unverified",
+                      report["blocker_codes"])
+        self.assertIn("loss_first_stop_target_mfe_mae_unverified",
+                      report["blocker_codes"])
+        self.assertFalse(report["v30b_release_ready"])
+        self.assertFalse(report["confirmed_scoring_authorized"])
+        self.assertIsNone(report["certified_rank"])
+        self.assertEqual(report["external_provider_calls"], 0)
+
     def test_cli_default_is_read_only_and_assert_blocked_succeeds(self):
         # A mismatched public date is a real, explicitly blocked validation
         # failure (exit 2), never a successful green readiness audit.
