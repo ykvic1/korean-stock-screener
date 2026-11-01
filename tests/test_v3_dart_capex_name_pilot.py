@@ -42,6 +42,9 @@ class CapexNamePilotTests(unittest.TestCase):
         self.assertIn("no scores",workflow)
         self.assertIn("pull_request:",workflow)
         self.assertIn("name_gap_shapes",workflow)
+        self.assertIn("if: ${{ github.event_name != 'pull_request' }}",workflow)
+        self.assertIn("(github.event_name == 'workflow_dispatch' && inputs.mode == 'live')",workflow)
+        self.assertIn("&& secrets.DART_API_KEY || ''",workflow)
 
     def _fixture(self):
         market,catalog,major=live_inputs()
