@@ -90,6 +90,7 @@ jobs:
                   ('provider_source_calls','실제 공식 재무제표 조회'),
                   ('component_name_evaluations','누락 CAPEX 구성요소별 계정명 검사'),
                   ('unique_exact_name_candidate','구성요소별 유일한 정확명 후보(금액 미인증)'),
+                  ('unverified_exact_name_amount','음수·미확인 금액으로 보류된 정확명(FCF 반영 금지)'),
                   ('ambiguous_multiple_candidates','복수 계정명 후보로 검증 불가'),
                   ('no_exact_name_candidate','일치 계정명 없음'),
                   ('no_report_rows','원천 응답 자료 없음')):
