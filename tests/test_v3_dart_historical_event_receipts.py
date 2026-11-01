@@ -242,7 +242,7 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", wf)
         self.assertIn("default: dry_run", wf)
         # Code pushes still run offline checks but do not silently spend
-        # another 72 provider calls beyond the four scheduled daily budgets.
+        # another 72 provider calls beyond the six scheduled daily budgets.
         self.assertIn(
             "if: ${{ github.event_name == 'schedule' || "
             "(github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}",
@@ -255,7 +255,9 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("requests>=2.31,<3", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)
         self.assertIn("max 72 official DART calls", wf)
-        self.assertEqual(wf.count("    - cron:"), 4)
+        self.assertEqual(wf.count("    - cron:"), 6)
+        for hour in (2, 6, 10, 14, 18, 22):
+            self.assertIn("cron: '19 %d * * *'" % hour, wf)
         self.assertIn("timeout-minutes: 17", wf)
         self.assertIn("cancel-in-progress: false", wf)
         self.assertIn("contents: read", wf)
