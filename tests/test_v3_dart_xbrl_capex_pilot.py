@@ -228,6 +228,9 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
         self.assertEqual(result[
             "extension_multiple_concept_annual_gap_reasons"]["ppe"],
             "valid_annual_krw_concept_still_unverified")
+        self.assertEqual(result[
+            "extension_multiple_concept_dimensional_fact_shapes"]["ppe"],
+            "no_valid_dimensional_annual_krw_concept")
         market, catalog, major, state, code, receipt = self.fixture()
         report = pilot.run_pilot(market, catalog, major, state,
                                  mode="live", key="A" * 40,
@@ -241,6 +244,8 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                          ["multiple_valid_annual_krw_concepts_unverified"], 1)
         self.assertEqual(report["extension_multiple_concept_annual_gap_reasons"]
                          ["valid_annual_krw_concept_still_unverified"], 1)
+        self.assertEqual(report["extension_multiple_concept_dimensional_fact_shapes"]
+                         ["no_valid_dimensional_annual_krw_concept"], 1)
         self.assertTrue(report["duplicate_concept_annual_facts_never_certify_capex_total"])
         self.assertTrue(report["extension_duplicate_label_topology_never_certifies_capex_total"])
         self.assertTrue(report["local_role_partition_never_certifies_capex_or_statement_scope"])
@@ -298,6 +303,47 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
                 self.assertNotIn("Capex",json.dumps(gaps))
                 self.assertNotIn("987654321",json.dumps(gaps))
                 self.assertNotIn("123456789",json.dumps(gaps))
+        dimensional = instance.replace('<context id="C">',
+                                       '<context id="C"><segment/>')
+        dimensional_doc = io.BytesIO()
+        with zipfile.ZipFile(dimensional_doc, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("issuer.xsd", schema)
+            z.writestr("labels.xml", labels)
+            z.writestr("report.xbrl", dimensional)
+            z.writestr("presentation.xml", presentation)
+        dimensional_observed = pilot.inspect_binary_archive(
+            dimensional_doc.getvalue(), year=2025)["extension_label_evidence"]
+        self.assertEqual(dimensional_observed[
+            "extension_multiple_concept_annual_gap_reasons"]["ppe"],
+            "no_exact_annual_context_dimensional_target_year")
+        self.assertEqual(dimensional_observed[
+            "extension_multiple_concept_dimensional_fact_shapes"]["ppe"],
+            "multiple_valid_dimensional_annual_krw_concepts_unverified")
+        for variant, expected_shape in (
+            (dimensional, "multiple_valid_dimensional_annual_krw_concepts_unverified"),
+            (dimensional.replace("123456789", "-20"),
+             "single_valid_dimensional_annual_krw_concept_unverified"),
+            (dimensional.replace("987654321", "-10")
+                        .replace("123456789", "-20"),
+             "no_valid_dimensional_annual_krw_concept"),
+            (dimensional.replace("iso4217:KRW", "iso4217:USD"),
+             "no_valid_dimensional_annual_krw_concept"),
+            (dimensional.replace("</xbrl>",
+                                 '<co:CapexA contextRef="C" unitRef="U">11</co:CapexA>'
+                                 '<co:CapexB contextRef="C" unitRef="U">22</co:CapexB>'
+                                 '</xbrl>'),
+             "no_valid_dimensional_annual_krw_concept"),
+        ):
+            with self.subTest(dimensional_shape=expected_shape):
+                hints = pilot._multiple_extension_dimensional_fact_shapes(
+                    [variant.encode("utf8")], 2025, tags)
+                self.assertEqual(hints["ppe"], expected_shape)
+                self.assertEqual(hints["intangible"],
+                                 "not_multiple_extension_concepts")
+                self.assertNotIn("Capex",json.dumps(hints))
+                self.assertNotIn("987654321",json.dumps(hints))
+        self.assertEqual(pilot._multiple_extension_dimensional_fact_shapes(
+            [], None, tags)["ppe"], "target_fiscal_year_not_checked")
         self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
             [],None,tags)["ppe"],"target_fiscal_year_not_checked")
         self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
@@ -309,6 +355,9 @@ class OriginalXbrlEvidenceTests(unittest.TestCase):
             "too_many_extension_concepts_unverified")
         self.assertEqual(pilot._multiple_extension_annual_fact_shapes(
             [],2025,overcrowded,include_gaps=True)[1]["ppe"],
+            "too_many_extension_concepts_unverified")
+        self.assertEqual(pilot._multiple_extension_dimensional_fact_shapes(
+            [],2025,overcrowded)["ppe"],
             "too_many_extension_concepts_unverified")
 
     def test_weekly_original_archive_probe_is_bounded_and_source_only(self):
