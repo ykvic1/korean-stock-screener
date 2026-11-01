@@ -122,8 +122,16 @@ class CapexNamePilotTests(unittest.TestCase):
             with self.assertRaises(pilot.PilotError):
                 pilot.candidate_status([modified],**args)
         invalid=dict(row,thstrm_amount="-50")
-        with self.assertRaises(pilot.PilotError):
-            pilot.candidate_status([invalid],**args)
+        self.assertEqual(pilot.candidate_status([invalid],**args),
+                         "unverified_exact_name_amount")
+        for amount in ("", "-", "unknown", None):
+            with self.subTest(amount=amount):
+                self.assertEqual(pilot.candidate_status(
+                    [dict(row,thstrm_amount=amount)],**args),
+                    "unverified_exact_name_amount")
+        # A positive row cannot make a mixed invalid group look certified.
+        self.assertEqual(pilot.candidate_status([row,invalid],**args),
+                         "unverified_exact_name_amount")
 
     def test_bounded_stratified_sample_covers_year_scope_and_component(self):
         state={"records":{}}
@@ -239,6 +247,29 @@ class CapexNamePilotTests(unittest.TestCase):
                         row["account_nm"],ppe["account_nm"],"700","1,200"):
             self.assertNotIn(private,serialized)
 
+    def test_live_unverified_amount_quarantined_without_stopping_other_component(self):
+        market,catalog,major,state,cached,row=self._fixture()
+        state["records"][row["stock_code"]]["years"]["2025"]["ppe_capex_krw"]=None
+        asof,members=cash.asof_members(market,catalog,major)
+        state=cash.summary(asof,members,state["records"],cash.fingerprint(major))
+        invalid=dict(row,account_nm="유형자산의 취득",thstrm_amount="-700")
+        session=Session({"status":"000","list":[invalid,row]})
+        report=pilot.run_pilot(
+            market,catalog,major,state,mode="live",key="x"*40,
+            session=session,corp_cache=cached)
+        self.assertEqual(report["provider_source_calls"],1)
+        self.assertEqual(report["component_name_evaluations"],2)
+        self.assertEqual(report["unverified_exact_name_amount"],1)
+        self.assertEqual(report["unique_exact_name_candidate"],1)
+        self.assertEqual(sum(report[key] for key in (
+            "unique_exact_name_candidate","unverified_exact_name_amount",
+            "ambiguous_multiple_candidates","no_exact_name_candidate")),2)
+        self.assertTrue(report["no_derived_fcf_or_investment_score"])
+        serialized=json.dumps(report,ensure_ascii=False)
+        for secret in (row["corp_code"],row["stock_code"],row["rcept_no"],
+                       row["account_nm"],invalid["account_nm"],"-700"):
+            self.assertNotIn(secret,serialized)
+
     def test_eighteen_year_scope_gap_strata_rotate_with_twelve_calls(self):
         state={"records":{}}
         major={"records":{}}
@@ -288,6 +319,7 @@ class CapexNamePilotTests(unittest.TestCase):
         self.assertEqual(sum(report["sampled_by_missing_component"].values()),1)
         self.assertEqual(report["provider_source_calls"],0)
         self.assertEqual(report["unique_exact_name_candidate"],0)
+        self.assertEqual(report["unverified_exact_name_amount"],0)
         with self.assertRaises(pilot.PilotError):
             pilot.run_pilot(market,catalog,major,state,mode="live")
 
