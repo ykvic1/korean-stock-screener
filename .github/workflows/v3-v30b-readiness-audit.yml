@@ -1,0 +1,107 @@
+name: V3.0b Release Blocker Watch (Read Only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_v30b_release_gate.py
+      - v3_v30b_fcf_source_audit.py
+      - tests/test_v3_v30b_release_gate.py
+      - tests/test_v3_v30b_readiness_workflow.py
+      - .github/workflows/v3-v30b-readiness-audit.yml
+      - docs/v3-current-observed-all-listed-summary.json
+      - docs/v3-all-listed-scorecard-summary.json
+      - docs/v3-dart-historical-receipt-progress.json
+      - docs/v3-krx-derived-backfill-progress.json
+  pull_request:
+    branches: [main]
+    paths:
+      - v3_v30b_release_gate.py
+      - tests/test_v3_v30b_release_gate.py
+      - tests/test_v3_v30b_readiness_workflow.py
+      - .github/workflows/v3-v30b-readiness-audit.yml
+  schedule:
+    # 09:23 KST every day. Read-only publication/source coherence watch.
+    - cron: '23 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: korea-stock-screener-v30b-readonly-release-watch
+  cancel-in-progress: false
+
+jobs:
+  release-blockers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline release-gate and watch contract regressions
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_v30b_release_gate.py v3_v30b_fcf_source_audit.py
+          python -m unittest discover -s tests -p 'test_v3_v30b_release_gate.py' -v
+          python -m unittest discover -s tests -p 'test_v3_v30b_readiness_workflow.py' -v
+      - name: Audit actual saved publication and source checkpoint
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          set -euo pipefail
+          # Exit 2 on public summary/source inconsistency, 3 on accidental
+          # certification. Do NOT hide either with "|| true".
+          python v3_v30b_release_gate.py --assert-blocked > "$RUNNER_TEMP/v30b-readiness-aggregate.json"
+      - name: Show anonymous source and release blockers
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report_path=Path(os.environ["RUNNER_TEMP"])/"v30b-readiness-aggregate.json"
+          lines=[
+              "### V3.0b 실제 출시 차단 조건 (읽기 전용)",
+              "기존 DART/KRX 수집과 평일 18:30 스크리닝은 이 작업에서 변경하지 않습니다.",
+              "수집 완료, 배점 관측, 정식 투자점수 인증은 서로 다른 상태입니다.",
+          ]
+          if os.environ.get("GITHUB_EVENT_NAME")=="pull_request":
+              lines.append("- PR 모드: 오프라인 회귀 테스트만 수행; 실제 출시 감시는 main 전용")
+          elif not report_path.is_file():
+              lines.append("- 감사 실패: 요약 결과 없음. 원본 불일치 또는 실행 오류 점검 필요")
+          else:
+              try:
+                  r=json.loads(report_path.read_text(encoding="utf8"))
+                  if r.get("schema")!="v3-v30b-five-area-readiness-audit-0.1":
+                      raise ValueError("unexpected_schema")
+                  for key,label in (
+                      ("asof","공개 가격자료 기준일"),
+                      ("public_summary_valid","공개 집계·원천 일관성"),
+                      ("public_issuer_csv_reconciled","실제 종목 CSV 일치"),
+                      ("public_fcf_issuer_subscores_reconciled","FCF 종목별 산출 재현"),
+                      ("listed_total","상장 종목 수"),
+                      ("observed_all_five_areas_100weight_count","100점 배점 관측 종목(미인증)"),
+                      ("dart_historical_receipts_completed_months","과거 공시 접수 수집 완료 월"),
+                      ("dart_historical_receipts_remaining_months","과거 공시 접수 남은 월"),
+                      ("historical_fixed_window_extracted","KRX 연구용 파생 구간 수집"),
+                      ("v30b_release_ready","정식 출시 허용"),
+                      ("confirmed_scoring_authorized","정식 투자점수 허용"),
+                      ("investment_grade_certified_count","인증 투자점수 종목"),
+                      ("external_provider_calls","원천 공급원 추가 호출")):
+                      lines.append("- "+label+": **"+str(r.get(key))+"**")
+                  lines.append("#### 미충족/검증 보류 조건")
+                  codes=r.get("blocker_codes")
+                  if type(codes) is not list or not all(type(x) is str for x in codes):
+                      raise ValueError("invalid_blocker_codes")
+                  for code in codes:
+                      lines.append("- `"+code+"`")
+                  if r.get("public_summary_valid") is False:
+                      lines.append("공개 자료 불일치는 정상 출시 판정이 아니며 감사 단계는 실패 처리합니다.")
+                  lines.append("관측 가능 배점이 100이어도 기업행위·수정주가·시점별 공시·성과검증은 별도 인증 필요.")
+              except (ValueError, TypeError, OSError, UnicodeError):
+                  lines.append("- 감사 보고서 형식 오류: 확인 필요")
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY
