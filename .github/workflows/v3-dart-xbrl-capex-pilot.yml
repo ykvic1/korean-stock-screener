@@ -258,6 +258,16 @@ jobs:
                   ('conflicting_annual_numeric_values', '동일 계정의 숫자 충돌')):
                   lines.append('- ' + label + ': **' + str(
                       annual_gaps.get(key, '미확인')) + '**')
+              lines.append('#### 차원 포함 대상연도 원화 숫자 계정 수(연구 단서만)')
+              dimensional_facts = report.get('extension_multiple_concept_dimensional_fact_shapes', {})
+              for key, label in (
+                  ('target_fiscal_year_not_checked', '대상 연도 미검사'),
+                  ('too_many_extension_concepts_unverified', '계정 과다로 검증 제한'),
+                  ('no_valid_dimensional_annual_krw_concept', '차원 문맥에서 검증 형식 충족 계정 없음'),
+                  ('single_valid_dimensional_annual_krw_concept_unverified', '차원 문맥 숫자 조건 충족 계정 1개(범위 미인증)'),
+                  ('multiple_valid_dimensional_annual_krw_concepts_unverified', '차원 문맥 숫자 조건 충족 계정 복수(총액 미인증)')):
+                  lines.append('- ' + label + ': **' + str(
+                      dimensional_facts.get(key, '미확인')) + '**')
               lines.append('중복 계정 구분은 금액·연결범위·원본 분류 검증이나 FCF 계산을 뜻하지 않습니다.')
 
               lines.append('#### CAPEX 확장 태그 로컬 계산계층(금액·총액·점수 미인증)')
