@@ -3,7 +3,7 @@
 Zero provider calls, no raw OHLCV publication. These are CURRENT company
 industry prefixes and V2.2 approximate stock-vs-index 20/60/120 session relative
 returns, not historical exchange sector membership or certified factor scores.
-Missing, stale, partial, malformed or extremely small samples stay unknown.
+Missing, stale, sparse, malformed or extremely small samples stay unknown.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ SCHEMA = "v3-current-company-industry-relative-strength-observed-v1"
 MIN_DISCLOSE = 3
 MIN_SIGNAL = 10
 MIN_SIGNAL_COVERAGE = 0.75
+MIN_CLASSIFICATION_COVERAGE = 0.99  # Do not publish sparse partial censuses.
 MAX_RELATIVE_PCT = 1000
 
 
@@ -41,16 +42,22 @@ def source_ready(market, catalog, industry):
         day = date.fromisoformat(asof)
     except (TypeError, ValueError):
         return False
+    total = catalog.get("listed_total")
+    observed = industry.get("observed_industry_codes")
+    missing = industry.get("missing_industry_codes")
+    attempted = industry.get("attempted_company_profiles")
+    pending = industry.get("not_yet_attempted")
     if (day.isoformat() != asof or market.get("date") != asof
         or industry.get("asof") != asof
-        or type(catalog.get("listed_total")) is not int
-        or not 1 <= catalog["listed_total"] <= 6000
-        or industry.get("listed_total") != catalog["listed_total"]
-        or industry.get("observed_industry_codes") != catalog["listed_total"]
-        or industry.get("missing_industry_codes") != 0
-        or industry.get("not_yet_attempted") != 0
+        or type(total) is not int or not 1 <= total <= 6000
+        or industry.get("listed_total") != total
+        or any(type(x) is not int or x < 0
+               for x in (observed, missing, attempted, pending))
+        or observed + missing != attempted
+        or attempted + pending != total
+        or observed / total < MIN_CLASSIFICATION_COVERAGE
         or type(industry.get("records")) is not dict
-        or len(industry["records"]) != catalog["listed_total"]):
+        or len(industry["records"]) != attempted):
         return False
     return True
 
@@ -61,7 +68,7 @@ def valid_relative(value):
 
 
 def build(market, catalog, industry):
-    """All CURRENT listed issuers form the group denominator, including unpriced."""
+    """CURRENT classified issuers form each group denominator, including unpriced."""
     if not source_ready(market, catalog, industry):
         raise IndustryPriceError("industry_market_source_date_or_completion_mismatch")
     try:
@@ -69,7 +76,13 @@ def build(market, catalog, industry):
         classified = prior_records(industry, asof, members)
     except (ValueError, KeyError, TypeError) as exc:
         raise IndustryPriceError("invalid_saved_market_or_industry_source") from None
-    if (len(classified) != len(members) or len(members) != catalog["listed_total"]
+    observed_codes = {code for code, row in classified.items()
+                      if type(row) is dict and row.get("status") == "observed"}
+    if (len(members) != catalog["listed_total"]
+        or len(classified) != industry["attempted_company_profiles"]
+        or len(observed_codes) != industry["observed_industry_codes"]
+        or any(type(row) is not dict or row.get("status") not in
+               ("observed", "industry_unavailable") for row in classified.values())
         or industry.get("official_krx_sector_membership_verified") is not False
         or industry.get("past_constituent_membership_pit_verified") is not False
         or industry.get("industry_5433_points_authorized") is not False
@@ -96,6 +109,9 @@ def build(market, catalog, industry):
     groups = defaultdict(lambda: {"members": 0, "priced": 0,
                                   "rel20": [], "rel60": [], "rel120": [], "positive20": 0})
     for code, issuer in members.items():
+        # Never guess a sector for an unattempted or no-code company.
+        if code not in observed_codes:
+            continue
         classification = classified[code]
         sector = classification.get("industry_code")
         mkt = issuer["market"]
@@ -184,11 +200,16 @@ def build(market, catalog, industry):
             "prices_corporate_action_adjusted_verified": False,
             "official_industry_15_points": None,
         })
-    if total_members != len(members) or total_priced != len(observations):
+    unclassified_priced = len(set(observations) - observed_codes)
+    if (total_members != len(observed_codes)
+        or total_priced + unclassified_priced != len(observations)):
         raise IndustryPriceError("industry_price_group_totals_mismatch")
     return {
         "schema": SCHEMA, "asof": asof,
         "listed_total": len(members),
+        "classified_company_count": total_members,
+        "unclassified_company_count": len(members) - total_members,
+        "unclassified_priced_issuers": unclassified_priced,
         "price_observation_total": len(observations),
         "paired_20_60_observations": total_observed,
         "relative120_observations": total_observed120,
@@ -212,6 +233,8 @@ def build(market, catalog, industry):
         "note": "Relative20/60/120 are saved V2.2 stock-vs-index approximations. "
                 "60 sessions include the latest 20. Groups use CURRENT OpenDART "
                 "company-code prefix, not historical PIT KRX sectors. "
+                "Unknown company industry codes are excluded from group "
+                "denominators and counted separately at the market level. "
                 "Observed medians and positive breadth cannot be treated as "
                 "verified official sector returns; missing-company bounds and "
                 "sample thresholds guard false confidence. No 15pt sector scores.",
@@ -230,7 +253,7 @@ def to_csv(report):
     out = StringIO(newline="")
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow([
-        "시장", "현재DART업종코드앞2자리", "현재상장기업수",
+        "시장", "현재DART업종코드앞2자리", "현재업종확인기업수",
         "동일시장일_가격보유기업수", "20_60일상대강도모두확보기업수",
         "20_60일상대강도미확보기업수", "상대강도쌍_실측확보율_%",
         "20일_시장대비상대강도_표본중앙값_%", "60일_시장대비상대강도_표본중앙값_%",
@@ -240,6 +263,7 @@ def to_csv(report):
         "현재분류전체_강세기업비율하한_%", "현재분류전체_강세기업비율상한_%",
         "초기순환매_관찰상태", "시장자료기준일",
         "과거KRX업종구성_PIT", "시장지수날짜별독립검증", "정식산업15점",
+        "전체상장기업수", "업종미확인기업수",
     ])
     labels = {
         "insufficient_sample": "표본·확보율 부족",
@@ -280,6 +304,7 @@ def to_csv(report):
             rate(row["positive_relative20_breadth_all_upper_bound"]),
             labels[row["early_rotation_research_state"]], report["asof"],
             "미확인", "미검증", "",
+            report["listed_total"], report.get("unclassified_company_count", 0),
         ])
     if len(seen) != report.get("groups_total"):
         raise IndustryPriceError("incomplete_industry_group_export")
