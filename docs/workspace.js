@@ -913,6 +913,8 @@ function industryPriceEvidenceView(raw,asof,listed){
  if(!raw||raw.schema!=='v3-current-company-industry-relative-strength-observed-v1'||
     raw.asof!==asof||!validDate(asof)||raw.listed_total!==listed||
     !Number.isInteger(listed)||listed<100||
+    ((raw.classified_company_count===undefined)!==
+      (raw.unclassified_company_count===undefined))||
     raw.historical_krx_sector_membership_pit_verified!==false||
     raw.official_industry_15_points_authorized!==false||
     raw.investment_grade_100point_scores_authorized!==false||
@@ -923,7 +925,14 @@ function industryPriceEvidenceView(raw,asof,listed){
     !raw.source_sha256||Object.keys(raw.source_sha256).length!==3||
     Object.values(raw.source_sha256).some(v=>typeof v!=='string'||!/^[a-f0-9]{64}$/.test(v)))
     return null;
- let total=0,paired=0,watch=0,observed120=0;
+ const classified=raw.classified_company_count===undefined?
+   listed:raw.classified_company_count;
+ const unclassified=raw.unclassified_company_count===undefined?
+   0:raw.unclassified_company_count;
+ if(!Number.isInteger(classified)||!Number.isInteger(unclassified)||
+    classified<Math.ceil(listed*.99)||unclassified<0||
+    classified+unclassified!==listed)return null;
+ let total=0,paired=0,watch=0,observed120=0,pricedTotal=0;
  const seen=new Set(),rows=[],byKey=new Map();
  const labels=['insufficient_sample','early_relative_recovery_watch',
                'relative20_extension_caution','no_early_recovery_pattern_observed'];
@@ -996,21 +1005,29 @@ function industryPriceEvidenceView(raw,asof,listed){
                 breadth[0]<=.5||metrics[0]>=15))return null;
    if(!eligible&&g.early_rotation_research_state!=='insufficient_sample')return null;
    watch+=Number(early);total+=g.current_listed_issuers;paired+=n;
+   pricedTotal+=g.same_day_priced_issuers;
    if(early)rows.push({
      market:g.market,code:g.current_dart_industry_prefix_2,
      n,listed:g.current_listed_issuers,m20:metrics[0],m60:metrics[1],
      m120, n120,lower:breadth[1],upper:breadth[2]
    });
  }
- if(total!==listed||paired!==raw.paired_20_60_observations||
+ if(total!==classified||paired!==raw.paired_20_60_observations||
     watch!==raw.groups_early_recovery_watch||
     (raw.relative120_observations!==undefined&&
       raw.relative120_observations!==observed120))return null;
+ if(raw.unclassified_priced_issuers!==undefined&&
+   (!Number.isInteger(raw.unclassified_priced_issuers)||
+    raw.unclassified_priced_issuers<0||
+    raw.unclassified_priced_issuers>unclassified||
+    raw.price_observation_total!==pricedTotal+raw.unclassified_priced_issuers))
+   return null;
  rows.sort((a,b)=>b.n-a.n||a.market.localeCompare(b.market)||
            a.code.localeCompare(b.code));
  const strength=v=>finite(v)?((v>0?'+':'')+v.toFixed(1)+'%p'):'미확인';
  const html='<h3>업종 상대강도 회복 관찰 · 동일 시장일</h3>'+
-  '<p class="u-muted">현재 상장 '+total+'개 중 20·60일 상대강도 동시 확보 '+
+  '<p class="u-muted">현재 상장 '+listed+'개 (업종 확인 '+classified+
+  '개 · 업종 미확인 '+unclassified+'개) 중 20·60일 상대강도 동시 확보 '+
   paired+'개 · 관찰 후보 '+watch+'개 업종코드 그룹. 지수 대비 상대강도 표본 중앙값 기준으로 20일 양수·60일 0 이하인 그룹을 연구용으로 추렸습니다. <strong>매수 순위나 산업 15점이 아닙니다.</strong></p>'+
   (rows.length?'<div class="u-scroller"><table><thead><tr>'+
   '<th>시장 · 코드</th><th>관측/전체</th><th>20일 상대강도</th>'+
@@ -1022,7 +1039,7 @@ function industryPriceEvidenceView(raw,asof,listed){
    '%</td></tr>').join('')+'</tbody></table></div>':
    '<p class="u-muted">현재 엄격한 표본 조건을 충족한 상대강도 회복 관찰 후보가 없습니다.</p>')+
   '<p class="u-muted">* 업종은 현재 DART 회사업종코드 2자리 분류입니다. 과거 구성종목, 수정주가 및 지수별 거래일은 별도 인증 전이며 후보 판정은 매매 신호가 아닙니다.</p>';
- return {html,paired,watch,byKey,observed120};
+ return {html,paired,watch,byKey,observed120,classified,unclassified};
 }
 // The current OpenDART code is an issuer classification, not a KRX
 // historical/index sector. Validate the entire issuer census atomically.
