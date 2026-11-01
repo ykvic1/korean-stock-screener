@@ -53,7 +53,10 @@ jobs:
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode }}
-          COHORT_INDEX: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && github.run_number || inputs.cohort_index }}
+          # Code-change runs reproduce the known duplicate-label cohort for
+          # real-world regression evidence. Weekly runs keep rotating across
+          # the full source pool; manual runs respect the requested cohort.
+          COHORT_INDEX: ${{ github.event_name == 'push' && '20' || github.event_name == 'schedule' && github.run_number || inputs.cohort_index }}
         run: |
           set -euo pipefail
           python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 --cohort-index "$COHORT_INDEX" | tee /tmp/v3-xbrl-evidence-counts.json
@@ -216,6 +219,30 @@ jobs:
                   lines.append('- ' + label + ': **' + str(
                       hints.get(key, '미확인')) + '**')
               lines.append('역할 설명 문자열은 계정 개념의 분류 단서이며 XBRL 숫자 문맥·연결/별도·총액·PIT 및 점수 인증이 아닙니다.')
+
+              lines.append('#### 중복 CAPEX 계정별 표시역할·해당연도 KRW 문맥 구분(연구 전용)')
+              partitions = report.get('extension_multiple_concept_role_partitions', {})
+              for key, label in (
+                  ('missing_concept_presentation_role', '중복 계정의 표시역할 누락'),
+                  ('unresolved_role_definitions_unverified', '로컬 역할 설명 불명확'),
+                  ('concept_mixed_statement_other_roles_unverified', '동일 계정에 본문·기타 역할 혼재'),
+                  ('multiple_statement_concepts_unverified', '본문 역할 계정이 복수'),
+                  ('single_statement_concept_other_notes_hint', '본문 후보 1개·나머지 주석 후보'),
+                  ('single_statement_concept_other_noncf_hint', '본문 후보 1개·나머지 비현금흐름 후보'),
+                  ('single_statement_concept_mixed_nonprimary_hint', '본문 후보 1개·나머지 기타 혼합'),
+                  ('no_statement_concept_hint', '본문 계정 후보 미확인')):
+                  lines.append('- ' + label + ': **' + str(
+                      partitions.get(key, '미확인')) + '**')
+              annual_shapes = report.get('extension_multiple_concept_annual_fact_shapes', {})
+              for key, label in (
+                  ('target_fiscal_year_not_checked', '대상 연도 문맥 미검사'),
+                  ('too_many_extension_concepts_unverified', '계정 과다로 개별 검증 제한'),
+                  ('no_valid_annual_krw_concept', '해당연도 KRW 숫자 충족 계정 없음'),
+                  ('single_valid_annual_krw_concept_unverified', '숫자 조건 충족 계정 1개(범위 미확인)'),
+                  ('multiple_valid_annual_krw_concepts_unverified', '숫자 조건 충족 계정 복수(총액 불명확)')):
+                  lines.append('- ' + label + ': **' + str(
+                      annual_shapes.get(key, '미확인')) + '**')
+              lines.append('중복 계정 구분은 금액·연결범위·원본 분류 검증이나 FCF 계산을 뜻하지 않습니다.')
 
               lines.append('#### CAPEX 확장 태그 로컬 계산계층(금액·총액·점수 미인증)')
               lines.append('- ZIP 내부 계산계층 링크 수: **' +
