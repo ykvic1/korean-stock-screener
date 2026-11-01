@@ -40,6 +40,8 @@ class CapexNamePilotTests(unittest.TestCase):
         self.assertIn("--limit 12 --cohort-index",workflow)
         self.assertIn("COHORT_INDEX",workflow)
         self.assertIn("no scores",workflow)
+        self.assertIn("pull_request:",workflow)
+        self.assertIn("name_gap_shapes",workflow)
 
     def _fixture(self):
         market,catalog,major=live_inputs()
@@ -221,6 +223,89 @@ class CapexNamePilotTests(unittest.TestCase):
         self.assertEqual(report["unique_exact_name_candidate"],0)
         with self.assertRaises(pilot.PilotError):
             pilot.run_pilot(market,catalog,major,state,mode="live")
+
+
+    def test_anonymous_name_lead_classifies_code_and_detail_without_amount(self):
+        _,_,_,_,_,row=self._fixture()
+        args=dict(code=row["stock_code"],corp=row["corp_code"],year=2025,
+                  scope="CFS",receipt=row["rcept_no"],kind="intangible")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape([row],**args),
+            "exact_nonstandard_top_level")
+        other=dict(row,account_id="ifrs-full_UnknownName")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape([other],**args),
+            "exact_other_code_top_level")
+        detail=dict(row,account_detail="유형별 세부항목")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape([detail],**args),
+            "exact_nonstandard_detail")
+        variant=dict(row,account_nm="무형자산의 취득액")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape([variant],**args),
+            "variant_nonstandard_top_level")
+        self.assertEqual(pilot.candidate_status([variant],**args),
+                         "no_exact_name_candidate")
+        self.assertEqual(pilot.candidate_name_gap_shape(
+            [dict(variant,account_id="dart_CustomName",
+                  account_detail="현금흐름 세부항목")],**args),
+            "variant_other_code_detail")
+
+    def test_name_leads_never_promote_ambiguous_or_untrusted_values(self):
+        _,_,_,_,_,row=self._fixture()
+        args=dict(code=row["stock_code"],corp=row["corp_code"],year=2025,
+                  scope="CFS",receipt=row["rcept_no"],kind="intangible")
+        mixed=dict(row,account_nm="무형자산의 취득 및 처분")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape([mixed],**args),"no_name_lead")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape([row,row],**args),
+            "multiple_name_leads_unverified")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape(
+                [dict(row,account_id=None)],**args),
+            "name_lead_missing_code_unverified")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape(
+                [dict(row,currency="USD")],**args),
+            "name_lead_non_krw_unverified")
+        self.assertEqual(
+            pilot.candidate_name_gap_shape(
+                [dict(row,account_detail=[])],**args),
+            "name_lead_detail_unverified")
+        for field in ("corp_code","stock_code","bsns_year","reprt_code",
+                      "fs_div","rcept_no"):
+            with self.subTest(field=field),self.assertRaises(pilot.PilotError):
+                pilot.candidate_name_gap_shape(
+                    [dict(row,account_nm="무형자산의 취득액",
+                          **{field:"other"})],**args)
+        self.assertEqual(pilot.candidate_name_gap_shape(
+            [dict(row,sj_div="BS")],**args),"no_name_lead")
+
+    def test_live_anonymous_gap_shapes_are_bounded_and_do_not_change_fcf(self):
+        market,catalog,major,state,cached,row=self._fixture()
+        test_row=dict(row,account_nm="무형자산 취득에 따른 현금유출액",
+                      account_id="dart_NonIfsCustom",account_detail="세부")
+        self.assertEqual(pilot.candidate_status([test_row],
+                         code=row["stock_code"],corp=row["corp_code"],
+                         year=2025,scope="CFS",receipt=row["rcept_no"],
+                         kind="intangible"),"no_exact_name_candidate")
+        result=pilot.run_pilot(
+            market,catalog,major,state,mode="live",key="x"*40,
+            session=Session({"status":"000","list":[test_row]}),
+            corp_cache=cached)
+        self.assertEqual(result["no_exact_name_candidate"],1)
+        self.assertEqual(result["name_gap_shapes"][
+            "variant_other_code_detail"],1)
+        self.assertEqual(sum(result["name_gap_shapes"].values()),1)
+        self.assertEqual(result["provider_source_calls"],1)
+        self.assertTrue(result["name_variants_observational_only"])
+        self.assertTrue(result["no_derived_fcf_or_investment_score"])
+        output=json.dumps(result,ensure_ascii=False)
+        for secret in (row["corp_code"],row["stock_code"],row["rcept_no"],
+                       row["thstrm_amount"],test_row["account_nm"],
+                       test_row["account_id"],test_row["account_detail"]):
+            self.assertNotIn(secret,output)
 
 if __name__=="__main__":
     unittest.main()
