@@ -722,9 +722,9 @@ function scoreOverviewMarkup(c,normalized){
    esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
    '<span class="u-score-row-label">'+esc(label)+'</span>'+
    '<span class="u-score-track" aria-hidden="true">'+
-   '<span class="u-score-earned" style="width:'+percent(scored,max)+'%"></span>'+
-   '<span class="u-score-observed" style="width:'+percent(p.available-scored,max)+'%"></span>'+
-   '<span class="u-score-missing" style="width:'+percent(max-p.available,max)+'%"></span></span>'+
+   '<span class="u-score-earned" data-score-width="'+percent(scored,max)+'"></span>'+
+   '<span class="u-score-observed" data-score-width="'+percent(p.available-scored,max)+'"></span>'+
+   '<span class="u-score-missing" data-score-width="'+percent(max-p.available,max)+'"></span></span>'+
    '<span class="u-score-row-value"><strong>'+number(p.candidate)+'</strong>'+
    '<small>/'+max+'</small></span>'+
    '<small class="u-score-row-status">'+esc(status)+'</small></div>';
@@ -742,9 +742,9 @@ function scoreOverviewMarkup(c,normalized){
   '<div class="u-score-total"><div class="u-score-total-max"><strong>100</strong><small>만점</small></div>'+
   '<div class="u-score-total-track" role="img" aria-label="100점 만점 중 잠정 획득 '+
    number(c.earned)+'점, 산출 가능 배점 '+c.available+'점, 미확보 '+c.missing+'점">'+
-   '<span class="u-score-earned" style="height:'+percent(earned,100)+'%"></span>'+
-   '<span class="u-score-observed" style="height:'+percent(headroom,100)+'%"></span>'+
-   '<span class="u-score-missing" style="height:'+percent(c.missing,100)+'%"></span>'+
+   '<span class="u-score-earned" data-score-height="'+percent(earned,100)+'"></span>'+
+   '<span class="u-score-observed" data-score-height="'+percent(headroom,100)+'"></span>'+
+   '<span class="u-score-missing" data-score-height="'+percent(c.missing,100)+'"></span>'+
    '<strong class="u-score-total-value">'+number(c.earned)+'</strong></div>'+
   '<strong class="u-score-total-caption">잠정 합계</strong></div>'+
   '<div class="u-score-rows">'+rows.join('')+'</div></div>'+
@@ -757,6 +757,18 @@ function scoreOverviewMarkup(c,normalized){
   (normalized===null?'개인용 100점 비율 환산은 5영역·75점 이상 관측 시에만 표시합니다.':
    '별도 비율 환산 '+number(normalized)+'/100점은 관측 배점 기준이며 확정 투자점수가 아닙니다.')+
   ' 매수 신호나 수익 예측으로 사용하지 마세요.</p></section>';
+}
+// The site CSP rejects style attributes in innerHTML. Once mounted, use
+// bounded CSSOM property assignments without weakening CSP.
+function paintScoreOverview(view){
+ for(const node of view.querySelectorAll('.u-score-visual [data-score-width], .u-score-visual [data-score-height]')){
+  for(const [attr,property] of [['data-score-width','width'],['data-score-height','height']]){
+   const raw=node.getAttribute(attr);
+   if(raw===null)continue;
+   const n=Number(raw);
+   if(finite(n)&&n>=0&&n<=100)node.style[property]=n.toFixed(2)+'%';
+  }
+ }
 }
 function matchCompareStock(model,value){
  if(!Array.isArray(model?.rows))return null;
@@ -1794,6 +1806,7 @@ function renderDetails(x){
  '. 구조선 이탈 시 재검토. 실제 체결 손실은 더 클 수 있습니다.</p>'+
  '<div class="u-actions"><button type="button" id="addToCompare" data-code="'+esc(r.code)+'">이 종목 비교에 담기</button><a href="'+esc(stockLink)+'" target="_blank" rel="noopener noreferrer">종목 차트 ↗</a>'+
  '<button type="button" id="backToList">목록으로</button></div>';
+ paintScoreOverview(view);
  $('detailClose').onclick=()=>{view.hidden=true;selected=null;draw();};
  $('addToCompare').onclick=()=>addToCompare(r.code);
  $('backToList').onclick=()=>{$('stockList').scrollIntoView({behavior:'smooth',block:'start'});};
