@@ -56,6 +56,27 @@
           d.three_years_with_fcf_but_unmatched_receipts !== 0) {
         throw new Error('non-matching saved source audit');
       }
+      // Source-observed company-year breakdown, never a proxy for issuer-level score.
+      const years = gap.by_year;
+      const yearNames = ['2023', '2024', '2025'];
+      if (!years || yearNames.some(y => !years[y] ||
+          classes.some(k => !count(years[y][k], gap.attempted_company_years))) ||
+          classes.some(k => yearNames.reduce((n, y) => n + years[y][k], 0) !== c[k])) {
+        throw new Error('non-matching annual source audit');
+      }
+      const yearExplanation = yearNames.map(y => {
+        const row = years[y];
+        const attempts = classes.reduce((n, k) => n + row[k], 0);
+        const observed = row.fcf_observed_receipt_matched;
+        const missing = attempts - observed;
+        return y + '년 확인 ' + fmt(observed) + '/' + fmt(attempts) +
+          ' 기업·연도, 미확보 ' + fmt(missing) +
+          ' (유형·무형 CAPEX 둘 다 없음 ' + fmt(row.missing_both_capex) +
+          ', 무형만 없음 ' + fmt(row.missing_intangible_only) +
+          ', 유형만 없음 ' + fmt(row.missing_ppe_only) +
+          ', CFO·CAPEX 동반 없음 ' + fmt(row.missing_cfo_and_capex) +
+          ', CFO만 없음 ' + fmt(row.missing_cfo_only) + ')';
+      }).join('; ');
       el.textContent =
         '동일 연도·범위·접수번호로 3개년 FCF 확인: ' +
         fmt(d.three_year_source_receipt_complete) + '/' + fmt(total) + '종목. ' +
@@ -68,6 +89,7 @@
         ', 유형 CAPEX만 없음 ' + fmt(c.missing_ppe_only) +
         ', CFO 및 CAPEX 동반 누락 ' + fmt(c.missing_cfo_and_capex) +
         ', CFO만 없음 ' + fmt(c.missing_cfo_only) + '. ' +
+        '연도별 확인 내역(기업·연도 단위): ' + yearExplanation + '. ' +
         '기준일 ' + gap.asof + ' · 없는 계정은 0원으로 처리하지 않으며, 투자점수 인증도 아닙니다.';
     } catch (_) {
       el.textContent =
