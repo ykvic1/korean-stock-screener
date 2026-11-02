@@ -607,8 +607,10 @@ function fcfEvidenceMarkup(r){
 function applyIssuerFactorLedger(model,ledger){
  if(!model||!Array.isArray(model.rows)||!ledger||
     ledger.schema!=='v3-issuer-last-observed-factors-0.1'||
-    ledger.market_asof!==model.date||ledger.listed_total!==model.marketEligible||
-    ledger.active_issuer_count!==model.marketEligible||
+    !validDate(ledger.market_asof)||ledger.market_asof>model.date||
+    !Number.isInteger(ledger.listed_total)||ledger.listed_total<1||
+    ledger.listed_total>10000||
+    ledger.active_issuer_count!==ledger.listed_total||
     ledger.investment_score_certified!==false||
     ledger.mixed_date_sum_permitted!==false||
     ledger.missing_is_not_zero!==true||
