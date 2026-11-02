@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261102-personal100-415">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261102-compare416">
 <script src="v3-ranking.js" defer></script>
-<script src="workspace.js?v=v30b-20261102-personal100-415" defer></script>
+<script src="workspace.js?v=v30b-20261102-compare416" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -130,6 +130,18 @@
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
   </div></details>
+ </section>
+ <section class="u-compare" id="stockCompare" aria-label="종목 2개 비교">
+  <div class="u-compare-head"><h2>종목 2개 비교 <small>개인 연구용 · 미인증</small></h2>
+   <p>실제 관측된 5영역 점수와 확보 배점을 나란히 확인합니다.</p></div>
+  <form id="compareForm" class="u-compare-form">
+   <label for="compareCodeA">종목 A <input id="compareCodeA" type="search" maxlength="40" placeholder="예: 삼성전자 또는 005930" autocomplete="off"></label>
+   <label for="compareCodeB">종목 B <input id="compareCodeB" type="search" maxlength="40" placeholder="예: SK하이닉스 또는 000660" autocomplete="off"></label>
+   <button id="compareRun" type="submit">2종목 비교하기</button>
+   <button id="compareReset" type="button">선택 초기화</button>
+  </form>
+  <p id="compareStatus" class="u-compare-status" role="status" aria-live="polite">정확한 종목명이나 6자리 코드를 입력하면 두 종목을 비교할 수 있습니다. 종목 상세의 ‘비교에 담기’도 사용할 수 있어요.</p>
+  <div id="compareResults" hidden></div>
  </section>
  <section class="u-results" aria-label="통합 종목 분석">
   <div class="u-results-head"><div><h2>종목 발굴 및 분석</h2><p id="resultCount" role="status" aria-live="polite">자료 로드 중…</p></div>

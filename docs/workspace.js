@@ -547,6 +547,32 @@ function personalHundredFromComposite(c){
 function personalHundred(r){
  return personalHundredFromComposite(researchComposite(r));
 }
+
+// Resolve only an exact six-digit ticker or an unambiguous exact Korean name.
+// Partial-name guesses could silently compare the wrong issuer.
+function matchCompareStock(model,value){
+ if(!Array.isArray(model?.rows))return null;
+ const token=String(value??'').trim().toLocaleLowerCase('ko-KR');
+ if(!token)return null;
+ const isCode=/^[0-9]{6}$/.test(token);
+ const hits=model.rows.filter(x=>isCode?
+  x.r?.code===token:String(x.r?.name||'').trim().toLocaleLowerCase('ko-KR')===token);
+ return hits.length===1?hits[0]:null;
+}
+function resolveComparePair(model,leftValue,rightValue){
+ if(!String(leftValue??'').trim())return {ok:false,reason:'left_required'};
+ if(!String(rightValue??'').trim())return {ok:false,reason:'right_required'};
+ const left=matchCompareStock(model,leftValue);
+ if(!left)return {ok:false,reason:'left_not_found'};
+ const right=matchCompareStock(model,rightValue);
+ if(!right)return {ok:false,reason:'right_not_found'};
+ if(left.r.code===right.r.code)return {ok:false,reason:'same_stock'};
+ const a=researchComposite(left.r),b=researchComposite(right.r);
+ return {ok:true,left,right,a,b,
+  sameDate:validDate(left.r.price_date)&&left.r.price_date===right.r.price_date&&
+   left.r.price_date===model.date,
+  sameCoverage:coverageVector(a.pillars)===coverageVector(b.pillars)};
+}
 // Compare the available ceilings of ALL five V3 pillars, not just their sum.
 // Equal coverage vectors still do not establish source/PIT or return certification.
 function coverageVector(pillars){
@@ -1373,7 +1399,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1381,7 +1407,7 @@ if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
 let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null;
-let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20;
+let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20,compareShown=false;
 function refreshCoverageGroups(data){
  const control=$('coverageGroup');
  const previous=control.value;
@@ -1405,6 +1431,81 @@ function patternPill(item){
  const weekly=item.timeframe==='weekly';
  return '<span class="u-signal '+(weekly?'week':'day')+'">'+
   (weekly?'주봉 ':'일봉 ')+esc(item.label)+' · '+esc(label(item))+'</span>';
+}
+
+function renderCompare(){
+ const results=$('compareResults'),status=$('compareStatus');
+ if(!compareShown||!model){
+  results.hidden=true;results.innerHTML='';return;
+ }
+ const pair=resolveComparePair(model,$('compareCodeA').value,$('compareCodeB').value);
+ if(!pair.ok){
+  const messages={
+   left_required:'첫 번째 종목의 이름이나 6자리 코드를 입력해 주세요.',
+   right_required:'두 번째 종목의 이름이나 6자리 코드를 입력해 주세요.',
+   left_not_found:'첫 번째 종목을 찾지 못했습니다. 정확한 종목명 또는 6자리 코드를 확인하세요.',
+   right_not_found:'두 번째 종목을 찾지 못했습니다. 정확한 종목명 또는 6자리 코드를 확인하세요.',
+   same_stock:'동일한 종목은 비교할 수 없습니다. 다른 종목을 선택하세요.'
+  };
+  status.textContent=messages[pair.reason]||'종목을 확인할 수 없습니다.';
+  results.hidden=true;results.innerHTML='';
+  return;
+ }
+ const {left,right,a,b}=pair;
+ const compareNum=c=>{
+  const value=personalHundredFromComposite(c);
+  return value===null?'관측 부족':value.toFixed(1)+' / 100';
+ };
+ const names=[left.r.name,right.r.name];
+ const cards=[{x:left,c:a},{x:right,c:b}].map(({x,c},i)=>{
+  const risk=riskState(x,core);
+  return '<article class="u-compare-card"><h3>'+esc(names[i])+
+   ' <small>'+esc(x.r.code)+' · '+esc(x.r.market)+'</small></h3>'+
+   '<div class="u-compare-kpis"><div><small>종가 · '+esc(x.r.price_date)+'</small><b>'+won(x.r.price)+'</b></div>'+
+   '<div><small>개인용 100점 환산 · 미인증</small><b>'+compareNum(c)+'</b></div>'+
+   '<div><small>V3 잠정 합계 · 미검증</small><b>'+
+   (c.earned===null?'미산출':c.earned.toFixed(1)+'점')+'</b></div>'+
+   '<div><small>확보 배점</small><b>'+c.available+'/100</b></div></div>'+
+   '<p class="u-compare-risk">손절 참고: '+
+   (risk.distance===null?'미확인':pct(-risk.distance))+' · '+esc(risk.description)+'</p></article>';
+ }).join('');
+ const details=a.pillars.map((p,i)=>{
+  const q=b.pillars[i];
+  const points=v=>v.candidate===null?'미산출 · 0점 아님':v.candidate.toFixed(1)+'점';
+  return '<tr><th scope="row">'+esc(p.label)+' /'+p.max+'</th>'+
+   '<td>'+points(p)+'<small>확보 '+p.available+'/'+p.max+'</small></td>'+
+   '<td>'+points(q)+'<small>확보 '+q.available+'/'+q.max+'</small></td></tr>';
+ }).join('');
+ const comparable=pair.sameDate&&pair.sameCoverage;
+ status.textContent=comparable?
+  '두 종목의 관측 기준일과 5영역 확보 배점 구성이 같습니다. 투자성과나 원천 검증을 뜻하지 않습니다.':
+  '기준일 또는 5영역 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
+ results.innerHTML='<div class="u-compare-cards">'+cards+'</div>'+
+  '<div class="u-compare-overflow"><table class="u-compare-table">'+
+  '<caption>5개 영역별 실제 잠정 점수와 확보 배점 비교</caption>'+
+  '<thead><tr><th scope="col">영역</th><th scope="col">'+esc(names[0])+
+  '</th><th scope="col">'+esc(names[1])+'</th></tr></thead>'+
+  '<tbody>'+details+'</tbody></table></div>'+
+  '<p class="u-compare-disclaimer">개인 연구용 비교 · 관측하지 못한 영역은 0점이 아닙니다. '+
+  '공시 효력시점·기업행위 수정주가·기관 수급·실제 수익성과 위험은 인증되지 않았습니다.</p>';
+ results.hidden=false;
+}
+function addToCompare(code){
+ if(!model)return;
+ const a=$('compareCodeA'),b=$('compareCodeB');
+ const one=matchCompareStock(model,a.value)?.r.code;
+ const two=matchCompareStock(model,b.value)?.r.code;
+ if(one===code||two===code){
+  $('compareStatus').textContent='이미 비교 대상으로 선택한 종목입니다.';
+  return;
+ }
+ if(!a.value.trim())a.value=code;
+ else if(!b.value.trim())b.value=code;
+ else {a.value=b.value;b.value=code;}
+ compareShown=!!(a.value.trim()&&b.value.trim());
+ if(compareShown)renderCompare();
+ else $('compareStatus').textContent='첫 번째 종목을 담았습니다. 다른 종목을 하나 더 선택하세요.';
+ $('stockCompare').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderDetails(x){
  const view=$('detail');
@@ -1492,9 +1593,10 @@ function renderDetails(x){
  '<h3>손실 위험 · 가설 무효화</h3><p class="u-muted">연구점수와 별도로 위험요인을 점검해야 합니다'+
  ' · '+esc(risk.reasons.join(' / ')||'추가 위험 경고 관측 없음')+
  '. 구조선 이탈 시 재검토. 실제 체결 손실은 더 클 수 있습니다.</p>'+
- '<div class="u-actions"><a href="'+esc(stockLink)+'" target="_blank" rel="noopener noreferrer">종목 차트 ↗</a>'+
+ '<div class="u-actions"><button type="button" id="addToCompare" data-code="'+esc(r.code)+'">이 종목 비교에 담기</button><a href="'+esc(stockLink)+'" target="_blank" rel="noopener noreferrer">종목 차트 ↗</a>'+
  '<button type="button" id="backToList">목록으로</button></div>';
  $('detailClose').onclick=()=>{view.hidden=true;selected=null;draw();};
+ $('addToCompare').onclick=()=>addToCompare(r.code);
  $('backToList').onclick=()=>{$('stockList').scrollIntoView({behavior:'smooth',block:'start'});};
  if(root.matchMedia?.('(max-width: 860px)')?.matches)view.scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1589,6 +1691,7 @@ function present(data){
   realSourceCoverageText(realSavedCoverage,model.date)+
   actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);
  refreshCoverageGroups(data);
+ if(compareShown)renderCompare();
  draw();
 }
 async function load(){
@@ -1651,6 +1754,20 @@ async function load(){
  }
 }
 function init(){
+ $('compareForm').addEventListener('submit',e=>{
+  e.preventDefault();compareShown=true;renderCompare();
+ });
+ $('compareReset').addEventListener('click',()=>{
+  $('compareCodeA').value='';$('compareCodeB').value='';
+  compareShown=false;$('compareResults').hidden=true;
+  $('compareResults').innerHTML='';
+  $('compareStatus').textContent='정확한 종목명이나 6자리 코드를 입력하면 두 종목을 비교할 수 있습니다.';
+ });
+ for(const id of ['compareCodeA','compareCodeB'])
+  $(id).addEventListener('input',()=>{
+   compareShown=false;$('compareResults').hidden=true;
+   $('compareStatus').textContent='입력이 변경됐습니다. 비교하기를 눌러 결과를 갱신하세요.';
+  });
  $('tabs').addEventListener('click',e=>{
   const t=e.target.closest('[data-tab]');if(!t)return;
   tab=t.dataset.tab;limit=20;
