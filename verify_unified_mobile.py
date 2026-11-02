@@ -376,7 +376,7 @@ with sync_playwright() as p:
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
     assert "일봉 · 스윙 관찰" in details and "주봉 · 중기/장기 관찰" in details
-    assert "V3 통합 100점" in details and "미검증" in details
+    assert "5영역 잠정 점수" in details and "미인증" in details
     assert "손실 위험" in details
     page.locator("#detailClose").click()
     for scope in ("patterns","rsi","quant","discover"):
