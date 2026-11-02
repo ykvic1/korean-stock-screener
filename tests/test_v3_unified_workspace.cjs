@@ -22,6 +22,13 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  ]};
  const visual=unified.scoreOverviewMarkup(c,null);
  assert.equal((visual.match(/class="u-score-row"/g)||[]).length,5);
+ assert.equal((visual.match(/<details class="u-score-row"/g)||[]).length,5);
+ assert.equal((visual.match(/<summary class="u-score-row-main">/g)||[]).length,5);
+ assert.match(visual,/눌러서 근거 보기/);
+ assert.match(visual,/거래량과 OBV로 계산한 연구값/);
+ assert.match(unified.scorePillarExplanation({key:'valuation',max:20,candidate:null,available:0},null),
+  /미산출점 · 산출 가능 0\/20점 · 미확보 20점/);
+
  const order=['momentum','valuation','financial','technical','volume'];
  const positions=order.map(k=>visual.indexOf('data-pillar="'+k+'"'));
  assert.ok(positions.every(i=>i>=0));
@@ -55,8 +62,11 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(source.includes('paintScoreOverview(view)'));
  assert.ok(css.includes('.u-score-total-track'));
  assert.ok(css.includes('.u-score-missing'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-paint424'));
- assert.ok(source.includes('scoreOverviewMarkup(composite,personal100)'));
+ assert.ok(css.includes('.u-score-row[open]'));
+ assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
+ assert.ok(source.includes('scorePillarExplanation(p,r)'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-drill425'));
+ assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
 // Compact visible progress is a SOURCE-DATED research bar, never a score promotion.
@@ -575,8 +585,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-score-paint424')&&
-  page.includes('workspace.css?v=v30b-20261102-score-paint424'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-score-drill425')&&
+  page.includes('workspace.css?v=v30b-20261102-score-drill425'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -695,6 +705,10 @@ const volumeRow={asof:'2026-10-20',market:'KOSPI',observed_points:13,
 const withVolume={...row,v3_volume_observed:volumeRow};
 assert.deepEqual(unified.observedVolumeEvidence(withVolume),
  {earned:13,available:16,fullyObserved:false});
+assert.match(unified.scorePillarExplanation(
+ {key:'volume',max:20,candidate:13,available:16},withVolume),
+ /거래량 급증 후 매물 소화/);
+
 assert.equal(unified.obvLagCandidate(withVolume),true,
  'both OBV rise and price lag must match same-date observed data');
 assert.equal(unified.obvLagCandidate(row),false,
@@ -817,6 +831,12 @@ const momentumReference={
  source_unadjusted_corporate_events_verified:false,
  positive_days20_observed:false
 };
+const momentumDrill=unified.scorePillarExplanation(
+ {key:'momentum',max:15,candidate:5,available:8},
+ {price_date:'2026-10-20',market:'KOSPI',v3_momentum_research:momentumReference});
+assert.match(momentumDrill,/시장 대비 20일/);
+assert.match(momentumDrill,/3\.0 \/ 4/);
+assert.match(momentumDrill,/그 외 상승일 비율/);
 const partialMomentum={...row,v3_pattern_integrated:null};
 const stateWithMomentum={...backState,records:{
  '005930':{...backedRec,technical_rebuilt_from_saved_source:false,
