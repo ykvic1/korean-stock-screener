@@ -106,6 +106,13 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(view,/2026-10-30/);
  assert.match(view,/현재 합계 미포함/);
  assert.match(view,/잠정 합계 <b>22점<\/b>/);
+ const historicChip=unified.lastObservedFactorChip(research.pillars[2]);
+ assert.match(historicChip,/지난 관측 11.5\/16/);
+ assert.match(historicChip,/2026-10-30/);
+ assert.equal(unified.lastObservedFactorChip(
+  {...research.pillars[2],available:16,candidate:4}), '',
+  'current observations must take priority over dated history on screener');
+
  const polluted=structuredClone(saved);
  polluted.rows[code].factors.financial.asof='2026-11-03';
  assert.equal(unified.applyIssuerFactorLedger(
