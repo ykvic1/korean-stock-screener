@@ -116,6 +116,33 @@ assert.equal(visibleMarket.observed,liveObserved.provisional_complete_100point_o
 assert.equal(visibleMarket.total,liveObserved.listed_total);
 assert.equal(visibleDart.complete,liveReceipts.filing_months_checkpointed);
 assert.equal(visibleDart.remaining,120-visibleDart.complete);
+// A same-day price rollover must explain why older DART scores disappear,
+// but never add older fiscal scores into today's numeric 100-point total.
+{
+ const current={...liveObserved,asof:'2026-11-02',
+  observed_issuer_counts:{...liveObserved.observed_issuer_counts,
+   financial:0,valuation:0},
+  factor_unobserved_weight_gap:{...liveObserved.factor_unobserved_weight_gap,
+   financial:20,valuation:20},
+  fiscal_reference_join_status:'not_ready_or_unverified_annual_source'};
+ const prior={schema:'v3-real-saved-source-six-pillar-coverage-0.1',
+  market_asof:'2026-10-30',listed_total:2499,
+  investment_grade_scores_confirmed:false,
+  six_pillar_numeric_provisional_issuer_counts:{financial:2346,valuation:2452}};
+ const explain=liveProgress.scoreRolloverNotice(current,prior);
+ assert.match(explain,/이전 2026-10-30 참고자료/);
+ assert.match(explain,/재무 2,346개·밸류 2,452개/);
+ assert.match(explain,/40점.*미확보/);
+ assert.match(explain,/과거 종목구성·기준일이 달라/);
+ assert.equal(liveProgress.scoreRolloverNotice({
+  ...current,observed_issuer_counts:{
+   ...current.observed_issuer_counts,financial:1}},prior),'');
+ assert.equal(liveProgress.scoreRolloverNotice(current,{
+  ...prior,market_asof:'2026-11-03'}).includes('2,346개'),false);
+ assert.equal(liveProgress.scoreRolloverNotice(current,{
+  ...prior,investment_grade_scores_confirmed:true}).includes('2,346개'),false);
+ assert.equal(liveProgress.scoreRolloverNotice(current,null).includes('40점'),true);
+}
 // The anonymous public writer stores ratios to six decimal places.
 // Fractions like 40/120 round to 0.333333; accept that precision without
 // weakening the required exact integer count/remaining invariants.
