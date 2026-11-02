@@ -66,6 +66,43 @@ class GapAuditTests(unittest.TestCase):
         self.assertNotIn("annual_receipt_id", report)
         self.assertNotIn("free_cashflow_krw", report)
 
+    def test_issuer_year_preview_preserves_exact_account_missingness_without_amounts(self):
+        market, catalog, major, state, candidates = self._fixture()
+        aggregate = gap.audit_cashflow_gaps(state, market, catalog, major)
+        view = gap.issuer_gap_view(state, market, catalog, major,
+                                   aggregate=aggregate)
+        self.assertEqual(view["schema"], gap.ISSUER_SCHEMA)
+        self.assertEqual(view["fiscal_years"], [2023, 2024, 2025])
+        self.assertEqual(view["source_cashflow_sha256"],
+                         aggregate["source_cashflow_sha256"])
+        self.assertEqual(view["records"][candidates[0]],
+                         ["CFS", "X", "C", "B"])
+        self.assertEqual(view["records"][candidates[1]],
+                         ["CFS", "P", "I", "U"])
+        self.assertEqual(view["records"][candidates[2]],
+                         ["CFS", "V", "N", "N"])
+        self.assertEqual(view["status_counts"],
+                         {"B": 1, "C": 1, "I": 1, "P": 1,
+                          "U": 1, "V": 1, "X": 1})
+        self.assertEqual(view["attempted_company_years"], 7)
+        self.assertEqual(view["unfetched_company_year_slots"],
+                         aggregate["listed_issuer_count"] * 3 - 7)
+        self.assertEqual(view["issuers_without_saved_cashflow_years"],
+                         aggregate["listed_issuer_count"] - 3)
+        self.assertFalse(view["raw_amounts_or_receipt_ids_published"])
+        self.assertTrue(view["unobserved_not_zero"])
+        self.assertEqual(view["provider_api_calls"], 0)
+        self.assertFalse(view["trading_score_promoted"])
+        payload = json.dumps(view, sort_keys=True)
+        for forbidden in ("annual_receipt_id", "free_cashflow_krw",
+                          "operating_cashflow_krw", "corp_code", "rcept_no"):
+            self.assertNotIn(forbidden, payload)
+        forged = copy.deepcopy(aggregate)
+        forged["attempted_company_years"] += 1
+        with self.assertRaises(gap.GapAuditError):
+            gap.issuer_gap_view(state, market, catalog, major,
+                                aggregate=forged)
+
     def test_three_year_issuer_depth_separates_unfetched_from_missing_accounts(self):
         market, catalog, major, state, _ = self._fixture()
         result = gap.audit_cashflow_gaps(state, market, catalog, major)

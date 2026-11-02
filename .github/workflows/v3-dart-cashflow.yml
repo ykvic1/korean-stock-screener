@@ -81,8 +81,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [[ -f docs/v3-dart-cashflow-reference.json ]]; then
             python v3_dart_cashflow_factor_preview.py --mode write
-            python v3_dart_cashflow_gap_audit.py --mode write
-            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json
+            python v3_dart_cashflow_gap_audit.py --mode write --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
           fi
           if ! git diff --cached --quiet; then
             git commit -m "Bounded official FY2023-2025 cashflow/CAPEX observations (no scores)"
@@ -96,14 +96,14 @@ jobs:
               # removed until independently refetched and matched.
               python v3_dart_cashflow_enrichment.py --mode rebind
               python v3_dart_cashflow_factor_preview.py --mode write
-              python v3_dart_cashflow_gap_audit.py --mode write
-              git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json
+              python v3_dart_cashflow_gap_audit.py --mode write --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+              git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
               if ! git diff --cached --quiet; then
                 git commit --amend --no-edit
               fi
               python v3_dart_cashflow_enrichment.py --mode verify
               python v3_dart_cashflow_factor_preview.py --mode verify
-              python v3_dart_cashflow_gap_audit.py --mode verify
+              python v3_dart_cashflow_gap_audit.py --mode verify --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
               if git push origin HEAD:main; then
                 echo "verified_cashflow_checkpoint_published"
                 break

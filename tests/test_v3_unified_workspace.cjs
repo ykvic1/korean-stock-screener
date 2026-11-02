@@ -508,6 +508,9 @@ assert.ok(html.includes('<option value="personal">개인 연구용 100점 환산
  'sort controls must distinguish normalized personal beta score');
 assert.ok(css.includes('#personalRank[aria-pressed=true]')&&css.includes('.u-personal100'),
  'personal research chip and ranking toggle must have visible CSS treatment');
+assert.ok(source.includes('v3-dart-cashflow-issuer-evidence.json')&&
+ css.includes('.u-fcf-issuer-years'),
+ 'lightweight per-year official DART account statuses must be loaded and styled');
 assert.ok(source.includes('fcfEvidenceMarkup(r)')&&css.includes('.u-fcf-stock-status'),
  'per-stock FCF evidence must be visible on the selected detail card');
 assert.equal(unified.fcfEvidenceStatus({price_date:'2026-10-20',market:'KOSPI'}).state,
@@ -524,8 +527,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-fcf-evidence420')&&
-  page.includes('workspace.css?v=v30b-20261102-fcf-evidence420'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-fcf-years421')&&
+  page.includes('workspace.css?v=v30b-20261102-fcf-years421'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -1050,6 +1053,50 @@ assert.ok(unified.fcfEvidenceMarkup({...funded,v3_dart_fcf_research:{
  .includes('30개 미달'),'raw data must not disappear when only peer sample is insufficient');
 assert.equal(unified.fcfEvidenceStatus({...funded,v3_dart_fcf_research:{
  ...fcfRow,asof:'2026-10-19'}}).state,'source_mismatch');
+// Derivative issuer-year status is source-hash/date/partition gated. A
+// missing account is never inferred from a null FCF subfactor or set to zero.
+const issuerGapDigest='a'.repeat(64);
+const issuerGapModel={date:'2026-10-20',marketEligible:2,rows:[
+ {r:{code:'005930',market:'KOSPI',price_date:'2026-10-20'}},
+ {r:{code:'000660',market:'KOSPI',price_date:'2026-10-20'}}
+]};
+const issuerGapReport={
+ schema:'v3-listed-issuer-annual-fcf-account-availability-0.1',
+ asof:'2026-10-20',listed_total:2,
+ fiscal_years:[2023,2024,2025],source_cashflow_sha256:issuerGapDigest,
+ records:{'005930':['CFS','X','I','V']},
+ issuers_with_saved_cashflow_years:1,issuers_without_saved_cashflow_years:1,
+ attempted_company_years:3,unfetched_company_year_slots:3,
+ status_counts:{B:0,C:0,I:1,P:0,U:0,V:1,X:1},
+ source_receipt_scope_checked:true,unobserved_not_zero:true,
+ raw_amounts_or_receipt_ids_published:false,
+ historical_pit_verified:false,provider_api_calls:0,trading_score_promoted:false
+};
+const referenceGap={asof:'2026-10-20',cashflow_snapshot_sha256:issuerGapDigest};
+assert.equal(unified.applyIssuerCashflowEvidence(issuerGapModel,issuerGapReport,referenceGap),1);
+const annualGap=unified.issuerCashflowGapMarkup(issuerGapModel.rows[0].r);
+assert.ok(annualGap.includes('2023년')&&annualGap.includes('CFO와 CAPEX')&&
+ annualGap.includes('2024년')&&annualGap.includes('무형자산')&&
+ annualGap.includes('2025년')&&annualGap.includes('접수번호 일치'),
+ 'actual issuer-year IFRS classifications must be explained independently');
+assert.ok(unified.issuerCashflowGapMarkup(issuerGapModel.rows[1].r)
+ .includes('현금흐름 원천 미수집'),'no saved source must not be labeled missing CFO');
+assert.ok(unified.fcfEvidenceMarkup({...issuerGapModel.rows[0].r,
+ v3_dart_fcf_research:fcfRow}).includes('연도별 공식 현금흐름 계정 확보 상태'));
+for(const forged of [
+ {...issuerGapReport,source_cashflow_sha256:'b'.repeat(64)},
+ {...issuerGapReport,asof:'2026-10-21'},
+ {...issuerGapReport,status_counts:{...issuerGapReport.status_counts,V:2}},
+ {...issuerGapReport,records:{'005930':['CFS','X','Z','V']}},
+ {...issuerGapReport,trading_score_promoted:true}
+]){
+ const clean={...issuerGapModel,rows:issuerGapModel.rows.map(x=>({r:{...x.r,
+ v3_dart_fcf_issuer_gap:undefined}}))};
+ assert.equal(unified.applyIssuerCashflowEvidence(clean,forged,referenceGap),0,
+  'stale, altered or promoted per-year evidence cannot be accepted');
+ assert.equal(clean.rows[0].r.v3_dart_fcf_issuer_gap,undefined,
+  'a failed source partition must not partially mutate any stock');
+}
 const fcf={
  schema:'v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1',
  asof:'2026-10-20',listed_total:2497,
