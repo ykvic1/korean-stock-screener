@@ -61,7 +61,11 @@ class PublicationAlignmentTests(unittest.TestCase):
                                     "invalid_source_alignment_scope"):
             audit.publication_alignment(*bad)
         bad = copy.deepcopy(base)
-        bad[3]["market_asof"] = "2026-10-31"
+        # Use tomorrow relative to the saved catalog date. A fixed date
+        # becomes a legitimate older weekly snapshot as the collector rolls.
+        from datetime import date, timedelta
+        bad[3]["market_asof"] = (date.fromisoformat(base[0]["date"]) +
+                                  timedelta(days=1)).isoformat()
         with self.assertRaisesRegex(audit.CoverageAuditError,
                                     "invalid_source_alignment_scope"):
             audit.publication_alignment(*bad)
