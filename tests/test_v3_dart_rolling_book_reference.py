@@ -182,6 +182,20 @@ class RollingCurrentListedDARTTests(unittest.TestCase):
                 mod.write(daily,catalog,output=dest,collector=good,limit=2)
             self.assertEqual(dest.read_bytes(),saved)
 
+    def test_full_market_success_triggers_early_bounded_annual_sync(self):
+        flow=(Path(__file__).resolve().parent.parent/
+              ".github/workflows/v3-rolling-dart-annual-book.yml").read_text(
+                  encoding="utf8")
+        self.assertIn("workflow_run:",flow)
+        self.assertIn("- Full-Market 100-Stock Batches",flow)
+        self.assertIn("types: [completed]",flow)
+        self.assertIn("workflow_run.conclusion == 'success'",flow)
+        self.assertIn("workflow_run.head_branch == 'main'",flow)
+        self.assertIn("workflow_run.head_repository.full_name == github.repository",flow)
+        self.assertIn("group: korea-stock-screener-publication",flow)
+        self.assertIn("limit=quota",flow)
+        self.assertIn("cron: '17 12 * * 1-5'",flow)
+
 
 if __name__=="__main__":
     unittest.main()
