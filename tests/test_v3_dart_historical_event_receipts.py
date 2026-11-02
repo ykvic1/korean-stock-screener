@@ -242,7 +242,7 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", wf)
         self.assertIn("default: dry_run", wf)
         # Code pushes still run offline checks but do not silently spend
-        # another 72 provider calls beyond the six scheduled daily budgets.
+        # another 72 provider calls beyond the twelve scheduled daily budgets.
         self.assertIn(
             "if: ${{ github.event_name == 'schedule' || "
             "(github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}",
@@ -255,8 +255,8 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("requests>=2.31,<3", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)
         self.assertIn("max 72 official DART calls", wf)
-        self.assertEqual(wf.count("    - cron:"), 6)
-        for hour in (2, 6, 10, 14, 18, 22):
+        self.assertEqual(wf.count("    - cron:"), 12)
+        for hour in range(0, 24, 2):
             self.assertIn("cron: '19 %d * * *'" % hour, wf)
         self.assertIn("timeout-minutes: 17", wf)
         self.assertIn("cancel-in-progress: false", wf)
@@ -264,6 +264,14 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertNotIn("contents: write", wf)
         self.assertIn("persist-credentials: false", wf)
         self.assertNotIn("git push", wf)
+        direct = (base / ".github/workflows/v3-dart-historical-direct-once.yml").read_text()
+        self.assertIn("paths:", direct)
+        self.assertIn("v3-dart-historical-direct-once.yml", direct)
+        self.assertIn("startsWith(github.event.head_commit.message", direct)
+        self.assertIn("group: v3-dart-private-historical-event-receipts", direct)
+        self.assertIn("max 72 calls", direct)
+        self.assertIn("python v3_dart_historical_event_receipts.py", direct)
+        self.assertNotIn("schedule:", direct)
         self.assertIn("cron: '30 9 * * 1-5'",
                       (base / ".github/workflows/full-market-batches.yml").read_text())
 
