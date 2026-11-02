@@ -4,6 +4,10 @@
 const VERSION='v3-unified-research-workspace-0.4-informational-sector-rs';
 const WEIGHTS=Object.freeze({volume:20,technical:25,financial:20,valuation:20,momentum:15});
 const PILLARS=Object.freeze([['volume','거래량·OBV'],['technical','기술적 분석'],['financial','재무'],['valuation','밸류에이션'],['momentum','모멘텀']]);
+const FISCAL_SUBFACTORS=Object.freeze({
+ financial:{revenue_cagr_3y_pct:['3년 매출성장률',4],operating_margin_3y_pct:['3년 영업이익률',4],liabilities_to_assets_pct:['부채/자산',4],operating_roa_3y_pct:['영업 ROA',4],fcf_assets_3y:['3년 FCF/자산',4]},
+ valuation:{pbr:['PBR',5],earnings_yield_pct:['이익수익률',5],sales_to_market_cap:['매출/시가총액',5],fcf_yield:['FCF수익률',5]}
+});
 const KSIC2_NAMES=Object.freeze({
  '01':'농업','02':'임업','03':'어업','05':'석탄·원유·천연가스 광업',
  '06':'금속광업','07':'비금속광물 광업','08':'광업 지원서비스',
@@ -634,6 +638,23 @@ function applyIssuerFactorLedger(model,ledger){
    factors[key]={asof:e.asof,available:e.available,points:e.points,source:e.source};
   }
   if(!valid)continue;
+  const components={};
+  if(saved.components&&typeof saved.components==='object'&&!Array.isArray(saved.components)){
+   for(const [group,items] of Object.entries(saved.components)){
+    if(!Object.prototype.hasOwnProperty.call(FISCAL_SUBFACTORS,group)||
+       !items||typeof items!=='object'||Array.isArray(items))continue;
+    for(const [name,e] of Object.entries(items)){
+     const spec=FISCAL_SUBFACTORS[group][name];
+     const source=name==='fcf_assets_3y'||name==='fcf_yield'? 'dart_fcf_subfactor':'dart_fiscal_subfactor';
+     if(!spec||!e||!validDate(e.asof)||e.asof>model.date||
+        e.available!==spec[1]||!finite(e.points)||e.points<0||e.points>e.available||
+        e.source!==source)continue;
+     (components[group]??={})[name]={asof:e.asof,available:e.available,
+      points:e.points,source:e.source};
+    }
+   }
+  }
+  r.v3_last_known_components=components;
   r.v3_last_known_factors=factors;
   linked++;
  }
@@ -755,6 +776,21 @@ function lastObservedFactorChip(p){
  return '<small class="u-factor-previous">'+esc(p.asof)+' 기준'+
   (p.carried?' · 이전 관측 유지':'')+'</small>';
 }
+function subfactorHistoryMarkup(key,r){
+ const specs=FISCAL_SUBFACTORS[key],snapshots=r?.v3_last_known_components?.[key];
+ if(!specs||!snapshots||!Object.keys(snapshots).length)return '';
+ const fmt=n=>n.toFixed(1).replace(/\.0$/,'');
+ const lines=Object.entries(specs).flatMap(([name,[label,max]])=>{
+  const e=snapshots[name];
+  if(!e||!validDate(e.asof)||!finite(e.points)||e.available!==max)return [];
+  return ['<li><span>'+esc(label)+'</span><b>'+fmt(e.points)+' / '+max+'점</b>'+ 
+   '<small>'+esc(e.asof)+' 관측</small></li>'];
+ });
+ if(!lines.length)return '';
+ return '<div class="u-subfactor-history"><p><b>세부항목별 마지막 유효 관측값</b> ('+
+  lines.length+'개) · 개별 원천 기준일을 유지합니다.</p><ul>'+lines.join('')+'</ul>'+
+  '<p>표시 중인 영역 합계·순위에 별도로 더하지 않습니다. 주가에 민감한 PBR·수익률은 관측일 이후 변동할 수 있습니다.</p></div>';
+}
 function scorePillarExplanation(p,r){
  const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
  const budget=p.max-p.available;
@@ -796,7 +832,8 @@ function scorePillarExplanation(p,r){
      '/'+metric.max+'점 · 동시장 표본 '+metric.peers+'개':' · 별도 배점 미확정')+
     '</p>';
   }
-  detail+='<p>재무·가치의 나머지 세부항목은 현재 공개 원천에서 종목별 세부점수 분해가 충분하지 않아, 영역 잠정 합계만 표시합니다. 하단 FCF 확보 상태에서 공시 계정별 자료를 확인할 수 있습니다.</p>';
+  const history=subfactorHistoryMarkup(p.key,r);
+  detail+=history||'<p>세부항목별 과거 관측값이 아직 없어 영역 잠정 합계만 표시합니다. 하단 FCF 확보 상태에서 공시 계정별 자료를 확인할 수 있습니다.</p>';
  }
  return '<div class="u-score-row-explain">'+intro+detail+
   '<p class="u-score-explain-caution">'+esc(notes[p.key]||'미검증 연구값')+
@@ -1793,7 +1830,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;

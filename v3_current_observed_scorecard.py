@@ -594,7 +594,8 @@ def main(argv=None):
     except (OSError,ValueError,KeyError):
         old_parts=old_audit=None
     issuer_ledger=build_issuer_factor_ledger(
-        catalog,rows,prior_ledger,parts=old_parts,audit=old_audit)
+        catalog,rows,prior_ledger,parts=old_parts,audit=old_audit,
+        fiscal_rows=financial,fcf_rows=cashflow)
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"
     if args.mode=="write":

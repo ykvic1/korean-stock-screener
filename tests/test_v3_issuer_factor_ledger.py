@@ -135,6 +135,70 @@ class IssuerFactorRetentionTests(unittest.TestCase):
                                     "untrusted_prior_factor_ledger"):
             build(census(day,[a]),[row(a,day)],forged)
 
+    def test_fiscal_and_fcf_components_keep_independent_values_and_dates(self):
+        a=member("005930","A"); old="2026-10-30";today="2026-11-02"
+        fiscal={"code":a["code"],"market":a["market"],"asof":old,
+            "unverified_components":{
+                "revenue_cagr_3y_pct":{"max_points":4,"candidate_points":2.5},
+                "operating_margin_3y_pct":{"max_points":4,"candidate_points":0},
+                "pbr":{"max_points":5,"candidate_points":3.1},
+                "earnings_yield_pct":{"max_points":0,"candidate_points":None}}}
+        fcf={"code":a["code"],"market":a["market"],"asof":old,
+            "strict_receipt_scope_matched":True,"scoring_certified":False,
+            "historical_PIT_certified":False,
+            "financial_fcf_assets_available_max":4,
+            "financial_fcf_assets_candidate_points":1.3,
+            "valuation_fcf_yield_available_max":5,
+            "valuation_fcf_yield_candidate_points":0}
+        first=build(census(old,[a]),[row(a,old)],
+                    fiscal_rows={a["code"]:fiscal},fcf_rows={a["code"]:fcf})
+        observed=first["rows"][a["code"]]["components"]
+        self.assertEqual(observed["financial"]["operating_margin_3y_pct"]["points"],0)
+        self.assertEqual(observed["valuation"]["fcf_yield"]["points"],0)
+        self.assertNotIn("earnings_yield_pct",observed["valuation"])
+        self.assertTrue(first["component_ledger_research_only"])
+        self.assertFalse(first["investment_score_certified"])
+        self.assertEqual(first["rows"][a["code"]]["factors"]["financial"]["points"],5)
+        refreshed=copy.deepcopy(fiscal)
+        refreshed["asof"]=today
+        refreshed["unverified_components"]={
+            "revenue_cagr_3y_pct":{"max_points":4,"candidate_points":3.5}}
+        later=build(census(today,[a]),[row(a,today,financial=None,valuation=None)],
+                    first,fiscal_rows={a["code"]:refreshed})
+        got=later["rows"][a["code"]]
+        self.assertEqual(got["components"]["financial"]["revenue_cagr_3y_pct"]["asof"],today)
+        self.assertEqual(got["components"]["financial"]["revenue_cagr_3y_pct"]["points"],3.5)
+        self.assertEqual(got["components"]["financial"]["operating_margin_3y_pct"]["asof"],old)
+        self.assertEqual(got["components"]["financial"]["fcf_assets_3y"]["asof"],old)
+        self.assertEqual(got["components"]["valuation"]["fcf_yield"]["asof"],old)
+        self.assertEqual(got["factors"]["financial"]["asof"],old)
+        self.assertEqual(got["factors"]["financial"]["points"],5)
+        self.assertEqual(build(census(today,[a]),
+            [row(a,today,financial=None,valuation=None)],later),later)
+
+    def test_malformed_individual_history_cannot_poison_retained_score(self):
+        a=member("005930","A");day="2026-11-02"
+        original=build(census(day,[a]),[row(a,day)])
+        forged=copy.deepcopy(original)
+        forged["rows"][a["code"]]["components"]={"financial":{
+            "pbr":{"asof":day,"available":5,"points":5,
+                   "source":"dart_fcf_subfactor"}}}
+        restored=build(census(day,[a]),[row(a,day)],forged)
+        self.assertEqual(restored["rows"][a["code"]]["factors"],
+                         original["rows"][a["code"]]["factors"])
+        self.assertEqual(restored["rows"][a["code"]]["components"],{})
+        forged["rows"][a["code"]]["components"]=["malformed"]
+        restored=build(census(day,[a]),[row(a,day)],forged)
+        self.assertEqual(restored["rows"][a["code"]]["components"],{})
+        invalid={"code":a["code"],"market":a["market"],"asof":day,
+                 "unverified_components":{"pbr":{
+                     "max_points":6,"candidate_points":4}}}
+        with self.assertRaisesRegex(IssuerFactorLedgerError,
+                                    "invalid_fiscal_component_weight"):
+            build(census(day,[a]),[row(a,day)],
+                  fiscal_rows={a["code"]:invalid})
+        self.assertEqual(original["rows"][a["code"]]["factors"]["valuation"]["points"],4)
+
     def test_actual_collector_is_the_sole_publication_writer(self):
         root=Path(__file__).resolve().parent.parent
         workflow=(root/".github/workflows/v3-current-observed-scorecard.yml"
@@ -142,6 +206,7 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         worker=(root/"v3_current_observed_scorecard.py").read_text(encoding="utf8")
         self.assertIn("docs/v3-issuer-last-observed-factors.json",workflow)
         self.assertIn("build_issuer_factor_ledger(",worker)
+        self.assertIn("fiscal_rows=financial,fcf_rows=cashflow",worker)
         self.assertIn("or json.loads(ledger_path.read_text",worker)
 
 
