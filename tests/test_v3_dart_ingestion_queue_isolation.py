@@ -20,7 +20,8 @@ GROUPS={
 ALLOWED={
  "cash":("docs/v3-dart-cashflow-reference.json",
          "docs/v3-dart-fcf-research-preview.json",
-         "docs/v3-dart-cashflow-gap-summary.json"),
+         "docs/v3-dart-cashflow-gap-summary.json",
+         "docs/v3-dart-cashflow-issuer-evidence.json"),
  "industry":("docs/v3-dart-industry-classification.json",
              "docs/v3-dart-industry-earnings-sample.json"),
  "fouryear":("docs/v3-dart-bulk-history.json",
@@ -83,6 +84,11 @@ class IsolatedDartWritersTests(unittest.TestCase):
             commands=[line.strip() for line in text.splitlines()
                       if line.strip().startswith("git add docs/")]
             self.assertGreater(len(commands),0,name)
+            if name == "cash":
+                self.assertTrue(all(
+                    "docs/v3-dart-cashflow-issuer-evidence.json" in line
+                    for line in commands),
+                    "derived issuer-account status is a cashflow-owned document")
             for command in commands:
                 for part in command.split()[2:]:
                     self.assertIn(part,ALLOWED[name],(name,part))
