@@ -477,6 +477,10 @@ assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved max
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
 assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
+assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
+ 'both entry routes must offer explicit observed five-pillar coverage grouping');
+assert.ok(css.includes('#coverageGroup:focus-visible'),
+ 'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
  'active filter and observational candidate chip must be visibly styled');
 assert.ok(html.includes('<option value="score" selected>V3 잠정점수순</option>'),
@@ -814,6 +818,27 @@ assert.deepEqual(unified.rankItems(obvModel,legacy,'all','all','','score',
 assert.deepEqual(unified.rankItems(obvModel,legacy,'all','all','높은','score',
  false,false,true).map(x=>x.r.code),[highLegacy.code],
  'explicit ticker search must still bypass research filters');
+const oneCoverage=unified.coverageKey(row);
+assert.equal(oneCoverage.split('-').length,5);
+assert.notEqual(unified.coverageVector([{available:16},{available:25},
+ {available:20},{available:20},{available:8}]),
+ unified.coverageVector([{available:16},{available:25},
+ {available:20},{available:15},{available:13}]),
+ 'same total available ceiling must not hide different pillar availability');
+const coverageModel={...model,rows:[safe,
+ {...safe,r:{...row,code:'111111',name:'동일배점'}},unsafe]};
+const common=unified.coverageGroups(coverageModel).find(x=>x.key===oneCoverage);
+assert.ok(common&&common.count===2&&common.total===
+ unified.researchComposite(row).available,
+ 'only actually observed two-or-more issuer coverage groups are selectable');
+assert.deepEqual(unified.rankItems(coverageModel,legacy,'all','all','','score',
+ false,false,false,oneCoverage).map(x=>x.r.code).sort(),
+ ['005930','111111'],
+ 'all five available pillar ceilings must match the selected group');
+assert.deepEqual(unified.rankItems(coverageModel,legacy,'rsi','KOSDAQ','높은',
+ 'score',true,true,true,oneCoverage).map(x=>x.r.code),
+ [highLegacy.code],
+ 'direct ticker search must bypass coverage groups and other browse filters');
 assert.equal(unified.rankItems(model,legacy,'patterns').length,1);
 assert.equal(unified.rankItems(model,legacy,'rsi').length,1);
 assert.equal(unified.rankItems(model,legacy,'quant').length,0);
@@ -1014,6 +1039,16 @@ assert.ok(observedLagRows.every(x=>unified.obvLagCandidate(x.r)),
 assert.equal(observedLagRows.length,prepared.rows.filter(x=>
  unified.obvLagCandidate(x.r)).length,
  'real saved-source OBV filter must account for all and only matched stocks');
+const realCoverageGroups=unified.coverageGroups(prepared);
+assert.ok(realCoverageGroups.length>0);
+assert.ok(realCoverageGroups.every(g=>g.count>=2&&g.parts.length===5&&
+ g.total===g.parts.reduce((a,b)=>a+b,0)));
+const observedGroup=realCoverageGroups[0];
+const exactCoverageRows=unified.rankItems(prepared,legacy,'all','all','','score',
+ false,false,false,observedGroup.key);
+assert.equal(exactCoverageRows.length,observedGroup.count,
+ 'saved stock data must yield the same coverage group count as the browser');
+assert.ok(exactCoverageRows.every(x=>x.coverageKey===observedGroup.key));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=16));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
   unified.pillarState(x.r)[0].candidate<=16));
