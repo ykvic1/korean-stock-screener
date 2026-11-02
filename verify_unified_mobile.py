@@ -105,6 +105,21 @@ with sync_playwright() as p:
     assert 0 <= float(first_normalized) <= 100
     page.locator(".u-stock").first.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
+    # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
+    # total. Show earned, observed-but-unearned, and missing budgets separately.
+    scorecard = page.locator("#detail .u-score-visual")
+    assert scorecard.is_visible()
+    assert "총 100점 배점 · 미인증" in scorecard.inner_text()
+    assert scorecard.locator(".u-score-total-track").is_visible()
+    assert scorecard.locator(".u-score-row").count() == 5
+    assert scorecard.locator(".u-score-row").evaluate_all(
+        "(rows) => rows.map(row => row.dataset.pillar)"
+    ) == ["momentum", "valuation", "financial", "technical", "volume"]
+    assert scorecard.locator(".u-score-row .u-score-track").count() == 5
+    assert "미확보는 0점이 아닙니다" in scorecard.inner_text()
+    assert page.evaluate(
+        "document.documentElement.scrollWidth <= window.innerWidth"
+    ), "five-area stock detail scorecard must not overflow mobile viewport"
     # Every selected stock must disclose its FCF state without guessing missing accounts.
     fcf_status = page.locator("#detail .u-fcf-stock-status")
     assert fcf_status.is_visible()
