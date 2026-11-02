@@ -118,6 +118,26 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").count() > 0
     page.locator("#coverageGroup").select_option("all")
     assert "동일 그룹" not in page.locator("#resultCount").inner_text()
+    # Side-by-side real tickers: compare earned/available and all five pillar evidence.
+    assert page.locator("#compareForm").is_visible()
+    page.locator("#compareCodeA").fill("005930")
+    page.locator("#compareCodeB").fill("000660")
+    page.locator("#compareRun").click()
+    assert page.locator("#compareResults").is_visible()
+    assert "삼성전자" in page.locator("#compareResults").inner_text()
+    assert "SK하이닉스" in page.locator("#compareResults").inner_text()
+    assert page.locator("#compareResults .u-compare-table tbody tr").count() == 5
+    assert "점수 우열" in page.locator("#compareStatus").inner_text() or (
+        "관측 기준일" in page.locator("#compareStatus").inner_text()
+    )
+    # Users cannot compare a stock to itself or silently reuse a stale result.
+    page.locator("#compareCodeB").fill("005930")
+    assert page.locator("#compareResults").is_hidden()
+    page.locator("#compareRun").click()
+    assert "동일한 종목" in page.locator("#compareStatus").inner_text()
+    page.locator("#compareReset").click()
+    assert page.locator("#compareCodeA").input_value() == ""
+    assert page.locator("#compareCodeB").input_value() == ""
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     assert page.locator(".u-stock").first.locator(".u-provisional-total").is_visible()
