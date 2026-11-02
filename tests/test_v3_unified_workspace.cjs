@@ -84,6 +84,15 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
     points:11.5,source:'dart_bulk_snapshot'}}}}};
  assert.equal(unified.applyIssuerFactorLedger(model,saved),1);
  assert.equal(row.v3_last_known_factors.financial.asof,'2026-10-30');
+ const newCensus={date:today,marketEligible:2,rows:[
+  {r:{...row,v3_last_known_factors:undefined}},
+  {r:{code:'900001',name:'신규상장',market:'KOSDAQ',price_date:today}}]};
+ const lagged={...saved,market_asof:'2026-10-30'};
+ assert.equal(unified.applyIssuerFactorLedger(newCensus,lagged),1,
+  'unrelated new listings cannot blank earlier per-issuer observations');
+ assert.equal(newCensus.rows[0].r.v3_last_known_factors.financial.points,11.5);
+ assert.equal(newCensus.rows[1].r.v3_last_known_factors,undefined);
+
  const research={earned:22,available:51,missing:49,observedPillars:4,pillars:[
   {key:'volume',label:'거래량·OBV',max:20,candidate:7,available:16},
   {key:'technical',label:'기술적 분석',max:25,candidate:5,available:15},
