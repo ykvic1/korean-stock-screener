@@ -37,6 +37,7 @@ from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError, fingerprint
 from v3_unscored_path_coverage import summarize as summarize_path_coverage
 from v3_path_provisional_factors import preview as path_preview
+from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
 
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
@@ -581,16 +582,32 @@ def main(argv=None):
         financial=financial,cashflow=cashflow,
         path_coverage_receipt=path_coverage_receipt)
     new_csv=to_csv(rows,summary)
+    # Per-stock history is additive: a new market census never erases an
+    # unrelated issuer's last valid observations. Its dated values are NOT
+    # folded back into today's score or ranking.
+    ledger_path=root/"v3-issuer-last-observed-factors.json"
+    prior_ledger=(json.loads(ledger_path.read_text(encoding="utf8"))
+                  if ledger_path.is_file() else None)
+    try:
+        old_parts=read("v3-dart-bulk-provisional.json")
+        old_audit=read("v3-real-source-six-area-coverage.json")
+    except (OSError,ValueError,KeyError):
+        old_parts=old_audit=None
+    issuer_ledger=build_issuer_factor_ledger(
+        catalog,rows,prior_ledger,parts=old_parts,audit=old_audit)
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"
     if args.mode=="write":
         target.write_text(new_csv,encoding="utf8")
         from v3_dart_bulk_history import write_json
         write_json(status,summary)
+        write_json(ledger_path,issuer_ledger)
     else:
         if (not target.is_file() or not status.is_file()
             or target.read_text(encoding="utf8")!=new_csv
-            or json.loads(status.read_text(encoding="utf8"))!=summary):
+            or json.loads(status.read_text(encoding="utf8"))!=summary
+            or not ledger_path.is_file()
+            or json.loads(ledger_path.read_text(encoding="utf8"))!=issuer_ledger):
             raise LivePartialScorecardError("live_partial_publication_differs_from_sources")
     print(json.dumps({
         "status":"current_market_actual_observed_only",
