@@ -1693,8 +1693,23 @@ function financialSubfactorCoverageView(raw,asof,listed){
   '이 표는 투자점수나 종목 추천 순위가 아닙니다.</p></details>';
 }
 
+// Distinguish the source ingestion ceiling from the actual per-issuer usable
+// research coverage after independently dated factors have been retained.
+function retainedCoverageSummary(model,asof,listed){
+ if(!model||model.date!==asof||!Array.isArray(model.rows)||
+    model.rows.length!==listed)return null;
+ let peak=0,carriedIssuers=0;
+ for(const x of model.rows){
+  if(!x?.r||x.r.price_date!==asof)return null;
+  const c=researchComposite(x.r);
+  if(!Number.isInteger(c.available)||c.available<0||c.available>100)return null;
+  peak=Math.max(peak,c.available);
+  if(c.carriedPillars>0)carriedIssuers++;
+ }
+ return {peak,carriedIssuers};
+}
 // A five-pillar data availability audit; counts are evidence, never earned points.
-function fiveAreaCoverageView(raw,asof,listed){
+function fiveAreaCoverageView(raw,asof,listed,model=null){
  if(!raw||raw.schema!=='v3-current-day-all-listed-observed-plus-dart-fcf-0.3'||
   !validDate(asof)||raw.asof!==asof||
   !Number.isInteger(listed)||listed<100||raw.listed_total!==listed||
@@ -1755,10 +1770,18 @@ function fiveAreaCoverageView(raw,asof,listed){
   :'<p class="u-source">전영역 100점 배점 관측 완료: <b>'+
    complete100.toLocaleString('ko-KR')+'개</b> (정식 투자점수 인증: 0개). '+
    '121거래일 경로 기반 추가 11점은 수정주가·기업행위에 대한 독립 거래소 검증 전인 잠정 연구점수입니다.</p>';
+ const continuity=retainedCoverageSummary(model,asof,listed);
+ const continuityMarkup=continuity?
+  '<p class="u-source"><b>종목별 최근 유효 관측 기준 확보배점 최고 '+
+  continuity.peak+'/100점</b> · 이전 관측값으로 점수를 유지한 종목 '+
+  continuity.carriedIssuers.toLocaleString('ko-KR')+'개. '+
+  '이 값은 아래 당일 원천 수집현황과 다르며 스크리너 표시·정렬에 사용합니다. '+
+  '각 영역의 관측 기준일을 확인하세요.</p>':'';
  return '<div class="u-coverage-audit"><div class="u-coverage-top">'+
   '<strong>5개 영역 실제 데이터 확보</strong>'+
-  '<span>현재 관측 가능한 배점 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
+  '<span>당일 원천 영역별 최대 배점 합산 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
   missingWeight+'점</b></span></div>'+
+  continuityMarkup+
   '<div class="u-coverage-scroll"><table class="u-coverage-table"><thead><tr>'+
   '<th scope="col">영역</th><th scope="col">관측 기업 / 상장 전체</th>'+
   '<th scope="col">영역 전체 확보</th><th scope="col">관측 가능 배점</th>'+
@@ -1771,7 +1794,7 @@ function fiveAreaCoverageView(raw,asof,listed){
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -2109,7 +2132,7 @@ async function load(){
   applyCurrentObservedFinance(model,responses[16],observedCsv);
   applyIssuerFactorLedger(model,responses[19]);
   if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
-   fiveAreaCoverageView(responses[16],model.date,model.marketEligible)||
+   fiveAreaCoverageView(responses[16],model.date,model.marketEligible,model)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';
   const industry=industryEvidenceView(responses[12],model.date);
   const industryPrice=industryPriceEvidenceView(responses[15],model.date,model.marketEligible);
