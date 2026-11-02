@@ -1,0 +1,48 @@
+name: V3 Direct Historical DART Receipt Resume (One-off)
+
+on:
+  # New workflow is added only through the planned personal-beta merge.
+  # A path-limited, exact-title-guarded push gives ONE extra private batch;
+  # ordinary commits and scheduled workflows must never run this job.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-dart-historical-direct-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-dart-private-historical-event-receipts
+  cancel-in-progress: false
+
+jobs:
+  bounded-direct-resume:
+    if: ${{ github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): personal 100-point beta and faster DART collection') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private Git storage import dependencies
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Validate historical DART metadata before a bounded direct run
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_historical_event_receipts.py
+          python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
+      - name: Direct private OpenDART historical receipt collection (max 72 calls)
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # No public artifacts or logs contain private filings or secrets.
+          # Python script enforces 72 calls, provider status, private checkpoint.
+          python v3_dart_historical_event_receipts.py
