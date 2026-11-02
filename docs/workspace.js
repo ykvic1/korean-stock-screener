@@ -696,7 +696,50 @@ function personalHundred(r){
 // Partial-name guesses could silently compare the wrong issuer.
 // Sketch-inspired visual scorecard: earned, observable headroom and genuinely
 // unobserved budgets must remain distinguishable (never impute zero for missing).
-function scoreOverviewMarkup(c,normalized){
+// Every expansion preserves the underlying source-gated provisional
+// candidate. Do not infer subfactor scores from the remaining weight.
+function scorePillarExplanation(p,r){
+ const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
+ const budget=p.max-p.available;
+ const intro='<p><b>잠정 획득 '+number(p.candidate)+'점</b> · 산출 가능 '+
+  p.available+'/'+p.max+'점 · 미확보 '+budget+'점. '+
+  '미확보는 0점으로 계산한 것이 아닙니다.</p>';
+ const notes={
+  momentum:'시장 대비 20·60거래일 상대강도 관찰입니다. 수정주가·기업행위와 시장 기준일의 독립 검증 전으로 확정 추세점수가 아닙니다.',
+  valuation:'동일 기준일 연간 재무·주가 및 FCF수익률 연구값을 참고합니다. 확정 PBR 점수나 적정주가 판단으로 사용하지 않습니다.',
+  financial:'연간 재무 관측과 3개년 FCF/자산 연구값을 참고합니다. 과거 공시 정정·효력시점(PIT)은 독립 검증 전입니다.',
+  technical:'일봉·주봉 패턴, RSI, 120주선 및 거래량 확인 항목입니다. 형상 후보는 확정 매수 신호가 아닙니다.',
+  volume:'거래량과 OBV로 계산한 연구값입니다. 기관·외국인 실제 순매수나 매집을 증명하지 않습니다.'
+ };
+ let detail='';
+ if(p.key==='technical'&&r)detail=technicalParts(r);
+ if(p.key==='volume'&&r)detail=volumeParts(r);
+ if(p.key==='momentum'&&r&&momentumEvidence(r)){
+  const z=r.v3_momentum_research.momentum_parts;
+  const one=(label,v)=>'<div><span>'+label+'</span><b>'+
+   (finite(v)?v.toFixed(1):'—')+' / 4</b></div>';
+  detail='<div class="u-parts u-score-breakdown" aria-label="모멘텀 관측 근거">'+
+   one('시장 대비 20일',z.relative20)+one('시장 대비 60일',z.relative60)+
+   '</div><p>그 외 상승일 비율·추세 지속성·반전 폭 등은 관측 배점에 포함하지 않았습니다.</p>';
+ }
+ if((p.key==='financial'||p.key==='valuation')&&r){
+  const f=fcfEvidenceStatus(r);
+  if(f.state==='matched'){
+   const metric=p.key==='financial'?f.threeYear:f.latest;
+   const label=p.key==='financial'?'3개년 FCF/자산':'최근 연도 FCF수익률';
+   const raw=metric.state==='not_observed'?'미산출':pct(metric.raw);
+   detail='<p>'+label+' 원자료 '+raw+
+    (metric.state==='provisional'?' · FCF 잠정 '+metric.points.toFixed(1)+
+     '/'+metric.max+'점 · 동시장 표본 '+metric.peers+'개':' · 별도 배점 미확정')+
+    '</p>';
+  }
+  detail+='<p>재무·가치의 나머지 세부항목은 현재 공개 원천에서 종목별 세부점수 분해가 충분하지 않아, 영역 잠정 합계만 표시합니다. 하단 FCF 확보 상태에서 공시 계정별 자료를 확인할 수 있습니다.</p>';
+ }
+ return '<div class="u-score-row-explain">'+intro+detail+
+  '<p class="u-score-explain-caution">'+esc(notes[p.key]||'미검증 연구값')+
+  '</p></div>';
+}
+function scoreOverviewMarkup(c,normalized,r){
  if(!c||!Array.isArray(c.pillars)||c.pillars.length!==5||
     !Number.isInteger(c.available)||c.available<0||c.available>100||
     !Number.isInteger(c.missing)||c.missing!==100-c.available||
@@ -718,16 +761,17 @@ function scoreOverviewMarkup(c,normalized){
   const scored=p.candidate??0;
   const status=p.available===0?'자료 미확보':
    '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available);
-  return '<div class="u-score-row" data-pillar="'+key+'" role="group" aria-label="'+
+  return '<details class="u-score-row" data-pillar="'+key+'" aria-label="'+
    esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
-   '<span class="u-score-row-label">'+esc(label)+'</span>'+
+   '<summary class="u-score-row-main"><span class="u-score-row-label">'+esc(label)+'</span>'+
    '<span class="u-score-track" aria-hidden="true">'+
    '<span class="u-score-earned" data-score-width="'+percent(scored,max)+'"></span>'+
    '<span class="u-score-observed" data-score-width="'+percent(p.available-scored,max)+'"></span>'+
    '<span class="u-score-missing" data-score-width="'+percent(max-p.available,max)+'"></span></span>'+
    '<span class="u-score-row-value"><strong>'+number(p.candidate)+'</strong>'+
    '<small>/'+max+'</small></span>'+
-   '<small class="u-score-row-status">'+esc(status)+'</small></div>';
+   '<small class="u-score-row-status">'+esc(status)+'</small></summary>'+
+   scorePillarExplanation(p,r)+'</details>';
  });
  if(rows.some(v=>v===null)||
     c.pillars.reduce((sum,p)=>sum+p.available,0)!==c.available||
@@ -737,7 +781,7 @@ function scoreOverviewMarkup(c,normalized){
    return '<p class="u-muted">영역별 점수 데이터 재검증 중</p>';
  return '<section class="u-score-visual" aria-labelledby="detailScoreTitle">'+
   '<div class="u-score-visual-heading"><h3 id="detailScoreTitle">5영역 잠정 점수</h3>'+
-  '<span>총 100점 배점 · 미인증</span></div>'+
+  '<span>총 100점 배점 · 미인증 · 막대를 눌러서 근거 보기</span></div>'+
   '<div class="u-score-visual-body">'+
   '<div class="u-score-total"><div class="u-score-total-max"><strong>100</strong><small>만점</small></div>'+
   '<div class="u-score-total-track" role="img" aria-label="100점 만점 중 잠정 획득 '+
@@ -1619,7 +1663,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1748,7 +1792,7 @@ function renderDetails(x){
  '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
- scoreOverviewMarkup(composite,personal100)+
+ scoreOverviewMarkup(composite,personal100,r)+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
