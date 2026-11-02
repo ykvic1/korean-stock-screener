@@ -5,6 +5,7 @@ from io import StringIO
 import csv
 import json
 import os
+import re
 from datetime import date
 from playwright.sync_api import sync_playwright
 
@@ -108,11 +109,9 @@ with sync_playwright() as p:
     assert page.locator(".u-personal100").first.is_visible()
     assert "개인 연구용 100점 환산" in page.locator(".u-personal100").first.inner_text()
     first_normalized = page.locator(".u-stock").first.locator(".u-personal100 b").inner_text()
-    if observed["provisional_complete_100point_observation_count"] > 0:
-        assert first_normalized != "—", "observed five-pillar scores must normalize"
-        assert 0 <= float(first_normalized) <= 100
-    else:
-        assert first_normalized == "—", "no fully observed stock must not get an invented 100-point ratio"
+    # Complete 100/100 observations and eligible *partial* personal ratios
+    # are distinct: the latter needs all five pillars and at least 75 points
+    # of observed budget, even when the issuer census has 0 complete rows.
     page.locator(".u-stock").first.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
     # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
@@ -122,6 +121,20 @@ with sync_playwright() as p:
     assert "총 100점 배점 · 미인증" in scorecard.inner_text()
     assert scorecard.locator(".u-score-total-track").is_visible()
     assert scorecard.locator(".u-score-row").count() == 5
+    statuses = scorecard.locator(".u-score-row-status").all_inner_texts()
+    available_by_pillar = [
+        int(match.group(1)) if (match := re.search(r"확보 (\\d+)/", status)) else 0
+        for status in statuses
+    ]
+    ratio_eligible = all(points > 0 for points in available_by_pillar) and (
+        sum(available_by_pillar) >= 75
+    )
+    assert (first_normalized != "—") == ratio_eligible, (
+        "personal ratio must follow per-issuer five-pillar/75-point coverage,"
+        " not the market-wide 100/100 issuer count"
+    )
+    if ratio_eligible:
+        assert 0 <= float(first_normalized) <= 100
     assert scorecard.locator(".u-score-row").evaluate_all(
         "(rows) => rows.map(row => row.dataset.pillar)"
     ) == ["momentum", "valuation", "financial", "technical", "volume"]
