@@ -654,6 +654,28 @@ function applyIssuerFactorLedger(model,ledger){
     }
    }
   }
+  const componentHistory={};
+  if(saved.component_history&&typeof saved.component_history==='object'&&
+     !Array.isArray(saved.component_history)){
+   for(const [group,items] of Object.entries(saved.component_history)){
+    if(!Object.prototype.hasOwnProperty.call(components,group)||
+       !items||typeof items!=='object'||Array.isArray(items))continue;
+    for(const [name,previous] of Object.entries(items)){
+     const current=components[group][name],spec=FISCAL_SUBFACTORS[group][name];
+     if(!current||!spec||!Array.isArray(previous)||previous.length>3)continue;
+     let last='0000-00-00',valid=true;
+     const observations=[];
+     for(const p of previous){
+      if(!p||!validDate(p.asof)||p.asof<last||p.asof>current.asof||
+         !finite(p.points)||p.points<0||p.points>spec[1]){valid=false;break;}
+      last=p.asof;
+      observations.push({asof:p.asof,points:p.points});
+     }
+     if(valid&&observations.length)(componentHistory[group]??={})[name]=observations;
+    }
+   }
+  }
+  r.v3_component_history=componentHistory;
   r.v3_last_known_components=components;
   r.v3_last_known_factors=factors;
   linked++;
@@ -783,13 +805,17 @@ function subfactorHistoryMarkup(key,r){
  const lines=Object.entries(specs).flatMap(([name,[label,max]])=>{
   const e=snapshots[name];
   if(!e||!validDate(e.asof)||!finite(e.points)||e.available!==max)return [];
-  return ['<li><span>'+esc(label)+'</span><b>'+fmt(e.points)+' / '+max+'점</b>'+ 
-   '<small>'+esc(e.asof)+' 관측</small></li>'];
+  const prior=r?.v3_component_history?.[key]?.[name];
+  const previous=Array.isArray(prior)&&prior.length?prior[prior.length-1]:null;
+  const update=(r?.price_date&&e.asof<r.price_date)?' · 최근 수집 미갱신':'';
+  const older=previous?' · 직전 '+esc(previous.asof)+' '+fmt(previous.points)+'점':'';
+  return ['<li><span>'+esc(label)+'</span><b>'+fmt(e.points)+' / '+max+'점</b>'+
+   '<small>'+esc(e.asof)+' 관측'+update+older+'</small></li>'];
  });
  if(!lines.length)return '';
  return '<div class="u-subfactor-history"><p><b>세부항목별 마지막 유효 관측값</b> ('+
   lines.length+'개) · 개별 원천 기준일을 유지합니다.</p><ul>'+lines.join('')+'</ul>'+
-  '<p>표시 중인 영역 합계·순위에 별도로 더하지 않습니다. 주가에 민감한 PBR·수익률은 관측일 이후 변동할 수 있습니다.</p></div>';
+  '<p>미갱신은 수집 실패를 의미하지 않으며 원인은 별도 감사 대상입니다. 이력은 최대 직전 3회 관측까지 유지합니다. 영역 합계·순위에 별도 가산하지 않습니다.</p></div>';
 }
 function scorePillarExplanation(p,r){
  const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
