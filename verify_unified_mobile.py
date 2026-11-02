@@ -108,8 +108,11 @@ with sync_playwright() as p:
     assert page.locator(".u-personal100").first.is_visible()
     assert "개인 연구용 100점 환산" in page.locator(".u-personal100").first.inner_text()
     first_normalized = page.locator(".u-stock").first.locator(".u-personal100 b").inner_text()
-    assert first_normalized != "—", "known full five-pillar observations must produce a personal number"
-    assert 0 <= float(first_normalized) <= 100
+    if observed["provisional_complete_100point_observation_count"] > 0:
+        assert first_normalized != "—", "observed five-pillar scores must normalize"
+        assert 0 <= float(first_normalized) <= 100
+    else:
+        assert first_normalized == "—", "no fully observed stock must not get an invented 100-point ratio"
     page.locator(".u-stock").first.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
     # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
