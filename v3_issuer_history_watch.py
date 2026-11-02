@@ -68,13 +68,13 @@ def inspect(current,previous=None):
     groups=Counter()
     for code,row in rows.items():
         if (not isinstance(row,dict) or code!=row.get("code") or
-            len(code)!=6 or not code.isdecimal() or
+            not isinstance(code,str) or len(code)!=6 or not code.isdecimal() or
             row.get("market") not in ("KOSPI","KOSDAQ") or
             not isinstance(row.get("name"),str) or
             type(row.get("active")) is not bool or
             not isinstance(row.get("factors"),dict) or
             not isinstance(row.get("components"),dict) or
-            not isinstance(row.get("component_history"),dict)):
+            not isinstance(row.get("component_history",{}),dict)):
             issues.append("invalid_issuer_identity_or_ledger_contract")
             continue
         if row["active"]:
@@ -109,7 +109,7 @@ def inspect(current,previous=None):
                     counts["retained_component_observations"]+=1
                 if e["points"]==0:
                     counts["valid_observed_zero_points"]+=1
-        for group,items in row["component_history"].items():
+        for group,items in row.get("component_history",{}).items():
             if group not in COMPONENTS or not isinstance(items,dict):
                 issues.append("invalid_component_history_group")
                 continue
