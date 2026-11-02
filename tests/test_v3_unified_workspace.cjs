@@ -1559,20 +1559,32 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
   if(readinessHistory.schema==='v3-real-saved-source-six-pillar-coverage-0.1' &&
      base.asof.slice(0,4)===readinessHistory.market_asof.slice(0,4) &&
      Number.isInteger(lag)&&lag>=1&&lag<=10){
-   assert.ok(live.readinessStatus.textContent.includes('당일 재무 잠정근거 확보'));
+   const sameDayScore=readinessScore.asof===base.asof &&
+    readinessScore.listed_total===base.listed_total &&
+    readinessScore.provisional_numeric_issuer_counts.financial===base.observed_issuer_counts.financial &&
+    readinessScore.provisional_numeric_issuer_counts.valuation===base.observed_issuer_counts.valuation &&
+    readinessScore.provisional_numeric_issuer_counts.technical===base.observed_issuer_counts.technical;
+   assert.ok(live.readinessStatus.textContent.includes(sameDayScore?
+    '당일 재무 잠정근거 확보':'DART 동기화 대기'));
    assert.equal(live.readinessPrice.textContent,
     base.observed_issuer_counts.technical.toLocaleString('ko-KR')+' / '+
     base.listed_total.toLocaleString('ko-KR'));
    assert.equal(live.readinessFinancial.textContent,'동기화 대기');
-   assert.equal(live.readinessFinancialIssuers.textContent,
-    base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+
-    base.listed_total.toLocaleString('ko-KR'));
-   assert.equal(live.readinessValuationIssuers.textContent,
-    base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
-    base.listed_total.toLocaleString('ko-KR'));
-   assert.equal(live.readinessCashflow.textContent,
-    readinessScore.observed_source_depth.three_year_receipt_matched_fcf_issuers.toLocaleString('ko-KR')+
-    ' / '+base.listed_total.toLocaleString('ko-KR'));
+   if(sameDayScore){
+    assert.equal(live.readinessFinancialIssuers.textContent,
+     base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+
+     base.listed_total.toLocaleString('ko-KR'));
+    assert.equal(live.readinessValuationIssuers.textContent,
+     base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
+     base.listed_total.toLocaleString('ko-KR'));
+    assert.equal(live.readinessCashflow.textContent,
+     readinessScore.observed_source_depth.three_year_receipt_matched_fcf_issuers.toLocaleString('ko-KR')+
+     ' / '+base.listed_total.toLocaleString('ko-KR'));
+   }else{
+    for(const id of ['readinessCashflow','readinessFinancialIssuers',
+      'readinessValuationIssuers','readinessProvisional100'])
+     assert.equal(live[id].textContent,'동기화 대기');
+   }
    assert.equal(live.readinessCertified.textContent,'0종목');
    assert.ok(live.readinessNotes.textContent.includes('독립 인증 전'));
   }else{
@@ -1594,7 +1606,13 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  oneDayOldHistory.market_asof=new Date(Date.parse(base.asof+'T00:00:00Z')-86400000)
   .toISOString().slice(0,10);
  oneDayOldHistory.listed_total=base.listed_total-2;
- const partial=await simulateReadiness(base,oneDayOldHistory);
+ const syntheticSameDayScore=structuredClone(readinessScore);
+ syntheticSameDayScore.asof=base.asof;
+ syntheticSameDayScore.listed_total=base.listed_total;
+ for(const key of ['technical','financial','valuation'])
+  syntheticSameDayScore.provisional_numeric_issuer_counts[key]=
+   base.observed_issuer_counts[key];
+ const partial=await simulateReadiness(base,oneDayOldHistory,syntheticSameDayScore);
  assert.ok(partial.readinessStatus.textContent.includes('당일 재무 잠정근거 확보'));
  assert.equal(partial.readinessPrice.textContent,
   base.observed_issuer_counts.technical.toLocaleString('ko-KR')+' / '+
@@ -1607,7 +1625,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
   base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
   base.listed_total.toLocaleString('ko-KR'));
  assert.equal(partial.readinessCertified.textContent,'0종목');
- const staleAuxiliary=structuredClone(readinessScore);
+ const staleAuxiliary=structuredClone(syntheticSameDayScore);
  staleAuxiliary.asof=oneDayOldHistory.market_asof;
  const noReplay=await simulateReadiness(base,oneDayOldHistory,staleAuxiliary);
  assert.ok(noReplay.readinessStatus.textContent.includes('DART 동기화 대기'));
@@ -1640,7 +1658,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  wrongHistorySchema.schema='unverified-external';
  assert.equal((await simulateReadiness(base,wrongHistorySchema))
   .readinessStatus.textContent,'출처 재검증 중');
- const good=await simulateReadiness(base,alignedHistory);
+ const good=await simulateReadiness(base,alignedHistory,syntheticSameDayScore);
  assert.equal(good.readinessFinancialIssuers.textContent,
   base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+base.listed_total.toLocaleString('ko-KR'));
  assert.equal(good.readinessValuationIssuers.textContent,
