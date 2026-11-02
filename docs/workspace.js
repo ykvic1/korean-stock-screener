@@ -847,7 +847,7 @@ function scoreOverviewMarkup(c,normalized,r){
    p.lastObserved.points<=p.lastObserved.available?
    ' · 마지막 관측 '+number(p.lastObserved.points)+'/'+p.lastObserved.available+
    ' ('+p.lastObserved.asof+')':'';
-  const status=p.available===0?'당일 미확보'+prior:
+  const status=p.available===0?'자료 미확보'+prior:
    '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available);
   return '<details class="u-score-row" data-pillar="'+key+'" aria-label="'+
    esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
