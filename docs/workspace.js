@@ -818,10 +818,12 @@ function comparisonPillarBars(a,b,names,comparable){
  const side=(p,name)=>{
   const scored=p.candidate??0,missing=p.max-p.available;
   const description=esc(name)+' · '+num(p.candidate)+' / '+p.max+
-   '점 · 산출 가능 '+p.available+'점 · 미확보 '+missing+'점';
+   '점 · 산출 가능 '+p.available+'점 · 미확보 '+missing+'점'+
+   (p.asof?' · '+p.asof+' 기준':'');
   return '<div class="u-compare-factor" aria-label="'+description+'">'+
    '<div class="u-compare-factor-value"><strong>'+num(p.candidate)+'</strong>'+
-   '<small>/'+p.max+' · 확보 '+p.available+' · 미확보 '+missing+'</small></div>'+
+   '<small>/'+p.max+' · 확보 '+p.available+' · 미확보 '+missing+
+   (p.asof?' · '+esc(p.asof)+(p.carried?' 유지':''):'')+'</small></div>'+
    '<div class="u-compare-meter" aria-hidden="true">'+
    '<span class="u-score-earned" data-score-width="'+width(scored,p.max)+'"></span>'+
    '<span class="u-score-observed" data-score-width="'+width(p.available-scored,p.max)+'"></span>'+
@@ -861,15 +863,9 @@ function scoreOverviewMarkup(c,normalized,r){
      (p.candidate!==null&&(!finite(p.candidate)||p.candidate<0||
        p.candidate>p.available)))return null;
   const scored=p.candidate??0;
-  const prior=p.available===0&&p.lastObserved&&validDate(p.lastObserved.asof)&&
-   Number.isInteger(p.lastObserved.available)&&
-   p.lastObserved.available>0&&p.lastObserved.available<=max&&
-   finite(p.lastObserved.points)&&p.lastObserved.points>=0&&
-   p.lastObserved.points<=p.lastObserved.available?
-   ' · 마지막 관측 '+number(p.lastObserved.points)+'/'+p.lastObserved.available+
-   ' ('+p.lastObserved.asof+')':'';
-  const status=p.available===0?'자료 미확보'+prior:
-   '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available);
+  const when=p.asof?' · '+p.asof+' 기준'+(p.carried?' (이전 관측 유지)':''):'';
+  const status=p.available===0?'자료 미확보':
+   '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available)+when;
   return '<details class="u-score-row" data-pillar="'+key+'" aria-label="'+
    esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
    '<summary class="u-score-row-main"><span class="u-score-row-label">'+esc(label)+'</span>'+
@@ -907,6 +903,8 @@ function scoreOverviewMarkup(c,normalized,r){
   '<p class="u-score-disclaimer">잠정 합계 <b>'+
   (c.earned===null?'미산출':number(c.earned)+'점')+'</b> · 산출 가능 '+
   c.available+'/100점 · 미확보 '+c.missing+'/100점. 미확보는 0점이 아닙니다. '+
+  (c.stalePillars?' 이전 관측일이 포함된 영역 '+c.stalePillars+
+   '개, 가장 오래된 근거 '+esc(c.oldestAsOf)+'. 각 영역의 실제 기준일을 확인하세요.':'')+
   (normalized===null?'개인용 100점 비율 환산은 5영역·75점 이상 관측 시에만 표시합니다.':
    '별도 비율 환산 '+number(normalized)+'/100점은 관측 배점 기준이며 확정 투자점수가 아닙니다.')+
   ' 매수 신호나 수익 예측으로 사용하지 마세요.</p></section>';
@@ -1846,13 +1844,16 @@ function renderCompare(){
   const q=b.pillars[i];
   const points=v=>v.candidate===null?'미산출 · 0점 아님':v.candidate.toFixed(1)+'점';
   return '<tr><th scope="row">'+esc(p.label)+' /'+p.max+'</th>'+
-   '<td>'+points(p)+'<small>확보 '+p.available+'/'+p.max+'</small></td>'+
-   '<td>'+points(q)+'<small>확보 '+q.available+'/'+q.max+'</small></td></tr>';
+   '<td>'+points(p)+'<small>확보 '+p.available+'/'+p.max+
+   (p.asof?' · '+esc(p.asof):'')+'</small></td>'+
+   '<td>'+points(q)+'<small>확보 '+q.available+'/'+q.max+
+   (q.asof?' · '+esc(q.asof):'')+'</small></td></tr>';
  }).join('');
- const comparable=pair.sameDate&&pair.sameCoverage;
+ const comparable=pair.sameDate&&pair.sameCoverage&&
+  a.pillars.every((p,i)=>p.asof===b.pillars[i].asof);
  status.textContent=comparable?
   '두 종목의 관측 기준일과 5영역 확보 배점 구성이 같습니다. 투자성과나 원천 검증을 뜻하지 않습니다.':
-  '기준일 또는 5영역 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
+  '5개 영역의 관측 기준일 또는 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
  results.innerHTML='<div class="u-compare-cards">'+cards+'</div>'+
   comparisonPillarBars(a,b,names,comparable)+
   '<details class="u-compare-table-details"><summary>영역별 정확한 점수·배점 수치표 펼치기</summary>'+
@@ -1910,7 +1911,8 @@ function renderDetails(x){
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
  '<div class="u-factor-unverified"><small>V3 잠정 종합점수 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
- '</strong><small>산출 가능 배점 '+composite.available+'/100 · 기준 '+esc(composite.asof)+
+ '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
+ (composite.stalePillars?' · 이전 관측 '+composite.stalePillars+'영역 포함':'')+
  '</small></div>'+
  '<div class="u-personal100"><small>개인 연구용 100점 환산 · 미인증</small><strong>'+
  (personal100===null?'— · 관측 부족':personal100.toFixed(1)+' / 100')+
@@ -1918,7 +1920,7 @@ function renderDetails(x){
  '<h3>잠정 합계 산출근거</h3>'+
  '<p class="u-muted">아래 연구점수 중 실제로 계산된 값만 더한 합계입니다. '+
  '미확보 영역을 0점으로 처리하지 않습니다. 별도 개인용 100점 환산은 관측된 점수의 비율만 표시하며 결측영역의 실제 점수나 미래 수익을 추정하지 않습니다. '+
- '모든 점수는 새 관측 기준일마다 갱신되는 값이며 매수 추천이 아닙니다.</p>'+
+ '각 영역은 최근 유효 관측일의 값을 유지하며, 일부는 오늘 계산한 값이 아닙니다. 매수 추천이 아닙니다.</p>'+
  '<h3>일봉 · 스윙 관찰</h3>'+
  (x.daily.length?'<div class="u-signals">'+x.daily.map(patternPill).join('')+'</div>':
  '<p class="u-muted">확인된 선호 패턴·RSI 관측 없음 또는 당일 자료 미확보</p>')+
@@ -1999,7 +2001,9 @@ function draw(){
    '<span class="u-provisional-total"><b>'+
    (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
-   x.composite.available+'/100</small></span>'+
+   x.composite.available+'/100 · 기준일 확인 '+
+   (x.composite.stalePillars?'(이월 '+x.composite.stalePillars+'영역)':'(당일 관측)')+
+   '</small></span>'+
    '<span class="u-personal100"><b>'+
    (x.personal100===null?'—':x.personal100.toFixed(1))+
    '</b><small>개인 연구용 100점 환산 · '+(x.personal100===null?'관측 부족':'미인증')+
@@ -2013,7 +2017,7 @@ function draw(){
      '</div>'+ 
    '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
    x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
-   '서로 다른 확보 배점은 직접 비교할 수 없습니다.</p>'+
+   '각 영역의 원자료 기준일을 확인하세요. 다른 확보 배점·기준일은 직접 비교할 수 없습니다.</p>'+
    sectorEvidenceMarkup(r)+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
