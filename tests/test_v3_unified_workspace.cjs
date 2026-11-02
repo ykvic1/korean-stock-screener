@@ -573,8 +573,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-fcf-years422')&&
-  page.includes('workspace.css?v=v30b-20261102-fcf-years422'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-score-bars423')&&
+  page.includes('workspace.css?v=v30b-20261102-score-bars423'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
