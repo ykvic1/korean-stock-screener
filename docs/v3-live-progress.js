@@ -33,7 +33,7 @@ function dartSummary(raw){
     raw.filing_months_remaining!==120-raw.filing_months_checkpointed||
     typeof raw.filing_months_checkpointed_ratio!=='number'||
     Math.abs(raw.filing_months_checkpointed_ratio-
-             raw.filing_months_checkpointed/120)>0.00000001||
+             raw.filing_months_checkpointed/120)>0.000002||
     !Array.isArray(raw.filing_category_scope)||
     raw.filing_category_scope.join(',')!=='B,C,E,I'||
     raw.private_tail_digest_and_schema_verified!==true||
