@@ -15,6 +15,16 @@ SCHEMA = "v3-issuer-last-observed-factors-0.1"
 BUDGET = {"volume":20,"technical":25,"financial":20,
           "valuation":20,"momentum":15}
 SOURCES = {"current_close_replay","dart_bulk_snapshot"}
+FISCAL_COMPONENTS = {
+    "financial": {"revenue_cagr_3y_pct":4,"operating_margin_3y_pct":4,
+                  "liabilities_to_assets_pct":4,"operating_roa_3y_pct":4},
+    "valuation": {"pbr":5,"earnings_yield_pct":5,"sales_to_market_cap":5},
+}
+FCF_COMPONENTS = {
+    "financial": {"fcf_assets_3y":("financial_fcf_assets",4)},
+    "valuation": {"fcf_yield":("valuation_fcf_yield",5)},
+}
+COMPONENT_SOURCES = {"dart_fiscal_subfactor","dart_fcf_subfactor"}
 
 
 class IssuerFactorLedgerError(ValueError):
@@ -45,6 +55,85 @@ def _factor(value, latest):
         return None
     return {"asof":asof,"available":available,
             "points":float(points),"source":source}
+
+
+def _component(entry,day,maximum):
+    if not isinstance(entry,dict):
+        return None
+    source=entry.get("source")
+    weight=entry.get("available")
+    points=entry.get("points")
+    asof=entry.get("asof")
+    if (source not in COMPONENT_SOURCES or type(weight) is not int or
+        weight!=maximum or type(points) not in (int,float) or
+        not math.isfinite(points) or not 0<=points<=maximum or
+        _date(asof) is None or _date(asof)>_date(day)):
+        return None
+    return {"asof":asof,"available":weight,"points":float(points),"source":source}
+
+
+def _fiscal_components(row,day):
+    if not isinstance(row,dict):
+        return {}
+    raw=row.get("unverified_components")
+    if raw is None:
+        return {}
+    if not isinstance(raw,dict) or _date(row.get("asof")) is None or (
+            _date(row["asof"])>_date(day)):
+        raise IssuerFactorLedgerError("invalid_fiscal_component_container")
+    result={}
+    for group,components in FISCAL_COMPONENTS.items():
+        for name,maximum in components.items():
+            source=raw.get(name)
+            if source is None:
+                continue  # older source contracts genuinely lacked this part
+            if type(source) is not dict or type(source.get("max_points")) is not int:
+                raise IssuerFactorLedgerError("invalid_fiscal_component")
+            weight=source["max_points"]
+            points=source.get("candidate_points")
+            if weight==0 and points is None:
+                continue
+            if weight!=maximum:
+                raise IssuerFactorLedgerError("invalid_fiscal_component_weight")
+            entry=_component({"asof":row["asof"],"available":maximum,
+                "points":points,"source":"dart_fiscal_subfactor"},day,maximum)
+            if entry is None:
+                raise IssuerFactorLedgerError("invalid_fiscal_component_points")
+            result.setdefault(group,{})[name]=entry
+    return result
+
+
+def _fcf_components(row,day):
+    if not isinstance(row,dict) or _date(row.get("asof")) is None or (
+            _date(row["asof"])>_date(day)):
+        raise IssuerFactorLedgerError("invalid_fcf_component_container")
+    if (row.get("strict_receipt_scope_matched") is not True or
+        row.get("scoring_certified") is not False or
+        row.get("historical_PIT_certified") is not False):
+        raise IssuerFactorLedgerError("unverified_fcf_component_claim")
+    result={}
+    for group,components in FCF_COMPONENTS.items():
+        for name,(prefix,maximum) in components.items():
+            weight=row.get(prefix+"_available_max")
+            points=row.get(prefix+"_candidate_points")
+            if weight==0 and points is None:
+                continue
+            if weight!=maximum:
+                raise IssuerFactorLedgerError("invalid_fcf_component_weight")
+            entry=_component({"asof":row["asof"],"available":maximum,
+                "points":points,"source":"dart_fcf_subfactor"},day,maximum)
+            if entry is None:
+                raise IssuerFactorLedgerError("invalid_fcf_component_points")
+            result.setdefault(group,{})[name]=entry
+    return result
+
+
+def _keep_components(target,candidate):
+    for group,items in candidate.items():
+        for name,entry in items.items():
+            previous=target["components"].setdefault(group,{}).get(name)
+            if previous is None or entry["asof"]>=previous["asof"]:
+                target["components"][group][name]=entry
 
 
 def _source_fiscal(parts,audit,current_day):
@@ -97,14 +186,16 @@ def _source_fiscal(parts,audit,current_day):
                 return {}
             factors[pillar]=entry
             counts[pillar]+=1
-        index[row["code"]]={"market":row["market"],"factors":factors}
+        index[row["code"]]={"market":row["market"],"factors":factors,
+                            "components":_fiscal_components(row,current_day)}
     claimed=audit.get("six_pillar_numeric_provisional_issuer_counts",{})
     if any(claimed.get(k)!=n for k,n in counts.items()):
         return {}
     return index
 
 
-def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
+def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
+          fiscal_rows=None,fcf_rows=None):
     """Merge each ticker/factor separately; preserve inactive issuer history."""
     day=catalog.get("date")
     members=catalog.get("rows")
@@ -120,7 +211,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
             not isinstance(row.get("name"),str) or not row["name"].strip()):
             raise IssuerFactorLedgerError("untrusted_market_identity")
         listed[code]={"code":code,"name":row["name"],"market":row["market"],
-                      "active":True,"factors":{}}
+                      "active":True,"factors":{},"components":{}}
     if prior is not None and (not isinstance(prior,dict) or
         prior.get("schema")!=SCHEMA or
         prior.get("investment_score_certified") is not False or
@@ -138,7 +229,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
             if old.get("market") not in ("KOSPI","KOSDAQ") or not isinstance(old.get("name"),str):
                 continue
             listed[code]={"code":code,"name":old["name"],"market":old["market"],
-                          "active":False,"factors":{}}
+                          "active":False,"factors":{},"components":{}}
         target=listed[code]
         # Recycled tickers, market transfers and renamed issuers require a
         # fresh identity audit; never copy their old score automatically.
@@ -150,6 +241,18 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
             f=_factor(value,day)
             if (f and 0<=f["points"]<=f["available"]<=BUDGET[key]):
                 target["factors"][key]=f
+        for group,items in (old.get("components") or {}).items():
+            if group not in FISCAL_COMPONENTS or not isinstance(items,dict):
+                continue
+            for name,value in items.items():
+                maximum=FISCAL_COMPONENTS[group].get(name)
+                if maximum is None:
+                    maximum=(FCF_COMPONENTS.get(group,{}).get(name) or (None,None))[1]
+                if maximum is None:
+                    continue
+                entry=_component(value,day,maximum)
+                if entry is not None:
+                    target["components"].setdefault(group,{})[name]=entry
     archived=_source_fiscal(parts,audit,day)
     for code,source in archived.items():
         target=listed.get(code)
@@ -161,6 +264,22 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
                 (entry["available"]==old["available"] and
                  entry["asof"]>old["asof"])):
                 target["factors"][key]=entry
+        _keep_components(target,source.get("components",{}))
+    for source_rows,mapper in ((fiscal_rows,_fiscal_components),
+                               (fcf_rows,_fcf_components)):
+        if source_rows is None:
+            continue
+        if not isinstance(source_rows,dict):
+            raise IssuerFactorLedgerError("invalid_component_source_index")
+        for code,source_row in source_rows.items():
+            target=listed.get(code)
+            if (not target or not target["active"] or
+                not isinstance(source_row,dict) or
+                source_row.get("code")!=code or
+                source_row.get("market")!=target["market"] or
+                source_row.get("asof")!=day):
+                raise IssuerFactorLedgerError("component_issuer_identity_mismatch")
+            _keep_components(target,mapper(source_row,day))
     seen=set()
     for row in current_rows:
         code=row.get("code") if isinstance(row,dict) else None
@@ -196,6 +315,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
         "investment_score_certified":False,
         "mixed_date_sum_permitted":True,
         "mixed_date_score_research_only":True,
+        "component_ledger_research_only":True,
         "missing_is_not_zero":True,
         "rows":dict(sorted(listed.items()))
     }
