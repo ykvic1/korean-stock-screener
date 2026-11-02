@@ -508,6 +508,15 @@ assert.ok(html.includes('<option value="personal">개인 연구용 100점 환산
  'sort controls must distinguish normalized personal beta score');
 assert.ok(css.includes('#personalRank[aria-pressed=true]')&&css.includes('.u-personal100'),
  'personal research chip and ranking toggle must have visible CSS treatment');
+assert.ok(source.includes('fcfEvidenceMarkup(r)')&&css.includes('.u-fcf-stock-status'),
+ 'per-stock FCF evidence must be visible on the selected detail card');
+assert.equal(unified.fcfEvidenceStatus({price_date:'2026-10-20',market:'KOSPI'}).state,
+ 'not_linked','missing FCF preview is unknown, not a zero');
+const missingFcfMarkup=unified.fcfEvidenceMarkup({price_date:'2026-10-20',market:'KOSPI'});
+assert.ok(missingFcfMarkup.includes('원천 미연결')&&
+ missingFcfMarkup.includes('FCF가 0원이라는 뜻이 아닙니다')&&
+ missingFcfMarkup.includes('개별 공시 원장'),
+ 'stock-specific account causes must not be guessed from aggregate gap counts');
 assert.ok(source.includes('개인 연구용 100점 환산 · 미인증'),
  'normalized values must never masquerade as a certified investment score');
 assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
@@ -515,8 +524,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-compare416')&&
-  page.includes('workspace.css?v=v30b-20261102-compare416'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-fcf-evidence420')&&
+  page.includes('workspace.css?v=v30b-20261102-fcf-evidence420'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -1019,6 +1028,28 @@ const fcfRow={
  valuation_fcf_yield_candidate_points:4,
  valuation_fcf_yield_available_max:5,valuation_fcf_peer_count:35
 };
+const linkedEvidence=unified.fcfEvidenceStatus({...funded,v3_dart_fcf_research:fcfRow});
+assert.equal(linkedEvidence.state,'matched');
+assert.equal(linkedEvidence.threeYear.state,'provisional');
+assert.equal(linkedEvidence.latest.state,'provisional');
+assert.equal(linkedEvidence.threeYear.points,2);
+assert.ok(unified.fcfEvidenceMarkup({...funded,v3_dart_fcf_research:fcfRow})
+ .includes('FCF 잠정 2.0/4점'),'same-day peer-qualified FCF keeps its provisional status');
+const absentThreeYear=unified.fcfEvidenceStatus({...funded,v3_dart_fcf_research:{
+ ...fcfRow,raw_observed_financial_fcf_assets_3y_pct:null,
+ financial_fcf_assets_candidate_points:null,financial_fcf_assets_available_max:0}});
+assert.equal(absentThreeYear.threeYear.state,'not_observed');
+assert.equal(absentThreeYear.latest.state,'provisional');
+const shortPeer=unified.fcfEvidenceStatus({...funded,v3_dart_fcf_research:{
+ ...fcfRow,financial_fcf_peer_count:22,
+ financial_fcf_assets_candidate_points:null,financial_fcf_assets_available_max:0}});
+assert.equal(shortPeer.threeYear.state,'insufficient_peers');
+assert.ok(unified.fcfEvidenceMarkup({...funded,v3_dart_fcf_research:{
+ ...fcfRow,financial_fcf_peer_count:22,
+ financial_fcf_assets_candidate_points:null,financial_fcf_assets_available_max:0}})
+ .includes('30개 미달'),'raw data must not disappear when only peer sample is insufficient');
+assert.equal(unified.fcfEvidenceStatus({...funded,v3_dart_fcf_research:{
+ ...fcfRow,asof:'2026-10-19'}}).state,'source_mismatch');
 const fcf={
  schema:'v3-actual-dart-fcf-raw-feature-and-peer-preview-0.1',
  asof:'2026-10-20',listed_total:2497,
