@@ -241,7 +241,10 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
             f=_factor(value,day)
             if (f and 0<=f["points"]<=f["available"]<=BUDGET[key]):
                 target["factors"][key]=f
-        for group,items in (old.get("components") or {}).items():
+        prior_components=old.get("components")
+        if not isinstance(prior_components,dict):
+            prior_components={}
+        for group,items in prior_components.items():
             if group not in FISCAL_COMPONENTS or not isinstance(items,dict):
                 continue
             for name,value in items.items():
@@ -251,7 +254,9 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
                 if maximum is None:
                     continue
                 entry=_component(value,day,maximum)
-                if entry is not None:
+                required=("dart_fcf_subfactor" if name in FCF_COMPONENTS.get(group,{})
+                          else "dart_fiscal_subfactor")
+                if entry is not None and entry["source"]==required:
                     target["components"].setdefault(group,{})[name]=entry
     archived=_source_fiscal(parts,audit,day)
     for code,source in archived.items():
