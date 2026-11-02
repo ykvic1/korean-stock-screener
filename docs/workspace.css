@@ -342,6 +342,9 @@ html,body{max-width:100%}
 .u-fcf-stock-list li{display:flex;justify-content:space-between;gap:5px 16px;
   align-items:baseline;flex-wrap:wrap;background:white;border:1px solid var(--line);
   border-radius:8px;padding:9px 10px;font-size:12px}
+.u-fcf-issuer-years{border-top:1px dashed var(--line);padding-top:8px;margin-top:10px}
+.u-fcf-issuer-years .u-fcf-stock-list li b{min-width:54px}
+.u-fcf-issuer-years .u-fcf-stock-list li span{flex:1}
 .u-fcf-stock-list li b{color:var(--navy)}
 .u-fcf-stock-list li span{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 @media(max-width:480px){.u-fcf-stock-status{padding:9px}
