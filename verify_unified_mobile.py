@@ -49,7 +49,12 @@ with sync_playwright() as p:
         )
     else:
         assert market_day.year == dart_day.year
-        assert independent["asof"] == observed["asof"]
+    # The independently replayed legacy aggregate may also lag during the
+    # new close's source publication. Do not certify it as today's data.
+    independent_day = date.fromisoformat(independent["asof"])
+    independent_lag = (market_day - independent_day).days
+    assert 0 <= independent_lag <= 10, "independent replay must not be future or unbounded stale"
+    if independent_lag == 0:
         assert independent["listed_total"] == observed["listed_total"]
         assert independent["provisional_numeric_issuer_counts"]["financial"] == (
             observed["observed_issuer_counts"]["financial"]
@@ -57,7 +62,9 @@ with sync_playwright() as p:
         assert independent["provisional_numeric_issuer_counts"]["valuation"] == (
             observed["observed_issuer_counts"]["valuation"]
         )
-        assert observed["certified_100point_count"] == 0
+    # Neither source can be promoted to independently certified investable scores.
+    assert independent["full_six_pillar_certified_count"] == 0
+    assert observed["certified_100point_count"] == 0
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "page overflows mobile"
     # The source snapshot overview is deliberately collapsed until requested.
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
