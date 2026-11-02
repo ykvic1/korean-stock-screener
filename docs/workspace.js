@@ -203,6 +203,14 @@ function observedVolumeEvidence(r){
       z.obv_60_direction+z.obv_price_not_reflected))>0.000001)return null;
  return {earned:v.observed_points,available:16,fullyObserved:false};
 }
+// Saved 60-session OBV rise with price lag [-12,+10]%; research only.
+// Not independently adjusted divergence, institutional flow, or a buy signal.
+function obvLagCandidate(r){
+ const evidence=observedVolumeEvidence(r);
+ const z=r?.v3_volume_observed?.subpoints;
+ return evidence!==null&&z?.obv_60_direction===6&&
+   z?.obv_price_not_reflected===4;
+}
 function applyObservedVolume(model,source){
  if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
    !Number.isInteger(model.marketEligible)||model.marketEligible<1||
@@ -548,7 +556,7 @@ function compareResearchScores(a,b){
    (bc.earned??-1)-(ac.earned??-1)||
    String(a.r?.code||'').localeCompare(String(b.r?.code||''));
 }
-function rankItems(model,core,tab='discover',market='all',query='',sort='score',safeOnly=false,top100Only=false){
+function rankItems(model,core,tab='discover',market='all',query='',sort='score',safeOnly=false,top100Only=false,obvOnly=false){
  if(!model?.rows||!core)return [];
  const ordered=model.rows.slice().sort(compareResearchScores);
  const candidatePositions=new Map();
@@ -574,6 +582,7 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
   // its provisional research score is missing or an optional tab is selected.
   if(search)return (r.name+' '+r.code+' '+(r.sector||''))
     .toLocaleLowerCase('ko-KR').includes(search);
+  if(obvOnly&&!obvLagCandidate(r))return false;
   if(top100Only&&(x.candidatePosition===null||x.candidatePosition>100))return false;
   if(market!=='all'&&r.market!==market)return false;
   if(safeOnly&&x.risk.unsafe)return false;
@@ -1325,7 +1334,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -1334,7 +1343,7 @@ if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
 let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null;
-let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,selected=null,limit=20;
+let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20;
 function label(item){return item.stage==='형상 후보'?'형상 후보':item.stage;}
 function patternPill(item){
  const weekly=item.timeframe==='weekly';
@@ -1432,17 +1441,20 @@ function renderDetails(x){
 function draw(){
  if(!model)return;
  const query=$('stockSearch').value.trim();
- const rows=rankItems(model,core,tab,$('market').value,query,sort,safeOnly,top100Only);
+ const rows=rankItems(model,core,tab,$('market').value,query,sort,safeOnly,top100Only,obvOnly);
  $('filterNotice').textContent=query?
-   '전체 시장 검색 결과 · TOP100·선택 탭·위험 필터 제한 없음':
-   '종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.';
+   '전체 시장 검색 결과 · TOP100·OBV·선택 탭·위험 필터 제한 없음':
+   (obvOnly?'60일 OBV 상승·주가 미반영 실측 연구 후보만 표시합니다. 정식 매집·매수 신호는 아닙니다.':
+   '종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.');
  $('resultCount').textContent=rows.length.toLocaleString('ko-KR')+
   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체 시장 중 ')+
-  (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+  (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
+   (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
-  const tags=x.signals.slice(0,3).map(patternPill).join('');
+  const tags=(obvLagCandidate(r)?'<span class="u-signal u-obv-lag">OBV↑ · 주가 미반영 관찰</span>':'')+
+   x.signals.slice(0,3).map(patternPill).join('');
   const state=x.risk.unsafe?'위험 주의':x.risk.distance===null?'손절선 미확인':'구조적 위험 검토';
   return '<button class="u-stock '+(selected===r.code?'selected':'')+
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
@@ -1472,6 +1484,7 @@ function draw(){
  }).join(''):'<div class="u-empty">해당 조건을 만족하는 종목이 없습니다. 후보를 임의로 만들지 않습니다. 필터를 변경해 확인할 수 있어요.</div>';
  $('more').hidden=rows.length<=limit;
  $('top100Only').setAttribute('aria-pressed',String(top100Only));
+  $('obvLagOnly').setAttribute('aria-pressed',String(obvOnly));
  if(selected){
   const x=rows.find(y=>y.r.code===selected)||
     rankItems(model,core,'all','all',selected,'score',false).find(y=>y.r.code===selected);
@@ -1584,6 +1597,15 @@ function init(){
  $('more').addEventListener('click',()=>{limit+=20;draw();});
  $('top100Only').addEventListener('click',()=>{
    top100Only=!top100Only;limit=20;draw();
+ });
+ $('obvLagOnly').addEventListener('click',()=>{
+   obvOnly=!obvOnly;limit=20;
+   if(obvOnly){
+     top100Only=false;tab='all';
+     for(const b of $('tabs').querySelectorAll('[data-tab]'))
+       b.setAttribute('aria-pressed',String(b.dataset.tab==='all'));
+   }
+   draw();
  });
  $('stockList').addEventListener('click',e=>{
   const b=e.target.closest('[data-stock]');if(!b)return;

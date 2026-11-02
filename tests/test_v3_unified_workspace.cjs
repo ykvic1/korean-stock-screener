@@ -475,6 +475,10 @@ assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab
 assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
 assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
+assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
+ 'both screener entry routes must expose one-tap OBV price-lag research filter');
+assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
+ 'active filter and observational candidate chip must be visibly styled');
 assert.ok(html.includes('<option value="score" selected>V3 잠정점수순</option>'),
  'default selection must explicitly use V3 provisional observations');
 assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
@@ -572,6 +576,21 @@ const volumeRow={asof:'2026-10-20',market:'KOSPI',observed_points:13,
 const withVolume={...row,v3_volume_observed:volumeRow};
 assert.deepEqual(unified.observedVolumeEvidence(withVolume),
  {earned:13,available:16,fullyObserved:false});
+assert.equal(unified.obvLagCandidate(withVolume),true,
+ 'both OBV rise and price lag must match same-date observed data');
+assert.equal(unified.obvLagCandidate(row),false,
+ 'missing source is never a match');
+assert.equal(unified.obvLagCandidate({...row,v3_volume_observed:{
+ ...volumeRow,subpoints:{...volumeRow.subpoints,obv_60_direction:0,
+  obv_price_not_reflected:0},observed_points:3}}),false,
+ 'flat OBV cannot qualify');
+assert.equal(unified.obvLagCandidate({...row,v3_volume_observed:{
+ ...volumeRow,subpoints:{...volumeRow.subpoints,obv_price_not_reflected:0},
+ observed_points:9}}),false,
+ 'OBV rise without price lag cannot qualify');
+assert.equal(unified.obvLagCandidate({...row,v3_volume_observed:{
+ ...volumeRow,asof:'2026-10-21'}}),false,
+ 'stale or future-dated OBV must fail closed');
 assert.equal(unified.researchComposite(withVolume).earned,35.8);
 assert.equal(unified.researchComposite(withVolume).available,41);
 assert.ok(unified.volumeStatus(unified.pillarState(withVolume)[0])
@@ -788,6 +807,13 @@ assert.deepEqual(unified.rankItems(model,legacy,'all').map(x=>x.r.code),
  ['005930','000001'],'V2.2 98 points cannot outrank V3 research evidence');
 assert.equal(unified.rankItems(model,legacy,'all')[0].composite.earned,22.8);
 assert.equal(unified.rankItems(model,legacy,'all')[1].composite.earned,null);
+const obvModel={...model,rows:[unsafe,{...safe,r:withVolume}]};
+assert.deepEqual(unified.rankItems(obvModel,legacy,'all','all','','score',
+ false,false,true).map(x=>x.r.code),[withVolume.code],
+ 'OBV quick filter must include only observed rise-and-lag rows');
+assert.deepEqual(unified.rankItems(obvModel,legacy,'all','all','높은','score',
+ false,false,true).map(x=>x.r.code),[highLegacy.code],
+ 'explicit ticker search must still bypass research filters');
 assert.equal(unified.rankItems(model,legacy,'patterns').length,1);
 assert.equal(unified.rankItems(model,legacy,'rsi').length,1);
 assert.equal(unified.rankItems(model,legacy,'quant').length,0);
@@ -981,6 +1007,13 @@ const prepared=legacy.prepare(structuredClone(volumeActual),null,null,null,null,
 assert.equal(unified.applyObservedVolume(prepared,volumeSaved),
  volumeSaved.observed_volume_candidate_issuers);
 assert.ok(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===16));
+const observedLagRows=unified.rankItems(prepared,legacy,'all','all','','score',
+ false,false,true);
+assert.ok(observedLagRows.every(x=>unified.obvLagCandidate(x.r)),
+ 'real saved-source filter must never include a non-observed candidate');
+assert.equal(observedLagRows.length,prepared.rows.filter(x=>
+ unified.obvLagCandidate(x.r)).length,
+ 'real saved-source OBV filter must account for all and only matched stocks');
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=16));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
   unified.pillarState(x.r)[0].candidate<=16));
