@@ -527,8 +527,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-fcf-years421')&&
-  page.includes('workspace.css?v=v30b-20261102-fcf-years421'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-fcf-years422')&&
+  page.includes('workspace.css?v=v30b-20261102-fcf-years422'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -1074,6 +1074,14 @@ const issuerGapReport={
 };
 const referenceGap={asof:'2026-10-20',cashflow_snapshot_sha256:issuerGapDigest};
 assert.equal(unified.applyIssuerCashflowEvidence(issuerGapModel,issuerGapReport,referenceGap),1);
+// The issuer reference covers ALL listed companies (including suspended or
+// unpriced); the unified screen intentionally displays only priced stocks.
+const pricedSubset={date:issuerGapModel.date,marketEligible:2,
+ rows:[{r:{code:'005930',market:'KOSPI',price_date:'2026-10-20'}}]};
+assert.equal(unified.applyIssuerCashflowEvidence(pricedSubset,issuerGapReport,referenceGap),1,
+ 'a complete listed-source report must attach safely to only priced screen rows');
+assert.ok(unified.issuerCashflowGapMarkup(pricedSubset.rows[0].r).includes('2024년'));
+
 const annualGap=unified.issuerCashflowGapMarkup(issuerGapModel.rows[0].r);
 assert.ok(annualGap.includes('2023년')&&annualGap.includes('CFO와 CAPEX')&&
  annualGap.includes('2024년')&&annualGap.includes('무형자산')&&

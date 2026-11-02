@@ -501,7 +501,7 @@ const FCF_ISSUER_LABELS=Object.freeze({
 function applyIssuerCashflowEvidence(model,report,fcfPreview){
  const codes=model?.rows,entries=report?.records;
  const validHash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
- if(!Array.isArray(codes)||!codes.length||codes.length!==model.marketEligible||
+ if(!Array.isArray(codes)||!codes.length||codes.length>model.marketEligible||
     !report||report.schema!=='v3-listed-issuer-annual-fcf-account-availability-0.1'||
     report.asof!==model.date||report.listed_total!==model.marketEligible||
     !Array.isArray(report.fiscal_years)||
@@ -518,7 +518,7 @@ function applyIssuerCashflowEvidence(model,report,fcfPreview){
     !report.status_counts||typeof report.status_counts!=='object'||
     Array.isArray(report.status_counts))return 0;
  const universe=new Map(codes.map(x=>[x.r?.code,x.r]));
- if(universe.size!==model.marketEligible||codes.some(x=>
+ if(universe.size!==codes.length||codes.some(x=>
    x.r?.price_date!==model.date||!['KOSPI','KOSDAQ'].includes(x.r?.market)))return 0;
  const actual=Object.fromEntries(['X','C','B','P','I','U','V'].map(x=>[x,0]));
  const rows=Object.entries(entries);
@@ -530,7 +530,7 @@ function applyIssuerCashflowEvidence(model,report,fcfPreview){
     !Number.isInteger(report.unfetched_company_year_slots))return 0;
  let unfetched=3*(model.marketEligible-rows.length),attempted=0;
  for(const [code,values] of rows){
-  if(!/^[0-9]{6}$/.test(code)||!universe.has(code)||
+  if(!/^[0-9]{6}$/.test(code)||
      !Array.isArray(values)||values.length!==4||
      !['CFS','OFS'].includes(values[0]))return 0;
   let saved=0;
