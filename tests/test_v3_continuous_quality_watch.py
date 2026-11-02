@@ -113,6 +113,49 @@ class QualityWatchUnitTests(unittest.TestCase):
         self.assertFalse(x["full_investment_rank_certified"])
         self.assertFalse(x["published_data_modified"])
 
+    def test_prior_four_year_census_lag_is_warning_not_data_loss(self):
+        m,c,b=fixture()
+        four=valid_four(m,c)
+        source_listed=c["listed_total"]
+        # The next market day has a newly listed issuer, but the old 4Y
+        # evidence remains date-labelled and independently verifiable.
+        m["date"]=c["asof"]=b["asof"]="2026-10-20"
+        c["rows"].append({"code":"999999"})
+        c["listed_total"]+=1
+        b["market_listed_total"]=c["listed_total"]
+        result=q.assess_sources(m,c,b,four,today=date(2026,10,20))
+        self.assertIn("four_year_reference_uses_prior_market_census",
+                      result["source_quality_warnings"])
+        self.assertNotEqual(result["status"],"critical")
+        self.assertEqual(result["dart_four_year"]["source_date"],"2026-10-19")
+        self.assertEqual(result["dart_four_year"]["source_listed_total"],source_listed)
+        self.assertEqual(result["dart_four_year"]["source_census_delta"],1)
+        self.assertEqual(result["dart_four_year"]["four_year_observed"],1)
+        self.assertEqual(result["dart_four_year"]["inactive_reference_issuer_count"],0)
+
+    def test_delisted_pilot_is_historical_only_and_forged_same_day_census_fails(self):
+        m,c,b=fixture()
+        four=valid_four(m,c)
+        day=date(2026,10,20)
+        new_catalog=copy.deepcopy(c)
+        new_catalog["rows"]=[
+            {"code":"999999"} if row["code"]=="000001" else row
+            for row in new_catalog["rows"]]
+        observation=q.verify_four_year_optional(four,new_catalog,day)
+        self.assertEqual(observation["inactive_reference_issuer_count"],1)
+        self.assertEqual(observation["active_reference_issuer_count"],0)
+        self.assertEqual(observation["four_year_observed"],1)
+        self.assertEqual(observation["status"],"research_only_prior_census")
+        forged=copy.deepcopy(four)
+        forged["asof"]="2026-10-20"
+        with self.assertRaisesRegex(q.ReadinessError,"four_year_market_census_mismatch"):
+            q.verify_four_year_optional(forged,
+                {**c,"listed_total":c["listed_total"]+1},day)
+        forged=copy.deepcopy(four)
+        forged["listed_total"]=10001
+        with self.assertRaisesRegex(q.ReadinessError,"invalid_four_year_source_census"):
+            q.verify_four_year_optional(forged,c,day)
+
     def test_forged_four_year_flags_future_receipts_and_repeated_issuers_fail(self):
         m,c,b=fixture()
         correct=valid_four(m,c)
