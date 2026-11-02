@@ -11,6 +11,51 @@ const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
 
+// Stock detail's visual five-pillar breakdown must not paint missing evidence as 0.
+{
+ const c={earned:29,available:61,missing:39,pillars:[
+  {key:'volume',label:'거래량·OBV',max:20,candidate:7,available:16},
+  {key:'technical',label:'기술적 분석',max:25,candidate:5,available:15},
+  {key:'financial',label:'재무',max:20,candidate:7,available:10},
+  {key:'valuation',label:'밸류에이션',max:20,candidate:5,available:10},
+  {key:'momentum',label:'모멘텀',max:15,candidate:5,available:10}
+ ]};
+ const visual=unified.scoreOverviewMarkup(c,null);
+ assert.equal((visual.match(/class="u-score-row"/g)||[]).length,5);
+ const order=['momentum','valuation','financial','technical','volume'];
+ const positions=order.map(k=>visual.indexOf('data-pillar="'+k+'"'));
+ assert.ok(positions.every(i=>i>=0));
+ assert.ok(positions.every((p,i)=>i===0||p>positions[i-1]));
+ assert.match(visual,/잠정 획득 29점, 산출 가능 배점 61점, 미확보 39점/);
+ assert.match(visual,/style="width:33\.33%"/);
+ assert.match(visual,/잠정 합계 <b>29점<\/b> · 산출 가능 61\/100점 · 미확보 39\/100점/);
+ assert.match(visual,/미확보는 0점이 아닙니다/);
+ assert.match(visual,/개인용 100점 비율 환산은 5영역·75점 이상 관측/);
+ const sparse=structuredClone(c);
+ sparse.pillars[0].candidate=null;sparse.pillars[0].available=0;
+ sparse.available=45;sparse.earned=22;sparse.missing=55;
+ const sparseHtml=unified.scoreOverviewMarkup(sparse,null);
+ assert.match(sparseHtml,/data-pillar="volume"[^>]+잠정 —점 \/ 20점, 자료 미확보/);
+ assert.match(sparseHtml,/class="u-score-missing" style="width:100\.00%"/);
+ const full=structuredClone(c);
+ full.pillars[0].available=20;
+ full.pillars[1].available=25;
+ full.pillars[2].available=20;
+ full.pillars[3].available=20;
+ full.pillars[4].available=15;
+ full.available=100;full.missing=0;
+ const personal=unified.personalHundredFromComposite(full);
+ assert.equal(personal,29);
+ const normalized=unified.scoreOverviewMarkup(full,personal);
+ assert.match(normalized,/별도 비율 환산 29\/100점/);
+ assert.match(unified.scoreOverviewMarkup(c,47.5),/재검증 중/);
+ assert.match(normalized,/확정 투자점수가 아닙니다/);
+ assert.match(unified.scoreOverviewMarkup({...c,available:101},null),/재검증 중/);
+ assert.ok(css.includes('.u-score-total-track'));
+ assert.ok(css.includes('.u-score-missing'));
+ for(const page of [entry,html])assert.ok(page.includes('score-visual'));
+}
+
 // Compact visible progress is a SOURCE-DATED research bar, never a score promotion.
 const liveProgress=require('../docs/v3-live-progress.js');
 const liveObserved=JSON.parse(fs.readFileSync(
