@@ -27,7 +27,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(visual,/눌러서 근거 보기/);
  assert.match(visual,/거래량과 OBV로 계산한 연구값/);
  assert.match(unified.scorePillarExplanation({key:'valuation',max:20,candidate:null,available:0},null),
-  /미산출점 · 산출 가능 0\/20점 · 미확보 20점/);
+  /미산출점<\/b> · 산출 가능 0\/20점 · 미확보 20점/);
 
  const order=['momentum','valuation','financial','technical','volume'];
  const positions=order.map(k=>visual.indexOf('data-pillar="'+k+'"'));
