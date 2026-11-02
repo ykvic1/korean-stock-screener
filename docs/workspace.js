@@ -486,6 +486,85 @@ function fcfEvidenceStatus(r){
    fcf.valuation_fcf_yield_candidate_points,
    fcf.valuation_fcf_yield_available_max,5,fcf.valuation_fcf_peer_count)};
 }
+const FCF_ISSUER_LABELS=Object.freeze({
+ N:'해당 연도 현금흐름 원천 미수집 · 0원 아님',
+ X:'CFO와 CAPEX 1개 이상 유효값 미확보',
+ C:'CFO 표준계정 유효값 미확보',
+ B:'유형·무형 CAPEX 유효값 모두 미확보',
+ P:'유형자산 취득 CAPEX 유효값 미확보',
+ I:'무형자산 취득 CAPEX 유효값 미확보',
+ U:'FCF 계정 관측 · 연간공시 접수번호 일치 미확인',
+ V:'FCF 계정 관측 · 연간공시 접수번호 일치'
+});
+// Source-only compact issuer codes attach only after the exact cashflow
+// snapshot hash, same-day listed universe and all source partitions match.
+function applyIssuerCashflowEvidence(model,report,fcfPreview){
+ const codes=model?.rows,entries=report?.records;
+ const validHash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
+ if(!Array.isArray(codes)||!codes.length||codes.length!==model.marketEligible||
+    !report||report.schema!=='v3-listed-issuer-annual-fcf-account-availability-0.1'||
+    report.asof!==model.date||report.listed_total!==model.marketEligible||
+    !Array.isArray(report.fiscal_years)||
+    report.fiscal_years.join(',')!=='2023,2024,2025'||
+    !validHash(report.source_cashflow_sha256)||
+    !fcfPreview||fcfPreview.asof!==report.asof||
+    report.source_cashflow_sha256!==fcfPreview.cashflow_snapshot_sha256||
+    report.source_receipt_scope_checked!==true||
+    report.unobserved_not_zero!==true||
+    report.raw_amounts_or_receipt_ids_published!==false||
+    report.historical_pit_verified!==false||
+    report.provider_api_calls!==0||report.trading_score_promoted!==false||
+    !entries||typeof entries!=='object'||Array.isArray(entries)||
+    !report.status_counts||typeof report.status_counts!=='object'||
+    Array.isArray(report.status_counts))return 0;
+ const universe=new Map(codes.map(x=>[x.r?.code,x.r]));
+ if(universe.size!==model.marketEligible||codes.some(x=>
+   x.r?.price_date!==model.date||!['KOSPI','KOSDAQ'].includes(x.r?.market)))return 0;
+ const actual=Object.fromEntries(['X','C','B','P','I','U','V'].map(x=>[x,0]));
+ const rows=Object.entries(entries);
+ if(!Number.isInteger(report.issuers_with_saved_cashflow_years)||
+    rows.length!==report.issuers_with_saved_cashflow_years||
+    !Number.isInteger(report.issuers_without_saved_cashflow_years)||
+    report.issuers_without_saved_cashflow_years!==model.marketEligible-rows.length||
+    !Number.isInteger(report.attempted_company_years)||
+    !Number.isInteger(report.unfetched_company_year_slots))return 0;
+ let unfetched=3*(model.marketEligible-rows.length),attempted=0;
+ for(const [code,values] of rows){
+  if(!/^[0-9]{6}$/.test(code)||!universe.has(code)||
+     !Array.isArray(values)||values.length!==4||
+     !['CFS','OFS'].includes(values[0]))return 0;
+  let saved=0;
+  for(const state of values.slice(1)){
+   if(state==='N')unfetched++;
+   else if(Object.hasOwn(actual,state)){actual[state]++;attempted++;saved++;}
+   else return 0;
+  }
+  if(saved===0)return 0;
+ }
+ if(attempted!==report.attempted_company_years||
+    unfetched!==report.unfetched_company_year_slots||
+    unfetched+attempted!==3*model.marketEligible||
+    Object.keys(report.status_counts).length!==7||
+    Object.keys(actual).some(k=>report.status_counts[k]!==actual[k]))return 0;
+ // Mutate only after every listed issuer/year partition passes validation.
+ for(const x of codes)x.r.v3_dart_fcf_issuer_gap=
+   entries[x.r.code]||['','N','N','N'];
+ return rows.length;
+}
+function issuerCashflowGapMarkup(r){
+ const e=r?.v3_dart_fcf_issuer_gap;
+ if(!Array.isArray(e)||e.length!==4||
+    !['','CFS','OFS'].includes(e[0])||
+    e.slice(1).some(v=>!Object.hasOwn(FCF_ISSUER_LABELS,v)))return '';
+ const scope=e[0]||'저장된 회계범위 없음';
+ return '<div class="u-fcf-issuer-years"><p class="u-source"><b>연도별 공식 현금흐름 계정 확보 상태</b> · '+
+  esc(scope)+' 기준 · 접수·계정 분류만 표시</p>'+
+  '<ul class="u-fcf-stock-list">'+e.slice(1).map((code,i)=>
+   '<li><b>'+(2023+i)+'년</b><span>'+FCF_ISSUER_LABELS[code]+
+   '</span></li>').join('')+'</ul>'+
+  '<p class="u-source">미확보는 표준 IFRS 계정이 관측되지 않았거나 유효금액 검증이 보류됐다는 뜻으로, '+
+  '기업이 실제로 공시하지 않았다고 단정할 수 없습니다. 모든 연도가 관측돼도 자산·시가총액 등 분모나 공시 대조 조건으로 FCF 지표는 미산출될 수 있습니다.</p></div>';
+}
 function fcfEvidenceMarkup(r){
  const status=fcfEvidenceStatus(r);
  const detail=metric=>{
@@ -516,10 +595,14 @@ function fcfEvidenceMarkup(r){
    '이 종목은 현재 동일 기준일 FCF 연구 표본에 연결되지 않았습니다.')+
    ' 이는 FCF가 0원이라는 뜻이 아닙니다.</p>';
  }
+ const yearEvidence=issuerCashflowGapMarkup(r);
  return '<details class="u-fcf-stock-status"><summary>FCF 확보 상태 · '+
-  summary+' (자세히)</summary>'+body+
+  summary+' (자세히)</summary>'+body+yearEvidence+
+  (yearEvidence?'<p class="u-source">위 연도별 구분은 이미 수집된 공식 현금흐름 표준계정의 확보 여부입니다. '+
+  '원공시 정정이력·역사적 효력일 검증이나 확정 점수를 뜻하지 않습니다.</p>':
   '<p class="u-source">원자료 미산출의 정확한 계정 원인(CFO·유형/무형 CAPEX·연도별 회계범위)은 '+
-  '개별 공시 원장을 추가 대조해야 구분할 수 있습니다. 미확보는 0점이 아니며, 관측된 잠정 배점도 확정 투자점수가 아닙니다.</p></details>';
+  '개별 공시 원장을 추가 대조해야 구분할 수 있습니다.</p>')+
+  '<p class="u-source">미확보는 0점이 아니며, 관측된 잠정 배점도 확정 투자점수가 아닙니다.</p></details>';
 }
 function pillarState(r){
  const tech=technicalEvidence(r);
@@ -1460,7 +1543,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,fcfEvidenceStatus,fcfEvidenceMarkup,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1767,7 +1850,8 @@ async function load(){
   'v3-current-price-technical-momentum.json',
   'v3-industry-observed-relative-strength.json',
   'v3-current-observed-all-listed-summary.json',
-  'v3-dart-industry-classification.json'];
+  'v3-dart-industry-classification.json',
+  'v3-dart-cashflow-issuer-evidence.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -1785,7 +1869,9 @@ async function load(){
   applyBulkFinancialPreview(model,responses[9]);
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
-  applyActualCashflowPreview(model,actualCashflowCoverage);
+  const attachedFcf=applyActualCashflowPreview(model,actualCashflowCoverage);
+  applyIssuerCashflowEvidence(model,responses[18],
+   attachedFcf>0?actualCashflowCoverage:null);
   applyObservedVolume(model,responses[13]);
   applyCurrentPriceReplay(model,responses[14]);
   // All 2,497 listed rows, same market day, independently replayed CSV.
