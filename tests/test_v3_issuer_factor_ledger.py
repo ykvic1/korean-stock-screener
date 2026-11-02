@@ -42,12 +42,40 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         self.assertFalse(later["rows"][b["code"]]["active"])
         self.assertEqual(later["active_issuer_count"],2)
         self.assertEqual(later["inactive_issuer_count"],1)
-        self.assertFalse(later["mixed_date_sum_permitted"])
+        self.assertTrue(later["mixed_date_sum_permitted"])
+        self.assertTrue(later["mixed_date_score_research_only"])
         self.assertFalse(later["investment_score_certified"])
         self.assertEqual(later["schema"],SCHEMA)
         self.assertEqual(build(census(day2,[a,c]),
                          [row(a,day2,financial=None,valuation=None),
                           row(c,day2,financial=None,valuation=None)],later),later)
+
+    def test_narrower_new_partial_factor_keeps_older_broader_coverage(self):
+        a=member("005930","A")
+        prior_row=row(a,"2026-10-30",financial=10,valuation=11)
+        prior_row["factor_available"]["financial"]=16
+        prior_row["factor_available"]["valuation"]=15
+        original=build(census("2026-10-30",[a]),[prior_row])
+        newer=row(a,"2026-11-02",financial=3,valuation=4)
+        # Newer 8/10 point subsets must not erase valid 16/15 point subsets.
+        retained=build(census("2026-11-02",[a]),[newer],original)
+        factors=retained["rows"][a["code"]]["factors"]
+        self.assertEqual(factors["financial"]["asof"],"2026-10-30")
+        self.assertEqual(factors["financial"]["points"],10)
+        self.assertEqual(factors["valuation"]["asof"],"2026-10-30")
+        self.assertEqual(factors["valuation"]["points"],11)
+        self.assertEqual(factors["volume"]["asof"],"2026-11-02")
+        # When same or better coverage returns, only that factor refreshes.
+        improved=row(a,"2026-11-03",financial=13,valuation=9)
+        improved["factor_available"]["financial"]=16
+        improved["factor_available"]["valuation"]=15
+        updated=build(census("2026-11-03",[a]),[improved],retained)
+        self.assertEqual(updated["rows"][a["code"]]["factors"]["financial"]["points"],13)
+        self.assertEqual(updated["rows"][a["code"]]["factors"]["valuation"]["asof"],"2026-11-03")
+        old_contract=copy.deepcopy(retained)
+        old_contract["mixed_date_sum_permitted"]=False
+        migrated=build(census("2026-11-03",[a]),[improved],old_contract)
+        self.assertTrue(migrated["mixed_date_sum_permitted"])
 
     def test_same_ticker_name_change_does_not_inherit_old_score(self):
         a=member("005930","Old Co")

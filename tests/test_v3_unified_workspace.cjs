@@ -65,54 +65,71 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-issuer-ledger428'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261103-score-continuity429'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
-// Per-issuer last-observed points must survive a market-date rollover as
-// visibly dated history, never as today's earned/current available points.
+// Keep the latest individually validated factor points in the same research
+// sum/rank, even across census rollover, with the original dates visible.
 {
- const today='2026-11-02',name='삼성전자',code='005930';
+ const today='2026-11-02',old='2026-10-30',name='삼성전자',code='005930';
  const row={code,name,market:'KOSPI',price_date:today};
  const model={date:today,marketEligible:1,rows:[{r:row}]};
+ const factors={
+  financial:{asof:old,available:16,points:11.5,source:'dart_bulk_snapshot'},
+  valuation:{asof:old,available:15,points:9,source:'dart_bulk_snapshot'},
+  volume:{asof:old,available:20,points:11,source:'current_close_replay'},
+  technical:{asof:old,available:25,points:14,source:'current_close_replay'},
+  momentum:{asof:old,available:15,points:10,source:'current_close_replay'}
+ };
  const saved={schema:'v3-issuer-last-observed-factors-0.1',
   market_asof:today,listed_total:1,active_issuer_count:1,
-  investment_score_certified:false,mixed_date_sum_permitted:false,
+  investment_score_certified:false,mixed_date_sum_permitted:true,
   missing_is_not_zero:true,
-  rows:{[code]:{code,name,market:'KOSPI',active:true,
-   factors:{financial:{asof:'2026-10-30',available:16,
-    points:11.5,source:'dart_bulk_snapshot'}}}}};
+  rows:{[code]:{code,name,market:'KOSPI',active:true,factors}}};
  assert.equal(unified.applyIssuerFactorLedger(model,saved),1);
- assert.equal(row.v3_last_known_factors.financial.asof,'2026-10-30');
+ const c=unified.researchComposite(row);
+ assert.equal(c.available,91);
+ assert.equal(c.earned,55.5);
+ assert.equal(c.carriedPillars,5);
+ assert.equal(c.stalePillars,5);
+ assert.equal(c.oldestAsOf,old);
+ assert.deepEqual(unified.retainedCoverageSummary(model,today,1),
+  {peak:91,carriedIssuers:1});
+
+ assert.ok(unified.personalHundredFromComposite(c)>0);
+ const view=unified.scoreOverviewMarkup(c,unified.personalHundredFromComposite(c),row);
+ assert.match(view,/잠정 합계 <b>55.5점<\/b>/);
+ assert.match(view,/2026-10-30 기준 \(이전 관측 유지\)/);
+ assert.match(view,/이전 관측일이 포함된 영역 5개/);
+ assert.match(view,/이 영역의 11.5\/16점은 표시 합계/);
+ const historicChip=unified.lastObservedFactorChip(c.pillars.find(p=>p.key==='financial'));
+ assert.match(historicChip,/2026-10-30 기준 · 이전 관측 유지/);
+ assert.ok(unified.compareResearchScores({r:row},
+  {r:{code:'900001',name:'신규',market:'KOSDAQ',price_date:today}})<0,
+  'carried factors must remain in real screen ordering');
  const newCensus={date:today,marketEligible:2,rows:[
   {r:{...row,v3_last_known_factors:undefined}},
   {r:{code:'900001',name:'신규상장',market:'KOSDAQ',price_date:today}}]};
- const lagged={...saved,market_asof:'2026-10-30'};
+ const lagged={...saved,market_asof:old,mixed_date_sum_permitted:false};
  assert.equal(unified.applyIssuerFactorLedger(newCensus,lagged),1,
-  'unrelated new listings cannot blank earlier per-issuer observations');
- assert.equal(newCensus.rows[0].r.v3_last_known_factors.financial.points,11.5);
- assert.equal(newCensus.rows[1].r.v3_last_known_factors,undefined);
+  'old-format ledgers and unrelated new listings retain per-issuer scores');
+ assert.equal(unified.researchComposite(newCensus.rows[0].r).earned,55.5);
+ assert.equal(unified.researchComposite(newCensus.rows[1].r).earned,null);
+ assert.deepEqual(unified.retainedCoverageSummary(newCensus,today,2),
+  {peak:91,carriedIssuers:1},
+  'new listings cannot reduce maximum research coverage from retained factors');
 
- const research={earned:22,available:51,missing:49,observedPillars:4,pillars:[
-  {key:'volume',label:'거래량·OBV',max:20,candidate:7,available:16},
-  {key:'technical',label:'기술적 분석',max:25,candidate:5,available:15},
-  {key:'financial',label:'재무',max:20,candidate:null,available:0,
-   lastObserved:row.v3_last_known_factors.financial},
-  {key:'valuation',label:'밸류에이션',max:20,candidate:5,available:10},
-  {key:'momentum',label:'모멘텀',max:15,candidate:5,available:10}
- ]};
- const view=unified.scoreOverviewMarkup(research,null,row);
- assert.match(view,/마지막 관측 11.5\/16/);
- assert.match(view,/2026-10-30/);
- assert.match(view,/현재 합계 미포함/);
- assert.match(view,/잠정 합계 <b>22점<\/b>/);
- const historicChip=unified.lastObservedFactorChip(research.pillars[2]);
- assert.match(historicChip,/지난 관측 11.5\/16/);
- assert.match(historicChip,/2026-10-30/);
- assert.equal(unified.lastObservedFactorChip(
-  {...research.pillars[2],available:16,candidate:4}), '',
-  'current observations must take priority over dated history on screener');
-
+ // A partial newly recalculated factor cannot shrink last observed coverage.
+ row.v3_same_day_observed_finance={
+  asof:today,financial:{available:8,points:2.5}};
+ assert.equal(unified.pillarState(row).find(p=>p.key==='financial').candidate,11.5);
+ row.v3_same_day_observed_finance={
+  asof:today,financial:{available:16,points:0}};
+ const fresh=unified.pillarState(row).find(p=>p.key==='financial');
+ assert.equal(fresh.candidate,0,'a genuine newly observed zero must replace history');
+ assert.equal(fresh.asof,today);
+ assert.equal(fresh.carried,false);
  const polluted=structuredClone(saved);
  polluted.rows[code].factors.financial.asof='2026-11-03';
  assert.equal(unified.applyIssuerFactorLedger(
@@ -694,8 +711,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-issuer-ledger428')&&
-  page.includes('workspace.css?v=v30b-20261102-issuer-ledger428'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261103-score-continuity429')&&
+  page.includes('workspace.css?v=v30b-20261103-score-continuity429'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),

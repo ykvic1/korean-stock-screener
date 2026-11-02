@@ -612,7 +612,7 @@ function applyIssuerFactorLedger(model,ledger){
     ledger.listed_total>10000||
     ledger.active_issuer_count!==ledger.listed_total||
     ledger.investment_score_certified!==false||
-    ledger.mixed_date_sum_permitted!==false||
+    !([true,false].includes(ledger.mixed_date_sum_permitted))||
     ledger.missing_is_not_zero!==true||
     !ledger.rows||typeof ledger.rows!=='object'||Array.isArray(ledger.rows)||
     Object.keys(ledger.rows).length>15000)return 0;
@@ -703,7 +703,18 @@ function pillarState(r){
    }
   }
   const lastObserved=r?.v3_last_known_factors?.[key]??null;
-  return {key,label,max:maximum,candidate,available,lastObserved,
+  const retained=lastObserved&&validDate(lastObserved.asof)&&
+   lastObserved.asof<=r.price_date&&
+   Number.isInteger(lastObserved.available)&&
+   lastObserved.available>0&&lastObserved.available<=maximum&&
+   finite(lastObserved.points)&&lastObserved.points>=0&&
+   lastObserved.points<=lastObserved.available;
+  // Preserve the larger observed factor budget when a refreshed source is
+  // missing or temporarily supplies a narrower partial record.
+  const carried=!!retained&&lastObserved.available>available;
+  if(carried){candidate=lastObserved.points;available=lastObserved.available;}
+  const asof=carried?lastObserved.asof:available>0?r.price_date:null;
+  return {key,label,max:maximum,candidate,available,lastObserved,asof,carried,
    status:available>0?'미검증 연구점수':'자료 미확보'};
  });
 }
@@ -714,7 +725,10 @@ function researchComposite(r){
  return {earned:available>0?Math.round(earned*10000)/10000:null,
   available,missing:100-available,asof:r.price_date,
   observedPillars:pillars.filter(p=>p.available>0).length,
-  complete:available===100,provisional:true,pillars};
+  complete:available===100,provisional:true,pillars,
+  carriedPillars:pillars.filter(p=>p.carried).length,
+  stalePillars:pillars.filter(p=>p.asof&&p.asof!==r.price_date).length,
+  oldestAsOf:pillars.reduce((d,p)=>p.asof&&(!d||p.asof<d)?p.asof:d,null)};
 }
 // Personal research-only normalized scale. Missing factors are NOT zero points.
 // The 75/100 and all-five-pillar floor reduces small-denominator inflation;
@@ -734,33 +748,28 @@ function personalHundred(r){
 // unobserved budgets must remain distinguishable (never impute zero for missing).
 // Every expansion preserves the underlying source-gated provisional
 // candidate. Do not infer subfactor scores from the remaining weight.
-// A missing current factor keeps its old dated research value visible on
-// the actual screener card; it is not silently folded into today's total.
+// A validated last observation remains the displayed score and participates
+// in research ranking when a narrower/newer observation is unavailable.
 function lastObservedFactorChip(p){
- const old=p.lastObserved;
- if(p.available!==0||!old||!validDate(old.asof)||
-    !Number.isInteger(old.available)||old.available<=0||old.available>p.max||
-    !finite(old.points)||old.points<0||old.points>old.available)return '';
- return '<small class="u-factor-previous">지난 관측 '+old.points.toFixed(1)+
-  '/'+old.available+' · '+esc(old.asof)+'</small>';
+ if(p.available===0||!p.asof||!validDate(p.asof))return '';
+ return '<small class="u-factor-previous">'+esc(p.asof)+' 기준'+
+  (p.carried?' · 이전 관측 유지':'')+'</small>';
 }
 function scorePillarExplanation(p,r){
  const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
  const budget=p.max-p.available;
- const old=p.available===0&&p.lastObserved&&validDate(p.lastObserved.asof)&&
-   Number.isInteger(p.lastObserved.available)&&
-   p.lastObserved.available>0&&p.lastObserved.available<=p.max&&
-   finite(p.lastObserved.points)&&p.lastObserved.points>=0&&
-   p.lastObserved.points<=p.lastObserved.available?
-   '<p class="u-last-factor"><b>마지막 관측 '+number(p.lastObserved.points)+
-   ' / '+p.lastObserved.available+'점</b> · '+esc(p.lastObserved.asof)+
-   ' 기준 · 현재 합계 미포함</p>':'';
+ const inherited=p.carried?
+  '<p class="u-last-factor"><b>'+esc(p.asof)+' 관측 점수 유지</b> · '+
+  '이 영역의 '+number(p.candidate)+'/'+p.available+
+  '점은 표시 합계와 개인 연구 순위에 포함됩니다. '+
+  '오늘 새로 계산된 점수가 아니며, 특히 주가 민감 가치항목은 재산출 전입니다.</p>':'';
  const intro='<p><b>잠정 획득 '+number(p.candidate)+'점</b> · 산출 가능 '+
   p.available+'/'+p.max+'점 · 미확보 '+budget+'점. '+
-  '미확보는 0점으로 계산한 것이 아닙니다.</p>'+old;
+  (p.asof?'근거 기준일 '+esc(p.asof)+' · ':'')+
+  '미확보는 0점으로 계산한 것이 아닙니다.</p>'+inherited;
  const notes={
   momentum:'시장 대비 20·60거래일 상대강도 관찰입니다. 수정주가·기업행위와 시장 기준일의 독립 검증 전으로 확정 추세점수가 아닙니다.',
-  valuation:'동일 기준일 연간 재무·주가 및 FCF수익률 연구값을 참고합니다. 확정 PBR 점수나 적정주가 판단으로 사용하지 않습니다.',
+  valuation:'원래 관측 기준일의 재무·주가 및 FCF수익률 연구값을 참고합니다. 확정 PBR 점수나 적정주가 판단으로 사용하지 않습니다.',
   financial:'연간 재무 관측과 3개년 FCF/자산 연구값을 참고합니다. 과거 공시 정정·효력시점(PIT)은 독립 검증 전입니다.',
   technical:'일봉·주봉 패턴, RSI, 120주선 및 거래량 확인 항목입니다. 형상 후보는 확정 매수 신호가 아닙니다.',
   volume:'거래량과 OBV로 계산한 연구값입니다. 기관·외국인 실제 순매수나 매집을 증명하지 않습니다.'
@@ -809,10 +818,12 @@ function comparisonPillarBars(a,b,names,comparable){
  const side=(p,name)=>{
   const scored=p.candidate??0,missing=p.max-p.available;
   const description=esc(name)+' · '+num(p.candidate)+' / '+p.max+
-   '점 · 산출 가능 '+p.available+'점 · 미확보 '+missing+'점';
+   '점 · 산출 가능 '+p.available+'점 · 미확보 '+missing+'점'+
+   (p.asof?' · '+p.asof+' 기준':'');
   return '<div class="u-compare-factor" aria-label="'+description+'">'+
    '<div class="u-compare-factor-value"><strong>'+num(p.candidate)+'</strong>'+
-   '<small>/'+p.max+' · 확보 '+p.available+' · 미확보 '+missing+'</small></div>'+
+   '<small>/'+p.max+' · 확보 '+p.available+' · 미확보 '+missing+
+   (p.asof?' · '+esc(p.asof)+(p.carried?' 유지':''):'')+'</small></div>'+
    '<div class="u-compare-meter" aria-hidden="true">'+
    '<span class="u-score-earned" data-score-width="'+width(scored,p.max)+'"></span>'+
    '<span class="u-score-observed" data-score-width="'+width(p.available-scored,p.max)+'"></span>'+
@@ -852,15 +863,9 @@ function scoreOverviewMarkup(c,normalized,r){
      (p.candidate!==null&&(!finite(p.candidate)||p.candidate<0||
        p.candidate>p.available)))return null;
   const scored=p.candidate??0;
-  const prior=p.available===0&&p.lastObserved&&validDate(p.lastObserved.asof)&&
-   Number.isInteger(p.lastObserved.available)&&
-   p.lastObserved.available>0&&p.lastObserved.available<=max&&
-   finite(p.lastObserved.points)&&p.lastObserved.points>=0&&
-   p.lastObserved.points<=p.lastObserved.available?
-   ' · 마지막 관측 '+number(p.lastObserved.points)+'/'+p.lastObserved.available+
-   ' ('+p.lastObserved.asof+')':'';
-  const status=p.available===0?'자료 미확보'+prior:
-   '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available);
+  const when=p.asof?' · '+p.asof+' 기준'+(p.carried?' (이전 관측 유지)':''):'';
+  const status=p.available===0?'자료 미확보':
+   '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available)+when;
   return '<details class="u-score-row" data-pillar="'+key+'" aria-label="'+
    esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
    '<summary class="u-score-row-main"><span class="u-score-row-label">'+esc(label)+'</span>'+
@@ -898,6 +903,8 @@ function scoreOverviewMarkup(c,normalized,r){
   '<p class="u-score-disclaimer">잠정 합계 <b>'+
   (c.earned===null?'미산출':number(c.earned)+'점')+'</b> · 산출 가능 '+
   c.available+'/100점 · 미확보 '+c.missing+'/100점. 미확보는 0점이 아닙니다. '+
+  (c.stalePillars?' 이전 관측일이 포함된 영역 '+c.stalePillars+
+   '개, 가장 오래된 근거 '+esc(c.oldestAsOf)+'. 각 영역의 실제 기준일을 확인하세요.':'')+
   (normalized===null?'개인용 100점 비율 환산은 5영역·75점 이상 관측 시에만 표시합니다.':
    '별도 비율 환산 '+number(normalized)+'/100점은 관측 배점 기준이며 확정 투자점수가 아닙니다.')+
   ' 매수 신호나 수익 예측으로 사용하지 마세요.</p></section>';
@@ -1686,8 +1693,23 @@ function financialSubfactorCoverageView(raw,asof,listed){
   '이 표는 투자점수나 종목 추천 순위가 아닙니다.</p></details>';
 }
 
+// Distinguish the source ingestion ceiling from the actual per-issuer usable
+// research coverage after independently dated factors have been retained.
+function retainedCoverageSummary(model,asof,listed){
+ if(!model||model.date!==asof||!Array.isArray(model.rows)||
+    model.rows.length!==listed)return null;
+ let peak=0,carriedIssuers=0;
+ for(const x of model.rows){
+  if(!x?.r||x.r.price_date!==asof)return null;
+  const c=researchComposite(x.r);
+  if(!Number.isInteger(c.available)||c.available<0||c.available>100)return null;
+  peak=Math.max(peak,c.available);
+  if(c.carriedPillars>0)carriedIssuers++;
+ }
+ return {peak,carriedIssuers};
+}
 // A five-pillar data availability audit; counts are evidence, never earned points.
-function fiveAreaCoverageView(raw,asof,listed){
+function fiveAreaCoverageView(raw,asof,listed,model=null){
  if(!raw||raw.schema!=='v3-current-day-all-listed-observed-plus-dart-fcf-0.3'||
   !validDate(asof)||raw.asof!==asof||
   !Number.isInteger(listed)||listed<100||raw.listed_total!==listed||
@@ -1748,10 +1770,18 @@ function fiveAreaCoverageView(raw,asof,listed){
   :'<p class="u-source">전영역 100점 배점 관측 완료: <b>'+
    complete100.toLocaleString('ko-KR')+'개</b> (정식 투자점수 인증: 0개). '+
    '121거래일 경로 기반 추가 11점은 수정주가·기업행위에 대한 독립 거래소 검증 전인 잠정 연구점수입니다.</p>';
+ const continuity=retainedCoverageSummary(model,asof,listed);
+ const continuityMarkup=continuity?
+  '<p class="u-source"><b>종목별 최근 유효 관측 기준 확보배점 최고 '+
+  continuity.peak+'/100점</b> · 이전 관측값으로 점수를 유지한 종목 '+
+  continuity.carriedIssuers.toLocaleString('ko-KR')+'개. '+
+  '이 값은 아래 당일 원천 수집현황과 다르며 스크리너 표시·정렬에 사용합니다. '+
+  '각 영역의 관측 기준일을 확인하세요.</p>':'';
  return '<div class="u-coverage-audit"><div class="u-coverage-top">'+
   '<strong>5개 영역 실제 데이터 확보</strong>'+
-  '<span>현재 관측 가능한 배점 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
+  '<span>당일 원천 영역별 최대 배점 합산 <b>'+weightCeiling+'/100점</b> · 미확보 <b>'+
   missingWeight+'점</b></span></div>'+
+  continuityMarkup+
   '<div class="u-coverage-scroll"><table class="u-coverage-table"><thead><tr>'+
   '<th scope="col">영역</th><th scope="col">관측 기업 / 상장 전체</th>'+
   '<th scope="col">영역 전체 확보</th><th scope="col">관측 가능 배점</th>'+
@@ -1764,7 +1794,7 @@ function fiveAreaCoverageView(raw,asof,listed){
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -1837,13 +1867,16 @@ function renderCompare(){
   const q=b.pillars[i];
   const points=v=>v.candidate===null?'미산출 · 0점 아님':v.candidate.toFixed(1)+'점';
   return '<tr><th scope="row">'+esc(p.label)+' /'+p.max+'</th>'+
-   '<td>'+points(p)+'<small>확보 '+p.available+'/'+p.max+'</small></td>'+
-   '<td>'+points(q)+'<small>확보 '+q.available+'/'+q.max+'</small></td></tr>';
+   '<td>'+points(p)+'<small>확보 '+p.available+'/'+p.max+
+   (p.asof?' · '+esc(p.asof):'')+'</small></td>'+
+   '<td>'+points(q)+'<small>확보 '+q.available+'/'+q.max+
+   (q.asof?' · '+esc(q.asof):'')+'</small></td></tr>';
  }).join('');
- const comparable=pair.sameDate&&pair.sameCoverage;
+ const comparable=pair.sameDate&&pair.sameCoverage&&
+  a.pillars.every((p,i)=>p.asof===b.pillars[i].asof);
  status.textContent=comparable?
   '두 종목의 관측 기준일과 5영역 확보 배점 구성이 같습니다. 투자성과나 원천 검증을 뜻하지 않습니다.':
-  '기준일 또는 5영역 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
+  '5개 영역의 관측 기준일 또는 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
  results.innerHTML='<div class="u-compare-cards">'+cards+'</div>'+
   comparisonPillarBars(a,b,names,comparable)+
   '<details class="u-compare-table-details"><summary>영역별 정확한 점수·배점 수치표 펼치기</summary>'+
@@ -1901,7 +1934,8 @@ function renderDetails(x){
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
  '<div class="u-factor-unverified"><small>V3 잠정 종합점수 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
- '</strong><small>산출 가능 배점 '+composite.available+'/100 · 기준 '+esc(composite.asof)+
+ '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
+ (composite.stalePillars?' · 이전 관측 '+composite.stalePillars+'영역 포함':'')+
  '</small></div>'+
  '<div class="u-personal100"><small>개인 연구용 100점 환산 · 미인증</small><strong>'+
  (personal100===null?'— · 관측 부족':personal100.toFixed(1)+' / 100')+
@@ -1909,7 +1943,7 @@ function renderDetails(x){
  '<h3>잠정 합계 산출근거</h3>'+
  '<p class="u-muted">아래 연구점수 중 실제로 계산된 값만 더한 합계입니다. '+
  '미확보 영역을 0점으로 처리하지 않습니다. 별도 개인용 100점 환산은 관측된 점수의 비율만 표시하며 결측영역의 실제 점수나 미래 수익을 추정하지 않습니다. '+
- '모든 점수는 새 관측 기준일마다 갱신되는 값이며 매수 추천이 아닙니다.</p>'+
+ '각 영역은 최근 유효 관측일의 값을 유지하며, 일부는 오늘 계산한 값이 아닙니다. 매수 추천이 아닙니다.</p>'+
  '<h3>일봉 · 스윙 관찰</h3>'+
  (x.daily.length?'<div class="u-signals">'+x.daily.map(patternPill).join('')+'</div>':
  '<p class="u-muted">확인된 선호 패턴·RSI 관측 없음 또는 당일 자료 미확보</p>')+
@@ -1990,7 +2024,9 @@ function draw(){
    '<span class="u-provisional-total"><b>'+
    (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
-   x.composite.available+'/100</small></span>'+
+   x.composite.available+'/100 · 기준일 확인 '+
+   (x.composite.stalePillars?'(이월 '+x.composite.stalePillars+'영역)':'(당일 관측)')+
+   '</small></span>'+
    '<span class="u-personal100"><b>'+
    (x.personal100===null?'—':x.personal100.toFixed(1))+
    '</b><small>개인 연구용 100점 환산 · '+(x.personal100===null?'관측 부족':'미인증')+
@@ -2004,7 +2040,7 @@ function draw(){
      '</div>'+ 
    '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
    x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
-   '서로 다른 확보 배점은 직접 비교할 수 없습니다.</p>'+
+   '각 영역의 원자료 기준일을 확인하세요. 다른 확보 배점·기준일은 직접 비교할 수 없습니다.</p>'+
    sectorEvidenceMarkup(r)+
    '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
@@ -2096,7 +2132,7 @@ async function load(){
   applyCurrentObservedFinance(model,responses[16],observedCsv);
   applyIssuerFactorLedger(model,responses[19]);
   if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
-   fiveAreaCoverageView(responses[16],model.date,model.marketEligible)||
+   fiveAreaCoverageView(responses[16],model.date,model.marketEligible,model)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';
   const industry=industryEvidenceView(responses[12],model.date);
   const industryPrice=industryPriceEvidenceView(responses[15],model.date,model.marketEligible);
