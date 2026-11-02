@@ -25,6 +25,7 @@ FCF_COMPONENTS = {
     "valuation": {"fcf_yield":("valuation_fcf_yield",5)},
 }
 COMPONENT_SOURCES = {"dart_fiscal_subfactor","dart_fcf_subfactor"}
+HISTORY_LIMIT = 3  # bounded prior observation snapshots per issuer and subfactor
 
 
 class IssuerFactorLedgerError(ValueError):
@@ -128,12 +129,36 @@ def _fcf_components(row,day):
     return result
 
 
+def _prior_component_history(raw,day,maximum):
+    if not isinstance(raw,list) or len(raw)>HISTORY_LIMIT:
+        return []
+    retained=[]
+    for item in raw:
+        if (not isinstance(item,dict) or
+            _date(item.get("asof")) is None or _date(item["asof"])>_date(day) or
+            type(item.get("points")) not in (int,float) or
+            not math.isfinite(item["points"]) or not 0<=item["points"]<=maximum or
+            (retained and item["asof"]<retained[-1]["asof"])):
+            return []
+        retained.append({"asof":item["asof"],"points":float(item["points"])})
+    return retained
+
+
 def _keep_components(target,candidate):
     for group,items in candidate.items():
         for name,entry in items.items():
             previous=target["components"].setdefault(group,{}).get(name)
-            if previous is None or entry["asof"]>=previous["asof"]:
-                target["components"][group][name]=entry
+            if previous is not None and entry["asof"]<previous["asof"]:
+                continue
+            if previous==entry:
+                continue  # replay of same source must never create a fake update
+            if previous is not None:
+                audit={"asof":previous["asof"],"points":previous["points"]}
+                events=target["component_history"].setdefault(group,{}).setdefault(name,[])
+                if not events or events[-1]!=audit:
+                    events.append(audit)
+                    del events[:-HISTORY_LIMIT]
+            target["components"][group][name]=entry
 
 
 def _source_fiscal(parts,audit,current_day):
@@ -211,7 +236,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
             not isinstance(row.get("name"),str) or not row["name"].strip()):
             raise IssuerFactorLedgerError("untrusted_market_identity")
         listed[code]={"code":code,"name":row["name"],"market":row["market"],
-                      "active":True,"factors":{},"components":{}}
+                      "active":True,"factors":{},"components":{},"component_history":{}}
     if prior is not None and (not isinstance(prior,dict) or
         prior.get("schema")!=SCHEMA or
         prior.get("investment_score_certified") is not False or
@@ -229,7 +254,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
             if old.get("market") not in ("KOSPI","KOSDAQ") or not isinstance(old.get("name"),str):
                 continue
             listed[code]={"code":code,"name":old["name"],"market":old["market"],
-                          "active":False,"factors":{},"components":{}}
+                          "active":False,"factors":{},"components":{},"component_history":{}}
         target=listed[code]
         # Recycled tickers, market transfers and renamed issuers require a
         # fresh identity audit; never copy their old score automatically.
@@ -258,6 +283,13 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
                           else "dart_fiscal_subfactor")
                 if entry is not None and entry["source"]==required:
                     target["components"].setdefault(group,{})[name]=entry
+                    past=(old.get("component_history") or {})
+                    if isinstance(past,dict):
+                        group_past=past.get(group)
+                        if isinstance(group_past,dict):
+                            retained=_prior_component_history(group_past.get(name),day,maximum)
+                            if retained and retained[-1]["asof"]<=entry["asof"]:
+                                target["component_history"].setdefault(group,{})[name]=retained
     archived=_source_fiscal(parts,audit,day)
     for code,source in archived.items():
         target=listed.get(code)
