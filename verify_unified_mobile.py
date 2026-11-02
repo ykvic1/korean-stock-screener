@@ -110,8 +110,15 @@ with sync_playwright() as p:
     assert fcf_status.is_visible()
     assert "FCF 확보 상태" in fcf_status.locator("summary").inner_text()
     fcf_status.locator("summary").click()
-    assert "개별 공시 원장" in fcf_status.inner_text()
-    assert "0점" in fcf_status.inner_text()
+    fcf_detail = fcf_status.inner_text()
+    if "연도별 공식 현금흐름 계정 확보 상태" in fcf_detail:
+        assert all(f"{year}년" in fcf_detail for year in (2023, 2024, 2025))
+        assert "기업이 실제로 공시하지 않았다고 단정할 수 없습니다" in fcf_detail
+    else:
+        # The tiny issuer-year derivative can lag the cashflow collection;
+        # do not invent an account-specific reason during that interval.
+        assert "개별 공시 원장" in fcf_detail
+    assert "0점" in fcf_detail
     page.locator("#personalRank").click()
     assert page.locator("#sort").input_value() == "score"
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
