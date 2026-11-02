@@ -88,6 +88,39 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
   missing_is_not_zero:true,
   rows:{[code]:{code,name,market:'KOSPI',active:true,factors}}};
  assert.equal(unified.applyIssuerFactorLedger(model,saved),1);
+ const snapshots=structuredClone(saved);
+ snapshots.rows[code].components={
+  financial:{
+   revenue_cagr_3y_pct:{asof:old,available:4,points:2.5,source:'dart_fiscal_subfactor'},
+   operating_margin_3y_pct:{asof:today,available:4,points:0,source:'dart_fiscal_subfactor'},
+   fcf_assets_3y:{asof:old,available:4,points:1.2,source:'dart_fcf_subfactor'}},
+  valuation:{
+   pbr:{asof:old,available:5,points:3.1,source:'dart_fiscal_subfactor'},
+   fcf_yield:{asof:old,available:5,points:0,source:'dart_fcf_subfactor'}}};
+ const detailModel={date:today,marketEligible:1,rows:[{r:{...row}}]};
+ assert.equal(unified.applyIssuerFactorLedger(detailModel,snapshots),1);
+ const detailRow=detailModel.rows[0].r;
+ assert.equal(unified.researchComposite(detailRow).earned,55.5,
+  'subfactor metadata must not alter the sole composite or ranking');
+ const financialDetail=unified.subfactorHistoryMarkup('financial',detailRow);
+ assert.match(financialDetail,/3년 매출성장률/);
+ assert.match(financialDetail,/2.5 \/ 4점/);
+ assert.match(financialDetail,/2026-10-30 관측/);
+ assert.match(financialDetail,/2026-11-02 관측/);
+ assert.match(financialDetail,/0 \/ 4점/);
+ assert.match(unified.scorePillarExplanation(
+  {key:'financial',max:20,available:16,candidate:11.5,asof:old},detailRow),
+  /세부항목별 마지막 유효 관측값/);
+ assert.match(unified.subfactorHistoryMarkup('valuation',detailRow),/FCF수익률/);
+ assert.match(unified.subfactorHistoryMarkup('valuation',detailRow),/0 \/ 5점/);
+ const malformed=structuredClone(snapshots);
+ malformed.rows[code].components.valuation.pbr.asof='2026-11-03';
+ malformed.rows[code].components.valuation.fcf_yield.source='dart_fiscal_subfactor';
+ const malformedModel={date:today,marketEligible:1,rows:[{r:{...row}}]};
+ assert.equal(unified.applyIssuerFactorLedger(malformedModel,malformed),1,
+  'invalid optional components must not erase the established score');
+ assert.equal(unified.subfactorHistoryMarkup('valuation',malformedModel.rows[0].r),'');
+ assert.equal(unified.researchComposite(malformedModel.rows[0].r).earned,55.5);
  const c=unified.researchComposite(row);
  assert.equal(c.available,91);
  assert.equal(c.earned,55.5);
