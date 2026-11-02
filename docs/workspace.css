@@ -489,3 +489,29 @@ html,body{max-width:100%}
  .u-score-track{height:22px}
  .u-score-legend{gap:6px 9px}
 }
+
+/* V3.0b: click any of the five score bars to inspect the source-scoped detail. */
+.u-score-row{display:block;min-height:50px;border:1px solid transparent;border-radius:8px}
+.u-score-row-main{display:grid;grid-template-columns:55px minmax(0,1fr) 55px;
+ gap:0 7px;align-items:center;min-height:49px;padding:2px 3px;
+ list-style:none;cursor:pointer;border-radius:7px}
+.u-score-row-main::-webkit-details-marker{display:none}
+.u-score-row-main:focus-visible{outline:3px solid #2d71c5;outline-offset:1px}
+.u-score-row-main:hover{background:#e2ecfc}
+.u-score-row[open]{background:#eaf2fd;border-color:#b5cbeb}
+.u-score-row[open] .u-score-row-main{background:#dce9fa}
+.u-score-row-main .u-score-row-status::after{content:" · 눌러서 근거 보기";color:#32659d}
+.u-score-row[open] .u-score-row-main .u-score-row-status::after{content:" · 상세 펼침"}
+.u-score-row-explain{margin:2px 5px 7px;padding:9px 10px;border-left:3px solid #4373bf;
+ border-radius:0 7px 7px 0;background:#fff;color:#37516c;font-size:11px;line-height:1.55}
+.u-score-row-explain p{margin:3px 0 7px;overflow-wrap:anywhere}
+.u-score-row-explain .u-parts{grid-template-columns:1fr;gap:4px;margin:7px 0}
+.u-score-row-explain .u-parts>div{min-width:0;overflow-wrap:anywhere;
+ display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.u-score-row-explain .u-parts>div b{white-space:nowrap}
+.u-score-row-explain .u-score-explain-caution{color:#596f88;font-size:10px}
+@media(max-width:480px){
+ .u-score-row{display:block}
+ .u-score-row-main{grid-template-columns:44px minmax(0,1fr) 43px;gap:0 4px}
+ .u-score-row-explain{padding:8px 6px}
+}

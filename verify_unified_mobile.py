@@ -123,6 +123,27 @@ with sync_playwright() as p:
         "(node) => node.getBoundingClientRect().height > 5"
     ), "CSP-safe CSSOM must actually paint the vertical score bar"
     assert "미확보는 0점이 아닙니다" in scorecard.inner_text()
+    # Each area opens directly from the bar. Source-limited evidence must
+    # remain research-only, and expanded content must fit the narrow viewport.
+    assert scorecard.locator(".u-score-row summary").count() == 5
+    for pillar, evidence_text in [
+        ("momentum", "시장 대비 20일"),
+        ("technical", "일봉 패턴"),
+        ("volume", "거래량 급증 후 매물 소화"),
+        ("financial", "FCF"),
+        ("valuation", "FCF"),
+    ]:
+        expander = scorecard.locator(f'.u-score-row[data-pillar="{pillar}"]')
+        assert not expander.evaluate("(el) => el.open")
+        expander.locator("summary").click()
+        assert expander.evaluate("(el) => el.open")
+        assert evidence_text in expander.inner_text()
+        assert "미확보는 0점으로 계산한 것이 아닙니다" in expander.inner_text()
+        assert page.evaluate(
+            "document.documentElement.scrollWidth <= window.innerWidth"
+        ), f"{pillar} evidence expansion must not overflow 390px mobile"
+        expander.locator("summary").click()
+        assert not expander.evaluate("(el) => el.open")
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
     ), "five-area stock detail scorecard must not overflow mobile viewport"
