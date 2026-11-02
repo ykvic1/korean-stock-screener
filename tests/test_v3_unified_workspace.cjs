@@ -479,6 +479,11 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
+for(const page of [html,entry]){
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-coverage413')&&
+  page.includes('workspace.css?v=v30b-20261102-coverage413'),
+  'both deployed routes must invalidate stale JS and CSS after UI changes');
+}
 assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
