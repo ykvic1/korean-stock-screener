@@ -694,6 +694,70 @@ function personalHundred(r){
 
 // Resolve only an exact six-digit ticker or an unambiguous exact Korean name.
 // Partial-name guesses could silently compare the wrong issuer.
+// Sketch-inspired visual scorecard: earned, observable headroom and genuinely
+// unobserved budgets must remain distinguishable (never impute zero for missing).
+function scoreOverviewMarkup(c,normalized){
+ if(!c||!Array.isArray(c.pillars)||c.pillars.length!==5||
+    !Number.isInteger(c.available)||c.available<0||c.available>100||
+    !Number.isInteger(c.missing)||c.missing!==100-c.available||
+    (c.earned!==null&&(!finite(c.earned)||c.earned<0||
+      c.earned>c.available)))return '<p class="u-muted">영역별 점수 데이터 재검증 중</p>';
+ const earned=c.earned??0, headroom=c.available-earned;
+ const percent=(value,maximum)=>(value/maximum*100).toFixed(2);
+ const number=value=>finite(value)?value.toFixed(1).replace(/\.0$/,''):'—';
+ const labels=[['momentum','모멘텀'],['valuation','밸류'],
+  ['financial','재무'],['technical','차트'],['volume','거래량']];
+ const map=new Map(c.pillars.map(p=>[p.key,p]));
+ if(map.size!==5||labels.some(([key])=>!map.has(key)))return '<p class="u-muted">영역별 점수 데이터 재검증 중</p>';
+ const rows=labels.map(([key,label])=>{
+  const p=map.get(key),max=WEIGHTS[key];
+  if(p.max!==max||!Number.isInteger(p.available)||p.available<0||
+     p.available>max||
+     (p.candidate!==null&&(!finite(p.candidate)||p.candidate<0||
+       p.candidate>p.available)))return null;
+  const scored=p.candidate??0;
+  const status=p.available===0?'자료 미확보':
+   '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available);
+  return '<div class="u-score-row" data-pillar="'+key+'" role="group" aria-label="'+
+   esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
+   '<span class="u-score-row-label">'+esc(label)+'</span>'+
+   '<span class="u-score-track" aria-hidden="true">'+
+   '<span class="u-score-earned" style="width:'+percent(scored,max)+'%"></span>'+
+   '<span class="u-score-observed" style="width:'+percent(p.available-scored,max)+'%"></span>'+
+   '<span class="u-score-missing" style="width:'+percent(max-p.available,max)+'%"></span></span>'+
+   '<span class="u-score-row-value"><strong>'+number(p.candidate)+'</strong>'+
+   '<small>/'+max+'</small></span>'+
+   '<small class="u-score-row-status">'+esc(status)+'</small></div>';
+ });
+ if(rows.some(v=>v===null)||
+    c.pillars.reduce((sum,p)=>sum+p.available,0)!==c.available||
+    (c.earned===null)!==(c.available===0)||
+    Math.abs(c.pillars.reduce((sum,p)=>sum+(p.candidate??0),0)-earned)>0.000101||
+    normalized!==personalHundredFromComposite(c))
+   return '<p class="u-muted">영역별 점수 데이터 재검증 중</p>';
+ return '<section class="u-score-visual" aria-labelledby="detailScoreTitle">'+
+  '<div class="u-score-visual-heading"><h3 id="detailScoreTitle">5영역 잠정 점수</h3>'+
+  '<span>총 100점 배점 · 미인증</span></div>'+
+  '<div class="u-score-visual-body">'+
+  '<div class="u-score-total"><div class="u-score-total-max"><strong>100</strong><small>만점</small></div>'+
+  '<div class="u-score-total-track" role="img" aria-label="100점 만점 중 잠정 획득 '+
+   number(c.earned)+'점, 산출 가능 배점 '+c.available+'점, 미확보 '+c.missing+'점">'+
+   '<span class="u-score-earned" style="height:'+percent(earned,100)+'%"></span>'+
+   '<span class="u-score-observed" style="height:'+percent(headroom,100)+'%"></span>'+
+   '<span class="u-score-missing" style="height:'+percent(c.missing,100)+'%"></span>'+
+   '<strong class="u-score-total-value">'+number(c.earned)+'</strong></div>'+
+  '<strong class="u-score-total-caption">잠정 합계</strong></div>'+
+  '<div class="u-score-rows">'+rows.join('')+'</div></div>'+
+  '<div class="u-score-legend"><span><i class="u-score-swatch earned"></i>잠정 획득</span>'+
+  '<span><i class="u-score-swatch observed"></i>확보 배점 중 미획득</span>'+
+  '<span><i class="u-score-swatch missing"></i>자료 미확보</span></div>'+
+  '<p class="u-score-disclaimer">잠정 합계 <b>'+
+  (c.earned===null?'미산출':number(c.earned)+'점')+'</b> · 산출 가능 '+
+  c.available+'/100점 · 미확보 '+c.missing+'/100점. 미확보는 0점이 아닙니다. '+
+  (normalized===null?'개인용 100점 비율 환산은 5영역·75점 이상 관측 시에만 표시합니다.':
+   '별도 비율 환산 '+number(normalized)+'/100점은 관측 배점 기준이며 확정 투자점수가 아닙니다.')+
+  ' 매수 신호나 수익 예측으로 사용하지 마세요.</p></section>';
+}
 function matchCompareStock(model,value){
  if(!Array.isArray(model?.rows))return null;
  const token=String(value??'').trim().toLocaleLowerCase('ko-KR');
@@ -1543,7 +1607,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1666,17 +1730,13 @@ function renderDetails(x){
  const quant=sampleQuant(x,core);
  const composite=researchComposite(r);
  const personal100=personalHundredFromComposite(composite);
-  const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+
-  ' <small>/'+i.max+'</small></span><b>'+
-  (i.candidate===null?'— · 자료 미확보':i.candidate.toFixed(1)+'점')+
-  '<em class="u-factor-mark">'+(i.candidate===null?'미산출 · 미검증':
-   '미검증 · 확보 '+i.available+'/'+i.max)+'</em></b></div>').join('');
  view.hidden=false;
  view.innerHTML='<div class="u-detail-top"><div><small>종목별 분석 · '+esc(model.date)+'</small>'+
  '<h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
  '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
+ scoreOverviewMarkup(composite,personal100)+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
@@ -1697,12 +1757,6 @@ function renderDetails(x){
  '<h3>주봉 · 중기/장기 관찰</h3>'+
  (x.weekly.length?'<div class="u-signals">'+x.weekly.map(patternPill).join('')+'</div>':
  '<p class="u-muted">완성 주봉의 패턴·RSI 관측 미확인 (진행 중인 주봉 제외)</p>')+
- '<h3>V3 통합 100점 · 영역별 검증 상태</h3>'+
- '<p class="u-muted">V3 잠정 합계: <b>'+
- (composite.earned===null?'자료 미확보':composite.earned.toFixed(1)+' / 100')+
- ' · 미검증</b> · 산출 가능 '+composite.available+'/100 · 미확보 '+
- composite.missing+'/100. 현재 데이터 기준의 임시 연구값으로 매번 갱신합니다.</p>'+
- '<div class="u-pillars">'+part+'</div>'+
  '<h3>소속 업종 · 시장 대비 20·60·120일 상대강도</h3>'+
  sectorEvidenceMarkup(r,true)+
  '<p class="u-muted">산업·업종은 5개 점수 영역의 배점에 포함하지 않습니다. DART 업종코드 기준 그룹 표본값이며 실제 KRX 업종지수 수익률로 오해하지 마세요.</p>'+
