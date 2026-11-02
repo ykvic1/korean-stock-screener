@@ -460,6 +460,67 @@ function applyCurrentObservedFinance(model,summary,csv){
  for(const [stock,value] of proposed)stock.v3_same_day_observed_finance=value;
  return proposed.filter(([,value])=>value.financial.available>0).length;
 }
+// Per-issuer FCF status uses only the date/scope-gated public preview.
+// Missing preview rows do not prove which cashflow account is absent.
+function fcfEvidenceStatus(r){
+ const fcf=r?.v3_dart_fcf_research;
+ if(!fcf)return {state:'not_linked',asof:r?.price_date??null};
+ if(fcf.asof!==r?.price_date||fcf.market!==r?.market||
+    fcf.strict_receipt_scope_matched!==true||
+    fcf.scoring_certified!==false||fcf.historical_PIT_certified!==false)
+  return {state:'source_mismatch',asof:r?.price_date??null};
+ const metric=(raw,points,available,max,peers)=>{
+  if(!finite(raw))return {state:'not_observed',raw:null,points:null,peers:null,max};
+  if(available===max&&finite(points)&&Number.isInteger(peers)&&peers>=30)
+   return {state:'provisional',raw,points,peers,max};
+  if(available===0&&Number.isInteger(peers)&&peers<30)
+   return {state:'insufficient_peers',raw,points:null,peers,max};
+  return {state:'raw_only',raw,points:null,
+   peers:Number.isInteger(peers)?peers:null,max};
+ };
+ return {state:'matched',asof:fcf.asof,
+  threeYear:metric(fcf.raw_observed_financial_fcf_assets_3y_pct,
+   fcf.financial_fcf_assets_candidate_points,
+   fcf.financial_fcf_assets_available_max,4,fcf.financial_fcf_peer_count),
+  latest:metric(fcf.raw_observed_valuation_fcf_yield_pct,
+   fcf.valuation_fcf_yield_candidate_points,
+   fcf.valuation_fcf_yield_available_max,5,fcf.valuation_fcf_peer_count)};
+}
+function fcfEvidenceMarkup(r){
+ const status=fcfEvidenceStatus(r);
+ const detail=metric=>{
+  if(metric.state==='not_observed')return '원자료 미산출 · 0점 아님';
+  if(metric.state==='insufficient_peers')
+   return '원자료 '+pct(metric.raw)+' 관측 · 동시장 비교 '+metric.peers+
+    '개 (30개 미달)로 잠정 배점 보류';
+  if(metric.state==='provisional')
+   return '원자료 '+pct(metric.raw)+' 관측 · FCF 잠정 '+metric.points.toFixed(1)+
+    '/'+metric.max+'점 (동시장 표본 '+metric.peers+'개)';
+  return '원자료 '+pct(metric.raw)+' 관측 · 잠정 배점은 아직 보류';
+ };
+ const aligned=status.state==='matched';
+ const summary=aligned?
+  '3년 '+(status.threeYear.state==='not_observed'?'미산출':'관측')+
+  ' / 최신 '+(status.latest.state==='not_observed'?'미산출':'관측'):
+  '원천 미연결';
+ let body;
+ if(aligned){
+  body='<p class="u-source">공식 DART 접수번호·동일 회계범위 대조 자료 · 기준일 '+
+   esc(status.asof)+' (정정 이력 및 과거 효력시점 인증 전)</p>'+
+   '<ul class="u-fcf-stock-list"><li><b>3개년 FCF/자산</b><span>'+
+   detail(status.threeYear)+'</span></li><li><b>최근 연도 FCF수익률</b><span>'+
+   detail(status.latest)+'</span></li></ul>';
+ }else{
+  body='<p class="u-source">'+(status.state==='source_mismatch'?
+   '기준일·시장·공시 대조 상태가 일치하지 않아 기존 FCF 자료를 보류했습니다.':
+   '이 종목은 현재 동일 기준일 FCF 연구 표본에 연결되지 않았습니다.')+
+   ' 이는 FCF가 0원이라는 뜻이 아닙니다.</p>';
+ }
+ return '<details class="u-fcf-stock-status"><summary>FCF 확보 상태 · '+
+  summary+' (자세히)</summary>'+body+
+  '<p class="u-source">원자료 미산출의 정확한 계정 원인(CFO·유형/무형 CAPEX·연도별 회계범위)은 '+
+  '개별 공시 원장을 추가 대조해야 구분할 수 있습니다. 미확보는 0점이 아니며, 관측된 잠정 배점도 확정 투자점수가 아닙니다.</p></details>';
+}
 function pillarState(r){
  const tech=technicalEvidence(r);
  const momentum=momentumEvidence(r);
@@ -1399,7 +1460,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,fcfEvidenceStatus,fcfEvidenceMarkup,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1586,6 +1647,7 @@ function renderDetails(x){
   ' · FCF수익률 '+(finite(r.v3_dart_fcf_research?.raw_observed_valuation_fcf_yield_pct)?
   pct(r.v3_dart_fcf_research.raw_observed_valuation_fcf_yield_pct):'미확보')+
   ' · 잠정점수는 동시장 표본 30개 이상 충족 시에만 반영, 확정 매수점수 아님.</p>'+
+ fcfEvidenceMarkup(r)+
  '<p class="u-muted">비공식 간이 P/B '+(book!==null?book.toFixed(2)+'배':'미산출')+
  ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+

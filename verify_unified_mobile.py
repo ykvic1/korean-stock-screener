@@ -105,6 +105,13 @@ with sync_playwright() as p:
     assert 0 <= float(first_normalized) <= 100
     page.locator(".u-stock").first.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
+    # Every selected stock must disclose its FCF state without guessing missing accounts.
+    fcf_status = page.locator("#detail .u-fcf-stock-status")
+    assert fcf_status.is_visible()
+    assert "FCF 확보 상태" in fcf_status.locator("summary").inner_text()
+    fcf_status.locator("summary").click()
+    assert "개별 공시 원장" in fcf_status.inner_text()
+    assert "0점" in fcf_status.inner_text()
     page.locator("#personalRank").click()
     assert page.locator("#sort").input_value() == "score"
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
