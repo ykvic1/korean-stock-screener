@@ -159,6 +159,7 @@ class HistoricalReceiptProgressTests(unittest.TestCase):
         wf = (base / ".github/workflows/v3-dart-public-receipt-progress.yml").read_text()
         self.assertIn("V3 Private Historical OpenDART Filing Receipts (Research Only)", wf)
         self.assertIn("V3 Direct Historical DART Receipt Resume (One-off)", wf)
+        self.assertIn("V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)", wf)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", wf)
         self.assertIn("github.event.workflow_run.head_branch == 'main'", wf)
         self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", wf)
