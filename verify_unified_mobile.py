@@ -49,7 +49,12 @@ with sync_playwright() as p:
         )
     else:
         assert market_day.year == dart_day.year
-        assert independent["asof"] == observed["asof"]
+    # The independently replayed legacy aggregate may also lag during the
+    # new close's source publication. Do not certify it as today's data.
+    independent_day = date.fromisoformat(independent["asof"])
+    independent_lag = (market_day - independent_day).days
+    assert 0 <= independent_lag <= 10, "independent replay must not be future or unbounded stale"
+    if independent_lag == 0:
         assert independent["listed_total"] == observed["listed_total"]
         assert independent["provisional_numeric_issuer_counts"]["financial"] == (
             observed["observed_issuer_counts"]["financial"]
@@ -57,7 +62,9 @@ with sync_playwright() as p:
         assert independent["provisional_numeric_issuer_counts"]["valuation"] == (
             observed["observed_issuer_counts"]["valuation"]
         )
-        assert observed["certified_100point_count"] == 0
+    # Neither source can be promoted to independently certified investable scores.
+    assert independent["full_six_pillar_certified_count"] == 0
+    assert observed["certified_100point_count"] == 0
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "page overflows mobile"
     # The source snapshot overview is deliberately collapsed until requested.
     assert not page.locator("#marketSummary").evaluate("(el) => el.open")
@@ -101,8 +108,11 @@ with sync_playwright() as p:
     assert page.locator(".u-personal100").first.is_visible()
     assert "개인 연구용 100점 환산" in page.locator(".u-personal100").first.inner_text()
     first_normalized = page.locator(".u-stock").first.locator(".u-personal100 b").inner_text()
-    assert first_normalized != "—", "known full five-pillar observations must produce a personal number"
-    assert 0 <= float(first_normalized) <= 100
+    if observed["provisional_complete_100point_observation_count"] > 0:
+        assert first_normalized != "—", "observed five-pillar scores must normalize"
+        assert 0 <= float(first_normalized) <= 100
+    else:
+        assert first_normalized == "—", "no fully observed stock must not get an invented 100-point ratio"
     page.locator(".u-stock").first.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
     # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
@@ -183,6 +193,23 @@ with sync_playwright() as p:
     assert "삼성전자" in page.locator("#compareResults").inner_text()
     assert "SK하이닉스" in page.locator("#compareResults").inner_text()
     assert page.locator("#compareResults .u-compare-table tbody tr").count() == 5
+    assert page.locator("#compareResults .u-compare-bars-row").count() == 5
+    assert page.locator("#compareResults .u-compare-meter").count() == 10
+    assert "미확보" in page.locator("#compareResults .u-compare-bars").inner_text()
+    # CSP-safe CSSOM widths: each bar represents the full pillar ceiling.
+    assert page.locator("#compareResults .u-compare-meter").evaluate_all("""els =>
+        els.every(el => Math.abs(
+            [...el.children].reduce((sum,part) =>
+                sum + (parseFloat(part.style.width) || 0), 0) - 100
+        ) < 0.04)
+    """), "comparison bars must be painted, not left at zero by CSP"
+    assert page.evaluate("""() => {
+        const box=document.querySelector('#compareResults .u-compare-bars').getBoundingClientRect();
+        return box.left >= -2 && box.right <= innerWidth + 2;
+    }"""), "two-stock bars must fit 390px without horizontal clipping"
+    page.locator(".u-compare-table-details summary").click()
+    assert page.locator("#compareResults .u-compare-table").is_visible()
+    page.locator(".u-compare-table-details summary").click()
     assert "점수 우열" in page.locator("#compareStatus").inner_text() or (
         "관측 기준일" in page.locator("#compareStatus").inner_text()
     )

@@ -39,6 +39,7 @@ class V30bReadinessTests(unittest.TestCase):
             "test_an_untrusted_proof_cannot_enable_authorization",
             "test_dart_receipt_checkpoint_is_counted_but_never_certified",
             "test_even_120_complete_filing_months_is_not_independent_pit_proof",
+            "test_synthetic_forward_horizon_readiness_never_means_live_outcome_proof",
         }
         if self._testMethodName in positive_live_checks:
             observed, scorecard, _ = public_inputs()

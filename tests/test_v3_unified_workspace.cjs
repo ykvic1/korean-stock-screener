@@ -65,8 +65,41 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-drill425'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-compare426'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
+}
+
+// Two-stock side-by-side bars must show source coverage, never impute 0.
+{
+ const a={pillars:[
+  {key:'volume',max:20,available:16,candidate:10},
+  {key:'technical',max:25,available:25,candidate:13.2},
+  {key:'financial',max:20,available:20,candidate:15.9},
+  {key:'valuation',max:20,available:20,candidate:17.5},
+  {key:'momentum',max:15,available:8,candidate:3.7}
+ ]};
+ const b=structuredClone(a);
+ b.pillars.find(p=>p.key==='volume').candidate=null;
+ b.pillars.find(p=>p.key==='volume').available=0;
+ const markup=unified.comparisonPillarBars(a,b,['A<종목','B&종목'],false);
+ assert.equal((markup.match(/class="u-compare-bars-row"/g)||[]).length,5);
+ assert.equal((markup.match(/class="u-compare-meter"/g)||[]).length,10);
+ assert.match(markup,/data-pillar="momentum"/);
+ assert.match(markup,/data-score-width="24\.67"/);
+ assert.match(markup,/data-score-width="100\.00"/);
+ assert.match(markup,/미산출/);
+ assert.match(markup,/미확보 20/);
+ assert.match(markup,/점수의 직접적인 우열 비교는 불가/);
+ assert.ok(markup.includes('A&lt;종목')&&markup.includes('B&amp;종목'));
+ assert.ok(!markup.includes('style="width:'));
+ assert.ok(unified.comparisonPillarBars(a,a,['가','나'],true)
+  .includes('관측 기준일과 영역별 확보 배점이 같습니다'));
+ const invalid=structuredClone(a);
+ invalid.pillars[0].available=21;
+ assert.match(unified.comparisonPillarBars(invalid,a,['가','나'],true),/재검증 중/);
+ assert.ok(source.includes('comparisonPillarBars(a,b,names,comparable)'));
+ assert.ok(source.includes('paintScoreOverview(results)'));
+ assert.ok(css.includes('.u-compare-bars-row')&&css.includes('.u-compare-table-details'));
 }
 
 // Compact visible progress is a SOURCE-DATED research bar, never a score promotion.
@@ -585,8 +618,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-score-drill425')&&
-  page.includes('workspace.css?v=v30b-20261102-score-drill425'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-score-compare426')&&
+  page.includes('workspace.css?v=v30b-20261102-score-compare426'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -1526,20 +1559,32 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
   if(readinessHistory.schema==='v3-real-saved-source-six-pillar-coverage-0.1' &&
      base.asof.slice(0,4)===readinessHistory.market_asof.slice(0,4) &&
      Number.isInteger(lag)&&lag>=1&&lag<=10){
-   assert.ok(live.readinessStatus.textContent.includes('당일 재무 잠정근거 확보'));
+   const sameDayScore=readinessScore.asof===base.asof &&
+    readinessScore.listed_total===base.listed_total &&
+    readinessScore.provisional_numeric_issuer_counts.financial===base.observed_issuer_counts.financial &&
+    readinessScore.provisional_numeric_issuer_counts.valuation===base.observed_issuer_counts.valuation &&
+    readinessScore.provisional_numeric_issuer_counts.technical===base.observed_issuer_counts.technical;
+   assert.ok(live.readinessStatus.textContent.includes(sameDayScore?
+    '당일 재무 잠정근거 확보':'DART 동기화 대기'));
    assert.equal(live.readinessPrice.textContent,
     base.observed_issuer_counts.technical.toLocaleString('ko-KR')+' / '+
     base.listed_total.toLocaleString('ko-KR'));
    assert.equal(live.readinessFinancial.textContent,'동기화 대기');
-   assert.equal(live.readinessFinancialIssuers.textContent,
-    base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+
-    base.listed_total.toLocaleString('ko-KR'));
-   assert.equal(live.readinessValuationIssuers.textContent,
-    base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
-    base.listed_total.toLocaleString('ko-KR'));
-   assert.equal(live.readinessCashflow.textContent,
-    readinessScore.observed_source_depth.three_year_receipt_matched_fcf_issuers.toLocaleString('ko-KR')+
-    ' / '+base.listed_total.toLocaleString('ko-KR'));
+   if(sameDayScore){
+    assert.equal(live.readinessFinancialIssuers.textContent,
+     base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+
+     base.listed_total.toLocaleString('ko-KR'));
+    assert.equal(live.readinessValuationIssuers.textContent,
+     base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
+     base.listed_total.toLocaleString('ko-KR'));
+    assert.equal(live.readinessCashflow.textContent,
+     readinessScore.observed_source_depth.three_year_receipt_matched_fcf_issuers.toLocaleString('ko-KR')+
+     ' / '+base.listed_total.toLocaleString('ko-KR'));
+   }else{
+    for(const id of ['readinessCashflow','readinessFinancialIssuers',
+      'readinessValuationIssuers','readinessProvisional100'])
+     assert.equal(live[id].textContent,'동기화 대기');
+   }
    assert.equal(live.readinessCertified.textContent,'0종목');
    assert.ok(live.readinessNotes.textContent.includes('독립 인증 전'));
   }else{
@@ -1561,7 +1606,13 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  oneDayOldHistory.market_asof=new Date(Date.parse(base.asof+'T00:00:00Z')-86400000)
   .toISOString().slice(0,10);
  oneDayOldHistory.listed_total=base.listed_total-2;
- const partial=await simulateReadiness(base,oneDayOldHistory);
+ const syntheticSameDayScore=structuredClone(readinessScore);
+ syntheticSameDayScore.asof=base.asof;
+ syntheticSameDayScore.listed_total=base.listed_total;
+ for(const key of ['technical','financial','valuation'])
+  syntheticSameDayScore.provisional_numeric_issuer_counts[key]=
+   base.observed_issuer_counts[key];
+ const partial=await simulateReadiness(base,oneDayOldHistory,syntheticSameDayScore);
  assert.ok(partial.readinessStatus.textContent.includes('당일 재무 잠정근거 확보'));
  assert.equal(partial.readinessPrice.textContent,
   base.observed_issuer_counts.technical.toLocaleString('ko-KR')+' / '+
@@ -1574,7 +1625,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
   base.observed_issuer_counts.valuation.toLocaleString('ko-KR')+' / '+
   base.listed_total.toLocaleString('ko-KR'));
  assert.equal(partial.readinessCertified.textContent,'0종목');
- const staleAuxiliary=structuredClone(readinessScore);
+ const staleAuxiliary=structuredClone(syntheticSameDayScore);
  staleAuxiliary.asof=oneDayOldHistory.market_asof;
  const noReplay=await simulateReadiness(base,oneDayOldHistory,staleAuxiliary);
  assert.ok(noReplay.readinessStatus.textContent.includes('DART 동기화 대기'));
@@ -1607,7 +1658,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  wrongHistorySchema.schema='unverified-external';
  assert.equal((await simulateReadiness(base,wrongHistorySchema))
   .readinessStatus.textContent,'출처 재검증 중');
- const good=await simulateReadiness(base,alignedHistory);
+ const good=await simulateReadiness(base,alignedHistory,syntheticSameDayScore);
  assert.equal(good.readinessFinancialIssuers.textContent,
   base.observed_issuer_counts.financial.toLocaleString('ko-KR')+' / '+base.listed_total.toLocaleString('ko-KR'));
  assert.equal(good.readinessValuationIssuers.textContent,

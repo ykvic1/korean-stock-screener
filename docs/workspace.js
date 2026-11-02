@@ -739,6 +739,45 @@ function scorePillarExplanation(p,r){
   '<p class="u-score-explain-caution">'+esc(notes[p.key]||'미검증 연구값')+
   '</p></div>';
 }
+function comparisonPillarBars(a,b,names,comparable){
+ const labels=[['momentum','모멘텀'],['valuation','밸류'],
+  ['financial','재무'],['technical','차트'],['volume','거래량']];
+ const maps=[a,b].map(c=>new Map((c?.pillars||[]).map(p=>[p.key,p])));
+ const valid=(p,key)=>p&&p.max===WEIGHTS[key]&&
+  Number.isInteger(p.available)&&p.available>=0&&p.available<=p.max&&
+  (p.candidate===null||(finite(p.candidate)&&p.candidate>=0&&
+  p.candidate<=p.available));
+ if(maps.some(m=>m.size!==5)||labels.some(([key])=>
+    maps.some(m=>!valid(m.get(key),key))))
+  return '<p class="u-muted">비교 영역별 자료를 재검증 중입니다.</p>';
+ const num=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
+ const width=(v,max)=>(v/max*100).toFixed(2);
+ const side=(p,name)=>{
+  const scored=p.candidate??0,missing=p.max-p.available;
+  const description=esc(name)+' · '+num(p.candidate)+' / '+p.max+
+   '점 · 산출 가능 '+p.available+'점 · 미확보 '+missing+'점';
+  return '<div class="u-compare-factor" aria-label="'+description+'">'+
+   '<div class="u-compare-factor-value"><strong>'+num(p.candidate)+'</strong>'+
+   '<small>/'+p.max+' · 확보 '+p.available+' · 미확보 '+missing+'</small></div>'+
+   '<div class="u-compare-meter" aria-hidden="true">'+
+   '<span class="u-score-earned" data-score-width="'+width(scored,p.max)+'"></span>'+
+   '<span class="u-score-observed" data-score-width="'+width(p.available-scored,p.max)+'"></span>'+
+   '<span class="u-score-missing" data-score-width="'+width(missing,p.max)+'"></span>'+
+   '</div></div>';
+ };
+ return '<section class="u-compare-bars" aria-label="두 종목 5개 영역 배점 비교">'+
+  '<h3>5영역 점수 분포 <small>파랑: 잠정 획득 · 연파랑: 확보 배점 중 미획득 · 사선: 미확보</small></h3>'+
+  '<p class="u-compare-bars-warning">'+(comparable?
+   '관측 기준일과 영역별 확보 배점이 같습니다. 실제 투자성과는 검증되지 않았습니다.':
+   '기준일 또는 영역별 확보 배점이 다릅니다. 점수의 직접적인 우열 비교는 불가합니다.')+'</p>'+
+  '<div class="u-compare-bars-head"><span>영역</span><strong>'+
+   esc(names[0])+'</strong><strong>'+esc(names[1])+'</strong></div>'+
+  labels.map(([key,label])=>'<div class="u-compare-bars-row" data-pillar="'+key+'">'+
+   '<strong>'+label+'</strong>'+side(maps[0].get(key),names[0])+
+   side(maps[1].get(key),names[1])+'</div>').join('')+
+  '<p class="u-compare-bars-foot">미산출은 0점이 아니며, 채워진 색도 공식 검증 점수가 아닌 연구 관측치입니다.</p>'+
+  '</section>';
+}
 function scoreOverviewMarkup(c,normalized,r){
  if(!c||!Array.isArray(c.pillars)||c.pillars.length!==5||
     !Number.isInteger(c.available)||c.available<0||c.available>100||
@@ -805,7 +844,7 @@ function scoreOverviewMarkup(c,normalized,r){
 // The site CSP rejects style attributes in innerHTML. Once mounted, use
 // bounded CSSOM property assignments without weakening CSP.
 function paintScoreOverview(view){
- for(const node of view.querySelectorAll('.u-score-visual [data-score-width], .u-score-visual [data-score-height]')){
+ for(const node of view.querySelectorAll('.u-score-visual [data-score-width], .u-score-visual [data-score-height], .u-compare-bars [data-score-width]')){
   for(const [attr,property] of [['data-score-width','width'],['data-score-height','height']]){
    const raw=node.getAttribute(attr);
    if(raw===null)continue;
@@ -1663,7 +1702,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1745,14 +1784,17 @@ function renderCompare(){
   '두 종목의 관측 기준일과 5영역 확보 배점 구성이 같습니다. 투자성과나 원천 검증을 뜻하지 않습니다.':
   '기준일 또는 5영역 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
  results.innerHTML='<div class="u-compare-cards">'+cards+'</div>'+
+  comparisonPillarBars(a,b,names,comparable)+
+  '<details class="u-compare-table-details"><summary>영역별 정확한 점수·배점 수치표 펼치기</summary>'+
   '<div class="u-compare-overflow"><table class="u-compare-table">'+
   '<caption>5개 영역별 실제 잠정 점수와 확보 배점 비교</caption>'+
   '<thead><tr><th scope="col">영역</th><th scope="col">'+esc(names[0])+
   '</th><th scope="col">'+esc(names[1])+'</th></tr></thead>'+
-  '<tbody>'+details+'</tbody></table></div>'+
+  '<tbody>'+details+'</tbody></table></div></details>'+
   '<p class="u-compare-disclaimer">개인 연구용 비교 · 관측하지 못한 영역은 0점이 아닙니다. '+
   '공시 효력시점·기업행위 수정주가·기관 수급·실제 수익성과 위험은 인증되지 않았습니다.</p>';
  results.hidden=false;
+ paintScoreOverview(results);
 }
 function addToCompare(code){
  if(!model)return;
