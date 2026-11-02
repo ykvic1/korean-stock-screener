@@ -183,6 +183,23 @@ with sync_playwright() as p:
     assert "삼성전자" in page.locator("#compareResults").inner_text()
     assert "SK하이닉스" in page.locator("#compareResults").inner_text()
     assert page.locator("#compareResults .u-compare-table tbody tr").count() == 5
+    assert page.locator("#compareResults .u-compare-bars-row").count() == 5
+    assert page.locator("#compareResults .u-compare-meter").count() == 10
+    assert "미확보" in page.locator("#compareResults .u-compare-bars").inner_text()
+    # CSP-safe CSSOM widths: each bar represents the full pillar ceiling.
+    assert page.locator("#compareResults .u-compare-meter").evaluate_all("""els =>
+        els.every(el => Math.abs(
+            [...el.children].reduce((sum,part) =>
+                sum + (parseFloat(part.style.width) || 0), 0) - 100
+        ) < 0.04)
+    """), "comparison bars must be painted, not left at zero by CSP"
+    assert page.evaluate("""() => {
+        const box=document.querySelector('#compareResults .u-compare-bars').getBoundingClientRect();
+        return box.left >= -2 && box.right <= innerWidth + 2;
+    }"""), "two-stock bars must fit 390px without horizontal clipping"
+    page.locator(".u-compare-table-details summary").click()
+    assert page.locator("#compareResults .u-compare-table").is_visible()
+    page.locator(".u-compare-table-details summary").click()
     assert "점수 우열" in page.locator("#compareStatus").inner_text() or (
         "관측 기준일" in page.locator("#compareStatus").inner_text()
     )
