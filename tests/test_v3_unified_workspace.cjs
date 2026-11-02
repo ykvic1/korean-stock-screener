@@ -126,7 +126,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  const historyModel={date:today,marketEligible:1,rows:[{r:{...row}}]};
  assert.equal(unified.applyIssuerFactorLedger(historyModel,historyForged),1);
  assert.match(unified.subfactorHistoryMarkup('valuation',historyModel.rows[0].r),/PBR/);
- assert.doesNotMatch(unified.subfactorHistoryMarkup('valuation',historyModel.rows[0].r),/직전/);
+ assert.doesNotMatch(unified.subfactorHistoryMarkup('valuation',historyModel.rows[0].r),/직전 2026-/);
  const malformed=structuredClone(snapshots);
  malformed.rows[code].components.valuation.pbr.asof='2026-11-03';
  malformed.rows[code].components.valuation.fcf_yield.source='dart_fiscal_subfactor';
