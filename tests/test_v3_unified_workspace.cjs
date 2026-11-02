@@ -475,6 +475,18 @@ assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab
 assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
 assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
+assert.ok(html.includes('id="compareForm"')&&entry.includes('id="compareForm"'),
+ 'both public routes must expose two-stock compare controls');
+for(const page of [html,entry]){
+ assert.ok(page.includes('id="compareCodeA"')&&page.includes('id="compareCodeB"')&&
+  page.includes('id="compareRun"')&&page.includes('id="compareReset"')&&
+  page.includes('id="compareResults"'),'compare form, reset, results, and two inputs required');
+}
+assert.ok(css.includes('.u-compare-cards')&&css.includes('.u-compare-overflow'),
+ 'two-stock comparison must fit desktop and horizontally scroll only the table on mobile');
+assert.ok(source.includes('동일한 종목은 비교할 수 없습니다')&&
+ source.includes('관측 기준일과 5영역 확보 배점')&&source.includes('공시 효력시점'),
+ 'compare research must state missingness and source certification limitations');
 assert.ok(html.includes('id="personalRank"')&&entry.includes('id="personalRank"'),
  'personal research 100-point normalization must be accessible on both routes');
 assert.ok(html.includes('<option value="personal">개인 연구용 100점 환산순</option>')&&
@@ -489,8 +501,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-personal100-415')&&
-  page.includes('workspace.css?v=v30b-20261102-personal100-415'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-compare416')&&
+  page.includes('workspace.css?v=v30b-20261102-compare416'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -842,6 +854,26 @@ assert.equal(unified.rankItems(model,legacy,'all')[0].composite.earned,22.8);
 assert.equal(unified.rankItems(model,legacy,'all')[1].composite.earned,null);
 assert.ok(unified.rankItems(model,legacy,'all','all','','personal').every(x=>x.personal100===null),
  'personal sorting must keep missing normalized scores as unknown, never zero');
+assert.equal(unified.matchCompareStock(model,'005930')?.r.name,'샘플회사');
+assert.equal(unified.matchCompareStock(model,'샘플회사')?.r.code,'005930');
+assert.equal(unified.matchCompareStock(model,'샘플'),null,
+ 'partial issuer names must not guess a different stock');
+assert.equal(unified.matchCompareStock({...model,rows:[safe,{...safe,r:{...row,code:'123456'}}]},'샘플회사'),null,
+ 'duplicate exact issuer names must not silently resolve to arbitrary issuer');
+const pair=unified.resolveComparePair(model,'샘플회사','000001');
+assert.equal(pair.ok,true);
+assert.equal(pair.left.r.code,'005930');
+assert.equal(pair.right.r.code,'000001');
+assert.equal(pair.sameDate,true);
+assert.equal(pair.sameCoverage,false,
+ 'equal market date does not mean matching source coverage vectors');
+assert.equal(unified.resolveComparePair(model,'005930','005930').reason,'same_stock');
+assert.equal(unified.resolveComparePair(model,'','000001').reason,'left_required');
+assert.equal(unified.resolveComparePair(model,'005930','').reason,'right_required');
+assert.equal(unified.resolveComparePair(model,'999999','000001').reason,'left_not_found');
+assert.equal(unified.resolveComparePair(model,'005930','999999').reason,'right_not_found');
+assert.equal(unified.resolveComparePair({...model,date:'2026-10-21'},'005930','000001').sameDate,false,
+ 'stale or mismatched dates cannot be described as directly comparable');
 const obvModel={...model,rows:[unsafe,{...safe,r:withVolume}]};
 assert.deepEqual(unified.rankItems(obvModel,legacy,'all','all','','score',
  false,false,true).map(x=>x.r.code),[withVolume.code],
