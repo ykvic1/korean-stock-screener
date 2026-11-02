@@ -348,6 +348,30 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
     }
 
 
+
+def public_progress_complete(raw):
+    """Conservative, anonymous public gate: completion never means certification.
+
+    A stale public counter only permits a harmless private-cursor no-op; it
+    cannot make this worker exceed its enforced 72-call per-run limit.
+    """
+    return (type(raw) is dict
+        and raw.get("schema") == "v3-public-dart-historical-receipt-progress-v1"
+        and raw.get("filing_months_total") == len(MONTHS)
+        and raw.get("filing_months_checkpointed") == len(MONTHS)
+        and raw.get("filing_months_remaining") == 0
+        and raw.get("filing_months_checkpointed_ratio") == 1
+        and raw.get("last_checkpointed_filing_month") == MONTHS[-1]
+        and raw.get("current_collection_filing_month") is None
+        and raw.get("filing_category_scope") == list(CATEGORIES)
+        and raw.get("private_tail_digest_and_schema_verified") is True
+        and raw.get("private_checkpoint_stable_during_read") is True
+        and raw.get("provider_api_calls") == 0
+        and raw.get("public_issuer_receipts_or_source_raw_published") is False
+        and raw.get("v3_trade_scores_promoted") is False
+        and raw.get("full_historical_archive_independently_audited") is False)
+
+
 def main():
     if (os.environ.get("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO
         or len(os.environ.get("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20
