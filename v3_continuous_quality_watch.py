@@ -43,7 +43,12 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
     refday = _day(four.get("asof"))
     if refday > market_day:
         raise ReadinessError("future_four_year_reference")
-    if four.get("listed_total") != catalog.get("listed_total"):
+    source_listed = four.get("listed_total")
+    if type(source_listed) is not int or not 1 <= source_listed <= 10000:
+        raise ReadinessError("invalid_four_year_source_census")
+    # Different source days legitimately have different listed counts. The
+    # immutable 4Y reference is a dated cohort, not today's market census.
+    if refday == market_day and source_listed != catalog.get("listed_total"):
         raise ReadinessError("four_year_market_census_mismatch")
     for name, expected in (
         ("full_v3_ready", False),
@@ -55,10 +60,12 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
     if four.get("confirmed_six_pillar_ranks") is not None:
         raise ReadinessError("unearned_four_year_investment_ranks")
     records = four.get("records")
-    if not isinstance(records, list) or len(records) > catalog["listed_total"]:
+    if not isinstance(records, list) or len(records) > source_listed:
         raise ReadinessError("invalid_four_year_issuer_rows")
     listed = {x["code"] for x in catalog["rows"]}
     unique = set()
+    active_reference_issuers = 0
+    inactive_reference_issuers = 0
     observed = 0
     income_observed = 0
     cashflow_observed = 0
@@ -70,13 +77,16 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
         if not isinstance(row, dict) or type(row.get("code")) is not str:
             raise ReadinessError("invalid_four_year_issuer_row")
         code = row["code"]
-        if code not in listed or code in unique:
+        if (len(code) != 6 or not code.isdigit() or code in unique or
+                (refday == market_day and code not in listed)):
             raise ReadinessError("invalid_or_duplicate_four_year_issuer")
         unique.add(code)
+        active_reference_issuers += int(code in listed)
+        inactive_reference_issuers += int(code not in listed)
         # Re-check source receipt years, dates, CFS/OFS consistency and
         # observed statement values. Refuse hand-filled completed flags.
         try:
-            rebuilt = verify_four_annual_record(code, row.get("reports"), str(market_day))
+            rebuilt = verify_four_annual_record(code, row.get("reports"), str(refday))
         except (ValueError, TypeError, KeyError):
             raise ReadinessError("invalid_four_year_annual_evidence") from None
         if (row.get("same_scope_four_years") is not rebuilt["same_scope_four_years"]
@@ -122,7 +132,9 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
             or four.get("recent_four_year_window_observed_count") != recent_observed
             or four.get("current_core_financial_research_observed_count") != current_core_observed):
         raise ReadinessError("four_year_aggregated_count_mismatch")
-    return {"status": "research_only", "four_year_observed": observed,
+    return {"status": ("research_only" if refday == market_day
+                        else "research_only_prior_census"),
+            "four_year_observed": observed,
             "four_year_core_financial_research_observed": core_observed,
             "recent_four_year_window_observed": recent_observed,
             "current_core_financial_research_observed": current_core_observed,
@@ -130,6 +142,11 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
             "last_three_years_operating_cashflow_observed": cashflow_observed,
             "latest_year_balance_values_observed": balance_observed,
             "pilot_issuer_count": len(records), "source_date": refday.isoformat(),
+            "source_listed_total": source_listed,
+            "current_listed_total": catalog["listed_total"],
+            "source_census_delta": catalog["listed_total"]-source_listed,
+            "active_reference_issuer_count": active_reference_issuers,
+            "inactive_reference_issuer_count": inactive_reference_issuers,
             "source_day_lag_calendar_days": (market_day-refday).days}
 
 
@@ -175,6 +192,12 @@ def assess_sources(market: dict, catalog: dict, book: dict,
         warnings.append("verified_ias20_investor_flow_not_available")
     if four_status["status"] == "not_published":
         warnings.append("four_year_annual_source_not_yet_published")
+    elif four_status["status"] == "research_only_prior_census":
+        warnings.append("four_year_reference_uses_prior_market_census")
+        if four_status["inactive_reference_issuer_count"]:
+            warnings.append("four_year_reference_contains_inactive_issuers")
+        if four_status["source_day_lag_calendar_days"] > 30:
+            warnings.append("four_year_reference_older_than_30_days")
     if counts["reported_full_six_pillar_sort_count"]:
         # A research shortlist is not a certified 100-point portfolio rank.
         warnings.append("research_sort_is_not_certified_six_pillar_investment_rank")
