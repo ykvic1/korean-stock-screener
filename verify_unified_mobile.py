@@ -83,6 +83,15 @@ with sync_playwright() as p:
     page.locator(".u-stock").first.wait_for(timeout=45000)
     assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
+    # The requested research quick filter expands to all stocks, not just TOP100.
+    assert page.locator("#obvLagOnly").is_visible()
+    page.locator("#obvLagOnly").click()
+    assert page.locator("#obvLagOnly").get_attribute("aria-pressed") == "true"
+    assert page.locator('[data-tab="all"]').get_attribute("aria-pressed") == "true"
+    assert "OBV 상승·주가 미반영" in page.locator("#resultCount").inner_text()
+    assert "매수 신호는 아닙니다" in page.locator("#filterNotice").inner_text()
+    page.locator("#obvLagOnly").click()
+    assert page.locator("#obvLagOnly").get_attribute("aria-pressed") == "false"
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     assert page.locator(".u-stock").first.locator(".u-provisional-total").is_visible()
