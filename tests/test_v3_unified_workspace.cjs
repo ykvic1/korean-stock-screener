@@ -65,8 +65,41 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-drill425'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-compare426'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
+}
+
+// Two-stock side-by-side bars must show source coverage, never impute 0.
+{
+ const a={pillars:[
+  {key:'volume',max:20,available:16,candidate:10},
+  {key:'technical',max:25,available:25,candidate:13.2},
+  {key:'financial',max:20,available:20,candidate:15.9},
+  {key:'valuation',max:20,available:20,candidate:17.5},
+  {key:'momentum',max:15,available:8,candidate:3.7}
+ ]};
+ const b=structuredClone(a);
+ b.pillars.find(p=>p.key==='volume').candidate=null;
+ b.pillars.find(p=>p.key==='volume').available=0;
+ const markup=unified.comparisonPillarBars(a,b,['A<종목','B&종목'],false);
+ assert.equal((markup.match(/class="u-compare-bars-row"/g)||[]).length,5);
+ assert.equal((markup.match(/class="u-compare-meter"/g)||[]).length,10);
+ assert.match(markup,/data-pillar="momentum"/);
+ assert.match(markup,/data-score-width="24\.67"/);
+ assert.match(markup,/data-score-width="100\.00"/);
+ assert.match(markup,/미산출/);
+ assert.match(markup,/미확보 20/);
+ assert.match(markup,/점수의 직접적인 우열 비교는 불가/);
+ assert.ok(markup.includes('A&lt;종목')&&markup.includes('B&amp;종목'));
+ assert.ok(!markup.includes('style="width:'));
+ assert.ok(unified.comparisonPillarBars(a,a,['가','나'],true)
+  .includes('관측 기준일과 영역별 확보 배점이 같습니다'));
+ const invalid=structuredClone(a);
+ invalid.pillars[0].available=21;
+ assert.match(unified.comparisonPillarBars(invalid,a,['가','나'],true),/재검증 중/);
+ assert.ok(source.includes('comparisonPillarBars(a,b,names,comparable)'));
+ assert.ok(source.includes('paintScoreOverview(results)'));
+ assert.ok(css.includes('.u-compare-bars-row')&&css.includes('.u-compare-table-details'));
 }
 
 // Compact visible progress is a SOURCE-DATED research bar, never a score promotion.
