@@ -18,7 +18,8 @@ concurrency:
 
 jobs:
   bounded-direct-resume:
-    if: ${{ github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): personal 100-point beta and faster DART collection') }}
+    if: >-
+      ${{ github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): personal 100-point beta and faster DART collection') }}
     runs-on: ubuntu-latest
     timeout-minutes: 17
     steps:
