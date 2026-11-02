@@ -69,6 +69,39 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
+// Per-issuer last-observed points must survive a market-date rollover as
+// visibly dated history, never as today's earned/current available points.
+{
+ const today='2026-11-02',name='삼성전자',code='005930';
+ const row={code,name,market:'KOSPI',price_date:today};
+ const model={date:today,marketEligible:1,rows:[{r:row}]};
+ const saved={schema:'v3-issuer-last-observed-factors-0.1',
+  market_asof:today,listed_total:1,active_issuer_count:1,
+  investment_score_certified:false,mixed_date_sum_permitted:false,
+  missing_is_not_zero:true,
+  rows:{[code]:{code,name,market:'KOSPI',active:true,
+   factors:{financial:{asof:'2026-10-30',available:16,
+    points:11.5,source:'dart_bulk_snapshot'}}}}};
+ assert.equal(unified.applyIssuerFactorLedger(model,saved),1);
+ assert.equal(row.v3_last_known_factors.financial.asof,'2026-10-30');
+ const research={earned:22,available:51,missing:49,observedPillars:4,pillars:[
+  {key:'volume',label:'거래량·OBV',max:20,candidate:7,available:16},
+  {key:'technical',label:'기술적 분석',max:25,candidate:5,available:15},
+  {key:'financial',label:'재무',max:20,candidate:null,available:0,
+   lastObserved:row.v3_last_known_factors.financial},
+  {key:'valuation',label:'밸류에이션',max:20,candidate:5,available:10},
+  {key:'momentum',label:'모멘텀',max:15,candidate:5,available:10}
+ ]};
+ const view=unified.scoreOverviewMarkup(research,null,row);
+ assert.match(view,/마지막 관측 11.5\/16/);
+ assert.match(view,/2026-10-30/);
+ assert.match(view,/현재 합계 미포함/);
+ assert.match(view,/잠정 합계 <b>22점<\/b>/);
+ const polluted=structuredClone(saved);
+ polluted.rows[code].factors.financial.asof='2026-11-03';
+ assert.equal(unified.applyIssuerFactorLedger(
+  {date:today,marketEligible:1,rows:[{r:{...row}}]},polluted),0);
+}
 // Two-stock side-by-side bars must show source coverage, never impute 0.
 {
  const a={pillars:[
