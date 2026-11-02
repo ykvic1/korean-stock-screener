@@ -7,15 +7,16 @@ on:
       - v3_dart_private_progress_report.py
       - tests/test_v3_dart_private_progress_report.py
       - .github/workflows/v3-dart-public-receipt-progress.yml
-  # Source collector has twelve daily slots, plus a bounded direct rescue.
-  # Progress follows BOTH collectors after successful completion; two fallback
-  # checks reread the saved private cursor (ZERO OpenDART/KRX calls).
+  # Twelve regular + twelve bounded direct fast-lane slots per day, plus
+  # one-off rescue. Follow all successful private collectors, with two daily
+  # fallbacks. This reporter makes ZERO OpenDART or KRX provider calls.
   schedule:
     - cron: '7 1,13 * * *' # 10:07 / 22:07 KST
   workflow_run:
     workflows:
       - V3 Private Historical OpenDART Filing Receipts (Research Only)
       - V3 Direct Historical DART Receipt Resume (One-off)
+      - V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)
     types: [completed]
   workflow_dispatch:
     inputs:
