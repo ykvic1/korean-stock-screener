@@ -17,6 +17,18 @@ from v3_dart_cashflow_enrichment import (
 )
 
 SCHEMA = "v3-annual-dart-fcf-missingness-source-audit-0.1"
+ISSUER_SCHEMA = "v3-listed-issuer-annual-fcf-account-availability-0.1"
+# Each code is a classification of an attempted official annual source, not a
+# conclusion that a firm did not disclose the account. N = not collected.
+CODE_BY_CLASS = {
+    "missing_cfo_and_capex": "X",
+    "missing_cfo_only": "C",
+    "missing_both_capex": "B",
+    "missing_ppe_only": "P",
+    "missing_intangible_only": "I",
+    "fcf_observed_receipt_unmatched": "U",
+    "fcf_observed_receipt_matched": "V",
+}
 CLASSES = (
     "missing_cfo_and_capex",
     "missing_cfo_only",
@@ -164,6 +176,63 @@ def audit_cashflow_gaps(state, market, catalog, major):
     }
 
 
+
+def issuer_gap_view(state, market, catalog, major, *, aggregate=None):
+    """Publish ONLY source-classified availability, not amounts/receipt IDs.
+
+    Rows are keyed by public six-digit tickers. Each row stores fiscal scope
+    plus three one-character classifications in the fixed 2023-2025 window.
+    Unfetched fiscal years use N, never a fabricated CFO/CAPEX amount or 0.
+    """
+    verified = audit_cashflow_gaps(state, market, catalog, major)
+    if aggregate is not None and aggregate != verified:
+        raise GapAuditError("issuer_gap_source_summary_mismatch")
+    asof, members = asof_members(market, catalog, major)
+    records = {}
+    categories = {code: 0 for code in CODE_BY_CLASS.values()}
+    not_fetched = 0
+    for code in sorted(state["records"]):
+        company = state["records"][code]
+        statuses = []
+        for year in YEARS:
+            observation = company["years"].get(str(year))
+            if observation is None:
+                statuses.append("N")
+                not_fetched += 1
+            else:
+                category = CODE_BY_CLASS[_classify(observation)]
+                statuses.append(category)
+                categories[category] += 1
+        records[code] = [company["scope"], *statuses]
+    no_saved = len(members) - len(records)
+    not_fetched += 3 * no_saved
+    if (sum(categories.values()) != verified["attempted_company_years"]
+        or not_fetched != 3 * len(members) - verified["attempted_company_years"]
+        or no_saved != verified["three_year_issuer_depth"]["no_saved_cashflow_years"]
+        or any(categories[symbol] != verified["categories"][name]
+               for name, symbol in CODE_BY_CLASS.items())):
+        raise GapAuditError("issuer_gap_availability_partition_mismatch")
+    return {
+        "schema": ISSUER_SCHEMA,
+        "asof": asof,
+        "source_cashflow_sha256": verified["source_cashflow_sha256"],
+        "listed_total": len(members),
+        "fiscal_years": list(YEARS),
+        "records": records,
+        "issuers_with_saved_cashflow_years": len(records),
+        "issuers_without_saved_cashflow_years": no_saved,
+        "attempted_company_years": verified["attempted_company_years"],
+        "unfetched_company_year_slots": not_fetched,
+        "status_counts": dict(sorted(categories.items())),
+        "source_receipt_scope_checked": True,
+        "unobserved_not_zero": True,
+        "raw_amounts_or_receipt_ids_published": False,
+        "historical_pit_verified": False,
+        "provider_api_calls": 0,
+        "trading_score_promoted": False,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--market", default="docs/data.json")
@@ -171,20 +240,34 @@ def main(argv=None):
     parser.add_argument("--major", default="docs/v3-dart-bulk-history.json")
     parser.add_argument("--cashflow", default="docs/v3-dart-cashflow-reference.json")
     parser.add_argument("--out", default="docs/v3-dart-cashflow-gap-summary.json")
+    parser.add_argument("--issuer-out", default=None,
+                        help="Optional tiny per-listed-ticker classifications, no raw amount")
     parser.add_argument("--mode", choices=("write", "verify"), default="write")
     args = parser.parse_args(argv)
 
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
 
-    report = audit_cashflow_gaps(
-        read(args.cashflow), read(args.market), read(args.catalog),
-        read(args.major))
+    cashflow = read(args.cashflow)
+    market = read(args.market)
+    catalog = read(args.catalog)
+    major = read(args.major)
+    report = audit_cashflow_gaps(cashflow, market, catalog, major)
+    issuer = issuer_gap_view(
+        cashflow, market, catalog, major, aggregate=report
+    ) if args.issuer_out else None
     output = Path(args.out)
+    issuer_output = Path(args.issuer_out) if args.issuer_out else None
     if args.mode == "write":
         write_json(output, report)
+        if issuer_output is not None:
+            write_json(issuer_output, issuer)
     elif not output.is_file() or read(output) != report:
         raise GapAuditError("saved_cashflow_gap_report_changed")
+    elif issuer_output is not None and (
+        not issuer_output.is_file() or read(issuer_output) != issuer
+    ):
+        raise GapAuditError("saved_cashflow_issuer_evidence_changed")
     print(json.dumps({
         "status": "verified_saved_cashflow_missingness_only",
         "observed_fcf_company_years": report["observed_fcf_company_years"],
