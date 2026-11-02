@@ -9,6 +9,7 @@ import unittest
 from v3_dart_historical_event_receipts import (
     CATEGORIES, CHECKPOINT, DARTEventReceiptError, MONTHS, _decode, _path,
     parse_official_response, run, PRIVATE_REPO, MAX_API_CALLS,
+    public_progress_complete,
 )
 
 
@@ -60,6 +61,37 @@ def response(page, total, rows):
 
 
 class HistoricalDARTReceiptTests(unittest.TestCase):
+    def test_direct_fastlane_completion_gate_never_promotes_scores(self):
+        done = {
+            "schema": "v3-public-dart-historical-receipt-progress-v1",
+            "filing_months_total": 120, "filing_months_checkpointed": 120,
+            "filing_months_remaining": 0, "filing_months_checkpointed_ratio": 1,
+            "last_checkpointed_filing_month": "2026-09",
+            "current_collection_filing_month": None,
+            "filing_category_scope": ["B", "C", "E", "I"],
+            "private_tail_digest_and_schema_verified": True,
+            "private_checkpoint_stable_during_read": True,
+            "provider_api_calls": 0,
+            "public_issuer_receipts_or_source_raw_published": False,
+            "v3_trade_scores_promoted": False,
+            "full_historical_archive_independently_audited": False,
+        }
+        self.assertTrue(public_progress_complete(done))
+        for key, invalid in [
+            ("filing_months_checkpointed", 119),
+            ("filing_months_remaining", 1),
+            ("current_collection_filing_month", "2026-09"),
+            ("last_checkpointed_filing_month", "2026-08"),
+            ("filing_category_scope", ["B", "C"]),
+            ("provider_api_calls", 1),
+            ("private_tail_digest_and_schema_verified", False),
+            ("private_checkpoint_stable_during_read", False),
+            ("v3_trade_scores_promoted", True),
+        ]:
+            self.assertFalse(public_progress_complete({**done, key: invalid}),
+                "malformed or incomplete public counters cannot stop retrieval")
+        self.assertFalse(public_progress_complete(None))
+
     def test_paginated_official_source_and_private_only_resumable_archive(self):
         self.assertEqual(MONTHS[0], "2016-10")
         self.assertEqual(MONTHS[-1], "2026-09")
@@ -272,6 +304,20 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("max 72 calls", direct)
         self.assertIn("python v3_dart_historical_event_receipts.py", direct)
         self.assertNotIn("schedule:", direct)
+        fast = (base / ".github/workflows/v3-dart-historical-direct-fastlane.yml").read_text()
+        self.assertIn("cron: '31 1-23/2 * * *'", fast)
+        self.assertIn("default: dry_run", fast)
+        self.assertIn("startsWith(github.event.head_commit.message", fast)
+        self.assertIn("group: v3-dart-private-historical-event-receipts", fast)
+        self.assertIn("python v3_dart_historical_event_receipts.py", fast)
+        self.assertIn("max 72", fast)
+        self.assertIn("steps.completion.outputs.done == 'false'", fast)
+        self.assertIn("public_progress_complete", fast)
+        self.assertIn("contents: read", fast)
+        self.assertIn("persist-credentials: false", fast)
+        self.assertNotIn("contents: write", fast)
+        self.assertNotIn("git push", fast)
+        self.assertNotIn("upload-artifact", fast)
         self.assertIn("cron: '30 9 * * 1-5'",
                       (base / ".github/workflows/full-market-batches.yml").read_text())
 
