@@ -88,6 +88,13 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,a:fo
 #obvLagOnly{border:1px solid #408a68;border-radius:99px;padding:9px 13px;
  background:#152b25;color:#c5f3d8;font-size:12px;font-weight:800}
 #obvLagOnly[aria-pressed=true]{background:#12dc72;border-color:#12dc72;color:#072819}
+#personalRank{border:1px solid #b78a47;border-radius:99px;padding:9px 13px;
+ background:#2c241a;color:#ffe0ab;font-size:12px;font-weight:800}
+#personalRank[aria-pressed=true]{background:#ffcb64;border-color:#ffcb64;color:#2e2414}
+.u-personal100{background:#2e261b;border:1px solid #a07d40;border-radius:9px;
+ color:#ffdc91;padding:7px 9px;min-width:104px;box-sizing:border-box}
+.u-personal100 b,.u-personal100 strong{color:#ffdb8c}
+.u-personal100 small{display:block;color:#eacb93;font-size:10px;line-height:1.45}
 .u-signal.u-obv-lag{background:#1d4235;border:1px solid #329f6c;color:#c7fbd9}
 .u-rank-controls .u-coverage-control{display:flex;align-items:center;gap:7px;
  flex-wrap:wrap;color:#bddccf;font-size:11px;font-weight:750;min-width:0}

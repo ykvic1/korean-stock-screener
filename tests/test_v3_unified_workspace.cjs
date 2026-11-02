@@ -475,13 +475,22 @@ assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab
 assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
 assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
+assert.ok(html.includes('id="personalRank"')&&entry.includes('id="personalRank"'),
+ 'personal research 100-point normalization must be accessible on both routes');
+assert.ok(html.includes('<option value="personal">개인 연구용 100점 환산순</option>')&&
+ entry.includes('<option value="personal">개인 연구용 100점 환산순</option>'),
+ 'sort controls must distinguish normalized personal beta score');
+assert.ok(css.includes('#personalRank[aria-pressed=true]')&&css.includes('.u-personal100'),
+ 'personal research chip and ranking toggle must have visible CSS treatment');
+assert.ok(source.includes('개인 연구용 100점 환산 · 미인증'),
+ 'normalized values must never masquerade as a certified investment score');
 assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-coverage413')&&
-  page.includes('workspace.css?v=v30b-20261102-coverage413'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-personal100-415')&&
+  page.includes('workspace.css?v=v30b-20261102-personal100-415'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
@@ -564,6 +573,21 @@ assert.equal(Object.values(unified.WEIGHTS).reduce((a,b)=>a+b,0),100);
 assert.equal(unified.INDUSTRY_COMPONENTS,undefined);
 assert.equal(unified.industryParts,undefined);
 assert.equal(unified.researchComposite(row).pillars.length,5);
+assert.equal(unified.personalHundredFromComposite({earned:60.3,available:89,observedPillars:5}),67.8,
+ 'available provisional points must be normalized to 100, preserving one decimal');
+assert.equal(unified.personalHundredFromComposite({earned:84,available:100,observedPillars:5}),84);
+for(const incomplete of [
+ {earned:null,available:100,observedPillars:5},
+ {earned:60,available:74,observedPillars:5},
+ {earned:60,available:90,observedPillars:4},
+ {earned:101,available:100,observedPillars:5},
+ {earned:Infinity,available:100,observedPillars:5},
+]){
+ assert.equal(unified.personalHundredFromComposite(incomplete),null,
+  'missing pillars, insufficient coverage, out-of-range and invalid values cannot produce a personal score');
+}
+assert.equal(unified.personalHundred(row),null,
+ 'missing research observation must not silently normalize to zero');
 assert.ok(source.includes('소속 업종 · 시장 대비 20·60·120일 상대강도'));
 assert.ok(!Object.prototype.hasOwnProperty.call(unified.WEIGHTS,'industry'),
  'legacy 15-point industry research is not a sixth scored factor');
@@ -816,6 +840,8 @@ assert.deepEqual(unified.rankItems(model,legacy,'all').map(x=>x.r.code),
  ['005930','000001'],'V2.2 98 points cannot outrank V3 research evidence');
 assert.equal(unified.rankItems(model,legacy,'all')[0].composite.earned,22.8);
 assert.equal(unified.rankItems(model,legacy,'all')[1].composite.earned,null);
+assert.ok(unified.rankItems(model,legacy,'all','all','','personal').every(x=>x.personal100===null),
+ 'personal sorting must keep missing normalized scores as unknown, never zero');
 const obvModel={...model,rows:[unsafe,{...safe,r:withVolume}]};
 assert.deepEqual(unified.rankItems(obvModel,legacy,'all','all','','score',
  false,false,true).map(x=>x.r.code),[withVolume.code],

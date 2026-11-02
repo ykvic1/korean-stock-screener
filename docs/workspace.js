@@ -536,6 +536,17 @@ function researchComposite(r){
   observedPillars:pillars.filter(p=>p.available>0).length,
   complete:available===100,provisional:true,pillars};
 }
+// Personal research-only normalized scale. Missing factors are NOT zero points.
+// The 75/100 and all-five-pillar floor reduces small-denominator inflation;
+// it does not certify data quality, forecasts, rankings or buy decisions.
+function personalHundredFromComposite(c){
+ if(!c||c.earned===null||c.available<75||c.observedPillars!==5||
+    !Number.isFinite(c.earned)||c.earned<0||c.earned>c.available)return null;
+ return Math.round(c.earned/c.available*1000)/10;
+}
+function personalHundred(r){
+ return personalHundredFromComposite(researchComposite(r));
+}
 // Compare the available ceilings of ALL five V3 pillars, not just their sum.
 // Equal coverage vectors still do not establish source/PIT or return certification.
 function coverageVector(pillars){
@@ -594,10 +605,11 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
   const rsi=signals.filter(z=>z.kind==='rsi');
   const composite=researchComposite(x.r);
   const tech=technicalCandidate(x.r);
+  const personal100=personalHundredFromComposite(composite);
   const priority=signals.reduce((acc,z)=>acc+(z.kind==='pattern'?
     (z.timeframe==='weekly'?4:3)+(z.stage==='돌파 관측'?1:0):1),0);
   return {...x,daily,weekly,signals,patterns,rsi,risk,tech,priority,composite,
-    candidatePosition:candidatePositions.get(x.r.code)??null,
+    candidatePosition:candidatePositions.get(x.r.code)??null,personal100,
     coverageKey:coverageVector(composite.pillars)};
  }).filter(x=>{
   const r=x.r;
@@ -619,6 +631,8 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
  });
  rows.sort((a,b)=>{
   if(sort==='score')return compareResearchScores(a,b);
+  if(sort==='personal')return (b.personal100??-1)-(a.personal100??-1)||
+    compareResearchScores(a,b);
   if(sort==='risk')return Number(a.risk.unsafe)-Number(b.risk.unsafe)||
    (a.risk.distance??1e4)-(b.risk.distance??1e4)||
    compareResearchScores(a,b);
@@ -1359,7 +1373,7 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1406,6 +1420,7 @@ function renderDetails(x){
  const risk=x.risk;
  const quant=sampleQuant(x,core);
  const composite=researchComposite(r);
+ const personal100=personalHundredFromComposite(composite);
   const part=pillars.map(i=>'<div class="u-pillar u-factor-unverified"><span>'+esc(i.label)+
   ' <small>/'+i.max+'</small></span><b>'+
   (i.candidate===null?'— · 자료 미확보':i.candidate.toFixed(1)+'점')+
@@ -1423,10 +1438,13 @@ function renderDetails(x){
  '<div class="u-factor-unverified"><small>V3 잠정 종합점수 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
  '</strong><small>산출 가능 배점 '+composite.available+'/100 · 기준 '+esc(composite.asof)+
- '</small></div></div>'+
+ '</small></div>'+
+ '<div class="u-personal100"><small>개인 연구용 100점 환산 · 미인증</small><strong>'+
+ (personal100===null?'— · 관측 부족':personal100.toFixed(1)+' / 100')+
+ '</strong><small>관측 잠정점수 ÷ 확보 배점 × 100 · 5영역 모두 관측·75/100 이상만</small></div></div>'+
  '<h3>잠정 합계 산출근거</h3>'+
  '<p class="u-muted">아래 연구점수 중 실제로 계산된 값만 더한 합계입니다. '+
- '미확보 영역을 0점으로 처리하거나 100점으로 환산하지 않습니다. '+
+ '미확보 영역을 0점으로 처리하지 않습니다. 별도 개인용 100점 환산은 관측된 점수의 비율만 표시하며 결측영역의 실제 점수나 미래 수익을 추정하지 않습니다. '+
  '모든 점수는 새 관측 기준일마다 갱신되는 값이며 매수 추천이 아닙니다.</p>'+
  '<h3>일봉 · 스윙 관찰</h3>'+
  (x.daily.length?'<div class="u-signals">'+x.daily.map(patternPill).join('')+'</div>':
@@ -1494,7 +1512,7 @@ function draw(){
   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체 시장 중 ')+
   (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
   (coverageOnly!=='all'&&!query?'5영역별 확보배점 '+coverageOnly.split('-').join('/')+' 동일 그룹 · ':'')+
-   (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+   (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
@@ -1511,7 +1529,11 @@ function draw(){
    '<span class="u-provisional-total"><b>'+
    (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
    '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
-   x.composite.available+'/100</small></span></div>'+
+   x.composite.available+'/100</small></span>'+
+   '<span class="u-personal100"><b>'+
+   (x.personal100===null?'—':x.personal100.toFixed(1))+
+   '</b><small>개인 연구용 100점 환산 · '+(x.personal100===null?'관측 부족':'미인증')+
+   '</small></span></div>'+
    '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
      '<span class="u-factor-unverified" data-pillar="'+esc(i.key)+'"><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
@@ -1530,6 +1552,7 @@ function draw(){
  $('more').hidden=rows.length<=limit;
  $('top100Only').setAttribute('aria-pressed',String(top100Only));
   $('obvLagOnly').setAttribute('aria-pressed',String(obvOnly));
+ $('personalRank').setAttribute('aria-pressed',String(sort==='personal'));
  if(selected){
   const x=rows.find(y=>y.r.code===selected)||
     rankItems(model,core,'all','all',selected,'score',false).find(y=>y.r.code===selected);
@@ -1644,6 +1667,13 @@ function init(){
  $('more').addEventListener('click',()=>{limit+=20;draw();});
  $('top100Only').addEventListener('click',()=>{
    top100Only=!top100Only;limit=20;draw();
+ });
+ $('personalRank').addEventListener('click',()=>{
+   sort=sort==='personal'?'score':'personal';
+   $('sort').value=sort;limit=20;top100Only=false;tab='all';
+   for(const b of $('tabs').querySelectorAll('[data-tab]'))
+     b.setAttribute('aria-pressed',String(b.dataset.tab==='all'));
+   draw();
  });
  $('obvLagOnly').addEventListener('click',()=>{
    obvOnly=!obvOnly;limit=20;

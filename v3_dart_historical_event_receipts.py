@@ -22,8 +22,8 @@ from v3_krx_private_github_backfill import PrivateGitStorage
 SCHEMA = "v3-private-dart-historical-filing-receipts-v1"
 CHECKPOINT = "derived/dart-filing-receipts/checkpoint.json"
 CATEGORIES = ("B", "C", "E", "I")
-# Verified 48-page live pilot succeeded: bounded 72 pages per run across four
-# KST slots, at most 288 official OpenDART list calls/day from this workflow.
+# Verified 48-page live pilot succeeded: bounded 72 pages per run across twelve
+# KST slots, at most 864 official OpenDART list calls/day from this workflow.
 # Each page is strictly validated and checkpointed before fetching the next.
 MAX_API_CALLS = 72
 MAX_FILE_BYTES = 150_000
