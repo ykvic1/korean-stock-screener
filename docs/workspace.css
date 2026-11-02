@@ -515,3 +515,44 @@ html,body{max-width:100%}
  .u-score-row-main{grid-template-columns:44px minmax(0,1fr) 43px;gap:0 4px}
  .u-score-row-explain{padding:8px 6px}
 }
+
+/* Two-stock comparison mirrors the five-area scorecard without claiming
+   missing evidence as zero. Values are painted by bounded CSSOM under CSP. */
+.u-compare-bars{margin-top:12px;padding:12px;border:1px solid #b8cfe8;
+ border-radius:10px;background:linear-gradient(135deg,#f8fbff,#eef5fc)}
+.u-compare-bars h3{margin:0 0 4px;color:#203f69;font-size:15px}
+.u-compare-bars h3 small{display:block;margin-top:4px;color:#526b86;
+ font-size:10px;font-weight:500;line-height:1.45}
+.u-compare-bars-warning{margin:7px 0 10px;font-size:11px;line-height:1.5;
+ color:#7b512d}
+.u-compare-bars-head,.u-compare-bars-row{display:grid;
+ grid-template-columns:58px repeat(2,minmax(0,1fr));gap:7px;align-items:center;min-width:0}
+.u-compare-bars-head{padding:6px 4px;background:#deebfa;border-radius:5px;
+ color:#1e4268;font-size:11px}
+.u-compare-bars-head strong{min-width:0;overflow-wrap:anywhere}
+.u-compare-bars-row{padding:9px 4px;border-bottom:1px solid #d7e5f5}
+.u-compare-bars-row>strong{font-size:11px;color:#244b73}
+.u-compare-factor{min-width:0}
+.u-compare-factor-value{display:flex;gap:3px;align-items:baseline;
+ flex-wrap:wrap;color:#254d7f;font-variant-numeric:tabular-nums}
+.u-compare-factor-value strong{font-size:15px}
+.u-compare-factor-value small{font-size:10px;overflow-wrap:anywhere}
+.u-compare-meter{display:flex;width:100%;height:16px;min-width:0;
+ overflow:hidden;border:1px solid #8da9cf;border-radius:4px;background:#f0f4fa}
+.u-compare-meter>span{display:block;height:100%;flex:none}
+.u-compare-bars-foot{font-size:10px;color:#536a83;margin:10px 0 0}
+.u-compare-table-details{margin-top:10px;border:1px solid #c1d6e7;
+ border-radius:8px;background:#f8fbfc}
+.u-compare-table-details>summary{padding:9px 11px;cursor:pointer;
+ font-size:12px;font-weight:700;color:#294e72}
+.u-compare-table-details>summary:focus-visible{outline:2px solid #2d71c5;
+ outline-offset:2px}
+.u-compare-table-details .u-compare-overflow{padding:0 8px 8px;margin-top:0}
+@media(max-width:480px){
+ .u-compare-bars{padding:8px}
+ .u-compare-bars-head,.u-compare-bars-row{grid-template-columns:46px repeat(2,minmax(0,1fr));gap:4px}
+ .u-compare-bars-row>strong{font-size:10px}
+ .u-compare-factor-value strong{font-size:13px}
+ .u-compare-factor-value small{font-size:9px}
+ .u-compare-meter{height:15px}
+}
