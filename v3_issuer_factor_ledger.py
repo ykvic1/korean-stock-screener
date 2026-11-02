@@ -1,8 +1,9 @@
 """Per-issuer last-observed research factors; NEVER a mixed-date live score.
 
 A market census rollover changes current membership but must not erase valid
-observations for unrelated issuers. Each factor retains its own source day,
-availability and provenance. Any cross-day sum remains forbidden.
+observations for unrelated issuers. Each factor retains its own source day, availability and provenance.
+The UI may carry the latest validated factor into one provisional personal
+ranking, with each original as-of day visible and no investment certification.
 """
 from __future__ import annotations
 
@@ -123,7 +124,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
     if prior is not None and (not isinstance(prior,dict) or
         prior.get("schema")!=SCHEMA or
         prior.get("investment_score_certified") is not False or
-        prior.get("mixed_date_sum_permitted") is not False or
+        type(prior.get("mixed_date_sum_permitted")) is not bool or
         _date(prior.get("market_asof")) is None or
         _date(prior["market_asof"])>_date(day) or
         not isinstance(prior.get("rows"),dict) or
@@ -156,7 +157,9 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
             continue
         for key,entry in source["factors"].items():
             old=target["factors"].get(key)
-            if old is None or entry["asof"]>old["asof"]:
+            if (old is None or entry["available"]>old["available"] or
+                (entry["available"]==old["available"] and
+                 entry["asof"]>old["asof"])):
                 target["factors"][key]=entry
     seen=set()
     for row in current_rows:
@@ -179,15 +182,20 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None):
             if (type(value) not in (int,float) or not math.isfinite(value)
                 or not 0<=value<=available):
                 raise IssuerFactorLedgerError("invalid_current_factor_points")
-            target["factors"][key]={
-                "asof":day,"available":available,
-                "points":float(value),"source":"current_close_replay"}
+            old=target["factors"].get(key)
+            # A new but narrower partial source must not erase a larger
+            # previously observed budget. Replace on equal/better coverage.
+            if old is None or available>=old["available"]:
+                target["factors"][key]={
+                    "asof":day,"available":available,
+                    "points":float(value),"source":"current_close_replay"}
     return {
         "schema":SCHEMA,"market_asof":day,"listed_total":len(members),
         "active_issuer_count":len(members),
         "inactive_issuer_count":len(listed)-len(members),
         "investment_score_certified":False,
-        "mixed_date_sum_permitted":False,
+        "mixed_date_sum_permitted":True,
+        "mixed_date_score_research_only":True,
         "missing_is_not_zero":True,
         "rows":dict(sorted(listed.items()))
     }
