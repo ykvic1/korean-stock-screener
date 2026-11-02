@@ -91,6 +91,11 @@ with sync_playwright() as p:
     page.locator(".u-stock").first.wait_for(timeout=45000)
     assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
+    # The actual stock list must show original factor dates, including carried
+    # observations, rather than displaying an undated score-only ranking.
+    dated_factors = page.locator(".u-stock .u-factor-previous")
+    assert dated_factors.count() > 0, "issuer-factor as-of dates must render on cards"
+    assert re.search(r"\\d{4}-\\d{2}-\\d{2} 기준", dated_factors.first.inner_text())
     # The requested research quick filter expands to all stocks, not just TOP100.
     assert page.locator("#obvLagOnly").is_visible()
     page.locator("#obvLagOnly").click()
