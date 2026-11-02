@@ -92,6 +92,16 @@ with sync_playwright() as p:
     assert "매수 신호는 아닙니다" in page.locator("#filterNotice").inner_text()
     page.locator("#obvLagOnly").click()
     assert page.locator("#obvLagOnly").get_attribute("aria-pressed") == "false"
+    # Compare only stocks with the same available ceilings for ALL five pillars.
+    assert page.locator("#coverageGroup option").count() > 1
+    group = page.locator("#coverageGroup option").nth(1).get_attribute("value")
+    assert group is not None and group.count("-") == 4
+    page.locator("#coverageGroup").select_option(group)
+    assert "5영역별 확보배점" in page.locator("#resultCount").inner_text()
+    assert "세부원천·PIT" in page.locator("#filterNotice").inner_text()
+    assert page.locator(".u-stock").count() > 0
+    page.locator("#coverageGroup").select_option("all")
+    assert "동일 그룹" not in page.locator("#resultCount").inner_text()
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     assert page.locator(".u-stock").first.locator(".u-provisional-total").is_visible()
