@@ -94,6 +94,9 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.equal(c.carriedPillars,5);
  assert.equal(c.stalePillars,5);
  assert.equal(c.oldestAsOf,old);
+ assert.deepEqual(unified.retainedCoverageSummary(model,today,1),
+  {peak:91,carriedIssuers:1});
+
  assert.ok(unified.personalHundredFromComposite(c)>0);
  const view=unified.scoreOverviewMarkup(c,unified.personalHundredFromComposite(c),row);
  assert.match(view,/잠정 합계 <b>55.5점<\/b>/);
@@ -113,6 +116,10 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
   'old-format ledgers and unrelated new listings retain per-issuer scores');
  assert.equal(unified.researchComposite(newCensus.rows[0].r).earned,55.5);
  assert.equal(unified.researchComposite(newCensus.rows[1].r).earned,null);
+ assert.deepEqual(unified.retainedCoverageSummary(newCensus,today,2),
+  {peak:91,carriedIssuers:1},
+  'new listings cannot reduce maximum research coverage from retained factors');
+
  // A partial newly recalculated factor cannot shrink last observed coverage.
  row.v3_same_day_observed_finance={
   asof:today,financial:{available:8,points:2.5}};
