@@ -123,7 +123,7 @@ with sync_playwright() as p:
     assert scorecard.locator(".u-score-row").count() == 5
     statuses = scorecard.locator(".u-score-row-status").all_inner_texts()
     available_by_pillar = [
-        int(match.group(1)) if (match := re.search(r"확보 (\\d+)/", status)) else 0
+        int(match.group(1)) if (match := re.search(r"확보 (\d+)/", status)) else 0
         for status in statuses
     ]
     ratio_eligible = all(points > 0 for points in available_by_pillar) and (
