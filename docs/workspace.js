@@ -612,7 +612,7 @@ function applyIssuerFactorLedger(model,ledger){
     ledger.listed_total>10000||
     ledger.active_issuer_count!==ledger.listed_total||
     ledger.investment_score_certified!==false||
-    ledger.mixed_date_sum_permitted!==false||
+    !([true,false].includes(ledger.mixed_date_sum_permitted))||
     ledger.missing_is_not_zero!==true||
     !ledger.rows||typeof ledger.rows!=='object'||Array.isArray(ledger.rows)||
     Object.keys(ledger.rows).length>15000)return 0;
@@ -703,7 +703,18 @@ function pillarState(r){
    }
   }
   const lastObserved=r?.v3_last_known_factors?.[key]??null;
-  return {key,label,max:maximum,candidate,available,lastObserved,
+  const retained=lastObserved&&validDate(lastObserved.asof)&&
+   lastObserved.asof<=r.price_date&&
+   Number.isInteger(lastObserved.available)&&
+   lastObserved.available>0&&lastObserved.available<=maximum&&
+   finite(lastObserved.points)&&lastObserved.points>=0&&
+   lastObserved.points<=lastObserved.available;
+  // Preserve the larger observed factor budget when a refreshed source is
+  // missing or temporarily supplies a narrower partial record.
+  const carried=!!retained&&lastObserved.available>available;
+  if(carried){candidate=lastObserved.points;available=lastObserved.available;}
+  const asof=carried?lastObserved.asof:available>0?r.price_date:null;
+  return {key,label,max:maximum,candidate,available,lastObserved,asof,carried,
    status:available>0?'미검증 연구점수':'자료 미확보'};
  });
 }
@@ -714,7 +725,10 @@ function researchComposite(r){
  return {earned:available>0?Math.round(earned*10000)/10000:null,
   available,missing:100-available,asof:r.price_date,
   observedPillars:pillars.filter(p=>p.available>0).length,
-  complete:available===100,provisional:true,pillars};
+  complete:available===100,provisional:true,pillars,
+  carriedPillars:pillars.filter(p=>p.carried).length,
+  stalePillars:pillars.filter(p=>p.asof&&p.asof!==r.price_date).length,
+  oldestAsOf:pillars.reduce((d,p)=>p.asof&&(!d||p.asof<d)?p.asof:d,null)};
 }
 // Personal research-only normalized scale. Missing factors are NOT zero points.
 // The 75/100 and all-five-pillar floor reduces small-denominator inflation;
@@ -734,33 +748,28 @@ function personalHundred(r){
 // unobserved budgets must remain distinguishable (never impute zero for missing).
 // Every expansion preserves the underlying source-gated provisional
 // candidate. Do not infer subfactor scores from the remaining weight.
-// A missing current factor keeps its old dated research value visible on
-// the actual screener card; it is not silently folded into today's total.
+// A validated last observation remains the displayed score and participates
+// in research ranking when a narrower/newer observation is unavailable.
 function lastObservedFactorChip(p){
- const old=p.lastObserved;
- if(p.available!==0||!old||!validDate(old.asof)||
-    !Number.isInteger(old.available)||old.available<=0||old.available>p.max||
-    !finite(old.points)||old.points<0||old.points>old.available)return '';
- return '<small class="u-factor-previous">지난 관측 '+old.points.toFixed(1)+
-  '/'+old.available+' · '+esc(old.asof)+'</small>';
+ if(p.available===0||!p.asof||!validDate(p.asof))return '';
+ return '<small class="u-factor-previous">'+esc(p.asof)+' 기준'+
+  (p.carried?' · 이전 관측 유지':'')+'</small>';
 }
 function scorePillarExplanation(p,r){
  const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
  const budget=p.max-p.available;
- const old=p.available===0&&p.lastObserved&&validDate(p.lastObserved.asof)&&
-   Number.isInteger(p.lastObserved.available)&&
-   p.lastObserved.available>0&&p.lastObserved.available<=p.max&&
-   finite(p.lastObserved.points)&&p.lastObserved.points>=0&&
-   p.lastObserved.points<=p.lastObserved.available?
-   '<p class="u-last-factor"><b>마지막 관측 '+number(p.lastObserved.points)+
-   ' / '+p.lastObserved.available+'점</b> · '+esc(p.lastObserved.asof)+
-   ' 기준 · 현재 합계 미포함</p>':'';
+ const inherited=p.carried?
+  '<p class="u-last-factor"><b>'+esc(p.asof)+' 관측 점수 유지</b> · '+
+  '이 영역의 '+number(p.candidate)+'/'+p.available+
+  '점은 표시 합계와 개인 연구 순위에 포함됩니다. '+
+  '오늘 새로 계산된 점수가 아니며, 특히 주가 민감 가치항목은 재산출 전입니다.</p>':'';
  const intro='<p><b>잠정 획득 '+number(p.candidate)+'점</b> · 산출 가능 '+
   p.available+'/'+p.max+'점 · 미확보 '+budget+'점. '+
-  '미확보는 0점으로 계산한 것이 아닙니다.</p>'+old;
+  (p.asof?'근거 기준일 '+esc(p.asof)+' · ':'')+
+  '미확보는 0점으로 계산한 것이 아닙니다.</p>'+inherited;
  const notes={
   momentum:'시장 대비 20·60거래일 상대강도 관찰입니다. 수정주가·기업행위와 시장 기준일의 독립 검증 전으로 확정 추세점수가 아닙니다.',
-  valuation:'동일 기준일 연간 재무·주가 및 FCF수익률 연구값을 참고합니다. 확정 PBR 점수나 적정주가 판단으로 사용하지 않습니다.',
+  valuation:'원래 관측 기준일의 재무·주가 및 FCF수익률 연구값을 참고합니다. 확정 PBR 점수나 적정주가 판단으로 사용하지 않습니다.',
   financial:'연간 재무 관측과 3개년 FCF/자산 연구값을 참고합니다. 과거 공시 정정·효력시점(PIT)은 독립 검증 전입니다.',
   technical:'일봉·주봉 패턴, RSI, 120주선 및 거래량 확인 항목입니다. 형상 후보는 확정 매수 신호가 아닙니다.',
   volume:'거래량과 OBV로 계산한 연구값입니다. 기관·외국인 실제 순매수나 매집을 증명하지 않습니다.'
