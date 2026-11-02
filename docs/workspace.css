@@ -331,6 +331,24 @@ html,body{max-width:100%}
 .u-fcf-gap .u-source{margin-top:9px;overflow-wrap:anywhere}
 
 
+/* Per-stock disclosure evidence: compact by default, readable on small screens. */
+.u-fcf-stock-status{margin:8px 0 14px;padding:10px 12px;background:#f7fafb;
+  border:1px solid var(--line);border-radius:10px;min-width:0}
+.u-fcf-stock-status>summary{cursor:pointer;font-size:13px;line-height:1.5;
+  font-weight:750;color:var(--navy);overflow-wrap:anywhere}
+.u-fcf-stock-status>summary:focus-visible{outline:2px solid #0a8f91;outline-offset:3px}
+.u-fcf-stock-status .u-source{margin:9px 0;font-size:12px;overflow-wrap:anywhere}
+.u-fcf-stock-list{list-style:none;display:grid;gap:6px;margin:9px 0;padding:0}
+.u-fcf-stock-list li{display:flex;justify-content:space-between;gap:5px 16px;
+  align-items:baseline;flex-wrap:wrap;background:white;border:1px solid var(--line);
+  border-radius:8px;padding:9px 10px;font-size:12px}
+.u-fcf-stock-list li b{color:var(--navy)}
+.u-fcf-stock-list li span{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+@media(max-width:480px){.u-fcf-stock-status{padding:9px}
+ .u-fcf-stock-list li{display:block}
+ .u-fcf-stock-list li span{display:block;margin-top:3px}
+}
+
 /* 2026-11-02: compact visible, independently dated research progress strip. */
 .u-live-updates{position:relative;background:#13221f;border:1px solid #2e5d49;
  border-radius:13px;padding:13px 16px;margin:0 0 40px;color:#e6fff1;
