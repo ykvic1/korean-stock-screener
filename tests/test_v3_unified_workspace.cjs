@@ -25,6 +25,20 @@ assert.equal(visibleMarket.observed,liveObserved.provisional_complete_100point_o
 assert.equal(visibleMarket.total,liveObserved.listed_total);
 assert.equal(visibleDart.complete,liveReceipts.filing_months_checkpointed);
 assert.equal(visibleDart.remaining,120-visibleDart.complete);
+// The anonymous public writer stores ratios to six decimal places.
+// Fractions like 40/120 round to 0.333333; accept that precision without
+// weakening the required exact integer count/remaining invariants.
+for(const completed of [1,39,40,80,119,120]){
+ const rounded=structuredClone(liveReceipts);
+ rounded.filing_months_checkpointed=completed;
+ rounded.filing_months_remaining=120-completed;
+ rounded.filing_months_checkpointed_ratio=Math.round(completed/120*1e6)/1e6;
+ assert.equal(liveProgress.dartSummary(rounded)?.complete,completed,
+  'published six-decimal month ratios must not hide valid progress');
+ rounded.filing_months_checkpointed_ratio+=0.00001;
+ assert.equal(liveProgress.dartSummary(rounded),null,
+  'materially inconsistent progress ratios must remain rejected');
+}
 for(const [field,value] of [
  ['certified_100point_count',1],
  ['not_an_investment_ranking',false],
