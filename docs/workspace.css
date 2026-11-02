@@ -562,3 +562,13 @@ html,body{max-width:100%}
  border-radius:5px;background:#e4f1fa;color:#205476;font-size:10px;
  line-height:1.3;white-space:normal;overflow-wrap:anywhere}
 .u-last-factor{background:#edf5fa;border-left:3px solid #5595bd;padding:7px 10px;border-radius:6px;color:#24546c;font-size:.86rem;line-height:1.55}
+
+/* Item-level source dates are informational, never additional points. */
+.u-subfactor-history{margin:10px 0;padding:10px;border:1px solid #cddfea;border-radius:9px;background:#f6fafc;font-size:.83rem}
+.u-subfactor-history p{margin:2px 0 7px;color:#35566b;line-height:1.5}
+.u-subfactor-history ul{list-style:none;margin:0 0 7px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px}
+.u-subfactor-history li{min-width:0;border:1px solid #dce9f0;border-radius:6px;background:white;padding:6px 8px;display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px}
+.u-subfactor-history li>span{flex:1;min-width:80px;color:#294c62}
+.u-subfactor-history li>b{font-variant-numeric:tabular-nums;white-space:nowrap;color:#124568}
+.u-subfactor-history li>small{flex-basis:100%;color:#667e8b}
+@media(max-width:480px){.u-subfactor-history{padding:7px}.u-subfactor-history ul{grid-template-columns:1fr 1fr;gap:5px}.u-subfactor-history li{padding:5px 6px}.u-subfactor-history li>span{font-size:11px;min-width:0}.u-subfactor-history li>b{font-size:11px}.u-subfactor-history li>small{font-size:10px}}
