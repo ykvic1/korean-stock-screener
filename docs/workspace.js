@@ -604,6 +604,41 @@ function fcfEvidenceMarkup(r){
   '개별 공시 원장을 추가 대조해야 구분할 수 있습니다.</p>')+
   '<p class="u-source">미확보는 0점이 아니며, 관측된 잠정 배점도 확정 투자점수가 아닙니다.</p></details>';
 }
+function applyIssuerFactorLedger(model,ledger){
+ if(!model||!Array.isArray(model.rows)||!ledger||
+    ledger.schema!=='v3-issuer-last-observed-factors-0.1'||
+    !validDate(ledger.market_asof)||ledger.market_asof>model.date||
+    !Number.isInteger(ledger.listed_total)||ledger.listed_total<1||
+    ledger.listed_total>10000||
+    ledger.active_issuer_count!==ledger.listed_total||
+    ledger.investment_score_certified!==false||
+    ledger.mixed_date_sum_permitted!==false||
+    ledger.missing_is_not_zero!==true||
+    !ledger.rows||typeof ledger.rows!=='object'||Array.isArray(ledger.rows)||
+    Object.keys(ledger.rows).length>15000)return 0;
+ let linked=0;
+ for(const {r} of model.rows){
+  const saved=ledger.rows[r.code];
+  if(!saved||saved.code!==r.code||saved.market!==r.market||
+     saved.name!==r.name||saved.active!==true||
+     !saved.factors||typeof saved.factors!=='object')continue;
+  const factors={};let valid=true;
+  for(const [key,e] of Object.entries(saved.factors)){
+   if(!Object.prototype.hasOwnProperty.call(WEIGHTS,key)||
+      !e||!validDate(e.asof)||e.asof>model.date||
+      !Number.isInteger(e.available)||e.available<=0||e.available>WEIGHTS[key]||
+      !finite(e.points)||e.points<0||e.points>e.available||
+      !['current_close_replay','dart_bulk_snapshot'].includes(e.source)){
+    valid=false;break;
+   }
+   factors[key]={asof:e.asof,available:e.available,points:e.points,source:e.source};
+  }
+  if(!valid)continue;
+  r.v3_last_known_factors=factors;
+  linked++;
+ }
+ return linked;
+}
 function pillarState(r){
  const tech=technicalEvidence(r);
  const momentum=momentumEvidence(r);
@@ -667,7 +702,8 @@ function pillarState(r){
     }
    }
   }
-  return {key,label,max:maximum,candidate,available,
+  const lastObserved=r?.v3_last_known_factors?.[key]??null;
+  return {key,label,max:maximum,candidate,available,lastObserved,
    status:available>0?'미검증 연구점수':'자료 미확보'};
  });
 }
@@ -698,12 +734,30 @@ function personalHundred(r){
 // unobserved budgets must remain distinguishable (never impute zero for missing).
 // Every expansion preserves the underlying source-gated provisional
 // candidate. Do not infer subfactor scores from the remaining weight.
+// A missing current factor keeps its old dated research value visible on
+// the actual screener card; it is not silently folded into today's total.
+function lastObservedFactorChip(p){
+ const old=p.lastObserved;
+ if(p.available!==0||!old||!validDate(old.asof)||
+    !Number.isInteger(old.available)||old.available<=0||old.available>p.max||
+    !finite(old.points)||old.points<0||old.points>old.available)return '';
+ return '<small class="u-factor-previous">지난 관측 '+old.points.toFixed(1)+
+  '/'+old.available+' · '+esc(old.asof)+'</small>';
+}
 function scorePillarExplanation(p,r){
  const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
  const budget=p.max-p.available;
+ const old=p.available===0&&p.lastObserved&&validDate(p.lastObserved.asof)&&
+   Number.isInteger(p.lastObserved.available)&&
+   p.lastObserved.available>0&&p.lastObserved.available<=p.max&&
+   finite(p.lastObserved.points)&&p.lastObserved.points>=0&&
+   p.lastObserved.points<=p.lastObserved.available?
+   '<p class="u-last-factor"><b>마지막 관측 '+number(p.lastObserved.points)+
+   ' / '+p.lastObserved.available+'점</b> · '+esc(p.lastObserved.asof)+
+   ' 기준 · 현재 합계 미포함</p>':'';
  const intro='<p><b>잠정 획득 '+number(p.candidate)+'점</b> · 산출 가능 '+
   p.available+'/'+p.max+'점 · 미확보 '+budget+'점. '+
-  '미확보는 0점으로 계산한 것이 아닙니다.</p>';
+  '미확보는 0점으로 계산한 것이 아닙니다.</p>'+old;
  const notes={
   momentum:'시장 대비 20·60거래일 상대강도 관찰입니다. 수정주가·기업행위와 시장 기준일의 독립 검증 전으로 확정 추세점수가 아닙니다.',
   valuation:'동일 기준일 연간 재무·주가 및 FCF수익률 연구값을 참고합니다. 확정 PBR 점수나 적정주가 판단으로 사용하지 않습니다.',
@@ -798,7 +852,14 @@ function scoreOverviewMarkup(c,normalized,r){
      (p.candidate!==null&&(!finite(p.candidate)||p.candidate<0||
        p.candidate>p.available)))return null;
   const scored=p.candidate??0;
-  const status=p.available===0?'자료 미확보':
+  const prior=p.available===0&&p.lastObserved&&validDate(p.lastObserved.asof)&&
+   Number.isInteger(p.lastObserved.available)&&
+   p.lastObserved.available>0&&p.lastObserved.available<=max&&
+   finite(p.lastObserved.points)&&p.lastObserved.points>=0&&
+   p.lastObserved.points<=p.lastObserved.available?
+   ' · 마지막 관측 '+number(p.lastObserved.points)+'/'+p.lastObserved.available+
+   ' ('+p.lastObserved.asof+')':'';
+  const status=p.available===0?'자료 미확보'+prior:
    '확보 '+p.available+'/'+max+' · 미확보 '+(max-p.available);
   return '<details class="u-score-row" data-pillar="'+key+'" aria-label="'+
    esc(label)+' 잠정 '+number(p.candidate)+'점 / '+max+'점, '+esc(status)+'">'+
@@ -1702,8 +1763,8 @@ function fiveAreaCoverageView(raw,asof,listed){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance};
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -1937,7 +1998,8 @@ function draw(){
    '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
      '<span class="u-factor-unverified" data-pillar="'+esc(i.key)+'"><small>'+esc(i.label)+' /'+i.max+
      '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
-     '</b><em class="u-factor-mark">'+(i.available===0?'자료 미확보':
+     '</b>'+lastObservedFactorChip(i)+
+     '<em class="u-factor-mark">'+(i.available===0?'자료 미확보':
       '확보 '+i.available+'/'+i.max+' · 미검증')+'</em></span>').join('')+
      '</div>'+ 
    '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
@@ -2004,7 +2066,8 @@ async function load(){
   'v3-industry-observed-relative-strength.json',
   'v3-current-observed-all-listed-summary.json',
   'v3-dart-industry-classification.json',
-  'v3-dart-cashflow-issuer-evidence.json'];
+  'v3-dart-cashflow-issuer-evidence.json',
+  'v3-issuer-last-observed-factors.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2031,6 +2094,7 @@ async function load(){
   // Reject the entire overlay if any header, coverage, identity or subtotal
   // differs. Never double-add its FCF components to the already summed area.
   applyCurrentObservedFinance(model,responses[16],observedCsv);
+  applyIssuerFactorLedger(model,responses[19]);
   if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
    fiveAreaCoverageView(responses[16],model.date,model.marketEligible)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';

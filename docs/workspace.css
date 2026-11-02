@@ -556,3 +556,9 @@ html,body{max-width:100%}
  .u-compare-factor-value small{font-size:9px}
  .u-compare-meter{height:15px}
 }
+
+/* Archived issuer research stays visible, explicitly excluded from today's sum. */
+.u-stock .u-scoresix span .u-factor-previous{display:block;margin:4px 0;padding:3px 5px;
+ border-radius:5px;background:#e4f1fa;color:#205476;font-size:10px;
+ line-height:1.3;white-space:normal;overflow-wrap:anywhere}
+.u-last-factor{background:#edf5fa;border-left:3px solid #5595bd;padding:7px 10px;border-radius:6px;color:#24546c;font-size:.86rem;line-height:1.55}

@@ -249,7 +249,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         add=[line for line in flow.splitlines() if line.strip().startswith("git add docs/")]
         self.assertGreaterEqual(len(add),2)
         self.assertTrue(all(
-            line.strip()=="git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json"
+            line.strip()=="git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json"
             for line in add))
         for html in ("index.html","workspace.html"):
             text=(base/"docs"/html).read_text(encoding="utf8")
