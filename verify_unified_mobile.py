@@ -92,6 +92,22 @@ with sync_playwright() as p:
     assert "매수 신호는 아닙니다" in page.locator("#filterNotice").inner_text()
     page.locator("#obvLagOnly").click()
     assert page.locator("#obvLagOnly").get_attribute("aria-pressed") == "false"
+    # Personal beta point scale is a provisional observed-budget normalization, not certification.
+    assert page.locator("#personalRank").is_visible()
+    page.locator("#personalRank").click()
+    assert page.locator("#personalRank").get_attribute("aria-pressed") == "true"
+    assert page.locator("#sort").input_value() == "personal"
+    assert page.locator('[data-tab="all"]').get_attribute("aria-pressed") == "true"
+    assert page.locator(".u-personal100").first.is_visible()
+    assert "개인 연구용 100점 환산" in page.locator(".u-personal100").first.inner_text()
+    first_normalized = page.locator(".u-stock").first.locator(".u-personal100 b").inner_text()
+    assert first_normalized != "—", "known full five-pillar observations must produce a personal number"
+    assert 0 <= float(first_normalized) <= 100
+    page.locator(".u-stock").first.click()
+    assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
+    page.locator("#personalRank").click()
+    assert page.locator("#sort").input_value() == "score"
+    assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
     # Compare only stocks with the same available ceilings for ALL five pillars.
     assert page.locator("#coverageGroup option").count() > 1
     group = page.locator("#coverageGroup option").nth(1).get_attribute("value")
