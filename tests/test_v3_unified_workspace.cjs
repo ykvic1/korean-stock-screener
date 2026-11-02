@@ -13,7 +13,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
 
 // Stock detail's visual five-pillar breakdown must not paint missing evidence as 0.
 {
- const c={earned:29,available:61,missing:39,pillars:[
+ const c={earned:29,available:61,missing:39,observedPillars:5,pillars:[
   {key:'volume',label:'거래량·OBV',max:20,candidate:7,available:16},
   {key:'technical',label:'기술적 분석',max:25,candidate:5,available:15},
   {key:'financial',label:'재무',max:20,candidate:7,available:10},
@@ -33,7 +33,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(visual,/개인용 100점 비율 환산은 5영역·75점 이상 관측/);
  const sparse=structuredClone(c);
  sparse.pillars[0].candidate=null;sparse.pillars[0].available=0;
- sparse.available=45;sparse.earned=22;sparse.missing=55;
+ sparse.available=45;sparse.earned=22;sparse.missing=55;sparse.observedPillars=4;
  const sparseHtml=unified.scoreOverviewMarkup(sparse,null);
  assert.match(sparseHtml,/data-pillar="volume"[^>]+잠정 —점 \/ 20점, 자료 미확보/);
  assert.match(sparseHtml,/class="u-score-missing" style="width:100\.00%"/);
