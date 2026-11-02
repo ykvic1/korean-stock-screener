@@ -13,6 +13,12 @@ on:
     - cron: '17 7 * * 1-5'   # 16:17 KST Mon-Fri
     - cron: '17 12 * * 1-5'  # 21:17 KST Mon-Fri; after 18:30 full-market
     - cron: '17 14 * * 1-5'  # 23:17 KST Mon-Fri
+  # Refresh the asof-bound DART book as soon as a real full-market close
+  # finishes; the 21:17 KST schedule remains a bounded fallback.
+  workflow_run:
+    workflows:
+      - Full-Market 100-Stock Batches
+    types: [completed]
   workflow_dispatch:
     inputs:
       limit:
@@ -31,6 +37,7 @@ concurrency:
 
 jobs:
   current-listed-annual-reference:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
