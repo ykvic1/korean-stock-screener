@@ -27,7 +27,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(positions.every(i=>i>=0));
  assert.ok(positions.every((p,i)=>i===0||p>positions[i-1]));
  assert.match(visual,/잠정 획득 29점, 산출 가능 배점 61점, 미확보 39점/);
- assert.match(visual,/style="width:33\.33%"/);
+ assert.match(visual,/data-score-width="33\.33"/);
  assert.match(visual,/잠정 합계 <b>29점<\/b> · 산출 가능 61\/100점 · 미확보 39\/100점/);
  assert.match(visual,/미확보는 0점이 아닙니다/);
  assert.match(visual,/개인용 100점 비율 환산은 5영역·75점 이상 관측/);
@@ -36,7 +36,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  sparse.available=45;sparse.earned=22;sparse.missing=55;sparse.observedPillars=4;
  const sparseHtml=unified.scoreOverviewMarkup(sparse,null);
  assert.match(sparseHtml,/data-pillar="volume"[^>]+잠정 —점 \/ 20점, 자료 미확보/);
- assert.match(sparseHtml,/class="u-score-missing" style="width:100\.00%"/);
+ assert.match(sparseHtml,/class="u-score-missing" data-score-width="100\.00"/);
  const full=structuredClone(c);
  full.pillars[0].available=20;
  full.pillars[1].available=25;
@@ -51,9 +51,11 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(unified.scoreOverviewMarkup(c,47.5),/재검증 중/);
  assert.match(normalized,/확정 투자점수가 아닙니다/);
  assert.match(unified.scoreOverviewMarkup({...c,available:101},null),/재검증 중/);
+ assert.ok(!visual.includes('style="width:'),'CSP must not block score bar fills');
+ assert.ok(source.includes('paintScoreOverview(view)'));
  assert.ok(css.includes('.u-score-total-track'));
  assert.ok(css.includes('.u-score-missing'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-bars423'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-paint424'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100)'));
 }
 
@@ -573,8 +575,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261102-score-bars423')&&
-  page.includes('workspace.css?v=v30b-20261102-score-bars423'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261102-score-paint424')&&
+  page.includes('workspace.css?v=v30b-20261102-score-paint424'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),

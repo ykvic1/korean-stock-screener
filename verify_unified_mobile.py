@@ -116,6 +116,12 @@ with sync_playwright() as p:
         "(rows) => rows.map(row => row.dataset.pillar)"
     ) == ["momentum", "valuation", "financial", "technical", "volume"]
     assert scorecard.locator(".u-score-row .u-score-track").count() == 5
+    assert scorecard.locator(".u-score-row .u-score-earned").evaluate_all(
+        "(nodes) => nodes.some(node => node.getBoundingClientRect().width > 5)"
+    ), "CSP-safe CSSOM must actually paint nonzero horizontal score bars"
+    assert scorecard.locator(".u-score-total-track > .u-score-earned").evaluate(
+        "(node) => node.getBoundingClientRect().height > 5"
+    ), "CSP-safe CSSOM must actually paint the vertical score bar"
     assert "미확보는 0점이 아닙니다" in scorecard.inner_text()
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
