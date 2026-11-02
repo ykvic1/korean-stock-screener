@@ -53,7 +53,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(unified.scoreOverviewMarkup({...c,available:101},null),/재검증 중/);
  assert.ok(css.includes('.u-score-total-track'));
  assert.ok(css.includes('.u-score-missing'));
- for(const page of [entry,html])assert.ok(page.includes('score-visual'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261102-score-bars423'));
+ assert.ok(source.includes('scoreOverviewMarkup(composite,personal100)'));
 }
 
 // Compact visible progress is a SOURCE-DATED research bar, never a score promotion.
