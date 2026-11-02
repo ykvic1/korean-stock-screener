@@ -1,0 +1,77 @@
+name: V3 Issuer Dated Observation History Integrity (Read Only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_issuer_history_watch.py
+      - v3_issuer_factor_ledger.py
+      - docs/v3-issuer-last-observed-factors.json
+      - tests/test_v3_issuer_history_watch.py
+      - .github/workflows/v3-issuer-history-watch.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - v3_issuer_history_watch.py
+      - v3_issuer_factor_ledger.py
+      - tests/test_v3_issuer_history_watch.py
+      - .github/workflows/v3-issuer-history-watch.yml
+  schedule:
+    - cron: '41 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: korea-stock-screener-v3-history-integrity
+  cancel-in-progress: false
+
+jobs:
+  per-issuer-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate source lags, changed dates and illegal score disappearance
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_issuer_history_watch.py v3_issuer_factor_ledger.py
+          python -m unittest discover -s tests -p 'test_v3_issuer_history_watch.py' -v
+          python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
+      - name: Inspect saved issuer observations against nearest prior saved revision
+        run: |
+          set -euo pipefail
+          source_file=docs/v3-issuer-last-observed-factors.json
+          previous=$(git log -n 1 --skip=1 --format=%H -- "$source_file" || true)
+          if [[ -n "$previous" ]]; then
+            git show "$previous:$source_file" > "$RUNNER_TEMP/previous.json"
+            python v3_issuer_history_watch.py --assert-safe --prior "$RUNNER_TEMP/previous.json" > "$RUNNER_TEMP/history-watch.json"
+          else
+            python v3_issuer_history_watch.py --assert-safe > "$RUNNER_TEMP/history-watch.json"
+          fi
+      - name: Explain changes vs lag without promoting scores
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          path=Path(os.environ['RUNNER_TEMP'])/'history-watch.json'
+          lines=['### V3 종목별 마지막 유효 데이터 연속성 점검',
+                 '수집 지연·신규상장·상장폐지는 기존 기업 점수 삭제의 근거가 아닙니다.',
+                 '모든 세부항목은 잠정 연구 관측; 이 작업은 투자점수를 수정·인증하지 않습니다.']
+          if path.is_file():
+              r=json.loads(path.read_text(encoding='utf8'))
+              lines.extend(['감사 상태: '+str(r.get('status')),
+                  '기준일: '+str(r.get('asof')),
+                  '관측·갱신·이전 자료 건수: '+str(r.get('counts')),
+                  '연속성 위반: '+str(r.get('issues'))])
+          else:
+              lines.append('감사 산출 실패: 원인 로그 확인 필요')
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text('\n'.join(lines)+'\n',encoding='utf8')
+          PY

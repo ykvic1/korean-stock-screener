@@ -176,6 +176,49 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         self.assertEqual(build(census(today,[a]),
             [row(a,today,financial=None,valuation=None)],later),later)
 
+    def test_each_component_tracks_last_three_changes_without_touching_score(self):
+        a=member("005930","A")
+        def fiscal(day,points):
+            return {"code":a["code"],"market":a["market"],"asof":day,
+                    "unverified_components":{"pbr":{
+                        "max_points":5,"candidate_points":points}}}
+        dates=["2026-10-29","2026-10-30","2026-11-02",
+               "2026-11-03","2026-11-04"]
+        saved=None
+        for index,day in enumerate(dates):
+            live=row(a,day,financial=None,valuation=None)
+            new=fiscal(day,1+index*0.5)
+            saved=build(census(day,[a]),[live],saved,
+                        fiscal_rows={a["code"]:new})
+            sub=saved["rows"][a["code"]]
+            self.assertEqual(sub["components"]["valuation"]["pbr"]["points"],
+                             1+index*0.5)
+            self.assertNotIn("valuation",sub["factors"])
+            history=sub["component_history"].get("valuation",{}).get("pbr",[])
+            self.assertEqual(len(history),min(index,3))
+        self.assertEqual([e["asof"] for e in history],dates[1:4])
+        self.assertEqual([e["points"] for e in history],[1.5,2,2.5])
+        repeated=build(census(dates[-1],[a]),
+                       [row(a,dates[-1],financial=None,valuation=None)],
+                       saved,fiscal_rows={a["code"]:fiscal(dates[-1],3)})
+        self.assertEqual(repeated,saved,
+                         "identical daily replay must not add history events")
+        offline=build(census("2026-11-05",[a]),
+                      [row(a,"2026-11-05",financial=None,valuation=None)],
+                      saved)
+        self.assertEqual(offline["rows"][a["code"]]["component_history"],
+                         saved["rows"][a["code"]]["component_history"])
+        self.assertEqual(offline["rows"][a["code"]]["components"]["valuation"]["pbr"]["asof"],
+                         "2026-11-04")
+        # A malformed provenance history cannot remove good current subfactors.
+        forged=copy.deepcopy(saved)
+        forged["rows"][a["code"]]["component_history"]["valuation"]["pbr"]=[
+            {"asof":"2027-01-01","points":99}]
+        clean=build(census("2026-11-05",[a]),
+                    [row(a,"2026-11-05",financial=None,valuation=None)],forged)
+        self.assertEqual(clean["rows"][a["code"]]["component_history"],{})
+        self.assertEqual(clean["rows"][a["code"]]["components"]["valuation"]["pbr"]["points"],3)
+
     def test_malformed_individual_history_cannot_poison_retained_score(self):
         a=member("005930","A");day="2026-11-02"
         original=build(census(day,[a]),[row(a,day)])
