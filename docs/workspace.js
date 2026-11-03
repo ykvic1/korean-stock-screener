@@ -1219,15 +1219,49 @@ function volumeStatus(pillar){
   ?'신규 MA20·60일선 교차점/240일선 근거 또는 거래량 자료가 미확보입니다. 구형 OBV 상승 6점은 중단했으며 결측은 0점이 아닙니다.'
   :'거래량/OBV 괴리 및 최근20일 골든크로스의 240일선 대비 ±12%를 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 매집 증거 또는 매수 신호가 아닙니다.';
 }
+// Price is NOT used for the golden-cross/MA240 band. Show exactly the
+// same dated crossing receipt that can justify (or reject) its six points.
+function maCrossDetail(r,evidence){
+ if(!evidence)return '';
+ const q=r?.v3_ma240_cross_research;
+ const cross=r?.v3_volume_observed?.subpoints?.ma20_ma60_cross_near_ma240;
+ if(!q||q.schema!=='v3-ma20-ma60-cross-near-ma240-20session-shadow-0.1'||
+  q.asof!==r.price_date||q.history_sessions_used!==260||
+  q.recent_sessions!==20||q.reference_band_pct!==12||
+  q.cross_point_based_on_price_ma_intersection!==true||
+  q.closing_price_band_test_used!==false||
+  q.source_regular_session_verified!==false||
+  q.source_corporate_action_adjusted_verified!==false||
+  q.certified_investment_points!==null)return '';
+ const label=(date,pct)=>date+' 교차점 '+(pct>=0?'+':'')+
+  pct.toFixed(2)+'% (동시점 240일선 대비)';
+ if(cross===6&&q.qualified===true&&validDate(q.qualifying_cross_date)&&
+  finite(q.qualifying_cross_point_vs_ma240_pct)&&
+  Math.abs(q.qualifying_cross_point_vs_ma240_pct)<=12)
+   return '조건 충족 · '+label(q.qualifying_cross_date,
+    q.qualifying_cross_point_vs_ma240_pct);
+ if(cross===0&&q.qualified===false&&Number.isInteger(q.cross_event_count)){
+  if(q.cross_event_count===0)return '최근 20거래일 골든크로스 미발생';
+  if(q.cross_event_count>0&&validDate(q.last_cross_date)&&
+     finite(q.last_cross_point_vs_ma240_pct)&&
+     Math.abs(q.last_cross_point_vs_ma240_pct)>12)
+   return '범위 초과 · '+label(q.last_cross_date,
+    q.last_cross_point_vs_ma240_pct);
+ }
+ return '';
+}
 function volumeParts(r){
  const v=observedVolumeEvidence(r);
  const parts=v?r.v3_volume_observed.subpoints:{};
  return '<div class="u-parts u-volume-parts" aria-label="거래량·OBV 20점 관측 근거">'+
-  VOLUME_COMPONENTS.map(([label,max,key])=>
-   '<div class="u-factor-unverified"><span>'+esc(label)+'</span>'+
-   '<b>'+(v&&finite(parts[key])?parts[key].toFixed(1):'—')+' / '+max+
-   ' <em class="u-factor-mark">'+(v&&finite(parts[key])?'잠정':'미확보')+
-   '</em></b></div>').join('')+'</div>';
+  VOLUME_COMPONENTS.map(([label,max,key])=>{
+   const detail=key==='ma20_ma60_cross_near_ma240'?maCrossDetail(r,v):'';
+   return '<div class="u-factor-unverified"><span>'+esc(label)+
+    (detail?'<small class="u-ma-cross-note">'+esc(detail)+'</small>':'')+
+    '</span><b>'+(v&&finite(parts[key])?parts[key].toFixed(1):'—')+' / '+max+
+    ' <em class="u-factor-mark">'+(v&&finite(parts[key])?'잠정':'미확보')+
+    '</em></b></div>';
+  }).join('')+'</div>';
 }
 function technicalParts(r){
  const evidence=technicalEvidence(r),source=r?.v3_pattern_integrated?.technical_parts;
