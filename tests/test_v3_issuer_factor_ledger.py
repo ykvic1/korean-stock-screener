@@ -153,7 +153,7 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         archived=next(iter(corrupt["identity_review_archive"].values()))
         archived["factors"]["financial"]["points"]=20
         with self.assertRaisesRegex(IssuerFactorLedgerError,
-                                    "altered_identity_review_archive"):
+                                    "invalid_retired_factor_data"):
             build(census("2026-11-03",[new]),
                   [row(new,"2026-11-03",financial=None,valuation=None)],corrupt)
         forged=copy.deepcopy(second)
