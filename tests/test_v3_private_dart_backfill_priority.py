@@ -50,7 +50,7 @@ class PrivateDartBackfillPriorityTests(unittest.TestCase):
                 "v3-dart-historical-direct-fastlane.yml").read_text()
         legacy = (ROOT / ".github/workflows/full-market-batches.yml").read_text()
         self.assertEqual(len(re.findall(r"^    - cron:", regular, re.M)), 12)
-        self.assertIn("'31 1-23/2 * * *'", fast)
+        self.assertIn("'31 * * * *'", fast)
         for workflow in (regular, fast):
             self.assertIn(
                 "group: v3-dart-private-historical-event-receipts",
