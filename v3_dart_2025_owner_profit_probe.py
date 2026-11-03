@@ -125,7 +125,7 @@ def _validated_record(record, cutoff):
         ("observed_owner_profit","missing_standard_account")
         or record.get("fiscal_year") != 2025
         or record.get("fs_div") not in PROFIT_IDS
-        or not _valid_receipt(record.get("annual_receipt_id"),2025,cutoff)
+        or not _valid_receipt(record.get("annual_receipt_id"),2025,_day(cutoff))
         or record.get("market") not in ("KOSPI","KOSDAQ")
         or type(record.get("name")) is not str or not record["name"]
         or type(record.get("code")) is not str
