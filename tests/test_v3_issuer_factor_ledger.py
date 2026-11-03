@@ -254,6 +254,48 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         self.assertEqual(build(census(today,[a]),
             [row(a,today,financial=None,valuation=None)],later),later)
 
+    def test_same_day_legacy_snapshot_cannot_replay_over_newer_dart_receipt(self):
+        """A repeated publication must not invent same-day change history."""
+        issuer=member("005930","A")
+        day="2026-11-03"
+        code=issuer["code"]
+        def fiscal(points):
+            return {code:{"code":code,"market":"KOSPI","asof":day,
+                "unverified_components":{"pbr":{
+                    "max_points":5,"candidate_points":points}}}}
+        # A prior valid current receipt supersedes a lower-priority archived
+        # subfactor even when both carry the same market reference date.
+        legacy={"schema":"v3-dart-multi-year-research-parts-0.1",
+            "asof":day,"listed_total":1,"historical_PIT_certified":False,
+            "all_scores_provisional_unverified":True,
+            "fully_verified_six_pillar_count":0,
+            "rows":[{"code":code,"market":"KOSPI","asof":day,
+                     "confirmed_v3_score":None,"scoring_certified":False,
+                     "financial_available_max":0,"valuation_available_max":0,
+                     "financial_candidate_points":None,
+                     "valuation_candidate_points":None,
+                     "unverified_components":{"pbr":{
+                         "max_points":5,"candidate_points":1.0}}}]}
+        audit={"schema":"v3-real-saved-source-six-pillar-coverage-0.1",
+            "market_asof":day,"listed_total":1,
+            "investment_grade_scores_confirmed":False,
+            "six_pillar_official_complete_100pt_issuer_count":0,
+            "source_sha256_canonical":{"dart_partial_score":_canonical_hash(legacy)},
+            "six_pillar_numeric_provisional_issuer_counts":
+                {"financial":0,"valuation":0}}
+        market=census(day,[issuer])
+        current=[row(issuer,day)]
+        first=build(market,current,fiscal_rows=fiscal(2.0))
+        updated=build(market,current,first,parts=legacy,audit=audit,
+                      fiscal_rows=fiscal(3.0))
+        component=updated["rows"][code]["components"]["valuation"]["pbr"]
+        history=updated["rows"][code]["component_history"]["valuation"]["pbr"]
+        self.assertEqual(component["points"],3.0)
+        self.assertEqual(history,[{"asof":day,"points":2.0}])
+        self.assertEqual(
+            build(market,current,updated,parts=legacy,audit=audit,
+                  fiscal_rows=fiscal(3.0)),updated)
+
     def test_each_component_tracks_last_three_changes_without_touching_score(self):
         a=member("005930","A")
         def fiscal(day,points):
