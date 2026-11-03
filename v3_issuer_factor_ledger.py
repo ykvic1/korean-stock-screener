@@ -148,11 +148,15 @@ def _prior_component_history(raw,day,maximum):
     return retained
 
 
-def _keep_components(target,candidate):
+def _keep_components(target,candidate,*,historical_only=False):
     for group,items in candidate.items():
         for name,entry in items.items():
             previous=target["components"].setdefault(group,{}).get(name)
-            if previous is not None and entry["asof"]<previous["asof"]:
+            # A legacy archive is a fallback, not a competing same-day revision.
+            # Otherwise replaying it over a newer current DART receipt repeatedly
+            # manufactures alternating component-history events.
+            if previous is not None and (entry["asof"]<previous["asof"] or
+                    (historical_only and entry["asof"]==previous["asof"])):
                 continue
             if previous==entry:
                 continue  # replay of same source must never create a fake update
@@ -416,7 +420,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
                 (entry["available"]==old["available"] and
                  entry["asof"]>old["asof"])):
                 target["factors"][key]=entry
-        _keep_components(target,source.get("components",{}))
+        _keep_components(target,source.get("components",{}),historical_only=True)
     for source_rows,mapper in ((fiscal_rows,_fiscal_components),
                                (fcf_rows,_fcf_components)):
         if source_rows is None:
