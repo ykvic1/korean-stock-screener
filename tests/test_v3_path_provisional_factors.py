@@ -11,6 +11,7 @@ from v3_unscored_path_observations import observe, SCHEMA as PATH_SCHEMA
 from v3_path_provisional_factors import preview, ProvisionalPathFactorError
 from v3_current_observed_scorecard import generate, LivePartialScorecardError
 from v3_volume_participation import build as volume_build
+from v3_ma240_cross_research import observe as observe_cross
 from v3_current_price_replay import build as price_build
 from v3_unscored_path_coverage import summarize as coverage_summary
 
@@ -33,6 +34,22 @@ def path(*, reversal=False):
     return out
 
 
+
+def qualifying_cross_receipt():
+    end=date.fromisoformat(DAY)
+    sessions=[]
+    cursor=end
+    while len(sessions)<260:
+        if cursor.weekday()<5:
+            sessions.append(cursor)
+        cursor-=timedelta(days=1)
+    sessions.reverse()
+    closes=[100.0]*220+[98.0]*20+[130.0]*20
+    receipt=observe_cross(closes,[1000.0]*260,asof=DAY,session_days=sessions)
+    assert receipt is not None and receipt["qualified"] is True
+    return receipt
+
+
 def market_with_path():
     daily,catalog = fixture()
     for stock in daily["stocks"]:
@@ -42,6 +59,7 @@ def market_with_path():
         "volume_ratio":1.5,"obv_rising":True,"price60":2.0,
         "divergence":True,
         "v3_unscored_path_observations":path(),
+        "v3_ma240_cross_research":qualifying_cross_receipt(),
     })
     daily["stocks"][1]["v3_unscored_path_observations"] = None
     daily["v3_unscored_path_source"] = {
@@ -156,6 +174,17 @@ class ProvisionalPathResearchTests(unittest.TestCase):
         target=next(x for x in rows if x["code"]=="005930")
         self.assertEqual(target["factor_available"]["volume"],16)
         self.assertEqual(summary["path_observed_121session_issuers"],0)
+
+    def test_missing_260_session_cross_keeps_only_14_of_20_volume_observed(self):
+        daily,catalog=market_with_path()
+        daily["stocks"][0].pop("v3_ma240_cross_research")
+        rows,summary=generate(daily,catalog,volume_build(daily,catalog),
+                              price_build(daily,catalog),
+                              path_coverage_receipt=coverage_summary(daily))
+        target=next(x for x in rows if x["code"]=="005930")
+        self.assertEqual(target["factor_available"]["volume"],14)
+        self.assertEqual(target["factors"]["volume"],14.0)
+        self.assertEqual(summary["certified_100point_count"],0)
 
     def test_tampered_new_data_or_forged_authorization_fails_closed(self):
         daily,catalog=market_with_path()
