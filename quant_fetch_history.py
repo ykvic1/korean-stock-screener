@@ -64,7 +64,9 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
                 # Only our own unfinished write is removed. Preserve prior
                 # caches for diagnosis, but the scorer still rejects them.
                 tmp.unlink(missing_ok=True)
-                time.sleep((attempt+1)*1.5)
+                # The final failed attempt is terminal; waiting cannot retry.
+                if attempt < 2:
+                    time.sleep((attempt+1)*1.5)
         if error:fail.append([code,error])
         time.sleep(sleep)
         if i%25==0:logging.info("OHLCV cache %s/%s saved=%s reused=%s failed=%s",i,len(stocks),saved,fresh,len(fail))
