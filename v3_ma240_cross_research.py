@@ -100,7 +100,7 @@ def observe(close, volume, *, asof, session_days):
         distance = 100*(cross_level/ma240_at_cross-1)
         if not math.isfinite(distance):
             return None
-        crosses.append((dates[i].isoformat(), round(distance, 6)))
+        crosses.append((dates[i].isoformat(), distance))
 
     qualifying = [entry for entry in crosses if abs(entry[1]) <= BAND_PCT]
     last = crosses[-1] if crosses else None
@@ -111,10 +111,10 @@ def observe(close, volume, *, asof, session_days):
         "history_sessions_used": MIN_HISTORY_SESSIONS,
         "cross_event_count": len(crosses),
         "last_cross_date": last[0] if last else None,
-        "last_cross_point_vs_ma240_pct": last[1] if last else None,
+        "last_cross_point_vs_ma240_pct": round(last[1], 6) if last else None,
         "qualified": matched is not None,
         "qualifying_cross_date": matched[0] if matched else None,
-        "qualifying_cross_point_vs_ma240_pct": matched[1] if matched else None,
+        "qualifying_cross_point_vs_ma240_pct": round(matched[1], 6) if matched else None,
         "reference_band_pct": BAND_PCT,
         "cross_point_based_on_price_ma_intersection": True,
         "closing_price_band_test_used": False,
