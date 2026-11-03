@@ -40,6 +40,7 @@ def gated_walkforward(candidates, *, split_date, embargo_days=252,
     cases_for_period = {name: [] for name in HORIZONS}
     exclusions = {name: Counter() for name in HORIZONS}
     seen_signals = set()
+    seen_codes = set()
     for payload in candidates:
         if not isinstance(payload, dict):
             raise ResearchGateError("invalid_gate_payload")
@@ -58,13 +59,18 @@ def gated_walkforward(candidates, *, split_date, embargo_days=252,
             raise ResearchGateError("price_issuer_mismatch")
         if (pit.get("issuer_id"), pit.get("code")) != identity:
             raise ResearchGateError("pit_issuer_mismatch")
-        if pit.get("market") != record.get("market"):
+        # A frozen signal cannot be assigned to a different market than its
+        # actual issuer price/roster source, even if issuer and code match.
+        if (case.get("market") != record.get("market")
+                or pit.get("market") != record.get("market")):
             raise ResearchGateError("market_mismatch")
         signal = case.get("signal_date")
-        signal_key = (*identity, signal)
-        if signal_key in seen_signals:
+        signal_key = (case["issuer_id"], signal)
+        code_key = (case["code"], signal)
+        if signal_key in seen_signals or code_key in seen_codes:
             raise ResearchGateError("duplicate_issuer_signal")
         seen_signals.add(signal_key)
+        seen_codes.add(code_key)
         try:
             _check_case(case)
             audit = audit_price_events(
