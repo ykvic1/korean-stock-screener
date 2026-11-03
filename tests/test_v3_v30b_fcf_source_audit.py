@@ -37,6 +37,28 @@ class FCFSourceAuditTests(unittest.TestCase):
                 (self.observed.get("asof") != self.gap.get("asof") or
                  self.observed.get("asof") != self.preview.get("asof"))):
             self.skipTest("market_day_rolled_before_independent_fcf_sources")
+        expected={
+            "financial4":self.preview.get("financial_fcf4_research_candidate_issuer_count"),
+            "valuation5":self.preview.get("valuation_fcf5_research_candidate_issuer_count"),
+        }
+        if (self._testMethodName in positive_live_checks and
+                self.observed.get("fcf_observed_issuer_counts") != expected):
+            self.skipTest("new_cashflow_snapshot_waiting_for_current_scorecard_replay")
+
+    def test_same_day_fcf_count_mismatch_is_rejected_without_mutation(self):
+        observed,gap,preview=map(copy.deepcopy,(self.observed,self.gap,self.preview))
+        if not observed.get("asof")==gap.get("asof")==preview.get("asof"):
+            with self.assertRaisesRegex(FCFReconciliationError,"fcf_source_day_mismatch"):
+                audit_fcf_sources(observed,gap,preview)
+            return
+        expected={"financial4":preview["financial_fcf4_research_candidate_issuer_count"],
+                  "valuation5":preview["valuation_fcf5_research_candidate_issuer_count"]}
+        if observed.get("fcf_observed_issuer_counts")==expected:
+            observed["fcf_observed_issuer_counts"]["financial4"]+=1
+        before=copy.deepcopy((observed,gap,preview))
+        with self.assertRaisesRegex(FCFReconciliationError,"fcf_current_scorecard_count_mismatch"):
+            audit_fcf_sources(observed,gap,preview)
+        self.assertEqual((observed,gap,preview),before)
 
     def test_older_fcf_sources_are_rejected_without_any_score(self):
         observed, gap, preview = (copy.deepcopy(self.observed),
