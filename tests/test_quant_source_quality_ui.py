@@ -27,6 +27,28 @@ const report = {
 const shown=ui.quantSourceQualityView(report,'2026-11-02');
 assert.match(shown.summary,/69\/120/);
 assert.match(shown.text,/이력 파일 부재 51종목/);
+const diag={suspect_bar_count:2,last_suspect_date:'2023-11-01',
+  trailing_valid_sessions:651,trailing_650_session_candidate:true,
+  research_only:true,official_adjustment_certified:false};
+const withDiag={
+ ...report, missing:[
+  {...missing[0],error_provenance:'matched_same_day_collector',
+   tail_diagnostic:diag},...missing.slice(1)],
+ source_quality_audit:{
+  ...report.source_quality_audit,
+  audited_vendor_tail_diagnostics:1,unverified_tail_650_candidates:1
+ }
+};
+const recovery=ui.quantSourceQualityView(withDiag,'2026-11-02');
+assert.match(recovery.text,/정상 연속 650봉 이상 1종목/);
+assert.match(recovery.text,/점수 미반영/);
+assert.equal(ui.quantSourceQualityView({...withDiag,
+  source_quality_audit:{...withDiag.source_quality_audit,
+    unverified_tail_650_candidates:2}},'2026-11-02'),null);
+assert.equal(ui.quantSourceQualityView({...withDiag,missing:[
+  {...withDiag.missing[0],tail_diagnostic:{
+   ...diag,official_adjustment_certified:true}},...withDiag.missing.slice(1)
+]},'2026-11-02'),null);
 assert.equal(ui.quantSourceQualityView(report,'2026-11-03'),null);
 assert.equal(ui.quantSourceQualityView({...report,source_quality_audit:{
   ...report.source_quality_audit,excluded_symbols:50
