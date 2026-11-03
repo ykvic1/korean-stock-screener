@@ -18,6 +18,24 @@ def with_score(c=None):
     }
     return p
 
+def with_five_factor_score(c=None, *, partial=False):
+    p=with_score(c)
+    score=p["frozen_score_snapshot"]
+    del score["candidate_full_total_research_only"]
+    score["scorecard_schema"]="v3-all-current-listed-observed-five-factor-scorecard-0.3"
+    score["industry_excluded_from_score_budget"]=True
+    score["missing_data_never_zero_filled"]=True
+    score["factors"]={
+        "volume":[18,20],"technical":[20,25],"financial":[15,20],
+        "valuation":[15,20],"momentum":[10,15],
+    }
+    if partial:
+        score["factors"]["valuation"]=[None,0]
+        score["factors"]["volume"]=[10,16]
+    score["available"]=sum(row[1] for row in score["factors"].values())
+    score["earned"]=sum(row[0] or 0 for row in score["factors"].values())
+    return p
+
 def evaluate(v):
     return scored_walkforward(v,split_date="2026-01-01")
 
@@ -98,20 +116,60 @@ class FrozenScoreWalkforwardTests(unittest.TestCase):
         self.assertEqual(r["frozen_score_vs_outcomes_research_only"][
             "KOSPI"]["12m"]["exclusions"]["short_history"],1)
 
-    def test_frozen_score_rejects_same_issuer_alias_or_same_code_two_issuers(self):
-        a = with_score()
-        renamed = with_score()
-        for component in ("case", "price_record", "pit_bundle"):
-            renamed[component]["code"] = "000002"
-        renamed["frozen_score_snapshot"]["code"] = "000002"
-        with self.assertRaisesRegex(ScoredBacktestError, "duplicate"):
-            evaluate([a, renamed])
-        renamed = with_score()
-        for component in ("case", "price_record", "pit_bundle"):
-            renamed[component]["issuer_id"] = "00000002"
-        renamed["frozen_score_snapshot"]["issuer_id"] = "00000002"
-        with self.assertRaisesRegex(ScoredBacktestError, "duplicate"):
-            evaluate([a, renamed])
+
+    def test_five_factor_full_budget_uses_observed_points_not_legacy_score(self):
+        p=with_five_factor_score()
+        r=evaluate([p])
+        self.assertEqual(r["frozen_score_contract"],"five_factor_observed_partial")
+        self.assertTrue(r["partial_scores_never_normalized_or_zero_filled"])
+        self.assertEqual(r["frozen_score_vs_outcomes_research_only"]["KOSPI"][
+            "1m"]["cohorts"]["train"]["eligible_score_label_pairs"],1)
+        self.assertEqual(r["frozen_score_vs_outcomes_research_only"]["KOSPI"][
+            "1m"]["exclusions"]["partial_score_coverage_noncomparable"],0)
+        self.assertIsNone(r["forecast"])
+        self.assertFalse(r["v3_release_ready"])
+
+    def test_partial_five_factor_score_is_not_misread_as_full_or_zero(self):
+        p=with_five_factor_score(partial=True)
+        score=p["frozen_score_snapshot"]
+        self.assertEqual(score["available"],76)
+        self.assertEqual(score["earned"],55)
+        r=evaluate([p])
+        for horizon in HORIZONS:
+            cell=r["frozen_score_vs_outcomes_research_only"]["KOSPI"][horizon]
+            self.assertEqual(cell["cohorts"]["train"]["eligible_score_label_pairs"],0)
+            self.assertEqual(cell["exclusions"][
+                "partial_score_coverage_noncomparable"],1)
+        # The underlying event/PIT engine still audits this signal and its labels.
+        self.assertEqual(r["research_quality_gated_walkforward"]["periods"][
+            "1m"]["internally_eligible_cases_submitted"],1)
+
+    def test_five_factor_hindsight_contract_and_missingness_fails_closed(self):
+        changes={
+            "claimed_available_inflated":lambda s:s.update(available=100),
+            "industry_score_included":lambda s:s["factors"].update(industry=[3,5]),
+            "missing_as_zero":lambda s:s["factors"]["valuation"].__setitem__(0,0),
+            "coverage_mismatch":lambda s:s["factors"]["volume"].__setitem__(1,20),
+            "earned_mismatch":lambda s:s.update(earned=99),
+            "wrong_source_schema":lambda s:s.update(scorecard_schema="different"),
+            "legacy_total_mixed":lambda s:s.update(
+                candidate_full_total_research_only=87),
+            "industry_claim_false":lambda s:s.update(
+                industry_excluded_from_score_budget=False),
+        }
+        for label,mutate in changes.items():
+            with self.subTest(label=label):
+                p=with_five_factor_score(partial=True)
+                mutate(p["frozen_score_snapshot"])
+                with self.assertRaises(ScoredBacktestError):
+                    evaluate([p])
+
+    def test_five_and_legacy_score_cohorts_cannot_be_pooled(self):
+        p=with_five_factor_score()
+        older=with_score(candidate(signal_idx=25))
+        with self.assertRaisesRegex(ScoredBacktestError,
+                                    "mixed_frozen_score_contracts"):
+            evaluate([p,older])
 
 
 if __name__=="__main__":

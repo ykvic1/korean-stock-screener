@@ -1,4 +1,4 @@
-"""Bridge FROZEN historical six-pillar scores to event/PIT-gated walkforward.
+"""Bridge FROZEN historical scores to event/PIT-gated walkforward.
 
 Research-only: no score fitting, trades, hit-probability forecast, or release.
 A historical signal must carry a score snapshot asserted BEFORE/AT signal,
@@ -13,9 +13,13 @@ import math
 from v3_walkforward_quality_gate import gated_walkforward, ResearchGateError
 from v3_walkforward_research import HORIZONS, _outcome, WalkForwardError
 from v3_factor_overlap_audit import _spearman
+from v3_all_listed_scorecard import WEIGHTS as FIVE_FACTOR_WEIGHTS
+from v3_all_listed_scorecard import SCHEMA as FIVE_FACTOR_SCORECARD_SCHEMA
 
 KST=ZoneInfo("Asia/Seoul")
 MAX_CASES=120
+FIVE_FACTOR_CONTRACT="five_factor_observed_partial"
+LEGACY_CONTRACT="legacy_full_candidate"
 
 class ScoredBacktestError(ValueError):
     """Fixed privacy-safe errors."""
@@ -40,6 +44,53 @@ def _instant(s):
         raise ScoredBacktestError("invalid_frozen_score_timestamp") from None
 
 
+def _candidate_score(score):
+    """Return raw frozen points, available budget and score scheme.
+
+    Never normalize a partial 100-point budget: missing is not zero. Partial
+    research scores may carry labels, but cannot enter cross-coverage Spearman.
+    """
+    if score.get("scorecard_schema")==FIVE_FACTOR_SCORECARD_SCHEMA:
+        if ("candidate_full_total_research_only" in score or
+                score.get("industry_excluded_from_score_budget") is not True or
+                score.get("missing_data_never_zero_filled") is not True):
+            raise ScoredBacktestError("invalid_five_factor_score_contract")
+        factors=score.get("factors")
+        if not isinstance(factors,dict) or set(factors)!=set(FIVE_FACTOR_WEIGHTS):
+            raise ScoredBacktestError("invalid_five_factor_observations")
+        earned=0.
+        available=0
+        for area,maximum in FIVE_FACTOR_WEIGHTS.items():
+            entry=factors[area]
+            if not isinstance(entry,(list,tuple)) or len(entry)!=2:
+                raise ScoredBacktestError("invalid_five_factor_observations")
+            points,capacity=entry
+            if type(capacity) is not int or not 0<=capacity<=maximum:
+                raise ScoredBacktestError("invalid_five_factor_coverage")
+            if capacity==0:
+                if points is not None:
+                    raise ScoredBacktestError("missing_factor_treated_as_zero")
+            elif (type(points) not in (int,float) or
+                    not math.isfinite(points) or not 0<=points<=capacity):
+                raise ScoredBacktestError("invalid_five_factor_points")
+            else:
+                earned+=points
+            available+=capacity
+        if (available==0 or type(score.get("available")) is not int or
+                score["available"]!=available or
+                type(score.get("earned")) not in (int,float) or
+                not math.isfinite(score["earned"]) or
+                not math.isclose(score["earned"],earned,rel_tol=0,abs_tol=0.0001)):
+            raise ScoredBacktestError("five_factor_total_or_coverage_mismatch")
+        return float(earned),available,FIVE_FACTOR_CONTRACT
+    if score.get("scorecard_schema") is not None:
+        raise ScoredBacktestError("unknown_historical_score_contract")
+    value=score.get("candidate_full_total_research_only")
+    if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=100:
+        raise ScoredBacktestError("unusable_frozen_six_pillar_research_score")
+    return float(value),100,LEGACY_CONTRACT
+
+
 def scored_walkforward(payloads, *, split_date, embargo_days=252,
                        round_trip_cost_bps=30):
     cutoff=_date(split_date)
@@ -52,6 +103,7 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
     seen=set()
     seen_codes=set()
     frozen=[]
+    contracts=set()
     for p in payloads:
         if not isinstance(p,dict) or not isinstance(p.get("case"),dict):
             raise ScoredBacktestError("invalid_historical_payload")
@@ -73,9 +125,10 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
         if (type(digest) is not str or len(digest)!=64
                 or score.get("snapshot_sha256")!=digest):
             raise ScoredBacktestError("score_and_signal_digest_mismatch")
-        value=score.get("candidate_full_total_research_only")
-        if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=100:
-            raise ScoredBacktestError("unusable_frozen_six_pillar_research_score")
+        value,coverage,contract=_candidate_score(score)
+        contracts.add(contract)
+        if len(contracts)>1:
+            raise ScoredBacktestError("mixed_frozen_score_contracts")
         if (score.get("confirmed_score") is not None
                 or score.get("confirmed_buy") is not False):
             raise ScoredBacktestError("fabricated_confirmed_score_claim")
@@ -85,13 +138,13 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
             raise ScoredBacktestError("duplicate_frozen_issuer_signal")
         seen.add(identity)
         seen_codes.add(code_key)
-        frozen.append((p,signal,float(value)))
+        frozen.append((p,signal,float(value),coverage))
     # This is the authoritative existing PIT/corporate-event walkforward
     # research engine. It still does NOT certify real historical sources.
     try:
         aggregate=gated_walkforward(
             [{k:v for k,v in p.items() if k!="frozen_score_snapshot"}
-             for p,_,_ in frozen],
+             for p,_,_,_ in frozen],
             split_date=split_date,embargo_days=embargo_days,
             round_trip_cost_bps=round_trip_cost_bps)
     except (ResearchGateError,WalkForwardError,TypeError,KeyError):
@@ -102,9 +155,11 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
         for label,days in HORIZONS.items():
             groups={"train":[],"holdout":[]}
             exclusions={"quality_censored":0,"split_purged":0,"short_history":0,
-                        "overlapping_same_issuer":0}
+                        "overlapping_same_issuer":0,
+                        "partial_score_coverage_noncomparable":0}
             last_end={"train":{},"holdout":{}}
-            for p,signal,value in sorted(frozen,key=lambda x:(x[1],x[0]["case"]["code"])):
+            for p,signal,value,coverage in sorted(
+                    frozen,key=lambda x:(x[1],x[0]["case"]["code"])):
                 case=p["case"]
                 if case.get("market")!=market:
                     continue
@@ -145,6 +200,12 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
                 if outcome is None:
                     exclusions["short_history"]+=1
                     continue
+                # Scores with fewer observed points are not on the same
+                # basis as complete 100-point historical scores. Keep their
+                # PIT/label checks, but exclude from cross-sectional fit.
+                if coverage<100:
+                    exclusions["partial_score_coverage_noncomparable"]+=1
+                    continue
                 groups[group].append((value,outcome["net_return_pct"],
                     case["issuer_id"],signal))
             per={}
@@ -165,6 +226,8 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
     return {
         "schema":"v3-frozen-score-quality-walkforward-0.1",
         "input_case_count":len(frozen),"split_date":split_date,
+        "frozen_score_contract":next(iter(contracts),None),
+        "partial_scores_never_normalized_or_zero_filled":True,
         "horizons_trading_session_proxies":dict(HORIZONS),
         "research_quality_gated_walkforward":aggregate,
         "frozen_score_vs_outcomes_research_only":analysis,
