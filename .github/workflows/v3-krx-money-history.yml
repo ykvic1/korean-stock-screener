@@ -8,8 +8,10 @@ on:
       - v3_krx_money_backfill.py
       - .github/workflows/v3-krx-money-history.yml
   schedule:
-    # Four staggered bounded 16-cohort runs per day; no concurrent writes.
-    - cron: '49 1,7,13,19 * * *'
+    # Twelve staggered 16-cohort runs per day (<=1,920 KRX calls/day).
+    # Personal/research source quota 10,000/day; isolated lock prevents overlap.
+    # The collector advances one verified cohort at a time and stops at 490/490.
+    - cron: '49 */2 * * *'
   workflow_dispatch:
     inputs:
       max_windows:
