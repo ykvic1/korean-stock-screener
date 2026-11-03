@@ -1,0 +1,93 @@
+name: V3 Post-120 Private DART Closed-Month Receipt Continuation
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_future_closed_months.py
+      - tests/test_v3_dart_future_closed_months.py
+      - .github/workflows/v3-dart-future-closed-months.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-dart-future-closed-months.yml
+  schedule:
+    # Bounded monthly continuation checks four times a day. A fully
+    # up-to-date private cursor uses zero OpenDART calls.
+    - cron: '37 0,6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry_run tests offline; live starts eligible CLOSED months'
+        type: choice
+        required: true
+        default: dry_run
+        options: [dry_run, live]
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private Git transport
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Prove post-120 source boundaries and immutable cursor offline
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_future_closed_months.py
+          python -m unittest discover -s tests -p 'test_v3_dart_future_closed_months.py' -v
+
+  future-private-receipts:
+    needs: offline-safety
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' &&
+           startsWith(github.event.head_commit.message, 'feat(v3.0b): auto archive new DART months after 120')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    concurrency:
+      group: v3-dart-private-historical-event-receipts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private Git transport
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Wait until exactly 120 historical months are source checkpointed
+        id: base
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from v3_dart_historical_event_receipts import public_progress_complete
+          with open('docs/v3-dart-historical-receipt-progress.json', encoding='utf-8') as f:
+              progress = json.load(f)
+          done = 'true' if public_progress_complete(progress) else 'false'
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write('done=' + done + '\n')
+          print('historical_receipts_120_month_gate_' + done)
+          PY
+      - name: Save next fully-closed post-2026-09 private receipt pages
+        if: ${{ steps.base.outputs.done == 'true' }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Append-only OCT-2026+ B/C/E/I pages. Completely separate from
+          # source-locked 2016-10..2026-09 120-month historic checkpoint.
+          # No current partial month, no public issuer data and no PIT scores.
+          python v3_dart_future_closed_months.py
