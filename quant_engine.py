@@ -128,7 +128,7 @@ def build_features(df: pd.DataFrame) -> np.ndarray:
 
 def label_future(df: pd.DataFrame, t: int, horizon: int,
                  target: float, stop: float, cost_pct: float) -> dict | None:
-    """At t close, buy t+1 open. Stops can gap through. Same-day target/stop -> stop first."""
+    """At t close, buy t+1 open; gap-open exits precede intraday ties."""
     if t+1+horizon > len(df):
         return None
     future = df.iloc[t+1:t+1+horizon]
@@ -449,7 +449,7 @@ def run(screener_json:Path,history_dir:Path,output:Path,
                     "entry":"신호 다음 거래일 시가",
                     "up_probability_definition":"보유기간 말일 종가 수익(비용차감)>0의 과거 빈도; 손절/목표 달성 무관. 전략수익과 분리",
                     "holding":"거래일 기준 5·10·20·40·60·120·252일",
-                    "stops":"하루 고가·저가 모두 통과 시 손절 먼저 적용; 시가 갭 하락 반영",
+                    "stops":"목표가 이상 시가 갭상승은 목표 우선; 그 외 같은 날 목표·손절 동시 접촉은 손절 우선, 손절가 이하 시가 갭하락 반영",
                     "round_trip_cost_pct":ROUND_TRIP_COST_PCT,
                     "sampling":"종목별 보유기간만큼 떨어진 표본 채택; 비독립 시장동조성 잔존",
                     "similarity":"가중 정규화 특징거리 ≤1.15; 종목별 자기 유사사례 제외",
