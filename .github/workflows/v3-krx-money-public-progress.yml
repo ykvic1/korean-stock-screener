@@ -1,0 +1,100 @@
+name: V3 public aggregate progress for actual KRX trading money (no provider)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_money_public_progress.py
+      - tests/test_v3_krx_money_public_progress.py
+      - .github/workflows/v3-krx-money-public-progress.yml
+  workflow_run:
+    workflows:
+      - V3 actual KRX trading-value private derived backfill
+    types: [completed]
+  schedule:
+    # Independent fallback monitor even if a source execution is delayed.
+    - cron: '26 2,8,14,20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v3-public-krx-money-aggregate-only
+  cancel-in-progress: false
+
+jobs:
+  verified-money-coverage:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository &&
+           github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private checkpoint calendar reader only; no KRX calls
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Verify strict private tail and public aggregate tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_money_public_progress.py
+          python -m unittest discover -s tests -p 'test_v3_krx_money_public_progress.py' -v
+      - name: Publish aggregate-only counts with readback guard
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python v3_krx_money_public_progress.py --mode write
+          git add docs/v3-krx-money-derived-progress.json
+          if git diff --cached --quiet; then
+            echo 'money_progress_already_current'
+            exit 0
+          fi
+          git commit -m 'Publish only verified actual-money cohort counters'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_krx_money_public_progress.py --mode write
+            git add docs/v3-krx-money-derived-progress.json
+            if ! git diff --cached --quiet; then
+              git commit --amend --no-edit
+            fi
+            python v3_krx_money_public_progress.py --mode verify
+            if git push origin HEAD:main; then
+              echo 'money_progress_aggregate_published'
+              break
+            fi
+            if [[ "$attempt" == 3 ]]; then
+              echo '::error::money_progress_publish_retries_exhausted'
+              exit 1
+            fi
+          done
+      - name: Research-only collection coverage summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = Path('docs/v3-krx-money-derived-progress.json')
+          lines = ['### 실제 KRX 거래대금 자료: 비공개 집계 수집현황',
+                   '미검증 정규장·기업행위·상장구성 과거값을 점수로 승격하지 않습니다.']
+          if report.is_file():
+              obj=json.loads(report.read_text(encoding='utf8'))
+              lines += ['확인된 5거래일 코호트: %s/%s' %
+                        (obj['five_session_cohorts_completed'],
+                         obj['five_session_cohorts_target']),
+                        '확인된 종목-코호트 연구기록: %s' %
+                        obj['derived_issuer_cohort_records'],
+                        '원본 KRX 재공개: 0, 점수 인증: 0']
+          Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
+              '\n'.join(lines) + '\n', encoding='utf8')
+          PY
