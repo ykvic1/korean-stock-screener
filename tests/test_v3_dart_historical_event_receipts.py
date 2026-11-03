@@ -3,13 +3,15 @@ import base64
 from hashlib import sha256
 import gzip
 import json
+import os
+from unittest.mock import patch
 from pathlib import Path
 import unittest
 
 from v3_dart_historical_event_receipts import (
     CATEGORIES, CHECKPOINT, DARTEventReceiptError, MONTHS, _decode, _path,
     parse_official_response, run, PRIVATE_REPO, MAX_API_CALLS,
-    public_progress_complete,
+    public_progress_complete, public_failure_code, main,
 )
 
 
@@ -61,6 +63,33 @@ def response(page, total, rows):
 
 
 class HistoricalDARTReceiptTests(unittest.TestCase):
+    def test_public_dart_failure_codes_are_fixed_and_never_leak_secrets(self):
+        self.assertEqual(
+            public_failure_code(DARTEventReceiptError("dart_source_transport_failed")),
+            "dart_source_transport_failed")
+        self.assertEqual(
+            public_failure_code(DARTEventReceiptError("dart_provider_rejected_or_unavailable")),
+            "dart_provider_rejected_or_unavailable")
+        fallback="private_dart_collection_validation_or_transport_failed"
+        for problem in (
+            RuntimeError("private-token=SYNTHETIC_SECRET"),
+            DARTEventReceiptError("provider response: SYNTHETIC_SECRET"),
+            DARTEventReceiptError("dart_source_transport_failed\nSYNTHETIC_SECRET"),
+            ValueError("url=https://example.invalid/SYNTHETIC_SECRET"),
+        ):
+            self.assertEqual(public_failure_code(problem),fallback)
+        env={"V3_PRIVATE_ARCHIVE_REPO":PRIVATE_REPO,
+             "V3_PRIVATE_ARCHIVE_TOKEN":"T"*25,
+             "DART_API_KEY":"K"*40}
+        with patch.dict(os.environ,env), \
+             patch("v3_dart_historical_event_receipts.PrivateGitStorage"), \
+             patch("v3_dart_historical_event_receipts.run",
+                   side_effect=RuntimeError("private-token=SYNTHETIC_SECRET")):
+            with self.assertRaises(SystemExit) as caught:
+                main()
+        self.assertEqual(str(caught.exception),"blocked: "+fallback)
+        self.assertNotIn("SYNTHETIC_SECRET",str(caught.exception))
+
     def test_direct_fastlane_completion_gate_never_promotes_scores(self):
         done = {
             "schema": "v3-public-dart-historical-receipt-progress-v1",
