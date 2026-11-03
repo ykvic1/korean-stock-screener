@@ -160,7 +160,7 @@ def market_cap_bias_diagnostic(results, members):
         "schema":"v3-volume-market-cap-reference-bias-audit-0.1",
         "cap_units":"eok_krw",
         "reference_market_cap_is_not_official_PIT":True,
-        "historical_size_bias_proved":False,
+        "historical_size_bias_proved":None,
         "investment_points_modified":False,
         "unknown_volume_scores_never_treated_as_zero":True,
         "buckets":rows,
