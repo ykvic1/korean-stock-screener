@@ -472,6 +472,65 @@ def load_collector_failures(history_dir: Path, asof: str,
     return reasons
 
 
+
+def load_collector_tail_diagnostics(history_dir: Path, asof: str,
+                                    codes: list[str],
+                                    collector_errors: dict[str, str]) -> dict[str, dict]:
+    """Read optional same-cohort rejected-price diagnostics, never price bars.
+
+    The report is a recovery-research hint only. No cached CSV or verified
+    OHLCV is created or substituted here.
+    """
+    if not collector_errors:
+        return {}
+    try:
+        raw = json.loads((history_dir / "cache_status.json").read_text(
+            encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        return {}
+    if (not isinstance(raw, dict)
+            or raw.get("asof") != asof
+            or raw.get("requested") != len(codes)
+            or raw.get("cohort_sha256") != source_cohort_digest(asof, codes)
+            or raw.get("failed_n") != len(collector_errors)):
+        return {}
+    rows = raw.get("failed_bar_diagnostics", [])
+    if not isinstance(rows, list) or len(rows) > len(collector_errors):
+        return {}
+    out = {}
+    for pair in rows:
+        if (not isinstance(pair, list) or len(pair) != 2 or
+                not isinstance(pair[0], str) or
+                pair[0] not in collector_errors or pair[0] in out or
+                not isinstance(pair[1], dict)):
+            return {}
+        code, diag = pair
+        n = diag.get("suspect_bar_count")
+        tail = diag.get("trailing_valid_sessions")
+        last = diag.get("last_suspect_date")
+        if (type(n) is not int or n < 1 or n > 4000 or
+                type(tail) is not int or tail < 0 or tail > 4000 or
+                not isinstance(last, str) or len(last) != 10 or
+                diag.get("trailing_650_session_candidate") is not (tail >= 650) or
+                diag.get("research_only") is not True or
+                diag.get("official_adjustment_certified") is not False):
+            return {}
+        try:
+            if datetime.strptime(last, "%Y-%m-%d").strftime("%Y-%m-%d") != last or last > asof:
+                return {}
+        except ValueError:
+            return {}
+        out[code] = {
+            "suspect_bar_count": n,
+            "last_suspect_date": last,
+            "trailing_valid_sessions": tail,
+            "trailing_650_session_candidate": tail >= 650,
+            "research_only": True,
+            "official_adjustment_certified": False,
+        }
+    return out
+
+
 def run(screener_json:Path,history_dir:Path,output:Path,
         asof:str | None=None,max_stocks:int=120,
         recommendations:Path|None=Path('docs/recommendations.json')) -> dict:
@@ -481,8 +540,10 @@ def run(screener_json:Path,history_dir:Path,output:Path,
     if d["date"] != asof:
         raise ValueError("신호일과 백테스트 기준일이 다름. 결측 데이터를 과거 시점에 대입하지 않음")
     stocks=prioritized_stocks(d,optional_recommendations(recommendations),max_stocks)
-    collector_errors=load_collector_failures(
-        history_dir,asof,[str(s["code"]) for s in stocks])
+    cohort_codes=[str(s["code"]) for s in stocks]
+    collector_errors=load_collector_failures(history_dir,asof,cohort_codes)
+    collector_diagnostics=load_collector_tail_diagnostics(
+        history_dir,asof,cohort_codes,collector_errors)
     cache={}; markets={}; missing=[]
     for s in stocks:
         code = str(s["code"])
@@ -498,11 +559,14 @@ def run(screener_json:Path,history_dir:Path,output:Path,
             source_error=(collector_errors.get(code)
                           if isinstance(e,FileNotFoundError) else None)
             cause=ValueError(source_error) if source_error else e
-            missing.append({"code":code,"error":str(cause)[:120],
-                            "reason_code":classify_source_exclusion(cause),
-                            "error_provenance":(
-                                "matched_same_day_collector" if source_error
-                                else "local_history_check")})
+            missing_row={"code":code,"error":str(cause)[:120],
+                         "reason_code":classify_source_exclusion(cause),
+                         "error_provenance":(
+                             "matched_same_day_collector" if source_error
+                             else "local_history_check")}
+            if source_error and code in collector_diagnostics:
+                missing_row["tail_diagnostic"]=collector_diagnostics[code]
+            missing.append(missing_row)
     if len(cache)<20:
         result={"status":"insufficient","asof":asof,"available_symbols":len(cache),
                 "required_symbols":20,"missing":missing,"stocks":[],
@@ -551,6 +615,11 @@ def run(screener_json:Path,history_dir:Path,output:Path,
                 }}
     result["source_quality_audit"] = source_quality_audit(
         len(stocks), len(cache), missing)
+    result["source_quality_audit"]["audited_vendor_tail_diagnostics"] = sum(
+        "tail_diagnostic" in row for row in missing)
+    result["source_quality_audit"]["unverified_tail_650_candidates"] = sum(
+        row.get("tail_diagnostic", {}).get("trailing_650_session_candidate") is True
+        for row in missing)
     result['bias_audit']={'lookahead_features':'trailing-only tested; next session open entry', 'overlap':'per-symbol non-overlap; cross-symbol market dependence remains', 'survivorship':'UNRESOLVED: current candidate universe excludes delisted and historical membership', 'transaction_cost':'0.40 percentage point assumed round trip; 0.2/0.8 sensitivity', 'corporate_actions':'adjusted prices/provider consistency, dividends and trading suspensions NOT verified', 'holdout':'chronological diagnostics only; no walk-forward predictive validation', 'prediction_validated':False}
     output.parent.mkdir(parents=True,exist_ok=True)
     tmp=output.with_suffix(".tmp")
