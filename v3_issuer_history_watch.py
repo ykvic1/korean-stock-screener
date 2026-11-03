@@ -51,6 +51,19 @@ def _score(entry,maximum,day,*,component=False):
     return entry.get("source") in ("current_close_replay","dart_bulk_snapshot")
 
 
+def _check_continuity(old, new, maximum, day, issues, *, component=False):
+    """Retain coverage first; a broader older source is an allowed recovery."""
+    if not _score(old, maximum, day, component=component):
+        issues.append("invalid_prior_continuity_observation")
+        return
+    if not _score(new, maximum, day, component=component):
+        return  # The ordinary current-ledger audit reports malformed records.
+    if new["available"] < old["available"]:
+        issues.append("narrowed_existing_observation_coverage")
+    elif new["available"] == old["available"] and new["asof"] < old["asof"]:
+        issues.append("regressed_existing_observation_date")
+
+
 def inspect(current,previous=None):
     """Return an anonymous aggregate. No raw issuer names, values or IDs."""
     issues=[]
@@ -210,11 +223,16 @@ def inspect(current,previous=None):
                         if field=="factors":
                             if key not in now and key in PILLARS:
                                 issues.append(issue)
+                            elif key in now and key in PILLARS:
+                                _check_continuity(value,now[key],PILLARS[key],day,issues)
                         elif (isinstance(value,dict) and
                               isinstance(now.get(key),dict)):
                             for sub in value:
                                 if sub in COMPONENTS.get(key,{}) and sub not in now[key]:
                                     issues.append(issue)
+                                elif sub in COMPONENTS.get(key,{}):
+                                    _check_continuity(value[sub],now[key][sub],
+                                        COMPONENTS[key][sub],day,issues,component=True)
                         elif isinstance(value,dict) and any(
                                 sub in COMPONENTS.get(key,{}) for sub in value):
                             issues.append(issue)
