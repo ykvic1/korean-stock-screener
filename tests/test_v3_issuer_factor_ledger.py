@@ -86,6 +86,84 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         self.assertNotIn("financial",current["rows"]["005930"]["factors"])
         self.assertNotIn("valuation",current["rows"]["005930"]["factors"])
 
+    def test_rename_retains_old_scores_as_nonranking_historical_identity(self):
+        old_issuer=member("005930","Former Name")
+        renamed=member("005930","New Name")
+        prior=build(census("2026-10-30",[old_issuer]),
+                    [row(old_issuer,"2026-10-30")],
+                    fiscal_rows={"005930":{
+                        "code":"005930","market":"KOSPI","asof":"2026-10-30",
+                        "unverified_components":{"pbr":{
+                            "max_points":5,"candidate_points":3.5}}}})
+        latest=build(census("2026-11-02",[renamed]),
+                     [row(renamed,"2026-11-02",financial=None,valuation=None)],
+                     prior,fiscal_rows={"005930":{
+                        "code":"005930","market":"KOSPI","asof":"2026-11-02",
+                        "unverified_components":{"pbr":{
+                            "max_points":5,"candidate_points":1.5}}}})
+        current=latest["rows"]["005930"]
+        self.assertNotIn("financial",current["factors"])
+        self.assertNotIn("valuation",current["factors"])
+        self.assertFalse(current["components"])
+        archived=list(latest["identity_review_archive"].values())
+        self.assertEqual(len(archived),1)
+        old=archived[0]
+        self.assertEqual(old["name"],"Former Name")
+        self.assertEqual(old["last_known_market_asof"],"2026-10-30")
+        self.assertEqual(old["factors"]["financial"]["points"],5)
+        self.assertEqual(old["components"]["valuation"]["pbr"]["points"],3.5)
+        self.assertFalse(old["identity_independently_authenticated"])
+        self.assertFalse(old["eligible_for_current_ranking"])
+        self.assertTrue(latest["identity_history_unverified_not_ranked"])
+        replay=build(census("2026-11-02",[renamed]),
+                     [row(renamed,"2026-11-02",financial=None,valuation=None)],
+                     latest)
+        self.assertEqual(latest["identity_review_archive"],
+                         replay["identity_review_archive"])
+        self.assertEqual(replay["rows"],latest["rows"])
+
+    def test_delisted_ticker_reuse_or_market_transfer_keeps_prior_history(self):
+        old=member("005930","Issuer 1")
+        first=build(census("2026-10-30",[old]),[row(old,"2026-10-30")])
+        inactive=build(census("2026-11-02",[]),[],first)
+        self.assertFalse(inactive["rows"]["005930"]["active"])
+        reissued=member("005930","Issuer 2")
+        current=build(census("2026-11-03",[reissued]),
+                      [row(reissued,"2026-11-03",financial=None,valuation=None)],
+                      inactive)
+        self.assertEqual(len(current["identity_review_archive"]),1)
+        self.assertNotIn("financial",current["rows"]["005930"]["factors"])
+        self.assertEqual(next(iter(current["identity_review_archive"].values()))
+                         ["factors"]["financial"]["asof"],"2026-10-30")
+        transferred=member("005930","Issuer 2","KOSDAQ")
+        later=build(census("2026-11-04",[transferred]),
+                    [row(transferred,"2026-11-04",
+                         financial=None,valuation=None)],current)
+        self.assertEqual(len(later["identity_review_archive"]),2)
+        self.assertNotIn("financial",later["rows"]["005930"]["factors"])
+        self.assertEqual(later["rows"]["005930"]["market"],"KOSDAQ")
+
+    def test_tampered_retired_identity_history_fails_closed_and_no_false_pit(self):
+        old=member("005930","Old")
+        new=member("005930","New")
+        first=build(census("2026-10-30",[old]),[row(old,"2026-10-30")])
+        second=build(census("2026-11-02",[new]),
+                     [row(new,"2026-11-02",financial=None,valuation=None)],first)
+        corrupt=copy.deepcopy(second)
+        archived=next(iter(corrupt["identity_review_archive"].values()))
+        archived["factors"]["financial"]["points"]=20
+        with self.assertRaisesRegex(IssuerFactorLedgerError,
+                                    "altered_identity_review_archive"):
+            build(census("2026-11-03",[new]),
+                  [row(new,"2026-11-03",financial=None,valuation=None)],corrupt)
+        forged=copy.deepcopy(second)
+        archived=next(iter(forged["identity_review_archive"].values()))
+        archived["identity_independently_authenticated"]=True
+        with self.assertRaisesRegex(IssuerFactorLedgerError,
+                                    "altered_identity_review_archive"):
+            build(census("2026-11-03",[new]),
+                  [row(new,"2026-11-03",financial=None,valuation=None)],forged)
+
     def test_missing_is_not_zero_but_observed_zero_is_valid(self):
         a=member("005930","A")
         same=row(a,"2026-11-02",financial=0,valuation=None)
