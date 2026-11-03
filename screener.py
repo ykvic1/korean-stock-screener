@@ -297,6 +297,9 @@ def analyze_history(code,cfg,day):
         path_unavailable(close,volume,asof=last.isoformat(),
                          session_days=df.index)
         if v3_unscored_path is None else None)
+    from v3_ma240_cross_research import observe as observe_ma240_cross
+    v3_ma240_cross=observe_ma240_cross(
+        close,volume,asof=last.isoformat(),session_days=df.index)
     lo=df['Low'].to_numpy(dtype=float);hi=df['High'].to_numpy(dtype=float)
     p=float(close[-1]);m20=ma_last(close,20);m60=ma_last(close,60);m120=ma_last(close,120)
     vol20=float(np.mean(volume[-20:]));volprev=float(np.mean(volume[-60:-20]))
@@ -332,6 +335,7 @@ def analyze_history(code,cfg,day):
       'v3_turnover_multihorizon_shadow':v3_turnover_shadow,
       'v3_unscored_path_observations':v3_unscored_path,
       'v3_unscored_path_unavailable_reason':v3_unscored_path_reason,
+      'v3_ma240_cross_research':v3_ma240_cross,
       'price60':round_or_none(price60),'price120':round_or_none(price120),
       'volume_ratio':round(float(vol20/max(1,volprev)),2),
       'one_day_volume_ratio':round(float(volume[-1]/max(1,np.mean(volume[-21:-1]))),2),
@@ -745,6 +749,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'v3_turnover_multihorizon_shadow':r.get('v3_turnover_multihorizon_shadow'),
           'v3_unscored_path_observations':r.get('v3_unscored_path_observations'),
           'v3_unscored_path_unavailable_reason':r.get('v3_unscored_path_unavailable_reason'),
+          'v3_ma240_cross_research':r.get('v3_ma240_cross_research'),
           'flows_confirmed':bool(r.get('flows_confirmed')),
           'foreign_shares':r.get('foreign_net_shares'),'flow_observations':r.get('flow_observations'),
           'flow_cross_validation':r.get('flow_cross_validation','독립 소스 미검증'),
