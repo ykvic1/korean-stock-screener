@@ -91,10 +91,9 @@ class ActualMoneyDerivationTests(unittest.TestCase):
 
     def test_missing_reported_money_never_substitutes_share_proxy(self):
         days = sample_days()[:5]
-        result, blob, _ = derive(FakeClient(missing_amount=True), days)
-        self.assertEqual(result["derived_issuer_money_factors"], {})
-        self.assertEqual(result["complete_five_session_issuer_market_pairs"], 0)
-        self.assertFalse(validate_money_blob(blob, days[0], days[-1])["investment_scoring_allowed"])
+        with self.assertRaisesRegex(
+                DerivedSourceError, "official_money_window_or_validation_failed"):
+            derive(FakeClient(missing_amount=True), days)
 
     def test_private_backfill_checkpoint_restarts_without_refetch(self):
         days = sample_days()
