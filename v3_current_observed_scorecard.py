@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import date
+from copy import deepcopy
 from decimal import Decimal
 from io import StringIO
 import json
@@ -38,6 +39,9 @@ from v3_dart_cashflow_enrichment import CashflowError, fingerprint
 from v3_unscored_path_coverage import summarize as summarize_path_coverage
 from v3_path_provisional_factors import preview as path_preview
 from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
+from v3_dart_2025_owner_profit_probe import (
+    verify as verify_2025_owner_profit_source, ProfitProbeError,
+)
 
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
@@ -70,7 +74,8 @@ class LivePartialScorecardError(ValueError):
     """Never include raw provider data in failures."""
 
 
-def finance_source(catalog,history,parts,annual,audit,*,weekly=None):
+def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
+                   owner_profit_source=None,owner_profit_priority=None):
     """Use ONLY the already-public audited DART files from this market close.
 
     A lagged seven-day technical rotation must not hide independently current
@@ -151,6 +156,60 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None):
         area.get("valuation")!=actual_val or
         audit.get("listed_total")!=catalog["listed_total"]):
         return None
+    if owner_profit_source is not None:
+        # This is an independent SAME-company, SAME-year/scope/receipt
+        # check against official fnlttSinglAcntAll. Neither zero nor a
+        # missing reported owner-profit account may be synthesized.
+        if parts!=expected or type(owner_profit_priority) is not dict:
+            raise LivePartialScorecardError(
+                "not_full_source_contract_for_owner_profit_supplement")
+        try:
+            verify_2025_owner_profit_source(
+                owner_profit_source,catalog,annual,owner_profit_priority)
+        except (ProfitProbeError,ValueError,KeyError,TypeError):
+            raise LivePartialScorecardError(
+                "untrusted_official_owner_profit_supplement") from None
+        audited = deepcopy(annual)
+        book_rows={r["code"]:r for r in audited["records"]}
+        changed=set()
+        for code,record in owner_profit_source["records"].items():
+            if record["status"]!="observed_owner_profit":
+                continue
+            if code not in rows:
+                # Supplemented values are only consumed for a previously
+                # authenticated fiscal row; never create code-only rankings.
+                continue
+            existing=book_rows[code]["annual"]
+            if (existing["values"].get("owners_profit") is not None
+                or existing.get("year")!=2025
+                or existing.get("fs_div")!=record["fs_div"]
+                or existing.get("receipt_id")!=record["annual_receipt_id"]):
+                raise LivePartialScorecardError(
+                    "duplicate_or_unmatched_profit_valuation_source")
+            existing["values"]["owners_profit"]=record["owners_profit_krw"]
+            changed.add(code)
+        if changed:
+            # Reuse the existing market-wide percentile engine so new
+            # profit peers and old peers are normalized consistently.
+            # The new book lives in memory only and has a separately
+            # audited official 2025 supplemental receipt provenance.
+            replayed=research_parts(history,catalog,audited)
+            refreshed={r["code"]:r for r in replayed["rows"]}
+            if len(refreshed)!=len(replayed["rows"]):
+                raise LivePartialScorecardError(
+                    "duplicate_profit_replayed_issuer")
+            for code in changed:
+                updated=refreshed.get(code)
+                income=((updated or {}).get("unverified_components") or {}).get(
+                    "earnings_yield_pct",{})
+                if not isinstance(income,dict) or income.get(
+                        "max_points")!=5 or income.get(
+                        "candidate_points") is None:
+                    raise LivePartialScorecardError(
+                        "profit_source_did_not_replay_into_earnings_yield")
+            for code,row in refreshed.items():
+                row["owner_profit_2025_source_replayed"]=code in changed
+            return refreshed
     return rows
 
 
@@ -237,6 +296,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     counts={"volume":0,"technical":0,"momentum":0,
             "financial":0,"valuation":0}
     fcf_counts={"financial4":0,"valuation5":0}
+    owner_profit_replay_issuers=0
+    full100_from_owner_profit=0
     # Only publish seven per-component counts if every available DART fiscal
     # row has the complete source-component contract. Older contracts must
     # show audit unavailable, not seven misleading zeros.
@@ -292,8 +353,10 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                     wrapper,asof,listed["market"])
                 if coverage["momentum"]==0:
                     raise LivePartialScorecardError("invalid_replayed_momentum")
+        income_replayed=False
         if financial is not None and code in financial:
             fiscal=financial[code]
+            income_replayed=fiscal.get("owner_profit_2025_source_replayed") is True
             if (fiscal.get("code")!=code or
                 fiscal.get("market")!=listed["market"] or
                 fiscal.get("asof")!=asof or
@@ -393,6 +456,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             raise LivePartialScorecardError("invented_current_day_score")
         if available:
             nonblank+=1
+        if income_replayed:
+            owner_profit_replay_issuers+=1
+            full100_from_owner_profit+=int(available==100)
         stock_market=listed["market"]
         market_weights=available_weight_by_market.setdefault(stock_market,{})
         market_weights[str(available)]=market_weights.get(str(available),0)+1
@@ -455,6 +521,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         "highest_currently_observable_weight":sum(observed_area_max.values()),
         "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
+        "owner_profit_2025_official_receipt_replayed_issuers":owner_profit_replay_issuers,
+        "observed_100weight_issuers_with_2025_owner_profit_supplement":full100_from_owner_profit,
+        "owner_profit_supplement_investment_grade_certified":False,
         # Source-observed issuer counts, NOT earned score points. Null means
         # the source component schema/current-date join is unavailable.
         "financial_valuation_component_observation_status":{
@@ -545,13 +614,29 @@ def main(argv=None):
     catalog=read("v22-market-catalog.json")
     try:
         audit=read("v3-real-source-six-area-coverage.json")
+        annual=read("v3-dart-book-reference.json")
+        profit_source=None
+        profit_priority=None
+        profit_file=root/"v3-dart-owner-profit-supplement.json"
+        if profit_file.is_file():
+            candidate=read(profit_file.name)
+            observed_day=candidate.get("market_asof")
+            if isinstance(observed_day,str) and observed_day>catalog["date"]:
+                raise LivePartialScorecardError("future_owner_profit_evidence")
+            if observed_day==catalog["date"]:
+                profit_source=candidate
+                profit_priority=read("v3-near-100-evidence-priority.json")
         financial=finance_source(
             catalog,read("v3-dart-bulk-history.json"),
             read("v3-dart-bulk-provisional.json"),
-            read("v3-dart-book-reference.json"),audit,
+            annual,audit,
             weekly=(read("v3-weekly-rotation.json")
-                    if audit.get("market_asof")!=catalog["date"] else None))
-    except (OSError,ValueError,KeyError):
+                    if audit.get("market_asof")!=catalog["date"] else None),
+            owner_profit_source=profit_source,
+            owner_profit_priority=profit_priority)
+    except (OSError,ValueError,KeyError) as error:
+        if isinstance(error,LivePartialScorecardError):
+            raise
         financial=None
     market=read("data.json")
     path_coverage_receipt=(
