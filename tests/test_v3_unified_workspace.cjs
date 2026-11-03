@@ -65,8 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261103-stability-liquidity'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261103-stability-liquidity'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261103-smooth-liquidity-valuation'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261103-smooth-liquidity-valuation'),'classic research route keeps its pinned assets');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
@@ -758,7 +758,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-stability-liquidity','v30b-20261103-stability-liquidity'],[entry,'v30b-20261103-stability-liquidity','v30b-20261103-stability-liquidity']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-smooth-liquidity-valuation','v30b-20261103-smooth-liquidity-valuation'],[entry,'v30b-20261103-smooth-liquidity-valuation','v30b-20261103-smooth-liquidity-valuation']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
@@ -1866,18 +1866,40 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.equal(normal.deduction,0);
  assert.match(normal.status,/안정형/);
  const tiny=unified.stabilityProfile({...source,market_cap_eok:900,trading_eok:0.8},composite);
- assert.equal(tiny.capitalDeduction,15);
- assert.equal(tiny.liquidityDeduction,15);
- assert.equal(tiny.score,33.2);
+ assert.equal(tiny.capitalDeduction,12.3);
+ assert.equal(tiny.liquidityDeduction,12.4);
+ assert.equal(tiny.score,38.5);
  assert.equal(composite.earned,63.2,'the original 5-area score must never be changed');
  const missing=unified.stabilityProfile({...source,market_cap_eok:null,trading_eok:undefined},composite);
  assert.equal(missing.score,63.2,'missing evidence must not become a zero score');
  assert.equal(missing.missing,2);
  assert.match(missing.status,/확인 필요/);
  assert.equal(unified.stabilityProfile(source,{earned:null,available:0}).score,null);
- assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:10},composite).deduction,3);
+ assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:10},composite).deduction,4.5);
  assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:30},composite).deduction,0);
  const illiquid=unified.stabilityProfile({...source,market_cap_eok:3000,trading_eok:2},composite);
- assert.equal(illiquid.deduction,15);
- console.log('Personal stability overlay: cap and same-day trading value deductions, missing retained PASS');
+ assert.equal(illiquid.capitalDeduction,6);
+ assert.equal(illiquid.liquidityDeduction,10.2);
+ assert.equal(illiquid.deduction,16.2);
+ // Regression: near a former hard threshold neither factor may jump by 5 points.
+ const at999=unified.stabilityProfile({...source,market_cap_eok:999,trading_eok:40},composite);
+ const at1001=unified.stabilityProfile({...source,market_cap_eok:1001,trading_eok:40},composite);
+ assert.ok(Math.abs(at999.score-at1001.score)<=0.1);
+ assert.equal(at999.capitalDeduction,12);
+ assert.equal(at1001.capitalDeduction,12);
+ const at2999=unified.stabilityProfile({...source,market_cap_eok:2999,trading_eok:40},composite);
+ const at3001=unified.stabilityProfile({...source,market_cap_eok:3001,trading_eok:40},composite);
+ assert.ok(Math.abs(at2999.score-at3001.score)<=0.1);
+ const trading99=unified.stabilityProfile({...source,market_cap_eok:10000,trading_eok:0.99},composite);
+ const trading101=unified.stabilityProfile({...source,market_cap_eok:10000,trading_eok:1.01},composite);
+ assert.ok(Math.abs(trading99.score-trading101.score)<=0.2);
+ for(const v of [0,0.1,1,2,5,10,15,20,29,30,35,100]){
+  const x=unified.stabilityProfile({...source,market_cap_eok:10000,trading_eok:v},composite);
+  assert.ok(x.liquidityDeduction>=0&&x.liquidityDeduction<=15);
+ }
+ for(const v of [10,100,999,1001,2999,3001,4999,5001,10000]){
+  const x=unified.stabilityProfile({...source,market_cap_eok:v,trading_eok:50},composite);
+  assert.ok(x.capitalDeduction>=0&&x.capitalDeduction<=15);
+ }
+ console.log('Personal stability overlay: smooth penalties, no boundary cliffs, missing retained PASS');
 }
