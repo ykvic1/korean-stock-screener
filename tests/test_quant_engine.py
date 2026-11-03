@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 from quant_engine import (label_future,wilson,build_features,StudyCase,
                           analyze_nearest,run,read_ohlcv,
-                          classify_source_exclusion,source_quality_audit)
+                          classify_source_exclusion,source_quality_audit,
+                          source_cohort_digest,load_collector_failures)
 
 class QuantTests(unittest.TestCase):
     def mk(self, rows):
@@ -90,8 +91,75 @@ class QuantTests(unittest.TestCase):
         self.assertEqual(classify_source_exclusion(
             ValueError("마지막 OHLCV 날짜가 신호일과 다름")),
             "source_date_mismatch")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("650봉 미만으로 120주 지표/과거 사례 부족")),
+            "history_too_short")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("가격 기준일 불일치: 2026-11-01 vs 2026-11-02")),
+            "source_date_mismatch")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("OHLCV 컬럼 누락")),
+            "incomplete_or_invalid_fields")
         self.assertEqual(classify_source_exclusion(RuntimeError("unknown")),
                          "other_unverified_source_error")
+
+    def test_collector_errors_require_exact_same_day_cohort(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            status={"asof":"2026-11-02","requested":1,
+                    "cohort_sha256":source_cohort_digest("2026-11-02",["005930"]),
+                    "fetched":0,"reused":0,"failed_n":1,
+                    "failed":[["005930","종가 범위 오류"]]}
+            (folder/"cache_status.json").write_text(
+                json.dumps(status),encoding="utf-8")
+            self.assertEqual(load_collector_failures(
+                folder,"2026-11-02",["005930"]),{"005930":"종가 범위 오류"})
+            self.assertEqual(load_collector_failures(
+                folder,"2026-11-03",["005930"]),{})
+            self.assertEqual(load_collector_failures(
+                folder,"2026-11-02",["000660"]),{})
+            changed={**status,"failed":[["000660","종가 범위 오류"]]}
+            (folder/"cache_status.json").write_text(
+                json.dumps(changed),encoding="utf-8")
+            self.assertEqual(load_collector_failures(
+                folder,"2026-11-02",["005930"]),{})
+            changed={**status,"failed_n":2}
+            (folder/"cache_status.json").write_text(
+                json.dumps(changed),encoding="utf-8")
+            self.assertEqual(load_collector_failures(
+                folder,"2026-11-02",["005930"]),{})
+
+    def test_rejected_provider_ohlc_reason_survives_missing_csv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            signal=folder/"data.json"
+            signal.write_text(json.dumps({"status":"success",
+                "date":"2026-11-02","stocks":[{"code":"005930","market":"KOSPI",
+                "price":100,"price_date":"2026-11-02"}]}),
+                encoding="utf-8")
+            history=folder/"history"
+            history.mkdir()
+            status={"asof":"2026-11-02","requested":1,
+                    "cohort_sha256":source_cohort_digest("2026-11-02",["005930"]),
+                    "fetched":0,"reused":0,"failed_n":1,
+                    "failed":[["005930","종가 범위 오류"]]}
+            (history/"cache_status.json").write_text(
+                json.dumps(status),encoding="utf-8")
+            out=run(signal,history,folder/"quant.json")
+            self.assertEqual(out["missing"][0]["reason_code"],
+                             "ohlc_range_invalid")
+            self.assertEqual(out["missing"][0]["error_provenance"],
+                             "matched_same_day_collector")
+            self.assertEqual(out["available_symbols"],0)
+            self.assertEqual(out["source_quality_audit"]["excluded_symbols"],1)
+            # A mismatched source day cannot overwrite the observed reason.
+            status["cohort_sha256"]=source_cohort_digest(
+                "2026-11-01",["005930"])
+            (history/"cache_status.json").write_text(
+                json.dumps(status),encoding="utf-8")
+            stale=run(signal,history,folder/"quant2.json")
+            self.assertEqual(stale["missing"][0]["reason_code"],
+                             "history_file_missing")
 
     def test_ohlc_price_validation(self):
         with tempfile.TemporaryDirectory() as d:

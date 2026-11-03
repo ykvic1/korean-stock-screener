@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pandas as pd
 
 import quant_fetch_history as fetch
-from quant_engine import read_ohlcv
+from quant_engine import read_ohlcv, source_cohort_digest
 
 
 class QuantHistoryQualityTests(unittest.TestCase):
@@ -43,6 +43,8 @@ class QuantHistoryQualityTests(unittest.TestCase):
             bad.iloc[-1, bad.columns.get_loc("Close")] = 150.
             result, cache = self.collect_with(folder, bad)
             self.assertEqual(result["failed_n"], 1)
+            self.assertEqual(result["cohort_sha256"],
+                             source_cohort_digest(self.ASOF, ["005930"]))
             self.assertEqual(result["fetched"], 0)
             self.assertFalse((cache / "005930.csv").exists())
             self.assertFalse((cache / "005930.tmp").exists())
