@@ -94,7 +94,18 @@ with sync_playwright() as p:
         f'{public_receipts["filing_months_checkpointed"]:,} / 120개월'
     )
     page.get_by_role("button", name="전 종목", exact=True).click()
-    page.locator(".u-stock").first.wait_for(timeout=45000)
+    try:
+        page.locator(".u-stock").first.wait_for(timeout=45000)
+    except Exception:
+        print("Unified UI diagnostics (no private raw market data):", json.dumps({
+            "page_errors": errors[-5:],
+            "state": page.locator("#state").inner_text(timeout=5000),
+            "result_count": page.locator("#resultCount").inner_text(timeout=5000),
+            "stock_cards": page.locator(".u-stock").count(),
+            "empty_state": page.locator("#stockList").inner_text(timeout=5000)[:200],
+            "sort": page.locator("#sort").input_value(timeout=5000),
+        }, ensure_ascii=False))
+        raise
     # Before selection, use the whole desktop width for a two-column issuer list.
     page.set_viewport_size({"width": 1440, "height": 900})
     desktop_grid = page.evaluate("""() => {
