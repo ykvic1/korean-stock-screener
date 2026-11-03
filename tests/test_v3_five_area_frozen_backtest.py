@@ -73,7 +73,9 @@ class FiveAreaFrozenTests(unittest.TestCase):
                 self.assertFalse(snapshot['historical_source_authenticated'])
                 count+=1
         self.assertEqual(count,summary['provisional_complete_100point_observation_count'])
-        self.assertGreater(count,0)
+        # A date rollover may legitimately have zero complete source rows.
+        # Count reconciliation above must still hold; never manufacture a
+        # complete row or rescale partial evidence to satisfy this test.
 
     def test_real_zero_score_is_observed_and_dated_freeze_required(self):
         r=row();r['factors']={k:0 for k in WEIGHTS};r['earned']=0

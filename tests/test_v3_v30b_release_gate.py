@@ -64,8 +64,10 @@ class V30bReadinessTests(unittest.TestCase):
         if (observed.get("asof") != scorecard.get("asof") or
                 observed.get("listed_total") != scorecard.get("listed_total")):
             self.assertFalse(audit["public_summary_valid"])
-            self.assertIn("public_snapshot_asof_mismatch", audit["blocker_codes"])
-            self.assertIn("listed_universe_mismatch", audit["blocker_codes"])
+            if observed.get("asof") != scorecard.get("asof"):
+                self.assertIn("public_snapshot_asof_mismatch", audit["blocker_codes"])
+            if observed.get("listed_total") != scorecard.get("listed_total"):
+                self.assertIn("listed_universe_mismatch", audit["blocker_codes"])
         else:
             self.assertTrue(audit["public_summary_valid"], audit["blocker_codes"])
         self.assertFalse(audit["v30b_release_ready"])
