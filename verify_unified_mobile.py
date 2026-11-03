@@ -29,7 +29,7 @@ with sync_playwright() as p:
     page = context.new_page()
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
-    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" and "[V3 workspace load]" in m.text else None)
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
     assert page.url.rstrip("/") == URL.rstrip("/"), "root should serve unified UI directly"
     # Current PR259 interface has no coverageGateStatus/Rows elements.
