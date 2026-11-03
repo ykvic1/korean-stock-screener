@@ -57,6 +57,50 @@ class IssuerHistoryWatchTests(unittest.TestCase):
         self.assertEqual(result["counts"]["valid_observed_zero_points"],1)
         self.assertEqual(result["counts"]["component_observations"],1)
 
+    def test_delisted_issuer_history_row_cannot_vanish_while_census_matches(self):
+        old = "2026-10-30"
+        now = "2026-11-02"
+        first = build(
+            catalog(old, [("005930", "A"), ("000020", "B")]),
+            [price_row(old, "005930", "A"),
+             price_row(old, "000020", "B")])
+        later = build(
+            catalog(now, [("005930", "A")]),
+            [price_row(now, "005930", "A")], first)
+        self.assertEqual(inspect(later, first)["status"], "ok")
+        self.assertFalse(later["rows"]["000020"]["active"])
+        self.assertEqual(later["rows"]["000020"]["factors"]["financial"]["points"], 2.0)
+
+        damaged = copy.deepcopy(later)
+        del damaged["rows"]["000020"]
+        # Simulate a broken publisher which also rewrites its count: the
+        # ordinary active/inactive market census check would still pass.
+        damaged["inactive_issuer_count"] = 0
+        report = inspect(damaged, first)
+        self.assertEqual(report["status"], "error")
+        self.assertIn("lost_existing_issuer_record", report["issues"])
+        self.assertNotIn("market_census_mismatch", report["issues"])
+        self.assertFalse(report["score_mutations_authorized"])
+
+    def test_prior_inactive_issuer_history_must_survive_next_publication(self):
+        old, mid, now = "2026-10-29", "2026-10-30", "2026-11-02"
+        first = build(
+            catalog(old, [("005930", "A"), ("000020", "B")]),
+            [price_row(old, "005930", "A"),
+             price_row(old, "000020", "B")])
+        middle = build(
+            catalog(mid, [("005930", "A")]),
+            [price_row(mid, "005930", "A")], first)
+        last = build(
+            catalog(now, [("005930", "A")]),
+            [price_row(now, "005930", "A")], middle)
+        self.assertEqual(inspect(last, middle)["status"], "ok")
+        tampered = copy.deepcopy(last)
+        tampered["rows"].pop("000020")
+        tampered["inactive_issuer_count"] = 0
+        self.assertIn("lost_existing_issuer_record",
+                      inspect(tampered, middle)["issues"])
+
     def test_disappearing_score_or_component_is_detected(self):
         day="2026-11-02"
         first=build(catalog(day,[("005930","A")]),
