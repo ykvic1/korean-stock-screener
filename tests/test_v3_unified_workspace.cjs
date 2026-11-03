@@ -65,8 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261103-cap-five'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261103-cap-five'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261103-cross-explain'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261103-cross-explain'),'classic research route keeps its pinned assets');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
