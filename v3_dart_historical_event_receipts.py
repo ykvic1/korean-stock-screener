@@ -372,6 +372,37 @@ def public_progress_complete(raw):
         and raw.get("full_historical_archive_independently_audited") is False)
 
 
+
+# All names are immutable in-code diagnostics. Never propagate raw HTTP text,
+# response bodies, private repository URLs, tokens or unexpected exception args.
+SAFE_PUBLIC_DART_FAILURE_CODES = frozenset({
+    "invalid_official_page_counts",
+    "invalid_private_dart_receipt_page",
+    "invalid_official_dart_response",
+    "inconsistent_dart_pagination",
+    "invalid_official_dart_record",
+    "dart_provider_rejected_or_unavailable",
+    "invalid_dart_source_request",
+    "dart_source_response_too_large",
+    "dart_source_transport_failed",
+    "invalid_private_dart_receipt_cursor",
+    "inconsistent_dart_page_sequence",
+    "untrusted_private_dart_collection_request",
+    "private_dart_receipt_tail_changed",
+    "private_dart_receipt_cursor_chain_gap",
+    "private_dart_cursor_readback_failed",
+})
+
+
+def public_failure_code(error):
+    """Strictly bounded diagnostic label, never the exception's raw message."""
+    if (type(error) is DARTEventReceiptError and len(error.args)==1
+        and type(error.args[0]) is str
+        and error.args[0] in SAFE_PUBLIC_DART_FAILURE_CODES):
+        return error.args[0]
+    return "private_dart_collection_validation_or_transport_failed"
+
+
 def main():
     if (os.environ.get("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO
         or len(os.environ.get("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20
@@ -381,8 +412,8 @@ def main():
     key = os.environ["DART_API_KEY"]
     try:
         summary = run(store, lambda m, c, p: official_fetch(key, m, c, p))
-    except Exception:
-        raise SystemExit("blocked: private DART filing collection validation or transport failed") from None
+    except Exception as error:
+        raise SystemExit("blocked: "+public_failure_code(error)) from None
     print(json.dumps(summary, sort_keys=True))
 
 
