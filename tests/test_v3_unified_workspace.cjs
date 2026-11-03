@@ -758,7 +758,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-quantqueue459','v30b-20261103-quantqueue459'],[entry,'v30b-20261103-stability-liquidity','v30b-20261103-clean-ui468']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-stability-liquidity','v30b-20261103-stability-liquidity'],[entry,'v30b-20261103-stability-liquidity','v30b-20261103-stability-liquidity']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
