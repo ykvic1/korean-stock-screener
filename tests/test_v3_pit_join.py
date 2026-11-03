@@ -152,6 +152,33 @@ class PITJoinTests(unittest.TestCase):
                 self.assertFalse(r["all_inputs_retrieved_by_signal"])
                 self.assertFalse(r["confirmed_buy"])
 
+    def test_preclose_price_or_flow_cannot_masquerade_as_final_regular_session(self):
+        for source in ("price", "flow_ledger"):
+            b = base()
+            b[source]["observed_at_utc"] = "2026-10-16T06:29:59Z"
+            report = run(b)
+            with self.subTest(source=source):
+                self.assertFalse(report["all_inputs_retrieved_by_signal"])
+                self.assertFalse(report["confirmed_buy"])
+                self.assertTrue(report[
+                    "price" if source == "price" else "flow"
+                ]["pre_regular_close_observation_detected"])
+                if source == "price":
+                    self.assertFalse(report["price"]["same_day_observed_before_decision"])
+                    self.assertFalse(report["price"]["post_signal_retrieval_detected"])
+                else:
+                    self.assertFalse(report["flow"]["available_at_decision"])
+        # Exactly 15:30 KST may be a completed-day observation candidate;
+        # official regular-only exchange provenance is still NOT certified.
+        b = base()
+        b["price"]["observed_at_utc"] = "2026-10-16T06:30:00Z"
+        b["flow_ledger"]["observed_at_utc"] = "2026-10-16T06:30:00Z"
+        report = run(b)
+        self.assertTrue(report["price"]["same_day_observed_before_decision"])
+        self.assertTrue(report["flow"]["available_at_decision"])
+        self.assertTrue(report["all_inputs_retrieved_by_signal"])
+        self.assertFalse(report["market_price_volume_regular_session_verified"])
+
     def test_stale_flow_price_or_sector_never_silent_alignment(self):
         for dimension in ("price", "flow_ledger"):
             b = base()

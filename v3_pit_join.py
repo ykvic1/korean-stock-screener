@@ -91,6 +91,8 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
     decision_kst = decision.astimezone(KST)
     if decision_kst.date() != day or decision_kst.time() < time(15, 30):
         raise PITJoinError("decision_must_be_on_signal_date_after_regular_close")
+    regular_close_utc = datetime.combine(
+        day, time(15, 30), tzinfo=KST).astimezone(timezone.utc)
     if not isinstance(bundle, dict):
         raise PITJoinError("invalid_join_bundle")
     identity = {k: bundle.get(k) for k in ("code", "issuer_id", "market")}
@@ -120,6 +122,7 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
     price = bundle.get("price")
     price_aligned = False
     price_late = False
+    price_preclose = False
     if price is not None:
         _identity(price, identity)
         if price.get("asof") != asof or price.get("session") != SESSION:
@@ -127,17 +130,22 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
         _digest(price.get("raw_sha256"))
         observed = _when(price.get("observed_at_utc"))
         price_late = observed > decision
-        price_aligned = not price_late
+        price_preclose = observed < regular_close_utc
+        # An intraday observation cannot prove that the complete 09:00-15:30
+        # session was captured, even when its date/session label matches.
+        price_aligned = not price_late and not price_preclose
 
     flow = bundle.get("flow_ledger")
     flow_summary = None
     flow_late = False
+    flow_preclose = False
     if flow is not None:
         _identity(flow, identity)
         if flow.get("asof") != asof:
             raise PITJoinError("flow_snapshot_wrong_date")
         receipt_at = _when(flow.get("observed_at_utc"))
         flow_late = receipt_at > decision
+        flow_preclose = receipt_at < regular_close_utc
         # Let the standalone ledger validate units, numeric missingness, the
         # 20/60/120/250 windows and pension total taxonomy without promotion.
         from v3_ias_flow_ledger import audit_daily_flow, FlowLedgerError
@@ -156,7 +164,8 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
                 n for n, x in observed["periods"].items()
                 if all(v["data_complete"] for v in x["categories"].values())
             ],
-            "available_at_decision": not flow_late,
+            "available_at_decision": not flow_late and not flow_preclose,
+            "pre_regular_close_observation_detected": flow_preclose,
         }
 
     # Historical filings: evaluate the revision actually observed before the
@@ -231,11 +240,13 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
             "record_present": price is not None,
             "same_day_observed_before_decision": price_aligned,
             "post_signal_retrieval_detected": price_late,
+            "pre_regular_close_observation_detected": price_preclose,
         },
         "flow": flow_summary or {
             "observed_session_rows": None,
             "fully_observed_windows": [],
             "available_at_decision": False,
+            "pre_regular_close_observation_detected": False,
         },
         "financials": {
             "chosen_scope_research_only": selected_scope,
