@@ -92,6 +92,8 @@ class FilingTitleTriageTests(unittest.TestCase):
             result = triage.run(store)
         self.assertEqual(result["status"], "private_title_keyword_shortlist_completed")
         self.assertEqual(result["ticker_date_receipt_pairs"], 4)
+        self.assertEqual(result["all_candidate_pairs_examined"],4)
+        self.assertFalse(result["shortlist_truncated_to_max_pairs"])
         self.assertEqual(result["title_keyword_pairs"], 2)
         self.assertEqual(result["other_title_pairs"], 2)
         self.assertEqual(result["provider_calls"], 0)
@@ -158,6 +160,49 @@ class FilingTitleTriageTests(unittest.TestCase):
                                              "2016-10", "2016-11")
         self.assertEqual(examined, 2)
         self.assertEqual(result, [])
+
+    def test_overflow_is_deterministically_ranked_private_research_not_lost(self):
+        store=Private()
+        # Two distinct risk event dates match each private receipt: 8,002
+        # possible pairs, but at most 4,000 review items are stored.
+        receipts=[]
+        for i in range(triage.MAX_PAIRS+1):
+            receipts.append({
+                "rcept_no":f"201610{i+1:08d}","corp_code":"00123456",
+                "stock_code":"005930","rcept_dt":"20161031",
+                "report_nm":"주식분할 결정" if i==triage.MAX_PAIRS else "정기보고서"})
+        def receipt_month(_,month):
+            return receipts if month=="2016-10" else []
+        examined,selected,total=triage._shortlist(
+            risk_events()[0],receipts,"2016-10","2016-11",include_total=True)
+        self.assertEqual(examined,2)
+        self.assertEqual(total,2*(triage.MAX_PAIRS+1))
+        self.assertEqual(len(selected),triage.MAX_PAIRS)
+        self.assertTrue(selected[0]["title_keyword_hints"])
+        self.assertTrue(selected[1]["title_keyword_hints"])
+        with (patch.object(triage,"_source_events",return_value=risk_events()),
+              patch.object(triage,"_month_receipts",side_effect=receipt_month)):
+            result=triage.run(store)
+        self.assertEqual(result["status"],"private_title_keyword_shortlist_completed")
+        self.assertEqual(result["all_candidate_pairs_examined"],total)
+        self.assertEqual(result["ticker_date_receipt_pairs"],triage.MAX_PAIRS)
+        self.assertTrue(result["shortlist_truncated_to_max_pairs"])
+        blob=json.loads(gzip.decompress(store.blobs[triage._path(0)]))
+        self.assertEqual(blob["all_candidate_pairs_examined"],total)
+        self.assertEqual(len(blob["candidates"]),triage.MAX_PAIRS)
+        self.assertFalse(blob["candidate_coverage_complete"])
+        self.assertFalse(blob["scores_authorized"])
+        self.assertFalse(blob["filing_title_or_candidate_is_event_proof"])
+        self.assertNotIn("005930",json.dumps(result))
+
+    def test_unbounded_raw_matching_still_fails_closed(self):
+        receipts=[{"rcept_no":f"201610{i+1:08d}","corp_code":"00123456",
+                   "stock_code":"005930","rcept_dt":"20161031",
+                   "report_nm":"정기보고서"} for i in range(4)]
+        with patch.object(triage,"MAX_AUDITED_PAIRS",3):
+            with self.assertRaisesRegex(triage.TitleTriageError,
+                                        "private_title_candidate_audit_cap"):
+                triage._shortlist(risk_events()[0],receipts,"2016-10","2016-11")
 
     def test_fail_closed_on_public_store_corrupt_source_and_mutation(self):
         store = Private()
