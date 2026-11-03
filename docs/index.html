@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261103-quantqueue459">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261103-clean-ui467">
 <script src="v3-ranking.js" defer></script>
-<script src="workspace.js?v=v30b-20261103-quantqueue459" defer></script>
+<script src="workspace.js?v=v30b-20261103-clean-ui467" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -18,17 +18,72 @@
 <body id="unifiedApp">
 <header class="u-header">
  <div class="u-wrap u-header-inner">
-  <div><div class="u-eyebrow">KOREA EQUITY RESEARCH · UNIFIED WORKSPACE</div>
-   <h1>한국주식 통합 스크리너</h1>
-   <p>일봉·주봉·거래량·OBV부터 실적과 손실 위험까지 한 화면에서 분석</p></div>
-  <div class="u-header-actions"><a href="v3-current-observed-all-listed.csv" download>당일 실측 잠정점수 CSV ↓</a><a href="reports/latest.xlsx" download>전체 엑셀 ↓</a>
-   <button type="button" id="reload">자료 새로고침</button>
-   <a href="patch-notes.html">변경 내역</a>
-   <a href="legacy.html">이전 화면</a></div>
+  <div><div class="u-eyebrow">KOREAN STOCK RESEARCH</div>
+   <h1>한국주식 스크리너 <span class="u-version">V3 BETA</span></h1>
+   <p>종목 탐색부터 재무·차트·위험 분석까지</p></div>
+  <div class="u-header-actions"><button type="button" id="reload">새로고침</button><details class="u-header-more"><summary>다운로드 · 메뉴</summary><div class="u-header-more-items"><a href="v3-current-observed-all-listed.csv" download>잠정점수 CSV</a><a href="reports/latest.xlsx" download>전체 엑셀</a><a href="patch-notes.html">변경 내역</a><a href="legacy.html">이전 화면</a></div></details></div>
  </div>
 </header>
 <main class="u-wrap">
- <details class="u-intro" id="marketSummary">
+ <section class="u-live-updates" id="liveUpdates" aria-label="최근 공개 자료 업데이트">
+  <div class="u-live-updates-header">
+   <strong>관측 현황 <small>실시간 아님 · 미검증</small></strong>
+   <a href="patch-notes.html">업데이트 기록</a>
+  </div>
+  <div class="u-live-updates-grid">
+   <div><span>시장 자료 기준일</span><b id="liveProgressAsOf">확인 중</b></div>
+   <div><span>100점 배점 확보 종목</span><b id="liveProgressCoverage">확인 중</b></div>
+   <div><span>DART 과거 수집</span><b id="liveProgressDart">확인 중</b></div>
+  </div>
+  <details class="u-live-disclaimer"><summary>자료 검증 안내</summary><p id="liveProgressNotice" class="u-live-updates-note" role="status" aria-live="polite">공개 집계의 기준일과 확보 상태를 확인 중입니다. 정식 투자점수는 아직 인증되지 않았습니다.</p></details>
+ </section>
+<section class="u-controls" aria-label="종목 검색 및 필터">
+  <label class="u-quick-search" for="stockSearch">종목 검색
+    <input id="stockSearch" type="search" placeholder="종목명 또는 코드 검색 (예: 삼성전자, 005930)" autocomplete="off" spellcheck="false">
+   </label>
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · V3 잠정</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><span id="filterNotice"></span></div>
+  <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
+   <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
+   <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
+   <button data-tab="rsi" type="button" aria-pressed="false">RSI 전환</button>
+   <button data-tab="quant" type="button" aria-pressed="false">퀀트 자료</button>
+   <button data-tab="all" type="button" aria-pressed="false">전 종목</button>
+  </div>
+  <details class="u-extra-filters" id="advancedFilters"><summary>상세 필터 · 확보 배점</summary>
+  <div class="u-filters"><label class="u-coverage-control" for="coverageGroup">5영역 확보배점 맞춰보기
+    <select id="coverageGroup" aria-label="5영역별 관측 가능 배점이 같은 종목 묶음"><option value="all">전체 배점 그룹</option></select>
+   </label>
+   <label>시장
+    <select id="market"><option value="all">코스피 + 코스닥</option>
+     <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
+   <label>정렬 기준
+    <select id="sort"><option value="score" selected>V3 잠정점수순</option><option value="personal">개인 연구용 100점 환산순</option>
+     <option value="research">패턴·위험 우선</option>
+     <option value="risk">손절거리순</option></select></label>
+   <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
+  </div></details>
+ </section>
+ <section class="u-results" aria-label="통합 종목 분석">
+  <div class="u-results-head"><div><h2>종목 탐색</h2><p id="resultCount" role="status" aria-live="polite">자료 로드 중…</p></div>
+  <p class="u-research-note">잠정점수 · 미인증</p></div>
+  <div class="u-content">
+   <div class="u-list-area"><div id="stockList" class="u-stock-list"><div class="u-empty">시장 분석 데이터를 확인하고 있습니다.</div></div>
+    <button id="more" type="button" hidden>다음 20종목 보기</button></div>
+   <aside id="detail" class="u-detail" aria-label="선택 종목 심층 분석" hidden></aside>
+  </div>
+ </section>
+ <details class="u-compare" id="stockCompare" aria-label="종목 2개 비교">
+  <summary class="u-compare-toggle"><strong>종목 2개 비교</strong><span>필요할 때 펼치기 · 개인 연구용</span></summary>
+  <form id="compareForm" class="u-compare-form">
+   <label for="compareCodeA">종목 A <input id="compareCodeA" type="search" maxlength="40" placeholder="예: 삼성전자 또는 005930" autocomplete="off"></label>
+   <label for="compareCodeB">종목 B <input id="compareCodeB" type="search" maxlength="40" placeholder="예: SK하이닉스 또는 000660" autocomplete="off"></label>
+   <button id="compareRun" type="submit">2종목 비교하기</button>
+   <button id="compareReset" type="button">선택 초기화</button>
+  </form>
+  <p id="compareStatus" class="u-compare-status" role="status" aria-live="polite">정확한 종목명이나 6자리 코드를 입력하면 두 종목을 비교할 수 있습니다. 종목 상세의 ‘비교에 담기’도 사용할 수 있어요.</p>
+  <div id="compareResults" hidden></div>
+ </details>
+ <details class="u-research-panel" id="researchPanel"><summary><strong>데이터 수집 · 검증 현황</strong><span>KRX · DART · 업종 · 확보율 상세</span></summary><div class="u-research-body"><details class="u-intro" id="marketSummary">
   <summary class="u-intro-top"><span class="u-section-heading" id="sourceTitle">오늘의 시장 관찰 <small>자세히 보기</small></span>
   <span id="state" class="u-state" role="status" aria-live="polite">데이터 연결 중…</span></summary>
   <div class="u-stats">
@@ -39,18 +94,7 @@
   </div>
   <p id="sourceNotes" class="u-source">수집 원장으로 확인한 잠정 관측자료만 표시하며 정규장·수정주가·공시시점 독립 인증은 완료되지 않았습니다. 외국인·기관 수급 등 미확보 관측점수는 비워둡니다. 산업은 점수에서 제외하며 현재 DART 업종과 20·60·120일 상대강도를 참고정보로 제공합니다. 재무·가치는 동일 기준일에 확보된 공시 근거로 잠정 계산하며 투자용 확정점수가 아닙니다.</p>
  </details>
- <section class="u-live-updates" id="liveUpdates" aria-label="최근 공개 자료 업데이트">
-  <div class="u-live-updates-header">
-   <strong>최근 데이터 업데이트 <small>연구용 · 자동 갱신</small></strong>
-   <a href="patch-notes.html">개발 변경 내역 보기</a>
-  </div>
-  <div class="u-live-updates-grid">
-   <div><span>시장 자료 기준일</span><b id="liveProgressAsOf">확인 중</b></div>
-   <div><span>100점 배점 관측 · 미인증</span><b id="liveProgressCoverage">확인 중</b></div>
-   <div><span>10년 DART 접수 수집</span><b id="liveProgressDart">확인 중</b></div>
-  </div>
-  <p id="liveProgressNotice" class="u-live-updates-note" role="status" aria-live="polite">공개 집계의 기준일과 확보 상태를 확인 중입니다. 정식 투자점수는 아직 인증되지 않았습니다.</p>
- </section>
+ 
  <details class="u-industry-research u-intro" id="industryResearch">
    <summary><strong>산업 실제 실적 관측 · 표본 확산</strong><small id="industryResearchCount">자료 확인 중</small></summary>
    <div id="industryResearchContent">
@@ -110,53 +154,7 @@
   <p class="u-source" id="dartHistoryNotes">공시 수집 기록을 비식별로 검증 중입니다. 기업행위·수정주가 인증 자료는 아닙니다.</p>
   <p class="u-source"><a href="v3-dart-historical-receipt-progress.json">실제 수집 진행률 원천 집계 JSON ↗</a> · 완료 개월 수는 기업행위 효력일·상장폐지 종목·과거 수정주가·정식 100점 투자점수 검증을 뜻하지 않습니다.</p>
  </details>
- <section class="u-controls" aria-label="종목 발굴 조건">
-  <label class="u-quick-search" for="stockSearch">종목 검색
-    <input id="stockSearch" type="search" placeholder="전체 종목에서 이름 또는 6자리 코드 검색" autocomplete="off" spellcheck="false">
-   </label>
-  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · V3 잠정</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><label class="u-coverage-control" for="coverageGroup">5영역 확보배점 맞춰보기
-    <select id="coverageGroup" aria-label="5영역별 관측 가능 배점이 같은 종목 묶음"><option value="all">전체 배점 그룹</option></select>
-   </label><span id="filterNotice">종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.</span></div>
-  <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
-   <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
-   <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
-   <button data-tab="rsi" type="button" aria-pressed="false">RSI 전환</button>
-   <button data-tab="quant" type="button" aria-pressed="false">퀀트 자료</button>
-   <button data-tab="all" type="button" aria-pressed="false">전 종목</button>
-  </div>
-  <details class="u-extra-filters" id="advancedFilters"><summary>시장 · 정렬 · 손절 위험 상세 설정</summary>
-  <div class="u-filters">
-   <label>시장
-    <select id="market"><option value="all">코스피 + 코스닥</option>
-     <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
-   <label>정렬 기준
-    <select id="sort"><option value="score" selected>V3 잠정점수순</option><option value="personal">개인 연구용 100점 환산순</option>
-     <option value="research">패턴·위험 우선</option>
-     <option value="risk">손절거리순</option></select></label>
-   <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
-  </div></details>
- </section>
- <section class="u-compare" id="stockCompare" aria-label="종목 2개 비교">
-  <div class="u-compare-head"><h2>종목 2개 비교 <small>개인 연구용 · 미인증</small></h2>
-   <p>실제 관측된 5영역 점수와 확보 배점을 나란히 확인합니다.</p></div>
-  <form id="compareForm" class="u-compare-form">
-   <label for="compareCodeA">종목 A <input id="compareCodeA" type="search" maxlength="40" placeholder="예: 삼성전자 또는 005930" autocomplete="off"></label>
-   <label for="compareCodeB">종목 B <input id="compareCodeB" type="search" maxlength="40" placeholder="예: SK하이닉스 또는 000660" autocomplete="off"></label>
-   <button id="compareRun" type="submit">2종목 비교하기</button>
-   <button id="compareReset" type="button">선택 초기화</button>
-  </form>
-  <p id="compareStatus" class="u-compare-status" role="status" aria-live="polite">정확한 종목명이나 6자리 코드를 입력하면 두 종목을 비교할 수 있습니다. 종목 상세의 ‘비교에 담기’도 사용할 수 있어요.</p>
-  <div id="compareResults" hidden></div>
- </section>
- <section class="u-results" aria-label="통합 종목 분석">
-  <div class="u-results-head"><div><h2>종목 발굴 및 분석</h2><p id="resultCount" role="status" aria-live="polite">자료 로드 중…</p></div>
-  <p class="u-research-note">관찰 후보 ≠ 매수 추천</p></div>
-  <div class="u-content">
-   <div class="u-list-area"><div id="stockList" class="u-stock-list"><div class="u-empty">시장 분석 데이터를 확인하고 있습니다.</div></div>
-    <button id="more" type="button" hidden>다음 20종목 보기</button></div>
-   <aside id="detail" class="u-detail" aria-label="선택 종목 심층 분석" hidden></aside>
-  </div>
- </section>
- <footer class="u-footer">관측 기준일과 데이터 확보 여부를 우선 표시합니다. 주봉·RSI·OBV 패턴은 연구용 근사이며 기관 매집이나 상승 가능성을 확정하지 않습니다. 실시간 주문이나 자동매매 기능은 없습니다.</footer>
+ </div></details>
+<footer class="u-footer">관측 기준일과 데이터 확보 여부를 우선 표시합니다. 주봉·RSI·OBV 패턴은 연구용 근사이며 기관 매집이나 상승 가능성을 확정하지 않습니다. 실시간 주문이나 자동매매 기능은 없습니다.</footer>
 </main>
 </body></html>
