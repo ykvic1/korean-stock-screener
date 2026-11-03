@@ -798,6 +798,24 @@ function lastObservedFactorChip(p){
  return '<small class="u-factor-previous">'+esc(p.asof)+' 기준'+
   (p.carried?' · 이전 관측 유지':'')+'</small>';
 }
+// Explain source coverage without treating missing budgets as lost score points.
+function issuerReadinessMarkup(r){
+ const c=researchComposite(r);
+ const gaps=c.pillars.filter(p=>p.available<p.max)
+  .sort((a,b)=>(b.max-b.available)-(a.max-a.available));
+ const older=c.pillars.filter(p=>p.asof&&p.asof<r.price_date);
+ return '<div class="u-issuer-readiness"><h3>이 종목의 자료 확보 현황</h3>'+
+  '<p class="u-source">가격 기준 '+esc(r.price_date)+' · 확보 배점 '+c.available+
+  '/100 · 추가 자료가 필요한 배점 '+c.missing+'/100</p>'+
+  (gaps.length?'<ul class="u-fcf-stock-list">'+gaps.map(p=>
+   '<li><b>'+esc(p.label)+'</b><span>확보 '+p.available+'/'+p.max+
+   ' · 미확보 '+(p.max-p.available)+'점 배점</span></li>').join('')+'</ul>':
+   '<p class="u-source">5개 영역의 배점 자료가 모두 확보됐습니다. 원천·기업행위·과거 시점 검증은 별도 진행 중입니다.</p>')+
+  (older.length?'<p class="u-source">이전 자료로 유지 중: '+older.map(p=>
+   esc(p.label)+' ('+esc(p.asof)+')').join(' · ')+
+   '. 새 자료 확인 시 갱신됩니다.</p>':'')+
+  '<p class="u-source">미확보 배점은 점수 감점이나 예상 상승 여력이 아닙니다. 자료가 추가되면 점수와 순위는 오르거나 내릴 수 있습니다.</p></div>';
+}
 function subfactorHistoryMarkup(key,r){
  const specs=FISCAL_SUBFACTORS[key],snapshots=r?.v3_last_known_components?.[key];
  if(!specs||!snapshots||!Object.keys(snapshots).length)return '';
@@ -1856,7 +1874,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
- technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
+ technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -1991,7 +2009,7 @@ function renderDetails(x){
  '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
- scoreOverviewMarkup(composite,personal100,r)+
+ scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+

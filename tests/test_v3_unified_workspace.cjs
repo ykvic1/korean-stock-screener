@@ -1834,3 +1834,22 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.equal(missingOptional.readinessCertified.textContent,'0종목');
  console.log('Readiness UI: bounded DART lag preserves validated same-day finance; stale auxiliary/census/date/certification fail closed PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+// Issuer readiness explains missing coverage and retained dates without score mutation.
+{
+ const r={price_date:'2026-11-02',market:'KOSPI',v3_last_known_factors:{
+  financial:{asof:'2026-10-30',available:16,points:0,source:'current_close_replay'}
+ }};
+ const before=JSON.stringify(r),c=unified.researchComposite(r);
+ const markup=unified.issuerReadinessMarkup(r);
+ assert.equal(c.available,16);
+ assert.match(markup,/확보 배점 16\/100/);
+ assert.match(markup,/추가 자료가 필요한 배점 84\/100/);
+ assert.match(markup,/2026-10-30/);
+ assert.match(markup,/오르거나 내릴/);
+ assert.equal(JSON.stringify(r),before);
+ assert.deepEqual(unified.researchComposite(r),c);
+ const blank=unified.issuerReadinessMarkup({price_date:'2026-11-02'});
+ assert.match(blank,/추가 자료가 필요한 배점 100\/100/);
+ assert.doesNotMatch(blank,/NaN|undefined/);
+}
