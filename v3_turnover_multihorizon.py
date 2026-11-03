@@ -39,7 +39,7 @@ def _number(value, *, positive=False):
     return float(value)
 
 
-def _windows(observations, horizons, value_key):
+def _windows(observations, horizons, value_key, *, persistence_block=1):
     answer = {}
     for period in horizons:
         if len(observations) < period:
@@ -48,6 +48,20 @@ def _windows(observations, horizons, value_key):
         subset = observations[-period:]
         values = [r[value_key] for r in subset]
         total = sum(values)
+        # Use a disjoint, equally long baseline. An overlapping moving
+        # average lets a single spike inflate both sides of the comparison.
+        baseline = (observations[-2 * period:-period]
+                    if len(observations) >= 2 * period else None)
+        baseline_total = (sum(r[value_key] for r in baseline)
+                          if baseline is not None else None)
+        ratio = persistent = None
+        if baseline_total is not None and baseline_total > 0:
+            ratio = total / baseline_total
+            baseline_average = baseline_total / period
+            blocks = [values[i:i + persistence_block]
+                      for i in range(0, period, persistence_block)]
+            persistent = sum(sum(b) / len(b) > baseline_average
+                             for b in blocks) / len(blocks)
         # Money OBV: full-window signed value over exact reported value.
         # The first sign is based on the preceding observed bar, if available.
         if len(observations) >= period + 1:
@@ -72,6 +86,13 @@ def _windows(observations, horizons, value_key):
             "price_return_pct": round(price_change, 2)
             if price_change is not None else None,
             "observations": period,
+            "versus_previous_disjoint_window_ratio": (
+                round(ratio, 4) if ratio is not None else None),
+            "subwindows_above_previous_average_ratio": (
+                round(persistent, 4) if persistent is not None else None),
+            "persistence_subwindow_bars": persistence_block,
+            "largest_bar_amount_share": (
+                round(max(values) / total, 4) if total > 0 else None),
         }
     return answer
 
@@ -116,8 +137,16 @@ def observe(sessions, *, asof, exact_reported_amount=True):
             weekly.append({"iso_week": key, "amount": row["amount"],
                            "close": row["close"], "sessions": 1})
     # Weekly group is a calendar-week total, with short holiday weeks explicit.
-    daily = _windows(ordered, DAILY_HORIZONS, "amount")
-    by_week = _windows(weekly, WEEKLY_HORIZONS, "amount")
+    daily = _windows(ordered, DAILY_HORIZONS, "amount", persistence_block=5)
+    # A history starting midweek has no proven full first week. A latest
+    # week ending before Friday is still open (or holiday-shortened, which
+    # needs an exchange calendar to certify). Keep it out of full windows.
+    first_partial = ordered[0]["date"].weekday() != 0
+    latest_partial = asof_day.weekday() != 4
+    complete_week_candidates = weekly[
+        1 if first_partial else 0:
+        -1 if latest_partial else None]
+    by_week = _windows(complete_week_candidates, WEEKLY_HORIZONS, "amount")
     return {
         "schema": SCHEMA,
         "asof": asof,
@@ -131,7 +160,17 @@ def observe(sessions, *, asof, exact_reported_amount=True):
                                       if by_week[str(h)] is not None],
         "source_sessions": len(ordered),
         "source_weeks": len(weekly),
-        "latest_calendar_week_incomplete_possible": asof_day.weekday() != 4,
+        "weekly_window_boundary_policy": "exclude_unproven_boundary_weeks",
+        "first_calendar_week_excluded": first_partial,
+        "latest_calendar_week_excluded": latest_partial,
+        "weekly_window_source_weeks": len(complete_week_candidates),
+        "weekly_windows_asof": (
+            max(r["date"] for r in ordered
+                if r["date"].isocalendar()[:2] ==
+                complete_week_candidates[-1]["iso_week"]).isoformat()
+            if complete_week_candidates else None),
+        "exchange_session_calendar_verified": False,
+        "latest_calendar_week_incomplete_possible": latest_partial,
         "price_jump_corporate_action_review_required": suspect_jump,
         "official_regular_session_verified": False,
         "corporate_actions_verified": False,
