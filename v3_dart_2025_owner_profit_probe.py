@@ -323,7 +323,16 @@ def main(argv=None):
         return
     import requests
     key=os.getenv("DART_API_KEY","")
-    cache=read(args.cache) if Path(args.cache).exists() else None
+    # Cache is restored at the REPOSITORY ROOT by actions/cache, not in
+    # --docs. Reading it through read() incorrectly points at docs/.cache.
+    # Corrupt source identity must fail closed; it must not be silently used.
+    cache=None
+    cache_path=Path(args.cache)
+    if cache_path.is_file():
+        try:
+            cache=json.loads(cache_path.read_text(encoding="utf8"))
+        except (OSError, ValueError, UnicodeError):
+            raise ProfitProbeError("untrusted_official_corp_identity_cache") from None
     saved=0
     def checkpoint(report):
         nonlocal saved
