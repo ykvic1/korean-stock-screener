@@ -65,6 +65,19 @@ class DerivedAnnualBookReplayTest(TestCase):
                 bulk.main(args + ["--mode", "replay"])
             self.assertFalse(paths[4].exists())
 
+    def test_workflow_waits_for_bounded_cross_source_alignment(self):
+        workflow=Path(".github/workflows/v3-dart-book-derived-replay.yml").read_text(
+            encoding="utf8")
+        self.assertIn("python v3_dart_bulk_history.py --mode replay",workflow)
+        self.assertIn("python v3_real_six_pillar_coverage_audit.py --mode alignment",workflow)
+        self.assertIn("deferred_dart|deferred_weekly",workflow)
+        self.assertIn("retain_prior_combined_audit",workflow)
+        self.assertIn("python v3_real_six_pillar_coverage_audit.py --mode write",workflow)
+        self.assertNotIn("|| true",workflow)
+        # Do not perform any provider calls or fabricate current weekly data.
+        self.assertNotIn("DART_API_KEY",workflow)
+        self.assertNotIn("KRX_API_KEY",workflow)
+
     def test_source_provenance_change_rejected_without_overwrite(self):
         with TemporaryDirectory() as tmp:
             paths, args = self.inputs(tmp, invalid_archive=True)
