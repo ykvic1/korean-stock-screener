@@ -236,6 +236,10 @@ def run(storage):
         raise TitleTriageError("invalid_private_complete_month_receipts") from None
     try:
         examined, matches = _shortlist(events, receipts, left, right)
+    except TitleTriageError:
+        # The inner error is already a fixed, redaction-safe validation code.
+        # Preserve the rule name while suppressing private identifiers.
+        raise
     except Exception:
         raise TitleTriageError("invalid_private_title_candidate_matching") from None
 

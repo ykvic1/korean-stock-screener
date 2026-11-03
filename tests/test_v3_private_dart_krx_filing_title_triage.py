@@ -183,6 +183,29 @@ class FilingTitleTriageTests(unittest.TestCase):
         receipts.assert_not_called()
         self.assertEqual(store.puts, 0)
 
+    def test_private_match_rule_names_are_redacted_but_not_hidden(self):
+        store=Private()
+        malformed=[dict(x) for x in rows(store,"2016-10")]
+        malformed[0]["rcept_no"]="not-a-real-receipt"
+        def month_rows(_,month):
+            return malformed if month=="2016-10" else rows(store,month)
+        with (patch.object(triage,"_source_events",return_value=risk_events()),
+              patch.object(triage,"_month_receipts",side_effect=month_rows)):
+            with self.assertRaisesRegex(
+                    triage.TitleTriageError,"invalid_private_title_source_record") as error:
+                triage.run(store)
+        self.assertNotIn("005930",str(error.exception))
+        self.assertNotIn("not-a-real-receipt",str(error.exception))
+        self.assertEqual(store.puts,0)
+        # Truly unexpected bugs remain a fixed generic failure, not a leak.
+        with (patch.object(triage,"_source_events",return_value=risk_events()),
+              patch.object(triage,"_month_receipts",side_effect=rows),
+              patch.object(triage,"_shortlist",side_effect=RuntimeError("secret text"))):
+            with self.assertRaisesRegex(
+                    triage.TitleTriageError,"invalid_private_title_candidate_matching") as generic:
+                triage.run(Private())
+        self.assertNotIn("secret text",str(generic.exception))
+
     def test_schedule_private_isolation_and_legacy_1830(self):
         wf = Path(".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
         legacy = Path(".github/workflows/full-market-batches.yml").read_text()
