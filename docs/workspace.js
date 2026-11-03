@@ -1078,7 +1078,7 @@ function stabilityProfile(r,composite){
  const tenths=n=>Math.round((n+Number.EPSILON)*10)/10;
  const cap=finite(r?.market_cap_eok)&&r.market_cap_eok>0?r.market_cap_eok:null;
  const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
- const capDeduction=cap===null?0:tenths(3*Math.max(0,1-cap/5000));
+ const capitalDeduction=cap===null?0:tenths(3*Math.max(0,1-cap/5000));
  const liquidityDeduction=0; // actual 20/60/120/240d & 5/10/20/60/120w money series not collected
  const price=finite(r?.price)&&r.price>0?r.price:null;
  const stop=finite(r?.stop_line)&&r.stop_line>0?r.stop_line:null;
@@ -1100,7 +1100,7 @@ function stabilityProfile(r,composite){
  }
  // Signed deduction: a negative result denotes a small confirmed-shape
  // research bonus, never a promise of execution at the reference line.
- const deduction=tenths(capDeduction-stopAdjustment);
+ const deduction=tenths(capitalDeduction-stopAdjustment);
  const score=composite?.earned===null||!finite(composite?.earned)?null:
   Math.max(0,Math.min(100,tenths(composite.earned-deduction)));
  const missing=(cap===null?1:0)+(distance===null?1:0);
