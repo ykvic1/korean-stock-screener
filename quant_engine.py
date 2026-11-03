@@ -401,13 +401,14 @@ def classify_source_exclusion(error: Exception) -> str:
         return "ohlc_range_invalid"
     if "음수 또는 0인 가격" in message or "음수 거래량" in message:
         return "nonpositive_price_or_negative_volume"
-    if "120주선/과거 관측" in message:
+    if "120주선/과거 관측" in message or "650봉 미만" in message:
         return "history_too_short"
-    if "마지막 OHLCV 날짜" in message:
+    if "마지막 OHLCV 날짜" in message or "가격 기준일 불일치" in message:
         return "source_date_mismatch"
     if "중복 날짜" in message:
         return "duplicate_dates"
-    if "결측" in message or "숫자 오류" in message or "필수 칼럼" in message:
+    if ("결측" in message or "숫자 오류" in message or
+            "필수 칼럼" in message or "컬럼 누락" in message):
         return "incomplete_or_invalid_fields"
     return "other_unverified_source_error"
 
