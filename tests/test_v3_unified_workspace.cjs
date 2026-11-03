@@ -65,8 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261103-clean-ui467'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261103-quantqueue459'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261103-stability-liquidity'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261103-stability-liquidity'),'classic research route keeps its pinned assets');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
