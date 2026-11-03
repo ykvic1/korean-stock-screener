@@ -26,9 +26,9 @@ def stock(price60=2,ratio=1.5,obv=True):
 class ObservedVolumeTests(unittest.TestCase):
     def test_real_volume_obv_candidates_without_investor_attribution(self):
         measured=observed(stock(),asof=DAY,market="KOSPI")
-        self.assertEqual(measured["observed_points"],16)
-        self.assertEqual(measured["observed_available_max"],16)
-        self.assertEqual(measured["unobserved_max"],4)
+        self.assertEqual(measured["observed_points"],10)
+        self.assertEqual(measured["observed_available_max"],10)
+        self.assertEqual(measured["unobserved_max"],10)
         self.assertEqual(sum(SUBMAX.values()),20)
         self.assertIsNone(measured["subpoints"]["post_spike_absorption"])
         self.assertFalse(measured["foreign_institutional_net_buy_inferred"])
@@ -39,7 +39,7 @@ class ObservedVolumeTests(unittest.TestCase):
         bad=observed(stock(price60=-30,ratio=.7,obv=False),
                      asof=DAY,market="KOSPI")
         self.assertEqual(bad["observed_points"],0)
-        self.assertEqual(bad["observed_available_max"],16)
+        self.assertEqual(bad["observed_available_max"],10)
         self.assertIn("price_downtrend_requires_support_confirmation",
                       bad["risk_flags"])
         sudden=observed(stock(ratio=8),asof=DAY,market="KOSPI")
@@ -77,6 +77,35 @@ class ObservedVolumeTests(unittest.TestCase):
             observed(stock(price60=35),asof=DAY,market="KOSPI")
             ["subpoints"]["obv_price_not_reflected"],0)
 
+    def test_ma_cross_replaces_standalone_obv_six_points(self):
+        from test_v3_ma240_cross_research import sample
+        qualified=sample([100.0]*220+[98.0]*20+[130.0]*20)
+        not_qualified=sample([100.0]*260)
+        # Proof of dated MA receipt grants exactly six while OBV rise alone cannot.
+        first=stock()
+        base=observed(first,asof=DAY,market="KOSPI")
+        self.assertEqual(base["observed_points"],10)
+        self.assertIsNone(base["subpoints"]["ma20_ma60_cross_near_ma240"])
+        self.assertNotIn("obv_60_direction",base["subpoints"])
+        self.assertEqual(base["unobserved_max"],10)
+        # The deterministic historical receipt is rebased to the fixture asof.
+        ok=copy.deepcopy(qualified); ok["asof"]=DAY
+        first["v3_ma240_cross_research"]=ok
+        crossed=observed(first,asof=DAY,market="KOSPI")
+        self.assertEqual(crossed["observed_points"],16)
+        self.assertEqual(crossed["observed_available_max"],16)
+        self.assertEqual(crossed["subpoints"]["ma20_ma60_cross_near_ma240"],6)
+        zero=copy.deepcopy(not_qualified); zero["asof"]=DAY
+        first["v3_ma240_cross_research"]=zero
+        measured=observed(first,asof=DAY,market="KOSPI")
+        self.assertEqual(measured["observed_points"],10)
+        self.assertEqual(measured["observed_available_max"],16)
+        self.assertEqual(measured["subpoints"]["ma20_ma60_cross_near_ma240"],0)
+        first["v3_ma240_cross_research"]["source_regular_session_verified"]=True
+        invalid=observed(first,asof=DAY,market="KOSPI")
+        self.assertEqual(invalid["observed_available_max"],10)
+        self.assertIsNone(invalid["subpoints"]["ma20_ma60_cross_near_ma240"])
+
     def test_cli_write_then_verify_readback_from_docs_without_double_prefix(self):
         market,catalog=fixture()
         for row in catalog["rows"]:
@@ -105,14 +134,14 @@ class ObservedVolumeTests(unittest.TestCase):
             self.assertEqual(len(rows),catalog["listed_total"])
             by_code={r["종목코드"]:r for r in rows}
             self.assertEqual(by_code[market["stocks"][0]["code"]]
-                             ["거래량_OBV_잠정점수_20점중"],"16")
+                             ["거래량_OBV_잠정점수_20점중"],"10")
             self.assertEqual(by_code[market["stocks"][1]["code"]]
                              ["거래량_OBV_잠정점수_20점중"],"")
             self.assertEqual(by_code[market["stocks"][1]["code"]]
                              ["미확보배점_20점중"],"20")
             self.assertEqual(by_code[market["stocks"][0]["code"]]
                              ["거래급증후매물소화_점수_4점"],"")
-            csv_file.write_text(csv_text.replace("16점관측·4점미확보",
+            csv_file.write_text(csv_text.replace("10점관측·10점미확보",
                                                   "거짓점수"),encoding="utf8")
             with self.assertRaises(VolumeEvidenceError):
                 main(["--docs",str(root),"--mode","verify"])
@@ -143,7 +172,7 @@ class ObservedVolumeTests(unittest.TestCase):
         self.assertEqual(out["certified_100_point_investment_scores"],0)
         self.assertFalse(out["ias_investor_flow_component_used"])
         self.assertTrue(out["technical_one_day_volume_not_double_counted"])
-        self.assertEqual(out["records"][s["code"]]["observed_points"],16)
+        self.assertEqual(out["records"][s["code"]]["observed_points"],10)
         self.assertNotIn(market["stocks"][1]["code"],out["records"])
         wrong=copy.deepcopy(catalog)
         wrong["date"]=(date.fromisoformat(DAY)-timedelta(days=1)).isoformat()
