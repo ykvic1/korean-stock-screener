@@ -71,6 +71,8 @@ jobs:
       - name: Unified single-screen V3 research workspace and mobile layout with live saved data (offline)
         run: |
           node --check docs/workspace.js
+          node --check docs/v3-stop-evidence.js
+          node tests/test_v3_stop_evidence.cjs
           node tests/test_v3_unified_workspace.cjs
       - name: v3 user-facing paper-beta page and browser logic (offline)
         run: |

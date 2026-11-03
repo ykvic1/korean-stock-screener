@@ -2163,6 +2163,7 @@ function renderDetails(x){
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
+ (root.V3StopEvidence?root.V3StopEvidence.markup(r,model?.date):'')+
  '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · 기간별 실제 거래대금 20·60·120·240일/5·10·20·60·120주 검증 전 미반영</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
