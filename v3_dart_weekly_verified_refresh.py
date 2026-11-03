@@ -164,7 +164,7 @@ def reconcile(market, catalog, book, archive, observed, *,
 
 
 def execute(market, catalog, book, archive, *,
-            when, part, mode, key=None, session=None):
+            when, part, mode, key=None, session=None, company_cache=None):
     if mode not in ("audit", "live", "publish"):
         raise RebindError("unsupported_rebind_mode")
     state = fresh.prepare(market, catalog, archive, when, part)
@@ -182,14 +182,68 @@ def execute(market, catalog, book, archive, *,
                 "source_archive_changed": False}, None, None
     if type(key) is not str or len(key) < 20 or session is None:
         raise RebindError("source_provider_missing")
+    # Reuse the verified, exact-census, SAME-market-day company master from
+    # the separately scheduled four-year collector. Never trust a missing,
+    # stale or hash-mismatched cache as fresh official identity evidence.
     try:
-        resp = session.get(
-            "https://opendart.fss.or.kr/api/corpCode.xml",
-            params={"crtfc_key": key}, timeout=(20, 95))
-        resp.raise_for_status()
-        mapping = bulk._mapping(resp.content, set(state["selected"]))
-    except Exception:
-        raise RebindError("source_identity_mapping_unavailable") from None
+        mapping = bulk.verified_company_mapping_cache(
+            company_cache, state["asof"], state["members"])
+    except bulk.BulkHistoryError:
+        raise RebindError("untrusted_official_company_mapping_cache") from None
+    cache_used = mapping is not None
+    master_calls = 0
+    if mapping is None:
+        waiting = None
+        for attempt in range(2):
+            try:
+                master_calls += 1
+                resp = session.get(
+                    "https://opendart.fss.or.kr/api/corpCode.xml",
+                    params={"crtfc_key": key}, timeout=(20, 95))
+                resp.raise_for_status()
+                # Validate the full CURRENT market census, not only this
+                # partition; mirror the existing source collector's mapping.
+                mapping = bulk._mapping(resp.content, set(state["members"]))
+                break
+            except bulk.BulkHistoryError:
+                # Malformed ZIP, duplicate identity or invalid identifiers
+                # are SOURCE INTEGRITY failures, never temporary 'missing'.
+                raise RebindError("untrusted_official_company_master") from None
+            except Exception as error:
+                # Retry only transport outages and HTTP 5xx once. Do not
+                # retry 401/403 or provider schema errors as stale evidence.
+                kind = type(error).__name__
+                transient = kind in (
+                    "ConnectionError", "ConnectTimeout", "ReadTimeout", "Timeout")
+                if kind == "HTTPError":
+                    code = getattr(getattr(error, "response", None),
+                                   "status_code", None)
+                    if code == 429:
+                        waiting = "waiting_official_company_master_rate_limit"
+                        break
+                    transient = type(code) is int and 500 <= code <= 599
+                if transient and attempt == 0:
+                    time.sleep(1)
+                    continue
+                if transient:
+                    waiting = "waiting_official_company_master_transport"
+                    break
+                raise RebindError("official_company_master_auth_or_http_error") from None
+        if waiting is not None:
+            # A temporary provider outage must not clear the independently
+            # saved per-issuer score or trigger an empty-score publication.
+            return {
+                "schema": REPORT_SCHEMA, "status": waiting,
+                "market_asof": state["asof"],
+                "run_kst": when.isoformat(), "part_index": part,
+                "selected_company_count": len(state["selected"]),
+                "source_api_calls": master_calls,
+                "source_archive_changed": False,
+                "review_flags": [{"reason": waiting}],
+                "historical_PIT_certified": False,
+                "full_V3_100point_certified": False,
+                "buy_recommendations_authorized": False,
+            }, None, None
     # Missing corporation mappings are quarantined individually; correctly
     # mapped issuers are still eligible for official validated refresh.
     unmapped = set(state["selected"]) - set(mapping)
@@ -207,7 +261,9 @@ def execute(market, catalog, book, archive, *,
     report, updated, score = reconcile(
         market, catalog, book, archive, observed,
         when=when, part=part, selected=state["selected"], unmapped=unmapped)
-    report["source_api_calls"] = 1 + requests_made
+    report["source_api_calls"] = master_calls + requests_made
+    report["company_master_cache_used"] = cache_used
+    report["company_master_source_api_calls"] = master_calls
     report["unmapped_issuer_count"] = len(unmapped)
     report["status"] = ("verified_candidate_for_publication" if mode == "publish"
                         else "verified_live_candidate_not_published")
@@ -225,6 +281,7 @@ def main(argv=None):
     p.add_argument("--history", default="docs/v3-dart-bulk-history.json")
     p.add_argument("--scores", default="docs/v3-dart-bulk-provisional.json")
     p.add_argument("--report", default="reports/v3-dart-weekly-rebind-review.json")
+    p.add_argument("--company-cache", default=".cache/v3-dart-company-codes.json")
     args = p.parse_args(argv)
     when = bulk._day(args.run_day)
     data = [json.loads(Path(path).read_text(encoding="utf8")) for path in (
@@ -271,17 +328,25 @@ def main(argv=None):
     if args.mode == "verify":
         print("source_rebind_post_rebase_verified")
         return 0
+    company_cache = None
     if args.mode != "audit":
         import os
         import requests
         key = os.environ.get("DART_API_KEY")
         session = requests.Session()
+        cache_path = Path(args.company_cache)
+        if cache_path.is_file():
+            try:
+                company_cache = json.loads(cache_path.read_text(encoding="utf8"))
+            except (OSError, ValueError, UnicodeError):
+                raise RebindError("untrusted_official_company_mapping_cache") from None
     else:
         key = None
         session = None
     report, updated, score = execute(
         market, catalog, book, archive, when=when,
-        part=args.part, mode=args.mode, key=key, session=session)
+        part=args.part, mode=args.mode, key=key, session=session,
+        company_cache=company_cache)
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True,
