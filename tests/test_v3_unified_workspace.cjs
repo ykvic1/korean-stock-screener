@@ -719,7 +719,7 @@ assert.ok(html.indexOf('id="stockSearch"')<html.indexOf('id="tabs"'),
  'global ticker search must be above secondary chart and RSI tabs');
 assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab scopes');
 assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
-assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
+assert.ok(source.includes("p.available+'/'+p.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
 assert.ok(html.includes('id="compareForm"')&&entry.includes('id="compareForm"'),
  'both public routes must expose two-stock compare controls');
@@ -776,7 +776,7 @@ assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
  css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),
  'each unverified factor card should have a red inner outline');
 assert.ok(source.includes('x.composite.pillars.map')&&
- source.includes("i.candidate===null?'—':i.candidate.toFixed(1)"),
+ source.includes("p.candidate===null?'—':p.candidate.toFixed(1)"),
  'calculated provisional research candidates remain visible');
 assert.ok(source.includes('researchComposite(r)')&&
  source.includes('산출 가능 배점'),
