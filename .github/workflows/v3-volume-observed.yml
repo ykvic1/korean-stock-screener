@@ -118,6 +118,23 @@ jobs:
                 "미관측·가격결측 기업: "+str(a["insufficient_or_unpriced_issuers"]),
                 "공식 100점 인증 기업: 0",
               ]
+              audit=a.get("market_cap_bias_diagnostic",{})
+              names={"under_500_eok":"500억 미만",
+                     "500_to_4999_eok":"500억~5천억",
+                     "5000_to_49999_eok":"5천억~5조",
+                     "50000_eok_and_above":"5조 이상",
+                     "market_cap_unavailable":"시총 기준자료 없음"}
+              if audit.get("schema")=="v3-volume-market-cap-reference-bias-audit-0.1":
+                  lines.append("### 시총 구간별 편향 진단 (기준시총 미검증·점수 변경 없음)")
+                  for row in audit["buckets"]:
+                      lines.append(
+                          names.get(row["bucket"],row["bucket"])+
+                          ": 관측 "+str(row["score_observed_issuers"])+
+                          "/"+str(row["listed_issuers"])+
+                          ", 관측가능배점 대비 평균 "+str(
+                              row["mean_pct_of_observed_available_ceiling"])+
+                          "%, 교차6점 "+str(row["ma_cross_qualified_issuers"])+
+                          "/"+str(row["ma_cross_eligible_issuers"]))
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
               "\n".join(lines)+"\n",encoding="utf8")
           PY
