@@ -283,6 +283,64 @@ class KRXHistoricalCollectorTests(unittest.TestCase):
             self.assertEqual(fake.calls,[("KOSPI","2026-10-16"),
                                           ("KOSDAQ","2026-10-16")])
 
+    def test_cross_market_duplicate_code_rejected_before_private_archive(self):
+        day = "2026-10-16"
+        class CrossMarketCollision(FakeClient):
+            def daily_market(self, market, requested_day):
+                self.calls.append((market, requested_day))
+                records = rows(market, requested_day)
+                if market == "KOSDAQ":
+                    records.append({
+                        **records[0],
+                        "ISU_CD": "005930",
+                        # Even an unpriced row must keep its identity for the
+                        # cross-market collision check.
+                        "TDD_OPNPRC": "-", "TDD_HGPRC": "-",
+                        "TDD_LWPRC": "-", "TDD_CLSPRC": "-",
+                        "ACC_TRDVOL": "0",
+                    })
+                return records, json.dumps({"OutBlock_1": records}).encode()
+
+        with tempfile.TemporaryDirectory() as td:
+            db = Path(td) / "private" / "paired.sqlite3"
+            provider = CrossMarketCollision()
+            with self.assertRaises(HistoryCollectionError) as failure:
+                collect_krx_history(
+                    [day], live=True, key="LOCAL_SYNTHETIC",
+                    client=provider, archive_path=db,
+                    consent_to_private_retention=True)
+            error = failure.exception
+            self.assertEqual(str(error), "cross_market_duplicate_short_code")
+            self.assertEqual(error.trade_date, day)
+            self.assertIsNone(error.market)
+            self.assertEqual(error.completed_pairs, 0)
+            self.assertFalse(db.exists())
+            self.assertNotIn("005930", str(error))
+
+    def test_cross_market_duplicate_preserves_prior_valid_day_only(self):
+        first, second = "2026-10-15", "2026-10-16"
+        class SecondDayCollision(FakeClient):
+            def daily_market(self, market, requested_day):
+                self.calls.append((market, requested_day))
+                records = rows(market, requested_day)
+                if requested_day == second and market == "KOSDAQ":
+                    records[0]["ISU_CD"] = "005930"
+                return records, json.dumps({"OutBlock_1": records}).encode()
+
+        with tempfile.TemporaryDirectory() as td:
+            db = Path(td) / "private" / "paired.sqlite3"
+            with self.assertRaises(HistoryCollectionError) as failure:
+                collect_krx_history(
+                    [first, second], live=True, key="LOCAL_SYNTHETIC",
+                    client=SecondDayCollision(), archive_path=db,
+                    consent_to_private_retention=True)
+            self.assertEqual(str(failure.exception),
+                             "cross_market_duplicate_short_code")
+            self.assertEqual(failure.exception.trade_date, second)
+            self.assertEqual(failure.exception.completed_pairs, 1)
+            self.assertEqual(inspect_private_store(
+                database_path=db)["archived_days"], 1)
+
     def test_success_private_pair_local_only_when_explicit_consent(self):
         with tempfile.TemporaryDirectory() as td:
             db=Path(td)/"private"/"series.sqlite3"

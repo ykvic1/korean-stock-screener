@@ -262,6 +262,7 @@ def collect_krx_history(dates, *, live=False, key=None,
         raws = {}
         inspections = {}
         received = {}
+        market_short_codes = {}
         for market in MARKETS:
             try:
                 rows, raw = api.daily_market(market, day)
@@ -287,9 +288,19 @@ def collect_krx_history(dates, *, live=False, key=None,
                     "unclassified_market_processing_error",
                     market=market, trade_date=day,
                     completed_pairs=len(completed)) from None
+            # Each market passed its own code uniqueness checks; retain only
+            # in-memory identifiers until the complete paired-day is checked.
+            market_short_codes[market] = {r["ISU_CD"] for r in rows}
             raws[market] = raw
             received[market] = datetime.now(timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ")
+        # A ticker must not resolve to two different market memberships on
+        # the same date. Reject the entire pair BEFORE private persistence,
+        # including codes with missing prices; never disclose the identifiers.
+        if market_short_codes["KOSPI"] & market_short_codes["KOSDAQ"]:
+            raise HistoryCollectionError(
+                "cross_market_duplicate_short_code", trade_date=day,
+                completed_pairs=len(completed))
         if archive_path is not None:
             try:
                 store_pair(
