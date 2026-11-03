@@ -52,6 +52,7 @@ class StudyCase:
     win_target_first: bool
     hit_stop_first: bool
     gap_count: int
+    outcome_end_date: str | None = None
 
 
 def valid_code(value: str) -> bool:
@@ -148,11 +149,14 @@ def label_future(df: pd.DataFrame, t: int, horizon: int,
     target_idx = np.flatnonzero(hi >= target_px)
     si = int(stop_idx[0]) if len(stop_idx) else len(future)
     ti = int(target_idx[0]) if len(target_idx) else len(future)
-    if si < len(future) and si <= ti:
+    # At a known target-gap open, the target exit precedes that day's low.
+    # Only an intraday same-bar tie remains conservatively stop-first.
+    target_at_open = ti < len(future) and opens[ti] >= target_px
+    if ti < len(future) and (ti < si or (ti == si and target_at_open)):
+        exit_px = max(target_px, float(opens[ti])); win=True
+    elif si < len(future):
         exit_px = min(stop_px, float(opens[si])); hitstop=True
         gap_count = int(opens[si]<stop_px)
-    elif ti < len(future):
-        exit_px = max(target_px, float(opens[ti])); win=True
     horizon_close_pct = 100*(float(future.iloc[-1]["Close"])/entry-1)-cost_pct
     if exit_px is None:
         exit_px = float(future.iloc[-1]["Close"])
@@ -164,6 +168,7 @@ def label_future(df: pd.DataFrame, t: int, horizon: int,
         "win_target_first":win,
         "hit_stop_first":hitstop,
         "gap_count":gap_count,
+        "outcome_end_date":future.index[-1].date().isoformat(),
     }
 
 
@@ -208,6 +213,29 @@ def reference_cases(cache: dict[str,pd.DataFrame], market: dict[str,str],
     return all_cases, latest
 
 
+def chronological_holdout(selected):
+    """Purge training labels whose full outcome window reaches the test split.
+
+    This remains a descriptive diagnostic: neighbors/weights are not fitted
+    independently, and present-day surviving issuers still bias the sample.
+    """
+    dates=sorted(set(c.date for c in selected))
+    cutoff=dates[int(len(dates)*.8)]
+    recent=[c for c in selected if c.date>=cutoff]
+    older=[c for c in selected if c.date<cutoff]
+    train=[c for c in older if isinstance(c.outcome_end_date,str)
+           and c.date<=c.outcome_end_date<cutoff]
+    sufficient=(len(recent)>=MIN_OBSERVATIONS and
+        len(set(c.code for c in recent))>=MIN_SYMBOLS and
+        len(set(c.quarter for c in recent))>=MIN_QUARTERS)
+    return {'status':'exploratory' if sufficient else '미검증: 최근 홀드아웃 표본 부족',
+        'split_date':cutoff,'train_n':len(train),'test_n':len(recent),
+        'purged_training_outcome_overlap_or_unknown_n':len(older)-len(train),
+        'training_outcomes_strictly_before_split':True,
+        'independently_fitted_model':False,
+        'test_mean_net_return_pct':round(float(np.mean([c.return_pct for c in recent])),2) if sufficient else None}
+
+
 def analyze_nearest(query_code: str, query_vec: np.ndarray,
                     query_market: str, cases: list[StudyCase],
                     horizon: str, cost_pct:float, target:float, stop:float) -> dict:
@@ -249,11 +277,7 @@ def analyze_nearest(query_code: str, query_vec: np.ndarray,
     up_n = int(np.count_nonzero(endret>0))
     low, high = wilson(up_n,n)
     # Chronological holdout is a diagnostic only; parameters were not independently tuned.
-    cutoff = sorted(set(c.date for c in selected))[int(len(set(c.date for c in selected))*.8)]
-    recent = [c for c in selected if c.date>=cutoff]
-    older = [c for c in selected if c.date<cutoff]
-    holdout_sufficient = len(recent)>=MIN_OBSERVATIONS and len(set(c.code for c in recent))>=MIN_SYMBOLS and len(set(c.quarter for c in recent))>=MIN_QUARTERS
-    result['chronological_holdout']={'status':'exploratory' if holdout_sufficient else '미검증: 최근 홀드아웃 표본 부족', 'split_date':cutoff,'train_n':len(older),'test_n':len(recent), 'test_mean_net_return_pct':round(float(np.mean([c.return_pct for c in recent])),2) if holdout_sufficient else None}
+    result['chronological_holdout']=chronological_holdout(selected)
     result.update({
       "up_pct":round(100*up_n/n,1),
       "strategy_win_pct":round(100*np.count_nonzero(ret>0)/n,1),
