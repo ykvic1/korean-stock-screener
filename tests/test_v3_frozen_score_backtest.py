@@ -98,5 +98,21 @@ class FrozenScoreWalkforwardTests(unittest.TestCase):
         self.assertEqual(r["frozen_score_vs_outcomes_research_only"][
             "KOSPI"]["12m"]["exclusions"]["short_history"],1)
 
+    def test_frozen_score_rejects_same_issuer_alias_or_same_code_two_issuers(self):
+        a = with_score()
+        renamed = with_score()
+        for component in ("case", "price_record", "pit_bundle"):
+            renamed[component]["code"] = "000002"
+        renamed["frozen_score_snapshot"]["code"] = "000002"
+        with self.assertRaisesRegex(ScoredBacktestError, "duplicate"):
+            evaluate([a, renamed])
+        renamed = with_score()
+        for component in ("case", "price_record", "pit_bundle"):
+            renamed[component]["issuer_id"] = "00000002"
+        renamed["frozen_score_snapshot"]["issuer_id"] = "00000002"
+        with self.assertRaisesRegex(ScoredBacktestError, "duplicate"):
+            evaluate([a, renamed])
+
+
 if __name__=="__main__":
     unittest.main()

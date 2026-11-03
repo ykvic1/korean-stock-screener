@@ -65,6 +65,13 @@ def _check_case(case):
     if not (type(code) is str and len(code) == 6 and code.isascii()
             and code.isdigit()):
         raise WalkForwardError("invalid_symbol")
+    # Issuer identity survives symbol renames / code transitions. Standalone
+    # synthetic research without issuer provenance still falls back to code.
+    issuer = case.get("issuer_id")
+    if issuer is not None and not (
+            type(issuer) is str and len(issuer) == 8
+            and issuer.isascii() and issuer.isdigit()):
+        raise WalkForwardError("invalid_issuer_identity")
     signal = _date(case.get("signal_date"))
     # These declarations only permit exploratory computation. They do NOT
     # prove provider provenance, the real PIT universe or adjustment history.
@@ -190,16 +197,22 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
     if not isinstance(cases, list) or len(cases) > 100000:
         raise WalkForwardError("invalid_research_cohort")
     seen = set()
+    seen_codes = set()
     validated = []
     for case in cases:
         signal = _check_case(case)
-        key = (case["code"], signal)
-        if key in seen:
+        identity = case.get("issuer_id") or case["code"]
+        key = (identity, signal)
+        code_key = (case["code"], signal)
+        if key in seen or code_key in seen_codes:
             raise WalkForwardError("duplicate_symbol_signal")
         seen.add(key)
+        seen_codes.add(code_key)
         validated.append((case, signal))
-    # Input order must not change the outcome or which same-symbol case wins.
-    validated.sort(key=lambda item: (item[1], item[0]["code"]))
+    # Input order must not change the outcome or which issuer case wins.
+    validated.sort(key=lambda item: (
+        item[1], item[0].get("issuer_id") or item[0]["code"],
+        item[0]["code"]))
     result = {}
     for key, horizon in HORIZONS.items():
         cohorts = {"train": [], "holdout": []}
@@ -229,7 +242,8 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
             else:
                 purged += 1
                 continue
-            prior_end = previous_window_end[group].get(case["code"])
+            identity = case.get("issuer_id") or case["code"]
+            prior_end = previous_window_end[group].get(identity)
             if prior_end is not None and signal <= prior_end:
                 overlaps[group] += 1
                 continue
@@ -237,9 +251,9 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
             if outcome is None:
                 censored[group] += 1
                 continue
-            previous_window_end[group][case["code"]] = _date(
+            previous_window_end[group][identity] = _date(
                 bars[horizon - 1]["date"])
-            cohorts[group].append((case["code"], signal, outcome))
+            cohorts[group].append((identity, signal, outcome))
         result[key] = {
             "trading_sessions_proxy": horizon,
             "train": _summary(cohorts["train"], censored["train"], purged,
@@ -263,6 +277,6 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
         "buy_signals": None,
         "authorized_for_v3_scoring": False,
         "note": ("Research input assertions are not authenticated evidence. "
-                 "Survivorship bias, overlapping symbols, execution constraints "
+                 "Survivorship bias, issuer aliases, execution constraints "
                  "and provider contracts require independent verification."),
     }

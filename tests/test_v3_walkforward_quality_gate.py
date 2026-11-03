@@ -234,6 +234,29 @@ class WalkForwardQualityBridgeTests(unittest.TestCase):
         self.assertNotIn("raw_sha256", text)
         self.assertFalse(r["v3_release_ready"])
 
+    def test_case_market_must_match_original_price_and_pit_roster(self):
+        p = candidate()
+        p["case"]["market"] = "KOSDAQ"  # Same issuer, wrong score market.
+        with self.assertRaisesRegex(ResearchGateError, "market_mismatch"):
+            research([p])
+
+    def test_one_issuer_cannot_submit_two_symbols_on_same_signal_day(self):
+        a = candidate()
+        b = copy.deepcopy(a)
+        for component in ("case", "price_record", "pit_bundle"):
+            b[component]["code"] = "000002"
+        with self.assertRaisesRegex(ResearchGateError, "duplicate_issuer_signal"):
+            research([a, b])
+
+    def test_same_code_two_issuers_on_same_day_cannot_double_count(self):
+        a = candidate()
+        b = copy.deepcopy(a)
+        for component in ("case", "price_record", "pit_bundle"):
+            b[component]["issuer_id"] = "00000002"
+        with self.assertRaisesRegex(ResearchGateError, "duplicate_issuer_signal"):
+            research([a, b])
+
+
 
 if __name__ == "__main__":
     unittest.main()

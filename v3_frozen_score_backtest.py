@@ -50,6 +50,7 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
     if type(round_trip_cost_bps) not in (int,float) or not 0<=round_trip_cost_bps<=500:
         raise ScoredBacktestError("invalid_fees")
     seen=set()
+    seen_codes=set()
     frozen=[]
     for p in payloads:
         if not isinstance(p,dict) or not isinstance(p.get("case"),dict):
@@ -78,10 +79,12 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
         if (score.get("confirmed_score") is not None
                 or score.get("confirmed_buy") is not False):
             raise ScoredBacktestError("fabricated_confirmed_score_claim")
-        identity=(case.get("issuer_id"),case.get("code"),signal)
-        if identity in seen:
+        identity=(case.get("issuer_id"),signal)
+        code_key=(case.get("code"),signal)
+        if identity in seen or code_key in seen_codes:
             raise ScoredBacktestError("duplicate_frozen_issuer_signal")
         seen.add(identity)
+        seen_codes.add(code_key)
         frozen.append((p,signal,float(value)))
     # This is the authoritative existing PIT/corporate-event walkforward
     # research engine. It still does NOT certify real historical sources.
