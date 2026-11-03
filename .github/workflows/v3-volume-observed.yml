@@ -13,6 +13,13 @@ on:
   # the lagged DART BS/IS and FCF collector clocks.
   schedule:
     - cron: '12,42 * * * *'
+  # GITHUB_TOKEN commits do not emit another push workflow event. Replay
+  # the new MA-cross receipt immediately after a completed full-market batch,
+  # without waiting for the next hourly timer.
+  workflow_run:
+    workflows:
+      - Full-Market 100-Stock Batches
+    types: [completed]
   workflow_dispatch:
     inputs:
       mode:
@@ -32,6 +39,11 @@ concurrency:
 
 jobs:
   same-close-volume-obv:
+    # Reject failed, forked or non-main upstream runs before any publication.
+    if: ${{ github.event_name != 'workflow_run' ||
+            (github.event.workflow_run.conclusion == 'success' &&
+             github.event.workflow_run.head_branch == 'main' &&
+             github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
