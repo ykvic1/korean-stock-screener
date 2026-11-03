@@ -212,7 +212,12 @@ with sync_playwright() as p:
         assert not expander.evaluate("(el) => el.open")
         expander.locator("summary").click()
         assert expander.evaluate("(el) => el.open")
-        if available_by_pillar[pillar_index] > 0:
+        if expander.locator(".u-last-factor").count():
+            retained_text = expander.locator(".u-last-factor").inner_text()
+            assert "관측 점수 유지" in retained_text
+            assert "오늘 새로 계산된 점수가 아니며" in retained_text
+            assert re.search(r"\d{4}-\d{2}-\d{2}", retained_text)
+        elif available_by_pillar[pillar_index] > 0:
             assert evidence_text in expander.inner_text(), pillar
         assert "미확보는 0점으로 계산한 것이 아닙니다" in expander.inner_text()
         assert page.evaluate(
