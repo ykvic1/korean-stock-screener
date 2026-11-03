@@ -43,8 +43,10 @@ jobs:
       - name: Validate private actual-money factor extraction and resume behavior
         run: |
           set -euo pipefail
-          python -m py_compile v3_krx_money_5day.py v3_krx_money_backfill.py
+          python -m py_compile v3_krx_money_5day.py v3_krx_money_backfill.py v3_krx_money_horizon_research.py v3_krx_money_public_progress.py
           python -m unittest discover -s tests -p 'test_v3_krx_money_backfill.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_money_horizon_research.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_money_public_progress.py' -v
       - name: Resume maximum 16 money cohorts; no raw market bytes retained
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
