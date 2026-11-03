@@ -70,6 +70,34 @@ class IssuerHistoryWatchTests(unittest.TestCase):
         self.assertIn("lost_existing_component_observation",report["issues"])
         self.assertEqual(report["status"],"error")
 
+    def test_existing_key_cannot_hide_regressed_date_or_narrowed_coverage(self):
+        day="2026-11-02"
+        first=build(catalog(day,[("005930","A")]),
+                    [price_row(day,"005930","A")],
+                    fiscal_rows={"005930":fiscal(day,"005930",3)})
+        for field in ("factor","component"):
+            bad=copy.deepcopy(first)
+            entry=(bad["rows"]["005930"]["factors"]["financial"] if field=="factor"
+                   else bad["rows"]["005930"]["components"]["valuation"]["pbr"])
+            entry["asof"]="2026-10-30"
+            report=inspect(bad,first)
+            self.assertIn("regressed_existing_observation_date",report["issues"])
+        bad=copy.deepcopy(first)
+        entry=bad["rows"]["005930"]["factors"]["financial"]
+        entry.update(available=4,points=2)
+        self.assertIn("narrowed_existing_observation_coverage",inspect(bad,first)["issues"])
+
+    def test_broader_historical_recovery_and_legitimate_point_decline_are_allowed(self):
+        day="2026-11-02"
+        first=build(catalog(day,[("005930","A")]),[price_row(day,"005930","A")])
+        broader=copy.deepcopy(first)
+        broader["rows"]["005930"]["factors"]["financial"].update(
+            available=12,points=2,asof="2026-10-30")
+        self.assertEqual(inspect(broader,first)["status"],"ok")
+        lower=copy.deepcopy(first)
+        lower["rows"]["005930"]["factors"]["financial"]["points"]=0
+        self.assertEqual(inspect(lower,first)["status"],"ok")
+
     def test_invalid_history_does_not_certify_score(self):
         day="2026-11-02"
         first=build(catalog(day,[("005930","A")]),
