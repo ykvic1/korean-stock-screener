@@ -116,7 +116,10 @@ with sync_playwright() as p:
     assert desktop_grid["secondLeft"] > desktop_grid["firstLeft"] + 300, desktop_grid
     assert desktop_grid["firstWidth"] > 450 and not desktop_grid["overflow"], desktop_grid
     page.set_viewport_size({"width": 390, "height": 844})
-    assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
+    assert page.locator("#sort").input_value() == "stable", "default sort must follow visible stability-adjusted scores"
+    assert "안정형 보정" in page.locator(".u-card-score").first.inner_text()
+    assert "시총" in page.locator(".u-card-meta").first.inner_text()
+    assert "당일 거래대금" in page.locator(".u-card-meta").first.inner_text()
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     # The actual stock list must show original factor dates, including carried
     # observations, rather than displaying an undated score-only ranking.
@@ -225,7 +228,7 @@ with sync_playwright() as p:
         assert "개별 공시 원장" in fcf_detail
     assert "0점" in fcf_detail
     page.locator("#personalRank").click()
-    assert page.locator("#sort").input_value() == "score"
+    assert page.locator("#sort").input_value() == "stable"
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
     # Compare only stocks with the same available ceilings for ALL five pillars.
     page.locator("#advancedFilters > summary").click()
