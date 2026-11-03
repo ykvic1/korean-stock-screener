@@ -1182,10 +1182,13 @@ const safeHighRisk={...row,code:'111111',name:'손절위험',stop_line:60,
  stop_pct:-40,v3_pattern_integrated:{...row.v3_pattern_integrated,
  technical_research_candidate:24}};
 const risks={...model,rows:[safe,{...safe,r:safeHighRisk}]};
-assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'111111',
- 'risk warnings should not silently mutate the visible observed-score ordering');
+assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'005930',
+ 'default bounded stability sort should favor the lower stop risk');
+assert.equal(unified.rankItems(risks,legacy,'all','all','','score')[0].r.code,'111111',
+ 'the unmodified observed V3 score order remains accessible');
 assert.equal(unified.rankItems(risks,legacy,'all','all','','score',true).length,1);
-assert.ok(unified.rankItems(risks,legacy,'all')[0].risk.unsafe);
+assert.ok(unified.rankItems(risks,legacy,'all')
+ .find(x=>x.r.code==='111111').risk.unsafe);
 
 // A 100-candidate browse filter operates ONLY on stocks with research values.
 const candidates=Array.from({length:106},(_,i)=>({
