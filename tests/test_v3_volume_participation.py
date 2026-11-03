@@ -131,7 +131,7 @@ class ObservedVolumeTests(unittest.TestCase):
         audit=market_cap_bias_diagnostic(results,members)
         self.assertEqual(results,before)
         self.assertFalse(audit["investment_points_modified"])
-        self.assertFalse(audit["historical_size_bias_proved"])
+        self.assertIsNone(audit["historical_size_bias_proved"])
         self.assertTrue(audit["unknown_volume_scores_never_treated_as_zero"])
         by_bucket={row["bucket"]:row for row in audit["buckets"]}
         micro=by_bucket["under_500_eok"]
