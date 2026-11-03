@@ -1199,13 +1199,39 @@ function quantSourceQualityView(report, marketDate){
  if(keys.some(k=>tally[k]!==counts[k])||
     Object.keys(tally).some(k=>!Object.prototype.hasOwnProperty.call(counts,k)))
     return null;
+ const hasTailAudit=Object.prototype.hasOwnProperty.call(q,'audited_vendor_tail_diagnostics')||
+   Object.prototype.hasOwnProperty.call(q,'unverified_tail_650_candidates');
+ let tailNote='';
+ if(hasTailAudit){
+  const audited=q.audited_vendor_tail_diagnostics;
+  const candidates=q.unverified_tail_650_candidates;
+  const diagnosed=report.missing.filter(m=>m.tail_diagnostic!==undefined);
+  if(!Number.isInteger(audited)||!Number.isInteger(candidates)||
+     audited<0||candidates<0||candidates>audited||audited>q.excluded_symbols||
+     diagnosed.length!==audited)return null;
+  for(const item of diagnosed){
+   const z=item.tail_diagnostic;
+   if(!z||item.error_provenance!=='matched_same_day_collector'||
+      !Number.isInteger(z.suspect_bar_count)||z.suspect_bar_count<1||
+      !Number.isInteger(z.trailing_valid_sessions)||z.trailing_valid_sessions<0||
+      typeof z.last_suspect_date!=='string'||!validDate(z.last_suspect_date)||
+      z.last_suspect_date>marketDate||
+      z.research_only!==true||z.official_adjustment_certified!==false||
+      z.trailing_650_session_candidate!==(z.trailing_valid_sessions>=650))
+      return null;
+  }
+  if(diagnosed.filter(m=>m.tail_diagnostic.trailing_650_session_candidate).length!==
+     candidates)return null;
+  tailNote=' · 원천 불량구간 진단 '+audited+'종목 중 정상 연속 650봉 이상 '+
+   candidates+'종목 (공식 교차검증 전 복구 후보이며 점수 미반영)';
+ }
  const grouped=keys.filter(k=>counts[k]>0)
   .map(k=>labels[k]+' '+counts[k]+'종목').join(' · ');
  return {
   summary:'9년 퀀트 가격 이력 '+q.valid_ohlcv_symbols+'/'+
    q.requested_symbols+'종목 확보 (제외 '+q.excluded_symbols+')',
   text:'자료 기준 '+marketDate+' · '+(grouped||'제외 종목 없음')+
-   '. 연구용 원천 품질 집계이며 오류 가격을 임의 보정하지 않습니다. '+
+   tailNote+'. 연구용 원천 품질 집계이며 오류 가격을 임의 보정하지 않습니다. '+
    '공식 정규장·수정주가·기업행위와 과거 상장폐지 종목 구성은 독립 인증 전입니다.'
  };
 }
