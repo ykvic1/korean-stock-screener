@@ -46,6 +46,22 @@ jobs:
             git fetch origin main
             git switch -C v3-derived-finance-replay origin/main
             python v3_dart_bulk_history.py --mode replay
+            # A current DART annual publication can arrive before the weekly
+            # seven-day screen or current census. Preserve previous certified-
+            # source aggregate until alignment is truly same-day. Malformed or
+            # forged alignment still makes the command fail closed.
+            alignment=$(python v3_real_six_pillar_coverage_audit.py --mode alignment)
+            case "$alignment" in
+              aligned) ;;
+              deferred_dart|deferred_weekly)
+                echo "::notice::combined_source_alignment_$alignment; retain_prior_combined_audit"
+                exit 0
+                ;;
+              *)
+                echo "::error::unexpected_combined_source_alignment"
+                exit 1
+                ;;
+            esac
             python v3_real_six_pillar_coverage_audit.py --mode write
             python v3_real_source_progress_ledger.py --mode write
             python v3_dart_bulk_history.py --mode verify
