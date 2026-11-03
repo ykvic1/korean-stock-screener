@@ -87,6 +87,10 @@ def derive(client, days):
                         continue
                     issuer_rows[market].setdefault(code, {})[day] = pair
                     coverage[f"{day}/{market}"]["amount_usable"] += 1
+                # A market-wide missing ACC_TRDVAL field is a provider-schema
+                # regression, not a successfully collected zero-money cohort.
+                if coverage[f"{day}/{market}"]["amount_usable"] == 0:
+                    raise DerivedSourceError("market_missing_reported_money_field")
                 del rows, raw
     except Exception as failure:
         err = DerivedSourceError("official_money_window_or_validation_failed")
