@@ -240,6 +240,44 @@ def generate(csv_text, summary, financial, annual, cf_evidence):
     }
 
 
+def retain_original_priority_cohort(original, observed, supplement):
+    """Freeze an immutable SAME-DATE official-source acquisition queue.
+
+    The user-facing 100-weight count belongs to the freshly replayed
+    SCORECARD. This separate document is only a bounded missing-earnings
+    collection plan: once actual owners-profit arrives, rewriting its
+    issuer queue would invalidate the source receipt's selection anchor.
+    A new market close always creates a new priority plan instead.
+    """
+    if type(supplement) is not dict or not supplement:
+        return observed, False
+    if (supplement.get("market_asof")!=observed.get("asof")
+        or supplement.get("schema")!="v3-official-fy2025-owner-profit-source-0.1"
+        or supplement.get("investment_grade_score_certified") is not False
+        or supplement.get("historical_pit_verified") is not False
+        or supplement.get("account_value_used_in_scores") is not False
+        or type(supplement.get("records")) is not dict
+        or not supplement["records"]):
+        return observed, False
+    if type(original) is not dict or original.get("asof")!=observed.get("asof"):
+        return observed, False
+    names=original.get("official_2025_owners_profit_missing_priority_codes")
+    if (original.get("schema")!=SCHEMA
+        or original.get("no_points_added") is not True
+        or original.get("official_trade_score_certified") is not False
+        or original.get("missing_capex_is_not_zero") is not True
+        or original.get("listed_total")!=observed.get("listed_total")
+        or type(names) is not list or names!=sorted(set(names))
+        or len(names)!=original.get(
+            "official_2025_owners_profit_missing_priority_count")
+        or not set(supplement["records"]).issubset(names)
+        or type(original.get("provisional_observed_100_weight_issuers")) is not int
+        or observed["provisional_observed_100_weight_issuers"] <
+            original["provisional_observed_100_weight_issuers"]):
+        raise GapAuditError("untrusted_frozen_profit_priority_cohort")
+    return original, True
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--docs", default="docs")
@@ -264,8 +302,13 @@ def main(argv=None):
                           "provider_api_calls":0,
                           "issuer_scores_changed":False},sort_keys=True))
         return
-    report = generate(csv_text, summary, financial, annual, cf_evidence)
+    observed = generate(csv_text, summary, financial, annual, cf_evidence)
     dest = docs / "v3-near-100-evidence-priority.json"
+    prior = read(dest.name) if dest.is_file() else None
+    source_path = docs / "v3-dart-owner-profit-supplement.json"
+    supplement = read(source_path.name) if source_path.is_file() else None
+    report, frozen = retain_original_priority_cohort(
+        prior, observed, supplement)
     canonical = json.dumps(report, ensure_ascii=False, sort_keys=True,
                            separators=(",", ":")) + "\n"
     if a.mode == "write":
@@ -279,7 +322,13 @@ def main(argv=None):
             report["official_2025_owners_profit_missing_priority_count"],
         "fcf_missing_ifrs_account_not_zero":
             report["fcf_three_year_previously_queried_missing_account_count"],
-        "no_points_added":True},sort_keys=True))
+        "no_points_added":True,
+        "cohort_frozen_during_same_date_official_source_recovery":frozen,
+        "current_observed_100weight":
+            observed["provisional_observed_100_weight_issuers"],
+        "priority_baseline_100weight":
+            report["provisional_observed_100_weight_issuers"],
+        },sort_keys=True))
 
 
 if __name__ == "__main__":
