@@ -65,7 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261103-quantqueue459'));
+ assert.ok(entry.includes('v30b-20261103-clean-ui467'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261103-quantqueue459'),'classic research route keeps its pinned assets');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
@@ -695,7 +696,7 @@ assert.equal(unified.PILLARS[0][1],'거래량·OBV');
 assert.deepEqual(unified.VOLUME_COMPONENTS.map(([label,w])=>w),[6,6,4,4]);
 assert.ok(source.includes("v3-volume-obv-observed.json"));
 assert.ok(source.includes("applyObservedVolume(model,responses[13])"));
-assert.ok(source.includes('data-pillar="\'+esc(i.key)'));
+assert.ok(source.includes('data-pillar="\'+esc(p.key)'));
 assert.ok(source.includes('거래량·OBV /20'));
 assert.ok(css.includes('.u-scoresix span[data-pillar="volume"] small'));
 assert.equal(unified.validDate('2026-02-30'),false,'calendar rollover is invalid');
@@ -718,7 +719,7 @@ assert.ok(html.indexOf('id="stockSearch"')<html.indexOf('id="tabs"'),
  'global ticker search must be above secondary chart and RSI tabs');
 assert.ok(source.includes("if(search)return"),'search must bypass TOP100 and tab scopes');
 assert.ok(source.includes("미검증"),'avoid showing dash-only factors without explanation');
-assert.ok(source.includes("+' /'+i.max"),'each domain must show its approved maximum');
+assert.ok(source.includes("p.available+'/'+p.max"),'each domain must show its approved maximum');
 assert.ok(html.includes('id="top100Only"'),'one-tap top 100 filter required');
 assert.ok(html.includes('id="compareForm"')&&entry.includes('id="compareForm"'),
  'both public routes must expose two-stock compare controls');
@@ -757,10 +758,10 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261103-quantqueue459')&&
-  page.includes('workspace.css?v=v30b-20261103-quantqueue459'),
-  'both deployed routes must invalidate stale JS and CSS after UI changes');
+for(const [page,version] of [[html,'v30b-20261103-quantqueue459'],[entry,'v30b-20261103-clean-ui467']]){
+ assert.ok(page.includes('workspace.js?v='+version)&&
+  page.includes('workspace.css?v='+version),
+  'each deployed route must pin matching JS/CSS assets');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
@@ -769,13 +770,13 @@ assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-l
 assert.ok(html.includes('<option value="score" selected>V3 잠정점수순</option>'),
  'default selection must explicitly use V3 provisional observations');
 assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
-assert.ok(css.includes('color-scheme:dark')&&css.includes('.u-scoresix'),
- 'approved dark-green theme and 6 V3 pillar boxes must remain');
+assert.ok(css.includes('.u-stock{')&&css.includes('.u-scoresix'),
+ 'compact ranking style and existing deep factor evidence styles must coexist');
 assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
  css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),
  'each unverified factor card should have a red inner outline');
 assert.ok(source.includes('x.composite.pillars.map')&&
- source.includes("i.candidate===null?'—':i.candidate.toFixed(1)"),
+ source.includes("p.candidate===null?'—':p.candidate.toFixed(1)"),
  'calculated provisional research candidates remain visible');
 assert.ok(source.includes('researchComposite(r)')&&
  source.includes('산출 가능 배점'),

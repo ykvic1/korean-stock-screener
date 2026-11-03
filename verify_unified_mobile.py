@@ -72,7 +72,13 @@ with sync_playwright() as p:
     assert not page.locator("#advancedFilters").evaluate("(el) => el.open")
     assert page.locator("#stockSearch").is_visible()
     assert page.locator("#liveUpdates").is_visible()
+    assert page.locator(".u-header-more > summary").is_visible()
+    page.locator(".u-header-more > summary").click()
     assert page.locator('.u-header-actions a[href="patch-notes.html"]').is_visible()
+    page.locator(".u-header-more > summary").click()
+    # Research audit and two-stock comparison are available on demand.
+    assert not page.locator("#researchPanel").evaluate("(el) => el.open")
+    assert not page.locator("#stockCompare").evaluate("(el) => el.open")
     page.wait_for_function(
         "() => document.querySelector('#liveProgressCoverage')?.textContent.includes('종목')",
         timeout=20000,
@@ -93,9 +99,13 @@ with sync_playwright() as p:
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     # The actual stock list must show original factor dates, including carried
     # observations, rather than displaying an undated score-only ranking.
-    dated_factors = page.locator(".u-stock .u-factor-previous")
-    assert dated_factors.count() > 0, "issuer-factor as-of dates must render on cards"
-    assert re.search(r"\d{4}-\d{2}-\d{2} 기준", dated_factors.first.inner_text())
+    card_dates = page.locator(".u-stock .u-card-meta")
+    assert card_dates.count() > 0, "issuer score as-of dates must render on cards"
+    assert re.search(r"\d{4}-\d{2}-\d{2}", card_dates.first.inner_text())
+    dated_factors = page.locator(".u-stock .u-compact-pillars span[title]")
+    assert dated_factors.count() >= 5
+    assert "기준일" in dated_factors.first.get_attribute("title")
+    assert "미검증" in dated_factors.first.get_attribute("title")
     # The requested research quick filter expands to all stocks, not just TOP100.
     assert page.locator("#obvLagOnly").is_visible()
     page.locator("#obvLagOnly").click()
@@ -111,9 +121,10 @@ with sync_playwright() as p:
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "true"
     assert page.locator("#sort").input_value() == "personal"
     assert page.locator('[data-tab="all"]').get_attribute("aria-pressed") == "true"
-    assert page.locator(".u-personal100").first.is_visible()
-    assert "개인 연구용 100점 환산" in page.locator(".u-personal100").first.inner_text()
-    first_normalized = page.locator(".u-stock").first.locator(".u-personal100 b").inner_text()
+    assert page.locator(".u-stock .u-card-score").first.is_visible()
+    personal_label = page.locator(".u-stock").first.locator(".u-card-score > small").last.inner_text()
+    assert "개인환산" in personal_label
+    first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")
     # Complete 100/100 observations and eligible *partial* personal ratios
     # are distinct: the latter needs all five pillars and at least 75 points
     # of observed budget, even when the issuer census has 0 complete rows.
@@ -176,6 +187,9 @@ with sync_playwright() as p:
         "document.documentElement.scrollWidth <= window.innerWidth"
     ), "five-area stock detail scorecard must not overflow mobile viewport"
     # Every selected stock must disclose its FCF state without guessing missing accounts.
+    deeper = page.locator("#detail .u-detail-evidence")
+    assert not deeper.evaluate("(el) => el.open")
+    deeper.locator("summary").first.click()
     fcf_status = page.locator("#detail .u-fcf-stock-status")
     assert fcf_status.is_visible()
     assert "FCF 확보 상태" in fcf_status.locator("summary").inner_text()
@@ -193,6 +207,7 @@ with sync_playwright() as p:
     assert page.locator("#sort").input_value() == "score"
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
     # Compare only stocks with the same available ceilings for ALL five pillars.
+    page.locator("#advancedFilters > summary").click()
     assert page.locator("#coverageGroup option").count() > 1
     group = page.locator("#coverageGroup option").nth(1).get_attribute("value")
     assert group is not None and group.count("-") == 4
@@ -202,7 +217,9 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").count() > 0
     page.locator("#coverageGroup").select_option("all")
     assert "동일 그룹" not in page.locator("#resultCount").inner_text()
+    page.locator("#advancedFilters > summary").click()
     # Side-by-side real tickers: compare earned/available and all five pillar evidence.
+    page.locator("#stockCompare > summary").click()
     assert page.locator("#compareForm").is_visible()
     page.locator("#compareCodeA").fill("005930")
     page.locator("#compareCodeB").fill("000660")
@@ -241,19 +258,19 @@ with sync_playwright() as p:
     assert page.locator("#compareCodeB").input_value() == ""
     # Only source-dated provisional V3 points are displayed; no V2.2 rank.
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
-    assert page.locator(".u-stock").first.locator(".u-provisional-total").is_visible()
-    assert page.locator(".u-stock").first.locator(".u-scoresix").is_visible()
-    assert page.locator(".u-scoresix").first.get_by_text("거래량·OBV /20").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-card-score").is_visible()
+    assert page.locator(".u-stock").first.locator(".u-compact-pillars").is_visible()
+    assert page.locator(".u-compact-pillars [data-pillar='volume']").first.is_visible()
     volume = context.request.get(URL + "v3-volume-obv-observed.json").json()
     assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
     assert volume["observed_volume_candidate_issuers"] > 0
     assert volume["asof"] == context.request.get(URL + "data.json").json()["date"]
     # The main scorecard must actually SHOW the sourced 16/20 partial score.
     # A renamed but empty IAS card is an erroneous rollout.
-    shown = page.locator('.u-scoresix span[data-pillar="volume"] b').first.inner_text()
+    shown = page.locator('.u-compact-pillars span[data-pillar="volume"] b').first.inner_text()
     assert shown.strip() != "—", "real observed volume candidate not applied"
-    assert page.locator(".u-scoresix").first.get_by_text("기술적 분석 /25").is_visible()
-    assert page.locator(".u-scoresix").first.locator("span[data-pillar]").count() == 5
+    assert page.locator(".u-compact-pillars span[data-pillar='technical']").first.is_visible()
+    assert page.locator(".u-compact-pillars").first.locator("span[data-pillar]").count() == 5
     data = context.request.get(URL + "data.json").json()
     assert data["version"] == "2.0" and data["status"] == "success"
     # V3.0a acceptance: a matching official-source CSV must visibly restore
@@ -281,14 +298,16 @@ with sync_playwright() as p:
             ("financial", "재무_잠정점수", "재무_산출배점"),
             ("valuation", "밸류에이션_잠정점수", "가치_산출배점"),
         ):
-            cell = stock.locator(f'span[data-pillar="{key}"]')
+            cell = stock.locator(f'.u-compact-pillars span[data-pillar="{key}"]')
             assert cell.locator("b").inner_text().strip() == (
                 f'{float(selected[value_field]):.1f}'
             ), f"{key} source-observed points missing in rendered card"
-            assert f'확보 {int(selected[budget_field])}/20' in cell.inner_text()
-            assert "미검증" in cell.inner_text()
+            assert f'확보 {int(selected[budget_field])}/20' in cell.get_attribute("title")
+            assert "미검증" in cell.get_attribute("title")
         page.locator("#stockSearch").fill("")
-    page.locator("#marketSummary summary").click()
+    page.locator("#researchPanel > summary").click()
+    assert page.locator("#marketSummary > summary").is_visible()
+    page.locator("#marketSummary > summary").click()
     assert page.locator("#statAnalyzed").is_visible()
     displayed = int(page.locator("#statAnalyzed").inner_text().replace(",", ""))
     assert 0 < displayed <= data["candidate_count"]
@@ -442,8 +461,8 @@ with sync_playwright() as p:
     page.locator("#sort").select_option("score")
     page.locator("#advancedFilters summary").click()
     # Card order is provisional evidence-first, not the old 2.2 ranking.
-    assert page.locator(".u-stock-main .u-provisional-total").first.is_visible()
-    assert "산출 가능" in page.locator(".u-provisional-total").first.inner_text()
+    assert page.locator(".u-card-score").first.is_visible()
+    assert "산출 배점" in page.locator(".u-card-coverage").first.inner_text()
     page.locator(".u-stock").first.click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
@@ -477,7 +496,7 @@ with sync_playwright() as p:
                 '.u-intro', '.u-intro > summary',
                 '.u-controls', '.u-quick-search', '#stockSearch', '.u-tabs',
                 '.u-results', '.u-list-area', '.u-stock',
-                '.u-stock .u-scoresix', '.u-stock .u-scoresix span'
+                '.u-stock .u-compact-pillars', '.u-stock .u-compact-pillars span'
             ];
             const over = [];
             for (const selector of selectors) {
@@ -499,17 +518,17 @@ with sync_playwright() as p:
                 overflow: over,
                 actionCount: actions.length,
                 factorCount: document.querySelectorAll(
-                    '.u-stock:first-child .u-scoresix span').length,
+                    '.u-stock:first-child .u-compact-pillars span').length,
             };
         }""")
         assert mobile_geometry["width"] == viewport_width, mobile_geometry
         assert mobile_geometry["docWidth"] <= viewport_width + 1, mobile_geometry
         assert mobile_geometry["bodyWidth"] <= viewport_width + 1, mobile_geometry
         assert not mobile_geometry["overflow"], mobile_geometry
-        assert mobile_geometry["actionCount"] == 5, mobile_geometry
+        assert mobile_geometry["actionCount"] == 2, mobile_geometry
         assert mobile_geometry["factorCount"] == 5, mobile_geometry
     page.set_viewport_size({"width": 390, "height": 844})
-    page.locator("#industryResearch summary").click()
+    page.locator("#industryResearch > summary").click()
     industry_geometry = page.evaluate("""() => {
         const card = document.querySelector('#industryResearch');
         const items = [...card.querySelectorAll('.u-scroller')];
@@ -529,7 +548,8 @@ with sync_playwright() as p:
     page.locator("#industryResearch summary").click()
     # Existing exporter remains downloadable without moving to legacy UI.
     with page.expect_download(timeout=30000) as dl:
-        page.get_by_role("link", name="전체 엑셀 ↓").click()
+        page.locator(".u-header-more > summary").click()
+        page.get_by_role("link", name="전체 엑셀", exact=True).click()
     downloaded = dl.value
     downloaded.save_as(str(OUT / "unified-mobile-export.xlsx"))
     with ZipFile(OUT / "unified-mobile-export.xlsx") as z:

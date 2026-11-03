@@ -2077,6 +2077,7 @@ function addToCompare(code){
  compareShown=!!(a.value.trim()&&b.value.trim());
  if(compareShown)renderCompare();
  else $('compareStatus').textContent='첫 번째 종목을 담았습니다. 다른 종목을 하나 더 선택하세요.';
+ $('stockCompare').open=true;
  $('stockCompare').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderDetails(x){
@@ -2125,6 +2126,7 @@ function renderDetails(x){
  '<h3>소속 업종 · 시장 대비 20·60·120일 상대강도</h3>'+
  sectorEvidenceMarkup(r,true)+
  '<p class="u-muted">산업·업종은 5개 점수 영역의 배점에 포함하지 않습니다. DART 업종코드 기준 그룹 표본값이며 실제 KRX 업종지수 수익률로 오해하지 마세요.</p>'+
+ '<details class="u-detail-evidence"><summary>점수 세부 근거 · 재무 · 퀀트 펼쳐보기</summary>'+
  '<h3>거래량·OBV /20 · 실제 자료 관측</h3>'+
  '<p class="u-muted">'+esc(volumeStatus(pillars.find(p=>p.key==='volume')))+'</p>'+
  volumeParts(r)+
@@ -2154,6 +2156,7 @@ function renderDetails(x){
  ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+
  quantTable(x,core)+
+ '</details>'+ 
  '<h3>손실 위험 · 가설 무효화</h3><p class="u-muted">연구점수와 별도로 위험요인을 점검해야 합니다'+
  ' · '+esc(risk.reasons.join(' / ')||'추가 위험 경고 관측 없음')+
  '. 구조선 이탈 시 재검토. 실제 체결 손실은 더 클 수 있습니다.</p>'+
@@ -2188,36 +2191,28 @@ function draw(){
   const state=x.risk.unsafe?'위험 주의':x.risk.distance===null?'손절선 미확인':'구조적 위험 검토';
   return '<button class="u-stock '+(selected===r.code?'selected':'')+
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
-   '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="정식 투자 순위가 아닌 V3 연구 상태">'+
-   (x.composite.earned===null?'대기':'연구')+
-   '</b><strong>'+esc(r.name)+'</strong></span><small>'+
+   '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="현재 조건에서의 표시 순서">'+
+   String(i+1).padStart(2,'0')+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
-   '<div class="u-stock-main"><span><b>'+won(r.price)+'</b><small>종가</small></span>'+
-   '<span class="u-provisional-total"><b>'+
-   (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+
-   '</b><small>V3 잠정 합계 · 미검증</small><small>산출 가능 '+
-   x.composite.available+'/100 · 기준일 확인 '+
-   (x.composite.stalePillars?'(이월 '+x.composite.stalePillars+'영역)':'(당일 관측)')+
-   '</small></span>'+
-   '<span class="u-personal100"><b>'+
-   (x.personal100===null?'—':x.personal100.toFixed(1))+
-   '</b><small>개인 연구용 100점 환산 · '+(x.personal100===null?'관측 부족':'미인증')+
-   '</small></span></div>'+
-   '<div class="u-scoresix" aria-label="V3 잠정점수: 빨간 테두리는 미검증 표기">'+x.composite.pillars.map(i=>
-     '<span class="u-factor-unverified" data-pillar="'+esc(i.key)+'"><small>'+esc(i.label)+' /'+i.max+
-     '</small><b>'+(i.candidate===null?'—':i.candidate.toFixed(1))+
-     '</b>'+lastObservedFactorChip(i)+
-     '<em class="u-factor-mark">'+(i.available===0?'자료 미확보':
-      '확보 '+i.available+'/'+i.max+' · 미검증')+'</em></span>').join('')+
-     '</div>'+ 
-   '<p class="u-score-hint">잠정 합계 = 실제 계산된 V3 연구점수 합계 · 산출배점 '+
-   x.composite.available+'/100 · 누락항목은 0점 처리하지 않음 · '+
-   '각 영역의 원자료 기준일을 확인하세요. 다른 확보 배점·기준일은 직접 비교할 수 없습니다.</p>'+
-   sectorEvidenceMarkup(r)+
-   '<div class="u-tags">'+(tags||'<span class="u-faint">일·주봉 신호 미확인</span>')+'</div>'+
-   '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+
-   '</span><span>'+ (x.tech===null?'V3 기술점수 미산출':'V3 기술 연구 '+x.tech.toFixed(1)+'/25')+'</span>'+
-   '<span>손절 참고 '+(x.risk.distance===null?'미확인':x.risk.distance.toFixed(1)+'%')+'</span></div></button>';
+   '<div class="u-card-kpis"><div class="u-card-price"><small>종가 · '+esc(r.price_date||model.date)+'</small><b>'+won(r.price)+'</b></div>'+
+   '<div class="u-card-score"><small>V3 잠정점수 · 미검증</small><strong>'+
+   (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+'<small> / 100</small></strong>'+ (sort==='personal'?'<small>개인환산 '+(x.personal100===null?'—':x.personal100.toFixed(1))+'점</small>':'')+'</div>'+
+   '<div class="u-card-coverage"><small>산출 배점</small><b>'+x.composite.available+'/100</b></div></div>'+
+   '<div class="u-compact-pillars" aria-label="5개 영역별 잠정점수 · 자세한 기준일과 검증 상태는 종목 상세">'+
+   x.composite.pillars.map(p=>{
+    const short={volume:'거래량',technical:'기술',financial:'재무',valuation:'가치',momentum:'모멘텀'}[p.key]||p.label;
+    return '<span data-pillar="'+esc(p.key)+'" title="'+esc(p.label+' · 확보 '+p.available+'/'+p.max+
+      ' · 기준일 '+(p.asof||'미확인')+' · 미검증')+'"><small>'+esc(short)+'</small><b>'+
+      (p.candidate===null?'—':p.candidate.toFixed(1))+'</b></span>';
+   }).join('')+'</div>'+
+   '<div class="u-card-meta"><span>업종 '+esc(r.v3_sector_research?.name||'미확인')+'</span>'+
+   '<span>점수 관측일 '+esc(x.composite.asof||model.date)+
+   (x.composite.stalePillars?' · 이전 관측 '+x.composite.stalePillars+'영역':'')+
+   '</span></div>'+
+   '<div class="u-tags">'+(tags||'<span class="u-faint">확인된 차트 신호 없음</span>')+'</div>'+
+   '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+'</span>'+
+   '<span>손절 참고 '+(x.risk.distance===null?'미확인':x.risk.distance.toFixed(1)+'%')+'</span>'+
+   '<span class="u-open-hint">상세 보기 →</span></div></button>';
  }).join(''):'<div class="u-empty">해당 조건을 만족하는 종목이 없습니다. 후보를 임의로 만들지 않습니다. 필터를 변경해 확인할 수 있어요.</div>';
  $('more').hidden=rows.length<=limit;
  $('top100Only').setAttribute('aria-pressed',String(top100Only));
