@@ -125,7 +125,8 @@ class QuantTests(unittest.TestCase):
             folder=Path(tmp)
             signal=folder/"data.json"
             signal.write_text(json.dumps({"status":"success",
-                "date":"2026-11-02","stocks":[{"code":"005930","market":"KOSPI"}]}),
+                "date":"2026-11-02","stocks":[{"code":"005930","market":"KOSPI",
+                "price":100,"price_date":"2026-11-02"}]}),
                 encoding="utf-8")
             history=folder/"history"
             history.mkdir()
