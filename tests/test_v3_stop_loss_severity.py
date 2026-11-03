@@ -94,11 +94,12 @@ class StopLossSeverityResearchTests(unittest.TestCase):
         stocks=market["stocks"]
         first=stocks[0]
         self.assertGreater(first["price"],0)
+        # Hold all price-derived factors constant across both runs.
+        first.update({"reference_resistance":first["price"]*1.2,
+                      "risk_flags":[],"price20":4.,"price60":12.})
         baseline,report0=generate(market,catalog,volume_build(market,catalog),
                                   price_build(market,catalog))
-        first.update({"stop_line":first["price"]*.95,"stop_pct":-5.,
-                      "reference_resistance":first["price"]*1.2,
-                      "risk_flags":[],"price20":4.,"price60":12.})
+        first.update({"stop_line":first["price"]*.95,"stop_pct":-5.})
         updated,report1=generate(market,catalog,volume_build(market,catalog),
                                  price_build(market,catalog))
         by0={r["code"]:r for r in baseline}
