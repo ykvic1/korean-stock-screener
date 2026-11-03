@@ -11,7 +11,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 RESEARCH = (
     (".github/workflows/v3-private-dart-original-evidence.yml", 2, True),
-    (".github/workflows/v3-dart-structured-actions-private.yml", 2, False),
+    (".github/workflows/v3-dart-structured-actions-private.yml", 1, False),
     (".github/workflows/v3-dart-structured-action-extension.yml", 1, True),
 )
 
