@@ -793,3 +793,10 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
 @media(min-width:1100px){
  .u-content:has(> #detail:empty) .u-stock-list{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Research-only personal stability overlay. Does not change five pillar scores. */
+.u-stability-note{margin:12px 0;padding:12px 14px;border:1px solid #d1e7de;
+  background:#f2faf6;border-radius:10px;font-size:12px;color:#47685b;line-height:1.7}
+.u-stability-note strong{color:#16775b;font-size:15px}
+.u-stability-note small{display:block;font-size:11px;color:#638477;line-height:1.6}
