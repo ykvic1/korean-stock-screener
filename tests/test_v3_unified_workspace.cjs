@@ -901,7 +901,7 @@ const crossReceipt={
  last_cross_date:'2026-10-15',last_cross_point_vs_ma240_pct:8.25
 };
 assert.match(unified.volumeParts({...withVolume,v3_ma240_cross_research:crossReceipt}),
- /2026-10-15 교차점 \\+8\\.25%/,
+ /2026-10-15 교차점 \+8\.25%/,
  'actual MA20/60 intersection distance and date must be shown to the user');
 assert.doesNotMatch(unified.volumeParts(withVolume),/u-ma-cross-note/,
  'do not invent cross date when the detailed stock receipt is unavailable');
@@ -919,7 +919,7 @@ assert.match(unified.volumeParts({...row,v3_volume_observed:zeroCross,
  v3_ma240_cross_research:{...crossReceipt,qualified:false,
  qualifying_cross_date:null,qualifying_cross_point_vs_ma240_pct:null,
  last_cross_point_vs_ma240_pct:13.12}}),
- /범위 초과.*교차점 \\+13\\.12%/);
+ /범위 초과.*교차점 \+13\.12%/);
 assert.equal(unified.obvLagCandidate(withVolume),true,
  'only OBV/price lag determines the filter, independent of removed OBV-rise bonus');
 assert.equal(unified.obvLagCandidate(row),false,
