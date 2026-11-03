@@ -2201,7 +2201,7 @@ function draw(){
    '<div class="u-compact-pillars" aria-label="5개 영역별 잠정점수 · 자세한 기준일과 검증 상태는 종목 상세">'+
    x.composite.pillars.map(p=>{
     const short={volume:'거래량',technical:'기술',financial:'재무',valuation:'가치',momentum:'모멘텀'}[p.key]||p.label;
-    return '<span title="'+esc(p.label+' · 확보 '+p.available+'/'+p.max+
+    return '<span data-pillar="'+esc(p.key)+'" title="'+esc(p.label+' · 확보 '+p.available+'/'+p.max+
       ' · 기준일 '+(p.asof||'미확인')+' · 미검증')+'"><small>'+esc(short)+'</small><b>'+
       (p.candidate===null?'—':p.candidate.toFixed(1))+'</b></span>';
    }).join('')+'</div>'+
