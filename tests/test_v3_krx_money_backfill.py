@@ -106,6 +106,8 @@ class ActualMoneyDerivationTests(unittest.TestCase):
         self.assertEqual(first["current_run_api_calls"], 10)
         self.assertEqual(first["historical_cohorts_remaining"], 1)
         self.assertEqual(len(client.requests), 10)
+        self.assertEqual(client.requests[0][1], days[-5])  # recent-first
+        self.assertEqual(first["collection_order"], "latest_source_cohorts_first")
         again = collect(storage=store, client=client, dates=days,
                         checksum=digest, windows=1)
         self.assertEqual(again["completed_five_session_cohorts"], 2)
