@@ -12,3 +12,15 @@
 * 현재 CI 검증은 완전히 인공 PIT/가격/스냅샷으로만 실행한다. KRX API를 사용하지 않으며 v2.2 공개 UI/워크플로는 변경하지 않는다.
 
 실행 예시: python -m unittest discover -s tests -p 'test_v3_frozen_score_backtest.py' -v
+
+
+## 현재 5영역 모델 연결 (2026-11-03)
+
+`v3_five_area_frozen_backtest.py`는 거래량20·기술25·재무20·가치20·모멘텀15의 현재 모델을 기존 PIT/기업행위 검역 엔진에 연결한다. 산업·IAS가 들어간 구형 모델을 현재 모델로 오인하지 않는다.
+
+- `freeze_observed_row`는 현재 `v3_current_observed_scorecard.generate()`의 개별 행 형식을 받는다. 실제 기업 식별자와 실제 저장 시각은 호출자가 제공하고 비공개로 보관해야 한다. 현재 자료를 과거 시각으로 소급 동결해서는 안 된다.
+- 전체 100점 배점이 관측되고 5영역 점수의 합계가 일치하는 경우만 전체모델 성과검증에 편입한다. 부분 점수·개인용 환산 점수·결측을 0으로 대체한 자료는 편입하지 않는다. 실제 관측된 0점은 유효하다.
+- `five_area_scored_walkforward`는 점수·배점·기업·기준일·동결 시각을 포함한 payload digest를 재계산한 뒤 기존 1/2/3/6/12개월 거래일 대용·비용·상폐/PIT/이벤트 검역을 실행한다. 원본을 변경하지 않는다.
+- 실제 공개 CSV의 전체배점 관측 행으로 입력 호환성을 점검한다. 테스트의 기업 식별자는 합성값이다. 실제 과거 기업 매핑·신호 시점 보관·정규장 수정주가 인증과 과거 성과검증 완료를 주장하지 않는다.
+
+검증: `python -m unittest discover -s tests -p 'test_v3_five_area_frozen_backtest.py' -v`
