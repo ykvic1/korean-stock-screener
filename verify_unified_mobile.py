@@ -319,11 +319,20 @@ with sync_playwright() as p:
     assert page.locator(".u-stock").first.locator(".u-compact-pillars").is_visible()
     assert page.locator(".u-compact-pillars [data-pillar='volume']").first.is_visible()
     volume = context.request.get(URL + "v3-volume-obv-observed.json").json()
-    assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
+    # New 6pt MA20/60 crossing replaces retired standalone OBV rise.
+    # Legacy same-date sources remain a safe 10pt-only UI fallback; they
+    # must never be mistaken for 16pt actually observed crossing evidence.
+    if volume["schema"] == "v3-current-market-volume-ma-cross-provisional-research-0.2":
+        assert volume["maximum_available_point_budget_per_observed_issuer"] == 16
+        assert volume["base_available_point_budget_per_observed_issuer"] == 10
+        assert volume["ma_cross_unavailable_is_not_zero"] is True
+    else:
+        assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
+        assert volume["available_point_budget_per_observed_issuer"] == 16
     assert volume["observed_volume_candidate_issuers"] > 0
     volume_market_day = context.request.get(URL + "data.json").json()["date"]
     assert volume["asof"] <= volume_market_day, "future volume evidence is invalid"
-    # The main scorecard must actually SHOW the sourced 16/20 partial score.
+    # The main scorecard must show only the source-observed 10..16/20 contribution.
     # A renamed but empty IAS card is an erroneous rollout.
     shown = page.locator('.u-compact-pillars span[data-pillar="volume"] b').first.inner_text()
     if volume["asof"] == volume_market_day:
