@@ -7,6 +7,7 @@ predictive probabilities, until historical universe/delisting coverage is added.
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -428,6 +429,48 @@ def source_quality_audit(requested: int, valid: int, missing: list[dict]) -> dic
     }
 
 
+def source_cohort_digest(asof: str, codes: list[str]) -> str:
+    """Bind collector status to this exact ordered signal-day issuer cohort."""
+    payload = json.dumps({"asof": asof, "codes": codes},
+                         ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("ascii")).hexdigest()
+
+
+def load_collector_failures(history_dir: Path, asof: str,
+                            codes: list[str]) -> dict[str, str]:
+    """Use only complete, matching same-run collector failure evidence.
+
+    A rejected or missing status cannot promote a score or make source data
+    valid; it merely leaves the conservative file-not-found reason in place.
+    """
+    path = history_dir / "cache_status.json"
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        return {}
+    if not isinstance(raw, dict) or len(set(codes)) != len(codes):
+        return {}
+    if (raw.get("asof") != asof or raw.get("requested") != len(codes)
+            or raw.get("cohort_sha256") != source_cohort_digest(asof, codes)):
+        return {}
+    sizes = [raw.get(k) for k in ("fetched", "reused", "failed_n")]
+    if any(type(n) is not int or n < 0 for n in sizes) or sum(sizes) != len(codes):
+        return {}
+    failed = raw.get("failed")
+    if not isinstance(failed, list) or len(failed) != raw["failed_n"]:
+        return {}
+    expected = set(codes)
+    reasons: dict[str, str] = {}
+    for row in failed:
+        if (not isinstance(row, list) or len(row) != 2
+                or not isinstance(row[0], str) or row[0] not in expected
+                or row[0] in reasons or not isinstance(row[1], str)
+                or not row[1].strip() or len(row[1]) > 170):
+            return {}
+        reasons[row[0]] = row[1]
+    return reasons
+
+
 def run(screener_json:Path,history_dir:Path,output:Path,
         asof:str | None=None,max_stocks:int=120,
         recommendations:Path|None=Path('docs/recommendations.json')) -> dict:
@@ -437,6 +480,8 @@ def run(screener_json:Path,history_dir:Path,output:Path,
     if d["date"] != asof:
         raise ValueError("신호일과 백테스트 기준일이 다름. 결측 데이터를 과거 시점에 대입하지 않음")
     stocks=prioritized_stocks(d,optional_recommendations(recommendations),max_stocks)
+    collector_errors=load_collector_failures(
+        history_dir,asof,[str(s["code"]) for s in stocks])
     cache={}; markets={}; missing=[]
     for s in stocks:
         code = str(s["code"])
@@ -447,8 +492,16 @@ def run(screener_json:Path,history_dir:Path,output:Path,
                 raise ValueError("마지막 OHLCV 날짜가 신호일과 다름")
             cache[code]=df
         except Exception as e:
-            missing.append({"code":code,"error":str(e)[:120],
-                            "reason_code":classify_source_exclusion(e)})
+            # Collector rejected the vendor bar before writing a CSV. Retain
+            # its verified same-day error instead of relabeling it "missing".
+            source_error=(collector_errors.get(code)
+                          if isinstance(e,FileNotFoundError) else None)
+            cause=ValueError(source_error) if source_error else e
+            missing.append({"code":code,"error":str(cause)[:120],
+                            "reason_code":classify_source_exclusion(cause),
+                            "error_provenance":(
+                                "matched_same_day_collector" if source_error
+                                else "local_history_check")})
     if len(cache)<20:
         result={"status":"insufficient","asof":asof,"available_symbols":len(cache),
                 "required_symbols":20,"missing":missing,"stocks":[],
