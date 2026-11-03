@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 import FinanceDataReader as fdr
 from quant_priority_universe import prioritized_stocks, optional_recommendations
+from quant_engine import read_ohlcv
 
 NEEDED = ["Open","High","Low","Close","Volume"]
 
@@ -31,12 +32,16 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
         path=cache_dir/f"{code}.csv"
         if path.exists() and not force:
             try:
-                old=pd.read_csv(path)
-                if len(old)>=650 and str(old.iloc[-1].Date)[:10]==asof:
+                # Same source-quality gate as the research engine. A fresh
+                # date alone is NOT permission to reuse corrupt OHLCV.
+                cached=read_ohlcv(path,asof)
+                if cached.index[-1].date().isoformat()==asof:
                     fresh+=1; continue
-            except Exception:pass
+            except (ValueError,FileNotFoundError,IndexError,TypeError):
+                pass
         start=(date.fromisoformat(asof)-timedelta(days=365*years+30)).isoformat()
         error=None
+        tmp=path.with_suffix('.tmp')
         for attempt in range(3):
             try:
                 df=fdr.DataReader(code,start,(date.fromisoformat(asof)+timedelta(days=1)).isoformat())
@@ -49,12 +54,16 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
                 if df.isna().any().any():raise ValueError('OHLCV 결측 — 날짜 제거로 기간 왜곡 금지')
                 if len(df)<650 or df.index[-1].strftime('%Y-%m-%d')!=asof:
                     raise ValueError(f"가격 기준일 불일치: {df.index[-1].date()} vs {asof}")
-                tmp=path.with_suffix('.tmp')
                 df.to_csv(tmp,index_label="Date",date_format="%Y-%m-%d",float_format="%.5f")
+                # Reject malformed vendor bars BEFORE promoting the cache.
+                read_ohlcv(tmp,asof)
                 os.replace(tmp,path)
                 saved+=1;error=None;break
             except Exception as e:
                 error=str(e)[:170]
+                # Only our own unfinished write is removed. Preserve prior
+                # caches for diagnosis, but the scorer still rejects them.
+                tmp.unlink(missing_ok=True)
                 time.sleep((attempt+1)*1.5)
         if error:fail.append([code,error])
         time.sleep(sleep)
