@@ -121,10 +121,20 @@ def _path(days):
     return f"derived/money-five-session/{days[0]}_{days[-1]}.json.gz"
 
 
+def _cohort_at_recent_first(dates, index):
+    # Prioritize periods near the latest source day. This allows 20/60-day
+    # actual-money research before the entire decade has been backfilled.
+    full = len(dates) // 5
+    if type(index) is not int or not 0 <= index < full:
+        raise MoneyBackfillError("invalid_recent_first_cohort_index")
+    start = 5 * (full - 1 - index)
+    return dates[start:start + 5]
+
+
 def _verify_last(storage,checkpoint,dates):
     index=checkpoint["next_window_index"]
     if not index:return
-    window=dates[(index-1)*5:index*5]
+    window=_cohort_at_recent_first(dates,index-1)
     blob,_=storage.get_content(_path(window))
     if blob is None or sha256(blob).hexdigest()!=checkpoint["last_window_file_sha256"]:
         raise MoneyBackfillError("previous_private_money_window_missing_or_mutated")
@@ -175,7 +185,7 @@ def collect(*,storage,client,dates,checksum,windows=1,progress=None):
     # completed earlier windows behind a batch-level final checkpoint.
     checkpoint_sha=sha
     for index in range(next_index,end):
-        window=dates[5*index:5*(index+1)]
+        window=_cohort_at_recent_first(dates,index)
         if progress:progress("money_window_"+str(index))
         observed,_=storage.get_content(_path(window))
         if observed is not None:
@@ -217,6 +227,9 @@ def collect(*,storage,client,dates,checksum,windows=1,progress=None):
         "status":"private_money_history_checkpoint_verified",
         "completed_five_session_cohorts":checkpoint["next_window_index"],
         "historical_session_candidates_covered":5*checkpoint["next_window_index"],
+        "collection_order":"latest_source_cohorts_first",
+        "most_recent_source_cohort_end":dates[(len(dates)//5)*5-1]
+        if checkpoint["next_window_index"] else None,
         "source_candidate_sessions":len(dates),
         "historical_cohorts_remaining":len(dates)//5-checkpoint["next_window_index"],
         "current_run_api_calls":calls,
