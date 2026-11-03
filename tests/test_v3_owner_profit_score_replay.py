@@ -58,13 +58,19 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         return snapshot(self.day,self.catalog,self.annual,self.priority,
                         {code:entry})
 
+    def fiscal_options(self,**kwargs):
+        # Combined audit can lag the official same-day DART source.
+        if self.audit.get("market_asof") != self.catalog["date"]:
+            return dict(weekly=read("v3-weekly-rotation.json"),**kwargs)
+        return kwargs
+
     def test_exact_proof_replays_market_peers_into_real_95_weight_candidate(self):
         source=self.proof()
         old=finance_source(
-            self.catalog,self.history,self.parts,self.annual,self.audit)
+            self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
         new=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,
-            owner_profit_source=source,owner_profit_priority=self.priority)
+            owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
         code=self.code
         self.assertIsNotNone(old)
         self.assertEqual(old[code]["valuation_available_max"],10)
@@ -80,11 +86,11 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
 
     def test_actual_full_scorecard_has_one_new_100weight_but_zero_certified(self):
         original=finance_source(
-            self.catalog,self.history,self.parts,self.annual,self.audit)
+            self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
         suplement=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,
             owner_profit_source=self.proof("-123456789"),
-            owner_profit_priority=self.priority)
+            owner_profit_priority=self.priority,**self.fiscal_options())
         prices=price_build(self.market,self.catalog)
         volumes=volume_build(self.market,self.catalog)
         cash=read("v3-dart-cashflow-reference.json")
@@ -93,10 +99,16 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
             self.market,self.catalog,self.history,cash,preview)
         self.assertIsNotNone(replayed)
         fcf,_=replayed
+        from v3_unscored_path_coverage import summarize as path_audit
+        source_path=(path_audit(self.market)
+                     if self.market.get("v3_unscored_path_source") is not None
+                     else None)
         _,base_summary=generate(self.market,self.catalog,volumes,prices,
-                                financial=original,cashflow=fcf)
+                                financial=original,cashflow=fcf,
+                                path_coverage_receipt=source_path)
         rows,summary=generate(self.market,self.catalog,volumes,prices,
-                              financial=suplement,cashflow=fcf)
+                              financial=suplement,cashflow=fcf,
+                              path_coverage_receipt=source_path)
         target=next(x for x in rows if x["code"]==self.code)
         self.assertEqual(target["available"],100)
         self.assertIsNone(target["official_score"])
@@ -121,9 +133,9 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
                         source["records"])
         changed=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,
-            owner_profit_source=source,owner_profit_priority=self.priority)
+            owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
         original=finance_source(
-            self.catalog,self.history,self.parts,self.annual,self.audit)
+            self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
         self.assertEqual(changed,original)
 
     def test_altered_profit_or_receipt_source_fails_closed(self):
@@ -134,14 +146,14 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
                 LivePartialScorecardError,"untrusted_official_owner_profit_supplement"):
             finance_source(
                 self.catalog,self.history,self.parts,self.annual,self.audit,
-                owner_profit_source=tampered,owner_profit_priority=self.priority)
+                owner_profit_source=tampered,owner_profit_priority=self.priority,**self.fiscal_options())
         modified=copy.deepcopy(source)
         modified["investment_grade_score_certified"]=True
         with self.assertRaisesRegex(
                 LivePartialScorecardError,"untrusted_official_owner_profit_supplement"):
             finance_source(
                 self.catalog,self.history,self.parts,self.annual,self.audit,
-                owner_profit_source=modified,owner_profit_priority=self.priority)
+                owner_profit_source=modified,owner_profit_priority=self.priority,**self.fiscal_options())
 
 
 if __name__ == "__main__":
