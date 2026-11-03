@@ -770,7 +770,7 @@ assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-l
 assert.ok(html.includes('<option value="score" selected>V3 잠정점수순</option>'),
  'default selection must explicitly use V3 provisional observations');
 assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
-assert.ok(css.includes('.u-ranking-card')&&css.includes('.u-scoresix'),
+assert.ok(css.includes('.u-stock{')&&css.includes('.u-scoresix'),
  'compact ranking style and existing deep factor evidence styles must coexist');
 assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
  css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),
