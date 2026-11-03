@@ -9,7 +9,8 @@ import pandas as pd
 from quant_engine import (label_future,wilson,build_features,StudyCase,
                           analyze_nearest,run,read_ohlcv,
                           classify_source_exclusion,source_quality_audit,
-                          source_cohort_digest,load_collector_failures)
+                          source_cohort_digest,load_collector_failures,
+                          load_collector_tail_diagnostics)
 
 class QuantTests(unittest.TestCase):
     def mk(self, rows):
@@ -160,6 +161,70 @@ class QuantTests(unittest.TestCase):
             stale=run(signal,history,folder/"quant2.json")
             self.assertEqual(stale["missing"][0]["reason_code"],
                              "history_file_missing")
+
+    def test_tail_diagnostic_requires_matching_failed_cohort_and_stays_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            signal=folder/"data.json"
+            signal.write_text(json.dumps({"status":"success",
+                "date":"2026-11-02","stocks":[{"code":"005930","market":"KOSPI"}]}),
+                encoding="utf-8")
+            history=folder/"history"
+            history.mkdir()
+            diag={"suspect_bar_count":2,"last_suspect_date":"2023-11-01",
+                  "trailing_valid_sessions":651,"trailing_650_session_candidate":True,
+                  "research_only":True,"official_adjustment_certified":False}
+            status={"asof":"2026-11-02","requested":1,
+                    "cohort_sha256":source_cohort_digest("2026-11-02",["005930"]),
+                    "fetched":0,"reused":0,"failed_n":1,
+                    "failed":[["005930","종가 범위 오류"]],
+                    "failed_bar_diagnostics":[["005930",diag]]}
+            file=history/"cache_status.json"
+            file.write_text(json.dumps(status),encoding="utf-8")
+            matched=load_collector_failures(history,"2026-11-02",["005930"])
+            self.assertEqual(load_collector_tail_diagnostics(
+                history,"2026-11-02",["005930"],matched)["005930"],diag)
+            output=run(signal,history,folder/"quant.json")
+            self.assertEqual(output["available_symbols"],0)
+            self.assertEqual(output["missing"][0]["tail_diagnostic"],diag)
+            self.assertEqual(output["source_quality_audit"]
+                             ["unverified_tail_650_candidates"],1)
+            self.assertFalse((history/"005930.csv").exists())
+            self.assertFalse(output["source_quality_audit"]
+                             ["official_adjusted_prices_certified"])
+            stale={**status,"asof":"2026-11-01"}
+            file.write_text(json.dumps(stale),encoding="utf-8")
+            missing=run(signal,history,folder/"quant_stale.json")
+            self.assertNotIn("tail_diagnostic",missing["missing"][0])
+            self.assertEqual(missing["source_quality_audit"]
+                             ["unverified_tail_650_candidates"],0)
+
+    def test_tail_diagnostic_rejects_mismatched_or_fabricated_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)
+            status={"asof":"2026-11-02","requested":1,
+                    "cohort_sha256":source_cohort_digest("2026-11-02",["005930"]),
+                    "fetched":0,"reused":0,"failed_n":1,
+                    "failed":[["005930","종가 범위 오류"]],
+                    "failed_bar_diagnostics":[["005930",{
+                        "suspect_bar_count":1,"last_suspect_date":"2026-01-01",
+                        "trailing_valid_sessions":3,
+                        "trailing_650_session_candidate":True,
+                        "research_only":True,
+                        "official_adjustment_certified":False}]]}
+            file=folder/"cache_status.json"
+            errors={"005930":"종가 범위 오류"}
+            for changed in (
+                status,
+                {**status,"failed_bar_diagnostics":[["000660",
+                  status["failed_bar_diagnostics"][0][1]]]},
+                {**status,"failed_bar_diagnostics":[["005930",{
+                    **status["failed_bar_diagnostics"][0][1],
+                    "official_adjustment_certified":True}]]}
+            ):
+                file.write_text(json.dumps(changed),encoding="utf-8")
+                self.assertEqual(load_collector_tail_diagnostics(
+                    folder,"2026-11-02",["005930"],errors),{})
 
     def test_ohlc_price_validation(self):
         with tempfile.TemporaryDirectory() as d:
