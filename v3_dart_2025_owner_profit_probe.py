@@ -34,6 +34,8 @@ class ProfitProbeError(ValueError):
 
 
 def _day(raw):
+    if type(raw) is date:
+        return raw  # Internal validated cutoff passed by plan().
     try:
         value = date.fromisoformat(raw)
         if value.isoformat() == raw:
