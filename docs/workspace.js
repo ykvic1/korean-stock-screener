@@ -1076,8 +1076,13 @@ function compareResearchScores(a,b){
 function stabilityProfile(r,composite){
  const cap=finite(r?.market_cap_eok)&&r.market_cap_eok>0?r.market_cap_eok:null;
  const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
- const capDeduction=cap===null?0:cap<1000?15:cap<3000?10:cap<5000?5:0;
- const liquidityDeduction=trading===null?0:trading<1?15:trading<5?10:trading<10?6:trading<30?3:0;
+ // The two 0..15 risk penalties are continuous; rounding is only for UI.
+ // Cap: a linear ramp to zero at 5,000억원 (no 999/1,001억원 cliff).
+ // Amount: logarithmic ramp to zero at 30억원; small trades remain risky.
+ const tenths=n=>Math.round((n+Number.EPSILON)*10)/10;
+ const capDeduction=cap===null?0:tenths(15*Math.max(0,1-cap/5000));
+ const liquidityDeduction=trading===null?0:
+  tenths(15*Math.max(0,1-Math.log1p(trading)/Math.log1p(30)));
  const deduction=capDeduction+liquidityDeduction;
  const score=composite?.earned===null||!finite(composite?.earned)?
   null:Math.max(0,Math.round((composite.earned-deduction)*10)/10);
@@ -2137,7 +2142,7 @@ function renderDetails(x){
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
- '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 위험 -'+stability.capitalDeduction+'점 · 당일 거래대금 위험 -'+stability.liquidityDeduction+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+' · 자료일 '+esc(stability.asof||'미확인')+' · 20일 평균 거래대금 아님</small></div>'+
+ '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 위험 -'+stability.capitalDeduction+'점 · 당일 거래대금 위험 -'+stability.liquidityDeduction+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+' · 자료일 '+esc(stability.asof||'미확인')+' · 20일 평균 거래대금 아님 · 경계 없는 연속 감점(시총 5천억·당일 거래대금 30억 이상 0점)</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
@@ -2170,6 +2175,7 @@ function renderDetails(x){
  '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
  technicalParts(r)+
  '<h3>재무 · 밸류 참고</h3>'+
+ '<p class="u-muted"><b>현재 가치 20점 배점:</b> PBR 5 · 이익수익률 5(지배주주순이익/시총; PER 역수 유사, 적정 PER 검증 아님) · 매출/시총 5 · FCF수익률 5. <b>EPS 성장성·지속성은 아직 미수집·미평가</b>입니다. 공시의 실제 주당순이익과 주식분할·정정·공시 효력일 검증 후 배점을 개편할 예정이며, 결측을 0점 처리하거나 기존 점수를 지우지 않습니다.</p>'+
  '<p class="u-muted">'+(annual?
   esc(annual.year)+'년 '+esc(annual.fs_div)+' 재무: 매출 '+eok(yearly.revenue)+
   ' / 영업이익 '+eok(yearly.operating_income)+
