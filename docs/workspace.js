@@ -1068,30 +1068,51 @@ function compareResearchScores(a,b){
    String(a.r?.code||'').localeCompare(String(b.r?.code||''));
 }
 
-/* Personal stability overlay: liquidity and capacity are execution risks, not
- * a sixth investment pillar. Never turn missing cap/turnover into zero points.
- * Trading value is the observed SINGLE-DAY Amount from KRX-MARCAP via FDR,
- * not a certified KRX-only 20-session average. Stock-volume OBV is unchanged.
+/* Stability research overlay version 2.
+ * Cap risk is capped at 3/100. A SINGLE-DAY Amount remains informational
+ * and NEVER changes score. No one-day liquidity proxy can replace a history
+ * of actual trading VALUE. Structural stop reference is unverified research.
+ * The 5-area V3 original score, volume/OBV, and issuer ledger are untouched.
  */
 function stabilityProfile(r,composite){
+ const tenths=n=>Math.round((n+Number.EPSILON)*10)/10;
  const cap=finite(r?.market_cap_eok)&&r.market_cap_eok>0?r.market_cap_eok:null;
  const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
- // The two 0..15 risk penalties are continuous; rounding is only for UI.
- // Cap: a linear ramp to zero at 5,000억원 (no 999/1,001억원 cliff).
- // Amount: logarithmic ramp to zero at 30억원; small trades remain risky.
- const tenths=n=>Math.round((n+Number.EPSILON)*10)/10;
- const capDeduction=cap===null?0:tenths(15*Math.max(0,1-cap/5000));
- const liquidityDeduction=trading===null?0:
-  tenths(15*Math.max(0,1-Math.log1p(trading)/Math.log1p(30)));
- const deduction=capDeduction+liquidityDeduction;
- const score=composite?.earned===null||!finite(composite?.earned)?
-  null:Math.max(0,Math.round((composite.earned-deduction)*10)/10);
- const missing=(cap===null?1:0)+(trading===null?1:0);
- const status=missing?'시총·거래대금 확인 필요':
-  cap<5000||trading<10?'규모·유동성 주의':
-  trading<30?'유동성 추가 확인':'안정형 규모·유동성 충족';
- return {capitalEok:cap,tradingEok:trading,capitalDeduction:capDeduction,
-  liquidityDeduction,deduction,score,missing,status,
+ const capDeduction=cap===null?0:tenths(3*Math.max(0,1-cap/5000));
+ const liquidityDeduction=0; // actual 20/60/120/240d & 5/10/20/60/120w money series not collected
+ const price=finite(r?.price)&&r.price>0?r.price:null;
+ const stop=finite(r?.stop_line)&&r.stop_line>0?r.stop_line:null;
+ const pct=price!==null&&stop!==null&&stop<price?100*(price-stop)/price:null;
+ const distance=pct!==null&&finite(r?.stop_pct)&&Math.abs(r.stop_pct+pct)<=2?
+  Math.round(pct*100)/100:null;
+ // A nearby stop can be hit by noise. Award only modest points for a
+ // usable 6..9% distance; too tight (<3%) and too wide (>15%) lose points.
+ let stopAdjustment=0;
+ if(distance!==null){
+  const d=distance;
+  const raw=d<3?-2+2*d/3:
+   d<6?2*(d-3)/3:d<=9?2:d<12?2*(12-d)/3:
+   d<15?-(d-12)/3:d<25?-1-2*(d-15)/10:-3;
+  const techRisk=(finite(r?.price60)&&r.price60>=40)||
+   (Array.isArray(r?.risk_flags)&&r.risk_flags.some(f=>typeof f==='string'&&
+    ['손절폭 과대','단기 급등','추격 주의','장기 추세 취약'].some(k=>f.includes(k))));
+  stopAdjustment=tenths(techRisk?Math.min(raw,-1):raw);
+ }
+ // Signed deduction: a negative result denotes a small confirmed-shape
+ // research bonus, never a promise of execution at the reference line.
+ const deduction=tenths(capDeduction-stopAdjustment);
+ const score=composite?.earned===null||!finite(composite?.earned)?null:
+  Math.max(0,Math.min(100,tenths(composite.earned-deduction)));
+ const missing=(cap===null?1:0)+(distance===null?1:0);
+ const status=distance===null?'손절 구조선 확인 필요':
+  distance<3?'손절선 너무 근접 · 노이즈 위험':
+  distance>15?'손절폭 과대 · 하락 위험':
+  cap!==null&&cap<1000?'소형주 규모 주의 · 구조 참고':
+  stopAdjustment>0?'구조 손절거리 상대 양호 · 미검증':
+  '구조 손절거리 추가 확인';
+ return {capitalEok:cap,tradingEok:trading,capitalDeduction,
+  liquidityDeduction,stopAdjustment,stopDistancePct:distance,
+  deduction,score,missing,status,turnoverPeriodEvidenceAvailable:false,
   asof:validDate(r?.price_date)?r.price_date:null};
 }
 function compareStableResearchScores(a,b){
@@ -2142,7 +2163,7 @@ function renderDetails(x){
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
- '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 위험 -'+stability.capitalDeduction+'점 · 당일 거래대금 위험 -'+stability.liquidityDeduction+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+' · 자료일 '+esc(stability.asof||'미확인')+' · 20일 평균 거래대금 아님 · 경계 없는 연속 감점(시총 5천억·당일 거래대금 30억 이상 0점)</small></div>'+
+ '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · 기간별 실제 거래대금 20·60·120·240일/5·10·20·60·120주 검증 전 미반영</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
@@ -2195,7 +2216,7 @@ function renderDetails(x){
   ' · 잠정점수는 동시장 표본 30개 이상 충족 시에만 반영, 확정 매수점수 아님.</p>'+
  fcfEvidenceMarkup(r)+
  '<p class="u-muted">비공식 간이 P/B '+(book!==null?book.toFixed(2)+'배':'미산출')+
- ' · 정식 PBR 15점과 별개. 기준일·회계범위 확인 필요.</p>'+
+ ' · 현행 가치20점 내 PBR5점의 참고 근거일 수 있으며, 공식 거래소 PBR 검증은 별도 필요.</p>'+
  '<h3>퀀트 · 과거 유사조건</h3><p class="u-muted">'+esc(quant)+'</p>'+
  quantTable(x,core)+
  '</details>'+ 
@@ -2224,7 +2245,7 @@ function draw(){
   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'현재 정렬 상위 100개 중 ':'전체 시장 중 ')+
   (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
   (coverageOnly!=='all'&&!query?'5영역별 확보배점 '+coverageOnly.split('-').join('/')+' 동일 그룹 · ':'')+
-   (sort==='stable'?'안정형 보정순 (시총·당일 거래대금 위험 감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+   (sort==='stable'?'안정형 보정순 (시총 소폭 보정·손절 구조 가감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
@@ -2241,7 +2262,7 @@ function draw(){
    '<div class="u-card-score"><small>'+(sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
    (sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
     (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
-   (sort==='stable'?'<small>V3 원점수 '+(x.composite.earned===null?'—':x.composite.earned.toFixed(1))+' · 위험감점 -'+stable.deduction+'</small>':
+   (sort==='stable'?'<small>V3 원점수 '+(x.composite.earned===null?'—':x.composite.earned.toFixed(1))+' · 보정 '+(stable.deduction>0?'-':stable.deduction<0?'+':'')+Math.abs(stable.deduction)+'</small>':
     sort==='personal'?'<small>개인환산 '+(x.personal100===null?'—':x.personal100.toFixed(1))+'점</small>':'')+'</div>'+
    '<div class="u-card-coverage"><small>산출 배점</small><b>'+x.composite.available+'/100</b></div></div>'+
    '<div class="u-compact-pillars" aria-label="5개 영역별 잠정점수 · 자세한 기준일과 검증 상태는 종목 상세">'+
@@ -2290,7 +2311,7 @@ function present(data){
   '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
-  '종목. 시총·당일 거래대금 기반 안정형 위험감점을 별도 표시하며, 기존 5개 영역 점수는 변경하지 않습니다. 당일 거래대금은 20일 평균이 아니고 정규장 독립 검증 전입니다. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
+  '종목. 시총(최대 -3점)과 구조 손절거리(-3~+2점)만 안정형 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 과거 실제 거래대금 20·60·120·240일 및 5·10·20·60·120주 비교 자료는 미확보 상태이고, 기존 5개 영역 점수와 거래량·OBV 산식은 아직 변경하지 않았습니다. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
     observedVolumeEvidence(x.r)!==null).length+
   '종목 / 관측가능 16점·미확보 4점입니다. 실시간 투자등급이 아닌 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
