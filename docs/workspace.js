@@ -2215,7 +2215,7 @@ function draw(){
    obvOnly?'60일 OBV 상승·주가 미반영 실측 연구 후보만 표시합니다. 정식 매집·매수 신호는 아닙니다.':
    '종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.');
  $('resultCount').textContent=rows.length.toLocaleString('ko-KR')+
-  '종목 · '+(query?'전체 시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체 시장 중 ')+
+  '종목 · '+(query?'전체 시장 검색 · ':top100Only?'현재 정렬 상위 100개 중 ':'전체 시장 중 ')+
   (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
   (coverageOnly!=='all'&&!query?'5영역별 확보배점 '+coverageOnly.split('-').join('/')+' 동일 그룹 · ':'')+
    (sort==='stable'?'안정형 보정순 (시총·당일 거래대금 위험 감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
