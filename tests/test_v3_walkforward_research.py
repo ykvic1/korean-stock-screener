@@ -194,6 +194,33 @@ class WalkForwardResearchTests(unittest.TestCase):
             with self.subTest(opts=opts), self.assertRaises(WalkForwardError):
                 evaluate([a], split_date="2024-01-01", **opts)
 
+    def test_same_issuer_code_change_cannot_double_count_holding_window(self):
+        earlier = example(code="000001", signal="2022-01-03")
+        later = example(code="000002", signal="2022-02-10")
+        for case in (earlier, later):
+            case["issuer_id"] = "00000001"
+        a = evaluate([earlier, later], split_date="2024-01-01")
+        b = evaluate([later, earlier], split_date="2024-01-01")
+        yearly = a["periods"]["12m"]["train"]
+        self.assertEqual(yearly["n"], 1)
+        self.assertEqual(yearly["symbols"], 1)
+        self.assertEqual(yearly["overlapping_same_symbol_suppressed"], 1)
+        self.assertEqual(yearly, b["periods"]["12m"]["train"])
+        self.assertEqual(a["periods"]["1m"]["train"]["n"], 2)
+        self.assertEqual(a["periods"]["1m"]["train"]["symbols"], 1)
+
+    def test_same_issuer_same_day_different_code_is_duplicate(self):
+        earlier = example(code="000001")
+        later = example(code="000002")
+        for case in (earlier, later):
+            case["issuer_id"] = "00000001"
+        with self.assertRaisesRegex(WalkForwardError, "duplicate_symbol_signal"):
+            evaluate([earlier, later], split_date="2024-01-01")
+        later["issuer_id"] = "not-issuer-id"
+        with self.assertRaisesRegex(WalkForwardError, "invalid_issuer_identity"):
+            evaluate([earlier, later], split_date="2024-01-01")
+
+
 
 def set_date(case, index, value):
     case["bars"][index]["date"] = value
