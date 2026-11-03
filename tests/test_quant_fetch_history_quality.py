@@ -57,6 +57,40 @@ class QuantHistoryQualityTests(unittest.TestCase):
             self.assertFalse((cache / "005930.tmp").exists())
             self.assertIn("종가 범위 오류", result["failed"][0][1])
 
+    def test_rejected_early_event_only_marks_unverified_tail_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = self.bars()
+            bad.iloc[1, bad.columns.get_loc("Close")] = 150.
+            result, cache = self.collect_with(Path(tmp), bad)
+            self.assertEqual(result["failed_n"], 1)
+            self.assertEqual(result["fetched"], 0)
+            self.assertFalse((cache / "005930.csv").exists())
+            self.assertEqual(len(result["failed_bar_diagnostics"]), 1)
+            code, diagnostic = result["failed_bar_diagnostics"][0]
+            self.assertEqual(code, "005930")
+            self.assertGreaterEqual(diagnostic["suspect_bar_count"], 1)
+            self.assertTrue(diagnostic["trailing_650_session_candidate"])
+            self.assertGreaterEqual(diagnostic["trailing_valid_sessions"], 650)
+            self.assertTrue(diagnostic["research_only"])
+            self.assertFalse(diagnostic["official_adjustment_certified"])
+            self.assertEqual(json.loads((cache / "cache_status.json").read_text())
+                             ["failed_bar_diagnostics"], result["failed_bar_diagnostics"])
+
+    def test_recent_invalid_bar_is_not_tail_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = self.bars()
+            bad.iloc[-1, bad.columns.get_loc("Close")] = 150.
+            result, _ = self.collect_with(Path(tmp), bad)
+            self.assertEqual(result["failed_n"], 1)
+            diagnostic = result["failed_bar_diagnostics"][0][1]
+            self.assertEqual(diagnostic["trailing_valid_sessions"], 0)
+            self.assertFalse(diagnostic["trailing_650_session_candidate"])
+
+    def test_stale_vendor_data_has_no_fake_current_tail_diagnostic(self):
+        bars = self.bars().iloc[:-1]
+        self.assertIsNone(fetch.invalid_tail_diagnostic(bars, self.ASOF))
+        self.assertIsNone(fetch.invalid_tail_diagnostic(None, self.ASOF))
+
     def test_same_day_corrupt_cache_must_refetch_and_revalidate(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)

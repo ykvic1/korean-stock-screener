@@ -17,6 +17,52 @@ from quant_engine import read_ohlcv, source_cohort_digest
 NEEDED = ["Open","High","Low","Close","Volume"]
 
 
+def invalid_tail_diagnostic(frame: pd.DataFrame | None, asof: str) -> dict | None:
+    """Inspect bad vendor bars without repairing, dropping or publishing prices.
+
+    A long clean tail is only a candidate for future independent source
+    comparison. It is NOT accepted as valid history by the study engine.
+    """
+    if not isinstance(frame,pd.DataFrame) or not all(k in frame for k in NEEDED):
+        return None
+    try:
+        rows=frame.loc[:,NEEDED].copy()
+        rows.index=pd.to_datetime(rows.index,errors="coerce")
+        if rows.index.isna().any() or rows.index.duplicated().any():
+            return None
+        rows=rows.sort_index().loc[:asof]
+        if rows.empty or rows.index[-1].date().isoformat()!=asof:
+            return None
+        for key in NEEDED:
+            rows[key]=pd.to_numeric(rows[key],errors="coerce")
+        bad=(rows[NEEDED].isna().any(axis=1)|
+             (rows[["Open","High","Low","Close"]]<=0).any(axis=1)|
+             (rows["Volume"]<0)|
+             (rows["Low"]>rows["High"])|
+             (rows["Open"]>rows["High"])|
+             (rows["Open"]<rows["Low"])|
+             (rows["Close"]>rows["High"])|
+             (rows["Close"]<rows["Low"]))
+        # A >65% close-to-close jump is a suspicious unverified event,
+        # not a price that this collector may silently adjust.
+        jumps=rows["Close"].pct_change().abs().gt(.65)
+        suspect=bad|jumps
+        if not suspect.any():
+            return None
+        last_bad=int(suspect.to_numpy().nonzero()[0][-1])
+        tail=len(rows)-last_bad-1
+        return {
+            "suspect_bar_count":int(suspect.sum()),
+            "last_suspect_date":rows.index[last_bad].date().isoformat(),
+            "trailing_valid_sessions":tail,
+            "trailing_650_session_candidate":tail>=650,
+            "research_only":True,
+            "official_adjustment_certified":False,
+        }
+    except (TypeError,ValueError,KeyError,IndexError,OverflowError):
+        return None
+
+
 def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
             max_stocks:int=120, sleep:float=.35, force:bool=False,
             recommendations:Path|None=Path('docs/recommendations.json')):
@@ -25,7 +71,7 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
         raise RuntimeError("시세 기준일과 신호 기준일 다름: 과거 신호값 오염 방지")
     stocks=prioritized_stocks(data,optional_recommendations(recommendations),max_stocks)
     cache_dir.mkdir(parents=True,exist_ok=True)
-    saved=0; fail=[]; fresh=0
+    saved=0; fail=[]; fresh=0; diagnostics=[]
     for i,stock in enumerate(stocks,1):
         code=str(stock.get("code",""))
         if len(code)!=6 or not code.isdigit(): continue
@@ -43,6 +89,7 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
         error=None
         tmp=path.with_suffix('.tmp')
         for attempt in range(3):
+            df=None
             try:
                 df=fdr.DataReader(code,start,(date.fromisoformat(asof)+timedelta(days=1)).isoformat())
                 if df is None or len(df)<650:
@@ -64,6 +111,10 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
                 # Only our own unfinished write is removed. Preserve prior
                 # caches for diagnosis, but the scorer still rejects them.
                 tmp.unlink(missing_ok=True)
+                if attempt == 2:
+                    diagnostic=invalid_tail_diagnostic(df,asof)
+                    if diagnostic is not None:
+                        diagnostics.append([code,diagnostic])
                 # The final failed attempt is terminal; waiting cannot retry.
                 if attempt < 2:
                     time.sleep((attempt+1)*1.5)
@@ -74,7 +125,8 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
             "cohort_sha256":source_cohort_digest(
                 asof,[str(s["code"]) for s in stocks]),
             "fetched":saved,"reused":fresh,
-            "failed_n":len(fail),"failed":fail}
+            "failed_n":len(fail),"failed":fail,
+            "failed_bar_diagnostics":diagnostics}
     (cache_dir/"cache_status.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
     return result
 
