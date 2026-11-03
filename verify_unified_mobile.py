@@ -201,18 +201,24 @@ with sync_playwright() as p:
     # Each area opens directly from the bar. Source-limited evidence must
     # remain research-only, and expanded content must fit the narrow viewport.
     assert scorecard.locator(".u-score-row summary").count() == 5
-    for pillar, evidence_text in [
+    for pillar_index, (pillar, evidence_text) in enumerate([
         ("momentum", "시장 대비 20일"),
         ("technical", "일봉 패턴"),
         ("volume", "거래량 급증 후 매물 소화"),
         ("financial", "FCF"),
         ("valuation", "FCF"),
-    ]:
+    ]):
         expander = scorecard.locator(f'.u-score-row[data-pillar="{pillar}"]')
         assert not expander.evaluate("(el) => el.open")
         expander.locator("summary").click()
         assert expander.evaluate("(el) => el.open")
-        assert evidence_text in expander.inner_text()
+        if expander.locator(".u-last-factor").count():
+            retained_text = expander.locator(".u-last-factor").inner_text()
+            assert "관측 점수 유지" in retained_text
+            assert "오늘 새로 계산된 점수가 아니며" in retained_text
+            assert re.search(r"\d{4}-\d{2}-\d{2}", retained_text)
+        elif available_by_pillar[pillar_index] > 0:
+            assert evidence_text in expander.inner_text(), pillar
         assert "미확보는 0점으로 계산한 것이 아닙니다" in expander.inner_text()
         assert page.evaluate(
             "document.documentElement.scrollWidth <= window.innerWidth"
@@ -300,11 +306,18 @@ with sync_playwright() as p:
     volume = context.request.get(URL + "v3-volume-obv-observed.json").json()
     assert volume["schema"] == "v3-current-market-volume-obv-provisional-research-0.1"
     assert volume["observed_volume_candidate_issuers"] > 0
-    assert volume["asof"] == context.request.get(URL + "data.json").json()["date"]
+    volume_market_day = context.request.get(URL + "data.json").json()["date"]
+    assert volume["asof"] <= volume_market_day, "future volume evidence is invalid"
     # The main scorecard must actually SHOW the sourced 16/20 partial score.
     # A renamed but empty IAS card is an erroneous rollout.
     shown = page.locator('.u-compact-pillars span[data-pillar="volume"] b').first.inner_text()
-    assert shown.strip() != "—", "real observed volume candidate not applied"
+    if volume["asof"] == volume_market_day:
+        assert shown.strip() != "—", "real observed volume candidate not applied"
+    elif shown.strip() != "—":
+        # A previous valid issuer observation may remain visible, but must
+        # retain its actual date rather than acquire today's price date.
+        title = page.locator('.u-compact-pillars span[data-pillar="volume"]').first.get_attribute("title")
+        assert volume_market_day not in title, "retained volume evidence was relabeled current"
     assert page.locator(".u-compact-pillars span[data-pillar='technical']").first.is_visible()
     assert page.locator(".u-compact-pillars").first.locator("span[data-pillar]").count() == 5
     data = context.request.get(URL + "data.json").json()
@@ -312,7 +325,8 @@ with sync_playwright() as p:
     # V3.0a acceptance: a matching official-source CSV must visibly restore
     # both partial financial and valuation points on the unified stock card.
     # The 5-factor UI must never silently hide a verified same-day overlay.
-    if (observed["observed_issuer_counts"]["financial"] > 0
+    if (observed["asof"] == data["date"]
+            and observed["observed_issuer_counts"]["financial"] > 0
             and observed["observed_issuer_counts"]["valuation"] > 0):
         source_csv = context.request.get(URL + "v3-current-observed-all-listed.csv").text()
         source_rows = list(csv.DictReader(StringIO(source_csv.removeprefix(chr(0xfeff)))))

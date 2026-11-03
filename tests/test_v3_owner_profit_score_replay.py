@@ -38,6 +38,14 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         cls.parts=read("v3-dart-bulk-provisional.json")
         cls.audit=read("v3-real-source-six-area-coverage.json")
         cls.priority=read("v3-near-100-evidence-priority.json")
+        # Full saved-source integration requires an aligned closing snapshot.
+        # Parser/receipt/lag rejection contracts run on deterministic fixtures
+        # in test_v3_dart_2025_owner_profit_probe even during this wait.
+        from datetime import date
+        day=date.fromisoformat(cls.catalog["date"])
+        if any(date.fromisoformat(source["asof"]) < day
+               for source in (cls.annual,cls.priority)):
+            raise unittest.SkipTest("waiting for same-day annual and priority sources")
         cls.day,_,cls.expected,_,cls.selected=plan(
             cls.catalog,cls.annual,cls.priority,None,limit=1)
         cls.code=cls.selected[0]

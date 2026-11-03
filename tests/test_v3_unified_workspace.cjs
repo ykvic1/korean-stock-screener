@@ -65,8 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261103-structural-risk-moneyhistory'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261103-structural-risk-moneyhistory'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261103-cap-five'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261103-cap-five'),'classic research route keeps its pinned assets');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
@@ -758,7 +758,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-structural-risk-moneyhistory','v30b-20261103-structural-risk-moneyhistory'],[entry,'v30b-20261103-structural-risk-moneyhistory','v30b-20261103-structural-risk-moneyhistory']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-cap-five','v30b-20261103-cap-five'],[entry,'v30b-20261103-cap-five','v30b-20261103-cap-five']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
@@ -1437,9 +1437,11 @@ const volumeSaved=JSON.parse(fs.readFileSync(
 const volumeActual=JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/data.json'),'utf8'));
 const prepared=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
-assert.equal(unified.applyObservedVolume(prepared,volumeSaved),
- volumeSaved.observed_volume_candidate_issuers);
-assert.ok(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===16));
+const expectedVolumeCount=volumeSaved.asof===prepared.date?
+ volumeSaved.observed_volume_candidate_issuers:0;
+assert.equal(unified.applyObservedVolume(prepared,volumeSaved),expectedVolumeCount);
+assert.equal(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===16),
+ expectedVolumeCount>0,'stale volume must not be relabeled as current evidence');
 const observedLagRows=unified.rankItems(prepared,legacy,'all','all','','score',
  false,false,true);
 assert.ok(observedLagRows.every(x=>unified.obvLagCandidate(x.r)),
@@ -1461,7 +1463,7 @@ assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=16));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
   unified.pillarState(x.r)[0].candidate<=16));
 const beforeScores=unified.summary(prepared,legacy).provisional;
-assert.ok(beforeScores>=volumeSaved.observed_volume_candidate_issuers);
+assert.ok(beforeScores>=expectedVolumeCount);
 const badCount={...volumeSaved,observed_volume_candidate_issuers:9999};
 const second=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
 assert.equal(unified.applyObservedVolume(second,badCount),0);
@@ -1486,22 +1488,24 @@ assert.equal(unified.summary(dailyModel,legacy).officialFullScore,0);
 const livePrice=JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/v3-current-price-technical-momentum.json'),'utf8'));
 const freshModel=legacy.prepare(structuredClone(actual),null,null,null,null,null);
-assert.equal(livePrice.asof,freshModel.date);
-assert.equal(livePrice.priced_current_session,freshModel.rows.length);
+const currentPriceAligned=livePrice.asof===freshModel.date;
+if(currentPriceAligned) assert.equal(livePrice.priced_current_session,freshModel.rows.length);
 assert.ok(livePrice.technical_research_issuer_count>0);
 assert.ok(livePrice.momentum_research_issuer_count>0);
+const priorTechnicalCount=freshModel.rows.filter(x=>unified.technicalEvidence(x.r)!==null).length;
+const priorMomentumCount=freshModel.rows.filter(x=>unified.momentumEvidence(x.r)!==null).length;
 const mergedPrice=unified.applyCurrentPriceReplay(freshModel,livePrice);
-assert.ok(mergedPrice>0,'real source-only price replay must attach some observed candidates');
+assert.equal(mergedPrice>0,currentPriceAligned,'only same-day price replay attaches candidates');
 assert.equal(freshModel.rows.filter(x=>
  unified.momentumEvidence(x.r)!==null).length,
- livePrice.momentum_research_issuer_count,
+ currentPriceAligned?livePrice.momentum_research_issuer_count:priorMomentumCount,
  'the same-date real momentum8 evidence must be shown, not silently dropped');
 assert.equal(freshModel.rows.filter(x=>
  unified.technicalEvidence(x.r)!==null).length,
- livePrice.technical_research_issuer_count,
+ currentPriceAligned?livePrice.technical_research_issuer_count:priorTechnicalCount,
  'the real technical source must be visible on each actually observed ticker');
 const freshPrior=unified.summary(freshModel,legacy).provisional;
-assert.ok(freshPrior>=livePrice.at_least_one_price_factor_issuer_count);
+assert.ok(freshPrior>=(currentPriceAligned?livePrice.at_least_one_price_factor_issuer_count:0));
 assert.equal(unified.summary(freshModel,legacy).officialFullScore,0);
 const badReal=structuredClone(livePrice);
 const realKey=Object.keys(badReal.rows)[0];
@@ -1518,8 +1522,13 @@ const observedPartialCsv=fs.readFileSync(
  path.join(__dirname,'../docs/v3-current-observed-all-listed.csv'),'utf8');
 assert.ok(source.includes("'v3-current-observed-all-listed-summary.json'"));
 assert.ok(source.includes('v3-current-observed-all-listed.csv?v='));
-assert.equal(observedPartialSummary.asof,freshModel.date);
-assert.equal(observedPartialSummary.listed_total,freshModel.marketEligible);
+assert.ok(observedPartialSummary.asof<=freshModel.date,'saved scorecard cannot be future evidence');
+if(observedPartialSummary.asof===freshModel.date){
+ assert.equal(observedPartialSummary.listed_total,freshModel.marketEligible);
+}else{
+ assert.equal(unified.fiveAreaCoverageView(observedPartialSummary,
+  freshModel.date,freshModel.marketEligible),null,'stale coverage cannot become current coverage');
+}
 assert.ok(html.includes('id="fiveAreaCoverage"'));
 assert.ok(entry.includes('id="fiveAreaCoverage"'));
 assert.ok(css.includes('.u-coverage-scroll'));
@@ -1627,7 +1636,7 @@ const overlayCount=unified.applyCurrentObservedFinance(
  freshModel,observedPartialSummary,observedPartialCsv);
 assert.ok(overlayCount>=0&&
  overlayCount<=observedPartialSummary.observed_issuer_counts.financial);
-if(observedPartialSummary.observed_issuer_counts.financial>0){
+if(observedPartialSummary.asof===freshModel.date&&observedPartialSummary.observed_issuer_counts.financial>0){
  assert.ok(overlayCount>0,'same-date verified research should be displayed');
  const financialRow=freshModel.rows.find(x=>
   x.r.v3_same_day_observed_finance?.financial?.available>0);
@@ -1870,9 +1879,9 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.equal(normal.missing,1,'invalid/unknown stop evidence is explicitly missing');
  assert.match(normal.status,/확인 필요/);
  const tiny=unified.stabilityProfile({...source,market_cap_eok:900,trading_eok:0.8},composite);
- assert.equal(tiny.capitalDeduction,2.5);
+ assert.equal(tiny.capitalDeduction,4.1);
  assert.equal(tiny.liquidityDeduction,0);
- assert.equal(tiny.score,60.7);
+ assert.equal(tiny.score,59.1);
  assert.equal(composite.earned,63.2,'the original 5-area score must never be changed');
  const missing=unified.stabilityProfile({...source,market_cap_eok:null,trading_eok:undefined},composite);
  assert.equal(missing.score,63.2,'missing evidence must not become a zero score');
@@ -1881,14 +1890,14 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  // Same cap and stop: any amount from 0 to 5000억원 MUST NOT change score.
  const allTrading=[0,0.1,0.99,1.01,2,10,30,5000].map(trading_eok=>
   unified.stabilityProfile({...source,market_cap_eok:3000,trading_eok},composite));
- assert.ok(allTrading.every(x=>x.liquidityDeduction===0&&x.score===62));
+ assert.ok(allTrading.every(x=>x.liquidityDeduction===0&&x.score===61.2));
  const at999=unified.stabilityProfile({...source,market_cap_eok:999},composite);
  const at1001=unified.stabilityProfile({...source,market_cap_eok:1001},composite);
- assert.equal(at999.capitalDeduction,2.4);
- assert.equal(at1001.capitalDeduction,2.4);
+ assert.equal(at999.capitalDeduction,4);
+ assert.equal(at1001.capitalDeduction,4);
  for(const v of [10,100,999,1001,2999,3001,4999,5001,10000]){
   const x=unified.stabilityProfile({...source,market_cap_eok:v},composite);
-  assert.ok(x.capitalDeduction>=0&&x.capitalDeduction<=3);
+  assert.ok(x.capitalDeduction>=0&&x.capitalDeduction<=5);
  }
  const ref={...source,price:100,stop_line:94,stop_pct:-6};
  const safe=unified.stabilityProfile(ref,composite);
@@ -1906,8 +1915,8 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.equal(unified.stabilityProfile({...ref,stop_pct:-25},composite).stopAdjustment,0,
   'contradictory stop reference cannot earn points');
  const totalCap=unified.stabilityProfile({...ref,market_cap_eok:900},composite);
- assert.equal(totalCap.score,62.7,'max3 cap and max2 bonus are separate');
+ assert.equal(totalCap.score,61.1,'max5 cap and max2 bonus are separate');
  assert.equal(JSON.stringify(ref),JSON.stringify({...source,price:100,stop_line:94,stop_pct:-6}),
   'source object remains unchanged');
- console.log('Personal stability overlay: no single-day money score, cap <=3, stop [-3,+2], missing retained PASS');
+ console.log('Personal stability overlay: no single-day money score, cap <=5, stop [-3,+2], missing retained PASS');
 }

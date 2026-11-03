@@ -48,7 +48,10 @@ class V30bReadinessTests(unittest.TestCase):
                                  .read_text(encoding="utf-8"))
             gap = json.loads((docs / "v3-dart-cashflow-gap-summary.json")
                              .read_text(encoding="utf-8"))
-            if (observed.get("asof") != scorecard.get("asof") or
+            catalog = json.loads((docs / "v22-market-catalog.json").read_text(encoding="utf8"))
+            if (observed.get("asof") != catalog.get("date") or
+                    observed.get("listed_total") != catalog.get("listed_total") or
+                    observed.get("asof") != scorecard.get("asof") or
                     observed.get("listed_total") != scorecard.get("listed_total") or
                     observed.get("asof") != preview.get("asof") or
                     observed.get("asof") != gap.get("asof") or
@@ -508,7 +511,8 @@ class V30bReadinessTests(unittest.TestCase):
             self.assertTrue(
                 {"public_snapshot_asof_mismatch",
                  "public_fcf_receipt_source_aggregate_mismatch",
-                 "public_fcf_issuer_subscore_source_mismatch"}
+                 "public_fcf_issuer_subscore_source_mismatch",
+                 "public_issuer_catalog_membership_mismatch"}
                 & set(displayed["blocker_codes"]), displayed["blocker_codes"])
         self.assertEqual(
             displayed["gates"]["published_fcf_issuer_subscore_source"],
