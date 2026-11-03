@@ -3,7 +3,6 @@ import copy
 import json
 from pathlib import Path
 import tempfile
-import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -14,11 +13,25 @@ DOCS=Path(__file__).resolve().parents[1]/"docs"
 
 
 def inputs():
-    def read(name):
-        return json.loads((DOCS/name).read_text(encoding="utf8"))
-    return (read("v22-market-catalog.json"),
-            read("v3-dart-book-reference.json"),
-            read("v3-near-100-evidence-priority.json"))
+    # Deterministic synthetic evidence. Live source products roll over at
+    # different times and must not turn parser unit tests into outage gates.
+    day = "2026-11-02"
+    codes = ["000001", "000002"]
+    catalog = {"date":day,"listed_total":2,"rows":[
+        {"code":code,"name":"Synthetic "+code,
+         "market":"KOSPI" if i == 0 else "KOSDAQ"}
+        for i, code in enumerate(codes)]}
+    book = {"asof":day,"historical_point_in_time_verified":False,
+            "records":[{"code":code,"status":"observed","annual":{
+                "year":2025,"fs_div":"CFS","currency":"KRW",
+                "receipt_id":"20260320000001","values":{"owners_profit":None}}}
+                for code in codes]}
+    priority = {"schema":"v3-observed-near100-source-gap-priority-0.1",
+                "asof":day,"no_points_added":True,
+                "official_trade_score_certified":False,
+                "official_2025_owners_profit_missing_priority_codes":codes,
+                "official_2025_owners_profit_missing_priority_count":len(codes)}
+    return catalog, book, priority
 
 
 class Result:
@@ -280,6 +293,24 @@ class OwnerProfitSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(probe.ProfitProbeError,"misaligned_owner_profit_source_priority"):
             probe.plan(self.catalog,self.book,bogus)
 
+    def test_day_rollover_blocks_provider_without_relabeling_prior_evidence(self):
+        for product in ("catalog", "book", "priority"):
+            catalog,book,priority=inputs()
+            if product == "catalog":
+                catalog["date"]="2026-11-03"
+            elif product == "book":
+                book["asof"]="2026-10-30"
+            else:
+                priority["asof"]="2026-10-30"
+            before=copy.deepcopy((catalog,book,priority))
+            provider=Source({"status":"000","list":[]})
+            with self.subTest(product=product), self.assertRaisesRegex(
+                    probe.ProfitProbeError,"misaligned_owner_profit_source_priority"):
+                probe.collect(catalog,book,priority,None,key="synthetic",
+                              session=provider,cache=None,limit=1)
+            self.assertEqual(provider.calls,[])
+            self.assertEqual((catalog,book,priority),before)
+
     def test_actions_company_code_cache_is_read_from_repository_root(self):
         with tempfile.TemporaryDirectory() as td:
             cache=Path(td)/".cache"/"v3-dart-company-codes.json"
@@ -296,8 +327,14 @@ class OwnerProfitSourceTests(unittest.TestCase):
                 probe._read_company_cache_from_root(cache)
 
     def test_cli_dry_run_no_network_or_score_publication(self):
-        # Uses only saved source JSON; official secret deliberately absent.
-        probe.main(["--docs",str(DOCS),"--mode","dry-run","--limit","5"])
+        # Synthetic disk fixture, deliberately no official credential.
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name, value in zip(("v22-market-catalog.json",
+                    "v3-dart-book-reference.json",
+                    "v3-near-100-evidence-priority.json"), inputs()):
+                (root/name).write_text(json.dumps(value),encoding="utf8")
+            probe.main(["--docs",str(root),"--mode","dry-run","--limit","5"])
 
 
 if __name__=="__main__":

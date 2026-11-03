@@ -1068,8 +1068,8 @@ function compareResearchScores(a,b){
    String(a.r?.code||'').localeCompare(String(b.r?.code||''));
 }
 
-/* Stability research overlay version 2.
- * Cap risk is capped at 3/100. A SINGLE-DAY Amount remains informational
+/* Stability research overlay version 3.
+ * Cap risk is capped at 5/100. A SINGLE-DAY Amount remains informational
  * and NEVER changes score. No one-day liquidity proxy can replace a history
  * of actual trading VALUE. Structural stop reference is unverified research.
  * The 5-area V3 original score, volume/OBV, and issuer ledger are untouched.
@@ -1078,7 +1078,7 @@ function stabilityProfile(r,composite){
  const tenths=n=>Math.round((n+Number.EPSILON)*10)/10;
  const cap=finite(r?.market_cap_eok)&&r.market_cap_eok>0?r.market_cap_eok:null;
  const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
- const capitalDeduction=cap===null?0:tenths(3*Math.max(0,1-cap/5000));
+ const capitalDeduction=cap===null?0:tenths(5*Math.max(0,1-cap/5000));
  const liquidityDeduction=0; // actual 20/60/120/240d & 5/10/20/60/120w money series not collected
  const price=finite(r?.price)&&r.price>0?r.price:null;
  const stop=finite(r?.stop_line)&&r.stop_line>0?r.stop_line:null;
@@ -2311,7 +2311,7 @@ function present(data){
   '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
-  '종목. 시총(최대 -3점)과 구조 손절거리(-3~+2점)만 안정형 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 과거 실제 거래대금 20·60·120·240일 및 5·10·20·60·120주 비교 자료는 미확보 상태이고, 기존 5개 영역 점수와 거래량·OBV 산식은 아직 변경하지 않았습니다. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
+  '종목. 시총(연속형 최대 -5점)과 구조 손절거리(-3~+2점)만 안정형 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 과거 실제 거래대금 20·60·120·240일 및 5·10·20·60·120주 비교 자료는 미확보 상태이고, 기존 5개 영역 점수와 거래량·OBV 산식은 아직 변경하지 않았습니다. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
     observedVolumeEvidence(x.r)!==null).length+
   '종목 / 관측가능 16점·미확보 4점입니다. 실시간 투자등급이 아닌 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
