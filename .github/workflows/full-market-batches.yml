@@ -138,7 +138,7 @@ jobs:
           path: batch-parts
       - name: Reconcile batch census; code and schedule publish, manual audit stays read-only
         env:
-          MODE: ${{ github.event_name != 'workflow_dispatch' && 'publish' || inputs.mode }}
+          MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'publish' || inputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
@@ -151,7 +151,7 @@ jobs:
               --manifest batch-plan/manifest.json --parts batch-parts
           fi
       - name: Reconcile every stock outcome before public v2.2 publication
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish' }}
         run: |
           set -euo pipefail
           # Generated report is ONLY aggregate coverage and error categories;
@@ -159,13 +159,13 @@ jobs:
           python v22_full_universe_audit.py \
             --daily docs/data.json --output docs/v22-coverage.json
       - name: Audit research-only daily path source availability (no extra investment points)
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish' }}
         run: |
           set -euo pipefail
           python v3_unscored_path_coverage.py --daily docs/data.json --output docs/v3-unscored-path-coverage.json
           python v3_unscored_path_coverage.py --verify --daily docs/data.json --output docs/v3-unscored-path-coverage.json
       - name: Publish ONE final v2 Pages/Excel snapshot after complete union
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -178,7 +178,7 @@ jobs:
             git push origin HEAD:main
           fi
       - name: Keep only final derived Excel and failure audit after requested publication
-        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.mode == 'publish') }}
+        if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish') }}
         uses: actions/upload-artifact@v4
         with:
           name: full-market-final-report-${{ github.run_id }}
