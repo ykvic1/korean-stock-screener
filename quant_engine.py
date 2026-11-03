@@ -214,27 +214,58 @@ def reference_cases(cache: dict[str,pd.DataFrame], market: dict[str,str],
 
 
 def chronological_holdout(selected):
-    """Purge training labels whose full outcome window reaches the test split.
+    """Diagnose a time-ordered split without fitting or claiming prediction.
 
-    This remains a descriptive diagnostic: neighbors/weights are not fitted
-    independently, and present-day surviving issuers still bias the sample.
+    Older labels are purged if their complete outcome window overlaps the
+    test period. Both sides must meet separate sample and diversity floors;
+    the shorter test window needs four quarters rather than the twelve
+    required for the broad historical sample.
     """
-    dates=sorted(set(c.date for c in selected))
-    cutoff=dates[int(len(dates)*.8)]
-    recent=[c for c in selected if c.date>=cutoff]
-    older=[c for c in selected if c.date<cutoff]
-    train=[c for c in older if isinstance(c.outcome_end_date,str)
-           and c.date<=c.outcome_end_date<cutoff]
-    sufficient=(len(recent)>=MIN_OBSERVATIONS and
-        len(set(c.code for c in recent))>=MIN_SYMBOLS and
-        len(set(c.quarter for c in recent))>=MIN_QUARTERS)
-    return {'status':'exploratory' if sufficient else '미검증: 최근 홀드아웃 표본 부족',
-        'split_date':cutoff,'train_n':len(train),'test_n':len(recent),
-        'purged_training_outcome_overlap_or_unknown_n':len(older)-len(train),
-        'training_outcomes_strictly_before_split':True,
-        'independently_fitted_model':False,
-        'test_mean_net_return_pct':round(float(np.mean([c.return_pct for c in recent])),2) if sufficient else None}
-
+    dates = sorted(set(c.date for c in selected))
+    if not dates:
+        return {
+            "status": "미검증: 홀드아웃 표본 없음",
+            "split_date": None, "train_n": 0, "test_n": 0,
+            "train_symbol_n": 0, "test_symbol_n": 0,
+            "train_quarter_n": 0, "test_quarter_n": 0,
+            "train_minimums_met": False, "test_minimums_met": False,
+            "purged_training_outcome_overlap_or_unknown_n": 0,
+            "training_outcomes_strictly_before_split": True,
+            "independently_fitted_model": False,
+            "test_mean_net_return_pct": None,
+        }
+    cutoff = dates[int(len(dates) * .8)]
+    recent = [c for c in selected if c.date >= cutoff]
+    older = [c for c in selected if c.date < cutoff]
+    train = [c for c in older if isinstance(c.outcome_end_date, str)
+             and c.date <= c.outcome_end_date < cutoff]
+    train_symbols = len(set(c.code for c in train))
+    train_quarters = len(set(c.quarter for c in train))
+    test_symbols = len(set(c.code for c in recent))
+    test_quarters = len(set(c.quarter for c in recent))
+    train_sufficient = (len(train) >= MIN_OBSERVATIONS
+                        and train_symbols >= MIN_SYMBOLS
+                        and train_quarters >= MIN_QUARTERS)
+    test_sufficient = (len(recent) >= MIN_OBSERVATIONS
+                       and test_symbols >= MIN_SYMBOLS
+                       and test_quarters >= 4)
+    sufficient = train_sufficient and test_sufficient
+    return {
+        "status": "exploratory" if sufficient else "미검증: 홀드아웃 학습·검증 표본 부족",
+        "split_date": cutoff,
+        "train_n": len(train), "test_n": len(recent),
+        "train_symbol_n": train_symbols, "test_symbol_n": test_symbols,
+        "train_quarter_n": train_quarters, "test_quarter_n": test_quarters,
+        "train_minimums_met": train_sufficient,
+        "test_minimums_met": test_sufficient,
+        "purged_training_outcome_overlap_or_unknown_n": len(older) - len(train),
+        "training_outcomes_strictly_before_split": True,
+        "independently_fitted_model": False,
+        "test_mean_net_return_pct": (
+            round(float(np.mean([c.return_pct for c in recent])), 2)
+            if sufficient else None
+        ),
+    }
 
 def analyze_nearest(query_code: str, query_vec: np.ndarray,
                     query_market: str, cases: list[StudyCase],
