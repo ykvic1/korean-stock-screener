@@ -94,6 +94,79 @@ def observed(stock, *, asof, market):
     }
 
 
+def market_cap_bias_diagnostic(results, members):
+    """Descriptive source-size audit; NEVER feeds back into investment points.
+
+    Market cap is a snapshot listing REFERENCE, not a verified historical PIT
+    capitalization. A missing volume score is excluded from the mean, not 0.
+    Different 10/16-point observation ceilings are compared only via the
+    observed share of each issuer's own available-point ceiling.
+    """
+    labels=("under_500_eok", "500_to_4999_eok",
+            "5000_to_49999_eok", "50000_eok_and_above",
+            "market_cap_unavailable")
+    aggregate={label:{"listed":0,"volume_scored":0,"sum_points":0,
+                      "sum_observed_share":0.0,"cross_eligible":0,
+                      "cross_qualified":0} for label in labels}
+    for code,entry in members.items():
+        cap=entry.get("reference_market_cap_eok")
+        if not _finite(cap) or cap<=0:
+            label="market_cap_unavailable"
+        elif cap<500:
+            label="under_500_eok"
+        elif cap<5000:
+            label="500_to_4999_eok"
+        elif cap<50000:
+            label="5000_to_49999_eok"
+        else:
+            label="50000_eok_and_above"
+        target=aggregate[label]
+        target["listed"]+=1
+        current=results.get(code)
+        if current is None:
+            continue
+        points=current["observed_points"]
+        ceiling=current["observed_available_max"]
+        target["volume_scored"]+=1
+        target["sum_points"]+=points
+        target["sum_observed_share"]+=points/ceiling
+        cross=current["subpoints"]["ma20_ma60_cross_near_ma240"]
+        if cross is not None:
+            target["cross_eligible"]+=1
+            if cross==6:
+                target["cross_qualified"]+=1
+    rows=[]
+    for label in labels:
+        item=aggregate[label]
+        scored=item["volume_scored"]
+        eligible=item["cross_eligible"]
+        rows.append({
+            "bucket":label,
+            "listed_issuers":item["listed"],
+            "score_observed_issuers":scored,
+            "score_missing_issuers":item["listed"]-scored,
+            "mean_observed_points_not_full20":(
+                round(item["sum_points"]/scored,3) if scored else None),
+            "mean_pct_of_observed_available_ceiling":(
+                round(100*item["sum_observed_share"]/scored,3)
+                if scored else None),
+            "ma_cross_eligible_issuers":eligible,
+            "ma_cross_qualified_issuers":item["cross_qualified"],
+            "ma_cross_qualified_pct_of_eligible":(
+                round(100*item["cross_qualified"]/eligible,3)
+                if eligible else None),
+        })
+    return {
+        "schema":"v3-volume-market-cap-reference-bias-audit-0.1",
+        "cap_units":"eok_krw",
+        "reference_market_cap_is_not_official_PIT":True,
+        "historical_size_bias_proved":False,
+        "investment_points_modified":False,
+        "unknown_volume_scores_never_treated_as_zero":True,
+        "buckets":rows,
+    }
+
+
 def build(market,catalog):
     """One CURRENT market-date census, all unpriced issuers still missing."""
     try:
@@ -156,6 +229,7 @@ def build(market,catalog):
         "historical_PIT_certified":False,
         "certified_100_point_investment_scores":0,
         "research_only":True,
+        "market_cap_bias_diagnostic":market_cap_bias_diagnostic(results,members),
         "records":dict(sorted(results.items())),
     }
 
