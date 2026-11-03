@@ -34,7 +34,7 @@ const KSIC2_NAMES=Object.freeze({
 });
 const VOLUME_COMPONENTS=Object.freeze([
  ['최근20일/이전40일 거래량',6,'sustained_volume'],
- ['60거래일 OBV 방향',6,'obv_60_direction'],
+ ['최근20일 20·60일선 골든크로스 · 교차점/240일선 ±12%',6,'ma20_ma60_cross_near_ma240'],
  ['OBV 상승 대비 주가 미반영',4,'obv_price_not_reflected'],
  ['거래량 급증 후 매물 소화',4,'post_spike_absorption']
 ]);
@@ -182,13 +182,14 @@ function momentumEvidence(r){
     Math.abs(total-z.momentum_research_candidate)>0.001)return null;
  return {earned:Math.round(total*10000)/10000,available};
 }
-// Validate real same-session price-volume research, NOT foreign/institutional
-// net buying. No source-derived candidate exists for the remaining 4 points.
+// No separate OBV-rise bonus. The MA20/60 cross 6pt requires a dated
+// intersection-vs-MA240 receipt; missing cross history is not 0 points.
 function observedVolumeEvidence(r){
  const v=r?.v3_volume_observed;
  if(!v||v.asof!==r.price_date||v.market!==r.market||
-   !validDate(v.asof)||v.observed_available_max!==16||
-   v.unobserved_max!==4||v.source_history_adjusted_verified!==false||
+   !validDate(v.asof)||![10,16].includes(v.observed_available_max)||
+   v.unobserved_max!==20-v.observed_available_max||
+   v.source_history_adjusted_verified!==false||
    v.source_exchange_regular_only_verified!==false||
    v.foreign_institutional_net_buy_inferred!==false||
    v.investable_score_certified!==false||
@@ -196,32 +197,58 @@ function observedVolumeEvidence(r){
    !Array.isArray(v.risk_flags)||v.risk_flags.some(x=>typeof x!=='string')||
    !v.subpoints||typeof v.subpoints!=='object')return null;
  const z=v.subpoints;
+ const cross=z.ma20_ma60_cross_near_ma240;
  if(z.post_spike_absorption!==null ||
-   !finite(z.sustained_volume)||!finite(z.obv_60_direction)||
-   !finite(z.obv_price_not_reflected)||
+   !finite(z.sustained_volume)||!finite(z.obv_price_not_reflected)||
    z.sustained_volume<0||z.sustained_volume>6||
-   z.obv_60_direction<0||z.obv_60_direction>6||
    z.obv_price_not_reflected<0||z.obv_price_not_reflected>4||
+   (v.observed_available_max===10?cross!==null:!(cross===0||cross===6))||
    !finite(v.observed_points)||
    Math.abs(v.observed_points-(z.sustained_volume+
-      z.obv_60_direction+z.obv_price_not_reflected))>0.000001)return null;
- return {earned:v.observed_points,available:16,fullyObserved:false};
+      z.obv_price_not_reflected+(cross??0)))>0.000001)return null;
+ return {earned:v.observed_points,available:v.observed_available_max,fullyObserved:false};
 }
 // Saved 60-session OBV rise with price lag [-12,+10]%; research only.
 // Not independently adjusted divergence, institutional flow, or a buy signal.
 function obvLagCandidate(r){
  const evidence=observedVolumeEvidence(r);
  const z=r?.v3_volume_observed?.subpoints;
- return evidence!==null&&z?.obv_60_direction===6&&
-   z?.obv_price_not_reflected===4;
+ return evidence!==null&&z?.obv_price_not_reflected===4;
+}
+// Transitional reader for the dated pre-cross snapshot. Never reuse its
+// retired 6-point OBV-rise component as MA evidence.
+function legacyVolumeBaseOnly(rec){
+ if(!rec||typeof rec!=='object'||rec.observed_available_max!==16||
+   rec.unobserved_max!==4||!rec.subpoints||typeof rec.subpoints!=='object')return null;
+ const z=rec.subpoints;
+ if(!finite(z.sustained_volume)||z.sustained_volume<0||z.sustained_volume>6||
+   !(z.obv_60_direction===0||z.obv_60_direction===6)||
+   !(z.obv_price_not_reflected===0||z.obv_price_not_reflected===4)||
+   z.post_spike_absorption!==null||
+   !finite(rec.observed_points)||
+   Math.abs(rec.observed_points-(z.sustained_volume+
+     z.obv_60_direction+z.obv_price_not_reflected))>0.000001)return null;
+ return {...rec,
+  observed_points:z.sustained_volume+z.obv_price_not_reflected,
+  observed_available_max:10,unobserved_max:10,
+  subpoints:{sustained_volume:z.sustained_volume,
+   ma20_ma60_cross_near_ma240:null,
+   obv_price_not_reflected:z.obv_price_not_reflected,
+   post_spike_absorption:null},
+  legacy_obv_six_points_removed:true};
 }
 function applyObservedVolume(model,source){
  if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
    !Number.isInteger(model.marketEligible)||model.marketEligible<1||
-   !source||source.schema!=='v3-current-market-volume-obv-provisional-research-0.1'||
+   !source||!['v3-current-market-volume-ma-cross-provisional-research-0.2',
+    'v3-current-market-volume-obv-provisional-research-0.1'].includes(source.schema)||
    source.asof!==model.date||source.listed_total!==model.marketEligible||
    source.points_budget!==20||
-   source.available_point_budget_per_observed_issuer!==16||
+   (source.schema==='v3-current-market-volume-ma-cross-provisional-research-0.2'
+    ?(source.maximum_available_point_budget_per_observed_issuer!==16||
+      source.base_available_point_budget_per_observed_issuer!==10||
+      source.ma_cross_unavailable_is_not_zero!==true)
+    :source.available_point_budget_per_observed_issuer!==16)||
    source.not_observed_absorption_max!==4||
    source.ias_investor_flow_component_used!==false||
    source.technical_one_day_volume_not_double_counted!==true||
@@ -246,10 +273,12 @@ function applyObservedVolume(model,source){
  const accepted=[];
  for(const [code,rec] of Object.entries(source.records)){
   const r=list.get(code);
-  if(!TODAY_CODE.test(code)||!r||!rec||typeof rec!=='object'||
+  const next=source.schema==='v3-current-market-volume-obv-provisional-research-0.1'
+   ?legacyVolumeBaseOnly(rec):rec;
+  if(!TODAY_CODE.test(code)||!r||!next||typeof next!=='object'||
      r.price_date!==model.date||
-     observedVolumeEvidence({...r,v3_volume_observed:rec})===null)return 0;
-  accepted.push([r,rec]);
+     observedVolumeEvidence({...r,v3_volume_observed:next})===null)return 0;
+  accepted.push([r,next]);
  }
  if(accepted.length!==source.observed_volume_candidate_issuers)return 0;
  for(const [r,rec] of accepted)r.v3_volume_observed=rec;
@@ -1187,8 +1216,8 @@ function volumeStatus(pillar){
  if(!pillar||pillar.key!=='volume'||pillar.max!==WEIGHTS.volume)
   return '거래량·OBV 기준 확인 불가';
  return pillar.candidate===null
-  ?'거래량·OBV 실제 파생자료가 미확보입니다. 데이터 결측은 0점이 아닙니다.'
-  :'가격·거래량 관측으로 20점 중 '+pillar.available+'점 배점만 산출했습니다. 외국인·기관 매수 주체는 확인할 수 없으며, 매집 증거 또는 매수 신호가 아닙니다.';
+  ?'신규 MA20·60일선 교차점/240일선 근거 또는 거래량 자료가 미확보입니다. 구형 OBV 상승 6점은 중단했으며 결측은 0점이 아닙니다.'
+  :'거래량/OBV 괴리 및 최근20일 골든크로스의 240일선 대비 ±12%를 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 매집 증거 또는 매수 신호가 아닙니다.';
 }
 function volumeParts(r){
  const v=observedVolumeEvidence(r);

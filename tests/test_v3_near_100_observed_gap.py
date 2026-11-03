@@ -157,6 +157,34 @@ class SourceRolloverGuardTests(unittest.TestCase):
                 GapAuditError,"untrusted_frozen_profit_priority_cohort"):
             retain_original_priority_cohort(prior,recalculated,invalid)
 
+    def test_old_volume_contract_can_reduce_same_day_100_coverage_without_losing_dart_queue(self):
+        from v3_near_100_observed_gap import VOLUME_CONTRACT
+        prior={"schema":"v3-observed-near100-source-gap-priority-0.1",
+               "asof":"2026-11-03","listed_total":2,
+               "no_points_added":True,"official_trade_score_certified":False,
+               "missing_capex_is_not_zero":True,
+               "official_2025_owners_profit_missing_priority_codes":["000001"],
+               "official_2025_owners_profit_missing_priority_count":1,
+               "provisional_observed_100_weight_issuers":1}
+        observed={**prior,"provisional_observed_100_weight_issuers":0,
+                  "volume_subfactor_contract":VOLUME_CONTRACT}
+        source={"schema":"v3-official-fy2025-owner-profit-source-0.1",
+                "market_asof":prior["asof"],
+                "investment_grade_score_certified":False,
+                "historical_pit_verified":False,
+                "account_value_used_in_scores":False,
+                "records":{"000001":{"source_status":"observed"}}}
+        self.assertEqual(retain_original_priority_cohort(prior,observed,source),
+                         (prior,True))
+        # A second drop under an unchanged contract remains an invalid
+        # source regression; transition is strictly one-way.
+        updated_prior={**prior,"volume_subfactor_contract":VOLUME_CONTRACT}
+        with self.assertRaises(GapAuditError):
+            retain_original_priority_cohort(updated_prior,observed,source)
+        with self.assertRaises(GapAuditError):
+            retain_original_priority_cohort(prior,
+                {**observed,"volume_subfactor_contract":"untrusted"},source)
+
     def test_empty_queue_and_no_supplement_do_not_force_an_acquisition(self):
         observed={"asof":"2026-11-03",
                   "official_2025_owners_profit_missing_priority_codes":[],

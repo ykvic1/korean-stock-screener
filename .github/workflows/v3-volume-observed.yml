@@ -1,10 +1,11 @@
-name: V3 Source-Observed Volume OBV 20-Point Research (16 observed)
+name: V3 Source-Observed Volume and MA20/60 Cross 20-Point Research
 
 on:
   push:
     branches: [main]
     paths:
       - v3_volume_participation.py
+      - v3_ma240_cross_research.py
       - docs/data.json
       - docs/v22-market-catalog.json
       - .github/workflows/v3-volume-observed.yml
@@ -45,7 +46,7 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_volume_participation.py
           python -m unittest discover -s tests -p 'test_v3_volume_participation.py' -v
-      - name: Recalculate saved market EOD price-volume/OBV, at most 16 of 20
+      - name: Recalculate EOD volume and dated MA intersection, 10-16 of 20
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: python v3_volume_participation.py --mode write
       - name: Publish ONLY volume-derived private-safe source evidence
@@ -86,10 +87,12 @@ jobs:
           from pathlib import Path
           src=Path("docs/v3-volume-obv-observed.json")
           lines=[
-            "### V3 실제 거래량·OBV 잠정 참여도 / 공식 투자자 수급 대체 아님",
+            "### V3 거래량·MA20/60 교차점·OBV 괴리 연구점수 / 투자자 수급 대체 아님",
             "현재 상장종목 전체 행의 자료미확보를 빈칸으로 보존한 CSV도 같은 원장으로 발행.",
             "매매주체(외국인/기관) 판별 없음. OBV 상승만으로 매집 추정 금지.",
-            "20점 예산 중 현행 V2.2 출처 관측 가능한 배점은 16점, 4점 결측.",
+            "20점 중 기본 10점 + 유효 260거래일 교차점 관측 시 6점, 별도 매물소화 4점.",
+            "20·60일선 골든크로스 교차점과 240일선 대비 ±12%, 최근 20거래일만 인정.",
+            "기존 독립 OBV 상승 6점은 삭제. 자료미확보인 교차 6점은 0점이 아님.",
             "당일 거래량 급증은 기술25 내 별도 2점 관측이므로 중복 제외.",
             "일별 보정/정규장 거래량, 기업행사, 산업15, 정식100점 미인증.",
           ]
@@ -98,7 +101,7 @@ jobs:
               lines += [
                 "실제 시장자료 기준일: "+str(a["asof"]),
                 "전체 상장종목: "+str(a["listed_total"]),
-                "V3 거래량·OBV 16점 이내 관측기업: "+
+                "V3 거래량·OBV 기본점수 관측기업(최대16점): "+
                   str(a["observed_volume_candidate_issuers"]),
                 "미관측·가격결측 기업: "+str(a["insufficient_or_unpriced_issuers"]),
                 "공식 100점 인증 기업: 0",

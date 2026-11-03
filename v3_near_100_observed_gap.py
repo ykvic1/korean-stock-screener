@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 
 SCHEMA = "v3-observed-near100-source-gap-priority-0.1"
+VOLUME_CONTRACT = "v3-volume-ma20-60-intersection-vs-ma240-6pt-0.1"
 AREAS = {
     "volume": ("거래량_OBV_산출배점", 20),
     "technical": ("기술_산출배점", 25),
@@ -207,6 +208,7 @@ def generate(csv_text, summary, financial, annual, cf_evidence):
     # Never promote missing source cells or an old stale last-observed factor.
     return {
         "schema": SCHEMA, "asof": day, "listed_total": total,
+        "volume_subfactor_contract":VOLUME_CONTRACT,
         "provisional_observed_100_weight_issuers": distribution[100],
         "provisional_100_weight_pct": round(100 * distribution[100] / total, 2),
         "complete_by_market": {
@@ -272,8 +274,13 @@ def retain_original_priority_cohort(original, observed, supplement):
             "official_2025_owners_profit_missing_priority_count")
         or not set(supplement["records"]).issubset(names)
         or type(original.get("provisional_observed_100_weight_issuers")) is not int
-        or observed["provisional_observed_100_weight_issuers"] <
-            original["provisional_observed_100_weight_issuers"]):
+        or (observed["provisional_observed_100_weight_issuers"] <
+            original["provisional_observed_100_weight_issuers"]
+            # First transition from the old OBV-rise six-point source may
+            # reduce observed coverage on the same day. Freeze the DART
+            # acquisition queue, not the obsolete full-coverage score count.
+            and not (original.get("volume_subfactor_contract") is None
+                     and observed.get("volume_subfactor_contract")==VOLUME_CONTRACT))):
         raise GapAuditError("untrusted_frozen_profit_priority_cohort")
     return original, True
 

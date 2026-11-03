@@ -93,12 +93,12 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                          sum(r["unavailable"] for r in rows))
         self.assertEqual(summary["certified_100point_count"],0)
         self.assertEqual(summary["highest_currently_observable_weight"],sum(max(r["factor_available"][a] for r in rows) for a in summary["area_budgets"]))
-        self.assertEqual(by["005930"]["factors"]["volume"],16.0)
-        self.assertEqual(by["005930"]["factor_available"]["volume"],16)
+        self.assertEqual(by["005930"]["factors"]["volume"],10.0)
+        self.assertEqual(by["005930"]["factor_available"]["volume"],10)
         self.assertEqual(by["300004"]["earned"],None)
         self.assertEqual(by["300004"]["available"],0)
         self.assertEqual(by["300004"]["unavailable"],100)
-        self.assertEqual(by["005930"]["unavailable"],84)
+        self.assertEqual(by["005930"]["unavailable"],90)
         txt=to_csv(rows,summary)
         self.assertTrue(txt.startswith("\ufeff"))
         csv_rows=list(csv.DictReader(StringIO(txt.lstrip("\ufeff"))))
@@ -197,7 +197,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             main(["--docs",str(root),"--mode","verify"])
             p=root/"v3-current-observed-all-listed.csv"
             clean=p.read_text(encoding="utf8")
-            p.write_text(clean.replace("16.0","20.0"),encoding="utf8")
+            p.write_text(clean.replace("10.0","20.0"),encoding="utf8")
             with self.assertRaises(LivePartialScorecardError):
                 main(["--docs",str(root),"--mode","verify"])
 

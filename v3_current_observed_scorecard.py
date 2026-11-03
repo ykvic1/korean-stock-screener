@@ -1,7 +1,8 @@
 """Same-close all-listed provisional scorecard, never blocked by older DART.
 
 Only independent current-close price evidence is always replayed:
-volume/OBV <=16/20, technical <=25/25, momentum <=8/15.
+volume/OBV+MA-cross <=10/20 without a 260-session receipt, or <=16/20
+when a valid cross-history receipt exists; technical <=25/25, momentum <=8/15.
 Where an exact-date 121-session source receipt is present, provisional-only
 post-spike volume4 and momentum7 observations may supplement the unscaled
 100-point research report. These source-derived 11 candidates are NOT an
@@ -423,13 +424,13 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         if path_research is not None:
             path_observed+=1
             path_research=dict(path_research)
-            add_vol=(coverage["volume"]==16)
+            add_vol=(coverage["volume"] in (10,16))
             add_mom=(coverage["momentum"]==8)
             if add_vol:
                 values["volume"]=round(
                     values["volume"]+path_research[
                         "research_volume_post_spike_absorption_points"],6)
-                coverage["volume"]=20
+                coverage["volume"]+=4
                 path_added["volume4"]+=1
             if add_mom:
                 values["momentum"]=round(
