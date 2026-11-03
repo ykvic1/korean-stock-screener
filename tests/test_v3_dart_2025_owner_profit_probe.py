@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import v3_dart_2025_owner_profit_probe as probe
 from v3_dart_bulk_history import make_company_mapping_cache
@@ -148,6 +149,99 @@ class OwnerProfitSourceTests(unittest.TestCase):
             state,self.catalog,self.book,self.priority))
         self.assertFalse(state["account_value_used_in_scores"])
         self.assertFalse(state["investment_grade_score_certified"])
+
+    def test_transient_transport_recovers_without_relaxing_profit_scope(self):
+        day,members,base=self.first()
+        code=base["code"]
+        cache=make_company_mapping_cache({code:"12345678"},day,members)
+
+        class Recovering(Source):
+            def get(self,uri,params,timeout):
+                self.calls.append((uri,params))
+                if len(self.calls)<3:
+                    raise TimeoutError("synthetic provider timeout")
+                return Result(self.payload)
+
+        provider=Recovering({"status":"000","list":[self.row(base,"-100")]})
+        with patch.object(probe.time,"sleep") as pause:
+            result,calls=probe.collect(
+                self.catalog,self.book,self.priority,None,
+                key="synthetic-test-key-not-credential",
+                session=provider,cache=cache,limit=1)
+        self.assertEqual(calls,3)
+        self.assertEqual([call.args[0] for call in pause.call_args_list],
+                         [1.5,3.0])
+        self.assertEqual(result["records"][code]["owners_profit_krw"],-100)
+        self.assertFalse(result["account_value_used_in_scores"])
+
+    def test_permanent_http_rejection_does_not_retry(self):
+        day,members,base=self.first()
+        cache=make_company_mapping_cache(
+            {base["code"]:"12345678"},day,members)
+
+        class AccessDenied(Exception):
+            def __init__(self):
+                self.response=type("HTTP",(),{"status_code":403})()
+
+        class Denied(Source):
+            def get(self,uri,params,timeout):
+                self.calls.append((uri,params))
+                raise AccessDenied()
+
+        provider=Denied({})
+        with patch.object(probe.time,"sleep") as pause:
+            with self.assertRaisesRegex(
+                    probe.ProfitProbeError,"official_annual_profit_transport_unavailable"):
+                probe.collect(self.catalog,self.book,self.priority,None,
+                              key="synthetic-test-key-not-credential",
+                              session=provider,cache=cache,limit=1)
+        self.assertEqual(len(provider.calls),1)
+        pause.assert_not_called()
+
+    def test_unreadable_official_payload_is_not_retried(self):
+        day,members,base=self.first()
+        cache=make_company_mapping_cache(
+            {base["code"]:"12345678"},day,members)
+
+        class Unreadable(Result):
+            def json(self):
+                raise ValueError("synthetic invalid official response")
+
+        class InvalidSource(Source):
+            def get(self,uri,params,timeout):
+                self.calls.append((uri,params))
+                return Unreadable({})
+
+        provider=InvalidSource({})
+        with patch.object(probe.time,"sleep") as pause:
+            with self.assertRaisesRegex(
+                    probe.ProfitProbeError,"official_annual_profit_payload_unreadable"):
+                probe.collect(self.catalog,self.book,self.priority,None,
+                              key="synthetic-test-key-not-credential",
+                              session=provider,cache=cache,limit=1)
+        self.assertEqual(len(provider.calls),1)
+        pause.assert_not_called()
+
+    def test_repeated_transport_failure_stops_after_three_calls(self):
+        day,members,base=self.first()
+        cache=make_company_mapping_cache(
+            {base["code"]:"12345678"},day,members)
+
+        class Outage(Source):
+            def get(self,uri,params,timeout):
+                self.calls.append((uri,params))
+                raise TimeoutError("synthetic always unavailable")
+
+        provider=Outage({})
+        with patch.object(probe.time,"sleep") as pause:
+            with self.assertRaisesRegex(
+                    probe.ProfitProbeError,"official_annual_profit_transport_unavailable"):
+                probe.collect(self.catalog,self.book,self.priority,None,
+                              key="synthetic-test-key-not-credential",
+                              session=provider,cache=cache,limit=1)
+        self.assertEqual(len(provider.calls),3)
+        self.assertEqual([call.args[0] for call in pause.call_args_list],
+                         [1.5,3.0])
 
     def test_prior_same_receipt_replay_and_tamper_fail_closed(self):
         day,members,base=self.first()

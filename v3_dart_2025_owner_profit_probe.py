@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 from typing import Callable
 
 from v3_dart_bulk_history import (
@@ -277,20 +278,39 @@ def collect(catalog,book,priority,prior,*,key,session,cache=None,
             # Missing mapping can be retried after a NEW, verified census.
             continue
         base=expected[code]
-        try:
-            response=session.get(
-                "https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json",
-                params={"crtfc_key":key,"corp_code":mapping[code],
-                        "bsns_year":"2025","reprt_code":"11011",
-                        "fs_div":base["fs_div"]}, timeout=(20,40))
-            calls+=1
-            response.raise_for_status()
-            result=parse_response(
-                response.json(),corp=mapping[code],base=base,on_day=day)
-        except ProfitProbeError:
-            raise
-        except Exception:
-            raise ProfitProbeError("official_annual_profit_transport_unavailable") from None
+        # Retry transport timeouts and explicitly transient HTTP statuses only.
+        # A returned but unparseable official filing is NOT retried or scored.
+        for attempt in range(3):
+            response=None
+            try:
+                calls+=1
+                response=session.get(
+                    "https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json",
+                    params={"crtfc_key":key,"corp_code":mapping[code],
+                            "bsns_year":"2025","reprt_code":"11011",
+                            "fs_div":base["fs_div"]}, timeout=(20,40))
+                response.raise_for_status()
+            except Exception as exc:
+                status=getattr(getattr(exc,"response",None),"status_code",None)
+                if status is None and response is not None:
+                    status=getattr(response,"status_code",None)
+                retryable=(status is None or
+                           (type(status) is int and
+                            (status==429 or 500<=status<=599)))
+                if attempt==2 or not retryable:
+                    raise ProfitProbeError(
+                        "official_annual_profit_transport_unavailable") from None
+                time.sleep((attempt+1)*1.5)
+                continue
+            try:
+                result=parse_response(
+                    response.json(),corp=mapping[code],base=base,on_day=day)
+            except ProfitProbeError:
+                raise
+            except Exception:
+                raise ProfitProbeError(
+                    "official_annual_profit_payload_unreadable") from None
+            break
         retained[code]=result
         current=snapshot(day,catalog,book,priority,retained)
         if on_progress:
