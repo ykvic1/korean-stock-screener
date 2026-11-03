@@ -19,6 +19,10 @@ HORIZONS = {"1m": 21, "2m": 42, "3m": 63, "6m": 126, "12m": 252}
 MIN_OBSERVATIONS = 40
 MIN_SYMBOLS = 10
 MIN_QUARTERS = 12
+STOP_DISTANCE_BANDS = (
+    "under_3", "3_to_under_6", "6_through_9", "over_9_to_under_12",
+    "12_to_under_15", "15_to_under_25", "25_or_more",
+)
 
 
 class WalkForwardError(ValueError):
@@ -104,6 +108,19 @@ def _check_case(case):
     return signal
 
 
+def _stop_distance_band(distance):
+    if (type(distance) not in (int,float) or not math.isfinite(distance)
+            or not 0 < distance < 100):
+        raise WalkForwardError("invalid_entry_stop_distance")
+    if distance < 3:return STOP_DISTANCE_BANDS[0]
+    if distance < 6:return STOP_DISTANCE_BANDS[1]
+    if distance <= 9:return STOP_DISTANCE_BANDS[2]
+    if distance < 12:return STOP_DISTANCE_BANDS[3]
+    if distance < 15:return STOP_DISTANCE_BANDS[4]
+    if distance < 25:return STOP_DISTANCE_BANDS[5]
+    return STOP_DISTANCE_BANDS[6]
+
+
 def _outcome(case, horizon, cost_bps):
     bars = case["bars"]
     if len(bars) < horizon:
@@ -113,6 +130,7 @@ def _outcome(case, horizon, cost_bps):
     target = case["target_price"]
     observed_low, observed_high = entry, entry
     exit_reason, exit_price, overlap = "horizon_close", None, False
+    stop_gap=False
     for candle in bars[:horizon]:
         op, hi, lo = (candle[k] for k in ("open", "high", "low"))
         # Only excursions that can occur BEFORE the modeled exit belong to
@@ -123,6 +141,7 @@ def _outcome(case, horizon, cost_bps):
             observed_low = min(observed_low, op)
             observed_high = max(observed_high, op)
             exit_reason, exit_price = "stop_first", op
+            stop_gap=op < stop
         elif op >= target:
             # Conservative target fill at the planned limit, not the gap high.
             observed_low = min(observed_low, target)
@@ -154,6 +173,8 @@ def _outcome(case, horizon, cost_bps):
         "mae_pct": (observed_low / entry - 1) * 100,
         "event": exit_reason,
         "same_bar_stop_target_ambiguous": overlap,
+        "stop_open_gap_below_frozen_level":stop_gap,
+        "initial_stop_distance_pct_at_entry":(entry-stop)/entry*100,
     }
 
 
@@ -169,6 +190,11 @@ def _summary(outcomes, censored, excluded_by_embargo, overlaps):
     quarters = len({(d.year, (d.month - 1) // 3) for _, d, _ in outcomes})
     enough = n >= MIN_OBSERVATIONS and symbols >= MIN_SYMBOLS and quarters >= MIN_QUARTERS
     values = [out for _, _, out in outcomes]
+    assumed_stop=sum(v["event"]=="stop_first" for v in values)
+    target=sum(v["event"]=="target_first" for v in values)
+    ambiguous=sum(v["same_bar_stop_target_ambiguous"] for v in values)
+    def percent(count):
+        return round(100*count/n,2) if enough else None
     return {
         "n": n, "symbols": symbols, "signal_quarters": quarters,
         "right_censored": censored, "purged_or_embargoed": excluded_by_embargo,
@@ -186,8 +212,22 @@ def _summary(outcomes, censored, excluded_by_embargo, overlaps):
             max(0, -v["mae_pct"]) for v in values]), 4) if enough else None,
         "historical_favorable_mean_pct": round(statistics.mean(
             v["mfe_pct"] for v in values), 4) if enough else None,
-        "ambiguous_same_bar_count": sum(
-            v["same_bar_stop_target_ambiguous"] for v in values),
+        "historical_mean_net_initial_risk_units":round(statistics.mean(
+            v["net_return_pct"]/v["initial_stop_distance_pct_at_entry"]
+            for v in values),4) if enough else None,
+        "historical_adverse_p75_initial_risk_units":round(_p75([
+            max(0,-v["mae_pct"])/v["initial_stop_distance_pct_at_entry"]
+            for v in values]),4) if enough else None,
+        "ambiguous_same_bar_count":ambiguous,
+        "unambiguous_stop_first_count":assumed_stop-ambiguous,
+        "unambiguous_target_first_count":target,
+        "stop_open_gap_below_frozen_level_count":sum(
+            v["stop_open_gap_below_frozen_level"] for v in values),
+        "intrabar_order_stop_first_bounds_pct":{
+            "lower":percent(assumed_stop-ambiguous),"upper":percent(assumed_stop)},
+        "intrabar_order_target_first_bounds_pct":{
+            "lower":percent(target),"upper":percent(target+ambiguous)},
+        "intrabar_bounds_are_confidence_intervals":False,
         "interpretation": "exploratory_retrospective" if enough else "insufficient_sample",
         "forward_expected_return_pct": None,
         "forecast_success_probability": None,
@@ -268,12 +308,30 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
             previous_window_end[group][identity] = _date(
                 bars[horizon - 1]["date"])
             cohorts[group].append((identity, signal, outcome))
+        distance_groups={band:{"train":[],"holdout":[]} for band in STOP_DISTANCE_BANDS}
+        for group in ("train","holdout"):
+            for item in cohorts[group]:
+                band=_stop_distance_band(item[2]["initial_stop_distance_pct_at_entry"])
+                distance_groups[band][group].append(item)
         result[key] = {
             "trading_sessions_proxy": horizon,
             "train": _summary(cohorts["train"], censored["train"], purged,
                               overlaps["train"]),
             "holdout": _summary(cohorts["holdout"], censored["holdout"], purged,
                                 overlaps["holdout"]),
+            # Partition only AFTER global same-issuer overlap suppression,
+            # purging and full-horizon censoring. Moving a signal to another
+            # distance band must never make a duplicate label independent.
+            "stop_distance_research":{
+                "basis":"actual_next_session_entry_open_to_frozen_stop",
+                "cuts_fixed_without_optimization":True,
+                "bands":{
+                    band:{group:_summary(distance_groups[band][group],0,0,0)
+                          for group in ("train","holdout")}
+                    for band in STOP_DISTANCE_BANDS},
+                "exclusions_counted_in_parent_cohort_only":True,
+                "usable_for_live_risk_points":False,
+            },
         }
     return {
         "schema": "v3-walkforward-exploratory-0.1",
@@ -281,6 +339,8 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
         "embargo_calendar_days": embargo_days,
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
         "mfe_mae_exit_bar_policy": "conservative_pre_exit_ohlc_only",
+        "same_bar_event_policy":"stop_first_assumption_with_order_bounds",
+        "execution_depth_and_stop_fill_slippage_verified":False,
         "input_unique_signal_count": len(validated),
         "periods": result,
         "provider_provenance_authenticated": False,
