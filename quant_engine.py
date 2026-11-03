@@ -391,6 +391,43 @@ def grade_periods(periods: dict) -> dict:
             "reason":"과거 유사 조건 위험조정 순위. 실거래 매수 신호가 아님"}
 
 
+def classify_source_exclusion(error: Exception) -> str:
+    """Stable reason families for rejected candidate OHLCV; never repair prices."""
+    if isinstance(error, FileNotFoundError):
+        return "history_file_missing"
+    message = str(error)
+    if "종가 범위 오류" in message or "OHLC 범위 오류" in message:
+        return "ohlc_range_invalid"
+    if "음수 또는 0인 가격" in message or "음수 거래량" in message:
+        return "nonpositive_price_or_negative_volume"
+    if "120주선/과거 관측" in message:
+        return "history_too_short"
+    if "마지막 OHLCV 날짜" in message:
+        return "source_date_mismatch"
+    if "중복 날짜" in message:
+        return "duplicate_dates"
+    if "결측" in message or "숫자 오류" in message or "필수 칼럼" in message:
+        return "incomplete_or_invalid_fields"
+    return "other_unverified_source_error"
+
+
+def source_quality_audit(requested: int, valid: int, missing: list[dict]) -> dict:
+    """Account for all excluded codes without claiming adjusted-price validation."""
+    counts: dict[str, int] = {}
+    for row in missing:
+        reason = row["reason_code"]
+        counts[reason] = counts.get(reason, 0) + 1
+    return {
+        "requested_symbols": requested,
+        "valid_ohlcv_symbols": valid,
+        "excluded_symbols": len(missing),
+        "excluded_reason_counts": dict(sorted(counts.items())),
+        "all_exclusions_listed": True,
+        "official_adjusted_prices_certified": False,
+        "delisted_historical_universe_included": False,
+    }
+
+
 def run(screener_json:Path,history_dir:Path,output:Path,
         asof:str | None=None,max_stocks:int=120,
         recommendations:Path|None=Path('docs/recommendations.json')) -> dict:
@@ -410,10 +447,11 @@ def run(screener_json:Path,history_dir:Path,output:Path,
                 raise ValueError("마지막 OHLCV 날짜가 신호일과 다름")
             cache[code]=df
         except Exception as e:
-            missing.append({"code":code,"error":str(e)[:120]})
+            missing.append({"code":code,"error":str(e)[:120],
+                            "reason_code":classify_source_exclusion(e)})
     if len(cache)<20:
         result={"status":"insufficient","asof":asof,"available_symbols":len(cache),
-                "required_symbols":20,"missing":missing[:30],"stocks":[],
+                "required_symbols":20,"missing":missing,"stocks":[],
                 "disclaimer":"현재 시장 종목의 과거 유사사례를 만드는 연구용. 미래 확률 아님."}
     else:
         all_hist={};latest={}
@@ -442,7 +480,7 @@ def run(screener_json:Path,history_dir:Path,output:Path,
                              "reference_price_date":s.get("price_date")})
         result={"status":"exploratory","asof":asof,"version":"2.1-study",
                 "available_symbols":len(cache),"requested_symbols":len(stocks),
-                "missing":missing[:50],"stocks":examined,
+                "missing":missing,"stocks":examined,
                 "methodology":{
                     "population":"현재 v2.0 후보군만 사용: 생존편향 있음",
                     "features":"신호일 이전 OHLCV만: 20/60일 변동·이평·거래량·OBV·120주 이격",
@@ -457,6 +495,8 @@ def run(screener_json:Path,history_dir:Path,output:Path,
                     "caveats":"상장폐지/당시 편입종목·당시 재무/수급 미포함. 승률은 미래 확률 아님. 주가조정/배당/거래정지 검증 필요",
                     "mfe":"최대상승폭은 경로 최고가의 통계값으로 목표가/실현 가능한 수익을 보장하지 않음",
                 }}
+    result["source_quality_audit"] = source_quality_audit(
+        len(stocks), len(cache), missing)
     result['bias_audit']={'lookahead_features':'trailing-only tested; next session open entry', 'overlap':'per-symbol non-overlap; cross-symbol market dependence remains', 'survivorship':'UNRESOLVED: current candidate universe excludes delisted and historical membership', 'transaction_cost':'0.40 percentage point assumed round trip; 0.2/0.8 sensitivity', 'corporate_actions':'adjusted prices/provider consistency, dividends and trading suspensions NOT verified', 'holdout':'chronological diagnostics only; no walk-forward predictive validation', 'prediction_validated':False}
     output.parent.mkdir(parents=True,exist_ok=True)
     tmp=output.with_suffix(".tmp")
