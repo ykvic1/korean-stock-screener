@@ -1,0 +1,55 @@
+{
+  "calendar_weekly_verified": false,
+  "corporate_actions_and_issuer_pit_verified": false,
+  "current_market_session_alignment_verified": false,
+  "daily_disjoint_period_coverage": {
+    "120": {
+      "disjoint_comparison_complete_issuer_market_pairs": 2172,
+      "every_recent_cohort_above_previous_average_issuer_market_pairs": 19,
+      "higher_average_amount_issuer_market_pairs": 647,
+      "latest_window_complete_issuer_market_pairs": 2268,
+      "positive_baseline_comparable_issuer_market_pairs": 2172,
+      "quantized_zero_baseline_issuer_market_pairs": 0
+    },
+    "20": {
+      "disjoint_comparison_complete_issuer_market_pairs": 2508,
+      "every_recent_cohort_above_previous_average_issuer_market_pairs": 256,
+      "higher_average_amount_issuer_market_pairs": 1055,
+      "latest_window_complete_issuer_market_pairs": 2591,
+      "positive_baseline_comparable_issuer_market_pairs": 2508,
+      "quantized_zero_baseline_issuer_market_pairs": 0
+    },
+    "240": {
+      "disjoint_comparison_complete_issuer_market_pairs": 2000,
+      "every_recent_cohort_above_previous_average_issuer_market_pairs": 43,
+      "higher_average_amount_issuer_market_pairs": 1190,
+      "latest_window_complete_issuer_market_pairs": 2172,
+      "positive_baseline_comparable_issuer_market_pairs": 2000,
+      "quantized_zero_baseline_issuer_market_pairs": 0
+    },
+    "60": {
+      "disjoint_comparison_complete_issuer_market_pairs": 2268,
+      "every_recent_cohort_above_previous_average_issuer_market_pairs": 6,
+      "higher_average_amount_issuer_market_pairs": 317,
+      "latest_window_complete_issuer_market_pairs": 2471,
+      "positive_baseline_comparable_issuer_market_pairs": 2268,
+      "quantized_zero_baseline_issuer_market_pairs": 0
+    }
+  },
+  "exact_daily_money_obv_verified": false,
+  "exact_single_day_spike_concentration_verified": false,
+  "existing_issuer_scores_unchanged": true,
+  "historical_archive_endpoint": "2026-10-14",
+  "historical_cohorts_inspected": 96,
+  "historical_cohorts_read_limit": 96,
+  "investment_points": null,
+  "new_krx_api_calls": 0,
+  "note": "Historical, quantized five-session amount comparisons only; not current liquidity, exact calendar weeks, identified buying or validated investment-score/return evidence.",
+  "original_bars_or_per_issuer_amounts_published": false,
+  "population": "complete_issuer_market_pairs_in_latest_historical_money_cohort",
+  "population_issuer_market_pairs": 2643,
+  "private_checkpoint_stable_during_read": true,
+  "regular_session_only_verified": false,
+  "schema": "v3-public-private-money-disjoint-horizon-coverage-0.1",
+  "scoring_allowed": false
+}
