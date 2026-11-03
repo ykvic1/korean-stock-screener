@@ -758,7 +758,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-quantqueue459','v30b-20261103-quantqueue459'],[entry,'v30b-20261103-clean-ui467','v30b-20261103-clean-ui468']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-quantqueue459','v30b-20261103-quantqueue459'],[entry,'v30b-20261103-stability-liquidity','v30b-20261103-clean-ui468']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
@@ -767,9 +767,9 @@ assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
  'active filter and observational candidate chip must be visibly styled');
-assert.ok(html.includes('<option value="score" selected>V3 잠정점수순</option>'),
- 'default selection must explicitly use V3 provisional observations');
-assert.ok(source.includes("sort='score'"),'default rank must use displayed score');
+assert.ok(html.includes('<option value="stable" selected>안정형 보정점수순 (시총·거래대금)</option>'),
+ 'default selection must explicitly show the personal stability overlay');
+assert.ok(source.includes("sort='stable'"),'default rank must use displayed stability score');
 assert.ok(css.includes('.u-content:has(> #detail:empty)')&&css.includes('.u-stock{')&&css.includes('.u-scoresix'),
  'compact ranking style and existing deep factor evidence styles must coexist');
 assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
