@@ -1,0 +1,56 @@
+name: V3 actual KRX trading-value private derived backfill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_money_5day.py
+      - v3_krx_money_backfill.py
+      - .github/workflows/v3-krx-money-history.yml
+  schedule:
+    # Four staggered bounded 16-cohort runs per day; no concurrent writes.
+    - cron: '49 1,7,13,19 * * *'
+  workflow_dispatch:
+    inputs:
+      max_windows:
+        description: 'Maximum five-session derived money cohorts (1/4/8/16)'
+        required: true
+        default: '16'
+        type: choice
+        options: ['1', '4', '8', '16']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-krx-actual-money-private-derived-backfill
+  cancel-in-progress: false
+
+jobs:
+  money-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded official KRX and calendar dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Validate private actual-money factor extraction and resume behavior
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_krx_money_5day.py v3_krx_money_backfill.py
+          python -m unittest discover -s tests -p 'test_v3_krx_money_backfill.py' -v
+      - name: Resume maximum 16 money cohorts; no raw market bytes retained
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          V3_MONEY_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
+        run: |
+          set -euo pipefail
+          python v3_krx_money_backfill.py
