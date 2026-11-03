@@ -115,21 +115,35 @@ def _outcome(case, horizon, cost_bps):
     exit_reason, exit_price, overlap = "horizon_close", None, False
     for candle in bars[:horizon]:
         op, hi, lo = (candle[k] for k in ("open", "high", "low"))
-        observed_low = min(observed_low, lo)
-        observed_high = max(observed_high, hi)
-        # Opening gaps execute at the opening or worse; a target opening gap
-        # receives only the planned target, conservatively.
+        # Only excursions that can occur BEFORE the modeled exit belong to
+        # an executed trade. Entire exit-bar highs/lows may happen AFTER a
+        # stop/target fill, and must never exaggerate historical MFE/MAE.
         if op <= stop:
+            # An opening stop gap is a known immediate exit at the worse open.
+            observed_low = min(observed_low, op)
+            observed_high = max(observed_high, op)
             exit_reason, exit_price = "stop_first", op
         elif op >= target:
+            # Conservative target fill at the planned limit, not the gap high.
+            observed_low = min(observed_low, target)
+            observed_high = max(observed_high, target)
             exit_reason, exit_price = "target_first", target
-        elif lo <= stop and hi >= target:
-            # OHLC cannot tell which happened first; assume STOP (conservative).
-            exit_reason, exit_price, overlap = "stop_first", stop, True
         elif lo <= stop:
+            # OHLC has no intrabar event sequence. If both are touched,
+            # assume the stop came first; no later high is credited to MFE.
+            observed_low = min(observed_low, stop)
+            observed_high = max(observed_high, op)
             exit_reason, exit_price = "stop_first", stop
+            overlap = hi >= target
         elif hi >= target:
+            # Worst-case low MAY precede the target; no later high above the
+            # conservative target fill may inflate trade MFE.
+            observed_low = min(observed_low, lo)
+            observed_high = max(observed_high, target)
             exit_reason, exit_price = "target_first", target
+        else:
+            observed_low = min(observed_low, lo)
+            observed_high = max(observed_high, hi)
         if exit_price is not None:
             break
     if exit_price is None:
@@ -266,6 +280,7 @@ def evaluate(cases, *, split_date, embargo_days=252, round_trip_cost_bps=30):
         "split_date": cutoff.isoformat(),
         "embargo_calendar_days": embargo_days,
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
+        "mfe_mae_exit_bar_policy": "conservative_pre_exit_ohlc_only",
         "input_unique_signal_count": len(validated),
         "periods": result,
         "provider_provenance_authenticated": False,
