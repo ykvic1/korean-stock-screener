@@ -6,6 +6,9 @@ verified-owner-income evidence record, and leave missing IFRS accounts null.
 """
 import copy
 import json
+import contextlib
+import io
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -122,6 +125,47 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
             summary["owner_profit_2025_official_receipt_replayed_issuers"],1)
         self.assertFalse(summary["owner_profit_supplement_investment_grade_certified"])
         self.assertEqual(summary["certified_100point_count"],0)
+
+    def test_publisher_gap_refresh_and_second_publication_retain_real_receipts(self):
+        from v3_current_observed_scorecard import main as publish
+        from v3_near_100_observed_gap import main as gap_audit
+        from v3_dart_2025_owner_profit_probe import verify
+        outputs = {
+            "v3-current-observed-all-listed.csv",
+            "v3-current-observed-all-listed-summary.json",
+            "v3-issuer-last-observed-factors.json",
+            "v3-near-100-evidence-priority.json",
+            "v3-dart-owner-profit-supplement.json",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for path in DOCS.iterdir():
+                if path.is_file():
+                    if path.name in outputs:
+                        (root/path.name).write_bytes(path.read_bytes())
+                    else:
+                        (root/path.name).symlink_to(path)
+            source = self.proof()
+            (root/"v3-dart-owner-profit-supplement.json").write_text(
+                json.dumps(source), encoding="utf8")
+            with contextlib.redirect_stdout(io.StringIO()):
+                publish(["--docs", str(root), "--mode", "write", "--refresh-derived"])
+                gap_audit(["--docs", str(root), "--mode", "write"])
+                first = {name:(root/name).read_bytes() for name in outputs}
+                publish(["--docs", str(root), "--mode", "verify", "--refresh-derived"])
+                publish(["--docs", str(root), "--mode", "write", "--refresh-derived"])
+                gap_audit(["--docs", str(root), "--mode", "verify"])
+            self.assertEqual(first, {name:(root/name).read_bytes() for name in outputs})
+            updated = json.loads((root/"v3-near-100-evidence-priority.json").read_text())
+            self.assertIn(self.code, updated["official_2025_owners_profit_missing_priority_codes"])
+            baseline = updated
+            self.assertEqual(baseline, self.priority)
+            self.assertTrue(verify(source, self.catalog, self.annual, baseline))
+            _, _, _, retained, selected = plan(
+                self.catalog, self.annual, baseline, source, limit=20)
+            self.assertIn(self.code, retained)
+            self.assertNotIn(self.code, selected)
+
 
     def test_missing_account_does_not_activate_five_weight(self):
         source=self.proof()
