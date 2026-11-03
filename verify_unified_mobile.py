@@ -95,6 +95,27 @@ with sync_playwright() as p:
     )
     page.get_by_role("button", name="전 종목", exact=True).click()
     page.locator(".u-stock").first.wait_for(timeout=45000)
+    # Before selection, use the whole desktop width for a two-column issuer list.
+    page.set_viewport_size({"width": 1440, "height": 900})
+    desktop_grid = page.evaluate("""() => {
+        const cards = [...document.querySelectorAll('#stockList .u-stock')].slice(0, 2);
+        if (cards.length < 2) return {count: cards.length};
+        const a = cards[0].getBoundingClientRect();
+        const b = cards[1].getBoundingClientRect();
+        return {
+            count: cards.length,
+            detailHidden: document.querySelector('#detail').hidden,
+            firstTop: Math.round(a.top), secondTop: Math.round(b.top),
+            firstLeft: Math.round(a.left), secondLeft: Math.round(b.left),
+            firstWidth: Math.round(a.width),
+            overflow: document.documentElement.scrollWidth > innerWidth,
+        };
+    }""")
+    assert desktop_grid["count"] == 2 and desktop_grid["detailHidden"], desktop_grid
+    assert abs(desktop_grid["firstTop"] - desktop_grid["secondTop"]) < 3, desktop_grid
+    assert desktop_grid["secondLeft"] > desktop_grid["firstLeft"] + 300, desktop_grid
+    assert desktop_grid["firstWidth"] > 450 and not desktop_grid["overflow"], desktop_grid
+    page.set_viewport_size({"width": 390, "height": 844})
     assert page.locator("#sort").input_value() == "score", "default sort must follow visible scores"
     assert page.locator("#top100Only").get_attribute("aria-pressed") == "false"
     # The actual stock list must show original factor dates, including carried

@@ -784,3 +784,12 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
   .u-compare-toggle,.u-research-panel>summary{padding:13px}
   .u-compare-toggle span,.u-research-panel>summary span{font-size:10px}
 }
+
+/* Use the whole research canvas until an issuer is selected.
+   On wide screens show two compact cards per row; detail selection restores split view. */
+@media(min-width:861px){
+ .u-content:has(> #detail:empty){grid-template-columns:minmax(0,1fr)}
+}
+@media(min-width:1100px){
+ .u-content:has(> #detail:empty) .u-stock-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
