@@ -244,10 +244,11 @@ function applyObservedVolume(model,source){
     'v3-current-market-volume-obv-provisional-research-0.1'].includes(source.schema)||
    source.asof!==model.date||source.listed_total!==model.marketEligible||
    source.points_budget!==20||
-   source.maximum_available_point_budget_per_observed_issuer!==16||
-   (source.schema==='v3-current-market-volume-ma-cross-provisional-research-0.2'&&
-    (source.base_available_point_budget_per_observed_issuer!==10||
-     source.ma_cross_unavailable_is_not_zero!==true))||
+   (source.schema==='v3-current-market-volume-ma-cross-provisional-research-0.2'
+    ?(source.maximum_available_point_budget_per_observed_issuer!==16||
+      source.base_available_point_budget_per_observed_issuer!==10||
+      source.ma_cross_unavailable_is_not_zero!==true)
+    :source.available_point_budget_per_observed_issuer!==16)||
    source.not_observed_absorption_max!==4||
    source.ias_investor_flow_component_used!==false||
    source.technical_one_day_volume_not_double_counted!==true||
