@@ -45,6 +45,7 @@ ALLOWED_RISK_KINDS = (
     "four_interval_change", "cohort_boundary_change",
 )
 MAX_PAIRS = 4000
+MAX_AUDITED_PAIRS = 200_000  # bound all source candidates before ranking
 MAX_BLOB_BYTES = 950_000
 HINTS = (
     ("stock_split_consolidation", ("주식분할", "주식병합", "액면분할",
@@ -126,7 +127,7 @@ def _hint(title):
     return matches
 
 
-def _shortlist(events, receipts, left, right):
+def _shortlist(events, receipts, left, right, *, include_total=False):
     """Bounded ticker+date matches with title hints, for private inspection ONLY."""
     index = {}
     for r in receipts:
@@ -182,14 +183,18 @@ def _shortlist(events, receipts, left, right):
             if key in found and found[key] != record:
                 raise TitleTriageError("duplicate_candidate_evidence_conflict")
             found[key] = record
-            if len(found) > MAX_PAIRS:
-                raise TitleTriageError("private_title_shortlist_size_cap")
+            if len(found) > MAX_AUDITED_PAIRS:
+                raise TitleTriageError("private_title_candidate_audit_cap")
     ordered = sorted(found.values(), key=lambda r: (
         not bool(r["title_keyword_hints"]),
         abs(r["days_from_heuristic_end"]),
         r["heuristic_last_day"], r["heuristic_issuer_market"],
         r["filing_receipt_no"]))
-    return examined, ordered
+    # Keeping the most relevant finite shortlist is research triage, NOT
+    # evidence that all possible corporate actions were reviewed. The exact
+    # pre-truncation count remains in the PRIVATE report.
+    selected=ordered[:MAX_PAIRS]
+    return (examined, selected, len(ordered)) if include_total else (examined, selected)
 
 
 def run(storage):
@@ -235,7 +240,8 @@ def run(storage):
     except Exception:
         raise TitleTriageError("invalid_private_complete_month_receipts") from None
     try:
-        examined, matches = _shortlist(events, receipts, left, right)
+        examined, matches, total_matches = _shortlist(
+            events, receipts, left, right, include_total=True)
     except TitleTriageError:
         # The inner error is already a fixed, redaction-safe validation code.
         # Preserve the rule name while suppressing private identifiers.
@@ -250,6 +256,9 @@ def run(storage):
         "filings_examined": len(receipts),
         "heuristic_events_examined": examined,
         "ticker_date_receipt_pairs": len(matches),
+        "all_candidate_pairs_examined": total_matches,
+        "shortlist_truncated_to_max_pairs": total_matches > len(matches),
+        "candidate_coverage_complete": total_matches == len(matches),
         "title_keyword_pairs": sum(bool(x["title_keyword_hints"]) for x in matches),
         "other_title_pairs": sum(not x["title_keyword_hints"] for x in matches),
         "comparison_window_calendar_days": WINDOW_CALENDAR_DAYS,
@@ -303,6 +312,9 @@ def run(storage):
         "status": "private_title_keyword_shortlist_completed",
         "title_shortlist_pairs": i+1,
         "ticker_date_receipt_pairs": len(matches),
+        "all_candidate_pairs_examined": total_matches,
+        "shortlist_truncated_to_max_pairs": total_matches > len(matches),
+        "candidate_coverage_complete": total_matches == len(matches),
         "title_keyword_pairs": sum(bool(x["title_keyword_hints"]) for x in matches),
         "other_title_pairs": sum(not x["title_keyword_hints"] for x in matches),
         "provider_calls": 0, "confirmed_corporate_actions": 0,
