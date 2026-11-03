@@ -95,7 +95,7 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         self.assertEqual(new[code]["confirmed_v3_score"],None)
         self.assertEqual(new[code]["asof"],self.day)
 
-    def test_actual_full_scorecard_has_one_new_100weight_but_zero_certified(self):
+    def test_owner_profit_adds_five_without_falsely_restoring_removed_obv_six(self):
         original=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
         suplement=finance_source(
@@ -114,21 +114,27 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         source_path=(path_audit(self.market)
                      if self.market.get("v3_unscored_path_source") is not None
                      else None)
-        _,base_summary=generate(self.market,self.catalog,volumes,prices,
-                                financial=original,cashflow=fcf,
-                                path_coverage_receipt=source_path)
+        base_rows,base_summary=generate(self.market,self.catalog,volumes,prices,
+                                         financial=original,cashflow=fcf,
+                                         path_coverage_receipt=source_path)
         rows,summary=generate(self.market,self.catalog,volumes,prices,
                               financial=suplement,cashflow=fcf,
                               path_coverage_receipt=source_path)
         target=next(x for x in rows if x["code"]==self.code)
-        self.assertEqual(target["available"],100)
+        baseline=next(x for x in base_rows if x["code"]==self.code)
+        # The verified FY2025 owner profit still adds its five observed
+        # valuation points. The removed OBV-rise bonus must NOT silently
+        # fill missing six-point MA-cross history on the real saved source.
+        self.assertEqual(target["available"],baseline["available"]+5)
+        self.assertIn(target["available"],(94,100))
         self.assertIsNone(target["official_score"])
         self.assertFalse(target["certified"])
+        new_full=int(target["available"]==100)
         self.assertEqual(
             summary["provisional_complete_100point_observation_count"],
-            base_summary["provisional_complete_100point_observation_count"]+1)
+            base_summary["provisional_complete_100point_observation_count"]+new_full)
         self.assertEqual(
-            summary["observed_100weight_issuers_with_2025_owner_profit_supplement"],1)
+            summary["observed_100weight_issuers_with_2025_owner_profit_supplement"],new_full)
         self.assertEqual(
             summary["owner_profit_2025_official_receipt_replayed_issuers"],1)
         self.assertFalse(summary["owner_profit_supplement_investment_grade_certified"])
