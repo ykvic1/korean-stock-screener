@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import unittest
 
-from v3_near_100_observed_gap import generate, GapAuditError
+from v3_near_100_observed_gap import generate, GapAuditError, retain_original_priority_cohort
 
 
 ROOT = Path(__file__).resolve().parents[1] / "docs"
@@ -103,6 +103,39 @@ class NearHundredSourceGapTests(unittest.TestCase):
         inputs[0]="\n".join(rows)+"\n"
         with self.assertRaisesRegex(GapAuditError, "invalid_observed_weight"):
             generate(*inputs)
+
+    def test_same_market_day_source_collection_freezes_issuer_queue_not_score(self):
+        prior=generate(*self.sources)
+        recalculated=copy.deepcopy(prior)
+        recalculated["provisional_observed_100_weight_issuers"]+=3
+        names=prior["official_2025_owners_profit_missing_priority_codes"]
+        self.assertTrue(names)
+        source={
+            "schema":"v3-official-fy2025-owner-profit-source-0.1",
+            "market_asof":prior["asof"],
+            "investment_grade_score_certified":False,
+            "historical_pit_verified":False,
+            "account_value_used_in_scores":False,
+            "records":{names[0]:{"source_status":"observed"}},
+        }
+        chosen,frozen=retain_original_priority_cohort(
+            prior,recalculated,source)
+        self.assertTrue(frozen)
+        self.assertEqual(chosen,prior)
+        self.assertEqual(
+            recalculated["provisional_observed_100_weight_issuers"],
+            prior["provisional_observed_100_weight_issuers"]+3)
+        other_day=copy.deepcopy(source)
+        other_day["market_asof"]="2026-10-29"
+        updated,old_day=retain_original_priority_cohort(
+            prior,recalculated,other_day)
+        self.assertFalse(old_day)
+        self.assertEqual(updated,recalculated)
+        invalid=copy.deepcopy(source)
+        invalid["records"]={"999999":{}}
+        with self.assertRaisesRegex(
+                GapAuditError,"untrusted_frozen_profit_priority_cohort"):
+            retain_original_priority_cohort(prior,recalculated,invalid)
 
     def test_identity_ledger_is_not_part_of_same_day_full_coverage(self):
         report=generate(*self.sources)
