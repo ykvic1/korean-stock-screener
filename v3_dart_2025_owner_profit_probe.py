@@ -45,6 +45,20 @@ def _day(raw):
     raise ProfitProbeError("untrusted_profit_source_day")
 
 
+def _read_company_cache_from_root(path):
+    """Read Actions-restored cache by its real path, never under --docs."""
+    path = Path(path)
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf8"))
+    except (OSError, ValueError, UnicodeError):
+        raise ProfitProbeError("untrusted_official_corp_identity_cache") from None
+    if type(value) is not dict:
+        raise ProfitProbeError("untrusted_official_corp_identity_cache")
+    return value
+
+
 def plan(catalog, book, priority, prior=None, limit=MAX_PER_RUN):
     day = _day(catalog.get("date"))
     if (not isinstance(catalog.get("rows"), list)
@@ -323,7 +337,10 @@ def main(argv=None):
         return
     import requests
     key=os.getenv("DART_API_KEY","")
-    cache=read(args.cache) if Path(args.cache).exists() else None
+    # Cache is restored at the REPOSITORY ROOT by actions/cache, not in
+    # --docs. Reading it through read() incorrectly points at docs/.cache.
+    # Corrupt source identity must fail closed; it must not be silently used.
+    cache=_read_company_cache_from_root(args.cache)
     saved=0
     def checkpoint(report):
         nonlocal saved
