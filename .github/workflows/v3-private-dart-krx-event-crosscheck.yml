@@ -18,6 +18,7 @@ on:
   workflow_run:
     workflows:
       - V3 Private Historical OpenDART Filing Receipts (Research Only)
+      - V3 DART Continuous Catch-up to 120 Months (Private, Resumable)
       - V3 KRX Private Derived Corporate Action Risk Review (incremental)
     types: [completed]
   workflow_dispatch:
