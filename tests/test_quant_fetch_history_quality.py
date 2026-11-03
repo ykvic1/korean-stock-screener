@@ -29,9 +29,12 @@ class QuantHistoryQualityTests(unittest.TestCase):
         with (patch.object(fetch, "prioritized_stocks",
                            return_value=[{"code": "005930"}]),
               patch.object(fetch, "optional_recommendations", return_value=None),
-              patch.object(fetch.fdr, "DataReader", return_value=bars),
+              patch.object(fetch.fdr, "DataReader", return_value=bars) as vendor,
               patch.object(fetch.time, "sleep")):
-            return fetch.collect(signal, cache, self.ASOF, sleep=0), cache
+            result = fetch.collect(signal, cache, self.ASOF, sleep=0)
+            if result["reused"]:
+                vendor.assert_not_called()
+            return result, cache
 
     def test_invalid_provider_bars_do_not_become_cache(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -57,9 +60,7 @@ class QuantHistoryQualityTests(unittest.TestCase):
             self.assertEqual(result["reused"], 0)
             self.assertEqual(result["fetched"], 1)
             self.assertEqual(len(read_ohlcv(cache / "005930.csv", self.ASOF)), 660)
-            with patch.object(fetch.fdr, "DataReader",
-                              side_effect=AssertionError("valid cache refetched")):
-                again, _ = self.collect_with(folder, self.bars())
+            again, _ = self.collect_with(folder, self.bars())
             self.assertEqual(again["reused"], 1)
             self.assertEqual(again["fetched"], 0)
 
