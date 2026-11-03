@@ -22,10 +22,10 @@ class ImmediateFullMarketRefreshTests(unittest.TestCase):
         self.assertNotIn("      - docs/data.json", before_dispatch)
         self.assertNotIn("      - docs/", before_dispatch)
         self.assertIn(
-            "MODE: ${{ github.event_name != 'workflow_dispatch' && 'publish' || inputs.mode }}",
+            "MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'publish' || inputs.mode }}",
             workflow)
         self.assertEqual(workflow.count(
-            "github.event_name != 'workflow_dispatch' || inputs.mode == 'publish'"),
+            "github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish'"),
             4)
         self.assertIn("options: [audit, publish]", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
