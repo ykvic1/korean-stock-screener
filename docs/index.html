@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261103-clean-ui468">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261103-stability-liquidity">
 <script src="v3-ranking.js" defer></script>
-<script src="workspace.js?v=v30b-20261103-clean-ui467" defer></script>
+<script src="workspace.js?v=v30b-20261103-stability-liquidity" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -41,7 +41,7 @@
   <label class="u-quick-search" for="stockSearch">종목 검색
     <input id="stockSearch" type="search" placeholder="종목명 또는 코드 검색 (예: 삼성전자, 005930)" autocomplete="off" spellcheck="false">
    </label>
-  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · V3 잠정</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><span id="filterNotice"></span></div>
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · 현재 정렬</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><span id="filterNotice"></span></div>
   <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
    <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
    <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
@@ -57,7 +57,7 @@
     <select id="market"><option value="all">코스피 + 코스닥</option>
      <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
    <label>정렬 기준
-    <select id="sort"><option value="score" selected>V3 잠정점수순</option><option value="personal">개인 연구용 100점 환산순</option>
+    <select id="sort"><option value="stable" selected>안정형 보정점수순 (시총·거래대금)</option><option value="score">V3 잠정 원점수순</option><option value="personal">개인 연구용 100점 환산순</option>
      <option value="research">패턴·위험 우선</option>
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
