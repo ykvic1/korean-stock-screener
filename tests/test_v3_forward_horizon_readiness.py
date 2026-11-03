@@ -5,7 +5,7 @@ import unittest
 
 from v3_forward_horizon_readiness import (
     COHORT_SCHEMA, PROBE_SCHEMA, ForwardAuditError, HORIZONS,
-    audit_forward_readiness,
+    audit_forward_readiness, cohort_selection_digest,
 )
 
 ASSESSMENT = "2026-11-01T09:00:00Z"
@@ -31,6 +31,8 @@ def fixture():
         "corporate_actions_certified": False,
         "rows": [],
     }
+    cohort["selection_sha256"] = cohort_selection_digest(cohort)
+    probes["selection_sha256"] = cohort["selection_sha256"]
     return cohort, probes
 
 
@@ -60,6 +62,29 @@ def assess(data, *, assessed=ASSESSMENT):
 
 
 class ForwardReadinessTests(unittest.TestCase):
+    def test_frozen_membership_and_decision_cannot_change_under_saved_digest(self):
+        for change in ("drop", "replace", "market", "decision"):
+            data = fixture()
+            if change == "drop":
+                data[0]["members"].pop()
+            elif change == "replace":
+                data[0]["members"][0]["issuer_id"] = "99999999"
+            elif change == "market":
+                data[0]["members"][0]["market"] = "KOSDAQ"
+            else:
+                data[0]["decision_at_utc"] = "2025-01-31T08:00:00Z"
+            with self.subTest(change=change), self.assertRaisesRegex(
+                    ForwardAuditError, "frozen_cohort_selection_digest_mismatch"):
+                assess(data)
+
+    def test_transport_reordering_preserves_digest_and_denominator(self):
+        data = fixture()
+        before = assess(data)
+        data[0]["members"].reverse()
+        self.assertEqual(assess(data), before)
+        self.assertTrue(before["selection_payload_digest_recomputed"])
+        self.assertFalse(before["independent_pit_universe_verified"])
+
     def test_all_five_horizons_keep_full_frozen_denominator(self):
         data = fixture()
         data[1]["rows"] = [close_probe(), delisted_probe()]

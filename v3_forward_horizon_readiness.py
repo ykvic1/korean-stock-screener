@@ -8,6 +8,8 @@ No provider calls, prices, issuer IDs, trading scores, or returns are exported.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import calendar
 from datetime import date, datetime, time, timedelta, timezone
 import re
@@ -83,6 +85,32 @@ def _anniversary(day, months):
     return date(year, month, min(day.day, calendar.monthrange(year, month)[1]))
 
 
+def cohort_selection_digest(cohort):
+    """Bind the exact membership and decision cutoff, not a caller's label.
+
+    Canonical ordering allows harmless transport reorderings. This detects
+    accidental/tampered membership under a saved digest, not independent PIT
+    authenticity: a caller can still replace both payload and digest.
+    """
+    members = cohort.get("members")
+    if type(members) is not list or not 1 <= len(members) <= MAX_ISSUERS:
+        raise ForwardAuditError("invalid_horizon_issuer_or_probe_count")
+    for row in members:
+        if type(row) is not dict or set(row) != {"code", "issuer_id", "market"}:
+            raise ForwardAuditError("invalid_frozen_cohort_identity_fields")
+        _identity(row)
+    _day(cohort.get("signal_date"))
+    _utc(cohort.get("decision_at_utc"))
+    payload = {
+        "schema": COHORT_SCHEMA,
+        "signal_date": cohort["signal_date"],
+        "decision_at_utc": cohort["decision_at_utc"],
+        "members": sorted(members, key=lambda r: (r["code"], r["issuer_id"], r["market"])),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True,
+        separators=(",", ":"), ensure_ascii=True).encode("utf8")).hexdigest()
+
+
 def audit_forward_readiness(cohort, probes, *, assessed_at_utc):
     """Summarize every selected issuer at every horizon, including all gaps.
 
@@ -125,6 +153,9 @@ def audit_forward_readiness(cohort, probes, *, assessed_at_utc):
         codes.add(code)
         issuers.add(issuer)
         identities[code] = (issuer, market)
+
+    if cohort_selection_digest(cohort) != cohort["selection_sha256"]:
+        raise ForwardAuditError("frozen_cohort_selection_digest_mismatch")
 
     buckets = {n: {
         "full_frozen_cohort_count": len(members),
@@ -198,6 +229,7 @@ def audit_forward_readiness(cohort, probes, *, assessed_at_utc):
         "frozen_cohort_count": len(members),
         "horizons": {str(k): v for k, v in buckets.items()},
         "all_issuers_retained_in_denominator": True,
+        "selection_payload_digest_recomputed": True,
         "delisted_outcomes_not_ignored_or_zero_filled": True,
         "future_or_unobserved_outcomes_not_fabricated": True,
         "independent_pit_universe_verified": False,
