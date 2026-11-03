@@ -20,10 +20,10 @@
   "research_source_matched": true,
   "daily_changes": {
     "entered": [],
-    "updated": [
+    "updated": [],
+    "unchanged": [
       "066670"
     ],
-    "unchanged": [],
     "exited": []
   },
   "dossiers": [
@@ -179,7 +179,7 @@
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
       "evidence_fingerprint": "69cfdb603d7f2198",
       "rank": 1,
-      "daily_change": "updated"
+      "daily_change": "unchanged"
     }
   ]
 }
