@@ -91,6 +91,15 @@ class QuantTests(unittest.TestCase):
         self.assertEqual(classify_source_exclusion(
             ValueError("마지막 OHLCV 날짜가 신호일과 다름")),
             "source_date_mismatch")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("650봉 미만으로 120주 지표/과거 사례 부족")),
+            "history_too_short")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("가격 기준일 불일치: 2026-11-01 vs 2026-11-02")),
+            "source_date_mismatch")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("OHLCV 컬럼 누락")),
+            "incomplete_or_invalid_fields")
         self.assertEqual(classify_source_exclusion(RuntimeError("unknown")),
                          "other_unverified_source_error")
 
