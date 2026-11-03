@@ -273,6 +273,20 @@ def daily_patterns(df):
 def analyze_history(code,cfg,day):
     df,last=last_series(None,code,cfg,day)
     close=df['Close'].to_numpy(dtype=float);volume=df['Volume'].to_numpy(dtype=float)
+    # Keep actual historical monetary turnover ONLY when a separate Amount
+    # column exists. Close*Volume is NOT accepted as a replacement. This is
+    # an unscored research shadow and cannot alter any five-area score.
+    v3_turnover_shadow=None
+    if 'Amount' in df.columns:
+        try:
+            from v3_turnover_multihorizon import observe as turnover_observe
+            v3_turnover_shadow=turnover_observe([
+                {'date':idx.date().isoformat(),'close':float(px),
+                 'amount':float(amt)}
+                for idx,px,amt in zip(df.index,df['Close'],df['Amount'])],
+                asof=last.isoformat(),exact_reported_amount=True)
+        except (ValueError,TypeError,KeyError):
+            v3_turnover_shadow=None
     # Capture bounded, unscored path observations while the raw provider
     # series exists in memory. Persist no daily OHLCV bars or new score.
     from v3_unscored_path_observations import (
@@ -315,6 +329,7 @@ def analyze_history(code,cfg,day):
     pattern_weekly_research=observe_completed_weekly(df)
     return {
       'price_date':last.isoformat(),'price_latest':p,'price20':round_or_none(price20),
+      'v3_turnover_multihorizon_shadow':v3_turnover_shadow,
       'v3_unscored_path_observations':v3_unscored_path,
       'v3_unscored_path_unavailable_reason':v3_unscored_path_reason,
       'price60':round_or_none(price60),'price120':round_or_none(price120),
@@ -727,6 +742,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'ma120w_gap':r['ma120w_gap'],'high52_gap':r['high52_gap'],
           'relative20':r['relative20'],'relative60':r['relative60'],
           'relative120':r.get('relative120'),
+          'v3_turnover_multihorizon_shadow':r.get('v3_turnover_multihorizon_shadow'),
           'v3_unscored_path_observations':r.get('v3_unscored_path_observations'),
           'v3_unscored_path_unavailable_reason':r.get('v3_unscored_path_unavailable_reason'),
           'flows_confirmed':bool(r.get('flows_confirmed')),
