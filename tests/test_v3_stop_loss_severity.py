@@ -54,6 +54,24 @@ class StopLossSeverityResearchTests(unittest.TestCase):
         self.assertEqual(got["research_adjustment_points_not_applied"], -3.)
         self.assertEqual(got["status"], "too_close_to_market_noise")
 
+    def test_informational_missing_data_badges_do_not_erase_risk_bonus(self):
+        metadata_only = (
+            "외국인·기관 수급 미확인",
+            "실적·현금흐름 검증 필요",
+            "PBR 미확인",
+        )
+        candidate = preview(record(risk_flags=list(metadata_only)),asof=DAY)
+        self.assertAlmostEqual(
+            candidate["research_adjustment_points_not_applied"],1.8)
+        self.assertEqual(candidate["status"],
+                         "bounded_downside_and_reference_room")
+        for adverse in ("거래대금 부족 — 환금성·호가 스프레드 점검 필요",
+                        "52주 고점권 — 추격 주의",
+                        "장기 추세 취약", "추가 미확인 위험"):
+            checked=preview(record(risk_flags=[*metadata_only,adverse]),
+                            asof=DAY)
+            self.assertEqual(checked["research_adjustment_points_not_applied"],0.0)
+
     def test_unverified_setup_never_earns_bonus_despite_near_stop(self):
         for change in (
             {"risk_flags":["거래대금 부족"]},
