@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_current_observed_scorecard.py
+      - v3_stop_loss_severity.py
+      - tests/test_v3_stop_loss_severity.py
       - v3_dart_2025_owner_profit_probe.py
       - tests/test_v3_owner_profit_score_replay.py
       - docs/v3-dart-owner-profit-supplement.json
@@ -78,9 +80,10 @@ jobs:
       - name: Reject mismatched source evidence and missing=0 before publication
         run: |
           set -euo pipefail
-          python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_issuer_factor_ledger.py v3_path_provisional_factors.py v3_unscored_path_coverage.py
+          python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_stop_loss_severity.py v3_issuer_factor_ledger.py v3_path_provisional_factors.py v3_unscored_path_coverage.py
           python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
           python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
+          python -m unittest discover -s tests -p 'test_v3_stop_loss_severity.py' -v
           python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
           python -m py_compile v3_near_100_observed_gap.py v3_dart_2025_owner_profit_probe.py
           python -m unittest discover -s tests -p 'test_v3_owner_profit_score_replay.py' -v
@@ -158,6 +161,7 @@ jobs:
                 "121거래일 가격경로 관측 종목: "+str(a.get("path_observed_121session_issuers",0)),
                 "잠정 100점 관측배점 충족 종목: "+str(a.get("provisional_complete_100point_observation_count",0)),
                 "정식 투자점수 100점 인증 종목: "+str(a["certified_100point_count"]),
+                "손절거리 위험 연구 분포(100점에 미반영): "+str(a.get("stop_loss_severity_research_counts","미확인")),
                 "DART FY 근거 상태: "+a["fiscal_reference_join_status"],
                 "영수증 검증 FCF상태: "+a["fcf_reference_join_status"],
                 "FCF 추가 배점 관측 종목: "+str(a["fcf_observed_issuer_counts"]),
