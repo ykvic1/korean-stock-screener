@@ -7,12 +7,9 @@ on:
       - v3_private_dart_structured_action_receipts.py
       - tests/test_v3_private_dart_structured_action_receipts.py
       - .github/workflows/v3-dart-structured-actions-private.yml
+  # Scheduled bounded JSON research only: avoid chained provider quota usage.
   schedule:
     - cron: '43 2,14 * * *'
-  workflow_run:
-    workflows:
-      - V3 Private DART KRX Anomaly Filing Candidate Crosscheck
-    types: [completed]
   workflow_dispatch:
     inputs:
       mode:
@@ -49,7 +46,7 @@ jobs:
           python -m py_compile v3_private_dart_structured_action_receipts.py
           python -m unittest discover -s tests -p 'test_v3_private_dart_structured_action_receipts.py' -v
       - name: Crosscheck at most two shortlisted receipts via official structured JSON only
-        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
