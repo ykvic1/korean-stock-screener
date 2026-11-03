@@ -367,6 +367,18 @@ const CURRENT_COLUMNS=Object.freeze([
 const LEGACY_CURRENT_COLUMNS=Object.freeze([
  ...CURRENT_COLUMNS.slice(0,10),'산업_잠정점수',...CURRENT_COLUMNS.slice(10)
 ]);
+// Separate, explicitly NON-ADDITIVE stop-loss severity research columns.
+// Their addition cannot remove dated financial/valuation source evidence.
+const RISK_CURRENT_COLUMNS=Object.freeze([
+ ...CURRENT_COLUMNS,'손절거리_참고_퍼센트',
+ '손절심각도_연구가감점_총점미반영','손절심각도_연구상태'
+]);
+const RISK_STATUSES=new Set([
+ 'source_unavailable','too_close_to_market_noise',
+ 'low_distance_but_unconfirmed_setup','bounded_downside_and_reference_room',
+ 'medium_loss_distance','elevated_loss_distance',
+ 'wide_structural_loss_distance'
+]);
 function parseObservedCsv(input){
  if(typeof input!=='string'||input.length>2000000||input.length<50)return null;
  const raw=input.charCodeAt(0)===0xfeff?input.slice(1):input;
@@ -412,8 +424,10 @@ function applyCurrentObservedFinance(model,summary,csv){
    rows[0].every((name,i)=>name===CURRENT_COLUMNS[i]);
  const isLegacy=rows[0].length===LEGACY_CURRENT_COLUMNS.length&&
    rows[0].every((name,i)=>name===LEGACY_CURRENT_COLUMNS[i]);
- if(!isNew&&!isLegacy)return 0;
- const activeColumns=isNew?CURRENT_COLUMNS:LEGACY_CURRENT_COLUMNS;
+ const isRisk=rows[0].length===RISK_CURRENT_COLUMNS.length&&
+   rows[0].every((name,i)=>name===RISK_CURRENT_COLUMNS[i]);
+ if(!isNew&&!isLegacy&&!isRisk)return 0;
+ const activeColumns=isRisk?RISK_CURRENT_COLUMNS:isNew?CURRENT_COLUMNS:LEGACY_CURRENT_COLUMNS;
  const number=(value,max)=>{
   if(value==='')return null;
   if(typeof value!=='string'||!value.trim()||!Number.isFinite(Number(value)))return NaN;
@@ -429,6 +443,8 @@ function applyCurrentObservedFinance(model,summary,csv){
  }
  const proposed=[],seen=new Set();
  let financialCount=0,valuationCount=0;
+ const riskCounts={bonus_research_only:0,penalty_research_only:0,
+  neutral_research_only:0,unavailable:0};
  for(const record of rows.slice(1)){
   if(record.length!==activeColumns.length)return 0;
   const field=name=>record[idx(name)];
@@ -440,6 +456,23 @@ function applyCurrentObservedFinance(model,summary,csv){
      (isLegacy&&field('산업_잠정점수')!=='')||
      field('투자등급')!=='미검증 연구용')return 0;
   seen.add(code);
+  if(isRisk){
+   const status=field('손절심각도_연구상태');
+   const rawDistance=field('손절거리_참고_퍼센트');
+   const rawAdjustment=field('손절심각도_연구가감점_총점미반영');
+   const distance=number(rawDistance,100);
+   const adjustment=rawAdjustment===''?null:Number(rawAdjustment);
+   if(!RISK_STATUSES.has(status)||
+      (rawDistance!==''&&(distance===null||!finite(distance)))||
+      (rawAdjustment!==''&&(!finite(adjustment)||adjustment< -5||adjustment>5))||
+      (status==='source_unavailable'&&adjustment!==null)||
+      (status!=='source_unavailable'&&
+       (!(distance>0&&distance<100)||adjustment===null)))return 0;
+   const category=adjustment===null?'unavailable':
+    adjustment>0?'bonus_research_only':
+    adjustment<0?'penalty_research_only':'neutral_research_only';
+   riskCounts[category]++;
+  }
   const financial=number(field('재무_잠정점수'),WEIGHTS.financial);
   const valuation=number(field('밸류에이션_잠정점수'),WEIGHTS.valuation);
   const financeAvail=field('재무_산출배점')===''?0:
@@ -489,7 +522,12 @@ function applyCurrentObservedFinance(model,summary,csv){
  if(seen.size!==model.marketEligible||
     proposed.length!==stockMap.size||
     summary.observed_issuer_counts.financial!==financialCount||
-    summary.observed_issuer_counts.valuation!==valuationCount)return 0;
+    summary.observed_issuer_counts.valuation!==valuationCount||
+    (isRisk&&(!summary.stop_risk_adjustment_is_not_part_of_100point_total||
+      summary.stop_risk_historical_probability_unverified!==true||
+      !summary.stop_loss_severity_research_counts||
+      Object.keys(riskCounts).some(k=>
+       summary.stop_loss_severity_research_counts[k]!==riskCounts[k]))))return 0;
  for(const [stock,value] of proposed)stock.v3_same_day_observed_finance=value;
  return proposed.filter(([,value])=>value.financial.available>0).length;
 }

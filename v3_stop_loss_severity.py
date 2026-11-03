@@ -84,8 +84,18 @@ def preview(row, *, asof):
             result["reference_reward_risk_only"] = round(room / distance, 4)
 
     flags = row.get("risk_flags")
-    flags_clear = type(flags) is list and not any(
-        type(value) is str and value.strip() for value in flags)
+    # The legacy warning list also contains source-missing metadata on most
+    # issuers. "PBR unconfirmed" / "flows unconfirmed" are NOT evidence of a
+    # higher stop-hit rate. Unknown or genuinely adverse flags still block a
+    # bonus, while data-quality badges remain visible elsewhere.
+    non_price_evidence_flags = {
+        "외국인·기관 수급 미확인",
+        "실적·현금흐름 검증 필요",
+        "PBR 미확인",
+    }
+    flags_clear = (type(flags) is list and
+                   all(type(flag) is str and flag in non_price_evidence_flags
+                       for flag in flags))
     price20, price60 = row.get("price20"), row.get("price60")
     not_extended = (_finite(price20) and _finite(price60)
                     and price20 <= 18 and price60 <= 40)
