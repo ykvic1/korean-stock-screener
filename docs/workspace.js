@@ -215,15 +215,39 @@ function obvLagCandidate(r){
  const z=r?.v3_volume_observed?.subpoints;
  return evidence!==null&&z?.obv_price_not_reflected===4;
 }
+// Transitional reader for the dated pre-cross snapshot. Never reuse its
+// retired 6-point OBV-rise component as MA evidence.
+function legacyVolumeBaseOnly(rec){
+ if(!rec||typeof rec!=='object'||rec.observed_available_max!==16||
+   rec.unobserved_max!==4||!rec.subpoints||typeof rec.subpoints!=='object')return null;
+ const z=rec.subpoints;
+ if(!finite(z.sustained_volume)||z.sustained_volume<0||z.sustained_volume>6||
+   !(z.obv_60_direction===0||z.obv_60_direction===6)||
+   !(z.obv_price_not_reflected===0||z.obv_price_not_reflected===4)||
+   z.post_spike_absorption!==null||
+   !finite(rec.observed_points)||
+   Math.abs(rec.observed_points-(z.sustained_volume+
+     z.obv_60_direction+z.obv_price_not_reflected))>0.000001)return null;
+ return {...rec,
+  observed_points:z.sustained_volume+z.obv_price_not_reflected,
+  observed_available_max:10,unobserved_max:10,
+  subpoints:{sustained_volume:z.sustained_volume,
+   ma20_ma60_cross_near_ma240:null,
+   obv_price_not_reflected:z.obv_price_not_reflected,
+   post_spike_absorption:null},
+  legacy_obv_six_points_removed:true};
+}
 function applyObservedVolume(model,source){
  if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
    !Number.isInteger(model.marketEligible)||model.marketEligible<1||
-   !source||source.schema!=='v3-current-market-volume-ma-cross-provisional-research-0.2'||
+   !source||!['v3-current-market-volume-ma-cross-provisional-research-0.2',
+    'v3-current-market-volume-obv-provisional-research-0.1'].includes(source.schema)||
    source.asof!==model.date||source.listed_total!==model.marketEligible||
    source.points_budget!==20||
    source.maximum_available_point_budget_per_observed_issuer!==16||
-   source.base_available_point_budget_per_observed_issuer!==10||
-   source.ma_cross_unavailable_is_not_zero!==true||
+   (source.schema==='v3-current-market-volume-ma-cross-provisional-research-0.2'&&
+    (source.base_available_point_budget_per_observed_issuer!==10||
+     source.ma_cross_unavailable_is_not_zero!==true))||
    source.not_observed_absorption_max!==4||
    source.ias_investor_flow_component_used!==false||
    source.technical_one_day_volume_not_double_counted!==true||
@@ -248,10 +272,12 @@ function applyObservedVolume(model,source){
  const accepted=[];
  for(const [code,rec] of Object.entries(source.records)){
   const r=list.get(code);
-  if(!TODAY_CODE.test(code)||!r||!rec||typeof rec!=='object'||
+  const next=source.schema==='v3-current-market-volume-obv-provisional-research-0.1'
+   ?legacyVolumeBaseOnly(rec):rec;
+  if(!TODAY_CODE.test(code)||!r||!next||typeof next!=='object'||
      r.price_date!==model.date||
-     observedVolumeEvidence({...r,v3_volume_observed:rec})===null)return 0;
-  accepted.push([r,rec]);
+     observedVolumeEvidence({...r,v3_volume_observed:next})===null)return 0;
+  accepted.push([r,next]);
  }
  if(accepted.length!==source.observed_volume_candidate_issuers)return 0;
  for(const [r,rec] of accepted)r.v3_volume_observed=rec;
@@ -1190,7 +1216,7 @@ function volumeStatus(pillar){
   return '거래량·OBV 기준 확인 불가';
  return pillar.candidate===null
   ?'신규 MA20·60일선 교차점/240일선 근거 또는 거래량 자료가 미확보입니다. 구형 OBV 상승 6점은 중단했으며 결측은 0점이 아닙니다.'
-  :'거래량/OBV 괴리 및 최근20일 골든크로스의 240일선 대비 ±12%를 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 실전 인증 전입니다.';
+  :'거래량/OBV 괴리 및 최근20일 골든크로스의 240일선 대비 ±12%를 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 매집 증거 또는 매수 신호가 아닙니다.';
 }
 function volumeParts(r){
  const v=observedVolumeEvidence(r);
