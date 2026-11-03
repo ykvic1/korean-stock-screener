@@ -183,7 +183,15 @@ def inspect(current,previous=None):
                         issues.append("mutated_retired_issuer_identity_history")
             for code,old in previous["rows"].items():
                 latest=rows.get(code)
-                if not isinstance(old,dict) or not isinstance(latest,dict):
+                if not isinstance(old,dict):
+                    issues.append("invalid_prior_issuer_record")
+                    continue
+                # Historical rows are deliberately retained as inactive after
+                # delisting. Even if the active market census still matches,
+                # dropping an entire prior issuer row destroys its last-known
+                # observations and must not silently pass the audit.
+                if not isinstance(latest,dict):
+                    issues.append("lost_existing_issuer_record")
                     continue
                 if (old.get("name")!=latest.get("name") or
                     old.get("market")!=latest.get("market")):
