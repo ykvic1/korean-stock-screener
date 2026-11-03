@@ -1854,3 +1854,30 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.match(blank,/추가 자료가 필요한 배점 100\/100/);
  assert.doesNotMatch(blank,/NaN|undefined/);
 }
+
+
+/* Stable-profile regression: explicit penalties, unknowns, and immutable V3 points. */
+{
+ const source={code:'005930',market:'KOSPI',price_date:'2026-11-02',
+  market_cap_eok:56000,trading_eok:220};
+ const composite={earned:63.2,available:100};
+ const normal=unified.stabilityProfile(source,composite);
+ assert.equal(normal.score,63.2);
+ assert.equal(normal.deduction,0);
+ assert.match(normal.status,/안정형/);
+ const tiny=unified.stabilityProfile({...source,market_cap_eok:900,trading_eok:0.8},composite);
+ assert.equal(tiny.capitalDeduction,15);
+ assert.equal(tiny.liquidityDeduction,15);
+ assert.equal(tiny.score,33.2);
+ assert.equal(composite.earned,63.2,'the original 5-area score must never be changed');
+ const missing=unified.stabilityProfile({...source,market_cap_eok:null,trading_eok:undefined},composite);
+ assert.equal(missing.score,63.2,'missing evidence must not become a zero score');
+ assert.equal(missing.missing,2);
+ assert.match(missing.status,/확인 필요/);
+ assert.equal(unified.stabilityProfile(source,{earned:null,available:0}).score,null);
+ assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:10},composite).deduction,3);
+ assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:30},composite).deduction,0);
+ const illiquid=unified.stabilityProfile({...source,market_cap_eok:3000,trading_eok:2},composite);
+ assert.equal(illiquid.deduction,15);
+ console.log('Personal stability overlay: cap and same-day trading value deductions, missing retained PASS');
+}
