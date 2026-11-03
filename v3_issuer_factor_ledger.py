@@ -351,6 +351,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
         raise IssuerFactorLedgerError("untrusted_prior_factor_ledger")
     previous=prior["rows"] if prior else {}
     identity_archive=_verified_identity_archive(prior, day) if prior else {}
+    identity_changed_codes=set()
     for code,old in previous.items():
         if not isinstance(old,dict) or code!=old.get("code"):
             continue
@@ -364,6 +365,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
         # continuity. Keep the old identity's scores as review-only history,
         # never let them enter the new current ticker's factor/rank calculation.
         if old.get("name")!=target["name"] or old.get("market")!=target["market"]:
+            identity_changed_codes.add(code)
             snapshot=_archived_identity(old,code,prior["market_asof"],day)
             archive_key=_archive_key(code,old["name"],old["market"],
                                      prior["market_asof"])
@@ -405,7 +407,8 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
     archived=_source_fiscal(parts,audit,day)
     for code,source in archived.items():
         target=listed.get(code)
-        if not target or not target["active"] or target["market"]!=source["market"]:
+        if (not target or not target["active"] or code in identity_changed_codes
+                or target["market"]!=source["market"]):
             continue
         for key,entry in source["factors"].items():
             old=target["factors"].get(key)
@@ -421,6 +424,11 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
         if not isinstance(source_rows,dict):
             raise IssuerFactorLedgerError("invalid_component_source_index")
         for code,source_row in source_rows.items():
+            # The same six-digit ticker may point at a different issuer.
+            # Saved DART-only code/scope sources have no separately checked
+            # corporation-identity continuity proof across this transition.
+            if code in identity_changed_codes:
+                continue
             target=listed.get(code)
             if (not target or not target["active"] or
                 not isinstance(source_row,dict) or
