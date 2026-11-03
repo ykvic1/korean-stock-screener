@@ -804,7 +804,7 @@ function issuerReadinessMarkup(r){
  const gaps=c.pillars.filter(p=>p.available<p.max)
   .sort((a,b)=>(b.max-b.available)-(a.max-a.available));
  const older=c.pillars.filter(p=>p.asof&&p.asof<r.price_date);
- return '<div class="u-fcf-stock-status"><h3>이 종목의 자료 확보 현황</h3>'+
+ return '<div class="u-issuer-readiness"><h3>이 종목의 자료 확보 현황</h3>'+
   '<p class="u-source">가격 기준 '+esc(r.price_date)+' · 확보 배점 '+c.available+
   '/100 · 추가 자료가 필요한 배점 '+c.missing+'/100</p>'+
   (gaps.length?'<ul class="u-fcf-stock-list">'+gaps.map(p=>
