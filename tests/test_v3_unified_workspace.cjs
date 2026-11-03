@@ -767,7 +767,7 @@ assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
  'active filter and observational candidate chip must be visibly styled');
-assert.ok(html.includes('<option value="stable" selected>안정형 보정점수순 (시총·거래대금)</option>'),
+assert.ok(html.includes('<option value="stable" selected>안정형 보정순 (시총·손절 구조)</option>'),
  'default selection must explicitly show the personal stability overlay');
 assert.ok(source.includes("sort='stable'"),'default rank must use displayed stability score');
 assert.ok(css.includes('.u-content:has(> #detail:empty)')&&css.includes('.u-stock{')&&css.includes('.u-scoresix'),
