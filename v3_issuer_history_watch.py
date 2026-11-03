@@ -10,6 +10,7 @@ from collections import Counter
 from datetime import date
 import json
 from pathlib import Path
+import v3_issuer_factor_ledger as identity_ledger
 
 ROOT = Path(__file__).resolve().parent
 PILLARS = {"volume":20,"technical":25,"financial":20,"valuation":20,"momentum":15}
@@ -66,6 +67,19 @@ def inspect(current,previous=None):
         raise ValueError("unbounded_ledger")
     counts=Counter()
     groups=Counter()
+    archive = {}
+    try:
+        archive = identity_ledger._verified_identity_archive(current, day)
+    except identity_ledger.IssuerFactorLedgerError:
+        issues.append("invalid_retired_issuer_identity_archive")
+    if archive and current.get("identity_history_unverified_not_ranked") is not True:
+        issues.append("retired_history_misrepresented_as_current")
+    counts["retired_identity_snapshots"] = len(archive)
+    counts["retired_area_observations"] = sum(
+        len(row["factors"]) for row in archive.values())
+    counts["retired_component_observations"] = sum(
+        sum(len(v) for v in row["components"].values())
+        for row in archive.values())
     for code,row in rows.items():
         if (not isinstance(row,dict) or code!=row.get("code") or
             not isinstance(code,str) or len(code)!=6 or not code.isdecimal() or
@@ -145,12 +159,46 @@ def inspect(current,previous=None):
             previous["market_asof"]>day):
             issues.append("invalid_prior_ledger")
         else:
+            old_archive = previous.get("identity_review_archive", {})
+            if not isinstance(old_archive, dict):
+                issues.append("invalid_prior_retired_identity_archive")
+            else:
+                for key, item in old_archive.items():
+                    if key not in archive:
+                        issues.append("lost_retired_issuer_identity_history")
+                    elif archive[key] != item:
+                        issues.append("mutated_retired_issuer_identity_history")
             for code,old in previous["rows"].items():
                 latest=rows.get(code)
-                if (not isinstance(old,dict) or not isinstance(latest,dict) or
-                    old.get("name")!=latest.get("name") or
+                if not isinstance(old,dict) or not isinstance(latest,dict):
+                    continue
+                if (old.get("name")!=latest.get("name") or
                     old.get("market")!=latest.get("market")):
-                    continue  # newly listed, delisted or renamed issuer
+                    # A name change may be an ordinary rename or a recycled
+                    # ticker. Preserve old research, do not infer continuity.
+                    key = identity_ledger._archive_key(
+                        code, old.get("name"), old.get("market"),
+                        previous["market_asof"])
+                    retired = archive.get(key)
+                    if retired is None:
+                        issues.append("unarchived_issuer_identity_transition")
+                    else:
+                        try:
+                            expected = identity_ledger._archived_identity(
+                                old, code, previous["market_asof"], day)
+                            # Only the archive's *recorded_on* can differ if a
+                            # previous same-day transition was replayed.
+                            if retired != expected:
+                                issues.append("retired_issuer_history_source_mismatch")
+                        except identity_ledger.IssuerFactorLedgerError:
+                            issues.append("untrusted_prior_issuer_at_transition")
+                    if (any(x.get("source") == "dart_bulk_snapshot"
+                            for x in latest.get("factors", {}).values()
+                            if isinstance(x,dict)) or
+                        any(latest.get("components", {}).values())):
+                        issues.append("unverified_fiscal_join_across_identity_change")
+                    counts["identity_transitions_review_only"]+=1
+                    continue
                 counts["same_identity_comparisons"]+=1
                 for field,issue in (("factors","lost_existing_area_observation"),
                                     ("components","lost_existing_component_observation")):
