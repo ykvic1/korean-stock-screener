@@ -10,10 +10,12 @@ on:
       - v3_krx_money_horizon_coverage.py
       - tests/test_v3_krx_money_horizon_research.py
       - tests/test_v3_krx_money_horizon_coverage.py
+      - tests/test_v3_krx_money_history_forward_join.py
       - .github/workflows/v3-krx-money-public-progress.yml
   workflow_run:
     workflows:
       - V3 actual KRX trading-value private derived backfill
+      - V3 KRX actual-money after-anchor forward private derived cohorts
     types: [completed]
   schedule:
     # Independent fallback monitor even if a source execution is delayed.
@@ -53,6 +55,7 @@ jobs:
           python -m py_compile v3_krx_money_horizon_research.py v3_krx_money_horizon_coverage.py
           python -m unittest discover -s tests -p 'test_v3_krx_money_horizon_research.py' -v
           python -m unittest discover -s tests -p 'test_v3_krx_money_horizon_coverage.py' -v
+          python -m unittest discover -s tests -p 'test_v3_krx_money_history_forward_join.py' -v
       - name: Publish aggregate-only counts with readback guard
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
@@ -108,7 +111,9 @@ jobs:
           horizon=Path('docs/v3-krx-money-horizon-coverage.json')
           if horizon.is_file():
               obj=json.loads(horizon.read_text(encoding='utf8'))
-              lines += ['과거 이력 분석 종료일: '+str(obj['historical_archive_endpoint']),
+              lines += ['완성 5거래일 묶음 분석 종료일: '+str(obj.get('analysis_complete_cohort_endpoint',obj.get('historical_archive_endpoint'))),
+                        '증분 완성 묶음: '+str(obj.get('forward_complete_cohorts_inspected','미산출')),
+                        '미완성 최신 거래일 후보 수: '+str(obj.get('forward_open_tail_candidate_sessions','미산출')),
                         '현재 거래일 점수 자료와 분리한 5거래일 묶음 분석입니다.']
               for day,row in obj['daily_disjoint_period_coverage'].items():
                   lines += [day+'일 직전 동일기간 비교 가능 종목-시장쌍: '+str(
