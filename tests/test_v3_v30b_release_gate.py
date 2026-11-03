@@ -246,6 +246,9 @@ class V30bReadinessTests(unittest.TestCase):
                 ("정식투자점수", "100"),
                 ("투자등급", "확정 투자등급"),
                 ("거래량_OBV_잠정점수", "500"),
+                ("손절심각도_연구가감점_총점미반영", "6"),
+                ("손절심각도_연구상태", "confirmed_investment_score"),
+                ("손절거리_참고_퍼센트", "-1"),
                 ("시장", "UNKNOWN")):
             with self.subTest(field=field):
                 rows = copy.deepcopy(original)
