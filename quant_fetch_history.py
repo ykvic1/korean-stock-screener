@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 import FinanceDataReader as fdr
 from quant_priority_universe import prioritized_stocks, optional_recommendations
-from quant_engine import read_ohlcv
+from quant_engine import read_ohlcv, source_cohort_digest
 
 NEEDED = ["Open","High","Low","Close","Volume"]
 
@@ -68,7 +68,10 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
         if error:fail.append([code,error])
         time.sleep(sleep)
         if i%25==0:logging.info("OHLCV cache %s/%s saved=%s reused=%s failed=%s",i,len(stocks),saved,fresh,len(fail))
-    result={"asof":asof,"requested":len(stocks),"fetched":saved,"reused":fresh,
+    result={"asof":asof,"requested":len(stocks),
+            "cohort_sha256":source_cohort_digest(
+                asof,[str(s["code"]) for s in stocks]),
+            "fetched":saved,"reused":fresh,
             "failed_n":len(fail),"failed":fail}
     (cache_dir/"cache_status.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
     return result
