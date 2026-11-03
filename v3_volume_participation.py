@@ -3,11 +3,14 @@
 An explicitly NEW, provisional 'volume/OBV 20' domain. It NEVER claims
 foreign/institutional accumulation, source-adjusted OHLCV, institutional IAS,
 historical PIT, a confirmed 100-point score, or a trading recommendation.
-Only the first 16/20 points have independently saved V2.2 observables:
+Only 10/20 points come from saved V2.2 volume/OBV observations:
   six: prior-40 vs most-recent-20 session volume participation
-  six: 60-session signed-volume (OBV) slope DIRECTION
   four: price did not keep pace with rising OBV ([-12,+10]% over 60)
-  four: 20-session post-spike absorption (NOT available in saved snapshot)
+An independent six-point MA20/60 bullish cross near the MA240 (+/-12%)
+is awarded only with a dated 260-session crossing receipt. The intersection
+of the two averages, not the share closing price, is compared to MA240.
+The final four points require a separately observed post-spike absorption
+path. Missing cross history is unavailable weight, never zero or old OBV points.
 One-day volume surge is intentionally EXCLUDED because technical25 already
 uses it (technical.volume_confirmation2).
 """
@@ -22,11 +25,13 @@ from pathlib import Path
 
 from v22_full_universe_audit import audit_published_universe
 from v3_dart_bulk_history import _stable_digest, write_json
+from v3_ma240_cross_research import valid_observation as valid_ma_cross
 
-SCHEMA="v3-current-market-volume-obv-provisional-research-0.1"
+SCHEMA="v3-current-market-volume-ma-cross-provisional-research-0.2"
 MAX_POINTS=20
+BASE_AVAILABLE_MAX=10
 OBSERVABLE_MAX=16
-SUBMAX={"sustained_volume":6,"obv_60_direction":6,
+SUBMAX={"sustained_volume":6,"ma20_ma60_cross_near_ma240":6,
         "obv_price_not_reflected":4,"post_spike_absorption":4}
 
 class VolumeEvidenceError(ValueError):
@@ -60,7 +65,9 @@ def observed(stock, *, asof, market):
                4 if 1.05<=ratio<1.25 else
                2 if 0.85<=ratio<1.05 else
                1 if ratio>3 else 0)
-    obv_score=6 if rising else 0
+    cross=stock.get("v3_ma240_cross_research")
+    cross_usable=valid_ma_cross(cross,asof) if cross is not None else False
+    cross_score=(6 if cross["qualified"] else 0) if cross_usable else None
     lag_score=4 if divergence else 0
     risks=[]
     if ratio>3:
@@ -69,15 +76,15 @@ def observed(stock, *, asof, market):
         risks.append("price_downtrend_requires_support_confirmation")
     if price60>30:
         risks.append("60day_price_extension_chase_risk")
-    if not rising:
-        risks.append("obv_not_up")
-    scores={"sustained_volume":vol_score,"obv_60_direction":obv_score,
+    scores={"sustained_volume":vol_score,
+            "ma20_ma60_cross_near_ma240":cross_score,
             "obv_price_not_reflected":lag_score,
             "post_spike_absorption":None}
     points=sum(value for value in scores.values() if value is not None)
+    available=BASE_AVAILABLE_MAX+(6 if cross_usable else 0)
     return {
         "asof":asof,"market":market,"observed_points":points,
-        "observed_available_max":OBSERVABLE_MAX,"unobserved_max":4,
+        "observed_available_max":available,"unobserved_max":20-available,
         "subpoints":scores,"risk_flags":risks,
         "source_history_adjusted_verified":False,
         "source_exchange_regular_only_verified":False,
@@ -131,7 +138,9 @@ def build(market,catalog):
         "observed_volume_candidate_issuers":len(results),
         "insufficient_or_unpriced_issuers":len(members)-len(results),
         "points_budget":MAX_POINTS,
-        "available_point_budget_per_observed_issuer":OBSERVABLE_MAX,
+        "maximum_available_point_budget_per_observed_issuer":OBSERVABLE_MAX,
+        "base_available_point_budget_per_observed_issuer":BASE_AVAILABLE_MAX,
+        "ma_cross_unavailable_is_not_zero":True,
         "not_observed_absorption_max":4,
         "weight_contract_in_this_model":{
             "volume":20,"technical":25,"financial":20,
@@ -163,7 +172,7 @@ def to_csv(report,catalog):
         "종목코드","종목명","시장","시장자료기준일",
         "거래량_OBV_잠정점수_20점중","산출가능배점_20점중",
         "미확보배점_20점중","20일거래량_점수_6점",
-        "OBV60일_점수_6점","OBV_주가미반영_점수_4점",
+        "20_60골든크로스_240일선12퍼센트_점수_6점","OBV_주가미반영_점수_4점",
         "거래급증후매물소화_점수_4점","관측상태","위험신호",
         "매수주체판별","정식투자점수"
     ])
@@ -178,23 +187,30 @@ def to_csv(report,catalog):
             continue
         if (record.get("market")!=item["market"]
             or record.get("asof")!=report["asof"]
-            or record.get("observed_available_max")!=OBSERVABLE_MAX
-            or record.get("unobserved_max")!=4
+            or record.get("observed_available_max") not in (BASE_AVAILABLE_MAX,OBSERVABLE_MAX)
+            or record.get("unobserved_max")!=20-record["observed_available_max"]
             or record.get("foreign_institutional_net_buy_inferred") is not False
             or record.get("investable_score_certified") is not False):
             raise VolumeEvidenceError("volume_csv_issuer_or_claim_mismatch")
         points=record["subpoints"]
+        cross=points.get("ma20_ma60_cross_near_ma240")
         if (not isinstance(points,dict)
             or points.get("post_spike_absorption") is not None
+            or (cross is None)!=(record["observed_available_max"]==BASE_AVAILABLE_MAX)
+            or (cross is not None and cross not in (0,6))
             or sum(points[k] for k in (
-                "sustained_volume","obv_60_direction",
-                "obv_price_not_reflected"))!=record["observed_points"]):
+                "sustained_volume","obv_price_not_reflected"))+(cross or 0)
+                !=record["observed_points"]):
             raise VolumeEvidenceError("volume_csv_subfactor_tampered")
         writer.writerow([
             item["code"],item["name"],item["market"],report["asof"],
-            record["observed_points"],OBSERVABLE_MAX,4,
-            points["sustained_volume"],points["obv_60_direction"],
-            points["obv_price_not_reflected"],"","16점관측·4점미확보",
+            record["observed_points"],record["observed_available_max"],
+            record["unobserved_max"],
+            points["sustained_volume"],
+            "" if cross is None else cross,
+            points["obv_price_not_reflected"],"",
+            str(record["observed_available_max"])+"점관측·"+
+            str(record["unobserved_max"])+"점미확보",
             ";".join(record["risk_flags"]),"불가",""
         ])
     if len(members)!=report["listed_total"]:
