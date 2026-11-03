@@ -107,12 +107,29 @@ class NearHundredSourceGapTests(unittest.TestCase):
         with self.assertRaisesRegex(GapAuditError, "invalid_observed_weight"):
             generate(*inputs)
 
+    def test_identity_ledger_is_not_part_of_same_day_full_coverage(self):
+        report=generate(*self.sources)
+        # A prior factor can remain on the user-facing ranked issuer card;
+        # it must NOT be silently counted as a source acquired on this day.
+        self.assertNotIn("last_observed_factor_points",report)
+        self.assertTrue(report["no_points_added"])
+        self.assertFalse(report["official_trade_score_certified"])
+
+
+class SourceRolloverGuardTests(unittest.TestCase):
     def test_same_market_day_source_collection_freezes_issuer_queue_not_score(self):
-        prior=generate(*self.sources)
+        # Policy test uses a deterministic acquisition cohort; the real
+        # closing snapshot may legitimately have no eligible candidates.
+        prior={"schema":"v3-observed-near100-source-gap-priority-0.1",
+               "asof":"2026-11-02","listed_total":1,
+               "no_points_added":True,"official_trade_score_certified":False,
+               "missing_capex_is_not_zero":True,
+               "official_2025_owners_profit_missing_priority_codes":["000001"],
+               "official_2025_owners_profit_missing_priority_count":1,
+               "provisional_observed_100_weight_issuers":0}
         recalculated=copy.deepcopy(prior)
         recalculated["provisional_observed_100_weight_issuers"]+=3
         names=prior["official_2025_owners_profit_missing_priority_codes"]
-        self.assertTrue(names)
         source={
             "schema":"v3-official-fy2025-owner-profit-source-0.1",
             "market_asof":prior["asof"],
@@ -140,16 +157,17 @@ class NearHundredSourceGapTests(unittest.TestCase):
                 GapAuditError,"untrusted_frozen_profit_priority_cohort"):
             retain_original_priority_cohort(prior,recalculated,invalid)
 
-    def test_identity_ledger_is_not_part_of_same_day_full_coverage(self):
-        report=generate(*self.sources)
-        # A prior factor can remain on the user-facing ranked issuer card;
-        # it must NOT be silently counted as a source acquired on this day.
-        self.assertNotIn("last_observed_factor_points",report)
-        self.assertTrue(report["no_points_added"])
-        self.assertFalse(report["official_trade_score_certified"])
+    def test_empty_queue_and_no_supplement_do_not_force_an_acquisition(self):
+        observed={"asof":"2026-11-03",
+                  "official_2025_owners_profit_missing_priority_codes":[],
+                  "official_2025_owners_profit_missing_priority_count":0}
+        chosen,frozen=retain_original_priority_cohort(None,observed,None)
+        self.assertEqual(chosen,observed)
+        self.assertFalse(frozen)
+        empty_supplement={"records":{},"market_asof":observed["asof"]}
+        self.assertEqual(retain_original_priority_cohort(
+            observed,observed,empty_supplement),(observed,False))
 
-
-class SourceRolloverGuardTests(unittest.TestCase):
     def test_older_or_newer_dart_products_cannot_issue_same_day_priority(self):
         day="2026-11-02"
         summary={"asof":day,
