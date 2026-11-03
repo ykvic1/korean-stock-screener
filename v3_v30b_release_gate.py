@@ -84,6 +84,8 @@ CSV_COLUMNS = (
     "미확보배점_100점중", "정식투자점수", "투자등급",
     "재무_산출배점", "가치_산출배점",
     "FCF자산3년_잠정점수", "FCF수익률_잠정점수",
+    "손절거리_참고_퍼센트", "손절심각도_연구가감점_총점미반영",
+    "손절심각도_연구상태",
 )
 CSV_AREA_FIELDS = {
     "volume": ("거래량_OBV_산출배점", "거래량_OBV_잠정점수"),
@@ -115,6 +117,63 @@ def _csv_points(raw: Any, maximum: int) -> Decimal | None:
     if not number.is_finite() or number < 0 or number > maximum:
         raise ValueError("invalid_points")
     return number
+
+
+STOP_RESEARCH_STATES = {
+    "source_unavailable", "too_close_to_market_noise",
+    "low_distance_but_unconfirmed_setup",
+    "bounded_downside_and_reference_room",
+    "medium_loss_distance", "elevated_loss_distance",
+    "wide_structural_loss_distance",
+}
+
+
+def _research_decimal(raw: Any, *, signed=False) -> Decimal | None:
+    if raw == "":
+        return None
+    if type(raw) is not str or len(raw) > 60:
+        raise ValueError("invalid_research_number")
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        raise ValueError("invalid_research_number") from None
+    maximum, minimum = (5, -5) if signed else (100, 0)
+    if not value.is_finite() or not minimum <= value <= maximum:
+        raise ValueError("invalid_research_number")
+    return value
+
+
+def _stop_research_csv(row: dict[str, str]) -> str:
+    """Validate a separate non-scoring observation, never risk odds or grade."""
+    distance = _research_decimal(row["손절거리_참고_퍼센트"])
+    adjustment = _research_decimal(
+        row["손절심각도_연구가감점_총점미반영"], signed=True)
+    status = row["손절심각도_연구상태"]
+    if status not in STOP_RESEARCH_STATES:
+        raise ValueError("unknown_stop_research_status")
+    if status == "source_unavailable":
+        if adjustment is not None:
+            raise ValueError("unverified_stop_adjustment")
+        return "unavailable"
+    if distance is None or not 0 < distance < 100 or adjustment is None:
+        raise ValueError("invalid_stop_research_reference")
+    if status == "too_close_to_market_noise":
+        ok = distance < 3 and adjustment == -3
+    elif status == "bounded_downside_and_reference_room":
+        ok = 3 <= distance <= 8 and 0 <= adjustment <= 3
+    elif status == "low_distance_but_unconfirmed_setup":
+        ok = 3 <= distance <= 8 and adjustment == 0
+    elif status == "medium_loss_distance":
+        ok = 8 < distance <= 12 and -1 <= adjustment < 0
+    elif status == "elevated_loss_distance":
+        ok = 12 < distance <= 15 and -3 <= adjustment < -1
+    else:
+        ok = 15 < distance < 100 and -5 <= adjustment <= -3
+    if not ok:
+        raise ValueError("risk_band_score_mismatch")
+    return ("bonus_research_only" if adjustment > 0 else
+            "penalty_research_only" if adjustment < 0 else
+            "neutral_research_only")
 
 
 def _secondary_scorecard_counts_bounded_by_matched_fcf(
@@ -176,6 +235,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
             return False
         area_hist = {key: Counter() for key in AREA_WEIGHTS}
         fcf_subfactor_counts = {"financial4": 0, "valuation5": 0}
+        stop_research_counts = Counter()
         total_hist, market_hist = Counter(), {"KOSPI": Counter(), "KOSDAQ": Counter()}
         complete, partial, missing = {}, {}, {}
         seen = set()
@@ -219,6 +279,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
                             or subpoints > points_by_area[area]):
                         return False
                     fcf_subfactor_counts[key] += 1
+            stop_research_counts[_stop_research_csv(row)] += 1
             available = sum(weights.values())
             if (_csv_integer(row["산출가능배점_100점중"], 100) != available
                     or _csv_integer(row["미확보배점_100점중"], 100)
@@ -263,6 +324,14 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
             and observed["provisional_complete_100point_observation_count"]
                 == total_hist[100]
             and observed.get("fcf_observed_issuer_counts") == fcf_subfactor_counts
+            and observed.get("stop_loss_severity_research_counts") ==
+                {status: stop_research_counts[status] for status in (
+                    "bonus_research_only", "penalty_research_only",
+                    "neutral_research_only", "unavailable")}
+            and observed.get("stop_risk_adjustment_is_not_part_of_100point_total")
+                is True
+            and observed.get("stop_risk_historical_probability_unverified")
+                is True
             and _secondary_scorecard_counts_bounded_by_matched_fcf(
                 observed, scorecard.get("provisional_numeric_issuer_counts"))
         )
