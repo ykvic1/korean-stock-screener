@@ -8,6 +8,9 @@ ranking, with each original as-of day visible and no investment certification.
 from __future__ import annotations
 
 from datetime import date
+from copy import deepcopy
+from hashlib import sha256
+import json
 import math
 from v3_real_six_pillar_coverage_audit import _canonical_hash
 
@@ -26,6 +29,7 @@ FCF_COMPONENTS = {
 }
 COMPONENT_SOURCES = {"dart_fiscal_subfactor","dart_fcf_subfactor"}
 HISTORY_LIMIT = 3  # bounded prior observation snapshots per issuer and subfactor
+IDENTITY_ARCHIVE_LIMIT = 15000  # distinct review-only identity transitions
 
 
 class IssuerFactorLedgerError(ValueError):
@@ -219,6 +223,105 @@ def _source_fiscal(parts,audit,current_day):
     return index
 
 
+
+def _archive_key(code, name, market, last_known_day):
+    """Stable key for ONE historical ticker/market/name/census-date episode.
+
+    A ticker alone is not an issuer identity. This does not authenticate a
+    renaming, an ISIN or a corporate merger; only separates historical records.
+    """
+    return sha256(json.dumps(
+        [code, name, market, last_known_day],
+        ensure_ascii=True, separators=(",", ":")).encode("utf8")).hexdigest()
+
+
+def _archived_identity(old, code, last_known_day, recorded_on):
+    """Validate and freeze the prior score history outside the current rank.
+
+    Earlier as-of dates are preserved; no historic value is re-dated.
+    """
+    if (not isinstance(old, dict) or old.get("code") != code
+        or type(code) is not str or len(code) != 6 or not code.isdecimal()
+        or old.get("market") not in ("KOSPI", "KOSDAQ")
+        or type(old.get("name")) is not str
+        or not 0 < len(old["name"].strip()) <= 120
+        or _date(last_known_day) is None or _date(recorded_on) is None
+        or last_known_day > recorded_on):
+        raise IssuerFactorLedgerError("untrusted_retired_issuer_identity")
+    preserved = {
+        "code": code, "name": old["name"], "market": old["market"],
+        "last_known_market_asof": last_known_day,
+        "recorded_on": recorded_on,
+        "factors": {}, "components": {}, "component_history": {},
+        "identity_independently_authenticated": False,
+        "eligible_for_current_ranking": False,
+    }
+    factors = old.get("factors", {})
+    if not isinstance(factors, dict):
+        raise IssuerFactorLedgerError("invalid_retired_factor_data")
+    for pillar, entry in factors.items():
+        if pillar not in BUDGET:
+            raise IssuerFactorLedgerError("invalid_retired_factor_data")
+        verified = _factor(entry, last_known_day)
+        if (verified is None
+            or not 0 <= verified["points"] <= verified["available"] <= BUDGET[pillar]):
+            raise IssuerFactorLedgerError("invalid_retired_factor_data")
+        preserved["factors"][pillar] = verified
+    components = old.get("components", {})
+    if not isinstance(components, dict):
+        raise IssuerFactorLedgerError("invalid_retired_component_data")
+    for group, items in components.items():
+        if group not in FISCAL_COMPONENTS or not isinstance(items, dict):
+            raise IssuerFactorLedgerError("invalid_retired_component_data")
+        for name, entry in items.items():
+            max_points = FISCAL_COMPONENTS[group].get(name)
+            if max_points is None:
+                max_points = (FCF_COMPONENTS.get(group, {}).get(name)
+                              or (None, None))[1]
+            valid = _component(entry, last_known_day, max_points) if max_points else None
+            expected_source = ("dart_fcf_subfactor" if name in FCF_COMPONENTS.get(group, {})
+                               else "dart_fiscal_subfactor")
+            if valid is None or valid["source"] != expected_source:
+                raise IssuerFactorLedgerError("invalid_retired_component_data")
+            preserved["components"].setdefault(group, {})[name] = valid
+    prior_hist = old.get("component_history", {})
+    if not isinstance(prior_hist, dict):
+        raise IssuerFactorLedgerError("invalid_retired_component_history")
+    for group, items in prior_hist.items():
+        if not isinstance(items, dict) or group not in FISCAL_COMPONENTS:
+            raise IssuerFactorLedgerError("invalid_retired_component_history")
+        for name, values in items.items():
+            current = preserved["components"].get(group, {}).get(name)
+            if current is None or not isinstance(values, list) or not 1 <= len(values) <= HISTORY_LIMIT:
+                raise IssuerFactorLedgerError("invalid_retired_component_history")
+            valid = _prior_component_history(values, last_known_day, current["available"])
+            if len(valid) != len(values) or valid[-1]["asof"] > current["asof"]:
+                raise IssuerFactorLedgerError("invalid_retired_component_history")
+            preserved["component_history"].setdefault(group, {})[name] = valid
+    return preserved
+
+
+def _verified_identity_archive(prior, latest_day):
+    raw = prior.get("identity_review_archive", {})
+    if not isinstance(raw, dict) or len(raw) > IDENTITY_ARCHIVE_LIMIT:
+        raise IssuerFactorLedgerError("untrusted_identity_review_archive")
+    preserved = {}
+    for key, item in raw.items():
+        if not isinstance(item, dict):
+            raise IssuerFactorLedgerError("untrusted_identity_review_archive")
+        source_date = item.get("last_known_market_asof")
+        archived_on = item.get("recorded_on")
+        if (not isinstance(key, str) or _date(archived_on) is None
+            or archived_on > latest_day or
+            _archive_key(item.get("code"), item.get("name"),
+                         item.get("market"), source_date) != key):
+            raise IssuerFactorLedgerError("untrusted_identity_review_archive")
+        fixed = _archived_identity(item, item["code"], source_date, archived_on)
+        if fixed != item:
+            raise IssuerFactorLedgerError("altered_identity_review_archive")
+        preserved[key] = fixed
+    return preserved
+
 def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
           fiscal_rows=None,fcf_rows=None):
     """Merge each ticker/factor separately; preserve inactive issuer history."""
@@ -247,6 +350,8 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
         len(prior["rows"])>15000):
         raise IssuerFactorLedgerError("untrusted_prior_factor_ledger")
     previous=prior["rows"] if prior else {}
+    identity_archive=_verified_identity_archive(prior, day) if prior else {}
+    identity_changed_codes=set()
     for code,old in previous.items():
         if not isinstance(old,dict) or code!=old.get("code"):
             continue
@@ -256,9 +361,18 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
             listed[code]={"code":code,"name":old["name"],"market":old["market"],
                           "active":False,"factors":{},"components":{},"component_history":{}}
         target=listed[code]
-        # Recycled tickers, market transfers and renamed issuers require a
-        # fresh identity audit; never copy their old score automatically.
+        # A ticker can be renamed or recycled: neither event proves issuer
+        # continuity. Keep the old identity's scores as review-only history,
+        # never let them enter the new current ticker's factor/rank calculation.
         if old.get("name")!=target["name"] or old.get("market")!=target["market"]:
+            identity_changed_codes.add(code)
+            snapshot=_archived_identity(old,code,prior["market_asof"],day)
+            archive_key=_archive_key(code,old["name"],old["market"],
+                                     prior["market_asof"])
+            if archive_key not in identity_archive:
+                if len(identity_archive)>=IDENTITY_ARCHIVE_LIMIT:
+                    raise IssuerFactorLedgerError("retired_issuer_archive_limit_reached")
+                identity_archive[archive_key]=snapshot
             continue
         for key,value in (old.get("factors") or {}).items():
             if key not in BUDGET:
@@ -293,7 +407,8 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
     archived=_source_fiscal(parts,audit,day)
     for code,source in archived.items():
         target=listed.get(code)
-        if not target or not target["active"] or target["market"]!=source["market"]:
+        if (not target or not target["active"] or code in identity_changed_codes
+                or target["market"]!=source["market"]):
             continue
         for key,entry in source["factors"].items():
             old=target["factors"].get(key)
@@ -309,6 +424,11 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
         if not isinstance(source_rows,dict):
             raise IssuerFactorLedgerError("invalid_component_source_index")
         for code,source_row in source_rows.items():
+            # The same six-digit ticker may point at a different issuer.
+            # Saved DART-only code/scope sources have no separately checked
+            # corporation-identity continuity proof across this transition.
+            if code in identity_changed_codes:
+                continue
             target=listed.get(code)
             if (not target or not target["active"] or
                 not isinstance(source_row,dict) or
@@ -354,5 +474,7 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
         "mixed_date_score_research_only":True,
         "component_ledger_research_only":True,
         "missing_is_not_zero":True,
+        "identity_history_unverified_not_ranked":True,
+        "identity_review_archive":dict(sorted(identity_archive.items())),
         "rows":dict(sorted(listed.items()))
     }

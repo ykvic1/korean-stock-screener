@@ -83,6 +83,59 @@ class IssuerHistoryWatchTests(unittest.TestCase):
         self.assertIn("invalid_prior_observation",report["issues"])
         self.assertFalse(report["score_mutations_authorized"])
 
+    def test_identity_change_keeps_retired_history_but_not_current_fiscal_score(self):
+        original = "2026-10-30"
+        today = "2026-11-02"
+        first = build(catalog(original,[("005930","Historical Company")]),
+                      [price_row(original,"005930","Historical Company")],
+                      fiscal_rows={"005930":fiscal(original,"005930",3.5)})
+        second = build(catalog(today,[("005930","New Company")]),
+                       [price_row(today,"005930","New Company",point=2)],
+                       first,
+                       fiscal_rows={"005930":fiscal(today,"005930",4.5)})
+        report = inspect(second,first)
+        self.assertEqual(report["status"],"ok")
+        self.assertEqual(report["counts"]["identity_transitions_review_only"],1)
+        self.assertEqual(report["counts"]["retired_identity_snapshots"],1)
+        self.assertEqual(report["counts"]["retired_area_observations"],5)
+        self.assertEqual(report["counts"]["retired_component_observations"],1)
+        self.assertFalse(second["rows"]["005930"]["components"])
+        self.assertEqual(second["rows"]["005930"]["factors"]["financial"]["source"],
+                         "current_close_replay")
+        self.assertFalse(second["investment_score_certified"])
+
+    def test_lost_or_changed_retired_history_fails_continuity_audit(self):
+        a="2026-10-30";b="2026-11-02";c="2026-11-03"
+        first=build(catalog(a,[("005930","Old")]),
+                    [price_row(a,"005930","Old")])
+        second=build(catalog(b,[("005930","New")]),
+                     [price_row(b,"005930","New")],first)
+        third=build(catalog(c,[("005930","New")]),
+                    [price_row(c,"005930","New")],second)
+        self.assertEqual(inspect(third,second)["status"],"ok")
+        lost=copy.deepcopy(third)
+        lost["identity_review_archive"]={}
+        missing=inspect(lost,second)
+        self.assertEqual(missing["status"],"error")
+        self.assertIn("lost_retired_issuer_identity_history",missing["issues"])
+        forged=copy.deepcopy(third)
+        key=next(iter(forged["identity_review_archive"]))
+        forged["identity_review_archive"][key]["factors"]["financial"]["points"]=12
+        bad=inspect(forged,second)
+        self.assertEqual(bad["status"],"error")
+        self.assertIn("invalid_retired_issuer_identity_archive",bad["issues"])
+
+    def test_unarchived_identity_reuse_is_detected_without_promoting_pit(self):
+        old="2026-10-30";new="2026-11-02"
+        first=build(catalog(old,[("005930","Before")]),
+                    [price_row(old,"005930","Before")])
+        last=build(catalog(new,[("005930","After")]),
+                   [price_row(new,"005930","After")],first)
+        last["identity_review_archive"]={}
+        audit=inspect(last,first)
+        self.assertEqual(audit["status"],"error")
+        self.assertIn("unarchived_issuer_identity_transition",audit["issues"])
+
     def test_old_schema_without_history_is_compatible_until_republished(self):
         day="2026-11-02"
         first=build(catalog(day,[("005930","A")]),
