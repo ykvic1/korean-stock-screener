@@ -65,8 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261103-smooth-liquidity-valuation'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261103-smooth-liquidity-valuation'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261103-structural-risk-moneyhistory'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261103-structural-risk-moneyhistory'),'classic research route keeps its pinned assets');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
@@ -758,7 +758,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-smooth-liquidity-valuation','v30b-20261103-smooth-liquidity-valuation'],[entry,'v30b-20261103-smooth-liquidity-valuation','v30b-20261103-smooth-liquidity-valuation']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-structural-risk-moneyhistory','v30b-20261103-structural-risk-moneyhistory'],[entry,'v30b-20261103-structural-risk-moneyhistory','v30b-20261103-structural-risk-moneyhistory']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
@@ -767,7 +767,7 @@ assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
  'active filter and observational candidate chip must be visibly styled');
-assert.ok(html.includes('<option value="stable" selected>안정형 보정점수순 (시총·거래대금)</option>'),
+assert.ok(html.includes('<option value="stable" selected>안정형 보정순 (시총·손절 구조)</option>'),
  'default selection must explicitly show the personal stability overlay');
 assert.ok(source.includes("sort='stable'"),'default rank must use displayed stability score');
 assert.ok(css.includes('.u-content:has(> #detail:empty)')&&css.includes('.u-stock{')&&css.includes('.u-scoresix'),
@@ -1182,10 +1182,13 @@ const safeHighRisk={...row,code:'111111',name:'손절위험',stop_line:60,
  stop_pct:-40,v3_pattern_integrated:{...row.v3_pattern_integrated,
  technical_research_candidate:24}};
 const risks={...model,rows:[safe,{...safe,r:safeHighRisk}]};
-assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'111111',
- 'risk warnings should not silently mutate the visible observed-score ordering');
+assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'005930',
+ 'default bounded stability sort should favor the lower stop risk');
+assert.equal(unified.rankItems(risks,legacy,'all','all','','score')[0].r.code,'111111',
+ 'the unmodified observed V3 score order remains accessible');
 assert.equal(unified.rankItems(risks,legacy,'all','all','','score',true).length,1);
-assert.ok(unified.rankItems(risks,legacy,'all')[0].risk.unsafe);
+assert.ok(unified.rankItems(risks,legacy,'all')
+ .find(x=>x.r.code==='111111').risk.unsafe);
 
 // A 100-candidate browse filter operates ONLY on stocks with research values.
 const candidates=Array.from({length:106},(_,i)=>({
@@ -1856,7 +1859,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
 }
 
 
-/* Stable-profile regression: explicit penalties, unknowns, and immutable V3 points. */
+/* Stable-profile regression: no single-day money penalty; bounded cap and stop risk. */
 {
  const source={code:'005930',market:'KOSPI',price_date:'2026-11-02',
   market_cap_eok:56000,trading_eok:220};
@@ -1864,42 +1867,47 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  const normal=unified.stabilityProfile(source,composite);
  assert.equal(normal.score,63.2);
  assert.equal(normal.deduction,0);
- assert.match(normal.status,/안정형/);
+ assert.equal(normal.missing,1,'invalid/unknown stop evidence is explicitly missing');
+ assert.match(normal.status,/확인 필요/);
  const tiny=unified.stabilityProfile({...source,market_cap_eok:900,trading_eok:0.8},composite);
- assert.equal(tiny.capitalDeduction,12.3);
- assert.equal(tiny.liquidityDeduction,12.4);
- assert.equal(tiny.score,38.5);
+ assert.equal(tiny.capitalDeduction,2.5);
+ assert.equal(tiny.liquidityDeduction,0);
+ assert.equal(tiny.score,60.7);
  assert.equal(composite.earned,63.2,'the original 5-area score must never be changed');
  const missing=unified.stabilityProfile({...source,market_cap_eok:null,trading_eok:undefined},composite);
  assert.equal(missing.score,63.2,'missing evidence must not become a zero score');
  assert.equal(missing.missing,2);
- assert.match(missing.status,/확인 필요/);
  assert.equal(unified.stabilityProfile(source,{earned:null,available:0}).score,null);
- assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:10},composite).deduction,4.5);
- assert.equal(unified.stabilityProfile({...source,market_cap_eok:5000,trading_eok:30},composite).deduction,0);
- const illiquid=unified.stabilityProfile({...source,market_cap_eok:3000,trading_eok:2},composite);
- assert.equal(illiquid.capitalDeduction,6);
- assert.equal(illiquid.liquidityDeduction,10.2);
- assert.equal(illiquid.deduction,16.2);
- // Regression: near a former hard threshold neither factor may jump by 5 points.
- const at999=unified.stabilityProfile({...source,market_cap_eok:999,trading_eok:40},composite);
- const at1001=unified.stabilityProfile({...source,market_cap_eok:1001,trading_eok:40},composite);
- assert.ok(Math.abs(at999.score-at1001.score)<=0.1);
- assert.equal(at999.capitalDeduction,12);
- assert.equal(at1001.capitalDeduction,12);
- const at2999=unified.stabilityProfile({...source,market_cap_eok:2999,trading_eok:40},composite);
- const at3001=unified.stabilityProfile({...source,market_cap_eok:3001,trading_eok:40},composite);
- assert.ok(Math.abs(at2999.score-at3001.score)<=0.1);
- const trading99=unified.stabilityProfile({...source,market_cap_eok:10000,trading_eok:0.99},composite);
- const trading101=unified.stabilityProfile({...source,market_cap_eok:10000,trading_eok:1.01},composite);
- assert.ok(Math.abs(trading99.score-trading101.score)<=0.2);
- for(const v of [0,0.1,1,2,5,10,15,20,29,30,35,100]){
-  const x=unified.stabilityProfile({...source,market_cap_eok:10000,trading_eok:v},composite);
-  assert.ok(x.liquidityDeduction>=0&&x.liquidityDeduction<=15);
- }
+ // Same cap and stop: any amount from 0 to 5000억원 MUST NOT change score.
+ const allTrading=[0,0.1,0.99,1.01,2,10,30,5000].map(trading_eok=>
+  unified.stabilityProfile({...source,market_cap_eok:3000,trading_eok},composite));
+ assert.ok(allTrading.every(x=>x.liquidityDeduction===0&&x.score===62));
+ const at999=unified.stabilityProfile({...source,market_cap_eok:999},composite);
+ const at1001=unified.stabilityProfile({...source,market_cap_eok:1001},composite);
+ assert.equal(at999.capitalDeduction,2.4);
+ assert.equal(at1001.capitalDeduction,2.4);
  for(const v of [10,100,999,1001,2999,3001,4999,5001,10000]){
-  const x=unified.stabilityProfile({...source,market_cap_eok:v,trading_eok:50},composite);
-  assert.ok(x.capitalDeduction>=0&&x.capitalDeduction<=15);
+  const x=unified.stabilityProfile({...source,market_cap_eok:v},composite);
+  assert.ok(x.capitalDeduction>=0&&x.capitalDeduction<=3);
  }
- console.log('Personal stability overlay: smooth penalties, no boundary cliffs, missing retained PASS');
+ const ref={...source,price:100,stop_line:94,stop_pct:-6};
+ const safe=unified.stabilityProfile(ref,composite);
+ assert.equal(safe.stopDistancePct,6);
+ assert.equal(safe.stopAdjustment,2);
+ assert.equal(safe.score,65.2,'moderate stop distance gets a bounded research bonus');
+ assert.equal(safe.missing,0);
+ const highRisk=unified.stabilityProfile({...ref,price60:50},composite);
+ assert.equal(highRisk.stopAdjustment,-1,'chase risk vetoes stop proximity bonus');
+ const tooTight=unified.stabilityProfile({...ref,stop_line:99,stop_pct:-1},composite);
+ assert.equal(tooTight.stopAdjustment,-1.3,'tight stop can be hit by noise');
+ const tooWide=unified.stabilityProfile({...ref,stop_line:80,stop_pct:-20},composite);
+ assert.equal(tooWide.stopAdjustment,-2,'wide stop risks substantial loss');
+ assert.equal(tooWide.score,61.2);
+ assert.equal(unified.stabilityProfile({...ref,stop_pct:-25},composite).stopAdjustment,0,
+  'contradictory stop reference cannot earn points');
+ const totalCap=unified.stabilityProfile({...ref,market_cap_eok:900},composite);
+ assert.equal(totalCap.score,62.7,'max3 cap and max2 bonus are separate');
+ assert.equal(JSON.stringify(ref),JSON.stringify({...source,price:100,stop_line:94,stop_pct:-6}),
+  'source object remains unchanged');
+ console.log('Personal stability overlay: no single-day money score, cap <=3, stop [-3,+2], missing retained PASS');
 }
