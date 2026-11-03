@@ -1,0 +1,84 @@
+name: V3 DART Continuous Catch-up to 120 Months (Private, Resumable)
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_continuous_catchup.py
+      - tests/test_v3_dart_continuous_catchup.py
+      - .github/workflows/v3-dart-continuous-catchup.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-dart-continuous-catchup.yml
+      - v3_dart_continuous_catchup.py
+  schedule:
+    # Four recovery opportunities daily until the private 120-month cursor
+    # completes. Separate from the 12 regular and 24 fast-lane slots.
+    - cron: '7 0,6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry_run runs offline tests; live continues private DART pages'
+        required: true
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private transport dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Verify immutable cursor and continuous-run bounds offline
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_historical_event_receipts.py v3_dart_continuous_catchup.py
+          python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_continuous_catchup.py' -v
+
+  long-private-catchup:
+    needs: offline-safety
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' &&
+           startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous DART catchup to 120 months')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      contents: read
+    concurrency:
+      group: v3-dart-private-historical-event-receipts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private transport dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Collect continuously in immutable <=72-request segments
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Python stops at the PRIVATE 120-month cursor, 50 bounded segments
+          # (at most 3600 DART calls), or five hours, whichever comes first.
+          # A failed DART quota response fails closed; next scheduled attempt
+          # resumes the last CAS-verified private checkpoint without duplicates.
+          # Never publish raw receipts, issuer IDs, tokens or PIT trade scores.
+          python v3_dart_continuous_catchup.py
