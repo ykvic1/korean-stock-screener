@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_current_observed_scorecard.py
+      - v3_near_100_observed_gap.py
+      - tests/test_v3_near_100_observed_gap.py
       - v3_issuer_factor_ledger.py
       - v3_path_provisional_factors.py
       - v3_unscored_path_coverage.py
@@ -76,6 +78,8 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
           python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
           python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
+          python -m py_compile v3_near_100_observed_gap.py
+          python -m unittest discover -s tests -p 'test_v3_near_100_observed_gap.py' -v
       - name: Recompute only actually observed current-close evidence
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
@@ -83,6 +87,9 @@ jobs:
           # Recompute both independently stored source products if available;
           # source quality always rechecked against the current market census.
           python v3_current_observed_scorecard.py --mode write --refresh-derived
+          # Target independently observed 95/96-point source gaps without
+          # claiming that older ledger scores are fresh closing evidence.
+          python v3_near_100_observed_gap.py --mode write
       - name: Publish current-day CSV and aggregate evidence counts only
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
@@ -90,16 +97,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json
+          if [[ -f docs/v3-near-100-evidence-priority.json ]]; then
+            git add -- docs/v3-near-100-evidence-priority.json
+          fi
           if ! git diff --cached --quiet; then
             git commit -m "Publish actual closing market price+DART receipt-checked partial CSV"
             for attempt in 1 2 3; do
               git pull --rebase origin main
               python v3_current_observed_scorecard.py --mode write --refresh-derived
+              python v3_near_100_observed_gap.py --mode write
               git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json
+              if [[ -f docs/v3-near-100-evidence-priority.json ]]; then
+                git add -- docs/v3-near-100-evidence-priority.json
+              fi
               if ! git diff --cached --quiet; then
                 git commit --amend --no-edit
               fi
               python v3_current_observed_scorecard.py --mode verify --refresh-derived
+              python v3_near_100_observed_gap.py --mode verify
               if git push origin HEAD:main; then
                 echo "current_close_research_csv_published"
                 break
@@ -112,7 +127,9 @@ jobs:
           fi
       - name: Manual read-only consistency verification
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
-        run: python v3_current_observed_scorecard.py --mode verify --refresh-derived
+        run: |
+          python v3_current_observed_scorecard.py --mode verify --refresh-derived
+          python v3_near_100_observed_gap.py --mode verify
       - name: Display source-specific observed count, not investment grades
         if: always()
         run: |
@@ -146,6 +163,17 @@ jobs:
                 "영역별 근거 전무 종목 수: "+str(a["unacquired_area_issuer_counts"]),
                 "영역별 일부 근거만 확보한 종목 수: "+str(a["partial_area_issuer_counts"]),
                 "전종목 미확보 소스 가중치 합: "+str(a["total_unacquired_weight_issuer_slots"])+" (점수 0 처리 아님)",
+              ])
+          gap=Path("docs/v3-near-100-evidence-priority.json")
+          if gap.exists():
+              p=json.loads(gap.read_text(encoding="utf8"))
+              lines.extend([
+                 "100점 소스 병목 보고 기준일: "+str(p.get("asof")),
+                 "95점 · 실제 FY2025 지배주주순이익 근거 미확보: "+
+                   str(p.get("official_2025_owners_profit_missing_priority_count")),
+                 "96점 · 이미 공시 조회 후 CAPEX 계정 누락: "+
+                   str(p.get("fcf_three_year_previously_queried_missing_account_count")),
+                 "이 구간은 실제 추가 원천 관측 전까지 100점 확보로 집계하지 않음.",
               ])
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
               "\n".join(lines)+"\n",encoding="utf8")
