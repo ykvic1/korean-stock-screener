@@ -1,11 +1,12 @@
 name: V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)
 
 on:
-  # Personal-use fast lane: twelve ADDITIONAL bounded private batches per day.
-  # Existing regular collector retains its twelve runs; this workflow shares
-  # the same concurrency lock and immutable private checkpoint.
+  # Personal-use temporary catch-up: 24 ADDITIONAL bounded private batches
+  # per day, until exactly 120 months. Existing 12 regular runs remain.
+  # Shared concurrency lock, immutable private checkpoint and 72-call cap
+  # prevent concurrent writes and accidental unbounded request bursts.
   schedule:
-    - cron: '31 1-23/2 * * *' # every odd UTC hour at :31; max 12 x 72 calls/day
+    - cron: '31 * * * *' # hourly at :31 UTC, up to 24 x 72 calls/day
   push:
     branches: [main]
     paths:

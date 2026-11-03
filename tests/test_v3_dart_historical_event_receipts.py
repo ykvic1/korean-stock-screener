@@ -305,7 +305,7 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertIn("python v3_dart_historical_event_receipts.py", direct)
         self.assertNotIn("schedule:", direct)
         fast = (base / ".github/workflows/v3-dart-historical-direct-fastlane.yml").read_text()
-        self.assertIn("cron: '31 1-23/2 * * *'", fast)
+        self.assertIn("cron: '31 * * * *'", fast)
         self.assertIn("default: dry_run", fast)
         self.assertIn("startsWith(github.event.head_commit.message", fast)
         self.assertIn("group: v3-dart-private-historical-event-receipts", fast)
