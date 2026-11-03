@@ -83,24 +83,38 @@ def audit_universe(registry, snapshots, *, asof):
         raise IntegrityError("invalid_registry")
     if not isinstance(snapshots, list) or not 0 < len(snapshots) <= MAX_SNAPSHOTS:
         raise IntegrityError("invalid_snapshots")
+    # Issuer identity persists across nonoverlapping symbol/listing episodes.
+    # Episode boundaries are declarations, not provider-verified corporate actions.
     by_issuer, intervals_by_ticker = {}, {}
     for row in registry:
         start, end = _registry_record(row)
         identity = row["issuer_id"]
-        if identity in by_issuer:
-            raise IntegrityError("issuer_duplicate_or_renamed")
-        by_issuer[identity] = (row, start, end)
+        by_issuer.setdefault(identity, []).append((row, start, end))
         intervals_by_ticker.setdefault((row["market"], row["code"]), []).append(
             (start, end, identity))
+    transitions = 0
+    terminal_end = {}
+    for identity, episodes in by_issuer.items():
+        episodes.sort(key=lambda entry: (entry[1], entry[0]["market"], entry[0]["code"]))
+        for prev, later in zip(episodes, episodes[1:]):
+            if prev[2] is None or prev[2] > later[1]:
+                raise IntegrityError("overlapping_issuer_symbol_episodes")
+        transitions += sum(
+            (prev[0]["market"], prev[0]["code"]) !=
+            (later[0]["market"], later[0]["code"])
+            for prev, later in zip(episodes, episodes[1:]))
+        terminal_end[identity] = episodes[-1][2]
     reused = []
     for (market, code), series in intervals_by_ticker.items():
         series.sort(key=lambda x: (x[0], x[2]))
         for prev, later in zip(series, series[1:]):
             if prev[1] is None or prev[1] > later[0]:
                 raise IntegrityError("concurrent_code_issuer_collision")
-        if len(series) > 1:
+        distinct_issuers = len({item[2] for item in series})
+        if distinct_issuers > 1:
             reused.append({"market": market, "code": code,
-                           "distinct_issuer_count": len(series)})
+                           "distinct_issuer_count": distinct_issuers})
+    reused.sort(key=lambda row: (row["market"], row["code"]))
     days_seen = set()
     daily = []
     included_delisted = set()
@@ -121,21 +135,27 @@ def audit_universe(registry, snapshots, *, asof):
             issuer = member.get("issuer_id")
             if issuer not in by_issuer or issuer in observed:
                 raise IntegrityError("unknown_or_duplicate_issuer")
-            reference, start, end = by_issuer[issuer]
-            if member.get("code") != reference["code"] or member.get("market") != reference["market"]:
-                raise IntegrityError("roster_symbol_identity_mismatch")
-            if not (start <= day and (end is None or day < end)):
+            episode = next(
+                ((row, start, end) for row, start, end in by_issuer[issuer]
+                 if start <= day and (end is None or day < end)), None)
+            if episode is None:
                 raise IntegrityError("prelisting_or_postdelisting_member")
+            reference, start, end = episode
+            if (member.get("code") != reference["code"]
+                    or member.get("market") != reference["market"]):
+                raise IntegrityError("roster_symbol_identity_mismatch")
             ticker = (reference["market"], reference["code"])
             if ticker in tickers:
                 raise IntegrityError("duplicate_ticker_same_day")
             tickers.add(ticker)
             observed.add(issuer)
-            if end is not None and end <= cutoff:
+            # A symbol-episode end is not necessarily an issuer delisting.
+            if terminal_end[issuer] is not None and terminal_end[issuer] <= cutoff:
                 included_delisted.add(issuer)
         active_registry = {
-            issuer for issuer, (_, start, end) in by_issuer.items()
-            if start <= day and (end is None or day < end)
+            issuer for issuer, episodes in by_issuer.items()
+            if any(start <= day and (end is None or day < end)
+                   for _, start, end in episodes)
         }
         missing = active_registry - observed
         if missing:
@@ -144,11 +164,14 @@ def audit_universe(registry, snapshots, *, asof):
             raise IntegrityError("active_registry_member_missing_from_roster")
         daily.append({"asof": day.isoformat(), "member_count": len(observed),
                       "includes_later_delisted_count": sum(
-                          by_issuer[x][2] is not None and by_issuer[x][2] <= cutoff
+                          terminal_end[x] is not None and terminal_end[x] <= cutoff
                           for x in observed)})
     daily.sort(key=lambda r: r["asof"])
     canonical = {
-        "registry": sorted(registry, key=lambda x: x["issuer_id"]),
+        "registry": sorted(
+            registry, key=lambda x: (
+                x["issuer_id"], x["listed_on"], x["market"], x["code"],
+                x["delisted_on"] or "")),
         "snapshots": sorted(snapshots, key=lambda x: x["asof"])
     }
     raw_hash = hashlib.sha256(json.dumps(
@@ -158,6 +181,8 @@ def audit_universe(registry, snapshots, *, asof):
         "schema": "v3-universe-internal-integrity-0.1",
         "asof": cutoff.isoformat(),
         "declared_registry_issuers": len(by_issuer),
+        "declared_registry_symbol_episodes": len(registry),
+        "issuer_code_transitions_observed": transitions,
         "date_snapshots": daily,
         "distinct_later_delisted_issuers_in_rosters": len(included_delisted),
         "ticker_reuse_observed": reused,

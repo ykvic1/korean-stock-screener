@@ -38,6 +38,24 @@ def snapshots():
     ]
 
 
+
+def renamed_issuer_registry_and_snapshots():
+    # Same legal issuer changes exchange code before its eventual delisting.
+    reg = registry()
+    reg[0]["delisted_on"] = "2022-08-01"
+    reg.insert(1, {
+        "issuer_id": "00000001", "code": "654321", "market": "KOSDAQ",
+        "ordinary_share": True, "listed_on": "2022-08-01",
+        "delisted_on": "2023-02-01",
+    })
+    snaps = snapshots()
+    snaps.insert(1, {"asof": "2022-10-03", "members": [
+        {"issuer_id": "00000001", "code": "654321", "market": "KOSDAQ"},
+        {"issuer_id": "00000002", "code": "789012", "market": "KOSPI"},
+    ]})
+    return reg, snaps
+
+
 def record(count=40):
     bars = []
     d = date(2022, 1, 3)
@@ -104,6 +122,41 @@ class HistoricalIntegrityTests(unittest.TestCase):
         for name, mutate in mutations.items():
             with self.subTest(name=name):
                 reg, snaps = registry(), snapshots()
+                mutate(reg, snaps)
+                with self.assertRaises(IntegrityError):
+                    audit_universe(reg, snaps, asof="2024-01-05")
+
+    def test_nonoverlapping_issuer_code_change_keeps_historical_identity(self):
+        reg, snaps = renamed_issuer_registry_and_snapshots()
+        r = audit_universe(reg, snaps, asof="2024-01-05")
+        self.assertEqual(r["declared_registry_issuers"], 3)
+        self.assertEqual(r["declared_registry_symbol_episodes"], 4)
+        self.assertEqual(r["issuer_code_transitions_observed"], 1)
+        self.assertEqual(r["distinct_later_delisted_issuers_in_rosters"], 1)
+        self.assertEqual(r["date_snapshots"][1]["member_count"], 2)
+        self.assertEqual(r["date_snapshots"][1]["includes_later_delisted_count"], 1)
+        self.assertEqual(r["ticker_reuse_observed"], [
+            {"market": "KOSDAQ", "code": "123456", "distinct_issuer_count": 2}])
+        self.assertFalse(r["point_in_time_universe_certified"])
+        # Multiple episodes per issuer have a deterministic provenance digest.
+        reversed_result = audit_universe(
+            list(reversed(reg)), list(reversed(snaps)), asof="2024-01-05")
+        self.assertEqual(
+            r["input_canonical_sha256_for_change_detection"],
+            reversed_result["input_canonical_sha256_for_change_detection"])
+
+    def test_issuer_code_change_overlap_or_wrong_roster_fails_closed(self):
+        scenarios = {
+            "overlapping_episode": lambda reg, snaps: reg[1].update(
+                listed_on="2022-07-29"),
+            "old_ticker_after_change": lambda reg, snaps: snaps[1][
+                "members"][0].update(code="123456"),
+            "omitted_renamed_issuer": lambda reg, snaps: snaps[1][
+                "members"].pop(0),
+        }
+        for name, mutate in scenarios.items():
+            with self.subTest(name=name):
+                reg, snaps = renamed_issuer_registry_and_snapshots()
                 mutate(reg, snaps)
                 with self.assertRaises(IntegrityError):
                     audit_universe(reg, snaps, asof="2024-01-05")
