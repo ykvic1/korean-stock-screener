@@ -1,0 +1,132 @@
+name: V3 FY2025 Verified Owner Profit Gap Recovery (No Score Promotion)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_2025_owner_profit_probe.py
+      - tests/test_v3_dart_2025_owner_profit_probe.py
+      - .github/workflows/v3-dart-owner-profit-probe.yml
+  # Bounded 20 audited FY2025 missing-profit candidates per hour. Once the
+  # verified 95-point group is exhausted, there are ZERO provider requests.
+  schedule:
+    - cron: '53 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        default: dry-run
+        options: [dry-run, live]
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korea-stock-screener-v3-2025-owner-profit-gap-recovery
+  cancel-in-progress: false
+
+jobs:
+  exact-annual-owner-profit-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Restore asof and roster hash checked official company code source
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Offline exact owner profit, official annual receipt and no-zero tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_2025_owner_profit_probe.py
+          python -m unittest discover -s tests -p 'test_v3_dart_2025_owner_profit_probe.py' -v
+      - name: Wait until validated 95-point source cohort matches closing day
+        id: source_day
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path("docs")
+          names=("v22-market-catalog.json",
+                 "v3-dart-book-reference.json",
+                 "v3-near-100-evidence-priority.json")
+          docs=[json.loads((root/f).read_text(encoding="utf8")) for f in names]
+          day=docs[0]["date"]
+          ready=(docs[1].get("asof")==day and
+                 docs[2].get("asof")==day and
+                 docs[2].get("no_points_added") is True)
+          with open(os.environ["GITHUB_OUTPUT"],"a") as out:
+              out.write("ready="+("true" if ready else "false")+"\n")
+          print("source_status:", "aligned" if ready else "waiting_annual_sources")
+          PY
+      - name: Install official OpenDART client only for approved live collection
+        if: ${{ steps.source_day.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Fetch only authenticated same-issuer 2025 profit accounts
+        if: ${{ steps.source_day.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20
+      - name: Publish original-receipt matched derived source, NO score
+        if: ${{ steps.source_day.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') }}
+        run: |
+          set -euo pipefail
+          python v3_dart_2025_owner_profit_probe.py --mode verify
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -f docs/v3-dart-owner-profit-supplement.json ]]; then
+            git add -- docs/v3-dart-owner-profit-supplement.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "Verify official FY2025 attributable owner profit source (no point promotion)"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              # Recheck the exact same issuer, year, scope and filing receipt
+              # after concurrent market and annual-account publications.
+              python v3_dart_2025_owner_profit_probe.py --mode verify
+              if git push origin HEAD:main; then
+                echo "official_profit_source_recovery_checkpoint_saved"
+                break
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::profit_source_checkpoint_publish_retry_exhausted"
+                exit 1
+              fi
+            done
+          fi
+      - name: Evidence and next-source readiness, never buy authorization
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path("docs/v3-dart-owner-profit-supplement.json")
+          lines=[
+            "### V3.0b 95점 근접종목 공식 지배주주 순이익 원천 검증",
+            "원자료 일치 검증 전에는 점수·순위 변경하지 않습니다.",
+            "계정 미확인은 0원이나 0점으로 간주하지 않습니다.",
+          ]
+          if p.exists():
+              source=json.loads(p.read_text(encoding="utf8"))
+              for name,key in (
+                  ("기준일","market_asof"),
+                  ("원천 확인 지배주주 순이익 종목","observed_official_owner_profit_issuers"),
+                  ("조회했지만 계정 미확인 종목","missing_standard_account_issuers"),
+                  ("전체 95점 우선 확인 대상","target_95weight_issuers"),
+              ):
+                  lines.append(name+": "+str(source.get(key)))
+          else:
+              lines.append("신규 확인 자료 없음 / 소스 기준일 대기")
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+              "\n".join(lines)+"\n",encoding="utf8")
+          PY
