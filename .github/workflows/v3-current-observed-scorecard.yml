@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - v3_current_observed_scorecard.py
+      - v3_dart_2025_owner_profit_probe.py
+      - tests/test_v3_owner_profit_score_replay.py
+      - docs/v3-dart-owner-profit-supplement.json
       - v3_near_100_observed_gap.py
       - tests/test_v3_near_100_observed_gap.py
       - v3_issuer_factor_ledger.py
@@ -41,6 +44,7 @@ on:
       - V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)
       - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
       - V3 DART Annual Book Derived Financial Sync (0 API)
+      - V3 FY2025 Verified Owner Profit Gap Recovery (No Score Promotion)
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -78,7 +82,8 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
           python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
           python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
-          python -m py_compile v3_near_100_observed_gap.py
+          python -m py_compile v3_near_100_observed_gap.py v3_dart_2025_owner_profit_probe.py
+          python -m unittest discover -s tests -p 'test_v3_owner_profit_score_replay.py' -v
           python -m unittest discover -s tests -p 'test_v3_near_100_observed_gap.py' -v
       - name: Recompute only actually observed current-close evidence
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
@@ -156,6 +161,8 @@ jobs:
                 "DART FY 근거 상태: "+a["fiscal_reference_join_status"],
                 "영수증 검증 FCF상태: "+a["fcf_reference_join_status"],
                 "FCF 추가 배점 관측 종목: "+str(a["fcf_observed_issuer_counts"]),
+                "FY2025 공식 주주순이익 추가 확인 종목: "+str(a.get("owner_profit_2025_official_receipt_replayed_issuers",0)),
+                "주주순이익 추가 원천으로 100점 잠정 배점 충족 종목: "+str(a.get("observed_100weight_issuers_with_2025_owner_profit_supplement",0)),
                 "재무/가치 7개 DART 세부항목 및 FCF 2개 항목 관측 종목수: "+
                    str(a.get("financial_valuation_component_observed_issuers","미확인")),
                 "동일 날짜 출처 검증 상태: "+
