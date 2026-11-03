@@ -7,258 +7,309 @@
   "missing": [
     {
       "code": "163280",
-      "error": "cache/quant_history/163280.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "101330",
-      "error": "cache/quant_history/101330.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "460940",
-      "error": "cache/quant_history/460940.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "046970",
-      "error": "cache/quant_history/046970.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "067900",
-      "error": "cache/quant_history/067900.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "310870",
-      "error": "cache/quant_history/310870.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "012030",
-      "error": "cache/quant_history/012030.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "109670",
-      "error": "cache/quant_history/109670.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "005880",
-      "error": "cache/quant_history/005880.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "017900",
-      "error": "cache/quant_history/017900.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "033790",
-      "error": "cache/quant_history/033790.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "131090",
-      "error": "cache/quant_history/131090.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "204620",
-      "error": "cache/quant_history/204620.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "293940",
-      "error": "cache/quant_history/293940.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "330590",
-      "error": "cache/quant_history/330590.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "469750",
-      "error": "cache/quant_history/469750.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "489790",
-      "error": "cache/quant_history/489790.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "018670",
-      "error": "cache/quant_history/018670.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "232680",
-      "error": "cache/quant_history/232680.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "003200",
-      "error": "cache/quant_history/003200.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "006120",
-      "error": "cache/quant_history/006120.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "006400",
-      "error": "cache/quant_history/006400.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "080580",
-      "error": "cache/quant_history/080580.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "104700",
-      "error": "cache/quant_history/104700.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "144960",
-      "error": "cache/quant_history/144960.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "223250",
-      "error": "cache/quant_history/223250.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "403850",
-      "error": "cache/quant_history/403850.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "002200",
-      "error": "cache/quant_history/002200.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "051630",
-      "error": "cache/quant_history/051630.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "197140",
-      "error": "cache/quant_history/197140.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "081180",
-      "error": "cache/quant_history/081180.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "261520",
-      "error": "cache/quant_history/261520.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "389680",
-      "error": "cache/quant_history/389680.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "394800",
-      "error": "cache/quant_history/394800.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "478560",
-      "error": "cache/quant_history/478560.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "487570",
-      "error": "cache/quant_history/487570.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "030530",
-      "error": "cache/quant_history/030530.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "050120",
-      "error": "cache/quant_history/050120.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "052460",
-      "error": "cache/quant_history/052460.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "253590",
-      "error": "cache/quant_history/253590.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "336680",
-      "error": "cache/quant_history/336680.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "462980",
-      "error": "cache/quant_history/462980.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "464500",
-      "error": "cache/quant_history/464500.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "468530",
-      "error": "cache/quant_history/468530.csv",
-      "reason_code": "history_file_missing"
+      "error": "650봉 미만으로 120주 지표/과거 사례 부족",
+      "reason_code": "history_too_short",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "001940",
-      "error": "cache/quant_history/001940.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "003120",
-      "error": "cache/quant_history/003120.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "010660",
-      "error": "cache/quant_history/010660.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "017250",
-      "error": "cache/quant_history/017250.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "031980",
-      "error": "cache/quant_history/031980.csv",
-      "reason_code": "history_file_missing"
+      "error": "음수 또는 0인 가격 / 음수 거래량",
+      "reason_code": "nonpositive_price_or_negative_volume",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "041960",
-      "error": "cache/quant_history/041960.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     },
     {
       "code": "072950",
-      "error": "cache/quant_history/072950.csv",
-      "reason_code": "history_file_missing"
+      "error": "종가 범위 오류",
+      "reason_code": "ohlc_range_invalid",
+      "error_provenance": "matched_same_day_collector"
     }
   ],
   "stocks": [
@@ -26295,7 +26346,9 @@
     "valid_ohlcv_symbols": 69,
     "excluded_symbols": 51,
     "excluded_reason_counts": {
-      "history_file_missing": 51
+      "history_too_short": 15,
+      "nonpositive_price_or_negative_volume": 23,
+      "ohlc_range_invalid": 13
     },
     "all_exclusions_listed": true,
     "official_adjusted_prices_certified": false,
