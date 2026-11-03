@@ -11,7 +11,7 @@
     },
     {
       "code": "101330",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/101330.csv"
     },
     {
       "code": "460940",
@@ -19,51 +19,51 @@
     },
     {
       "code": "046970",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/046970.csv"
     },
     {
       "code": "067900",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/067900.csv"
     },
     {
       "code": "310870",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/310870.csv"
     },
     {
       "code": "012030",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/012030.csv"
     },
     {
       "code": "109670",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/109670.csv"
     },
     {
       "code": "005880",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/005880.csv"
     },
     {
       "code": "017900",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/017900.csv"
     },
     {
       "code": "033790",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/033790.csv"
     },
     {
       "code": "131090",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/131090.csv"
     },
     {
       "code": "204620",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/204620.csv"
     },
     {
       "code": "293940",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/293940.csv"
     },
     {
       "code": "330590",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/330590.csv"
     },
     {
       "code": "469750",
@@ -75,39 +75,39 @@
     },
     {
       "code": "018670",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/018670.csv"
     },
     {
       "code": "232680",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/232680.csv"
     },
     {
       "code": "003200",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/003200.csv"
     },
     {
       "code": "006120",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/006120.csv"
     },
     {
       "code": "006400",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/006400.csv"
     },
     {
       "code": "080580",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/080580.csv"
     },
     {
       "code": "104700",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/104700.csv"
     },
     {
       "code": "144960",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/144960.csv"
     },
     {
       "code": "223250",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/223250.csv"
     },
     {
       "code": "403850",
@@ -115,15 +115,15 @@
     },
     {
       "code": "002200",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/002200.csv"
     },
     {
       "code": "051630",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/051630.csv"
     },
     {
       "code": "197140",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/197140.csv"
     },
     {
       "code": "081180",
@@ -151,19 +151,19 @@
     },
     {
       "code": "030530",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/030530.csv"
     },
     {
       "code": "050120",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/050120.csv"
     },
     {
       "code": "052460",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/052460.csv"
     },
     {
       "code": "253590",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/253590.csv"
     },
     {
       "code": "336680",
@@ -183,27 +183,27 @@
     },
     {
       "code": "001940",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/001940.csv"
     },
     {
       "code": "003120",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/003120.csv"
     },
     {
       "code": "010660",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/010660.csv"
     },
     {
       "code": "017250",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/017250.csv"
     },
     {
       "code": "031980",
-      "error": "음수 또는 0인 가격 / 음수 거래량"
+      "error": "cache/quant_history/031980.csv"
     },
     {
       "code": "041960",
-      "error": "종가 범위 오류"
+      "error": "cache/quant_history/041960.csv"
     }
   ],
   "stocks": [
