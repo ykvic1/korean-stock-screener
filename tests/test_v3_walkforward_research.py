@@ -53,6 +53,8 @@ class WalkForwardResearchTests(unittest.TestCase):
         self.assertIsNone(r["future_return_forecasts"])
         self.assertIsNone(r["buy_signals"])
         self.assertFalse(r["authorized_for_v3_scoring"])
+        self.assertEqual(r["mfe_mae_exit_bar_policy"],
+                         "conservative_pre_exit_ohlc_only")
         self.assertFalse(r["provider_provenance_authenticated"])
         self.assertFalse(r["pit_universe_independently_verified"])
         self.assertFalse(r["out_of_sample_strategy_validated"])
@@ -68,8 +70,9 @@ class WalkForwardResearchTests(unittest.TestCase):
         self.assertEqual(hit["event"], "stop_first")
         self.assertTrue(hit["same_bar_stop_target_ambiguous"])
         self.assertAlmostEqual(hit["net_return_pct"], -10.3)
-        self.assertAlmostEqual(hit["mae_pct"], -11.0)
-        self.assertAlmostEqual(hit["mfe_pct"], 12.0)
+        # Stop-first OHLC cannot credit the post-exit candle extremes.
+        self.assertAlmostEqual(hit["mae_pct"], -10.0)
+        self.assertAlmostEqual(hit["mfe_pct"], 0.0)
 
     def test_opening_gap_below_stop_executes_at_worse_open(self):
         a = example(count=21)
@@ -85,6 +88,41 @@ class WalkForwardResearchTests(unittest.TestCase):
         result = _outcome(a, 21, 30)
         self.assertEqual(result["event"], "target_first")
         self.assertAlmostEqual(result["net_return_pct"], 9.7)
+
+    def test_stop_open_gap_does_not_credit_after_exit_intrabar_high(self):
+        a = example(count=21)
+        a["bars"][1].update(open=85.0, high=130.0, low=80.0, close=90.0)
+        result = _outcome(a, 21, 30)
+        self.assertEqual(result["event"], "stop_first")
+        self.assertAlmostEqual(result["net_return_pct"], -15.3)
+        self.assertAlmostEqual(result["mfe_pct"], 2.0)
+        self.assertAlmostEqual(result["mae_pct"], -15.0)
+
+    def test_target_open_gap_does_not_credit_after_exit_intrabar_low(self):
+        a = example(count=21)
+        a["bars"][1].update(open=115.0, high=130.0, low=80.0, close=116.0)
+        result = _outcome(a, 21, 30)
+        self.assertEqual(result["event"], "target_first")
+        self.assertAlmostEqual(result["net_return_pct"], 9.7)
+        self.assertAlmostEqual(result["mfe_pct"], 10.0)
+        self.assertAlmostEqual(result["mae_pct"], -2.0)
+
+    def test_intraday_stop_and_target_excursions_are_exit_capped(self):
+        stop_case = example(count=21)
+        stop_case["bars"][1].update(high=130.0, low=89.0)
+        stopped = _outcome(stop_case, 21, 30)
+        self.assertEqual(stopped["event"], "stop_first")
+        self.assertTrue(stopped["same_bar_stop_target_ambiguous"])
+        self.assertAlmostEqual(stopped["mfe_pct"], 2.0)
+        self.assertAlmostEqual(stopped["mae_pct"], -10.0)
+
+        target_case = example(count=21)
+        target_case["bars"][1].update(high=130.0, low=91.0)
+        targeted = _outcome(target_case, 21, 30)
+        self.assertEqual(targeted["event"], "target_first")
+        self.assertAlmostEqual(targeted["mfe_pct"], 10.0)
+        # Worst-case low may have come before the limit target.
+        self.assertAlmostEqual(targeted["mae_pct"], -9.0)
 
     def test_horizon_close_applies_explicit_round_trip_cost(self):
         a = example(count=21)
