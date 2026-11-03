@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 import tempfile
+import tempfile
 import unittest
 
 import v3_dart_2025_owner_profit_probe as probe
@@ -184,6 +185,21 @@ class OwnerProfitSourceTests(unittest.TestCase):
         bogus["official_trade_score_certified"]=True
         with self.assertRaisesRegex(probe.ProfitProbeError,"misaligned_owner_profit_source_priority"):
             probe.plan(self.catalog,self.book,bogus)
+
+    def test_actions_company_code_cache_is_read_from_repository_root(self):
+        with tempfile.TemporaryDirectory() as td:
+            cache=Path(td)/".cache"/"v3-dart-company-codes.json"
+            cache.parent.mkdir()
+            value={"schema":"synthetic-nonsecret-corp-map",
+                   "issuer_codes":{"005930":"00123456"}}
+            cache.write_text(json.dumps(value),encoding="utf8")
+            self.assertEqual(probe._read_company_cache_from_root(cache),value)
+            self.assertIsNone(
+                probe._read_company_cache_from_root(cache.with_name("missing.json")))
+            cache.write_text("{broken-json",encoding="utf8")
+            with self.assertRaisesRegex(probe.ProfitProbeError,
+                                       "untrusted_official_corp_identity_cache"):
+                probe._read_company_cache_from_root(cache)
 
     def test_cli_dry_run_no_network_or_score_publication(self):
         # Uses only saved source JSON; official secret deliberately absent.
