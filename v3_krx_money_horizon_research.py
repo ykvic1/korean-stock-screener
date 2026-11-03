@@ -78,10 +78,12 @@ def _valid_factors(records, market, code, asof):
             or type(value.get("total_actual_amount_100k_krw")) is not int
             or value["total_actual_amount_100k_krw"] < 0):
             raise MoneyHorizonError("invalid_issuer_money_factor")
-        pressure = value.get("money_pressure_intrabucket_bp")
-        if pressure is not None and (type(pressure) is not int
-                                    or not -10000 <= pressure <= 10000):
-            raise MoneyHorizonError("invalid_intrabucket_money_pressure")
+        for field in ("money_pressure_intrabucket_bp",
+                      "late2_vs_early2_money_pressure_bp"):
+            pressure = value.get(field)
+            if pressure is not None and (type(pressure) is not int
+                                        or not -10000 <= pressure <= 10000):
+                raise MoneyHorizonError("invalid_intrabucket_money_pressure")
         checked.append(value)
     return checked
 
@@ -92,7 +94,7 @@ def _window(buckets, n):
     recent = buckets[:n]
     total = sum(r["total_actual_amount_100k_krw"] for r in recent)
     average_eok = round(total * MONEY_BUCKET_KRW / (5 * n * 1e8), 4)
-    money_signals = [r["money_pressure_intrabucket_bp"] for r in recent]
+    money_signals = [r.get("money_pressure_intrabucket_bp") for r in recent]
     if any(v is None for v in money_signals) or total == 0:
         pressure_bp = None
     else:
@@ -106,6 +108,20 @@ def _window(buckets, n):
                      if type(r.get("late2_vs_early2_money_pressure_bp")) is int)
     assessable = sum(type(r.get("late2_vs_early2_money_pressure_bp")) is int
                      for r in recent)
+    # Compare equal, DISJOINT spans; never compare the latest bucket with
+    # an average that already includes that same bucket. Missing issuer
+    # observations or a zero baseline cannot turn into an infinite ratio.
+    baseline = buckets[n:2*n] if len(buckets) >= 2*n else None
+    baseline_complete = baseline is not None and all(r is not None for r in baseline)
+    baseline_total = (sum(r["total_actual_amount_100k_krw"] for r in baseline)
+                      if baseline_complete else None)
+    ratio = maintained = None
+    if baseline_total is not None and baseline_total > 0:
+        ratio = round(total / baseline_total, 4)
+        # Integer comparison avoids rounding deciding whether an observed
+        # five-session cohort really exceeded the previous-period average.
+        maintained = round(sum(r["total_actual_amount_100k_krw"] * n > baseline_total
+                               for r in recent) / n, 4)
     return {
         "average_reported_amount_eok_per_session": average_eok,
         "observed_five_session_cohorts": n,
@@ -113,6 +129,16 @@ def _window(buckets, n):
         "money_intrabucket_pressure_proxy_bp": pressure_bp,
         "positive_money_persistence_cohort_ratio": (
             round(persistent / assessable, 4) if assessable == n else None),
+        "disjoint_baseline_complete": baseline_complete,
+        "disjoint_baseline_zero_amount": baseline_total == 0,
+        "versus_previous_disjoint_window_ratio": ratio,
+        "amount_increased_vs_disjoint_baseline": (
+            total > baseline_total if ratio is not None else None),
+        "recent_cohorts_above_previous_average_ratio": maintained,
+        "largest_five_session_cohort_amount_share": (
+            round(max(r["total_actual_amount_100k_krw"] for r in recent) / total, 4)
+            if total else None),
+        "exact_single_day_spike_concentration": None,
         "exact_day_by_day_money_obv": None,
         "regular_session_only_verified": False,
         "corporate_actions_verified": False,
