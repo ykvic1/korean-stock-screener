@@ -1162,6 +1162,53 @@ function quantTable(x,core){
    '건</td><td>'+pct(z.mean_net_return_pct)+'</td><td>'+
    pct(z.stop_first_pct)+'</td></tr>').join('')+'</tbody></table></div>';
 }
+function quantSourceQualityView(report, marketDate){
+ if(!report||!['exploratory','insufficient'].includes(report.status)||
+    report.asof!==marketDate)return null;
+ const q=report.source_quality_audit;
+ if(!q||!Number.isInteger(q.requested_symbols)||q.requested_symbols<1||
+    q.requested_symbols>120||!Number.isInteger(q.valid_ohlcv_symbols)||
+    !Number.isInteger(q.excluded_symbols)||q.valid_ohlcv_symbols<0||
+    q.excluded_symbols<0||
+    q.valid_ohlcv_symbols+q.excluded_symbols!==q.requested_symbols||
+    q.all_exclusions_listed!==true||
+    q.official_adjusted_prices_certified!==false||
+    q.delisted_historical_universe_included!==false||
+    !Array.isArray(report.missing)||report.missing.length!==q.excluded_symbols||
+    !q.excluded_reason_counts||typeof q.excluded_reason_counts!=='object'||
+    Array.isArray(q.excluded_reason_counts))return null;
+ const labels={
+  history_file_missing:'이력 파일 부재',
+  ohlc_range_invalid:'가격 범위 불일치',
+  nonpositive_price_or_negative_volume:'비정상 가격·거래량',
+  history_too_short:'분석기간 부족',
+  source_date_mismatch:'기준일 불일치',
+  duplicate_dates:'거래일 중복',
+  incomplete_or_invalid_fields:'필수 수치 결측·오류',
+  other_unverified_source_error:'기타 미검증'
+ };
+ const counts=q.excluded_reason_counts;
+ const keys=Object.keys(counts);
+ if(keys.some(k=>!Object.prototype.hasOwnProperty.call(labels,k)||
+     !Number.isInteger(counts[k])||counts[k]<0)||
+    keys.reduce((sum,k)=>sum+counts[k],0)!==q.excluded_symbols||
+    report.missing.some(m=>!m||!/^[0-9]{6}$/.test(String(m.code))||
+     !Object.prototype.hasOwnProperty.call(labels,m.reason_code)))return null;
+ const tally={};
+ report.missing.forEach(m=>{tally[m.reason_code]=(tally[m.reason_code]||0)+1;});
+ if(keys.some(k=>tally[k]!==counts[k])||
+    Object.keys(tally).some(k=>!Object.prototype.hasOwnProperty.call(counts,k)))
+    return null;
+ const grouped=keys.filter(k=>counts[k]>0)
+  .map(k=>labels[k]+' '+counts[k]+'종목').join(' · ');
+ return {
+  summary:'9년 퀀트 가격 이력 '+q.valid_ohlcv_symbols+'/'+
+   q.requested_symbols+'종목 확보 (제외 '+q.excluded_symbols+')',
+  text:'자료 기준 '+marketDate+' · '+(grouped||'제외 종목 없음')+
+   '. 연구용 원천 품질 집계이며 오류 가격을 임의 보정하지 않습니다. '+
+   '공식 정규장·수정주가·기업행위와 과거 상장폐지 종목 구성은 독립 인증 전입니다.'
+ };
+}
 function weeklyCoverageText(report, marketDate){
  if(!report||report.schema!=='v3-seven-day-research-coverage-0.1'||
     !validDate(report.market_asof)||!validDate(report.run_kst)||
@@ -1875,7 +1922,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
+ sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -2197,6 +2244,12 @@ async function load(){
   core=root.V3RankedCore;
   if(!core)throw Error('missing_research_core');
   model=core.prepare(...responses.slice(0,6),responses[8]);
+  const quantQuality=quantSourceQualityView(responses[1],model.date);
+  if($('quantQualityStatus'))$('quantQualityStatus').textContent=
+   quantQuality?.summary||'9년 퀀트 가격 이력 확보율 · 검증 자료 대기';
+  if($('quantQualityNotes'))$('quantQualityNotes').textContent=
+   quantQuality?.text||
+   '동일 기준일의 원천 가격 품질 집계가 없거나 전체 종목 수·제외 원인 검증이 불완전합니다. 이전 연구 수치를 현재 확보율로 사용하지 않습니다.';
   weeklyCoverage=responses[6];
   applyRotationTechnicalBackfill(model,responses[7]);
   applyBulkFinancialPreview(model,responses[9]);
