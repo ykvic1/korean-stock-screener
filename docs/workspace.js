@@ -1067,9 +1067,39 @@ function compareResearchScores(a,b){
    (bc.earned??-1)-(ac.earned??-1)||
    String(a.r?.code||'').localeCompare(String(b.r?.code||''));
 }
-function rankItems(model,core,tab='discover',market='all',query='',sort='score',safeOnly=false,top100Only=false,obvOnly=false,coverageOnly='all'){
+
+/* Personal stability overlay: liquidity and capacity are execution risks, not
+ * a sixth investment pillar. Never turn missing cap/turnover into zero points.
+ * Trading value is the observed SINGLE-DAY Amount from KRX-MARCAP via FDR,
+ * not a certified KRX-only 20-session average. Stock-volume OBV is unchanged.
+ */
+function stabilityProfile(r,composite){
+ const cap=finite(r?.market_cap_eok)&&r.market_cap_eok>0?r.market_cap_eok:null;
+ const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
+ const capDeduction=cap===null?0:cap<1000?15:cap<3000?10:cap<5000?5:0;
+ const liquidityDeduction=trading===null?0:trading<1?15:trading<5?10:trading<10?6:trading<30?3:0;
+ const deduction=capDeduction+liquidityDeduction;
+ const score=composite?.earned===null||!finite(composite?.earned)?
+  null:Math.max(0,Math.round((composite.earned-deduction)*10)/10);
+ const missing=(cap===null?1:0)+(trading===null?1:0);
+ const status=missing?'시총·거래대금 확인 필요':
+  cap<5000||trading<10?'규모·유동성 주의':
+  trading<30?'유동성 추가 확인':'안정형 규모·유동성 충족';
+ return {capitalEok:cap,tradingEok:trading,capitalDeduction:capDeduction,
+  liquidityDeduction,deduction,score,missing,status,
+  asof:validDate(r?.price_date)?r.price_date:null};
+}
+function compareStableResearchScores(a,b){
+ const ac=researchComposite(a.r),bc=researchComposite(b.r);
+ const ap=stabilityProfile(a.r,ac),bp=stabilityProfile(b.r,bc);
+ return bc.available-ac.available||
+   (bp.score??-1)-(ap.score??-1)||
+   ap.missing-bp.missing||
+   compareResearchScores(a,b);
+}
+function rankItems(model,core,tab='discover',market='all',query='',sort='stable',safeOnly=false,top100Only=false,obvOnly=false,coverageOnly='all'){
  if(!model?.rows||!core)return [];
- const ordered=model.rows.slice().sort(compareResearchScores);
+ const ordered=model.rows.slice().sort(sort==='stable'?compareStableResearchScores:compareResearchScores);
  const candidatePositions=new Map();
  let next=0;
  for(const x of ordered)
@@ -1084,10 +1114,11 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
   const composite=researchComposite(x.r);
   const tech=technicalCandidate(x.r);
   const personal100=personalHundredFromComposite(composite);
+  const stability=stabilityProfile(x.r,composite);
   const priority=signals.reduce((acc,z)=>acc+(z.kind==='pattern'?
     (z.timeframe==='weekly'?4:3)+(z.stage==='돌파 관측'?1:0):1),0);
   return {...x,daily,weekly,signals,patterns,rsi,risk,tech,priority,composite,
-    candidatePosition:candidatePositions.get(x.r.code)??null,personal100,
+    candidatePosition:candidatePositions.get(x.r.code)??null,personal100,stability,
     coverageKey:coverageVector(composite.pillars)};
  }).filter(x=>{
   const r=x.r;
@@ -1108,6 +1139,9 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='score',
   return true;
  });
  rows.sort((a,b)=>{
+  if(sort==='stable')return b.composite.available-a.composite.available||
+    (b.stability.score??-1)-(a.stability.score??-1)||
+    a.stability.missing-b.stability.missing||compareResearchScores(a,b);
   if(sort==='score')return compareResearchScores(a,b);
   if(sort==='personal')return (b.personal100??-1)-(a.personal100??-1)||
     compareResearchScores(a,b);
@@ -1964,7 +1998,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -1973,7 +2007,7 @@ if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
 let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null;
-let model=null,core=null,tab='discover',sort='score',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20,compareShown=false;
+let model=null,core=null,tab='discover',sort='stable',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20,compareShown=false;
 function refreshCoverageGroups(data){
  const control=$('coverageGroup');
  const previous=control.value;
@@ -2092,6 +2126,7 @@ function renderDetails(x){
  const four=x.fourYearRef;
  const stockLink=core.stockPage(r.code);
  const risk=x.risk;
+ const stability=x.stability||stabilityProfile(r,researchComposite(r));
  const quant=sampleQuant(x,core);
  const composite=researchComposite(r);
  const personal100=personalHundredFromComposite(composite);
@@ -2102,6 +2137,7 @@ function renderDetails(x){
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
+ '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 위험 -'+stability.capitalDeduction+'점 · 당일 거래대금 위험 -'+stability.liquidityDeduction+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+' · 자료일 '+esc(stability.asof||'미확인')+' · 20일 평균 거래대금 아님</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
@@ -2182,12 +2218,13 @@ function draw(){
   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'V3 잠정관측 상위 100개 중 ':'전체 시장 중 ')+
   (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
   (coverageOnly!=='all'&&!query?'5영역별 확보배점 '+coverageOnly.split('-').join('/')+' 동일 그룹 · ':'')+
-   (sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+   (sort==='stable'?'안정형 보정순 (시총·당일 거래대금 위험 감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
   const tags=(obvLagCandidate(r)?'<span class="u-signal u-obv-lag">OBV↑ · 주가 미반영 관찰</span>':'')+
    x.signals.slice(0,3).map(patternPill).join('');
+  const stable=x.stability;
   const state=x.risk.unsafe?'위험 주의':x.risk.distance===null?'손절선 미확인':'구조적 위험 검토';
   return '<button class="u-stock '+(selected===r.code?'selected':'')+
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
@@ -2195,8 +2232,11 @@ function draw(){
    String(i+1).padStart(2,'0')+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-card-kpis"><div class="u-card-price"><small>종가 · '+esc(r.price_date||model.date)+'</small><b>'+won(r.price)+'</b></div>'+
-   '<div class="u-card-score"><small>V3 잠정점수 · 미검증</small><strong>'+
-   (x.composite.earned===null?'—':x.composite.earned.toFixed(1))+'<small> / 100</small></strong>'+ (sort==='personal'?'<small>개인환산 '+(x.personal100===null?'—':x.personal100.toFixed(1))+'점</small>':'')+'</div>'+
+   '<div class="u-card-score"><small>'+(sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
+   (sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
+    (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
+   (sort==='stable'?'<small>V3 원점수 '+(x.composite.earned===null?'—':x.composite.earned.toFixed(1))+' · 위험감점 -'+stable.deduction+'</small>':
+    sort==='personal'?'<small>개인환산 '+(x.personal100===null?'—':x.personal100.toFixed(1))+'점</small>':'')+'</div>'+
    '<div class="u-card-coverage"><small>산출 배점</small><b>'+x.composite.available+'/100</b></div></div>'+
    '<div class="u-compact-pillars" aria-label="5개 영역별 잠정점수 · 자세한 기준일과 검증 상태는 종목 상세">'+
    x.composite.pillars.map(p=>{
@@ -2205,7 +2245,9 @@ function draw(){
       ' · 기준일 '+(p.asof||'미확인')+' · 미검증')+'"><small>'+esc(short)+'</small><b>'+
       (p.candidate===null?'—':p.candidate.toFixed(1))+'</b></span>';
    }).join('')+'</div>'+
-   '<div class="u-card-meta"><span>업종 '+esc(r.v3_sector_research?.name||'미확인')+'</span>'+
+   '<div class="u-card-meta"><span>시총 '+(stable.capitalEok===null?'미확인':Math.round(stable.capitalEok).toLocaleString('ko-KR')+'억')+'</span>'+
+   '<span>당일 거래대금 '+(stable.tradingEok===null?'미확인':stable.tradingEok.toLocaleString('ko-KR',{maximumFractionDigits:1})+'억')+'</span>'+
+   '<span>업종 '+esc(r.v3_sector_research?.name||'미확인')+'</span>'+
    '<span>점수 관측일 '+esc(x.composite.asof||model.date)+
    (x.composite.stalePillars?' · 이전 관측 '+x.composite.stalePillars+'영역':'')+
    '</span></div>'+
@@ -2242,7 +2284,7 @@ function present(data){
   '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
-  '종목. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
+  '종목. 시총·당일 거래대금 기반 안정형 위험감점을 별도 표시하며, 기존 5개 영역 점수는 변경하지 않습니다. 당일 거래대금은 20일 평균이 아니고 정규장 독립 검증 전입니다. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
     observedVolumeEvidence(x.r)!==null).length+
   '종목 / 관측가능 16점·미확보 4점입니다. 실시간 투자등급이 아닌 미검증 점수입니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
@@ -2364,7 +2406,7 @@ function init(){
    top100Only=!top100Only;limit=20;draw();
  });
  $('personalRank').addEventListener('click',()=>{
-   sort=sort==='personal'?'score':'personal';
+   sort=sort==='personal'?'stable':'personal';
    $('sort').value=sort;limit=20;top100Only=false;tab='all';
    for(const b of $('tabs').querySelectorAll('[data-tab]'))
      b.setAttribute('aria-pressed',String(b.dataset.tab==='all'));
