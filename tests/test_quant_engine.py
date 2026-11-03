@@ -7,7 +7,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np
 import pandas as pd
 from quant_engine import (label_future,wilson,build_features,StudyCase,
-                          analyze_nearest,run,read_ohlcv)
+                          analyze_nearest,run,read_ohlcv,
+                          classify_source_exclusion,source_quality_audit)
 
 class QuantTests(unittest.TestCase):
     def mk(self, rows):
@@ -67,6 +68,31 @@ class QuantTests(unittest.TestCase):
             self.assertEqual(x['status'],'insufficient')
             self.assertEqual(x['available_symbols'],0)
             self.assertTrue((p/'quant.json').exists())
+    def test_every_missing_price_history_is_accounted_for(self):
+        missing=[{"code":f"{i:06d}","error":"not found",
+                  "reason_code":"history_file_missing"} for i in range(51)]
+        audit=source_quality_audit(120,69,missing)
+        self.assertEqual(audit["requested_symbols"],120)
+        self.assertEqual(audit["valid_ohlcv_symbols"],69)
+        self.assertEqual(audit["excluded_symbols"],51)
+        self.assertEqual(audit["excluded_reason_counts"]["history_file_missing"],51)
+        self.assertTrue(audit["all_exclusions_listed"])
+        self.assertFalse(audit["official_adjusted_prices_certified"])
+
+    def test_ohlcv_rejection_categories_are_not_fabricated_repairs(self):
+        self.assertEqual(classify_source_exclusion(FileNotFoundError("a.csv")),
+                         "history_file_missing")
+        self.assertEqual(classify_source_exclusion(ValueError("종가 범위 오류")),
+                         "ohlc_range_invalid")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("음수 또는 0인 가격 / 음수 거래량")),
+            "nonpositive_price_or_negative_volume")
+        self.assertEqual(classify_source_exclusion(
+            ValueError("마지막 OHLCV 날짜가 신호일과 다름")),
+            "source_date_mismatch")
+        self.assertEqual(classify_source_exclusion(RuntimeError("unknown")),
+                         "other_unverified_source_error")
+
     def test_ohlc_price_validation(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'005930.csv'
