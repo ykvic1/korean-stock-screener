@@ -40,6 +40,7 @@ from v3_dart_cashflow_enrichment import CashflowError, fingerprint
 from v3_unscored_path_coverage import summarize as summarize_path_coverage
 from v3_path_provisional_factors import preview as path_preview
 from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
+from v3_stop_loss_severity import preview as stop_risk_preview
 from v3_dart_2025_owner_profit_probe import (
     verify as verify_2025_owner_profit_source, ProfitProbeError,
 )
@@ -309,6 +310,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     fiscal_component_counts={key:0 for key in FISCAL_COMPONENT_WEIGHTS}
     path_added={"volume4":0,"momentum7":0}
     path_observed=0
+    stop_risk_counts={"bonus_research_only":0,"penalty_research_only":0,
+                      "neutral_research_only":0,"unavailable":0}
     nonblank=0
     five_area_overlap=0
     available_weight_distribution={}
@@ -440,6 +443,13 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                 path_added["momentum7"]+=1
             path_research["research_volume_weight_applied"]=add_vol
             path_research["research_momentum_weight_applied"]=add_mom
+        stop_risk=stop_risk_preview(source_stock or {},asof=asof)
+        risk_points=stop_risk["research_adjustment_points_not_applied"]
+        risk_group=("unavailable" if risk_points is None else
+                    "bonus_research_only" if risk_points>0 else
+                    "penalty_research_only" if risk_points<0 else
+                    "neutral_research_only")
+        stop_risk_counts[risk_group]+=1
         for area in counts:
             if coverage[area]>0:
                 counts[area]+=1
@@ -475,6 +485,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             "factors":values,"factor_available":coverage,
             "fcf_subpoints":fcf_earned,
             "path_provisional_research":path_research,
+            "stop_loss_severity_research":stop_risk,
             "official_score":None,"certified":False,
         })
     if (len(output)!=catalog["listed_total"]
@@ -559,6 +570,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             if path_coverage_receipt is not None else None),
         "path_research_subweight_applied_issuer_counts":dict(path_added),
         "additional_path_investment_grade_points_authorized":0,
+        "stop_loss_severity_research_counts":stop_risk_counts,
+        "stop_risk_adjustment_is_not_part_of_100point_total":True,
+        "stop_risk_historical_probability_unverified":True,
         "independent_krx_adjusted_path_certification":False,
         "provider_requests":0,
         "source_sha256":{
@@ -580,7 +594,9 @@ def to_csv(rows,summary):
         "관측잠정합계_100점중","산출가능배점_100점중",
         "미확보배점_100점중","정식투자점수","투자등급",
         "재무_산출배점","가치_산출배점",
-        "FCF자산3년_잠정점수","FCF수익률_잠정점수"])
+        "FCF자산3년_잠정점수","FCF수익률_잠정점수",
+        "손절거리_참고_퍼센트","손절심각도_연구가감점_총점미반영",
+        "손절심각도_연구상태"])
     for row in rows:
         v=row["factors"]
         a=row["factor_available"]
@@ -597,7 +613,12 @@ def to_csv(rows,summary):
             "" if row["fcf_subpoints"]["financial4"] is None
                 else row["fcf_subpoints"]["financial4"],
             "" if row["fcf_subpoints"]["valuation5"] is None
-                else row["fcf_subpoints"]["valuation5"]
+                else row["fcf_subpoints"]["valuation5"],
+            "" if row["stop_loss_severity_research"]["stop_distance_pct"] is None
+                else row["stop_loss_severity_research"]["stop_distance_pct"],
+            "" if row["stop_loss_severity_research"]["research_adjustment_points_not_applied"] is None
+                else row["stop_loss_severity_research"]["research_adjustment_points_not_applied"],
+            row["stop_loss_severity_research"]["status"]
         ])
     return "\ufeff"+sink.getvalue()
 
