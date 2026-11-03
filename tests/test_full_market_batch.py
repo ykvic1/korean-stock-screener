@@ -113,6 +113,65 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
                                         "invalid_price_path_unavailable_reason"):
                 b.validate_part(m,rejected)
 
+    def test_ma240_cross_receipt_rejects_forged_price_band_claims(self):
+        from v3_ma240_cross_research import observe as observe_ma_cross
+
+        day = date.fromisoformat(DAY)
+        sessions = []
+        while len(sessions) < 260:
+            if day.weekday() < 5:
+                sessions.append(day)
+            day -= timedelta(days=1)
+        sessions.reverse()
+        receipt = observe_ma_cross(
+            [100.0] * 220 + [98.0] * 20 + [130.0] * 20,
+            [1000] * 260, asof=DAY, session_days=sessions)
+        self.assertIsNotNone(receipt)
+        self.assertTrue(receipt["qualified"])
+        self.assertFalse(receipt["closing_price_band_test_used"])
+        self.assertFalse(receipt["source_regular_session_verified"])
+
+        def analyzer(code, cfg, day):
+            return {**mock_history(code, cfg, day),
+                    "v3_ma240_cross_research": receipt}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, _ = self._plan(tmp, 105)
+            folder, _ = self._scan_all(tmp, manifest, analyzer=analyzer)
+            combined = b.load_receipts(manifest, folder)
+            self.assertEqual(len(combined["rows"]), 105)
+            self.assertEqual(combined["errors"], [])
+            self.assertTrue(combined["rows"][0]["metrics"][
+                "v3_ma240_cross_research"]["qualified"])
+
+            tampered = json.loads((folder / "part-000.json").read_text(
+                encoding="utf-8"))
+            tampered["rows"][0]["metrics"]["v3_ma240_cross_research"][
+                "closing_price_band_test_used"] = True
+            with self.assertRaisesRegex(
+                    b.BatchError, "untrusted_ma240_cross_observation"):
+                b.validate_part(manifest, tampered)
+
+            tampered = json.loads((folder / "part-000.json").read_text(
+                encoding="utf-8"))
+            tampered["rows"][0]["metrics"]["v3_ma240_cross_research"][
+                "source_regular_session_verified"] = True
+            with self.assertRaisesRegex(
+                    b.BatchError, "untrusted_ma240_cross_observation"):
+                b.validate_part(manifest, tampered)
+
+            tampered_receipt = dict(receipt, certified_investment_points=6)
+            def invalid_analyzer(code, cfg, day):
+                return {**mock_history(code, cfg, day),
+                        "v3_ma240_cross_research": tampered_receipt}
+            invalid_folder = Path(tmp) / "invalid-parts"
+            b.scan(manifest=manifest, part=0, out=invalid_folder,
+                   analyzer=invalid_analyzer, sleep=lambda _: None)
+            invalid = json.loads((invalid_folder / "part-000.json").read_text(
+                encoding="utf-8"))
+            self.assertFalse(invalid["rows"])
+            self.assertEqual(len(invalid["errors"]), 100)
+
     def test_failed_history_still_accounted_for_with_no_fabricated_zero(self):
         def source(code, cfg, day):
             if code.endswith("00"):
