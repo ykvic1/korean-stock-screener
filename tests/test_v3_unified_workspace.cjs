@@ -758,7 +758,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-stop-evidence','v30b-20261103-cap-five'],[entry,'v30b-20261103-stop-evidence','v30b-20261103-cap-five']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-ma240-cross','v30b-20261103-cap-five'],[entry,'v30b-20261103-ma240-cross','v30b-20261103-cap-five']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
@@ -870,7 +870,7 @@ assert.equal(missingVolume.available,0);
 assert.ok(unified.volumeStatus(missingVolume).includes('결측은 0점이 아닙니다'));
 const volumeRow={asof:'2026-10-20',market:'KOSPI',observed_points:13,
  observed_available_max:16,unobserved_max:4,
- subpoints:{sustained_volume:3,obv_60_direction:6,
+ subpoints:{sustained_volume:3,ma20_ma60_cross_near_ma240:6,
             obv_price_not_reflected:4,post_spike_absorption:null},
  risk_flags:[],source_history_adjusted_verified:false,
  source_exchange_regular_only_verified:false,
@@ -883,18 +883,24 @@ assert.match(unified.scorePillarExplanation(
  {key:'volume',max:20,candidate:13,available:16},withVolume),
  /거래량 급증 후 매물 소화/);
 
+const partialVolume={...volumeRow,observed_points:7,observed_available_max:10,
+ unobserved_max:10,subpoints:{...volumeRow.subpoints,
+  ma20_ma60_cross_near_ma240:null}};
+assert.deepEqual(unified.observedVolumeEvidence({...row,v3_volume_observed:partialVolume}),
+ {earned:7,available:10,fullyObserved:false},
+ 'missing MA240 history is unknown, not a failed cross');
 assert.equal(unified.obvLagCandidate(withVolume),true,
- 'both OBV rise and price lag must match same-date observed data');
+ 'only OBV/price lag determines the filter, independent of removed OBV-rise bonus');
 assert.equal(unified.obvLagCandidate(row),false,
  'missing source is never a match');
 assert.equal(unified.obvLagCandidate({...row,v3_volume_observed:{
- ...volumeRow,subpoints:{...volumeRow.subpoints,obv_60_direction:0,
+ ...volumeRow,subpoints:{...volumeRow.subpoints,ma20_ma60_cross_near_ma240:0,
   obv_price_not_reflected:0},observed_points:3}}),false,
- 'flat OBV cannot qualify');
+ 'zero OBV/price divergence cannot qualify');
 assert.equal(unified.obvLagCandidate({...row,v3_volume_observed:{
  ...volumeRow,subpoints:{...volumeRow.subpoints,obv_price_not_reflected:0},
  observed_points:9}}),false,
- 'OBV rise without price lag cannot qualify');
+ 'a MA cross without price lag cannot qualify OBV/price lag');
 assert.equal(unified.obvLagCandidate({...row,v3_volume_observed:{
  ...volumeRow,asof:'2026-10-21'}}),false,
  'stale or future-dated OBV must fail closed');
@@ -1440,8 +1446,8 @@ const prepared=legacy.prepare(structuredClone(volumeActual),null,null,null,null,
 const expectedVolumeCount=volumeSaved.asof===prepared.date?
  volumeSaved.observed_volume_candidate_issuers:0;
 assert.equal(unified.applyObservedVolume(prepared,volumeSaved),expectedVolumeCount);
-assert.equal(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===16),
- expectedVolumeCount>0,'stale volume must not be relabeled as current evidence');
+assert.equal(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===10),
+ expectedVolumeCount>0,'valid dated base retained after removing old OBV-rise six points');
 const observedLagRows=unified.rankItems(prepared,legacy,'all','all','','score',
  false,false,true);
 assert.ok(observedLagRows.every(x=>unified.obvLagCandidate(x.r)),
