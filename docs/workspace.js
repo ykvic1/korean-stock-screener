@@ -2393,7 +2393,11 @@ async function load(){
     '자료 검증 대기');
   selected=null;$('detail').hidden=true;
   present(model);
- }catch(_){
+ }catch(err){
+  // Log only the exception class and message for browser CI diagnostics;
+  // never log source price rows or provider credentials.
+  if(root.console&&typeof root.console.error==='function')
+   root.console.error('[V3 workspace load] '+String(err?.name||'Error')+': '+String(err?.message||'unknown'));
   model=null;s.className='u-state error';
   s.textContent='현재 전 종목 관측자료를 검증할 수 없습니다. 잘못된 추천 대신 데이터를 보류합니다.';
   $('stockList').innerHTML='<div class="u-empty">기존 기록은 안전하게 유지되고 있습니다. 잠시 후 다시 확인해 주세요.</div>';
