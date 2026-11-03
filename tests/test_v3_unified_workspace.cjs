@@ -65,7 +65,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- for(const page of [entry,html])assert.ok(page.includes('v30b-20261103-history433'));
+ for(const page of [entry,html])assert.ok(page.includes('v30b-20261103-quantqueue459'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
@@ -758,8 +758,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261103-history433')&&
-  page.includes('workspace.css?v=v30b-20261103-history433'),
+ assert.ok(page.includes('workspace.js?v=v30b-20261103-quantqueue459')&&
+  page.includes('workspace.css?v=v30b-20261103-quantqueue459'),
   'both deployed routes must invalidate stale JS and CSS after UI changes');
 }
 assert.ok(css.includes('#coverageGroup:focus-visible'),

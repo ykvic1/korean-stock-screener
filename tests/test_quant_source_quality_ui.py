@@ -40,8 +40,18 @@ const withDiag={
  }
 };
 const recovery=ui.quantSourceQualityView(withDiag,'2026-11-02');
-assert.match(recovery.text,/정상 연속 650봉 이상 1종목/);
+assert.match(recovery.text,/수집된 정상 봉 연속 650개 이상 1종목/);
 assert.match(recovery.text,/점수 미반영/);
+assert.match(recovery.queueHTML,/검증 우선 후보 1종목/);
+assert.match(recovery.queueHTML,/000001/);
+assert.match(recovery.queueHTML,/2023-11-01/);
+assert.match(recovery.queueHTML,/651개/);
+assert.match(recovery.queueHTML,/수익률 계산에서 제외/);
+assert.doesNotMatch(recovery.queueHTML,/매수 추천/);
+assert.equal(shown.queueHTML,'');
+assert.equal(ui.quantSourceQualityView({...report,missing:[
+ ...missing.slice(0,50),{...missing[0]}
+]},'2026-11-02'),null);
 assert.equal(ui.quantSourceQualityView({...withDiag,
   source_quality_audit:{...withDiag.source_quality_audit,
     unverified_tail_650_candidates:2}},'2026-11-02'),null);

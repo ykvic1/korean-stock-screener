@@ -1194,6 +1194,8 @@ function quantSourceQualityView(report, marketDate){
     keys.reduce((sum,k)=>sum+counts[k],0)!==q.excluded_symbols||
     report.missing.some(m=>!m||!/^[0-9]{6}$/.test(String(m.code))||
      !Object.prototype.hasOwnProperty.call(labels,m.reason_code)))return null;
+ const missingCodes=report.missing.map(m=>String(m.code));
+ if(new Set(missingCodes).size!==missingCodes.length)return null;
  const tally={};
  report.missing.forEach(m=>{tally[m.reason_code]=(tally[m.reason_code]||0)+1;});
  if(keys.some(k=>tally[k]!==counts[k])||
@@ -1201,7 +1203,7 @@ function quantSourceQualityView(report, marketDate){
     return null;
  const hasTailAudit=Object.prototype.hasOwnProperty.call(q,'audited_vendor_tail_diagnostics')||
    Object.prototype.hasOwnProperty.call(q,'unverified_tail_650_candidates');
- let tailNote='';
+ let tailNote='',queueHTML='';
  if(hasTailAudit){
   const audited=q.audited_vendor_tail_diagnostics;
   const candidates=q.unverified_tail_650_candidates;
@@ -1222,8 +1224,23 @@ function quantSourceQualityView(report, marketDate){
   }
   if(diagnosed.filter(m=>m.tail_diagnostic.trailing_650_session_candidate).length!==
      candidates)return null;
-  tailNote=' · 원천 불량구간 진단 '+audited+'종목 중 정상 연속 650봉 이상 '+
+  tailNote=' · 원천 불량구간 진단 '+audited+'종목 중 수집된 정상 봉 연속 650개 이상 '+
    candidates+'종목 (공식 교차검증 전 복구 후보이며 점수 미반영)';
+  if(candidates>0){
+   const queue=diagnosed.filter(m=>m.tail_diagnostic.trailing_650_session_candidate)
+    .sort((a,b)=>b.tail_diagnostic.trailing_valid_sessions-
+      a.tail_diagnostic.trailing_valid_sessions||String(a.code).localeCompare(String(b.code)));
+   queueHTML='<details class="u-quant-queue"><summary>공식 교차검증 우선 후보 '+
+    candidates+'종목 · 개별 목록 보기</summary>'+
+    '<p class="u-source">오류 이후 수집된 봉을 기준으로 정렬했습니다. 휴장·거래정지·누락 거래일의 연속성은 검증하지 않았습니다. '+
+    '정규장·수정주가·기업행위 비교 전까지 이 종목들은 퀀트 점수와 수익률 계산에서 제외됩니다.</p>'+
+    '<div class="u-scroller"><table><thead><tr><th>종목코드</th>'+
+    '<th>제외 원인</th><th>마지막 의심 날짜</th><th>이후 수집된 봉</th></tr></thead><tbody>'+
+    queue.map(m=>'<tr><th>'+esc(m.code)+'</th><td>'+esc(labels[m.reason_code])+
+      '</td><td>'+esc(m.tail_diagnostic.last_suspect_date)+'</td><td>'+
+      m.tail_diagnostic.trailing_valid_sessions+'개</td></tr>').join('')+
+    '</tbody></table></div></details>';
+  }
  }
  const grouped=keys.filter(k=>counts[k]>0)
   .map(k=>labels[k]+' '+counts[k]+'종목').join(' · ');
@@ -1232,7 +1249,8 @@ function quantSourceQualityView(report, marketDate){
    q.requested_symbols+'종목 확보 (제외 '+q.excluded_symbols+')',
   text:'자료 기준 '+marketDate+' · '+(grouped||'제외 종목 없음')+
    tailNote+'. 연구용 원천 품질 집계이며 오류 가격을 임의 보정하지 않습니다. '+
-   '공식 정규장·수정주가·기업행위와 과거 상장폐지 종목 구성은 독립 인증 전입니다.'
+   '공식 정규장·수정주가·기업행위와 과거 상장폐지 종목 구성은 독립 인증 전입니다.',
+  queueHTML
  };
 }
 function weeklyCoverageText(report, marketDate){
@@ -2276,6 +2294,10 @@ async function load(){
   if($('quantQualityNotes'))$('quantQualityNotes').textContent=
    quantQuality?.text||
    '동일 기준일의 원천 가격 품질 집계가 없거나 전체 종목 수·제외 원인 검증이 불완전합니다. 이전 연구 수치를 현재 확보율로 사용하지 않습니다.';
+  if($('quantQualityQueue')){
+   $('quantQualityQueue').innerHTML=quantQuality?.queueHTML||'';
+   $('quantQualityQueue').hidden=!quantQuality?.queueHTML;
+  }
   weeklyCoverage=responses[6];
   applyRotationTechnicalBackfill(model,responses[7]);
   applyBulkFinancialPreview(model,responses[9]);
