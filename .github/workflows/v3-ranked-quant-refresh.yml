@@ -1,6 +1,10 @@
 name: V3 Ranked Candidate Quant Research Refresh
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - quant_engine.py
   schedule:
     - cron: '0 1 * * 6'  # Saturday 10:00 Asia/Seoul; does not duplicate weekday 18:30
   workflow_dispatch:
