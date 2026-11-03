@@ -758,11 +758,12 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-ma240-cross','v30b-20261103-cap-five'],[entry,'v30b-20261103-ma240-cross','v30b-20261103-cap-five']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261103-cross-explain','v30b-20261103-cross-explain'],[entry,'v30b-20261103-cross-explain','v30b-20261103-cross-explain']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin matching JS/CSS assets');
 }
+assert.ok(css.includes('.u-ma-cross-note'), 'mobile MA crossing evidence needs a separate readable line');
 assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
@@ -889,6 +890,36 @@ const partialVolume={...volumeRow,observed_points:7,observed_available_max:10,
 assert.deepEqual(unified.observedVolumeEvidence({...row,v3_volume_observed:partialVolume}),
  {earned:7,available:10,fullyObserved:false},
  'missing MA240 history is unknown, not a failed cross');
+const crossReceipt={
+ schema:'v3-ma20-ma60-cross-near-ma240-20session-shadow-0.1',
+ asof:'2026-10-20',history_sessions_used:260,recent_sessions:20,
+ reference_band_pct:12,cross_point_based_on_price_ma_intersection:true,
+ closing_price_band_test_used:false,source_regular_session_verified:false,
+ source_corporate_action_adjusted_verified:false,certified_investment_points:null,
+ qualified:true,qualifying_cross_date:'2026-10-15',
+ qualifying_cross_point_vs_ma240_pct:8.25,cross_event_count:1,
+ last_cross_date:'2026-10-15',last_cross_point_vs_ma240_pct:8.25
+};
+assert.match(unified.volumeParts({...withVolume,v3_ma240_cross_research:crossReceipt}),
+ /2026-10-15 교차점 \\+8\\.25%/,
+ 'actual MA20/60 intersection distance and date must be shown to the user');
+assert.doesNotMatch(unified.volumeParts(withVolume),/u-ma-cross-note/,
+ 'do not invent cross date when the detailed stock receipt is unavailable');
+assert.doesNotMatch(unified.volumeParts({...withVolume,v3_ma240_cross_research:{
+ ...crossReceipt,closing_price_band_test_used:true}}),/u-ma-cross-note/,
+ 'do not label stock closing-price calculations as actual MA intersections');
+const zeroCross={...volumeRow,observed_points:7,
+ subpoints:{...volumeRow.subpoints,ma20_ma60_cross_near_ma240:0}};
+assert.match(unified.volumeParts({...row,v3_volume_observed:zeroCross,
+ v3_ma240_cross_research:{...crossReceipt,qualified:false,
+ qualifying_cross_date:null,qualifying_cross_point_vs_ma240_pct:null,
+ cross_event_count:0,last_cross_date:null,last_cross_point_vs_ma240_pct:null}}),
+ /최근 20거래일 골든크로스 미발생/);
+assert.match(unified.volumeParts({...row,v3_volume_observed:zeroCross,
+ v3_ma240_cross_research:{...crossReceipt,qualified:false,
+ qualifying_cross_date:null,qualifying_cross_point_vs_ma240_pct:null,
+ last_cross_point_vs_ma240_pct:13.12}}),
+ /범위 초과.*교차점 \\+13\\.12%/);
 assert.equal(unified.obvLagCandidate(withVolume),true,
  'only OBV/price lag determines the filter, independent of removed OBV-rise bonus');
 assert.equal(unified.obvLagCandidate(row),false,
