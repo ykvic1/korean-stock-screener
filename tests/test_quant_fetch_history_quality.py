@@ -30,10 +30,17 @@ class QuantHistoryQualityTests(unittest.TestCase):
                            return_value=[{"code": "005930"}]),
               patch.object(fetch, "optional_recommendations", return_value=None),
               patch.object(fetch.fdr, "DataReader", return_value=bars) as vendor,
-              patch.object(fetch.time, "sleep")):
+              patch.object(fetch.time, "sleep") as pause):
             result = fetch.collect(signal, cache, self.ASOF, sleep=0)
             if result["reused"]:
                 vendor.assert_not_called()
+            if result["failed_n"]:
+                # Three real provider attempts, but only two useful pauses.
+                self.assertEqual(vendor.call_count, 3)
+                self.assertEqual(
+                    [call.args[0] for call in pause.call_args_list
+                     if call.args and call.args[0] > 0],
+                    [1.5, 3.0])
             return result, cache
 
     def test_invalid_provider_bars_do_not_become_cache(self):
