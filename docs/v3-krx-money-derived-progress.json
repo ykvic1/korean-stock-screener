@@ -1,6 +1,6 @@
 {
   "5_10_20_60_120_five_session_buckets_are_exact_calendar_weeks": false,
-  "candidate_sessions_in_completed_cohorts": 160,
+  "candidate_sessions_in_completed_cohorts": 240,
   "candidate_sessions_target": 2452,
   "collection_order": "latest_first",
   "collection_source": "actual_KRX_ACC_TRDVAL_derived_private",
@@ -10,39 +10,39 @@
       "each_issuer_history_complete": false,
       "full_source_cohorts_available": true,
       "investment_score_allowed": false,
-      "possible_consecutive_five_session_endpoints": 9
+      "possible_consecutive_five_session_endpoints": 25
     },
     "20": {
       "each_issuer_history_complete": false,
       "full_source_cohorts_available": true,
       "investment_score_allowed": false,
-      "possible_consecutive_five_session_endpoints": 29
+      "possible_consecutive_five_session_endpoints": 45
     },
     "240": {
       "each_issuer_history_complete": false,
-      "full_source_cohorts_available": false,
+      "full_source_cohorts_available": true,
       "investment_score_allowed": false,
-      "possible_consecutive_five_session_endpoints": 0
+      "possible_consecutive_five_session_endpoints": 1
     },
     "60": {
       "each_issuer_history_complete": false,
       "full_source_cohorts_available": true,
       "investment_score_allowed": false,
-      "possible_consecutive_five_session_endpoints": 21
+      "possible_consecutive_five_session_endpoints": 37
     }
   },
-  "derived_issuer_cohort_records": 84124,
+  "derived_issuer_cohort_records": 126811,
   "exact_daily_money_obv_proven": false,
-  "five_session_cohorts_completed": 32,
-  "five_session_cohorts_remaining": 458,
+  "five_session_cohorts_completed": 48,
+  "five_session_cohorts_remaining": 442,
   "five_session_cohorts_target": 490,
   "full_v3_score_certified": false,
   "money_factors_in_final_investment_scores": false,
   "new_krx_api_calls": 0,
   "note": "Aggregate research coverage, not issuer-complete multi-horizon liquidity, regular-session-only data, exact daily OBV, or tradeable 100-point score certification.",
-  "oldest_completed_cohort_end": "2026-02-24",
+  "oldest_completed_cohort_end": "2025-10-27",
   "original_krx_ohlcv_verified_regular_session_only": false,
-  "private_derived_compressed_bytes": 1936101,
+  "private_derived_compressed_bytes": 2923791,
   "private_immutable_checkpoint_tail_verified": true,
   "raw_krx_files_saved": 0,
   "schema": "v3-public-krx-actual-money-derived-progress-0.1"
