@@ -126,7 +126,8 @@ def generate(csv_text, summary, financial, annual, cf_evidence):
         if (type(code) is not str or not CODE.fullmatch(code)
             or code in seen or market not in by_market
             or row.get("가격자료기준일") != day
-            or row.get("정식투자점수") != ""):
+            or row.get("정식투자점수") != ""
+            or row.get("투자등급") != "미검증 연구용"):
             raise GapAuditError("invalid_or_duplicate_observed_issuer")
         seen.add(code)
         weights = _factor_gaps(row)
@@ -247,13 +248,23 @@ def main(argv=None):
     docs = Path(a.docs)
     def read(name):
         return json.loads((docs / name).read_text(encoding="utf8"))
-    report = generate(
-        (docs / "v3-current-observed-all-listed.csv").read_text(encoding="utf8"),
-        read("v3-current-observed-all-listed-summary.json"),
-        read("v3-dart-bulk-provisional.json"),
-        read("v3-dart-book-reference.json"),
-        read("v3-dart-cashflow-issuer-evidence.json"),
-    )
+    csv_text = (docs / "v3-current-observed-all-listed.csv").read_text(
+        encoding="utf8")
+    summary = read("v3-current-observed-all-listed-summary.json")
+    financial = read("v3-dart-bulk-provisional.json")
+    annual = read("v3-dart-book-reference.json")
+    cf_evidence = read("v3-dart-cashflow-issuer-evidence.json")
+    # Cashflow and annual sources update asynchronously after each closing
+    # price rollover. A known older source day does NOT block fresh prices,
+    # and an old gap report always retains its own original source date.
+    if any(x.get("asof") != summary.get("asof") for x in (
+            financial, annual, cf_evidence)):
+        print(json.dumps({"status":"waiting_same_day_source_priority_audit",
+                          "asof":summary.get("asof"),
+                          "provider_api_calls":0,
+                          "issuer_scores_changed":False},sort_keys=True))
+        return
+    report = generate(csv_text, summary, financial, annual, cf_evidence)
     dest = docs / "v3-near-100-evidence-priority.json"
     canonical = json.dumps(report, ensure_ascii=False, sort_keys=True,
                            separators=(",", ":")) + "\n"
