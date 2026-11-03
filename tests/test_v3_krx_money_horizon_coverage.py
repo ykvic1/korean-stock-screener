@@ -40,7 +40,7 @@ def fixture():
         cohort=entry["cohort"]
         factors=cohort["derived_issuer_money_factors"]
         # Three synthetic issuer-market pairs: increased, missing baseline,
-        # and a genuinely observed zero-amount previous period.
+        # and a zero-valued quantized previous period.
         for code in ("000002","000003"):
             factor=copy.deepcopy(factors["KOSPI:000001"])
             factor["issuer_code"]=code
@@ -77,7 +77,7 @@ class MoneyHorizonCoverageTests(unittest.TestCase):
         row=result["daily_disjoint_period_coverage"]["20"]
         self.assertEqual(row["latest_window_complete_issuer_market_pairs"],3)
         self.assertEqual(row["disjoint_comparison_complete_issuer_market_pairs"],2)
-        self.assertEqual(row["zero_baseline_issuer_market_pairs"],1)
+        self.assertEqual(row["quantized_zero_baseline_issuer_market_pairs"],1)
         self.assertEqual(row["positive_baseline_comparable_issuer_market_pairs"],1)
         self.assertEqual(row["higher_average_amount_issuer_market_pairs"],1)
         self.assertEqual(row["every_recent_cohort_above_previous_average_issuer_market_pairs"],1)

@@ -130,7 +130,7 @@ def _window(buckets, n):
         "positive_money_persistence_cohort_ratio": (
             round(persistent / assessable, 4) if assessable == n else None),
         "disjoint_baseline_complete": baseline_complete,
-        "disjoint_baseline_zero_amount": baseline_total == 0,
+        "disjoint_baseline_quantized_zero_amount": baseline_total == 0,
         "versus_previous_disjoint_window_ratio": ratio,
         "amount_increased_vs_disjoint_baseline": (
             total > baseline_total if ratio is not None else None),

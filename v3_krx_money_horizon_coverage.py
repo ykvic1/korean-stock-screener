@@ -48,7 +48,7 @@ def collect(storage, dates, digest):
     horizons = {str(h):{
         "latest_window_complete_issuer_market_pairs":0,
         "disjoint_comparison_complete_issuer_market_pairs":0,
-        "zero_baseline_issuer_market_pairs":0,
+        "quantized_zero_baseline_issuer_market_pairs":0,
         "positive_baseline_comparable_issuer_market_pairs":0,
         "higher_average_amount_issuer_market_pairs":0,
         "every_recent_cohort_above_previous_average_issuer_market_pairs":0,
@@ -66,7 +66,7 @@ def collect(storage, dates, digest):
             row = horizons[str(h)]
             row["latest_window_complete_issuer_market_pairs"] += 1
             row["disjoint_comparison_complete_issuer_market_pairs"] += int(window["disjoint_baseline_complete"])
-            row["zero_baseline_issuer_market_pairs"] += int(window["disjoint_baseline_zero_amount"])
+            row["quantized_zero_baseline_issuer_market_pairs"] += int(window["disjoint_baseline_quantized_zero_amount"])
             ratio = window["versus_previous_disjoint_window_ratio"]
             if ratio is not None:
                 row["positive_baseline_comparable_issuer_market_pairs"] += 1
