@@ -29,6 +29,31 @@ def inputs():
 
 
 class EPSTests(unittest.TestCase):
+    def test_unusable_issuer_does_not_block_other_issuers_or_become_zero_eps(self):
+        catalog, book = inputs()
+        catalog['rows'].append({'code': '000001', 'name': 'Second', 'market': 'KOSDAQ'})
+        catalog['listed_total'] = 2
+        book['records'].append({**copy.deepcopy(book['records'][0]), 'code': '000001'})
+        class Reply:
+            def __init__(self, corp): self.corp=corp
+            def raise_for_status(self): pass
+            def json(self):
+                p=payload()
+                p['list'][0]['corp_code']=self.corp
+                if self.corp=='00123456':
+                    p['list'].append({**p['list'][0], 'thstrm_amount': '999'})
+                return p
+        class Session:
+            def get(self, url, **kwargs): return Reply(kwargs['params']['corp_code'])
+        with patch('v3_dart_reported_eps.verified_company_mapping_cache', return_value={BASE['code']: '00123456', '000001': '00000001'}):
+            report,calls=collect(catalog,book,None,key='a'*40,session=Session())
+        self.assertEqual(calls,2)
+        self.assertEqual(report['pending_issuers'],0)
+        self.assertEqual(report['unusable_source_issuers'],1)
+        self.assertEqual(report['records'][BASE['code']]['reported_basic_eps_2023_2025'],[None]*3)
+        self.assertTrue(report['records']['000001']['metrics']['complete_three_years'])
+        self.assertEqual(plan(catalog,book,report)[-1],[])
+
     def test_previous_day_annual_book_keeps_receipt_identity_but_future_book_is_rejected(self):
         catalog, book = inputs()
         book['asof'] = '2026-11-02'
