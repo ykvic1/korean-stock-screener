@@ -15,6 +15,7 @@ from io import BytesIO
 import json
 import os
 import re
+import time
 from urllib import parse, request
 
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
@@ -293,6 +294,74 @@ def _check_page_sequence(previous, current):
         raise DARTEventReceiptError("inconsistent_dart_page_sequence")
 
 
+def _write_conflict(error):
+    return (type(error) is PrivateHistoryError
+            and error.args == ("private_storage_api_failed",)
+            and getattr(error, "safe_http_operation", None) == "write_private_content"
+            and getattr(error, "safe_http_status", None) == "http_409")
+
+
+def _save_immutable_page(storage, path, packed):
+    message = "Save private OpenDART historic filing receipt page"
+    try:
+        storage.put_new(path, packed, message)
+        return
+    except PrivateHistoryError as error:
+        if not _write_conflict(error):
+            raise
+    # A different private archive writer can move the Git branch while this
+    # file is being created. Never replace an existing receipt page or fetch
+    # the provider again. Reconcile the exact bytes before one create retry.
+    for attempt in range(2):
+        observed, _ = storage.get_content(path)
+        if observed is not None:
+            if observed != packed:
+                raise DARTEventReceiptError("private_dart_immutable_page_conflict")
+            return
+        if attempt == 0:
+            time.sleep(1)
+    storage.put_new(path, packed, message)
+    observed, _ = storage.get_content(path)
+    if observed != packed:
+        raise DARTEventReceiptError("private_dart_immutable_page_readback_failed")
+
+
+def _save_cursor(storage, encoded, old_raw, oldsha):
+    def write():
+        if oldsha is None:
+            storage.put_new(CHECKPOINT, encoded, "Start private DART filing receipt cursor")
+        else:
+            storage.transport("PUT", "contents/" + CHECKPOINT, {
+                "message": "Advance private DART filing receipt cursor",
+                "content": base64.b64encode(encoded).decode("ascii"),
+                "sha": oldsha,
+            })
+    try:
+        write()
+    except PrivateHistoryError as error:
+        if not _write_conflict(error):
+            raise
+        for attempt in range(2):
+            observed, observed_sha = storage.get_content(CHECKPOINT)
+            if observed == encoded and type(observed_sha) is str and observed_sha:
+                return observed_sha
+            if observed != old_raw or observed_sha != oldsha:
+                raise DARTEventReceiptError("private_dart_cursor_concurrent_change")
+            if attempt == 0:
+                time.sleep(1)
+        # Reuse the original CAS SHA; never adopt a competing writer's SHA.
+        write()
+    for attempt in range(6):
+        observed, observed_sha = storage.get_content(CHECKPOINT)
+        if observed == encoded and type(observed_sha) is str and observed_sha:
+            return observed_sha
+        if observed is not None and observed != old_raw:
+            raise DARTEventReceiptError("private_dart_cursor_concurrent_change")
+        if attempt < 5:
+            time.sleep(.7 * (attempt + 1))
+    raise DARTEventReceiptError("private_dart_cursor_readback_failed")
+
+
 def run(storage, fetch, max_calls=MAX_API_CALLS):
     if (storage.repository != PRIVATE_REPO or type(max_calls) is not int
         or not 1 <= max_calls <= MAX_API_CALLS):
@@ -339,7 +408,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                 _check_page_sequence(tail_page, page)
             # Check the adjacent-page evidence BEFORE creating immutable storage:
             # a mismatched provider page must not poison every later retry.
-            storage.put_new(path, packed, "Save private OpenDART historic filing receipt page")
+            _save_immutable_page(storage, path, packed)
             saved = packed
             new_pages += 1
         else:
@@ -366,17 +435,8 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                       "last_page_file": path,
                       "last_page_sha256": sha256(saved).hexdigest()}
         encoded = _bytes(checkpoint)
-        if oldsha is None:
-            storage.put_new(CHECKPOINT, encoded, "Start private DART filing receipt cursor")
-        else:
-            storage.transport("PUT", "contents/" + CHECKPOINT, {
-                "message": "Advance private DART filing receipt cursor",
-                "content": base64.b64encode(encoded).decode("ascii"),
-                "sha": oldsha,
-            })
-        observed, oldsha = storage.get_content(CHECKPOINT)
-        if observed != encoded or type(oldsha) is not str:
-            raise DARTEventReceiptError("private_dart_cursor_readback_failed")
+        oldsha = _save_cursor(storage, encoded, raw, oldsha)
+        raw = encoded
         cursor = checkpoint
         tail, tail_page = saved, page
         # An already-completed immutable page reuses evidence without API.
@@ -445,6 +505,9 @@ SAFE_PUBLIC_DART_FAILURE_CODES = frozenset({
     "private_dart_receipt_tail_changed",
     "private_dart_receipt_cursor_chain_gap",
     "private_dart_cursor_readback_failed",
+    "private_dart_cursor_concurrent_change",
+    "private_dart_immutable_page_conflict",
+    "private_dart_immutable_page_readback_failed",
 })
 
 
@@ -457,6 +520,16 @@ def public_failure_code(error):
         and getattr(error, "safe_http_status", None) in (
             "http_403_rate_limited", "http_429")):
         return "private_dart_github_api_rate_limited"
+    if type(error) is PrivateHistoryError and error.args == ("private_storage_api_failed",):
+        operation = getattr(error, "safe_http_operation", None)
+        status = getattr(error, "safe_http_status", None)
+        if (type(operation) is str and operation in {
+                "read_repository_metadata", "read_private_content", "write_private_content"}
+            and type(status) is str and status in {
+                "http_401", "http_403", "http_404", "http_409", "http_422",
+                "http_500", "http_502", "http_503", "http_504",
+                "transport_or_response"}):
+            return "private_dart_storage_" + operation + "_" + status
     if (type(error) is DARTEventReceiptError and len(error.args)==1
         and type(error.args[0]) is str
         and error.args[0] in SAFE_PUBLIC_DART_FAILURE_CODES):
@@ -470,6 +543,11 @@ def public_failure_code(error):
             return error.args[0] + ":" + issue
         return error.args[0]
     return "private_dart_collection_validation_or_transport_failed"
+
+
+def candidate_review_segments(progress):
+    """Keep the shared ingestion lock short until all 120 months are saved."""
+    return 4 if public_progress_complete(progress) else 1
 
 
 def main():
