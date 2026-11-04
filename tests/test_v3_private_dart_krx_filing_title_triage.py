@@ -257,6 +257,12 @@ class FilingTitleTriageTests(unittest.TestCase):
         self.assertIn("v3_private_dart_krx_filing_title_triage.py", wf)
         self.assertIn("test_v3_private_dart_krx_filing_title_triage.py", wf)
         self.assertIn("python v3_private_dart_krx_filing_title_triage.py", wf)
+        # Bulk long-run completion must unlock the same source-guarded private
+        # correction/title research pipeline as the short collector.
+        self.assertIn("V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)", wf)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", wf)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", wf)
+        self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)
         self.assertIn("contents: read", wf)
         self.assertIn("persist-credentials: false", wf)
