@@ -8,7 +8,7 @@ from unittest.mock import patch
 import unittest
 
 from v3_dart_reported_eps import (amount, metrics, parse, plan, collect, snapshot,
-                                  EPSError, SCHEMA, main)
+                                  EPSError, SCHEMA, main, safe_failure_label)
 
 DAY = '2026-11-03'
 BASE = {'code': '005930', 'name': 'Synthetic', 'market': 'KOSPI', 'fiscal_year': 2025,
@@ -33,6 +33,15 @@ def inputs():
 
 
 class EPSTests(unittest.TestCase):
+    def test_source_diagnostics_are_allowlisted_not_raw_provider_strings(self):
+        self.assertEqual(safe_failure_label(EPSError('official_eps_transport_unavailable')),
+                         'blocked: official_eps_transport_unavailable')
+        self.assertEqual(safe_failure_label(EPSError('partial_eps_source_stopped_after_checkpoint')),
+                         'blocked: partial_eps_source_stopped_after_checkpoint')
+        for error in (EPSError('private_key=not-for-logs'), ValueError('provider response')):
+            self.assertEqual(safe_failure_label(error),
+                             'blocked: reported_eps_source_not_verified')
+
     def test_partial_checkpoint_stops_outer_continuous_collection_on_source_failure(self):
         catalog, book = inputs()
         catalog['rows'].append({'code': '000001', 'name': 'Second', 'market': 'KOSDAQ'})
@@ -115,6 +124,11 @@ class EPSTests(unittest.TestCase):
         self.assertNotIn('git add .', live)
         self.assertNotIn('upload-artifact', workflow)
         self.assertIn("out.write('ready='+('true' if ready else 'false')+'\\n')", live)
+        self.assertIn('source_interrupted=1', live)
+        self.assertIn('eps_final', live)
+        self.assertIn('reported_eps_no_verified_checkpoint_after_source_failure', live)
+        self.assertIn('if [[ "$eps_final" -le "$eps_start" ]]', live)
+        self.assertIn('reported_eps_source_interrupted_after_saved_checkpoint', live)
 
     def test_exact_annual_comparatives_keep_decimal_eps_and_recompute_growth(self):
         r = parse(payload(), corp='00123456', base=BASE, on_day=DAY)
