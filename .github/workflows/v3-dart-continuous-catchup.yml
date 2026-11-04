@@ -46,7 +46,8 @@ jobs:
     if: >-
       ${{ (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
           (github.event_name == 'push' &&
-           startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous DART catchup to 120 months')) }}
+           (startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous DART catchup to 120 months') ||
+            startsWith(github.event.head_commit.message, 'fix(v3.0b): resume continuous DART after read quota cooldown'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 350
     permissions:
@@ -74,7 +75,8 @@ jobs:
           set -euo pipefail
           # Python stops at the PRIVATE 120-month cursor, 50 bounded segments
           # (at most 3600 DART calls), or five hours, whichever comes first.
-          # A failed DART quota response fails closed; next scheduled attempt
-          # resumes the last CAS-verified private checkpoint without duplicates.
+          # Confirmed GitHub read quotas may pause within the five-hour budget
+          # (at most three cooldowns). Writes and DART quota errors fail closed;
+          # the next attempt resumes the last verified private checkpoint.
           # Never publish raw receipts, issuer IDs, tokens or PIT trade scores.
           python v3_dart_continuous_catchup.py

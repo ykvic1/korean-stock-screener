@@ -1,11 +1,15 @@
 """Offline guardrails for continuous private DART catch-up orchestration."""
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+from urllib.error import HTTPError
 
 from v3_dart_continuous_catchup import (
     MAX_BATCHES, MAX_PROVIDER_CALLS, continuous_catchup,
+    QuotaWaitingPrivateGitStorage,
 )
 from v3_dart_historical_event_receipts import DARTEventReceiptError
+import v3_krx_private_github_backfill as transport
 
 
 def response(months, calls, pages=None, reused=0):
@@ -15,6 +19,89 @@ def response(months, calls, pages=None, reused=0):
 
 
 class ContinuousDARTCatchupTests(unittest.TestCase):
+    def quota_store(self, deadline=10000):
+        ticks = [0]
+        sleeps = []
+        def sleep(seconds):
+            sleeps.append(seconds)
+            ticks[0] += seconds
+        store = QuotaWaitingPrivateGitStorage(
+            "ykvic1/private-market-research", "synthetic-token-at-least-20",
+            deadline=deadline, clock=lambda: ticks[0], sleeper=sleep)
+        return store, ticks, sleeps
+
+    def test_primary_quota_read_waits_then_resumes_exact_request(self):
+        class Reply:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def read(self, limit): return b'{"private":true}'
+        denied = HTTPError("https://hidden/path", 403, "hidden body", {
+            "X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1060"}, None)
+        store, ticks, sleeps = self.quota_store()
+        with patch.object(transport.time, "time", return_value=1000), \
+             patch.object(transport.request, "urlopen", side_effect=[denied, Reply()]) as get:
+            self.assertEqual(store._http("GET", "contents/private-cursor"), {"private": True})
+        self.assertEqual(ticks[0], 65)
+        self.assertTrue(all(0 < delay <= 30 for delay in sleeps))
+        self.assertEqual(store.quota_pauses, 1)
+        self.assertEqual(get.call_args_list[0].args[0].full_url,
+                         get.call_args_list[1].args[0].full_url)
+
+    def test_quota_wait_never_retries_writes_or_permission_errors(self):
+        for method, status, headers in [
+            ("PUT", 429, {"Retry-After": "60"}),
+            ("PUT", 403, {"X-RateLimit-Remaining": "0", "Retry-After": "60"}),
+            ("GET", 403, {}), ("GET", 401, {"Retry-After": "60"}),
+        ]:
+            with self.subTest(method=method, status=status):
+                store, _, sleeps = self.quota_store()
+                denied = HTTPError("https://hidden", status, "secret", headers, None)
+                with patch.object(transport.request, "urlopen", side_effect=denied) as call:
+                    with self.assertRaises(transport.PrivateHistoryError):
+                        store._http(method, "contents/private", {"data": "secret"} if method == "PUT" else None)
+                self.assertEqual(call.call_count, 1)
+                self.assertEqual(sleeps, [])
+
+    def test_secondary_limit_uses_retry_after_instead_of_unused_primary_reset(self):
+        class Reply:
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def read(self, limit): return b'{}'
+        for remaining, expected in [("20", 15), ("0", 65)]:
+            with self.subTest(remaining=remaining):
+                denied = HTTPError("https://hidden", 403, "secret", {
+                    "Retry-After": "10", "X-RateLimit-Remaining": remaining,
+                    "X-RateLimit-Reset": "1060"}, None)
+                store, ticks, _ = self.quota_store()
+                with patch.object(transport.time, "time", return_value=1000), \
+                     patch.object(transport.request, "urlopen", side_effect=[denied, Reply()]):
+                    self.assertEqual(store._http("GET", ""), {})
+                self.assertEqual(ticks[0], expected)
+
+    def test_quota_delay_must_fit_deadline_and_have_bounded_numeric_header(self):
+        for header, deadline in [("60", 90), ("3601", 10000),
+                                 ("hidden-token", 10000), ("-1", 10000),
+                                 ("9999999999999999", 10000), (None, 10000)]:
+            with self.subTest(header=header, deadline=deadline):
+                store, _, sleeps = self.quota_store(deadline)
+                headers = {} if header is None else {"Retry-After": header}
+                denied = HTTPError("https://hidden", 429, "secret", headers, None)
+                with patch.object(transport.request, "urlopen", side_effect=denied) as call:
+                    with self.assertRaises(transport.PrivateHistoryError):
+                        store._http("GET", "contents/private")
+                self.assertEqual(call.call_count, 1)
+                self.assertEqual(sleeps, [])
+
+    def test_repeated_quota_blocks_stop_after_three_cooldowns(self):
+        store, ticks, _ = self.quota_store()
+        denied = HTTPError("https://hidden", 429, "secret", {"Retry-After": "1"}, None)
+        with patch.object(transport.request, "urlopen", side_effect=denied) as call:
+            with self.assertRaises(transport.PrivateHistoryError):
+                store._http("GET", "contents/private")
+        self.assertEqual(call.call_count, 4)
+        self.assertEqual(store.quota_pauses, 3)
+        self.assertEqual(ticks[0], 18)
+
     def test_completes_120_months_using_separate_bounded_segments(self):
         sequence = iter([response(118, 72), response(119, 72),
                          response(120, 9)])
