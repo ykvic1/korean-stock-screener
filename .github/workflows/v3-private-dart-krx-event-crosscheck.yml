@@ -100,13 +100,17 @@ jobs:
           # TWO completed filing months and KRX risk review required;
           # zero vendor requests, issuer output, PIT or adjusted-price claims.
           python v3_private_dart_krx_adjacent_month.py
-      - name: Save private title-hint shortlist for original-filing review (not corporate-action proof)
+      - name: Catch up to four private title-hint shortlist pairs (not corporate-action proof)
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           set -euo pipefail
-          # Completed same+adjacent months only, title hints do not verify
-          # actual corporate events, issuer continuity, PIT or adjustments.
-          # Sensitive identifiers appear only in the PRIVATE archived gzip.
-          python v3_private_dart_krx_filing_title_triage.py
+          # Each invocation validates its own complete source months, writes
+          # exactly one immutable private pair and CAS-advances the checkpoint.
+          # Existing waiting/complete gates remain idempotent. No vendor calls.
+          # Title hints cannot verify event causality, effective dates or PIT.
+          # All issuer details stay exclusively in the private source archive.
+          for segment in 1 2 3 4; do
+            python v3_private_dart_krx_filing_title_triage.py
+          done
