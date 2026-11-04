@@ -8,10 +8,12 @@ on:
       - tests/test_v3_dart_private_progress_report.py
       - .github/workflows/v3-dart-public-receipt-progress.yml
   # Twelve regular + twelve bounded direct fast-lane slots per day, plus
-  # one-off rescue. Follow all successful private collectors, with two daily
-  # fallbacks. This reporter makes ZERO OpenDART or KRX provider calls.
+  # one-off rescue. Refresh each hour even during a long (up to five-hour)
+  # collection job, so public counts do not look stalled. The independent
+  # reporter makes ZERO OpenDART or KRX provider calls; it verifies a stable
+  # private cursor and publishes anonymous aggregate counts only.
   schedule:
-    - cron: '7 1,13 * * *' # 10:07 / 22:07 KST
+    - cron: '7 * * * *' # hourly UTC; the long private writer may still be active
   workflow_run:
     workflows:
       - V3 Private Historical OpenDART Filing Receipts (Research Only)
