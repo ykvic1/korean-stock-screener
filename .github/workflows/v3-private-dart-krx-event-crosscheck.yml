@@ -37,6 +37,7 @@ permissions:
 # read twice and changes abort the candidate report.
 concurrency:
   group: v3-dart-private-historical-event-receipts
+  queue: max
   cancel-in-progress: false
 
 jobs:
