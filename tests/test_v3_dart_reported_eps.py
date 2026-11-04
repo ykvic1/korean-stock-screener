@@ -261,7 +261,8 @@ class EPSTests(unittest.TestCase):
         self.assertIn('reported_eps_checkpoint_publication_failed', run)
         self.assertIn('if ! python v3_dart_reported_eps.py --mode live --limit 100 --workers 3; then\n              source_interrupted=1\n              # A provider outage', run)
         self.assertIn('publish_eps_checkpoint\n              break\n            fi\n            publish_eps_checkpoint', run)
-        self.assertIn('if (( SECONDS >= 3600 )); then', run)
+        self.assertIn('if (( SECONDS >= 6300 )); then', run)
+        self.assertIn('timeout-minutes: 120', workflow)
 
     def test_exact_annual_comparatives_keep_decimal_eps_and_recompute_growth(self):
         r = parse(payload(), corp='00123456', base=BASE, on_day=DAY)
