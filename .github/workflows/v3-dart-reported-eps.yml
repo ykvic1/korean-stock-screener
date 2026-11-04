@@ -49,6 +49,7 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: write
+      actions: write
     concurrency:
       group: v3-dart-reported-basic-eps
       cancel-in-progress: false
@@ -81,6 +82,7 @@ jobs:
       - if: steps.source.outputs.ready == 'true'
         run: python -m pip install 'requests>=2.31,<3'
       - name: Finish pending EPS through at most 25 resumable 100-issuer segments
+        id: collect
         if: steps.source.outputs.ready == 'true'
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -151,8 +153,9 @@ jobs:
           PY
             )
             if [[ "$eps_done" == true ]]; then break; fi
-            # Stop early enough to avoid the hard Actions timeout. The next
-            # hourly run resumes from the last independently saved issuer.
+            # Stop early enough to avoid the hard Actions timeout. A safe
+            # workflow_dispatch resumes from the last saved issuer; hourly
+            # scheduling remains the fallback for provider interruptions.
             if (( SECONDS >= 6300 )); then
               echo "::notice::reported_eps_rolling_run_time_budget_reached"
               break
@@ -176,6 +179,21 @@ jobs:
             fi
             echo "::warning::reported_eps_source_interrupted_after_saved_checkpoint"
           fi
+          eps_pending=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('docs/v3-dart-reported-eps.json').read_text())
+          print(r['pending_issuers'])
+          PY
+          )
+          # Continue immediately only after real, error-free progress. A DART
+          # outage, exhausted quota, or empty batch falls back to the hourly
+          # schedule; never create a rapid failing dispatch loop.
+          if [[ "$source_interrupted" == 0 ]] && (( eps_final > eps_start && eps_pending > 0 )); then
+            echo "resume=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "resume=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Reconcile same-issuer receipt after concurrent source publication
         if: steps.source.outputs.ready == 'true'
         run: |
@@ -196,3 +214,13 @@ jobs:
               if [[ "$attempt" == 3 ]]; then exit 1; fi
             done
           fi
+      - name: Queue next unfinished EPS batch without waiting for hourly schedule
+        if: steps.source.outputs.ready == 'true' && steps.collect.outputs.resume == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # workflow_dispatch is an allowed GITHUB_TOKEN follow-on event.
+          # The existing single-writer concurrency group queues this run
+          # until the current EPS job has completely finished.
+          gh workflow run v3-dart-reported-eps.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live
