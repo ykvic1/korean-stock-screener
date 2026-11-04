@@ -55,6 +55,12 @@ def valid(record, *, code, name, market, day):
             or date.fromisoformat(record['observed_on']).isoformat() != record['observed_on']
             or record['observed_on'] > record['asof']):
             return False
+        dates = record['baseline_dates']
+        if (type(dates) is not dict or set(dates) != set(BASE)
+            or any(type(d) is not str or not '2000-01-01' <= d <= record['asof']
+                   or date.fromisoformat(d).isoformat() != d for d in dates.values())
+            or record['source_oldest_asof'] != min(dates.values())):
+            return False
         receipt = record['annual_receipt_id']
         if type(receipt) is not str or len(receipt) != 14 or not receipt.isdigit():
             return False
@@ -91,28 +97,41 @@ def build(catalog, book, eps_source, ledger, prior=None):
         saved = ledger['rows'].get(code) or {}
         aggregate = saved.get('factors', {}).get('valuation') or {}
         components = saved.get('components', {}).get('valuation') or {}
-        if aggregate.get('asof') != day or aggregate.get('available') != 20:
+        if (aggregate.get('available') != 20 or not isinstance(aggregate.get('asof'), str)
+            or not '2000-01-01' <= aggregate['asof'] <= day):
             continue
-        baseline = {}
+        baseline, dates = {}, {}
         for key in BASE:
             entry = components.get(key) or {}
             expected_source = 'dart_fcf_subfactor' if key == 'fcf_yield' else 'dart_fiscal_subfactor'
-            if (entry.get('asof') != day or entry.get('available') != 5
+            if (not isinstance(entry.get('asof'), str)
+                or not '2000-01-01' <= entry['asof'] <= day or entry.get('available') != 5
                 or entry.get('source') != expected_source):
                 break
+            try:
+                if date.fromisoformat(entry['asof']).isoformat() != entry['asof']:
+                    break
+            except ValueError:
+                break
             baseline[key] = entry.get('points')
+            dates[key] = entry['asof']
         if len(baseline) != 4:
             continue
         try:
             parts, points = evaluate(source['reported_basic_eps_2023_2025'], baseline)
-            if abs(sum(baseline.values()) - aggregate['points']) > .00001:
+            # A prior day's 20-point aggregate must not override newer
+            # individual source components. Only compare totals when every
+            # component is actually from the aggregate's observation day.
+            if (all(d == aggregate['asof'] for d in dates.values())
+                and abs(sum(baseline.values()) - aggregate['points']) > .00001):
                 continue
         except (ValueError, KeyError, TypeError):
             continue
         record = {k: source[k] for k in ('code', 'name', 'market', 'fiscal_year', 'fs_div',
                                          'annual_receipt_id', 'source_account_id', 'observed_on')}
         record.update(model=MODEL, asof=day, eps=source['reported_basic_eps_2023_2025'],
-                      baseline=baseline, parts=parts, points=points, weights=dict(WEIGHTS),
+                      baseline=baseline, baseline_dates=dates, source_oldest_asof=min(dates.values()),
+                      parts=parts, points=points, weights=dict(WEIGHTS),
                       investment_score_certified=False, retained=False)
         if valid(record, code=code, name=source['name'], market=source['market'], day=day):
             result[code] = record
