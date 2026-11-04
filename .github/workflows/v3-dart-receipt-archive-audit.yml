@@ -1,0 +1,157 @@
+name: V3 Complete Private DART Receipt Metadata Audit
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_receipt_archive_audit.py
+      - tests/test_v3_dart_receipt_archive_audit.py
+      - .github/workflows/v3-dart-receipt-archive-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_receipt_archive_audit.py
+      - .github/workflows/v3-dart-receipt-archive-audit.yml
+  workflow_run:
+    workflows:
+      - V3 Private OpenDART Historical Receipt Progress (Anonymous Public Aggregate)
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Verify complete snapshot, duplicates, privacy and read-only boundaries
+        run: |
+          python -m py_compile v3_dart_receipt_archive_audit.py
+          python -m unittest discover -s tests -p 'test_v3_dart_receipt_archive_audit.py' -v
+
+  private-snapshot-audit:
+    needs: offline-safety
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' &&
+           startsWith(github.event.head_commit.message, 'feat(v3.0b): audit completed private DART receipt metadata')) ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    concurrency:
+      group: v3-private-dart-receipt-archive-audit
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Pin a private completed source snapshot, skip unchanged automatic audits
+        id: snapshot
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          FORCE_REAUDIT: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'live' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          from v3_dart_historical_event_receipts import CHECKPOINT, PRIVATE_REPO, public_progress_complete
+          from v3_dart_receipt_archive_audit import audit_matches_checkpoint, completed_cursor
+          from v3_krx_private_github_backfill import PrivateGitStorage
+          def output(values):
+              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as handle:
+                  for key, value in values.items():
+                      handle.write(key + '=' + value + '\n')
+          try:
+              progress = json.loads(Path('docs/v3-dart-historical-receipt-progress.json').read_text())
+              if not public_progress_complete(progress):
+                  output({'ready': 'false', 'cached': 'false'})
+                  print('waiting_for_source_verified_120_months')
+                  raise SystemExit(0)
+              repo, token = os.environ.get('V3_PRIVATE_ARCHIVE_REPO'), os.environ.get('V3_PRIVATE_ARCHIVE_TOKEN', '')
+              if repo != PRIVATE_REPO or len(token) < 20:
+                  raise ValueError()
+              store = PrivateGitStorage(repo, token)
+              store.verify_private()
+              raw, _ = store.get_content(CHECKPOINT)
+              completed_cursor(raw)
+              published = Path('docs/v3-dart-receipt-archive-audit.json')
+              cached = (published.is_file() and audit_matches_checkpoint(json.loads(published.read_text()), raw)
+                        and os.environ.get('FORCE_REAUDIT') != 'true')
+              ref = store.transport('GET', 'git/ref/heads/main')
+              commit = ref['object']['sha']
+              if ref.get('ref') != 'refs/heads/main' or ref['object'].get('type') != 'commit' or not re.fullmatch(r'[a-f0-9]{40}', commit):
+                  raise ValueError()
+              output({'ready': 'true', 'cached': 'true' if cached else 'false', 'commit': commit})
+              print('private_complete_snapshot_gate_verified')
+          except Exception:
+              raise SystemExit('blocked: private_completed_receipt_snapshot_not_verified') from None
+          PY
+      - uses: actions/checkout@v4
+        if: ${{ steps.snapshot.outputs.ready == 'true' && steps.snapshot.outputs.cached == 'false' }}
+        with:
+          repository: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          token: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          ref: ${{ steps.snapshot.outputs.commit }}
+          path: private-dart-snapshot
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: /derived/dart-filing-receipts/
+          sparse-checkout-cone-mode: false
+      - name: Audit every selected receipt page offline, emit only anonymous counts
+        if: ${{ steps.snapshot.outputs.ready == 'true' && steps.snapshot.outputs.cached == 'false' }}
+        run: |
+          python v3_dart_receipt_archive_audit.py \
+            --private-root private-dart-snapshot/derived/dart-filing-receipts \
+            --output "$RUNNER_TEMP/dart-receipt-archive-audit.json"
+      - name: Remove ephemeral private snapshot before any public publication
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          path = Path('private-dart-snapshot')
+          if path.is_dir() and not path.is_symlink():
+              shutil.rmtree(path)
+          PY
+      - name: Publish only the anonymous structural audit
+        if: ${{ success() && steps.snapshot.outputs.ready == 'true' && steps.snapshot.outputs.cached == 'false' }}
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/dart-receipt-archive-audit.json" docs/v3-dart-receipt-archive-audit.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-receipt-archive-audit.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish anonymous complete selected DART receipt structure audit"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then break; fi
+              if [[ "$attempt" == 3 ]]; then exit 1; fi
+            done
+          fi
