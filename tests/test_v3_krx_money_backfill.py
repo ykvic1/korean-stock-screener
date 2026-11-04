@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from hashlib import sha256
 import json
 import unittest
+from unittest.mock import patch
 
 from v3_krx_money_5day import (
     derive, validate_money_blob, DerivedSourceError, store_money_five_days,
@@ -71,6 +72,13 @@ class FakePrivateStore:
         assert body.get("sha") == sha256(self.files[path[9:]]).hexdigest()
         self.files[path[9:]] = base64.b64decode(body["content"])
         return {}
+
+
+def private_409():
+    err = PrivateHistoryError("private_storage_api_failed")
+    err.safe_http_operation = "write_private_content"
+    err.safe_http_status = "http_409"
+    return err
 
 
 class ActualMoneyDerivationTests(unittest.TestCase):
@@ -152,6 +160,69 @@ class ActualMoneyDerivationTests(unittest.TestCase):
         self.assertNotIn("private_operation", unknown)
         self.assertNotIn("private_http_class", unknown)
         self.assertNotIn("secret", json.dumps(unknown))
+
+    def test_immutable_money_409_resumes_after_exact_absence_check(self):
+        days = sample_days()[:5]
+        store = FakePrivateStore()
+        client = FakeClient()
+        real_put = store.put_new
+        attempts = []
+
+        def one_conflict(path, raw, message):
+            attempts.append(path)
+            if len(attempts) == 1:
+                raise private_409()  # commit rejected amid competing branch update
+            return real_put(path, raw, message)
+
+        with patch.object(store, "put_new", side_effect=one_conflict):
+            with patch("v3_krx_money_5day.retry_clock.sleep"):
+                result = collect(storage=store, client=client, dates=days,
+                                 checksum="b"*64, windows=1)
+        self.assertEqual(result["completed_five_session_cohorts"], 1)
+        self.assertEqual(result["current_run_api_calls"], 10)
+        self.assertEqual(len(client.requests), 10)
+        self.assertEqual(len(attempts), 2)
+
+    def test_checkpoint_409_resumes_only_when_cas_sha_is_still_current(self):
+        days = sample_days()
+        store = FakePrivateStore()
+        client = FakeClient()
+        real_transport = store.transport
+        attempts = []
+
+        def one_conflict(method, path, body):
+            attempts.append(path)
+            if len(attempts) == 1:
+                raise private_409()  # prior checkpoint remains unchanged
+            return real_transport(method, path, body)
+
+        with patch.object(store, "transport", side_effect=one_conflict):
+            with patch("v3_krx_money_backfill.retry_clock.sleep"):
+                result = collect(storage=store, client=client, dates=days,
+                                 checksum="b"*64, windows=2)
+        self.assertEqual(result["completed_five_session_cohorts"], 2)
+        self.assertEqual(result["current_run_api_calls"], 20)
+        self.assertEqual(len(client.requests), 20)
+        self.assertEqual(len(attempts), 2)
+
+    def test_ambiguous_checkpoint_409_adopts_exact_committed_bytes(self):
+        days = sample_days()
+        store = FakePrivateStore()
+        client = FakeClient()
+        real_transport = store.transport
+        attempts = []
+
+        def committed_then_conflict(method, path, body):
+            attempts.append(path)
+            result = real_transport(method, path, body)
+            raise private_409()  # request result ambiguous, bytes durable
+
+        with patch.object(store, "transport", side_effect=committed_then_conflict):
+            result = collect(storage=store, client=client, dates=days,
+                             checksum="b"*64, windows=2)
+        self.assertEqual(result["completed_five_session_cohorts"], 2)
+        self.assertEqual(result["current_run_api_calls"], 20)
+        self.assertEqual(len(attempts), 1)
 
     def test_corrupt_or_raw_column_blob_is_rejected(self):
         days = sample_days()[:5]
