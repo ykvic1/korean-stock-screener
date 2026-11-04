@@ -231,14 +231,22 @@ def _private_new_blob_readback(storage,path,expected):
     """
     if type(expected) is not bytes or not expected:
         raise DerivedSourceError("private_derived_expected_blob_invalid")
-    for attempt in range(4):
+    # GitHub Contents can lag a successful commit by several seconds.
+    # Read-only retry is bounded; permission, quota and corrupt-blob errors
+    # fail fast to avoid amplifying a private GitHub API rate limit.
+    for attempt in range(6):
         try:
             received,_=storage.get_content(path)
-        except PrivateHistoryError:
-            received=None  # temporary GitHub HTTP trouble, no provider request
+        except PrivateHistoryError as issue:
+            if (issue.args != ("private_storage_api_failed",)
+                or getattr(issue,"safe_http_status",None) not in (
+                    "http_500","http_502","http_503","http_504",
+                    "transport_or_response")):
+                raise
+            received=None
         if received==expected:
             return received
-        if attempt<3:
+        if attempt<5:
             time.sleep(.7*(attempt+1))
     raise DerivedSourceError("private_derived_archive_readback_failed")
 
