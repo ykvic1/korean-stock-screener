@@ -17,6 +17,9 @@ class MoneyFastLaneWorkflowTests(unittest.TestCase):
         self.assertIn("options: ['1', '14']", source)
         self.assertIn("inputs.max_windows || '16'", source)
         self.assertIn("inputs.max_segments || '1'", source)
+        # The commit prefix includes a colon-space. YAML requires a quoted
+        # scalar around the entire GitHub expression or the workflow is invalid.
+        self.assertIn('V3_MONEY_BATCH_SEGMENTS: "${{', source)
         self.assertIn("cancel-in-progress: false", source)
         self.assertIn("timeout-minutes: 120", source)
 
