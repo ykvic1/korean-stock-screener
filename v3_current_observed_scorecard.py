@@ -27,7 +27,7 @@ import math
 from pathlib import Path
 
 from v3_volume_participation import build as volume_build
-from v3_actual_money_participation import OUTPUT as MONEY_OUTPUT
+from v3_actual_money_contract import OUTPUT as MONEY_OUTPUT
 from v3_current_price_replay import build as price_build
 from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points

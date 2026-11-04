@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_volume_participation.py
+      - v3_actual_money_contract.py
       - v3_ma240_cross_research.py
       - docs/data.json
       - docs/v22-market-catalog.json

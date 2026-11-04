@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - v3_actual_money_participation.py
+      - v3_actual_money_contract.py
       - tests/test_v3_actual_money_participation.py
       - .github/workflows/v3-actual-money-score.yml
   push:
     branches: [main]
     paths:
       - v3_actual_money_participation.py
+      - v3_actual_money_contract.py
       - .github/workflows/v3-actual-money-score.yml
   workflow_run:
     workflows:
