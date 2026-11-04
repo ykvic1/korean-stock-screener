@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     concurrency:
-      group: v3-dart-private-historical-event-receipts
+      group: v3-dart-private-post-120-closed-months
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4

@@ -1,12 +1,15 @@
 name: V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)
 
 on:
-  # Personal-use temporary catch-up: 24 ADDITIONAL bounded private batches
-  # per day, until exactly 120 months. Existing 12 regular runs remain.
-  # Shared concurrency lock, immutable private checkpoint and 72-call cap
-  # prevent concurrent writes and accidental unbounded request bursts.
+  pull_request:
+    paths:
+      - .github/workflows/v3-dart-historical-direct-fastlane.yml
+  # Existing hourly fast lane owns the catch-up lock while processing consecutive
+  # 72-call private checkpoint segments. Once 120 months are done, it is a no-op.
+  # One five-hour run may complete the remaining archive; standard short jobs
+  # remain a fail-safe if quota or transport forces another attempt.
   schedule:
-    - cron: '31 * * * *' # hourly at :31 UTC, up to 24 x 72 calls/day
+    - cron: '31 * * * *' # hourly UTC fallback; active long run supersedes short slots
   push:
     branches: [main]
     paths:
@@ -14,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Manual collection: dry_run does not request DART; live adds at most 72 official calls'
+        description: 'dry_run tests offline; live resumes up to 50 bounded segments/5 hours'
         type: choice
         options: [dry_run, live]
         default: dry_run
@@ -30,7 +33,7 @@ concurrency:
 jobs:
   additional-private-collection:
     runs-on: ubuntu-latest
-    timeout-minutes: 17
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,8 +47,9 @@ jobs:
       - name: Validate bounded receipt parser and completion guard offline
         run: |
           set -euo pipefail
-          python -m py_compile v3_dart_historical_event_receipts.py
+          python -m py_compile v3_dart_historical_event_receipts.py v3_dart_continuous_catchup.py
           python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_continuous_catchup.py' -v
       - name: Skip at exactly 120 source-verified completed months
         id: completion
         if: >-
@@ -55,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           python -c 'import json,os; from v3_dart_historical_event_receipts import public_progress_complete; d=json.load(open("docs/v3-dart-historical-receipt-progress.json",encoding="utf-8")); v="true" if public_progress_complete(d) else "false"; open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8").write("done="+v+"\n"); print("archive_120_months_gate_"+v)'
-      - name: Collect up to max 72 more private official DART receipt pages
+      - name: Finish private DART archive through chained 72-page checkpoints
         if: ${{ steps.completion.outputs.done == 'false' }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -63,8 +67,7 @@ jobs:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           set -euo pipefail
-          # No public receipts, API secrets or original filing bodies. Provider
-          # quota status 020 fails closed; cursor is CAS-protected and resumable.
-          # Once 120 months are done, Python collects zero provider calls even
-          # if the anonymous public completion checkpoint has not refreshed.
-          python v3_dart_historical_event_receipts.py
+          # Each segment is limited to 72 official calls with read-back CAS.
+          # A run stops after 50 segments or 5h, and restarts later if needed.
+          # Quota failures stop safely; secrets, source and issuer IDs stay private.
+          python v3_dart_continuous_catchup.py

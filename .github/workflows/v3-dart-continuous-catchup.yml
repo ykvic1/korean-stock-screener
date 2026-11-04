@@ -11,10 +11,6 @@ on:
     paths:
       - .github/workflows/v3-dart-continuous-catchup.yml
       - v3_dart_continuous_catchup.py
-  schedule:
-    # Four recovery opportunities daily until the private 120-month cursor
-    # completes. Separate from the 12 regular and 24 fast-lane slots.
-    - cron: '7 0,6,12,18 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -48,8 +44,7 @@ jobs:
   long-private-catchup:
     needs: offline-safety
     if: >-
-      ${{ github.event_name == 'schedule' ||
-          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
           (github.event_name == 'push' &&
            startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous DART catchup to 120 months')) }}
     runs-on: ubuntu-latest
