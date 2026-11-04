@@ -36,8 +36,15 @@ MONTHS = tuple(
 )
 RX_RECEIPT = re.compile(r"[0-9]{14}\Z")
 RX_CORP = re.compile(r"[0-9]{8}\Z")
-RX_STOCK = re.compile(r"[0-9]{6}\Z")
+# Receipt metadata must preserve six-character upper-case codes, including
+# alphabetic issue codes. This does NOT authenticate listing/tradability or
+# authorize a join to numeric-only operational stock universes.
+RX_STOCK = re.compile(r"[0-9A-Z]{6}\Z")
 RX_HASH = re.compile(r"[a-f0-9]{64}\Z")
+SAFE_PAGE_ISSUES = frozenset((
+    "envelope", "metadata", "pagination", "record_shape", "receipt_identity",
+    "company_identity", "stock_code_format", "filing_date", "filing_title",
+))
 
 
 class DARTEventReceiptError(ValueError):
@@ -72,6 +79,7 @@ def _path(month, category, page):
 
 
 def _decode(blob, month, category, page):
+    issue = "envelope"
     try:
         if type(blob) is not bytes or not 0 < len(blob) < MAX_FILE_BYTES:
             raise ValueError()
@@ -80,6 +88,7 @@ def _decode(blob, month, category, page):
         if len(data) > 1_000_000:
             raise ValueError()
         x = json.loads(data)
+        issue = "metadata"
         if (x.get("schema") != SCHEMA or x.get("month") != month
             or x.get("filing_category") != category or x.get("page") != page
             or x.get("provider") != "OpenDART_list_json"
@@ -92,6 +101,7 @@ def _decode(blob, month, category, page):
             raise ValueError()
         total, pages = x.get("total_count"), x.get("total_pages")
         rows = x.get("receipts")
+        issue = "pagination"
         if (type(total) is not int or type(pages) is not int
             or not 0 <= total <= 10_000_000 or not 0 <= pages <= 100_000
             or pages != (total + 99) // 100 or type(rows) is not list
@@ -103,6 +113,7 @@ def _decode(blob, month, category, page):
         start, end = _dates(month)
         seen = set()
         for r in rows:
+            issue = "record_shape"
             if not isinstance(r, dict):
                 raise ValueError()
             receipt = r.get("rcept_no")
@@ -110,13 +121,21 @@ def _decode(blob, month, category, page):
             stock = r.get("stock_code")
             filing_date = r.get("rcept_dt")
             title = r.get("report_nm")
+            issue = "receipt_identity"
             if (type(receipt) is not str or not RX_RECEIPT.fullmatch(receipt)
-                or receipt in seen
-                or type(corp) is not str or not RX_CORP.fullmatch(corp)
-                or stock is not None and
-                    (type(stock) is not str or not RX_STOCK.fullmatch(stock))
-                or type(filing_date) is not str or not start <= filing_date <= end
-                or type(title) is not str or not 0 < len(title) <= 500):
+                or receipt in seen):
+                raise ValueError()
+            issue = "company_identity"
+            if type(corp) is not str or not RX_CORP.fullmatch(corp):
+                raise ValueError()
+            issue = "stock_code_format"
+            if stock is not None and (type(stock) is not str or not RX_STOCK.fullmatch(stock)):
+                raise ValueError()
+            issue = "filing_title"
+            if type(title) is not str or not 0 < len(title) <= 500:
+                raise ValueError()
+            issue = "filing_date"
+            if type(filing_date) is not str or not start <= filing_date <= end:
                 raise ValueError()
             try:
                 if date.fromisoformat(filing_date[:4] + "-" +
@@ -128,7 +147,17 @@ def _decode(blob, month, category, page):
             seen.add(receipt)
         return x
     except Exception:
-        raise DARTEventReceiptError("invalid_private_dart_receipt_page") from None
+        failure = DARTEventReceiptError("invalid_private_dart_receipt_page")
+        failure.safe_page_issue = issue
+        raise failure from None
+
+
+def _page_failure(stage, error):
+    failure = DARTEventReceiptError(stage)
+    issue = getattr(error, "safe_page_issue", None)
+    if type(issue) is str and issue in SAFE_PAGE_ISSUES:
+        failure.safe_page_issue = issue
+    return failure
 
 
 def _decode_stage(blob, month, category, page, stage):
@@ -138,7 +167,7 @@ def _decode_stage(blob, month, category, page, stage):
     except DARTEventReceiptError as error:
         if error.args != ("invalid_private_dart_receipt_page",):
             raise
-        raise DARTEventReceiptError(stage) from None
+        raise _page_failure(stage, error) from None
 
 
 def parse_official_response(body, month, category, page):
@@ -163,7 +192,7 @@ def parse_official_response(body, month, category, page):
             receipts.append({
                 "rcept_no": row.get("rcept_no"),
                 "corp_code": row.get("corp_code"),
-                "stock_code": stock if stock else None,
+                "stock_code": None if stock == "" else stock,
                 "rcept_dt": row.get("rcept_dt"),
                 "report_nm": row.get("report_nm"),
             })
@@ -301,8 +330,8 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
             except DARTEventReceiptError as error:
                 if error.args != ("invalid_private_dart_receipt_page",):
                     raise
-                raise DARTEventReceiptError(
-                    "invalid_new_official_dart_page_payload") from None
+                raise _page_failure(
+                    "invalid_new_official_dart_page_payload", error) from None
             page = _decode_stage(
                 packed, month, category, pn,
                 "invalid_new_official_dart_page_payload")
@@ -431,6 +460,14 @@ def public_failure_code(error):
     if (type(error) is DARTEventReceiptError and len(error.args)==1
         and type(error.args[0]) is str
         and error.args[0] in SAFE_PUBLIC_DART_FAILURE_CODES):
+        issue = getattr(error, "safe_page_issue", None)
+        if (error.args[0] in {
+                "invalid_private_dart_receipt_page",
+                "invalid_new_official_dart_page_payload",
+                "invalid_private_dart_saved_page",
+                "invalid_private_dart_checkpoint_tail_page"}
+            and type(issue) is str and issue in SAFE_PAGE_ISSUES):
+            return error.args[0] + ":" + issue
         return error.args[0]
     return "private_dart_collection_validation_or_transport_failed"
 

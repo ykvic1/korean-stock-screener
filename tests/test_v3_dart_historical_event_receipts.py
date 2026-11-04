@@ -64,6 +64,44 @@ def response(page, total, rows):
 
 
 class HistoricalDARTReceiptTests(unittest.TestCase):
+    def test_uppercase_alphanumeric_receipt_code_is_preserved_without_score_promotion(self):
+        for code in ("005930", "0013V0", "00088K", None, ""):
+            with self.subTest(code=code):
+                private = FakePrivate()
+                sample = {**row("20161017000001"), "stock_code": code}
+                stats = run(private, lambda *_: response(1, 1, [sample]), max_calls=1)
+                saved = _decode(private.files[_path("2016-10", "B", 1)],
+                                "2016-10", "B", 1)
+                self.assertEqual(saved["receipts"][0]["stock_code"], None if code == "" else code)
+                self.assertEqual(stats["cumulative_receipts"], 1)
+                self.assertFalse(saved["score_authorized"])
+                self.assertFalse(saved["historical_pit_verified"])
+
+    def test_source_field_diagnostic_never_discloses_invalid_value_or_advances_cursor(self):
+        variants = [
+            ("stock_code", "hidden-token", "stock_code_format"),
+            ("stock_code", "0013v0", "stock_code_format"),
+            ("stock_code", "００１３Ｖ０", "stock_code_format"),
+            ("stock_code", 0, "stock_code_format"),
+            ("stock_code", False, "stock_code_format"),
+            ("rcept_no", "hidden-token", "receipt_identity"),
+            ("corp_code", "hidden-token", "company_identity"),
+            ("rcept_dt", "20161099", "filing_date"),
+            ("report_nm", "", "filing_title"),
+        ]
+        for field, value, issue in variants:
+            with self.subTest(field=field, value=value):
+                private = FakePrivate()
+                sample = {**row("20161017000001"), field: value}
+                with self.assertRaises(DARTEventReceiptError) as caught:
+                    run(private, lambda *_: response(1, 1, [sample]), max_calls=1)
+                self.assertEqual(public_failure_code(caught.exception),
+                    "invalid_new_official_dart_page_payload:" + issue)
+                self.assertEqual(private.files, {})
+        error = DARTEventReceiptError("invalid_new_official_dart_page_payload")
+        error.safe_page_issue = "stock_code_format;hidden-token"
+        self.assertEqual(public_failure_code(error), "invalid_new_official_dart_page_payload")
+
     def test_public_dart_failure_codes_are_fixed_and_never_leak_secrets(self):
         self.assertEqual(
             public_failure_code(DARTEventReceiptError("dart_source_transport_failed")),

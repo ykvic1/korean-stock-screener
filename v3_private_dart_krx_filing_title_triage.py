@@ -39,7 +39,7 @@ DIGEST = re.compile(r"[a-f0-9]{64}\Z")
 ISSUER = re.compile(r"(?:KOSPI|KOSDAQ):[0-9A-Z]{6}\Z")
 RECEIPT = re.compile(r"[0-9]{14}\Z")
 CORP = re.compile(r"[0-9]{8}\Z")
-STOCK = re.compile(r"[0-9]{6}\Z")
+STOCK = re.compile(r"[0-9A-Z]{6}\Z")
 ALLOWED_RISK_KINDS = (
     "large_four_interval_bucket_change", "large_one_interval_cohort_boundary",
     "four_interval_change", "cohort_boundary_change",

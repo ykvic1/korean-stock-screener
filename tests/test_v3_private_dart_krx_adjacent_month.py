@@ -67,6 +67,17 @@ def receipts(_storage, month):
 
 
 class AdjacentMonthTests(unittest.TestCase):
+    def test_alphanumeric_receipts_do_not_abort_numeric_candidate_research(self):
+        flags, *_ = history()
+        left = receipts(None, "2016-10")
+        right = receipts(None, "2016-11")
+        expected = adjacent._count_boundary_candidates(flags, left, right, "2016-10", "2016-11")
+        observed = adjacent._count_boundary_candidates(
+            flags, left + [{"stock_code": "0013V0", "rcept_dt": "20161031"}],
+            right, "2016-10", "2016-11")
+        self.assertEqual(observed, expected)
+        self.assertFalse(observed["ticker_history_identity_verified"])
+
     def test_adjacent_month_window_is_additive_private_and_resumable(self):
         private = Private()
         with (patch.object(adjacent, "_source_events", return_value=history()),

@@ -127,7 +127,7 @@ def _count_boundary_candidates(events, left_receipts, right_receipts, left, righ
                 raise AdjacentMonthError("invalid_private_adjacent_month_receipt")
             ticker = r["stock_code"]
             if ticker is not None:
-                if not STOCK.fullmatch(ticker):
+                if not KRX_STOCK.fullmatch(ticker):
                     raise AdjacentMonthError("invalid_private_adjacent_month_ticker")
                 mapping.setdefault(ticker, []).append(_day(r["rcept_dt"]))
         by_month[month] = mapping
