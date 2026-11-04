@@ -827,8 +827,8 @@ function pillarState(r){
   if(key==='valuation'&&r?.v3_personal_valuation){
    const q=r.v3_personal_valuation;
    if(validEPSValuation(q,r)){
-    candidate=q.points;available=20;asof=q.asof;
-    carried=q.retained||q.asof!==r.price_date;
+    candidate=q.points;available=20;asof=q.source_oldest_asof;
+    carried=q.retained||q.source_oldest_asof!==r.price_date;
    }
   }
   return {key,label,max:maximum,candidate,available,lastObserved,asof,carried,
@@ -860,6 +860,12 @@ function validEPSValuation(q,r){
     q.investment_score_certified!==false||!validDate(q.asof)||q.asof>r.price_date||
     !validDate(q.observed_on)||q.observed_on>q.asof||typeof q.retained!=='boolean'||
     typeof q.annual_receipt_id!=='string'||!/^\d{14}$/.test(q.annual_receipt_id))return false;
+ const baselineNames=['pbr','earnings_yield_pct','fcf_yield','sales_to_market_cap'];
+ if(!q.baseline_dates||typeof q.baseline_dates!=='object'||Array.isArray(q.baseline_dates)||
+    Object.keys(q.baseline_dates).sort().join(',')!==baselineNames.slice().sort().join(',')||
+    baselineNames.some(k=>!validDate(q.baseline_dates[k])||q.baseline_dates[k]>q.asof)||
+    q.source_oldest_asof!==baselineNames.reduce((d,k)=>
+      q.baseline_dates[k]<d?q.baseline_dates[k]:d,q.asof))return false;
  const id=q.annual_receipt_id,rd=id.slice(0,4)+'-'+id.slice(4,6)+'-'+id.slice(6,8);
  if(!validDate(rd)||rd<'2026-01-01'||rd>q.observed_on)return false;
  const result=evaluateEPSValuation(q.eps,q.baseline);
@@ -960,11 +966,16 @@ function subfactorHistoryMarkup(key,r){
 function scorePillarExplanation(p,r){
  const number=v=>finite(v)?v.toFixed(1).replace(/\.0$/,''):'미산출';
  const budget=p.max-p.available;
- const inherited=p.carried?
+ const mixedEPS=p.key==='valuation'&&validEPSValuation(r?.v3_personal_valuation,r);
+ const inherited=p.carried?(mixedEPS?
+  '<p class="u-last-factor"><b>'+esc(p.asof)+' 이전 원천 일부 활용</b> · '+
+  'EPS 가치점수는 '+esc(r.v3_personal_valuation.asof)+' 재계산됐지만, '+
+  '세부 근거의 관측일은 서로 다릅니다. 가장 오래된 기준일을 보수적으로 표시하며 '+
+  '각 날짜를 아래에서 확인하세요.</p>':
   '<p class="u-last-factor"><b>'+esc(p.asof)+' 관측 점수 유지</b> · '+
   '이 영역의 '+number(p.candidate)+'/'+p.available+
   '점은 표시 합계와 개인 연구 순위에 포함됩니다. '+
-  '오늘 새로 계산된 점수가 아니며, 특히 주가 민감 가치항목은 재산출 전입니다.</p>':'';
+  '오늘 새로 계산된 점수가 아니며, 특히 주가 민감 가치항목은 재산출 전입니다.</p>') : '';
  const intro='<p><b>잠정 획득 '+number(p.candidate)+'점</b> · 산출 가능 '+
   p.available+'/'+p.max+'점 · 미확보 '+budget+'점. '+
   (p.asof?'근거 기준일 '+esc(p.asof)+' · ':'')+
@@ -992,10 +1003,12 @@ function scorePillarExplanation(p,r){
   if(p.key==='valuation'&&validEPSValuation(eps,r)){
    const labels={pbr:'PBR',earnings_yield_pct:'PER·이익수익률 참고',eps_growth:'EPS 성장',
     eps_stability:'EPS 안정',fcf_yield:'FCF수익률',sales_to_market_cap:'매출/시총'};
-   detail='<p><b>가치20 개편 · 보고 EPS 반영</b> · '+esc(eps.asof)+' 기준'+
-    (eps.retained?' · 이전 유효값 유지':'')+'</p><div class="u-parts">'+
+   detail='<p><b>가치20 개편 · 보고 EPS 반영</b> · '+esc(eps.asof)+' 재계산'+
+    (eps.retained?' · 이전 계산값 유지':'')+
+    ' · 가장 오래된 세부 원천 '+esc(eps.source_oldest_asof)+' 기준</p><div class="u-parts">'+
     Object.entries(EPS_VALUATION_WEIGHTS).map(([key,max])=>'<div><span>'+labels[key]+
-     '</span><b>'+eps.parts[key].toFixed(2)+' / '+max+'</b></div>').join('')+'</div>'+
+     '</span><b>'+eps.parts[key].toFixed(2)+' / '+max+
+     (eps.baseline_dates[key]?' · '+esc(eps.baseline_dates[key]):'')+'</b></div>').join('')+'</div>'+
     '<p>2023~2025 기본 EPS '+eps.eps.map(v=>v.toLocaleString('ko-KR')).join(' → ')+
     ' · 동일 연간 공시·'+esc(eps.fs_div)+' 비교값. EPS 성장률은 3년 모두 흑자일 때만 사용하며, '+
     '손실·0원 경로는 양의 성장 가점이 없습니다. 미래 실적이나 적정주가를 확정하지 않습니다.</p>';
