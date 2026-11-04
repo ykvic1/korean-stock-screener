@@ -273,7 +273,10 @@ def main(argv=None):
         if not saved:
             raise
         print(json.dumps({'status': 'partial_eps_checkpoint_saved', 'reason': str(error)}))
-        return
+        # A saved subset is recoverable, but the upstream outage must still
+        # stop the outer 25-segment workflow loop. Reporting success here would
+        # retry the same failing source repeatedly within a single job.
+        raise EPSError('partial_eps_source_stopped_after_checkpoint') from None
     checkpoint(output)
     print(json.dumps({'status': 'reported_eps_saved', 'provider_calls': calls,
                       'attempted': output['attempted_issuers'],
