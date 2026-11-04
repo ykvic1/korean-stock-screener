@@ -84,7 +84,7 @@ jobs:
           # Independently validates the upstream archive BEFORE any DART month is
           # complete; diagnose broken/gapped risk chains early.
           python v3_private_dart_krx_event_crosscheck.py --risk-preflight
-      - name: Compare only fully saved private DART receipt months against verified KRX anomaly events
+      - name: Catch up to four fully saved private DART months against verified KRX anomalies
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
@@ -93,8 +93,13 @@ jobs:
           # ZERO new KRX/OpenDART provider API requests; exact receipt/source
           # and anomaly records never enter stdout, public git or artifacts.
           # Matching ticker/date is NOT a split/merger or PIT certification.
-          python v3_private_dart_krx_event_crosscheck.py
-      - name: Verify only opposite-month private DART filing date candidates
+          # Process at most four immutable monthly checkpoints in this job,
+          # each with its own source readback and CAS. Idempotent waiting
+          # statuses are safe; no provider calls, confirmed events, or scores.
+          for segment in 1 2 3 4; do
+            python v3_private_dart_krx_event_crosscheck.py
+          done
+      - name: Catch up to four completed adjacent-month private filing candidates
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
@@ -102,7 +107,11 @@ jobs:
           set -euo pipefail
           # TWO completed filing months and KRX risk review required;
           # zero vendor requests, issuer output, PIT or adjusted-price claims.
-          python v3_private_dart_krx_adjacent_month.py
+          # Independently verify each completed monthly pair. Rereading an
+          # incomplete or already-current private cursor cannot invent events.
+          for segment in 1 2 3 4; do
+            python v3_private_dart_krx_adjacent_month.py
+          done
       - name: Catch up to four private title-hint shortlist pairs (not corporate-action proof)
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
