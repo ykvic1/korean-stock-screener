@@ -397,7 +397,7 @@ for(const [field,value] of [
  ['filing_months_remaining',-1],
  ['current_collection_filing_month','1900-01'],
  ['private_filing_receipts_checkpointed',200000001],
- ['filing_months_checkpointed_ratio',1],
+ ['filing_months_checkpointed_ratio',actualDartProgress.filing_months_checkpointed_ratio===1?0:1],
  ['filing_category_scope',['B','C','E']]
 ]){
  const spoof=structuredClone(actualDartProgress);
@@ -413,6 +413,54 @@ assert.ok(entry.includes('완료 개월 수는 기업행위 효력일'));
 assert.ok(!fs.readFileSync(
  path.join(__dirname,'../docs/v3-dart-receipt-progress.js'),'utf8')
  .includes('document.write('));
+
+const actualReceiptAudit=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-dart-receipt-archive-audit.json'),'utf8'));
+assert.equal(dartHistoryProgress.validateAudit(actualReceiptAudit,validDartProgress),true);
+assert.match(dartHistoryProgress.statusText(validDartProgress,true),/수집·전수검증 완료/);
+assert.match(dartHistoryProgress.statusText(validDartProgress,false),/전수검증 미확인/);
+for(const [key,value] of [
+ ['pages_scanned',actualReceiptAudit.pages_scanned+1],
+ ['receipts_scanned',actualReceiptAudit.receipts_scanned+1],
+ ['unique_receipts',actualReceiptAudit.unique_receipts-1],
+ ['category_scope',['B','C','E']],['months_scanned',119],
+ ['source_checkpoint_sha256','invalid'],['archive_structure_sha256','invalid'],
+ ['selected_receipt_metadata_structure_verified',false],['provider_api_calls',1],
+ ['original_documents_authenticated',true],['provider_snapshot_authenticated',true],
+ ['corporate_actions_or_effective_dates_certified',true],
+ ['historical_adjusted_prices_certified',true],['historical_issuer_universe_pit_certified',true],
+ ['v3_trade_scores_promoted',true],['public_identifiers_or_original_bytes_published',true],
+ ['private_source_text','forbidden']
+])assert.equal(dartHistoryProgress.validateAudit({...actualReceiptAudit,[key]:value},validDartProgress),false,key);
+assert.equal(dartHistoryProgress.validateAudit(actualReceiptAudit,{...validDartProgress,completed:119}),false);
+assert.equal(dartHistoryProgress.validateAudit(null,validDartProgress),false);
+
+// Optional audit fetch failures retain the already verified collection counts.
+(async()=>{
+ const vm=require('node:vm');
+ const code=fs.readFileSync(path.join(__dirname,'../docs/v3-dart-receipt-progress.js'),'utf8');
+ for(const scenario of ['valid','missing','transport','mismatched']){
+  const elements=Object.fromEntries(['dartHistoryStatus','dartHistoryMonths',
+   'dartHistoryPages','dartHistoryReceipts','dartHistoryNotes'].map(id=>[id,{textContent:''}]));
+  const requests=[];
+  const window={document:{getElementById:id=>elements[id]||null},fetch:async url=>{
+   requests.push(url);
+   if(url==='v3-dart-historical-receipt-progress.json')
+    return {ok:true,json:async()=>structuredClone(actualDartProgress)};
+   if(scenario==='transport')throw Error('offline');
+   return {ok:scenario!=='missing',json:async()=>scenario==='mismatched'?
+    {...actualReceiptAudit,receipts_scanned:1}:structuredClone(actualReceiptAudit)};
+  }};
+  vm.runInNewContext(code,{window});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(requests.length,2);
+  assert.match(elements.dartHistoryMonths.textContent,/120 \/ 120개월/);
+  assert.ok(elements.dartHistoryReceipts.textContent.includes(actualDartProgress.private_filing_receipts_checkpointed.toLocaleString('ko-KR')));
+  assert.equal(elements.dartHistoryStatus.textContent.includes('수집·전수검증 완료'),scenario==='valid');
+  assert.match(elements.dartHistoryNotes.textContent,/별도 검증 대상/);
+ }
+ console.log('Receipt UI: verified counts survive missing, failed or mismatched audit; complete claim requires matching audit PASS');
+})().catch(error=>{console.error(error);process.exitCode=1;});
 
 
 // Industry earnings dashboard is a source-coverage tool, not a scored

@@ -6,7 +6,6 @@ Only fully closed Korean-calendar months are archived (not intramonth alerts).
 """
 from __future__ import annotations
 
-import base64
 from datetime import datetime
 from hashlib import sha256
 import json
@@ -18,6 +17,7 @@ from zoneinfo import ZoneInfo
 from v3_dart_historical_event_receipts import (
     CATEGORIES, DARTEventReceiptError, MAX_API_CALLS, MAX_FILE_BYTES,
     PRIVATE_REPO, _check_page_sequence, _dates, _decode,
+    _save_cursor, _save_immutable_page,
     parse_official_response, public_failure_code,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage
@@ -134,7 +134,7 @@ def collect_closed_months(storage, fetch, *, now=None, max_calls=MAX_API_CALLS):
             page = _decode(archived, month, category, pn)
             if tail_page is not None:
                 _check_page_sequence(tail_page, page)
-            storage.put_new(path, archived, "Save private DART post-120 receipt page")
+            _save_immutable_page(storage, path, archived)
             saved_pages += 1
         else:
             page = _decode(archived, month, category, pn)
@@ -156,18 +156,8 @@ def collect_closed_months(storage, fetch, *, now=None, max_calls=MAX_API_CALLS):
                        "last_page_sha256": sha256(archived).hexdigest()}
         encoded = json.dumps(next_cursor, sort_keys=True,
                              separators=(",", ":")).encode("utf-8")
-        if oldsha is None:
-            storage.put_new(CHECKPOINT, encoded,
-                            "Start private post-120 DART receipt cursor")
-        else:
-            storage.transport("PUT", "contents/" + CHECKPOINT, {
-                "message": "Advance private post-120 DART receipt cursor",
-                "content": base64.b64encode(encoded).decode("ascii"),
-                "sha": oldsha,
-            })
-        observed, oldsha = storage.get_content(CHECKPOINT)
-        if observed != encoded or type(oldsha) is not str:
-            raise DARTEventReceiptError("private_dart_cursor_readback_failed")
+        oldsha = _save_cursor(storage, encoded, raw, oldsha, checkpoint=CHECKPOINT)
+        raw = encoded
         cursor = next_cursor
         tail, tail_page = archived, page
         if reused_pages > max_calls:
