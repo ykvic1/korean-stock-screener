@@ -21,10 +21,22 @@ SCHEMA = 'v3-reported-annual-basic-eps-comparatives-v1'
 EPS_IDS = {'ifrs-full_BasicEarningsLossPerShare', 'ifrs_BasicEarningsLossPerShare'}
 MAX_PER_RUN = 100
 YEAR = 2025
+UNUSABLE_REASONS = {'invalid_reported_eps_amount', 'eps_statement_identity_mismatch',
+                   'eps_statement_receipt_or_currency_mismatch', 'conflicting_reported_basic_eps',
+                   'official_corp_mapping_missing'}
 
 
 class EPSError(ValueError):
     """Fixed source-independent diagnostics only."""
+
+
+def unusable(base, day, reason):
+    if reason not in UNUSABLE_REASONS:
+        raise EPSError('invalid_eps_quarantine_reason')
+    return {**base, 'observed_on': day, 'source_account_id': None,
+            'reported_basic_eps_2023_2025': [None]*3, 'metrics': metrics([None]*3),
+            'comparative_basis': 'statement_not_usable', 'status': 'statement_not_usable',
+            'source_reason': reason}
 
 
 def amount(raw):
@@ -144,14 +156,19 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN):
                 observed_day = date.fromisoformat(row.get('observed_on'))
             except (ValueError, TypeError):
                 raise EPSError('invalid_saved_eps_source') from None
-            if (observed_day > cutoff or row.get('comparative_basis') != 'one_annual_filing_same_scope'
-                or row.get('status') not in ('reported_basic_eps', 'standard_eps_not_observed')
+            quarantined = row.get('status') == 'statement_not_usable'
+            if (observed_day > cutoff or row.get('comparative_basis') != (
+                    'statement_not_usable' if quarantined else 'one_annual_filing_same_scope')
+                or row.get('status') not in ('reported_basic_eps', 'standard_eps_not_observed', 'statement_not_usable')
                 or row.get('source_account_id') not in EPS_IDS | {None}
                 or row.get('metrics') != metrics(row.get('reported_basic_eps_2023_2025'))
-                or (row['status'] == 'standard_eps_not_observed' and
+                or (row['status'] in ('standard_eps_not_observed', 'statement_not_usable') and
                     (row['source_account_id'] is not None or row['reported_basic_eps_2023_2025'] != [None]*3))
+                or (quarantined and row.get('source_reason') not in UNUSABLE_REASONS)
                 or (row['status'] == 'reported_basic_eps' and row['source_account_id'] not in EPS_IDS)):
                 raise EPSError('invalid_saved_eps_source')
+            if row.get('source_reason') == 'official_corp_mapping_missing' and observed_day < cutoff:
+                continue
             retained[code] = row
     groups = {m: sorted(code for code in expected if code not in retained and members[code][1] == m)
               for m in ('KOSPI', 'KOSDAQ')}
@@ -168,6 +185,7 @@ def snapshot(day, catalog, book, expected, records):
             'listed_total': catalog['listed_total'], 'eligible_annual_issuers': len(expected),
             'attempted_issuers': len(records), 'pending_issuers': len(expected)-len(records),
             'complete_three_year_eps_issuers': sum(r['metrics']['complete_three_years'] for r in records.values()),
+            'unusable_source_issuers': sum(r['status']=='statement_not_usable' for r in records.values()),
             'investment_score_certified': False, 'corporate_actions_independently_verified': False,
             'raw_provider_rows_published': False,
             'source_sha256': {'catalog': _stable_digest(catalog), 'annual_book': _stable_digest(book)},
@@ -192,6 +210,9 @@ def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN
                 raise EPSError('official_eps_issuer_identity_unavailable') from None
         for code in selected:
             if code not in mapping:
+                retained[code] = unusable(expected[code], day, 'official_corp_mapping_missing')
+                if on_progress:
+                    on_progress(snapshot(day, catalog, book, expected, retained))
                 continue
             try:
                 reply = session.get('https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json',
@@ -201,8 +222,10 @@ def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN
                 calls += 1
                 reply.raise_for_status()
                 parsed = parse(reply.json(), corp=mapping[code], base=expected[code], on_day=day)
-            except EPSError:
-                raise
+            except EPSError as error:
+                if str(error) not in UNUSABLE_REASONS:
+                    raise
+                parsed = unusable(expected[code], day, str(error))
             except Exception:
                 raise EPSError('official_eps_transport_unavailable') from None
             retained[code] = parsed
