@@ -19,6 +19,9 @@ on:
     workflows:
       - V3 Private Historical OpenDART Filing Receipts (Research Only)
       - V3 DART Continuous Catch-up to 120 Months (Private, Resumable)
+      # The hourly source-locked fast lane is the active bulk DART collector.
+      # Its successful completion must also restart private candidate review.
+      - V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)
       - V3 KRX Private Derived Corporate Action Risk Review (incremental)
     types: [completed]
   workflow_dispatch:
