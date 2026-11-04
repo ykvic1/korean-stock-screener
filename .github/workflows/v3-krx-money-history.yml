@@ -24,6 +24,12 @@ on:
         default: '16'
         type: choice
         options: ['1', '4', '8', '16']
+      max_segments:
+        description: 'Consecutive checkpointed batches (1 normal / 14 catch-up)'
+        required: true
+        default: '1'
+        type: choice
+        options: ['1', '14']
 
 permissions:
   contents: read
@@ -54,12 +60,45 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_krx_money_horizon_research.py' -v
           python -m unittest discover -s tests -p 'test_v3_turnover_multihorizon.py' -v
           python -m unittest discover -s tests -p 'test_v3_krx_money_public_progress.py' -v
-      - name: Resume maximum 16 money cohorts; no raw market bytes retained
+      - name: Resume bounded actual-money cohorts through private verified checkpoints
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_MONEY_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
+          # The one-time merged feature commit starts the unattended catch-up.
+          # All cron runs and other pushes keep the old 16-window call limit.
+          V3_MONEY_BATCH_SEGMENTS: ${{ (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): money history fast lane')) && '14' || (github.event_name == 'workflow_dispatch' && inputs.max_segments || '1') }}
         run: |
           set -euo pipefail
-          python v3_krx_money_backfill.py
+          if [[ "$V3_MONEY_BATCH_SEGMENTS" != '1' && "$V3_MONEY_BATCH_SEGMENTS" != '14' ]]; then
+            echo '::error::invalid_money_history_segment_limit'
+            exit 1
+          fi
+          # At most 14 x 16 x 10 = 2,240 official KRX market-day calls.
+          # Every five-session cohort has its own immutable private file,
+          # SHA readback and CAS checkpoint; partial work survives errors.
+          for ((segment=1; segment<=V3_MONEY_BATCH_SEGMENTS; segment++)); do
+            if ! result="$(python v3_krx_money_backfill.py)"; then
+              # The collector prints only sanitized allowlisted diagnostics.
+              echo "$result"
+              echo '::error::private_actual_money_segment_stopped_after_checkpoint'
+              exit 1
+            fi
+            echo "$result"
+            remaining="$(printf '%s' "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["historical_cohorts_remaining"])')"
+            if ! [[ "$remaining" =~ ^[0-9]+$ ]]; then
+              echo '::error::invalid_remaining_money_cohorts'
+              exit 1
+            fi
+            echo "Remaining KRX actual-money five-session cohorts: $remaining" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$remaining" == '0' ]]; then
+              echo '::notice::actual_money_historical_490_cohorts_finished'
+              break
+            fi
+            # Leave the job timeout enough margin for a private checkpoint.
+            if (( SECONDS >= 6000 )); then
+              echo '::notice::money_history_soft_time_budget_reached'
+              break
+            fi
+          done
