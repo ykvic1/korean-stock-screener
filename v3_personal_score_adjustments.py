@@ -103,7 +103,10 @@ def build(market, catalog, ledger, *, valuation_overrides=None):
         if valid_valuation(override, code=code, name=member['name'], market=member['market'], day=day):
             applied_overrides[code] = override
             factors['valuation'] = {'points': override['points'], 'available': 20,
-                                    'asof': override['asof'], 'source': EPS_MODEL}
+                                    # Display the earliest dated component, not
+                                    # today's recomputation as if every FCF/PBR
+                                    # input had been freshly observed.
+                                    'asof': override['source_oldest_asof'], 'source': EPS_MODEL}
             value_model = EPS_MODEL
         available = sum(x["available"] for x in factors.values())
         # Browser PILLARS order and left-to-right IEEE addition are part of

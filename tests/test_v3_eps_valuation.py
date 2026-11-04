@@ -40,6 +40,12 @@ class EPSValuationTests(unittest.TestCase):
             return  # The current-close publisher creates the next aligned ledger.
         overrides, _ = build(catalog, read('v3-dart-book-reference.json'),
                              json.loads(eps.read_text()), ledger)
+        # The normal next-day close retains annual FCF with its original date,
+        # while PBR and earnings-yield components refresh. The real published
+        # book must still exercise the new EPS model, not silently fall back
+        # to legacy for every issuer.
+        if json.loads(eps.read_text())['complete_three_year_eps_issuers'] > 0:
+            self.assertGreater(len(overrides), 0, 'real retained FCF must not disable every EPS valuation')
         rows, summary = personal_build(market, catalog, ledger, valuation_overrides=overrides)
         keys = ('code', 'name', 'market', 'price_date', 'price', 'stop_line', 'stop_pct',
                 'market_cap_eok', 'price60', 'risk_flags')
@@ -91,17 +97,70 @@ console.log(JSON.stringify({applied,rows:rows.filter(x=>w.researchComposite(x.r)
         with self.assertRaises(ValueError):
             evaluate([100, None, 120], baseline)
 
-    def test_missing_fcf_stale_component_or_unmatched_receipt_never_forces_new_model(self):
-        for kind in ('missing_fcf', 'stale', 'receipt'):
+    def test_missing_fcf_future_component_or_unmatched_receipt_never_forces_new_model(self):
+        for kind in ('missing_fcf', 'future', 'receipt'):
             catalog, book, source, ledger = fixture()
             if kind == 'missing_fcf':
                 del ledger['rows'][BASE['code']]['components']['valuation']['fcf_yield']
-            if kind == 'stale':
-                ledger['rows'][BASE['code']]['components']['valuation']['pbr']['asof'] = '2026-11-02'
+            if kind == 'future':
+                ledger['rows'][BASE['code']]['components']['valuation']['pbr']['asof'] = '2026-11-05'
             if kind == 'receipt':
                 book['records'][0]['annual']['receipt_id'] = '20260401000001'
             with self.subTest(kind=kind):
                 self.assertEqual(build(catalog, book, source, ledger)[0], {})
+
+    def test_valid_previous_day_fcf_and_refreshed_price_components_apply_with_source_dates(self):
+        catalog, book, source, ledger = fixture()
+        catalog['date'] = '2026-11-04'
+        ledger['market_asof'] = '2026-11-04'
+        row = ledger['rows'][BASE['code']]
+        for key in ('pbr', 'earnings_yield_pct', 'sales_to_market_cap'):
+            row['components']['valuation'][key]['asof'] = '2026-11-04'
+        row['components']['valuation']['pbr']['points'] = 2.5
+        # The recorded 20-point aggregate is yesterday's still-valid source,
+        # not the sum of newly refreshed individual components.
+        overrides, status = build(catalog, book, source, ledger)
+        self.assertEqual(status, 'receipt_matched_reported_eps')
+        value = overrides[BASE['code']]
+        self.assertEqual(value['asof'], '2026-11-04')
+        self.assertEqual(value['source_oldest_asof'], DAY)
+        self.assertEqual(value['baseline_dates']['fcf_yield'], DAY)
+        self.assertEqual(value['baseline_dates']['pbr'], '2026-11-04')
+        self.assertEqual(value['baseline']['pbr'], 2.5)
+        self.assertFalse(value['retained'])
+        self.assertTrue(valid(value, code=BASE['code'], name=BASE['name'], market='KOSPI',
+                              day='2026-11-04'))
+        bad = copy.deepcopy(value)
+        bad['baseline_dates']['fcf_yield'] = '2026-11-05'
+        self.assertFalse(valid(bad, code=BASE['code'], name=BASE['name'], market='KOSPI',
+                               day='2026-11-04'))
+        stock = {**catalog['rows'][0], 'price_date': '2026-11-04', 'price': 100,
+                 'stop_line': 94, 'stop_pct': -6, 'market_cap_eok': 5000,
+                 'v3_last_known_factors': row['factors']}
+        server_rows, _ = personal_build({'date': '2026-11-04', 'stocks': [stock]},
+                                        catalog, ledger, valuation_overrides=overrides)
+        self.assertEqual(server_rows[0]['factors']['valuation']['asof'], DAY)
+        self.assertGreaterEqual(server_rows[0]['retained_factor_count'], 1)
+        program = """
+const fs=require('node:fs'),w=require('./docs/workspace.js');
+const [stock,valuation]=JSON.parse(fs.readFileSync(0,'utf8'));
+const applied=w.applyPersonalValuation({date:stock.price_date,rows:[{r:stock}]},{
+ schema:'v3-personal-stability-adjusted-score-v3',asof:stock.price_date,
+ official_investment_scores_certified:false,missing_is_not_zero:true,
+ valuation_overrides:{[stock.code]:valuation}});
+const part=w.researchComposite(stock).pillars.find(p=>p.key==='valuation');
+console.log(JSON.stringify({applied,score:part.candidate,asof:part.asof,carried:part.carried,
+ detail:w.scorePillarExplanation(part,stock)}));
+"""
+        result = subprocess.run(['node', '-e', program],
+                                input=json.dumps([stock, value]), text=True,
+                                capture_output=True, cwd=ROOT, check=True)
+        js = json.loads(result.stdout)
+        self.assertEqual(js['applied'], 1)
+        self.assertEqual(js['score'], value['points'])
+        self.assertEqual(js['asof'], DAY)
+        self.assertTrue(js['carried'])
+        self.assertIn('EPS 가치점수는 2026-11-04 재계산', js['detail'])
 
     def test_last_valid_new_model_keeps_its_date_when_source_is_missing(self):
         catalog, book, source, ledger = fixture()
