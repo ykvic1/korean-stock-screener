@@ -68,7 +68,7 @@ jobs:
           V3_MONEY_BATCH_WINDOWS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_windows || '16' }}
           # The one-time merged feature commit starts the unattended catch-up.
           # All cron runs and other pushes keep the old 16-window call limit.
-          V3_MONEY_BATCH_SEGMENTS: ${{ (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): money history fast lane')) && '14' || (github.event_name == 'workflow_dispatch' && inputs.max_segments || '1') }}
+          V3_MONEY_BATCH_SEGMENTS: "${{ (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): money history fast lane')) && '14' || (github.event_name == 'workflow_dispatch' && inputs.max_segments || '1') }}"
         run: |
           set -euo pipefail
           if [[ "$V3_MONEY_BATCH_SEGMENTS" != '1' && "$V3_MONEY_BATCH_SEGMENTS" != '14' ]]; then
