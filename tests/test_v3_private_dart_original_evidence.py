@@ -78,6 +78,57 @@ class Private:
 
 
 class OriginalEvidenceTests(unittest.TestCase):
+    def catchup_source(self, count, empty):
+        store = Private()
+        store.blobs[original.TRIAGE_CHECKPOINT] = canonical({
+            **triage._empty(), "next_pair_index": count,
+            "last_file": triage._path(count - 1), "last_digest": "a" * 64})
+        for index in range(count):
+            data = json.loads(gzip.decompress(pair_source(empty=empty)))
+            data["first_month"], data["second_month"] = original.MONTHS[index:index+2]
+            for record in data["candidates"]:
+                suffix = 1 if record["filing_receipt_no"].endswith("000001") else 2
+                record["filing_receipt_no"] = "20161031" + f"{index * 10 + suffix:06d}"
+            store.blobs[triage._path(index)] = gzip.compress(canonical(data), mtime=0)
+        return store
+
+    def test_empty_pair_catchup_advances_bounded_queues_without_provider_calls(self):
+        store = self.catchup_source(8, True)
+        def forbidden(_):
+            raise AssertionError("empty shortlist must not fetch an original")
+        result = original.run_catchup(store, forbidden, max_pairs=3)
+        self.assertEqual(result["pairs_completed"], 3)
+        self.assertEqual(result["provider_calls"], 0)
+        self.assertEqual(json.loads(store.blobs[original.CHECKPOINT])["next_pair_index"], 3)
+        self.assertEqual(result["scores_promoted"], 0)
+
+    def test_nonempty_pair_catchup_preserves_total_six_receipt_provider_budget(self):
+        store = self.catchup_source(8, False)
+        calls = []
+        result = original.run_catchup(store, lambda no: calls.append(no) or zip_source())
+        self.assertEqual(result["processed_receipts"], 6)
+        self.assertEqual(result["provider_calls"], 6)
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(len(set(calls)), 6)
+        self.assertEqual(result["pairs_completed"], 3)
+
+    def test_catchup_stops_when_no_approved_queue_and_never_retries_source_failure(self):
+        store = Private(complete=False)
+        before = dict(store.blobs)
+        result = original.run_catchup(store, lambda _: self.fail("no approved queue"))
+        self.assertEqual(result["segments"], 1)
+        self.assertEqual(store.blobs, before)
+        calls = []
+        def failed(no):
+            calls.append(no)
+            raise original.OriginalEvidenceError("official_dart_document_transport_failed")
+        with self.assertRaises(original.OriginalEvidenceError):
+            original.run_catchup(self.catchup_source(8, False), failed)
+        self.assertEqual(len(calls), 1)
+        for settings in ({"max_pairs": 9}, {"max_receipts": 7}, {"max_pairs": True}):
+            with self.assertRaises(original.OriginalEvidenceError):
+                original.run_catchup(store, failed, **settings)
+
     def test_private_original_report_keeps_correction_dates_out_of_event_candidate_count(self):
         store = Private()
         out = BytesIO()

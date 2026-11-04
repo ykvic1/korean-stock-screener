@@ -38,6 +38,7 @@ BASE = "derived/dart-original-evidence"
 # Keep official ZIP retrieval bounded: up to six independently checked private
 # source documents per scheduled run (never a broad all-issuer download).
 MAX_API_CALLS = 6
+MAX_CATCHUP_PAIRS = 8
 MAX_ZIP_BYTES = 900_000   # below private GitHub transport's own 1MB cap
 MAX_EXPANDED_BYTES = 12_000_000
 MAX_FILES = 100
@@ -517,6 +518,44 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
     }
 
 
+def run_catchup(storage, fetch, *, max_pairs=MAX_CATCHUP_PAIRS, max_receipts=MAX_API_CALLS):
+    """Advance empty/completed queues without spending the six-receipt budget.
+
+    Each individual run still verifies the private source and CAS checkpoint.
+    One job processes at most eight pairs and SIX receipts total, including
+    reused receipts; provider calls cannot exceed the existing six-call cap.
+    No source-error retries, missing-document inference or score promotion.
+    """
+    if (type(max_pairs) is not int or not 1 <= max_pairs <= MAX_CATCHUP_PAIRS
+        or type(max_receipts) is not int or not 1 <= max_receipts <= MAX_API_CALLS):
+        raise OriginalEvidenceError("unsafe_original_filing_destination_or_call_cap")
+    totals = {key: 0 for key in (
+        "processed_receipts", "provider_calls", "new_original_zips_archived",
+        "already_archived_receipts_reused", "unverified_original_date_candidates",
+        "unverified_correction_original_date_candidates")}
+    segments = pairs = 0
+    for _ in range(max_pairs):
+        remaining = max_receipts - totals["processed_receipts"]
+        if remaining == 0:
+            break
+        report = run(storage, fetch, max_calls=remaining)
+        segments += 1
+        if report["status"] == "waiting_for_private_title_shortlist":
+            break
+        if (report["status"] != "private_original_filing_retrieval_pilot_completed"
+            or not 0 <= report["provider_calls"] <= report["processed_receipts"] <= remaining):
+            raise OriginalEvidenceError("private_original_catchup_accounting_invalid")
+        for key in totals:
+            totals[key] += report[key]
+        if report["remaining_receipts_in_pair"]:
+            break
+        pairs += 1
+    return {"status": "bounded_private_original_evidence_catchup", **totals,
+            "segments": segments, "pairs_completed": pairs,
+            "corporate_actions_verified": 0, "scores_promoted": 0,
+            "public_issuer_records_written": 0, "adjusted_prices_certified": False}
+
+
 def main():
     if (os.getenv("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO
         or len(os.getenv("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20
@@ -525,7 +564,7 @@ def main():
     try:
         store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         key = os.environ["DART_API_KEY"]
-        result = run(store, lambda no: official_fetch(key, no))
+        result = run_catchup(store, lambda no: official_fetch(key, no))
     except OriginalEvidenceError as exc:
         # Only this static allowlist survives a ZIP validation failure.
         # No receipt, original member names, URL, source bytes or credentials.
