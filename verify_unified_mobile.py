@@ -467,6 +467,10 @@ with sync_playwright() as p:
         # The nested nine-factor audit must be selectable independently of its parent.
         if observed.get("financial_valuation_component_observed_issuers"):
             subfactors = page.locator("#fiveAreaCoverage details.u-subfactor-breakdown")
+            # The independent progress banner may appear before the larger
+            # workspace JSON finishes rendering. Wait for the actual nested
+            # audit instead of interpreting that loading race as missing data.
+            subfactors.first.wait_for(state="attached", timeout=20000)
             assert subfactors.count() == 1
             subfactors.locator("summary").click()
             assert subfactors.locator("tbody tr").count() == 9
