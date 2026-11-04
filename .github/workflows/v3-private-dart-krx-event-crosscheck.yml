@@ -84,7 +84,7 @@ jobs:
           # Independently validates the upstream archive BEFORE any DART month is
           # complete; diagnose broken/gapped risk chains early.
           python v3_private_dart_krx_event_crosscheck.py --risk-preflight
-      - name: Catch up to four fully saved private DART months against verified KRX anomalies
+      - name: Catch up to four fully saved private DART receipt months against verified KRX anomalies
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
