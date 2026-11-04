@@ -52,7 +52,7 @@ def observed(stock, *, asof, market, money=None):
     rising=stock.get("obv_rising")
     divergence=stock.get("divergence")
     price60=stock.get("price60")
-    if (not _finite(ratio) or not 0<=ratio<=100
+    if ((money is None and (not _finite(ratio) or not 0<=ratio<=100))
         or type(rising) is not bool or type(divergence) is not bool
         or not _finite(price60) or not -100<=price60<=10000):
         return None
@@ -62,18 +62,17 @@ def observed(stock, *, asof, market, money=None):
         return None
     # Sustained, not one-session, participation. Excessive 20-day surge
     # earns LESS: panic volume/exhaustion is not evidence of quiet accumulation.
-    vol_score=(6 if 1.25<=ratio<=3 else
+    vol_score=(money["points"] if money is not None else
+               6 if 1.25<=ratio<=3 else
                4 if 1.05<=ratio<1.25 else
                2 if 0.85<=ratio<1.05 else
                1 if ratio>3 else 0)
-    if money is not None:
-        vol_score=money["points"]
     cross=stock.get("v3_ma240_cross_research")
     cross_usable=valid_ma_cross(cross,asof) if cross is not None else False
     cross_score=(6 if cross["qualified"] else 0) if cross_usable else None
     lag_score=4 if divergence else 0
     risks=[]
-    if ratio>3 and money is None:
+    if money is None and ratio>3:
         risks.append("excess_20day_volume_not_accumulation")
     if price60<-12:
         risks.append("price_downtrend_requires_support_confirmation")
