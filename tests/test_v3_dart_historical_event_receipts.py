@@ -282,6 +282,49 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertEqual(fetches, [])
         self.assertNotIn(_path("2016-10", "B", 2), private.files)
 
+    def test_invalid_page_failure_is_localized_without_exposing_private_rows(self):
+        stages = (
+            "invalid_new_official_dart_page_payload",
+            "invalid_private_dart_saved_page",
+            "invalid_private_dart_checkpoint_tail_page",
+        )
+        for stage in stages:
+            self.assertEqual(public_failure_code(DARTEventReceiptError(stage)), stage)
+
+        # The fresh official response is malformed before any private write.
+        private = FakePrivate()
+        bad_row = {**row("1" * 14), "stock_code": "NOT_A_STOCK"}
+        with self.assertRaisesRegex(
+                DARTEventReceiptError, stages[0]):
+            run(private, lambda *_: response(1, 1, [bad_row]), max_calls=1)
+        self.assertNotIn(CHECKPOINT, private.files)
+        self.assertNotIn(_path("2016-10", "B", 1), private.files)
+
+        # A pre-existing immutable orphan must not be overwritten or skipped.
+        private = FakePrivate()
+        path = _path("2016-10", "B", 1)
+        private.files[path] = b"not a gzip page"
+        calls = []
+        with self.assertRaisesRegex(DARTEventReceiptError, stages[1]):
+            run(private, lambda *args: calls.append(args), max_calls=1)
+        self.assertEqual(calls, [])
+        self.assertEqual(private.files[path], b"not a gzip page")
+
+        # Even a matching checkpoint digest cannot certify a malformed tail.
+        private = FakePrivate()
+        first = [row(f"{i:014d}") for i in range(1, 101)]
+        run(private, lambda *_: response(1, 201, first), max_calls=1)
+        cursor = json.loads(private.files[CHECKPOINT])
+        path = cursor["last_page_file"]
+        private.files[path] = b"malformed checkpoint tail"
+        cursor["last_page_sha256"] = sha256(private.files[path]).hexdigest()
+        private.files[CHECKPOINT] = json.dumps(cursor).encode()
+        calls = []
+        with self.assertRaisesRegex(DARTEventReceiptError, stages[2]):
+            run(private, lambda *args: calls.append(args), max_calls=1)
+        self.assertEqual(calls, [])
+        self.assertEqual(private.files[path], b"malformed checkpoint tail")
+
     def test_private_tail_and_wrong_destination_never_fall_back_public(self):
         private = FakePrivate()
         run(private, lambda *_: {"status": "013"}, max_calls=1)
