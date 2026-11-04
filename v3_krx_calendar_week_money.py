@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 from official_probe.clients import KRXClient, KRXProbeError
 from v3_krx_history_collection import _snapshot_market
 from v3_krx_money_5day import _row_values
+from v3_krx_derived_5day import _private_new_blob_readback
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_private_github_backfill import PrivateHistoryError
@@ -232,9 +233,9 @@ def collect(store, client, *, asof, max_weeks=HISTORY_WEEKS, day_loader=week_day
                     store.put_new(path(end),blob,'Save private calendar-week actual-money aggregate')
                 elif observed!=blob:
                     raise WeeklyMoneyError('conflicting_private_money_week') from None
-            observed,_=store.get_content(path(end))
-            if observed!=blob:
-                raise WeeklyMoneyError('private_money_week_readback_failed')
+            # Contents GET can briefly lag a successful immutable PUT. Reuse
+            # the bounded READ-only verifier; do not fetch KRX or write again.
+            _private_new_blob_readback(store,path(end),blob)
         validate(blob,end,days)
         updated={**state,field:state[field]+1,'tail_week_end':end,
                  'tail_sha256':sha256(blob).hexdigest(),
@@ -270,7 +271,8 @@ if __name__=='__main__':
     try:
         main()
     except Exception as error:
-        result={'status':'blocked','category':str(error) if isinstance(error,WeeklyMoneyError)
+        result={'status':'blocked','category':str(error) if (isinstance(error,WeeklyMoneyError)
+                or str(error)=='private_derived_archive_readback_failed')
                 else 'private_calendar_week_money_not_verified','source_payload_logged':False}
         reason=getattr(error,'safe_krx_reason',None)
         if reason in KRXProbeError.REASONS:

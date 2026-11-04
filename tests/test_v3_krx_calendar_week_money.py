@@ -120,6 +120,49 @@ class CalendarMoneyTests(unittest.TestCase):
         self.assertEqual(result['source_requests'],0)
         self.assertEqual(len(client.calls),before)
 
+    def test_successful_week_write_waits_for_read_visibility_without_more_provider_calls(self):
+        class Store(FakePrivateStore):
+            writes=0
+            lag=0
+            def put_new(self,name,raw,message):
+                super().put_new(name,raw,message)
+                if name!=CHECKPOINT:self.writes+=1;self.lag=2
+            def get_content(self,name):
+                if name.startswith('derived/money-calendar-weeks/') and self.lag:
+                    self.lag-=1
+                    return None,None
+                return super().get_content(name)
+        store=Store();client=Client()
+        with patch('v3_krx_derived_5day.time.sleep'):
+            result=collect(store,client,asof='2026-11-04',max_weeks=1,day_loader=days)
+        self.assertEqual(result['history_completed'],1)
+        self.assertEqual(store.writes,1)
+        self.assertEqual(len(client.calls),10)
+        self.assertEqual(json.loads(store.files[CHECKPOINT])['history_completed'],1)
+
+    def test_exhausted_readback_keeps_orphan_and_never_advances_cursor(self):
+        class Store(FakePrivateStore):
+            hidden=False
+            writes=0
+            def put_new(self,name,raw,message):
+                super().put_new(name,raw,message)
+                if name!=CHECKPOINT:self.hidden=True;self.writes+=1
+            def get_content(self,name):
+                if name.startswith('derived/money-calendar-weeks/') and self.hidden:
+                    return None,None
+                return super().get_content(name)
+        store=Store();client=Client()
+        with patch('v3_krx_derived_5day.time.sleep'):
+            with self.assertRaises(ValueError):
+                collect(store,client,asof='2026-11-04',max_weeks=1,day_loader=days)
+        self.assertNotIn(CHECKPOINT,store.files)
+        self.assertEqual(store.writes,1)
+        store.hidden=False
+        result=collect(store,client,asof='2026-11-04',max_weeks=1,day_loader=days)
+        self.assertEqual(result['source_requests'],0)
+        self.assertEqual(len(client.calls),10)
+        self.assertEqual(store.writes,1)
+
     def test_immutable_and_checkpoint_409_reconcile_exact_content(self):
         for target in ('immutable','cursor'):
             class Store(FakePrivateStore):
