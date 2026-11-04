@@ -273,6 +273,57 @@ def _safe_source_failure_diagnostics(err):
     return report
 
 
+
+_PRIVATE_FAILURE_CODES = frozenset({
+    "private_storage_api_failed",
+    "private_api_response_too_large",
+    "private_repo_size_not_reported",
+    "private_repository_budget_exceeded",
+    "private_repository_or_token_not_configured",
+    "target_repo_not_confirmed_private",
+    "untrusted_private_blob",
+    "invalid_private_blob_base64",
+    "invalid_private_blob_length",
+    "invalid_private_archive_commit",
+})
+_PRIVATE_HTTP_OPERATIONS = frozenset((
+    "read_repository_metadata", "read_private_content",
+    "write_private_content", "other_private_operation",
+))
+_PRIVATE_HTTP_STATUSES = frozenset((
+    "http_401", "http_403", "http_403_rate_limited", "http_404",
+    "http_409", "http_422", "http_429", "http_500",
+    "http_502", "http_503", "http_504", "http_other",
+    "transport_or_response",
+))
+
+
+def _safe_private_failure_diagnostics(err):
+    """Allowlisted failure codes only: no paths, URLs, tokens or responses.
+
+    Preserve the private-storage integrity stop; report the precise *class*
+    of block so permissions, rate limits and size ceilings are not confused.
+    """
+    reason = str(err)
+    report = {
+        "status": "blocked",
+        "category": "private_archive_rejected",
+        "private_failure_code": (
+            reason if reason in _PRIVATE_FAILURE_CODES
+            else "other_private_archive_failure"
+        ),
+        "source_payload_logged": False,
+    }
+    if reason == "private_storage_api_failed":
+        operation = getattr(err, "safe_http_operation", None)
+        status = getattr(err, "safe_http_status", None)
+        if type(operation) is str and operation in _PRIVATE_HTTP_OPERATIONS:
+            report["private_operation"] = operation
+        if type(status) is str and status in _PRIVATE_HTTP_STATUSES:
+            report["private_http_class"] = status
+    return report
+
+
 def main():
     # No extra approval variable for the user's explicit derived-only project
     # request; old raw KRX workflow retains its separate written-license gate.
@@ -302,6 +353,9 @@ def main():
                 "source_payload_logged":False}
         report.update(_safe_source_failure_diagnostics(err))
         print(json.dumps(report,sort_keys=True))
+        return 1
+    except PrivateHistoryError as err:
+        print(json.dumps(_safe_private_failure_diagnostics(err), sort_keys=True))
         return 1
     except Exception as exc:
         # Class name and stage only; never print provider responses, paths, keys,
