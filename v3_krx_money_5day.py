@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 import math
 import re
+import time as retry_clock
 
 from official_probe.validation import _numeric
 from v3_krx_history_collection import _snapshot_market
@@ -19,7 +20,7 @@ from v3_krx_daily_anomaly_triage import classify_row
 from v3_krx_derived_5day import (
     _check_days, _private_new_blob_readback, DerivedSourceError,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 SCHEMA = "v3-krx-private-actual-money-five-session-research-0.1"
 MAX_DATA_BYTES = 900_000
@@ -203,7 +204,30 @@ def store_money_five_days(storage: PrivateGitStorage, client, days):
                 "derived_file_bytes": len(existing),
                 "complete_issuer_pairs": data["complete_five_session_issuer_market_pairs"]}
     data, blob, _ = derive(client, days)
-    storage.put_new(path, blob, "Archive derived KRX actual-value factors " + days[-1])
+    commit_message = "Archive derived KRX actual-value factors " + days[-1]
+    try:
+        storage.put_new(path, blob, commit_message)
+    except PrivateHistoryError as err:
+        if not (
+            type(err) is PrivateHistoryError
+            and str(err) == "private_storage_api_failed"
+            and getattr(err, "safe_http_operation", None) == "write_private_content"
+            and getattr(err, "safe_http_status", None) == "http_409"
+        ):
+            raise
+        # Source bytes were already retrieved. Never overwrite another
+        # writer's immutable cohort. Read it back twice before one attempt
+        # to create the SAME content without SHA (cannot replace a file).
+        for attempt in range(2):
+            observed, _ = storage.get_content(path)
+            if observed is not None:
+                if observed != blob:
+                    raise DerivedSourceError("conflicting_private_money_immutable_window")
+                break
+            if attempt == 0:
+                retry_clock.sleep(1)
+        if observed is None:
+            storage.put_new(path, blob, commit_message)
     verified = _private_new_blob_readback(storage, path, blob)
     validate_money_blob(verified, days[0], days[-1])
     return {"status": "persisted_and_verified_money", "source_api_calls": 10,

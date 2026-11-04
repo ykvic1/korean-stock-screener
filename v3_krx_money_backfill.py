@@ -141,16 +141,45 @@ def _verify_last(storage,checkpoint,dates):
     validate_money_blob(blob,window[0],window[-1])
 
 
+def _private_write_conflict(err):
+    return (
+        type(err) is PrivateHistoryError
+        and str(err) == "private_storage_api_failed"
+        and getattr(err, "safe_http_operation", None) == "write_private_content"
+        and getattr(err, "safe_http_status", None) == "http_409"
+    )
+
+
 def _save_checkpoint(storage,new,sha):
     payload=_canonical(new)
     if len(payload)>1200:
         raise MoneyBackfillError("oversized_derived_checkpoint")
-    if sha is None:
-        storage.put_new(CHECKPOINT,payload,"Create KRX actual-money research checkpoint")
-    else:
-        storage.transport("PUT","contents/"+CHECKPOINT,{
-            "message":"Advance private KRX actual-money research checkpoint",
-            "content":base64.b64encode(payload).decode("ascii"),"sha":sha})
+    def write():
+        if sha is None:
+            storage.put_new(
+                CHECKPOINT,payload,"Create KRX actual-money research checkpoint")
+        else:
+            storage.transport("PUT","contents/"+CHECKPOINT,{
+                "message":"Advance private KRX actual-money research checkpoint",
+                "content":base64.b64encode(payload).decode("ascii"),"sha":sha})
+    try:
+        write()
+    except PrivateHistoryError as err:
+        if not _private_write_conflict(err):
+            raise
+        # An HTTP 409 may mean a competing Git ref update, or an ambiguous
+        # already-committed write. Verify twice before ONE bounded reattempt.
+        # Never overwrite a changed checkpoint or silently advance a cursor.
+        for attempt in range(2):
+            observed, observed_sha = storage.get_content(CHECKPOINT)
+            if observed == payload and type(observed_sha) is str and observed_sha:
+                return observed_sha
+            if attempt == 0:
+                retry_clock.sleep(1)
+        if not ((sha is None and observed is None)
+                or (sha is not None and observed_sha == sha)):
+            raise MoneyBackfillError("private_money_checkpoint_cas_conflict")
+        write()
     # GitHub Contents PUT can succeed before the new immutable content is
     # visible on GET. Retry ONLY reading; never repeat checkpoint PUT or KRX
     # requests. Exact bytes matter: a stale/tampered read is never success.
