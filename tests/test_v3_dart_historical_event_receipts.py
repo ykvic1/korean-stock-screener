@@ -13,6 +13,8 @@ from v3_dart_historical_event_receipts import (
     CATEGORIES, CHECKPOINT, DARTEventReceiptError, MONTHS, _decode, _path,
     parse_official_response, run, PRIVATE_REPO, MAX_API_CALLS,
     public_progress_complete, public_failure_code, main,
+    _save_cursor,
+    candidate_review_segments,
 )
 
 
@@ -64,6 +66,113 @@ def response(page, total, rows):
 
 
 class HistoricalDARTReceiptTests(unittest.TestCase):
+    @staticmethod
+    def storage_error(status="http_409"):
+        error = PrivateHistoryError("private_storage_api_failed")
+        error.safe_http_operation = "write_private_content"
+        error.safe_http_status = status
+        return error
+
+    def test_cursor_conflict_before_or_after_commit_never_refetches_provider(self):
+        for committed in (False, True):
+            with self.subTest(committed=committed):
+                private = FakePrivate()
+                run(private, lambda *_: {"status": "013"}, max_calls=1)
+                original = private.transport
+                writes = []
+                def transport(method, path, payload):
+                    writes.append(payload["sha"])
+                    if len(writes) == 1:
+                        if committed:
+                            original(method, path, payload)
+                        raise self.storage_error()
+                    return original(method, path, payload)
+                private.transport = transport
+                calls = []
+                with patch("v3_dart_historical_event_receipts.time.sleep"):
+                    stats = run(private, lambda *args: calls.append(args) or {"status": "013"}, max_calls=1)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(stats["cumulative_pages"], 2)
+                self.assertEqual(len(writes), 1 if committed else 2)
+                self.assertEqual(len(set(writes)), 1)
+
+    def test_immutable_page_conflict_before_or_after_commit_uses_same_source_once(self):
+        for committed in (False, True):
+            with self.subTest(committed=committed):
+                private = FakePrivate()
+                original = private.put_new
+                writes = []
+                def put(path, raw, message):
+                    if path != CHECKPOINT:
+                        writes.append(raw)
+                        if len(writes) == 1:
+                            if committed:
+                                original(path, raw, message)
+                            raise self.storage_error()
+                    return original(path, raw, message)
+                private.put_new = put
+                calls = []
+                with patch("v3_dart_historical_event_receipts.time.sleep"):
+                    stats = run(private, lambda *args: calls.append(args) or {"status": "013"}, max_calls=1)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(stats["cumulative_pages"], 1)
+                self.assertEqual(len(set(writes)), 1)
+                self.assertEqual(len(writes), 1 if committed else 2)
+
+    def test_conflicting_cursor_or_immutable_page_is_never_overwritten(self):
+        for cursor in (True, False):
+            with self.subTest(cursor=cursor):
+                private = FakePrivate()
+                original = private.put_new
+                conflicting = b"different-private-writer"
+                target = CHECKPOINT if cursor else _path("2016-10", "B", 1)
+                def put(path, raw, message):
+                    if path == target:
+                        private.files[path] = conflicting
+                        raise self.storage_error()
+                    return original(path, raw, message)
+                private.put_new = put
+                expected = "private_dart_cursor_concurrent_change" if cursor else "private_dart_immutable_page_conflict"
+                with patch("v3_dart_historical_event_receipts.time.sleep"), self.assertRaisesRegex(DARTEventReceiptError, expected):
+                    run(private, lambda *_: {"status": "013"}, max_calls=1)
+                self.assertEqual(private.files[target], conflicting)
+
+    def test_successful_cursor_write_tolerates_bounded_stale_readback(self):
+        private = FakePrivate()
+        original_get, original_put = private.get_content, private.put_new
+        stale = [0]
+        def put(path, raw, message):
+            original_put(path, raw, message)
+            if path == CHECKPOINT:
+                stale[0] = 2
+        def get(path):
+            if path == CHECKPOINT and stale[0]:
+                stale[0] -= 1
+                return None, None
+            return original_get(path)
+        private.put_new, private.get_content = put, get
+        with patch("v3_dart_historical_event_receipts.time.sleep") as sleep:
+            stats = run(private, lambda *_: {"status": "013"}, max_calls=1)
+        self.assertEqual(stats["new_pages"], 1)
+        self.assertEqual(private.puts, 2)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_cursor_quota_permission_and_ambiguous_transport_errors_do_not_retry_put(self):
+        for status in ("http_403_rate_limited", "http_429", "http_403", "transport_or_response"):
+            private = FakePrivate()
+            with patch.object(private, "put_new", side_effect=self.storage_error(status)) as put:
+                with self.assertRaises(PrivateHistoryError):
+                    _save_cursor(private, b"new", None, None)
+                self.assertEqual(put.call_count, 1)
+
+    def test_repeated_cursor_conflict_has_one_retry_ceiling(self):
+        private = FakePrivate()
+        with patch.object(private, "put_new", side_effect=self.storage_error()) as put, \
+             patch("v3_dart_historical_event_receipts.time.sleep"):
+            with self.assertRaises(PrivateHistoryError):
+                _save_cursor(private, b"new", None, None)
+            self.assertEqual(put.call_count, 2)
+
     def test_uppercase_alphanumeric_receipt_code_is_preserved_without_score_promotion(self):
         for code in ("005930", "0013V0", "00088K", None, ""):
             with self.subTest(code=code):
@@ -119,7 +228,9 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
                          "private_dart_github_api_rate_limited")
         limit.safe_http_status="http_403"
         self.assertEqual(public_failure_code(limit),
-                         "private_dart_collection_validation_or_transport_failed")
+                         "private_dart_storage_read_repository_metadata_http_403")
+        limit.safe_http_operation = "write_private_content;hidden-token"
+        self.assertEqual(public_failure_code(limit), "private_dart_collection_validation_or_transport_failed")
         fallback="private_dart_collection_validation_or_transport_failed"
         for problem in (
             RuntimeError("private-token=SYNTHETIC_SECRET"),
@@ -156,6 +267,7 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
             "full_historical_archive_independently_audited": False,
         }
         self.assertTrue(public_progress_complete(done))
+        self.assertEqual(candidate_review_segments(done), 4)
         for key, invalid in [
             ("filing_months_checkpointed", 119),
             ("filing_months_remaining", 1),
@@ -169,7 +281,9 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         ]:
             self.assertFalse(public_progress_complete({**done, key: invalid}),
                 "malformed or incomplete public counters cannot stop retrieval")
+            self.assertEqual(candidate_review_segments({**done, key: invalid}), 1)
         self.assertFalse(public_progress_complete(None))
+        self.assertEqual(candidate_review_segments(None), 1)
 
     def test_paginated_official_source_and_private_only_resumable_archive(self):
         self.assertEqual(MONTHS[0], "2016-10")
