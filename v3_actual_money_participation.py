@@ -106,7 +106,10 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     daily=[]
     for window in windows:
         raw,_=store.get_content(_path(window))
-        daily.append(validate_money_blob(raw,window[0],window[-1]))
+        value=validate_money_blob(raw,window[0],window[-1])
+        if value.get('amount_bucket_krw')!=100_000:
+            raise ActualMoneyError('money_daily_amount_unit_mismatch')
+        daily.append(value)
     # Verify the whole expected candidate prefix: no silent holes/overlap or
     # a forged calendar gap between two individually plausible files.
     flattened=[d for w in reversed(windows) for d in w]

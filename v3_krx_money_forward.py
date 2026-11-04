@@ -230,8 +230,10 @@ def main():
         dates = forward_candidates(cutoff.isoformat())
         stage = "private_forward_collection"
         stored = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
-        result = collect(stored, RetryingMoneyClient(KRXClient(os.environ["KRX_API_KEY"])), dates,
+        client=RetryingMoneyClient(KRXClient(os.environ["KRX_API_KEY"]))
+        result = collect(stored, client, dates,
                          windows=int(os.getenv("V3_MONEY_FORWARD_WINDOWS", "8")))
+        result["current_run_source_requests_including_retries"]=client.requests
         print(json.dumps(result, sort_keys=True))
         return 0
     except Exception as exc:
