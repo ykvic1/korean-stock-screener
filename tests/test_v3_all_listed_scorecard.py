@@ -36,6 +36,14 @@ class AllListedScorecardTests(unittest.TestCase):
         if any(value!=day for value in (
                 snapshot["date"],bulk["asof"],parts["asof"])):
             self.skipTest("source_day_rollover_waiting_for_official_dart_backfill")
+    def test_total_rounding_matches_primary_csv_at_decimal_half_ties(self):
+        cases=[([0.1,0.2,0.34565],0.6456),([0.1,0.2,0.34575],0.6458),
+               ([10,None,3.56095,21],34.561),([None,None],0.0)]
+        for values,expected in cases:
+            with self.subTest(values=values):
+                self.assertEqual(m.rounded_score_total(values),expected)
+                self.assertEqual(m.rounded_score_total(list(reversed(values))),expected)
+
     def test_same_money_receipt_replaces_only_sustained_six_in_secondary_csv(self):
         from v3_actual_money_contract import SCHEMA,MODEL,DAILY,WEEKLY_WINDOWS,closed_week_end
         market,catalog,history,parts,weekly,cash,fcf=sources()

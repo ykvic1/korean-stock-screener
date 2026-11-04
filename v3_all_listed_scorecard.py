@@ -11,6 +11,7 @@ Only a source-derived CSV and aggregate summary are written to public Pages.
 from __future__ import annotations
 import argparse
 import csv
+from decimal import Decimal
 from io import StringIO
 import json
 import math
@@ -185,6 +186,16 @@ def _verified_price_replay(source,market,catalog,day,members):
         return {},"source_rejected_or_stale"
 
 
+def rounded_score_total(values):
+    """Sum published decimals consistently on Python 3.11 and 3.12.
+
+    Python 3.12 changed float-sum accuracy; binary half ties must not move a
+    published four-decimal score between runtimes. Match the primary CSV.
+    """
+    return float(round(sum((Decimal(str(value)) for value in values
+                            if value is not None),Decimal(0)),4))
+
+
 def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
              industry_source=None,price_replay=None,money_source=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
@@ -311,7 +322,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                     values[area]=_contribution(
                         (base or 0)+more_points,base_weight+maximum,WEIGHTS[area])
         available=sum(v[1] for v in values.values())
-        earned=sum(v[0] for v in values.values() if v[0] is not None)
+        earned=rounded_score_total(v[0] for v in values.values())
         if available==0:zero+=1
         for a,v in values.items():
             if v[1]:count[a]+=1
@@ -326,7 +337,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
                      "industry_label_unverified":label,
                      "dart_current_industry_code":(
                          industry_codes.get(code,{}).get("industry_code")),
-                     "factors":values,"earned":round(earned,4) if available else None,
+                     "factors":values,"earned":earned if available else None,
                      "available":available,"unavailable":100-available})
     if (len(rows)!=listed or count["volume"]!=len(volume_rows) or
         any(r["available"]>100 for r in rows)):
