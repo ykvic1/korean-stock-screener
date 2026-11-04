@@ -264,6 +264,22 @@ class EPSTests(unittest.TestCase):
         self.assertIn('if (( SECONDS >= 6300 )); then', run)
         self.assertIn('timeout-minutes: 120', workflow)
 
+    def test_live_workflow_resumes_only_after_verified_error_free_progress(self):
+        workflow = (Path(__file__).resolve().parents[1]/'.github/workflows/v3-dart-reported-eps.yml').read_text()
+        live = workflow.split('  reported-eps:', 1)[1]
+        collection = live.split('      - name: Finish pending EPS', 1)[1].split('      - name: Reconcile', 1)[0]
+        self.assertIn('actions: write', live)
+        self.assertIn('id: collect', collection)
+        self.assertIn('eps_pending=$(python - <<\'PY\'', collection)
+        self.assertIn('"$source_interrupted" == 0', collection)
+        self.assertIn('eps_final > eps_start && eps_pending > 0', collection)
+        self.assertIn('echo "resume=true" >> "$GITHUB_OUTPUT"', collection)
+        self.assertIn('echo "resume=false" >> "$GITHUB_OUTPUT"', collection)
+        self.assertIn("steps.collect.outputs.resume == 'true'", live)
+        self.assertIn('gh workflow run v3-dart-reported-eps.yml', live)
+        self.assertIn('--ref main -f mode=live', live)
+        self.assertNotIn('GH_TOKEN: ${{ secrets.', live)
+
     def test_exact_annual_comparatives_keep_decimal_eps_and_recompute_growth(self):
         r = parse(payload(), corp='00123456', base=BASE, on_day=DAY)
         self.assertEqual(r['reported_basic_eps_2023_2025'], [100, 120, 144.5])
