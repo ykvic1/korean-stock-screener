@@ -161,6 +161,12 @@ class HistoricalReceiptProgressTests(unittest.TestCase):
         self.assertIn("V3 Direct Historical DART Receipt Resume (One-off)", wf)
         self.assertIn("V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)", wf)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", wf)
+        # A long writer can checkpoint verified pages and then fail from a
+        # transient transport error. Publish source-verified counts, never
+        # interpret that failure as corporate-action or trade-score evidence.
+        self.assertIn("github.event.workflow_run.conclusion == 'failure'", wf)
+        self.assertIn("github.event.workflow_run.conclusion == 'timed_out'", wf)
+        self.assertIn("github.event.workflow_run.name == 'V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)'", wf)
         self.assertIn("github.event.workflow_run.head_branch == 'main'", wf)
         self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", wf)
         self.assertIn("branches: [main]", wf)
