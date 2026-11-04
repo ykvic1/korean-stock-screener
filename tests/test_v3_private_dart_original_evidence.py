@@ -358,8 +358,15 @@ class OriginalEvidenceTests(unittest.TestCase):
         with self.assertRaises(original.OriginalEvidenceError):
             original.run(store, lambda _: self.fail("invalid queue"))
 
-    def test_private_workflow_two_call_cap_and_legacy_market_schedule(self):
+    def test_private_workflow_six_call_cap_and_legacy_market_schedule(self):
         wf = Path(".github/workflows/v3-private-dart-original-evidence.yml").read_text()
+        self.assertEqual(original.MAX_API_CALLS, 6)
+        self.assertIn("Retrieve up to six private title-hint receipts", wf)
+        with self.assertRaisesRegex(
+                original.OriginalEvidenceError,
+                "unsafe_original_filing_destination_or_call_cap"):
+            original.run(Private(), lambda _: self.fail("provider budget exceeded"),
+                         max_calls=7)
         self.assertIn("v3_private_dart_original_evidence.py", wf)
         self.assertIn("test_v3_private_dart_original_evidence.py", wf)
         self.assertIn("DART_API_KEY:", wf)
