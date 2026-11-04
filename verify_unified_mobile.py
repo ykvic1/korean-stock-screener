@@ -484,16 +484,22 @@ with sync_playwright() as p:
     page.locator("#dartHistoryProgress > summary").click()
     page.wait_for_function(
         "() => document.getElementById('dartHistoryStatus').textContent.includes('수집 기간')"
+        " || document.getElementById('dartHistoryStatus').textContent.includes('목록 수집')"
         " || document.getElementById('dartHistoryStatus').textContent.includes('재검증 중')",
         timeout=15000
     )
     history_status = page.locator("#dartHistoryStatus").inner_text()
-    if "수집 기간" in history_status:
-        assert "연구용" in history_status
+    if "수집 기간" in history_status or "목록 수집" in history_status:
         assert page.locator("#dartHistoryMonths").inner_text().endswith("개월")
         assert page.locator("#dartHistoryPages").inner_text().endswith("페이지")
         assert "접수 메타데이터" in page.locator("#dartHistoryReceipts").inner_text()
-        assert "인증 전" in page.locator("#dartHistoryNotes").inner_text()
+        if "목록 수집" in history_status:
+            assert page.locator("#dartHistoryMonths").inner_text() == "120 / 120개월"
+            assert "별도 검증 대상" in page.locator("#dartHistoryNotes").inner_text()
+            assert "전수검증 완료" in history_status or "전수검증 미확인" in history_status
+        else:
+            assert "연구용" in history_status
+            assert "인증 전" in page.locator("#dartHistoryNotes").inner_text()
     else:
         for field in ("Months", "Pages", "Receipts"):
             assert page.locator("#dartHistory" + field).inner_text() == "미확인"

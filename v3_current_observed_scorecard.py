@@ -41,6 +41,7 @@ from v3_unscored_path_coverage import summarize as summarize_path_coverage
 from v3_path_provisional_factors import preview as path_preview
 from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
 from v3_stop_loss_severity import preview as stop_risk_preview
+from v3_personal_score_adjustments import build as build_personal_scores, to_csv as personal_csv
 from v3_dart_2025_owner_profit_probe import (
     verify as verify_2025_owner_profit_source, ProfitProbeError,
 )
@@ -703,19 +704,30 @@ def main(argv=None):
     issuer_ledger=build_issuer_factor_ledger(
         catalog,rows,prior_ledger,parts=old_parts,audit=old_audit,
         fiscal_rows=financial,fcf_rows=cashflow)
+    personal_rows,personal_summary=build_personal_scores(market,catalog,issuer_ledger)
+    personal_text=personal_csv(personal_rows)
+    personal_target=root/"v3-personal-adjusted-scores.csv"
+    personal_status=root/"v3-personal-adjusted-score-summary.json"
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"
     if args.mode=="write":
+        if personal_target.is_symlink() or personal_status.is_symlink():
+            raise LivePartialScorecardError("personal_score_output_must_not_be_symlink")
         target.write_text(new_csv,encoding="utf8")
         from v3_dart_bulk_history import write_json
         write_json(status,summary)
         write_json(ledger_path,issuer_ledger)
+        personal_target.write_text(personal_text,encoding="utf8")
+        write_json(personal_status,personal_summary)
     else:
         if (not target.is_file() or not status.is_file()
             or target.read_text(encoding="utf8")!=new_csv
             or json.loads(status.read_text(encoding="utf8"))!=summary
             or not ledger_path.is_file()
-            or json.loads(ledger_path.read_text(encoding="utf8"))!=issuer_ledger):
+            or json.loads(ledger_path.read_text(encoding="utf8"))!=issuer_ledger
+            or not personal_target.is_file() or not personal_status.is_file()
+            or personal_target.read_text(encoding="utf8")!=personal_text
+            or json.loads(personal_status.read_text(encoding="utf8"))!=personal_summary):
             raise LivePartialScorecardError("live_partial_publication_differs_from_sources")
     print(json.dumps({
         "status":"current_market_actual_observed_only",
