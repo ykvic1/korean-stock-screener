@@ -78,6 +78,19 @@ class Private:
 
 
 class OriginalEvidenceTests(unittest.TestCase):
+    def test_private_original_report_keeps_correction_dates_out_of_event_candidate_count(self):
+        store = Private()
+        out = BytesIO()
+        with ZipFile(out, "w", ZIP_DEFLATED) as archive:
+            archive.writestr("source.xml", "<DOCUMENT>정정대상 공시서류의 최초제출일 20161020</DOCUMENT>")
+        result = original.run(store, lambda _: out.getvalue(), max_calls=1)
+        self.assertEqual(result["unverified_correction_original_date_candidates"], 1)
+        self.assertEqual(result["unverified_original_date_candidates"], 0)
+        report = json.loads(store.blobs[original._report_path(0, "20161031000001")])
+        self.assertFalse(report["date_candidate_inspection"][
+            "correction_original_filing_date_inspection"]["revision_link_authenticated"])
+        self.assertEqual(result["scores_promoted"], 0)
+
     def test_private_http_failures_are_safe_and_actionable_without_path_or_token(self):
         # The previous production failure flattened every transport error to
         # private_storage_api_failed. Preserve that stable error identifier,

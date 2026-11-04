@@ -384,7 +384,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
     # A bounded run may resume previously written immutable ZIPs or reports
     # after a failed checkpoint PUT without repeating the upstream API call.
     api_calls = saved = unavailable = oversized = quarantined = reused = advanced = new_zips = 0
-    candidate_dates = 0
+    candidate_dates = correction_dates = 0
     last_path, last_digest = state["last_report_file"], state["last_report_digest"]
     while j < len(queue) and advanced < max_calls:
         record = queue[j]
@@ -465,7 +465,10 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
             _validate_report(observed, i, receipt, record)
         inspected = report.get("date_candidate_inspection")
         if inspected is not None:
-            candidate_dates += len(validate_candidate_summary(inspected)["candidate_dates"])
+            checked = validate_candidate_summary(inspected)
+            candidate_dates += len(checked["candidate_dates"])
+            correction_dates += len(checked.get(
+                "correction_original_filing_date_inspection", {}).get("candidate_dates", []))
         saved += int(report["source_status"] == "zip_archived_unparsed")
         unavailable += int(report["source_status"] == "unavailable_no_negative_inference")
         oversized += int(report["source_status"] == "source_oversize_not_archived")
@@ -505,6 +508,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         "unsafe_original_zip_receipts_quarantined": quarantined,
         "already_archived_receipts_reused": reused,
         "unverified_original_date_candidates": candidate_dates,
+        "unverified_correction_original_date_candidates": correction_dates,
         "provider_calls": api_calls,
         "remaining_receipts_in_pair": (len(queue)-j if i == state["next_pair_index"] else 0),
         "corporate_actions_verified": 0,

@@ -15,6 +15,8 @@ import re
 from zipfile import ZipFile, BadZipFile
 
 SCHEMA = "v3-private-dart-original-date-candidate-inspection-v1"
+CORRECTION_SCHEMA = "v3-private-dart-correction-target-date-candidates-v1"
+CORRECTION_LABEL = "정정대상공시서류의최초제출일"
 LABELS = (
     "합병기일", "분할기일", "분할합병기일", "주식분할기준일",
     "주식병합기준일", "감자기준일", "신주상장예정일",
@@ -37,9 +39,15 @@ _ROW_END = re.compile(r"</\s*tr\s*>", re.IGNORECASE)
 _ROW_BOUNDARY = "\ue000"
 _DIGEST = re.compile(r"[a-f0-9]{64}\Z")
 # Prefer the longest cue, so "분할합병기일" cannot also emit "합병기일".
-_LABEL_PATTERN = re.compile("|".join(
-    re.escape(label) for label in sorted(LABELS, key=len, reverse=True)
-))
+def _labels_pattern(labels):
+    return re.compile("|".join(
+        r"\s*".join(re.escape(character) for character in label)
+        for label in sorted(labels, key=len, reverse=True)))
+
+
+_LABEL_PATTERN = _labels_pattern((*LABELS, CORRECTION_LABEL))
+_NEXT_FIELD_PATTERN = _labels_pattern((
+    *LABELS, CORRECTION_LABEL, "정정대상공시서류", "정정사유", "정정사항", "정정내용"))
 
 
 class TimelineCandidateError(ValueError):
@@ -86,6 +94,7 @@ def inspect_original_zip(raw):
     if type(raw) is not bytes or not raw.startswith(b"PK") or len(raw) > 900_000:
         raise TimelineCandidateError("invalid_original_timeline_source")
     seen = set()
+    correction_seen = set()
     scanned = 0
     total = 0
     correction_mentioned = False
@@ -110,8 +119,9 @@ def inspect_original_zip(raw):
                 correction_mentioned |= "정정" in source
                 member_sha = sha256(raw_member).hexdigest()
                 for mark in _LABEL_PATTERN.finditer(source):
-                    label = mark.group()
-                    next_field = _LABEL_PATTERN.search(source, mark.end())
+                    label = re.sub(r"\s+", "", mark.group())
+                    correction_mentioned |= label == CORRECTION_LABEL
+                    next_field = _NEXT_FIELD_PATTERN.search(source, mark.end())
                     row_end = source.find(_ROW_BOUNDARY, mark.end())
                     boundary = min(
                         mark.end() + 100,
@@ -121,7 +131,8 @@ def inspect_original_zip(raw):
                     # Never borrow a date from the next named field.
                     candidate = _day_after_label(source[mark.end():boundary])
                     if candidate is not None:
-                        seen.add((label, candidate, member_sha))
+                        target = correction_seen if label == CORRECTION_LABEL else seen
+                        target.add((label, candidate, member_sha))
     except (BadZipFile, OSError, RuntimeError, ValueError) as error:
         if isinstance(error, TimelineCandidateError):
             raise
@@ -140,6 +151,16 @@ def inspect_original_zip(raw):
             else "no_supported_date_cue"
         ),
         "candidate_dates": candidates,
+        # A correction's declared original filing day is a separate clue for
+        # later receipt matching, never an event/effective-date candidate.
+        "correction_original_filing_date_inspection": {
+            "schema": CORRECTION_SCHEMA,
+            "candidate_dates": [
+                {"label": label, "candidate_date": day, "source_member_sha256": digest}
+                for label, day, digest in sorted(correction_seen)[:MAX_CANDIDATES]],
+            "candidate_list_truncated": len(correction_seen) > MAX_CANDIDATES,
+            "revision_link_authenticated": False,
+        },
         "candidate_list_truncated": len(ordered) > MAX_CANDIDATES,
         "source_members_decoded": scanned,
         "correction_keyword_mentioned_not_revision_proof": bool(correction_mentioned),
@@ -151,17 +172,34 @@ def inspect_original_zip(raw):
     }
 
 
+def _validate_date_rows(rows, labels):
+    if type(rows) is not list or len(rows) > MAX_CANDIDATES:
+        raise ValueError()
+    for row in rows:
+        if (type(row) is not dict
+            or set(row) != {"label", "candidate_date", "source_member_sha256"}
+            or row["label"] not in labels
+            or type(row["source_member_sha256"]) is not str
+            or not _DIGEST.fullmatch(row["source_member_sha256"])
+            or type(row["candidate_date"]) is not str
+            or date.fromisoformat(row["candidate_date"]).isoformat() != row["candidate_date"]):
+            raise ValueError()
+
+
 def validate_candidate_summary(value):
     """Prevent a fabricated/oversharing private candidate field in reports."""
     try:
-        if type(value) is not dict or set(value) != {
+        original_keys = {
             "schema", "inspection_status", "candidate_dates",
             "candidate_list_truncated", "source_members_decoded",
             "correction_keyword_mentioned_not_revision_proof",
             "filing_revision_link_authenticated",
             "corporate_action_authenticated", "effective_date_authenticated",
             "adjusted_prices_authorized", "scores_authorized",
-        } or value["schema"] != SCHEMA or value["inspection_status"] not in STATUS:
+        }
+        if (type(value) is not dict or set(value) not in (
+                original_keys, original_keys | {"correction_original_filing_date_inspection"})
+            or value["schema"] != SCHEMA or value["inspection_status"] not in STATUS):
             raise ValueError()
         rows = value["candidate_dates"]
         if (type(rows) is not list or len(rows) > MAX_CANDIDATES
@@ -175,15 +213,17 @@ def validate_candidate_summary(value):
                 "adjusted_prices_authorized", "scores_authorized"
             ))):
             raise ValueError()
-        for row in rows:
-            if (type(row) is not dict
-                or set(row) != {"label", "candidate_date", "source_member_sha256"}
-                or row["label"] not in LABELS
-                or type(row["source_member_sha256"]) is not str
-                or not _DIGEST.fullmatch(row["source_member_sha256"])
-                or type(row["candidate_date"]) is not str
-                or date.fromisoformat(row["candidate_date"]).isoformat()
-                != row["candidate_date"]):
+        _validate_date_rows(rows, LABELS)
+        if "correction_original_filing_date_inspection" in value:
+            correction = value["correction_original_filing_date_inspection"]
+            if (type(correction) is not dict or set(correction) != {
+                    "schema", "candidate_dates", "candidate_list_truncated", "revision_link_authenticated"}
+                or correction["schema"] != CORRECTION_SCHEMA
+                or type(correction["candidate_list_truncated"]) is not bool
+                or correction["revision_link_authenticated"] is not False):
+                raise ValueError()
+            _validate_date_rows(correction["candidate_dates"], (CORRECTION_LABEL,))
+            if correction["candidate_dates"] and not value["source_members_decoded"]:
                 raise ValueError()
         if (value["inspection_status"] == "candidate_dates_proposed") != bool(rows):
             raise ValueError()
