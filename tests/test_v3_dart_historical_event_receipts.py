@@ -8,6 +8,7 @@ from unittest.mock import patch
 from pathlib import Path
 import unittest
 
+from v3_krx_private_github_backfill import PrivateHistoryError
 from v3_dart_historical_event_receipts import (
     CATEGORIES, CHECKPOINT, DARTEventReceiptError, MONTHS, _decode, _path,
     parse_official_response, run, PRIVATE_REPO, MAX_API_CALLS,
@@ -70,6 +71,17 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertEqual(
             public_failure_code(DARTEventReceiptError("dart_provider_rejected_or_unavailable")),
             "dart_provider_rejected_or_unavailable")
+        limit=PrivateHistoryError("private_storage_api_failed")
+        limit.safe_http_operation="read_repository_metadata"
+        limit.safe_http_status="http_403_rate_limited"
+        self.assertEqual(public_failure_code(limit),
+                         "private_dart_github_api_rate_limited")
+        limit.safe_http_status="http_429"
+        self.assertEqual(public_failure_code(limit),
+                         "private_dart_github_api_rate_limited")
+        limit.safe_http_status="http_403"
+        self.assertEqual(public_failure_code(limit),
+                         "private_dart_collection_validation_or_transport_failed")
         fallback="private_dart_collection_validation_or_transport_failed"
         for problem in (
             RuntimeError("private-token=SYNTHETIC_SECRET"),
