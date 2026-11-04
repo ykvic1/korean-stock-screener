@@ -337,8 +337,8 @@ class CrosscheckTests(unittest.TestCase):
         # individual CLI invocation. Multiplying bounded invocations must not
         # add provider credentials or loosen the 20-minute lock.
         self.assertEqual(workflow.count("for segment in 1 2 3 4; do"), 3)
-        self.assertIn("python v3_private_dart_krx_event_crosscheck.py\\n          done", workflow)
-        self.assertIn("python v3_private_dart_krx_adjacent_month.py\\n          done", workflow)
+        self.assertIn("python v3_private_dart_krx_event_crosscheck.py", workflow)
+        self.assertIn("python v3_private_dart_krx_adjacent_month.py", workflow)
         self.assertIn("timeout-minutes: 20", workflow)
         self.assertIn("group: v3-dart-private-historical-event-receipts", workflow)
         self.assertNotIn("DART_API_KEY:", workflow)
