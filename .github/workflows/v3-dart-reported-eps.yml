@@ -87,8 +87,38 @@ jobs:
         run: |
           set -euo pipefail
           # At most 2,500 annual requests plus 25 optional official identity
-          # requests. Each segment checkpoints every issuer. A source outage
-          # stops the chain and publishes only already verified checkpoints.
+          # requests. Each segment checkpoints every issuer and publishes a
+          # verified 100-issuer boundary before starting the next segment.
+          # The 75-minute job timeout must never discard earlier segments.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          publish_eps_checkpoint() {
+            python v3_dart_reported_eps.py --mode verify
+            git add docs/v3-dart-reported-eps.json
+            if git diff --cached --quiet; then
+              return 0
+            fi
+            git commit -m "Publish verified reported EPS issuer checkpoint"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              # Other source workflows may have advanced the market census or
+              # annual receipt book; always recompute source digests first.
+              python v3_dart_reported_eps.py --mode refresh
+              python v3_dart_reported_eps.py --mode verify
+              git add docs/v3-dart-reported-eps.json
+              if ! git diff --cached --quiet; then
+                git commit --amend --no-edit
+              fi
+              if git push origin HEAD:main; then
+                echo "Published verified EPS issuer checkpoint" >> "$GITHUB_STEP_SUMMARY"
+                return 0
+              fi
+              if [[ "$attempt" == 3 ]]; then
+                echo "::error::reported_eps_checkpoint_publication_failed"
+                return 1
+              fi
+            done
+          }
           eps_start=$(python - <<'PY'
           import json
           from pathlib import Path
@@ -107,8 +137,12 @@ jobs:
             )
             if ! python v3_dart_reported_eps.py --mode live --limit 100; then
               source_interrupted=1
+              # A provider outage may occur after some issuers in this segment
+              # were already saved locally; publish those before stopping.
+              publish_eps_checkpoint
               break
             fi
+            publish_eps_checkpoint
             eps_done=$(python - "$eps_previous" <<'PY'
           import json,sys
           from pathlib import Path
@@ -117,6 +151,12 @@ jobs:
           PY
             )
             if [[ "$eps_done" == true ]]; then break; fi
+            # Stop early enough to avoid the hard Actions timeout. The next
+            # hourly run resumes from the last independently saved issuer.
+            if (( SECONDS >= 3600 )); then
+              echo "::notice::reported_eps_rolling_run_time_budget_reached"
+              break
+            fi
           done
           eps_final=$(python - <<'PY'
           import json
