@@ -89,6 +89,14 @@ jobs:
           # At most 2,500 annual requests plus 25 optional official identity
           # requests. Each segment checkpoints every issuer. A source outage
           # stops the chain and publishes only already verified checkpoints.
+          eps_start=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/v3-dart-reported-eps.json')
+          print(json.loads(p.read_text())['attempted_issuers'] if p.is_file() else 0)
+          PY
+          )
+          source_interrupted=0
           for segment in $(seq 1 25); do
             eps_previous=$(python - <<'PY'
           import json
@@ -97,7 +105,10 @@ jobs:
           print(json.loads(p.read_text())['attempted_issuers'] if p.is_file() else 0)
           PY
             )
-            if ! python v3_dart_reported_eps.py --mode live --limit 100; then break; fi
+            if ! python v3_dart_reported_eps.py --mode live --limit 100; then
+              source_interrupted=1
+              break
+            fi
             eps_done=$(python - "$eps_previous" <<'PY'
           import json,sys
           from pathlib import Path
@@ -107,6 +118,24 @@ jobs:
             )
             if [[ "$eps_done" == true ]]; then break; fi
           done
+          eps_final=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/v3-dart-reported-eps.json')
+          print(json.loads(p.read_text())['attempted_issuers'] if p.is_file() else 0)
+          PY
+          )
+          echo "Verified EPS issuer checkpoints in this run: ${eps_start} → ${eps_final}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$source_interrupted" == 1 ]]; then
+            if [[ "$eps_final" -le "$eps_start" ]]; then
+              # A source outage before the first verified issuer is a failed
+              # collection run, not a successful empty batch. Retry at the
+              # next scheduled execution; never invent zero EPS or coverage.
+              echo "::error::reported_eps_no_verified_checkpoint_after_source_failure"
+              exit 1
+            fi
+            echo "::warning::reported_eps_source_interrupted_after_saved_checkpoint"
+          fi
       - name: Reconcile same-issuer receipt after concurrent source publication
         if: steps.source.outputs.ready == 'true'
         run: |
