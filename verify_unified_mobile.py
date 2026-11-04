@@ -464,12 +464,16 @@ with sync_playwright() as p:
             f"{observed['provisional_complete_100point_observation_count']:,}종목 · 미인증"
         )
         assert page.locator("#readinessCertified").inner_text() == "0종목"
-        # The nested nine-factor audit must be selectable independently of its parent.
-        if observed.get("financial_valuation_component_observed_issuers"):
+        # The market-price snapshot can advance before the independently
+        # replayed issuer coverage snapshot (including on the PR merge ref).
+        # In that transition the UI must fail closed, not show yesterday's
+        # nine-factor audit as today's observations.
+        current_observed = (
+            observed["asof"] == data["date"]
+            and observed["listed_total"] == data["eligible_count"]
+        )
+        if current_observed and observed.get("financial_valuation_component_observed_issuers"):
             subfactors = page.locator("#fiveAreaCoverage details.u-subfactor-breakdown")
-            # The independent progress banner may appear before the larger
-            # workspace JSON finishes rendering. Wait for the actual nested
-            # audit instead of interpreting that loading race as missing data.
             subfactors.first.wait_for(state="attached", timeout=20000)
             assert subfactors.count() == 1
             subfactors.locator("summary").click()
@@ -479,6 +483,9 @@ with sync_playwright() as p:
                 "document.documentElement.scrollWidth <= window.innerWidth"
             ), "nested factor audit mobile horizontal overflow"
             subfactors.locator("summary").click()
+        elif not current_observed:
+            assert page.locator("#fiveAreaCoverage details.u-subfactor-breakdown").count() == 0
+            assert "자료 검증 후 표시" in page.locator("#fiveAreaCoverage").inner_text()
     else:
         # Market-close transition may leave legitimately mismatched snapshot
         # dates; the UI must show unknown rather than silently merge dates.
