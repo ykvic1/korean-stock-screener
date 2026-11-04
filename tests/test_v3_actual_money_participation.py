@@ -174,6 +174,28 @@ class ActualMoneyTests(unittest.TestCase):
         bad=copy.deepcopy(report);bad['investment_score_certified']=True
         self.assertEqual(build(market,catalog,money_source=bad),before)
 
+    def test_new_money_component_does_not_depend_on_retired_share_volume_ratio(self):
+        market,catalog=market_fixture()
+        for item in catalog['rows']:
+            for row in market['stocks']:
+                if item['code']==row['code']:item['name']=row['name']
+        target=market['stocks'][0];market_name=target['market']
+        target.update(stock());target['market']=market_name
+        report=report_fixture(catalog)
+        report.update(eligible_issuers=1,records={target['code']:dict(
+            market=market_name,issuer_name=target['name'],asof=catalog['date'],
+            weekly_session_end=report['weekly_session_end'],points=2.5,model=m.MODEL)})
+        for ratio in (None,1000,False):
+            with self.subTest(retired_share_ratio=ratio):
+                target['volume_ratio']=ratio
+                self.assertNotIn(target['code'],build(market,catalog)['records'])
+                current=build(market,catalog,money_source=report)['records'][target['code']]
+                self.assertEqual(current['subpoints']['sustained_volume'],2.5)
+                self.assertEqual(current['subpoints']['obv_price_not_reflected'],4)
+                self.assertEqual(current['observed_available_max'],10)
+        target['divergence']=False
+        self.assertNotIn(target['code'],build(market,catalog,money_source=report)['records'])
+
     def test_local_snapshot_path_escape_and_non_money_paths_blocked(self):
         with tempfile.TemporaryDirectory() as tmp:
             store=m.LocalPrivateSnapshot(tmp,'synthetic-test-token')
