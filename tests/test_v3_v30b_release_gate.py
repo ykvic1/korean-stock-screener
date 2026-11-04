@@ -68,6 +68,16 @@ class V30bReadinessTests(unittest.TestCase):
                 self.assertIn("public_snapshot_asof_mismatch", audit["blocker_codes"])
             if observed.get("listed_total") != scorecard.get("listed_total"):
                 self.assertIn("listed_universe_mismatch", audit["blocker_codes"])
+        elif any(
+                observed["observed_issuer_counts"][key] !=
+                scorecard["provisional_numeric_issuer_counts"][key]
+                for key in ("technical", "momentum", "volume")):
+            # Even matching as-of dates are insufficient if an independent
+            # secondary scorecard was replayed with no technical or momentum
+            # source. The research audit must reject that mismatched chain,
+            # never certify it just because the date and issuer count match.
+            self.assertFalse(audit["public_summary_valid"])
+            self.assertIn("area_count_or_source_mismatch", audit["blocker_codes"])
         else:
             self.assertTrue(audit["public_summary_valid"], audit["blocker_codes"])
         self.assertFalse(audit["v30b_release_ready"])
