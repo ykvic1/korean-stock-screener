@@ -130,6 +130,17 @@ class EPSTests(unittest.TestCase):
         self.assertIn('if [[ "$eps_final" -le "$eps_start" ]]', live)
         self.assertIn('reported_eps_source_interrupted_after_saved_checkpoint', live)
 
+    def test_live_workflow_publishes_each_completed_batch_and_before_source_break(self):
+        workflow = (Path(__file__).resolve().parents[1]/'.github/workflows/v3-dart-reported-eps.yml').read_text()
+        run = workflow.split('      - name: Finish pending EPS', 1)[1].split('      - name: Reconcile', 1)[0]
+        self.assertIn('publish_eps_checkpoint() {', run)
+        self.assertIn('python v3_dart_reported_eps.py --mode verify', run)
+        self.assertIn('git push origin HEAD:main', run)
+        self.assertIn('reported_eps_checkpoint_publication_failed', run)
+        self.assertIn('if ! python v3_dart_reported_eps.py --mode live --limit 100; then\n              source_interrupted=1\n              # A provider outage', run)
+        self.assertIn('publish_eps_checkpoint\n              break\n            fi\n            publish_eps_checkpoint', run)
+        self.assertIn('if (( SECONDS >= 3600 )); then', run)
+
     def test_exact_annual_comparatives_keep_decimal_eps_and_recompute_growth(self):
         r = parse(payload(), corp='00123456', base=BASE, on_day=DAY)
         self.assertEqual(r['reported_basic_eps_2023_2025'], [100, 120, 144.5])
