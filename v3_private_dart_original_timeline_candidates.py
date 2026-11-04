@@ -33,6 +33,8 @@ _DATE_SEPARATED = re.compile(
 )
 _DATE_COMPACT = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
 _TAG = re.compile(r"<[^>]{0,2000}>", re.DOTALL)
+_ROW_END = re.compile(r"</\s*tr\s*>", re.IGNORECASE)
+_ROW_BOUNDARY = "\ue000"
 _DIGEST = re.compile(r"[a-f0-9]{64}\Z")
 # Prefer the longest cue, so "분할합병기일" cannot also emit "합병기일".
 _LABEL_PATTERN = re.compile("|".join(
@@ -65,7 +67,9 @@ def _text(raw):
     for encoding in ("utf-8-sig", "cp949"):
         try:
             content = raw.decode(encoding, errors="strict")
-            flattened = unescape(_TAG.sub(" ", content))
+            # Retain table row boundaries before stripping tags. A missing
+            # date must never borrow an unrelated date from the following row.
+            flattened = unescape(_TAG.sub(" ", _ROW_END.sub(_ROW_BOUNDARY, content)))
             return re.sub(r"\s+", " ", flattened)
         except UnicodeError:
             continue
@@ -108,9 +112,11 @@ def inspect_original_zip(raw):
                 for mark in _LABEL_PATTERN.finditer(source):
                     label = mark.group()
                     next_field = _LABEL_PATTERN.search(source, mark.end())
+                    row_end = source.find(_ROW_BOUNDARY, mark.end())
                     boundary = min(
                         mark.end() + 100,
                         next_field.start() if next_field else len(source),
+                        row_end if row_end >= 0 else len(source),
                     )
                     # Never borrow a date from the next named field.
                     candidate = _day_after_label(source[mark.end():boundary])
