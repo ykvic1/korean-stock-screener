@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - v3_dart_continuous_catchup.py
+      - v3_dart_historical_event_receipts.py
       - tests/test_v3_dart_continuous_catchup.py
       - .github/workflows/v3-dart-continuous-catchup.yml
   push:
@@ -11,6 +12,7 @@ on:
     paths:
       - .github/workflows/v3-dart-continuous-catchup.yml
       - v3_dart_continuous_catchup.py
+      - v3_dart_historical_event_receipts.py
   workflow_dispatch:
     inputs:
       mode:
@@ -47,7 +49,8 @@ jobs:
       ${{ (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
           (github.event_name == 'push' &&
            (startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous DART catchup to 120 months') ||
-            startsWith(github.event.head_commit.message, 'fix(v3.0b): resume continuous DART after read quota cooldown'))) }}
+            startsWith(github.event.head_commit.message, 'fix(v3.0b): resume continuous DART after read quota cooldown') ||
+            startsWith(github.event.head_commit.message, 'fix(v3.0b): preserve alphanumeric DART receipt codes'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 350
     permissions:
