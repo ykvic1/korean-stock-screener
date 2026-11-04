@@ -1,0 +1,106 @@
+name: V3 Reported Annual EPS Comparatives
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_reported_eps.py
+      - tests/test_v3_dart_reported_eps.py
+      - .github/workflows/v3-dart-reported-eps.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_reported_eps.py
+      - .github/workflows/v3-dart-reported-eps.yml
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m py_compile v3_dart_reported_eps.py
+          python -m unittest discover -s tests -p 'test_v3_dart_reported_eps.py' -v
+  reported-eps:
+    needs: offline-safety
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' &&
+           startsWith(github.event.head_commit.message, 'feat(v3.0b): collect reported EPS')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    concurrency:
+      group: v3-dart-reported-basic-eps
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Require an aligned closing census and annual source book
+        id: source
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path('docs')
+          catalog=json.loads((root/'v22-market-catalog.json').read_text())
+          book=json.loads((root/'v3-dart-book-reference.json').read_text())
+          ready=book.get('asof')==catalog.get('date')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('ready='+('true' if ready else 'false')+'\n')
+          print('eps_annual_sources_aligned' if ready else 'waiting_annual_source_day')
+          PY
+      - if: steps.source.outputs.ready == 'true'
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Collect at most 100 exact annual statements, checkpoint each issuer
+        if: steps.source.outputs.ready == 'true'
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python v3_dart_reported_eps.py --mode live --limit 100
+      - name: Reconcile same-issuer receipt after concurrent source publication
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python v3_dart_reported_eps.py --mode verify
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-dart-reported-eps.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish receipt-matched reported annual EPS comparatives"
+            for attempt in 1 2 3; do
+              git pull --rebase origin main
+              python v3_dart_reported_eps.py --mode refresh
+              python v3_dart_reported_eps.py --mode verify
+              git add docs/v3-dart-reported-eps.json
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+              if git push origin HEAD:main; then break; fi
+              if [[ "$attempt" == 3 ]]; then exit 1; fi
+            done
+          fi
