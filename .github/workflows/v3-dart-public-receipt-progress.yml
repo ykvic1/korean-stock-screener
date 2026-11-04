@@ -11,7 +11,9 @@ on:
   # one-off rescue. Refresh each hour even during a long (up to five-hour)
   # collection job, so public counts do not look stalled. The independent
   # reporter makes ZERO OpenDART or KRX provider calls; it verifies a stable
-  # private cursor and publishes anonymous aggregate counts only.
+  # private cursor and publishes anonymous aggregate counts only. Failed or
+  # timed-out long runs may still leave many CAS-verified private pages: refresh
+  # from the cursor on those endings, never treat failures as score validation.
   schedule:
     - cron: '7 * * * *' # hourly UTC; the long private writer may still be active
   workflow_run:
@@ -40,7 +42,10 @@ jobs:
   anonymous-progress:
     if: >-
       ${{ github.event_name != 'workflow_run' ||
-          (github.event.workflow_run.conclusion == 'success' &&
+          ((github.event.workflow_run.conclusion == 'success' ||
+            ((github.event.workflow_run.conclusion == 'failure' ||
+              github.event.workflow_run.conclusion == 'timed_out') &&
+             github.event.workflow_run.name == 'V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)')) &&
            github.event.workflow_run.head_branch == 'main' &&
            github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
