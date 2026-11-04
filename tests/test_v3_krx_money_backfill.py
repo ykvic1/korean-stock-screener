@@ -181,7 +181,11 @@ class ActualMoneyDerivationTests(unittest.TestCase):
         self.assertEqual(result["completed_five_session_cohorts"], 1)
         self.assertEqual(result["current_run_api_calls"], 10)
         self.assertEqual(len(client.requests), 10)
-        self.assertEqual(len(attempts), 2)
+        # Two immutable-cohort writes (409 then retry), followed by the
+        # first creation of the private progress checkpoint.
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(attempts[0], attempts[1])
+        self.assertNotEqual(attempts[0], attempts[2])
 
     def test_checkpoint_409_resumes_only_when_cas_sha_is_still_current(self):
         days = sample_days()
