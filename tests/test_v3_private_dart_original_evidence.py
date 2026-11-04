@@ -225,6 +225,20 @@ class OriginalEvidenceTests(unittest.TestCase):
         self.assertFalse(data["corporate_action_authenticated"])
         self.assertFalse(data["effective_date_authenticated"])
         self.assertEqual(data["zip_metadata"]["sha256"], sha256(zip_source()).hexdigest())
+        # Original ZIP structure is source-verified, yet any timeline data
+        # can only be private unverified candidates; historical reports with
+        # no inspection field remain valid and immutable.
+        inspected = data["date_candidate_inspection"]
+        self.assertFalse(inspected["effective_date_authenticated"])
+        self.assertFalse(inspected["corporate_action_authenticated"])
+        self.assertFalse(inspected["scores_authorized"])
+        self.assertEqual(first["unverified_original_date_candidates"], 0)
+        older = {k: v for k, v in data.items() if k != "date_candidate_inspection"}
+        self.assertEqual(
+            original._validate_report(original.canonical(older), 0, calls[0],
+                                      {"corp_code": older["corp_code"],
+                                       "title_hints": older["title_hints"]}),
+            older)
         self.assertNotIn("20161031000001", json.dumps(first))
         second = original.run(store, provider)
         self.assertEqual(second["provider_calls"], 1)
