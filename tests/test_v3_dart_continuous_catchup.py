@@ -1,5 +1,6 @@
 """Offline guardrails for continuous private DART catch-up orchestration."""
 import unittest
+from pathlib import Path
 
 from v3_dart_continuous_catchup import (
     MAX_BATCHES, MAX_PROVIDER_CALLS, continuous_catchup,
@@ -97,6 +98,27 @@ class ContinuousDARTCatchupTests(unittest.TestCase):
             continuous_catchup(
                 lambda ceiling: next(steps), clock=lambda: 0,
                 max_batches=2)
+
+
+    def test_trusted_short_collector_completion_starts_long_catchup(self):
+        fast = Path(".github/workflows/v3-dart-historical-direct-fastlane.yml").read_text(
+            encoding="utf-8")
+        short = Path(".github/workflows/v3-dart-historical-event-receipts.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("V3 Private Historical OpenDART Filing Receipts (Research Only)", fast)
+        self.assertIn("workflow_run:", fast)
+        self.assertIn("types: [completed]", fast)
+        self.assertIn("branches: [main]", fast)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", fast)
+        self.assertIn("github.event.workflow_run.event == 'schedule'", fast)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", fast)
+        self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", fast)
+        self.assertIn("group: v3-dart-private-historical-event-receipts", fast)
+        self.assertIn("queue: max", fast)
+        self.assertIn("cancel-in-progress: false", fast)
+        self.assertIn("python v3_dart_continuous_catchup.py", fast)
+        # A one-way completion trigger must not recursively spawn short runs.
+        self.assertNotIn("workflow_run:", short)
 
 
 if __name__ == "__main__":
