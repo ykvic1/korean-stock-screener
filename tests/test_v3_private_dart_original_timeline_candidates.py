@@ -36,6 +36,39 @@ class OriginalTimelineCandidateTests(unittest.TestCase):
         self.assertNotIn("document.xml", str(result))
         self.assertEqual(timeline.validate_candidate_summary(result), result)
 
+    def test_composite_cue_is_not_double_counted_as_plain_merger(self):
+        result = timeline.inspect_original_zip(
+            source("<DOCUMENT>분할합병기일 2026.11.04</DOCUMENT>")
+        )
+        self.assertEqual(
+            [(r["label"], r["candidate_date"]) for r in result["candidate_dates"]],
+            [("분할합병기일", "2026-11-04")]
+        )
+        self.assertFalse(result["effective_date_authenticated"])
+        timeline.validate_candidate_summary(result)
+
+    def test_missing_or_invalid_date_never_borrows_neighbor_field_date(self):
+        for body in (
+            "합병기일 분할기일 2026-11-04",
+            "합병기일 2026-02-30 분할기일 2026-11-04",
+        ):
+            with self.subTest(body=body):
+                result = timeline.inspect_original_zip(
+                    source("<DOCUMENT>" + body + "</DOCUMENT>")
+                )
+                self.assertEqual(
+                    [(r["label"], r["candidate_date"])
+                     for r in result["candidate_dates"]],
+                    [("분할기일", "2026-11-04")]
+                )
+                timeline.validate_candidate_summary(result)
+
+        invalid_first = timeline.inspect_original_zip(
+            source("<DOCUMENT>합병기일 2026-02-30 이후 2026-11-04</DOCUMENT>")
+        )
+        self.assertEqual(invalid_first["candidate_dates"], [])
+        self.assertFalse(invalid_first["effective_date_authenticated"])
+
     def test_cp949_document_and_compact_date_are_supported(self):
         raw = source(
             "<DOCUMENT>주식분할기준일 20261104</DOCUMENT>",
