@@ -1,5 +1,7 @@
 """Synthetic-only tests: document dates remain private, unverified candidates."""
 from io import BytesIO
+from datetime import date, timedelta
+import copy
 from zipfile import ZipFile, ZIP_DEFLATED
 import unittest
 
@@ -14,6 +16,65 @@ def source(body, name="document.xml", encoding="utf-8"):
 
 
 class OriginalTimelineCandidateTests(unittest.TestCase):
+    def test_correction_original_day_is_separate_from_event_dates(self):
+        result = timeline.inspect_original_zip(source(
+            "<DOCUMENT><TABLE><TR><TD>정정대상 공시서류의 최초제출일</TD>"
+            "<TD>2026년 10월 20일</TD></TR><TR><TD>합 병 기 일</TD>"
+            "<TD>2026-11-04</TD></TR></TABLE></DOCUMENT>"))
+        self.assertEqual([(r["label"], r["candidate_date"]) for r in result["candidate_dates"]],
+                         [("합병기일", "2026-11-04")])
+        correction = result["correction_original_filing_date_inspection"]
+        self.assertEqual(correction["candidate_dates"][0]["candidate_date"], "2026-10-20")
+        self.assertEqual(correction["candidate_dates"][0]["label"], timeline.CORRECTION_LABEL)
+        self.assertFalse(correction["revision_link_authenticated"])
+        self.assertFalse(result["effective_date_authenticated"])
+        timeline.validate_candidate_summary(result)
+        legacy = {key: value for key, value in result.items()
+                  if key != "correction_original_filing_date_inspection"}
+        self.assertEqual(timeline.validate_candidate_summary(legacy), legacy)
+
+    def test_correction_day_cannot_borrow_another_field_or_invalid_later_date(self):
+        for body in (
+            "<TR><TD>정정대상 공시서류의 최초제출일</TD><TD>미정</TD></TR>"
+            "<TR><TD>작성일</TD><TD>2026-11-04</TD></TR>",
+            "정정대상 공시서류의 최초제출일 미정 정정사유 2026-11-04 계약 변경",
+            "정정대상 공시서류의 최초제출일 2026-02-30 이후 2026-11-04",
+        ):
+            with self.subTest(body=body):
+                result = timeline.inspect_original_zip(source("<DOCUMENT>" + body + "</DOCUMENT>"))
+                self.assertEqual(result["correction_original_filing_date_inspection"]["candidate_dates"], [])
+                self.assertEqual(result["candidate_dates"], [])
+                timeline.validate_candidate_summary(result)
+
+    def test_correction_only_document_does_not_invent_an_effective_day(self):
+        result = timeline.inspect_original_zip(source(
+            "<DOCUMENT>정 정 대 상 공 시 서 류 의 최 초 제 출 일 20261020</DOCUMENT>",
+            encoding="cp949"))
+        self.assertTrue(result["correction_keyword_mentioned_not_revision_proof"])
+        self.assertEqual(result["candidate_dates"], [])
+        self.assertEqual(result["inspection_status"], "no_supported_date_cue")
+        self.assertEqual(len(result["correction_original_filing_date_inspection"]["candidate_dates"]), 1)
+        timeline.validate_candidate_summary(result)
+
+    def test_correction_candidates_are_capped_and_tampered_summary_fails_closed(self):
+        body = "".join("<TR><TD>정정대상 공시서류의 최초제출일</TD><TD>" +
+                       (date(2026, 1, 1) + timedelta(days=i)).isoformat() + "</TD></TR>"
+                       for i in range(40))
+        result = timeline.inspect_original_zip(source("<DOCUMENT><TABLE>" + body + "</TABLE></DOCUMENT>"))
+        correction = result["correction_original_filing_date_inspection"]
+        self.assertEqual(len(correction["candidate_dates"]), timeline.MAX_CANDIDATES)
+        self.assertTrue(correction["candidate_list_truncated"])
+        timeline.validate_candidate_summary(result)
+        for change in ("authenticated", "raw_text", "wrong_label", "invalid_date"):
+            bad = copy.deepcopy(result)
+            target = bad["correction_original_filing_date_inspection"]
+            if change == "authenticated": target["revision_link_authenticated"] = True
+            if change == "raw_text": target["source_text"] = "private raw source"
+            if change == "wrong_label": target["candidate_dates"][0]["label"] = "효력발생일"
+            if change == "invalid_date": target["candidate_dates"][0]["candidate_date"] = "2026-02-30"
+            with self.subTest(change=change), self.assertRaises(timeline.TimelineCandidateError):
+                timeline.validate_candidate_summary(bad)
+
     def test_missing_table_date_never_borrows_an_unrelated_following_row(self):
         for close in ("</TR>", "</tr>", "</ tr >"):
             with self.subTest(close=close):

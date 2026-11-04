@@ -59,7 +59,10 @@ jobs:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           set -euo pipefail
-          # At most six provider calls per run, with individually size-checked\n          # immutable ZIP evidence and fail-closed private readback.\n          # Only stored in the already private and size-checked archive.
+          # At most six provider calls/processed receipts across the WHOLE job.
+          # Advance up to eight empty/completed pairs instead of wasting a
+          # scheduled slot on one empty queue. Each pair keeps its CAS checks.
+          # Only store size-checked immutable ZIPs in the private archive.
           # No original source, title text, receipt number, corp code or
           # API credential appears in public log/artifact/repository.
           # Original ZIP exists != corporate action or adjusted price proof.
