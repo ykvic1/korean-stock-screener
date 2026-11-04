@@ -1,10 +1,14 @@
 import copy
+import json
+import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 import unittest
 
 from v3_dart_reported_eps import (amount, metrics, parse, plan, collect, snapshot,
-                                  EPSError, SCHEMA)
+                                  EPSError, SCHEMA, main)
 
 DAY = '2026-11-03'
 BASE = {'code': '005930', 'name': 'Synthetic', 'market': 'KOSPI', 'fiscal_year': 2025,
@@ -29,6 +33,41 @@ def inputs():
 
 
 class EPSTests(unittest.TestCase):
+    def test_partial_checkpoint_stops_outer_continuous_collection_on_source_failure(self):
+        catalog, book = inputs()
+        catalog['rows'].append({'code': '000001', 'name': 'Second', 'market': 'KOSDAQ'})
+        catalog['listed_total'] = 2
+        book['records'].append({**copy.deepcopy(book['records'][0]), 'code': '000001'})
+
+        class Reply:
+            def raise_for_status(self): pass
+            def json(self): return payload()
+
+        class Session:
+            calls = 0
+            def get(self, url, **kwargs):
+                self.calls += 1
+                if kwargs['params']['corp_code'] == '00000001':
+                    raise OSError('upstream unavailable')
+                return Reply()
+
+        session = Session()
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root/'v22-market-catalog.json').write_text(json.dumps(catalog))
+            (root/'v3-dart-book-reference.json').write_text(json.dumps(book))
+            with (patch('v3_dart_reported_eps.verified_company_mapping_cache',
+                        return_value={BASE['code']: '00123456', '000001': '00000001'}),
+                  patch('v3_dart_reported_eps._read_company_cache_from_root', return_value=None),
+                  patch.dict('sys.modules', {'requests': SimpleNamespace(Session=lambda: session)}),
+                  patch.dict(os.environ, {'DART_API_KEY': 'a'*40}),
+                  self.assertRaisesRegex(EPSError, 'partial_eps_source_stopped_after_checkpoint')):
+                main(['--docs', folder, '--mode', 'live'])
+            saved = json.loads((root/'v3-dart-reported-eps.json').read_text())
+            self.assertEqual(saved['attempted_issuers'], 1)
+            self.assertEqual(saved['pending_issuers'], 1)
+            self.assertEqual(session.calls, 2)
+
     def test_unusable_issuer_does_not_block_other_issuers_or_become_zero_eps(self):
         catalog, book = inputs()
         catalog['rows'].append({'code': '000001', 'name': 'Second', 'market': 'KOSDAQ'})
