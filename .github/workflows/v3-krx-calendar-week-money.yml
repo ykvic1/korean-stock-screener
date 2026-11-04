@@ -1,0 +1,67 @@
+name: V3 Private Calendar Week Actual Money
+
+on:
+  pull_request:
+    paths:
+      - v3_krx_calendar_week_money.py
+      - tests/test_v3_krx_calendar_week_money.py
+      - .github/workflows/v3-krx-calendar-week-money.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_calendar_week_money.py
+      - .github/workflows/v3-krx-calendar-week-money.yml
+  schedule:
+    - cron: '35 12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - run: |
+          python -m py_compile v3_krx_calendar_week_money.py
+          python -m unittest discover -s tests -p 'test_v3_krx_calendar_week_money.py' -v
+  private-weeks:
+    needs: offline-safety
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): collect calendar-week actual money')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: v3-krx-actual-money-private-derived-backfill
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Derive real calendar-week totals privately with per-week checkpoints
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_calendar_week_money.py
