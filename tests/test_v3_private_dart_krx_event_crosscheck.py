@@ -330,6 +330,20 @@ class CrosscheckTests(unittest.TestCase):
         self.assertEqual(str(raised.exception),
                          "blocked: private quality invalid_private_risk_inventory")
 
+    def test_crosscheck_and_adjacent_month_catchup_is_bounded_and_private(self):
+        workflow = (Path(__file__).resolve().parents[1]
+                    / ".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
+        # Complete-month source validation and private CAS remain inside every
+        # individual CLI invocation. Multiplying bounded invocations must not
+        # add provider credentials or loosen the 20-minute lock.
+        self.assertEqual(workflow.count("for segment in 1 2 3 4; do"), 3)
+        self.assertIn("python v3_private_dart_krx_event_crosscheck.py", workflow)
+        self.assertIn("python v3_private_dart_krx_adjacent_month.py", workflow)
+        self.assertIn("timeout-minutes: 20", workflow)
+        self.assertIn("group: v3-dart-private-historical-event-receipts", workflow)
+        self.assertNotIn("DART_API_KEY:", workflow)
+        self.assertNotIn("KRX_API_KEY:", workflow)
+
     def test_workflow_is_private_and_derived_only_with_untrusted_event_gate(self):
         base=Path(__file__).resolve().parents[1]
         workflow=(base/".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
