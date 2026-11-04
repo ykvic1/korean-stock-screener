@@ -42,6 +42,7 @@ from v3_path_provisional_factors import preview as path_preview
 from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
 from v3_stop_loss_severity import preview as stop_risk_preview
 from v3_personal_score_adjustments import build as build_personal_scores, to_csv as personal_csv
+from v3_eps_valuation import build as build_eps_valuation
 from v3_dart_2025_owner_profit_probe import (
     verify as verify_2025_owner_profit_source, ProfitProbeError,
 )
@@ -635,6 +636,7 @@ def main(argv=None):
     def read(name):
         return json.loads((root/name).read_text(encoding="utf8"))
     catalog=read("v22-market-catalog.json")
+    annual=None
     try:
         audit=read("v3-real-source-six-area-coverage.json")
         annual=read("v3-dart-book-reference.json")
@@ -704,7 +706,16 @@ def main(argv=None):
     issuer_ledger=build_issuer_factor_ledger(
         catalog,rows,prior_ledger,parts=old_parts,audit=old_audit,
         fiscal_rows=financial,fcf_rows=cashflow)
-    personal_rows,personal_summary=build_personal_scores(market,catalog,issuer_ledger)
+    prior_personal_path=root/"v3-personal-adjusted-score-summary.json"
+    prior_personal=(json.loads(prior_personal_path.read_text()) if prior_personal_path.is_file() else {})
+    eps_path=root/"v3-dart-reported-eps.json"
+    eps_source=(json.loads(eps_path.read_text()) if eps_path.is_file() else None)
+    valuation_overrides,eps_status=build_eps_valuation(
+        catalog,annual,eps_source,issuer_ledger,
+        prior_personal.get('valuation_overrides'))
+    personal_rows,personal_summary=build_personal_scores(
+        market,catalog,issuer_ledger,valuation_overrides=valuation_overrides)
+    personal_summary['reported_eps_source_status']=eps_status
     personal_text=personal_csv(personal_rows)
     personal_target=root/"v3-personal-adjusted-scores.csv"
     personal_status=root/"v3-personal-adjusted-score-summary.json"

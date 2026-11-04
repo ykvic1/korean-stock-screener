@@ -821,12 +821,67 @@ function pillarState(r){
    lastObserved.points<=lastObserved.available;
   // Preserve the larger observed factor budget when a refreshed source is
   // missing or temporarily supplies a narrower partial record.
-  const carried=!!retained&&lastObserved.available>available;
+  let carried=!!retained&&lastObserved.available>available;
   if(carried){candidate=lastObserved.points;available=lastObserved.available;}
-  const asof=carried?lastObserved.asof:available>0?r.price_date:null;
+  let asof=carried?lastObserved.asof:available>0?r.price_date:null;
+  if(key==='valuation'&&r?.v3_personal_valuation){
+   const q=r.v3_personal_valuation;
+   if(validEPSValuation(q,r)){
+    candidate=q.points;available=20;asof=q.asof;
+    carried=q.retained||q.asof!==r.price_date;
+   }
+  }
   return {key,label,max:maximum,candidate,available,lastObserved,asof,carried,
    status:available>0?'미검증 연구점수':'자료 미확보'};
  });
+}
+const EPS_VALUATION_MODEL='v3-personal-valuation-reported-eps-20-v1';
+const EPS_VALUATION_WEIGHTS=Object.freeze({pbr:4,earnings_yield_pct:4,eps_growth:4,
+ eps_stability:4,fcf_yield:2,sales_to_market_cap:2});
+function evaluateEPSValuation(eps,baseline){
+ const names=['pbr','earnings_yield_pct','fcf_yield','sales_to_market_cap'];
+ if(!Array.isArray(eps)||eps.length!==3||eps.some(v=>!finite(v)||Math.abs(v)>1e9)||
+    !baseline||Object.keys(baseline).sort().join(',')!==names.slice().sort().join(',')||
+    names.some(k=>!finite(baseline[k])||baseline[k]<0||baseline[k]>5))return null;
+ const r6=v=>Math.floor(v*1e6+.5)/1e6,positive=eps.every(v=>v>0);
+ const growth=positive?100*(Math.sqrt(eps[2]/eps[0])-1):null;
+ const mean=positive?(eps[0]+eps[1]+eps[2])/3:null;
+ const cv=positive?Math.sqrt(((eps[0]-mean)**2+(eps[1]-mean)**2+(eps[2]-mean)**2)/3)/mean:null;
+ const parts={pbr:r6(baseline.pbr*.8),earnings_yield_pct:r6(baseline.earnings_yield_pct*.8),
+  eps_growth:positive?r6(4*Math.max(0,Math.min(1,growth/20))):0,
+  eps_stability:positive?r6(4/(1+cv)):0,fcf_yield:r6(baseline.fcf_yield*.4),
+  sales_to_market_cap:r6(baseline.sales_to_market_cap*.4)};
+ return {parts,points:r6(Object.values(parts).reduce((a,b)=>a+b,0))};
+}
+function validEPSValuation(q,r){
+ if(!q||!r||q.model!==EPS_VALUATION_MODEL||q.code!==r.code||q.name!==r.name||q.market!==r.market||
+    q.fiscal_year!==2025||!['CFS','OFS'].includes(q.fs_div)||
+    !['ifrs-full_BasicEarningsLossPerShare','ifrs_BasicEarningsLossPerShare'].includes(q.source_account_id)||
+    q.investment_score_certified!==false||!validDate(q.asof)||q.asof>r.price_date||
+    !validDate(q.observed_on)||q.observed_on>q.asof||typeof q.retained!=='boolean'||
+    typeof q.annual_receipt_id!=='string'||!/^\d{14}$/.test(q.annual_receipt_id))return false;
+ const id=q.annual_receipt_id,rd=id.slice(0,4)+'-'+id.slice(4,6)+'-'+id.slice(6,8);
+ if(!validDate(rd)||rd<'2026-01-01'||rd>q.observed_on)return false;
+ const result=evaluateEPSValuation(q.eps,q.baseline);
+ if(!result||!q.parts||!q.weights||!finite(q.points)||Math.abs(result.points-q.points)>.000001||
+    Object.keys(q.parts).sort().join(',')!==Object.keys(EPS_VALUATION_WEIGHTS).sort().join(',')||
+    Object.keys(q.weights).sort().join(',')!==Object.keys(EPS_VALUATION_WEIGHTS).sort().join(','))return false;
+ return Object.entries(EPS_VALUATION_WEIGHTS).every(([k,max])=>q.weights[k]===max&&
+  finite(q.parts[k])&&Math.abs(q.parts[k]-result.parts[k])<=.000001);
+}
+function applyPersonalValuation(model,report){
+ if(!model||!Array.isArray(model.rows)||!report||
+    report.schema!=='v3-personal-stability-adjusted-score-v3'||
+    !validDate(report.asof)||report.asof>model.date||
+    report.official_investment_scores_certified!==false||report.missing_is_not_zero!==true||
+    !report.valuation_overrides||typeof report.valuation_overrides!=='object'||
+    Array.isArray(report.valuation_overrides))return 0;
+ let applied=0;
+ for(const {r} of model.rows){
+  const q=report.valuation_overrides[r.code];
+  if(validEPSValuation(q,r)){r.v3_personal_valuation=q;applied++;}
+ }
+ return applied;
 }
 function researchComposite(r){
  const pillars=pillarState(r);
@@ -933,6 +988,19 @@ function scorePillarExplanation(p,r){
    '</div><p>그 외 상승일 비율·추세 지속성·반전 폭 등은 관측 배점에 포함하지 않았습니다.</p>';
  }
  if((p.key==='financial'||p.key==='valuation')&&r){
+  const eps=r.v3_personal_valuation;
+  if(p.key==='valuation'&&validEPSValuation(eps,r)){
+   const labels={pbr:'PBR',earnings_yield_pct:'PER·이익수익률 참고',eps_growth:'EPS 성장',
+    eps_stability:'EPS 안정',fcf_yield:'FCF수익률',sales_to_market_cap:'매출/시총'};
+   detail='<p><b>가치20 개편 · 보고 EPS 반영</b> · '+esc(eps.asof)+' 기준'+
+    (eps.retained?' · 이전 유효값 유지':'')+'</p><div class="u-parts">'+
+    Object.entries(EPS_VALUATION_WEIGHTS).map(([key,max])=>'<div><span>'+labels[key]+
+     '</span><b>'+eps.parts[key].toFixed(2)+' / '+max+'</b></div>').join('')+'</div>'+
+    '<p>2023~2025 기본 EPS '+eps.eps.map(v=>v.toLocaleString('ko-KR')).join(' → ')+
+    ' · 동일 연간 공시·'+esc(eps.fs_div)+' 비교값. EPS 성장률은 3년 모두 흑자일 때만 사용하며, '+
+    '손실·0원 경로는 양의 성장 가점이 없습니다. 미래 실적이나 적정주가를 확정하지 않습니다.</p>';
+   return '<div class="u-score-row-explain">'+intro+detail+'</div>';
+  }
   const f=fcfEvidenceStatus(r);
   if(f.state==='matched'){
    const metric=p.key==='financial'?f.threeYear:f.latest;
@@ -1090,6 +1158,8 @@ function resolveComparePair(model,leftValue,rightValue){
  return {ok:true,left,right,a,b,
   sameDate:validDate(left.r.price_date)&&left.r.price_date===right.r.price_date&&
    left.r.price_date===model.date,
+  sameValuationModel:(validEPSValuation(left.r.v3_personal_valuation,left.r)?EPS_VALUATION_MODEL:'legacy')===
+   (validEPSValuation(right.r.v3_personal_valuation,right.r)?EPS_VALUATION_MODEL:'legacy'),
   sameCoverage:coverageVector(a.pillars)===coverageVector(b.pillars)};
 }
 // Compare the available ceilings of ALL five V3 pillars, not just their sum.
@@ -2125,7 +2195,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -2205,11 +2275,11 @@ function renderCompare(){
    '<td>'+points(q)+'<small>확보 '+q.available+'/'+q.max+
    (q.asof?' · '+esc(q.asof):'')+'</small></td></tr>';
  }).join('');
- const comparable=pair.sameDate&&pair.sameCoverage&&
+ const comparable=pair.sameDate&&pair.sameCoverage&&pair.sameValuationModel&&
   a.pillars.every((p,i)=>p.asof===b.pillars[i].asof);
  status.textContent=comparable?
   '두 종목의 관측 기준일과 5영역 확보 배점 구성이 같습니다. 투자성과나 원천 검증을 뜻하지 않습니다.':
-  '5개 영역의 관측 기준일 또는 확보 배점 구성이 달라 점수 우열을 직접 판단할 수 없습니다.';
+  '5개 영역의 관측 기준일·확보 배점 또는 가치 산식이 달라 점수 우열을 직접 판단할 수 없습니다.';
  results.innerHTML='<div class="u-compare-cards">'+cards+'</div>'+
   comparisonPillarBars(a,b,names,comparable)+
   '<details class="u-compare-table-details"><summary>영역별 정확한 점수·배점 수치표 펼치기</summary>'+
@@ -2441,7 +2511,7 @@ async function load(){
   'v3-current-observed-all-listed-summary.json',
   'v3-dart-industry-classification.json',
   'v3-dart-cashflow-issuer-evidence.json',
-  'v3-issuer-last-observed-factors.json'];
+  'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2479,6 +2549,7 @@ async function load(){
   // differs. Never double-add its FCF components to the already summed area.
   applyCurrentObservedFinance(model,responses[16],observedCsv);
   applyIssuerFactorLedger(model,responses[19]);
+  applyPersonalValuation(model,responses[20]);
   if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
    fiveAreaCoverageView(responses[16],model.date,model.marketEligible,model)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';

@@ -35,6 +35,10 @@ class PersonalAdjustmentTests(unittest.TestCase):
             return json.loads((ROOT / 'docs' / name).read_text())
         market, catalog, ledger = (read('data.json'), read('v22-market-catalog.json'),
                                    read('v3-issuer-last-observed-factors.json'))
+        if ledger['market_asof'] != catalog['date']:
+            with self.assertRaises(ValueError):
+                build(market, catalog, ledger)
+            return  # A close transition is unknown until the publisher replays it.
         actual, summary = build(market, catalog, ledger)
         raw = {r['code']: r for r in market['stocks']}
         keys = ('code', 'name', 'market', 'price_date', 'market_cap_eok',

@@ -6,6 +6,9 @@ on:
     paths:
       - v3_current_observed_scorecard.py
       - v3_stop_loss_severity.py
+      - v3_eps_valuation.py
+      - tests/test_v3_eps_valuation.py
+      - docs/v3-dart-reported-eps.json
       - v3_personal_score_adjustments.py
       - tests/test_v3_personal_score_adjustments.py
       - tests/test_v3_stop_loss_severity.py
@@ -44,6 +47,7 @@ on:
   # source commits from GITHUB_TOKEN do not activate normal push triggers.
   workflow_run:
     workflows:
+      - V3 Reported Annual EPS Comparatives
       - Full-Market 100-Stock Batches
       - V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)
       - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
@@ -87,6 +91,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
           python -m unittest discover -s tests -p 'test_v3_stop_loss_severity.py' -v
           python -m unittest discover -s tests -p 'test_v3_personal_score_adjustments.py' -v
+          python -m unittest discover -s tests -p 'test_v3_eps_valuation.py' -v
           python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
           python -m py_compile v3_near_100_observed_gap.py v3_dart_2025_owner_profit_probe.py
           python -m unittest discover -s tests -p 'test_v3_owner_profit_score_replay.py' -v
