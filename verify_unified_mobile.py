@@ -354,6 +354,8 @@ with sync_playwright() as p:
             and observed["observed_issuer_counts"]["valuation"] > 0):
         source_csv = context.request.get(URL + "v3-current-observed-all-listed.csv").text()
         source_rows = list(csv.DictReader(StringIO(source_csv.removeprefix(chr(0xfeff)))))
+        personal_response = context.request.get(URL + "v3-personal-adjusted-score-summary.json")
+        personal_source = personal_response.json() if personal_response.ok else {}
         listed_codes = {item["code"] for item in data["stocks"]}
         selected = next((
             item for item in source_rows
@@ -373,10 +375,13 @@ with sync_playwright() as p:
             ("valuation", "밸류에이션_잠정점수", "가치_산출배점"),
         ):
             cell = stock.locator(f'.u-compact-pillars span[data-pillar="{key}"]')
+            eps_value = personal_source.get('valuation_overrides', {}).get(selected['종목코드']) if key == 'valuation' else None
+            expected_points = eps_value['points'] if eps_value else float(selected[value_field])
+            expected_budget = 20 if eps_value else int(selected[budget_field])
             assert cell.locator("b").inner_text().strip() == (
-                f'{float(selected[value_field]):.1f}'
+                f'{expected_points:.1f}'
             ), f"{key} source-observed points missing in rendered card"
-            assert f'확보 {int(selected[budget_field])}/20' in cell.get_attribute("title")
+            assert f'확보 {expected_budget}/20' in cell.get_attribute("title")
             assert "미검증" in cell.get_attribute("title")
         page.locator("#stockSearch").fill("")
     page.locator("#researchPanel > summary").click()
@@ -550,6 +555,25 @@ with sync_playwright() as p:
     assert "5영역 잠정 점수" in details and "미인증" in details
     assert "손실 위험" in details
     page.locator("#detailClose").click()
+    personal_value = page.evaluate("""async () => {
+        const r=await fetch('v3-personal-adjusted-score-summary.json',{cache:'no-store'});
+        return r.ok?await r.json():null;
+    }""")
+    price_codes = {row['code'] for row in data['stocks']}
+    eps_candidates = [code for code in (personal_value or {}).get('valuation_overrides', {})
+                      if code in price_codes]
+    if eps_candidates:
+        page.locator('#stockSearch').fill(eps_candidates[0])
+        page.locator('.u-stock').first.click()
+        value_detail = page.locator('#detail .u-score-row[data-pillar="valuation"]')
+        if not value_detail.evaluate('(el) => el.open'):
+            value_detail.locator('summary').click()
+        assert '가치20 개편' in value_detail.inner_text()
+        assert 'EPS 성장' in value_detail.inner_text() and 'EPS 안정' in value_detail.inner_text()
+        assert '2023~2025 기본 EPS' in value_detail.inner_text()
+        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        page.locator('#detailClose').click()
+        page.locator('#stockSearch').fill('')
     for scope in ("patterns","rsi","quant","discover"):
         page.locator(f'[data-tab="{scope}"]').click()
         assert page.locator(f'[data-tab="{scope}"]').get_attribute("aria-pressed") == "true"

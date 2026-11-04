@@ -53,6 +53,28 @@ jobs:
           else:
               raise RuntimeError('local_pages_server_unavailable')
           PY
+      - name: Replay actual reported EPS model for the browser mirror without API calls
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from v3_eps_valuation import build as valuation
+          from v3_personal_score_adjustments import build, to_csv
+          root=Path('docs')
+          def read(name): return json.loads((root/name).read_text())
+          market,catalog,ledger=read('data.json'),read('v22-market-catalog.json'),read('v3-issuer-last-observed-factors.json')
+          if ledger['market_asof']!=catalog['date']:
+              print('waiting_for_current_close_ledger')
+          else:
+              prior=read('v3-personal-adjusted-score-summary.json')
+              eps=read('v3-dart-reported-eps.json') if (root/'v3-dart-reported-eps.json').is_file() else None
+              values,status=valuation(catalog,read('v3-dart-book-reference.json'),eps,ledger,prior.get('valuation_overrides'))
+              rows,summary=build(market,catalog,ledger,valuation_overrides=values)
+              summary['reported_eps_source_status']=status
+              (root/'v3-personal-adjusted-scores.csv').write_text(to_csv(rows),encoding='utf-8')
+              (root/'v3-personal-adjusted-score-summary.json').write_text(json.dumps(summary),encoding='utf-8')
+              print('reported_eps_model_issuers',summary['reported_eps_valuation_issuers'])
+          PY
       - name: Exercise real mobile Chromium against actual published market snapshot
         env:
           V3_UNIFIED_URL: http://127.0.0.1:8765/
