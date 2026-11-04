@@ -129,6 +129,50 @@ def collect(storage):
     }
 
 
+
+def verify_published_snapshot(published, latest):
+    """Accept a source-verified *earlier* cursor while the private writer advances.
+
+    Every published snapshot was independently checked by --mode write. A new
+    private page may arrive before --mode verify re-reads the cursor; that is
+    normal monotonic progress, not an invalid report. Never accept regression
+    beyond the live cursor, impossible derived month fields, altered flags, or
+    a new public key that might disclose private identifiers.
+    """
+    dynamic = {
+        "filing_months_checkpointed", "filing_months_remaining",
+        "filing_months_checkpointed_ratio",
+        "last_checkpointed_filing_month",
+        "current_collection_filing_month",
+        "private_receipt_pages_checkpointed",
+        "private_filing_receipts_checkpointed",
+    }
+    if type(published) is not dict or published.keys() != latest.keys():
+        raise DARTProgressError("public_dart_progress_report_invalid")
+    for key in latest.keys() - dynamic:
+        if published[key] != latest[key]:
+            raise DARTProgressError("public_dart_progress_report_invalid")
+    months = published["filing_months_checkpointed"]
+    pages = published["private_receipt_pages_checkpointed"]
+    receipts = published["private_filing_receipts_checkpointed"]
+    if (any(type(x) is not int for x in (months, pages, receipts))
+        or not 0 <= months <= latest["filing_months_checkpointed"]
+        or not 0 <= pages <= latest["private_receipt_pages_checkpointed"]
+        or not 0 <= receipts <= latest["private_filing_receipts_checkpointed"]
+        or pages < months * len(CATEGORIES)
+        or receipts > pages * 100
+        or (pages == 0) != (months == 0 and receipts == 0)):
+        raise DARTProgressError("public_dart_progress_report_invalid")
+    expected = {
+        "filing_months_remaining": len(MONTHS) - months,
+        "filing_months_checkpointed_ratio": round(months / len(MONTHS), 6),
+        "last_checkpointed_filing_month": MONTHS[months - 1] if months else None,
+        "current_collection_filing_month": MONTHS[months] if months < len(MONTHS) else None,
+    }
+    if any(published[key] != value for key, value in expected.items()):
+        raise DARTProgressError("public_dart_progress_report_invalid")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs", default="docs")
@@ -155,8 +199,7 @@ def main(argv=None):
             published = json.loads(target.read_text(encoding="utf-8"))
         except Exception:
             raise DARTProgressError("public_dart_progress_report_missing") from None
-        if published != report:
-            raise DARTProgressError("public_dart_progress_report_stale")
+        verify_published_snapshot(published, report)
     print(json.dumps({
         "status": "private_dart_aggregate_progress_only",
         "months_checkpointed": report["filing_months_checkpointed"],
