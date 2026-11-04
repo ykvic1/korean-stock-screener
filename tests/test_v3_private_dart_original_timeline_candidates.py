@@ -14,6 +14,21 @@ def source(body, name="document.xml", encoding="utf-8"):
 
 
 class OriginalTimelineCandidateTests(unittest.TestCase):
+    def test_missing_table_date_never_borrows_an_unrelated_following_row(self):
+        for close in ("</TR>", "</tr>", "</ tr >"):
+            with self.subTest(close=close):
+                raw = source(
+                    "<DOCUMENT><TABLE><TR><TD>합병기일</TD><TD>미정</TD>" + close +
+                    "<TR><TD>이사회결의일</TD><TD>2026-11-04</TD></TR>"
+                    "<TR><TD>변경상장예정일</TD><TD>2026-11-09</TD></TR>"
+                    "</TABLE></DOCUMENT>")
+                result = timeline.inspect_original_zip(raw)
+                self.assertEqual([(r["label"], r["candidate_date"])
+                                  for r in result["candidate_dates"]],
+                                 [("변경상장예정일", "2026-11-09")])
+                self.assertFalse(result["effective_date_authenticated"])
+                timeline.validate_candidate_summary(result)
+
     def test_date_cues_are_candidates_not_authenticated_effective_dates(self):
         raw = source(
             "<DOCUMENT><TITLE>정정신고서</TITLE>"
