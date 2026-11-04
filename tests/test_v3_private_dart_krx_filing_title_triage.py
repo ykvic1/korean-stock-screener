@@ -14,6 +14,16 @@ import v3_private_dart_krx_adjacent_month as adjacent
 import v3_private_dart_krx_filing_title_triage as triage
 
 
+class AlphanumericReceiptCompatibilityTests(unittest.TestCase):
+    def test_nonmatching_alphanumeric_receipt_does_not_discard_numeric_shortlist(self):
+        events, *_ = risk_events()
+        receipts = rows(None, "2016-10") + rows(None, "2016-11")
+        expected = triage._shortlist(events, receipts, "2016-10", "2016-11")
+        extra = {**receipts[-1], "stock_code": "0013V0", "rcept_no": "20161103000004"}
+        self.assertEqual(triage._shortlist(events, receipts + [extra],
+                                         "2016-10", "2016-11"), expected)
+
+
 class Private:
     repository = triage.PRIVATE_REPO
 
