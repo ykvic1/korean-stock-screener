@@ -27,6 +27,9 @@ from v3_private_dart_krx_filing_title_triage import (
     _cursor as triage_cursor, _path as triage_path,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
+from v3_private_dart_original_timeline_candidates import (
+    inspect_original_zip, validate_candidate_summary, TimelineCandidateError,
+)
 
 
 SCHEMA = "v3-private-opendart-original-document-evidence-v1"
@@ -339,6 +342,11 @@ def _validate_report(raw, index, receipt, record):
         elif (x.get("source_zip_path") is not None
               or x.get("zip_metadata") is not None):
             raise ValueError()
+        inspection = x.get("date_candidate_inspection")
+        if inspection is not None:
+            if x["source_status"] != "zip_archived_unparsed":
+                raise ValueError()
+            validate_candidate_summary(inspection)
         return x
     except Exception:
         raise OriginalEvidenceError("invalid_private_original_receipt_report") from None
@@ -376,6 +384,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
     # A bounded run may resume previously written immutable ZIPs or reports
     # after a failed checkpoint PUT without repeating the upstream API call.
     api_calls = saved = unavailable = oversized = quarantined = reused = advanced = new_zips = 0
+    candidate_dates = 0
     last_path, last_digest = state["last_report_file"], state["last_report_digest"]
     while j < len(queue) and advanced < max_calls:
         record = queue[j]
@@ -434,6 +443,11 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                 "source_status": status,
                 "zip_metadata": details if kind == "zip" else None,
                 "source_zip_path": source_path if kind == "zip" else None,
+                # A date-like field in a ZIP is only an inspection candidate.
+                # Old immutable reports without this optional field stay valid.
+                "date_candidate_inspection": (
+                    inspect_original_zip(archived) if kind == "zip" else None
+                ),
                 "provider_status": details.get("provider_status") if kind == "source_unavailable"
                                    else None,
                 "corporate_action_authenticated": False,
@@ -449,6 +463,9 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
             if observed != encoded:
                 raise OriginalEvidenceError("private_original_receipt_report_readback_failed")
             _validate_report(observed, i, receipt, record)
+        inspected = report.get("date_candidate_inspection")
+        if inspected is not None:
+            candidate_dates += len(validate_candidate_summary(inspected)["candidate_dates"])
         saved += int(report["source_status"] == "zip_archived_unparsed")
         unavailable += int(report["source_status"] == "unavailable_no_negative_inference")
         oversized += int(report["source_status"] == "source_oversize_not_archived")
@@ -487,6 +504,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         "source_oversize_receipts": oversized,
         "unsafe_original_zip_receipts_quarantined": quarantined,
         "already_archived_receipts_reused": reused,
+        "unverified_original_date_candidates": candidate_dates,
         "provider_calls": api_calls,
         "remaining_receipts_in_pair": (len(queue)-j if i == state["next_pair_index"] else 0),
         "corporate_actions_verified": 0,
