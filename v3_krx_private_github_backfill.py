@@ -175,6 +175,29 @@ class PrivateGitStorage:
                     issue.safe_http_status=f"http_{exc.code}"
                 else:
                     issue.safe_http_status="http_other"
+                if issue.safe_http_status in ("http_403_rate_limited", "http_429"):
+                    # Only a bounded numeric delay crosses the transport boundary.
+                    # No response text, private path or arbitrary header is retained.
+                    delays = []
+                    invalid_delay = False
+                    for header, absolute in (("Retry-After", False),
+                                             ("X-RateLimit-Reset", True)):
+                        value = response_headers.get(header)
+                        if value is None:
+                            continue
+                        if absolute and response_headers.get("X-RateLimit-Remaining") != "0":
+                            continue
+                        if (type(value) is str and value.isascii()
+                            and value.isdecimal() and len(value) <= 12):
+                            seconds = int(value) - int(time.time()) if absolute else int(value)
+                            if 0 <= seconds <= 3600:
+                                delays.append(seconds + 5)
+                            else:
+                                invalid_delay = True
+                        else:
+                            invalid_delay = True
+                    if delays and not invalid_delay:
+                        issue.safe_retry_after_seconds = max(delays)
                 raise issue from None
             except PrivateHistoryError:
                 # Size/validation circuit breakers are not transport glitches.

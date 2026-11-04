@@ -19,11 +19,51 @@ from v3_dart_historical_event_receipts import (
     public_failure_code,
     run,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 MAX_BATCHES = 50
 MAX_PROVIDER_CALLS = MAX_BATCHES * MAX_API_CALLS
 MAX_SECONDS = 5 * 60 * 60
+
+
+class QuotaWaitingPrivateGitStorage(PrivateGitStorage):
+    """Resume a rejected GET after a bounded quota cooldown, within this run.
+
+    PUTs retain the transport's fail-fast contract: never replay a possibly
+    committed write. The next run reconciles its immutable page and CAS cursor.
+    Permission errors, source corruption and unclassified failures still stop.
+    """
+    def __init__(self, repository, token, *, deadline, clock=None, sleeper=None):
+        super().__init__(repository, token)
+        self.clock = time.monotonic if clock is None else clock
+        self.sleeper = time.sleep if sleeper is None else sleeper
+        self.deadline = deadline
+        self.quota_pauses = 0
+
+    def _http(self, method, path, body=None):
+        while True:
+            try:
+                return super()._http(method, path, body)
+            except PrivateHistoryError as exc:
+                delay = getattr(exc, "safe_retry_after_seconds", None)
+                if (method != "GET" or type(exc) is not PrivateHistoryError
+                    or exc.args != ("private_storage_api_failed",)
+                    or getattr(exc, "safe_http_status", None) not in
+                        ("http_403_rate_limited", "http_429")
+                    or type(delay) is not int or not 5 <= delay <= 3605
+                    or self.quota_pauses >= 3
+                    or self.clock() + delay + 30 >= self.deadline):
+                    raise
+                self.quota_pauses += 1
+                print("private_github_read_quota_cooldown", flush=True)
+                until = self.clock() + delay
+                while True:
+                    remaining = until - self.clock()
+                    if remaining <= 0:
+                        break
+                    self.sleeper(min(30, remaining))
+                # Retry only this rejected read. No provider fetch, new page,
+                # checkpoint write or segment accounting is replayed here.
 
 
 def continuous_catchup(collect, *, clock=None, max_batches=MAX_BATCHES,
@@ -96,8 +136,9 @@ def main():
         or len(os.environ.get("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20
         or len(os.environ.get("DART_API_KEY", "")) != 40):
         raise SystemExit("blocked: required private DART research credentials absent")
-    storage = PrivateGitStorage(PRIVATE_REPO,
-                                os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
+    storage = QuotaWaitingPrivateGitStorage(
+        PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"],
+        deadline=time.monotonic() + MAX_SECONDS)
     key = os.environ["DART_API_KEY"]
     try:
         summary = continuous_catchup(
