@@ -17,7 +17,7 @@ import os
 import re
 from urllib import parse, request
 
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 
 SCHEMA = "v3-private-dart-historical-filing-receipts-v1"
 CHECKPOINT = "derived/dart-filing-receipts/checkpoint.json"
@@ -421,6 +421,13 @@ SAFE_PUBLIC_DART_FAILURE_CODES = frozenset({
 
 def public_failure_code(error):
     """Strictly bounded diagnostic label, never the exception's raw message."""
+    # A 403 secondary/primary limit and a 429 are quota signals, not bad
+    # DART receipt data. Report only a fixed label, no private HTTP details.
+    if (type(error) is PrivateHistoryError
+        and error.args == ("private_storage_api_failed",)
+        and getattr(error, "safe_http_status", None) in (
+            "http_403_rate_limited", "http_429")):
+        return "private_dart_github_api_rate_limited"
     if (type(error) is DARTEventReceiptError and len(error.args)==1
         and type(error.args[0]) is str
         and error.args[0] in SAFE_PUBLIC_DART_FAILURE_CODES):

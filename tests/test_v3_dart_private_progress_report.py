@@ -73,6 +73,25 @@ def fixture_mid_category():
 
 
 class HistoricalReceiptProgressTests(unittest.TestCase):
+    def test_public_progress_error_codes_do_not_leak_private_transport_details(self):
+        limit=p.PrivateHistoryError("private_storage_api_failed")
+        limit.safe_http_status="http_403_rate_limited"
+        limit.safe_http_operation="read_repository_metadata"
+        self.assertEqual(
+            p.public_progress_failure_code(limit),
+            "private_dart_progress_github_api_rate_limited")
+        limit.safe_http_status="http_429"
+        self.assertEqual(
+            p.public_progress_failure_code(limit),
+            "private_dart_progress_github_api_rate_limited")
+        limit.safe_http_status="http_403"
+        self.assertEqual(
+            p.public_progress_failure_code(limit),
+            "private_dart_progress_validation_or_transport_failed")
+        self.assertEqual(
+            p.public_progress_failure_code(RuntimeError("SYNTHETIC_PRIVATE_TOKEN")),
+            "private_dart_progress_validation_or_transport_failed")
+
     def test_verified_private_tail_yields_anonymous_no_provider_aggregate(self):
         storage = fixture()
         result = p.collect(storage)
