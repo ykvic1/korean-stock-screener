@@ -27,6 +27,7 @@ import math
 from pathlib import Path
 
 from v3_volume_participation import build as volume_build
+from v3_actual_money_participation import OUTPUT as MONEY_OUTPUT
 from v3_current_price_replay import build as price_build
 from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points
@@ -261,9 +262,9 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
 
 
 def generate(market,catalog,volume,price,financial=None,cashflow=None,
-             path_coverage_receipt=None):
+             path_coverage_receipt=None,money_source=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
-    true_volume=volume_build(market,catalog)
+    true_volume=volume_build(market,catalog,money_source=money_source)
     true_price=price_build(market,catalog)
     if volume!=true_volume or price!=true_price:
         raise LivePartialScorecardError("not_exact_same_day_source_replay")
@@ -481,6 +482,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         available_weight_distribution[str(available)]=available_weight_distribution.get(str(available),0)+1
         output.append({
             "code":code,"name":listed["name"],"market":listed["market"],
+            **({"volume_money_source_asof":v["sustained_participation_source"]["daily_asof"],
+                "volume_money_weekly_asof":v["sustained_participation_source"]["weekly_session_end"]}
+               if v is not None and v.get("sustained_participation_source") else {}),
             "asof":asof,"earned":rounded_observed_total(values.values())
                                   if available else None,
             "available":available,"unavailable":100-available,
@@ -598,7 +602,7 @@ def to_csv(rows,summary):
         "재무_산출배점","가치_산출배점",
         "FCF자산3년_잠정점수","FCF수익률_잠정점수",
         "손절거리_참고_퍼센트","손절심각도_연구가감점_총점미반영",
-        "손절심각도_연구상태"])
+        "손절심각도_연구상태","거래대금_일봉자료기준일","거래대금_주봉자료기준일"])
     for row in rows:
         v=row["factors"]
         a=row["factor_available"]
@@ -620,7 +624,8 @@ def to_csv(rows,summary):
                 else row["stop_loss_severity_research"]["stop_distance_pct"],
             "" if row["stop_loss_severity_research"]["research_adjustment_points_not_applied"] is None
                 else row["stop_loss_severity_research"]["research_adjustment_points_not_applied"],
-            row["stop_loss_severity_research"]["status"]
+            row["stop_loss_severity_research"]["status"],
+            row.get("volume_money_source_asof",""),row.get("volume_money_weekly_asof","")
         ])
     return "\ufeff"+sink.getvalue()
 
@@ -682,7 +687,8 @@ def main(argv=None):
             cashflow,_=candidate
     except (OSError,ValueError,KeyError):
         cashflow=None
-    volume=(volume_build(market,catalog) if args.refresh_derived
+    money_source=read(MONEY_OUTPUT) if (root/MONEY_OUTPUT).is_file() else None
+    volume=(volume_build(market,catalog,money_source=money_source) if args.refresh_derived
             else read("v3-volume-obv-observed.json"))
     price=(price_build(market,catalog) if args.refresh_derived
            else read("v3-current-price-technical-momentum.json"))
@@ -690,7 +696,7 @@ def main(argv=None):
         market,catalog,volume,
         price,
         financial=financial,cashflow=cashflow,
-        path_coverage_receipt=path_coverage_receipt)
+        path_coverage_receipt=path_coverage_receipt,money_source=money_source)
     new_csv=to_csv(rows,summary)
     # Per-stock history is additive: a new market census never erases an
     # unrelated issuer's last valid observations. Its dated values are NOT

@@ -932,6 +932,30 @@ assert.match(unified.scorePillarExplanation(
  {key:'volume',max:20,candidate:13,available:16},withVolume),
  /거래량 급증 후 매물 소화/);
 
+// Actual money replaces only the sustained six-point factor, with honest source dates.
+{
+ const money={...volumeRow,sustained_participation_source:{
+  model:'actual-money-disjoint-d4-w5-persistence-concentration-v1',
+  daily_asof:'2026-10-20',weekly_session_end:'2026-10-16',
+  actual_acc_trdval:true,calendar_week_grouping:true,single_day_points:0,
+  retained_prior_source:false,certified:false}};
+ const company={...row,v3_volume_observed:money};
+ assert.equal(unified.observedVolumeEvidence(company).earned,13);
+ assert.match(unified.volumeParts(company),/다중기간 실제 거래대금/);
+ assert.match(unified.volumeParts(company),/20·60·120·240일/);
+ assert.match(unified.volumeParts(company),/120주/);
+ assert.match(unified.volumeParts(company),/2026-10-16/);
+ assert.doesNotMatch(unified.volumeParts(company),/최근20일\/이전40일 거래량/);
+ for(const changed of [{single_day_points:1},{certified:true},{daily_asof:'2027-01-01'},
+                       {retained_prior_source:true},{calendar_week_grouping:false}]){
+  assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:{...money,
+   sustained_participation_source:{...money.sustained_participation_source,...changed}}}),null);
+ }
+ const retained={...money,sustained_participation_source:{...money.sustained_participation_source,
+  daily_asof:'2026-10-19',retained_prior_source:true}};
+ assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:retained}).earned,13);
+}
+
 const partialVolume={...volumeRow,observed_points:7,observed_available_max:10,
  unobserved_max:10,subpoints:{...volumeRow.subpoints,
   ma20_ma60_cross_near_ma240:null}};

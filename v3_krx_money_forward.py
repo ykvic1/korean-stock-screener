@@ -17,13 +17,13 @@ import os
 import time as retry_clock
 from zoneinfo import ZoneInfo
 
-from official_probe.clients import KRXClient
+from official_probe.clients import KRXClient, KRXProbeError
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_private_github_backfill import PrivateGitStorage
 from v3_krx_money_backfill import (
     END as HIST_END, history_candidates, MAX_DERIVED_BYTES, _canonical,
-    _path,
+    _path, _safe_source_failure_diagnostics, _safe_private_failure_diagnostics,
 )
 from v3_krx_money_5day import store_money_five_days, validate_money_blob
 
@@ -199,6 +199,24 @@ def collect(store, client, dates, windows=MAX_WINDOWS_PER_RUN):
     }
 
 
+class RetryingMoneyClient:
+    """Bounded transient GET retry; no auth/quota/schema retries."""
+    def __init__(self, client):
+        self.client=client
+        self.requests=0
+    def daily_market(self, market, day):
+        for attempt in range(3):
+            if self.requests>=240:
+                raise ForwardMoneyError('forward_source_request_budget_exceeded')
+            self.requests+=1
+            try:
+                return self.client.daily_market(market,day)
+            except KRXProbeError as error:
+                if attempt==2 or error.reason not in ('empty_body','transport_failure','http_server_error'):
+                    raise
+                retry_clock.sleep(attempt+1)
+
+
 def main():
     if (not os.getenv("KRX_API_KEY", "").strip()
         or os.getenv("V3_PRIVATE_ARCHIVE_REPO") != PRIVATE_REPO
@@ -212,17 +230,24 @@ def main():
         dates = forward_candidates(cutoff.isoformat())
         stage = "private_forward_collection"
         stored = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
-        result = collect(stored, KRXClient(os.environ["KRX_API_KEY"]), dates,
+        client=RetryingMoneyClient(KRXClient(os.environ["KRX_API_KEY"]))
+        result = collect(stored, client, dates,
                          windows=int(os.getenv("V3_MONEY_FORWARD_WINDOWS", "8")))
+        result["current_run_source_requests_including_retries"]=client.requests
         print(json.dumps(result, sort_keys=True))
         return 0
     except Exception as exc:
         known = isinstance(exc, ForwardMoneyError)
+        safe_reason=exc.reason if isinstance(exc,KRXProbeError) else None
         print(json.dumps({
             "status": "blocked",
             "category": str(exc) if known else "untrusted_forward_source_error",
+            "krx_allowlisted_failure_reason":safe_reason,
+            "http_status":exc.http_status if isinstance(exc,KRXProbeError) else None,
             "stage": stage,
             "source_payload_logged": False,
+            **_safe_source_failure_diagnostics(exc),
+            **_safe_private_failure_diagnostics(exc),
         }, sort_keys=True))
         return 1
 

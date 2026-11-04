@@ -26,6 +26,7 @@ from pathlib import Path
 from v22_full_universe_audit import audit_published_universe
 from v3_dart_bulk_history import _stable_digest, write_json
 from v3_ma240_cross_research import valid_observation as valid_ma_cross
+from v3_actual_money_participation import usable_records, MODEL as MONEY_MODEL, OUTPUT as MONEY_OUTPUT
 
 SCHEMA="v3-current-market-volume-ma-cross-provisional-research-0.2"
 MAX_POINTS=20
@@ -42,7 +43,7 @@ def _finite(value):
     return type(value) in (int,float) and math.isfinite(value)
 
 
-def observed(stock, *, asof, market):
+def observed(stock, *, asof, market, money=None):
     """Return small derived score, or None if dated input isn't trustworthy."""
     if (not isinstance(stock,dict) or stock.get("price_date")!=asof
         or stock.get("market")!=market):
@@ -65,12 +66,14 @@ def observed(stock, *, asof, market):
                4 if 1.05<=ratio<1.25 else
                2 if 0.85<=ratio<1.05 else
                1 if ratio>3 else 0)
+    if money is not None:
+        vol_score=money["points"]
     cross=stock.get("v3_ma240_cross_research")
     cross_usable=valid_ma_cross(cross,asof) if cross is not None else False
     cross_score=(6 if cross["qualified"] else 0) if cross_usable else None
     lag_score=4 if divergence else 0
     risks=[]
-    if ratio>3:
+    if ratio>3 and money is None:
         risks.append("excess_20day_volume_not_accumulation")
     if price60<-12:
         risks.append("price_downtrend_requires_support_confirmation")
@@ -82,7 +85,7 @@ def observed(stock, *, asof, market):
             "post_spike_absorption":None}
     points=sum(value for value in scores.values() if value is not None)
     available=BASE_AVAILABLE_MAX+(6 if cross_usable else 0)
-    return {
+    result = {
         "asof":asof,"market":market,"observed_points":points,
         "observed_available_max":available,"unobserved_max":20-available,
         "subpoints":scores,"risk_flags":risks,
@@ -92,6 +95,15 @@ def observed(stock, *, asof, market):
         "investable_score_certified":False,
         "trading_signal_authorized":False,
     }
+
+    if money is not None:
+        result["sustained_participation_source"]={
+            "model":MONEY_MODEL,"daily_asof":money["asof"],
+            "retained_prior_source":money["asof"]!=asof,
+            "weekly_session_end":money["weekly_session_end"],
+            "actual_acc_trdval":True,"calendar_week_grouping":True,
+            "single_day_points":0,"certified":False}
+    return result
 
 
 def market_cap_bias_diagnostic(results, members):
@@ -167,7 +179,7 @@ def market_cap_bias_diagnostic(results, members):
     }
 
 
-def build(market,catalog):
+def build(market,catalog,money_source=None):
     """One CURRENT market-date census, all unpriced issuers still missing."""
     try:
         audit=audit_published_universe(market)
@@ -189,6 +201,7 @@ def build(market,catalog):
             entry.get("market") not in ("KOSPI","KOSDAQ")):
             raise VolumeEvidenceError("invalid_listed_issuer_identity")
         members[entry["code"]]=entry
+    money_rows=usable_records(money_source,catalog)
     results={}
     source_usable=0
     for stock in market["stocks"]:
@@ -200,7 +213,7 @@ def build(market,catalog):
             item.get("price_history_status")!="priced"):
             raise VolumeEvidenceError("priced_issuer_catalog_mismatch")
         source_usable+=1
-        score=observed(stock,asof=day,market=item["market"])
+        score=observed(stock,asof=day,market=item["market"],money=money_rows.get(code))
         if score is not None:
             results[code]=score
     if source_usable!=market["candidate_count"] or len(results)>source_usable:
@@ -245,7 +258,7 @@ def to_csv(report,catalog):
     writer.writerow([
         "종목코드","종목명","시장","시장자료기준일",
         "거래량_OBV_잠정점수_20점중","산출가능배점_20점중",
-        "미확보배점_20점중","20일거래량_점수_6점",
+        "미확보배점_20점중","지속참여_거래량또는거래대금_점수_6점",
         "20_60골든크로스_240일선12퍼센트_점수_6점","OBV_주가미반영_점수_4점",
         "거래급증후매물소화_점수_4점","관측상태","위험신호",
         "매수주체판별","정식투자점수"
@@ -301,7 +314,8 @@ def main(argv=None):
     def read(name):
         return json.loads((root/name).read_text(encoding="utf8"))
     catalog=read("v22-market-catalog.json")
-    value=build(read("data.json"),catalog)
+    money=read(MONEY_OUTPUT) if (root/MONEY_OUTPUT).is_file() else None
+    value=build(read("data.json"),catalog,money_source=money)
     path=root/"v3-volume-obv-observed.json"
     sheet=root/"v3-volume-obv-observed.csv"
     csv_source=to_csv(value,catalog)
