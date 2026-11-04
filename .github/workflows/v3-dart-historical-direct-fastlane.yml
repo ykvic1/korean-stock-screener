@@ -10,6 +10,14 @@ on:
   # remain a fail-safe if quota or transport forces another attempt.
   schedule:
     - cron: '31 * * * *' # hourly UTC fallback; active long run supersedes short slots
+  # GitHub may delay/drop scheduled events. A successfully completed short
+  # official DART collection is also a safe, source-locked catch-up trigger.
+  # No loop: the short collector does not listen to this workflow.
+  workflow_run:
+    workflows:
+      - V3 Private Historical OpenDART Filing Receipts (Research Only)
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -56,7 +64,12 @@ jobs:
         if: >-
           ${{ github.event_name == 'schedule' ||
               (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
-              (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous direct DART fast-lane until 120 months')) }}
+              (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous direct DART fast-lane until 120 months')) ||
+              (github.event_name == 'workflow_run' &&
+               github.event.workflow_run.conclusion == 'success' &&
+               github.event.workflow_run.event == 'schedule' &&
+               github.event.workflow_run.head_branch == 'main' &&
+               github.event.workflow_run.head_repository.full_name == github.repository) }}
         run: |
           set -euo pipefail
           python -c 'import json,os; from v3_dart_historical_event_receipts import public_progress_complete; d=json.load(open("docs/v3-dart-historical-receipt-progress.json",encoding="utf-8")); v="true" if public_progress_complete(d) else "false"; open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8").write("done="+v+"\n"); print("archive_120_months_gate_"+v)'
