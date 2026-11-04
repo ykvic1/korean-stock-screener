@@ -7,7 +7,11 @@ import unittest
 from v3_krx_money_5day import (
     derive, validate_money_blob, DerivedSourceError, store_money_five_days,
 )
-from v3_krx_money_backfill import collect, _manifest, SCHEMA as CHECKPOINT_SCHEMA
+from v3_krx_money_backfill import (
+    collect, _manifest, _safe_private_failure_diagnostics,
+    SCHEMA as CHECKPOINT_SCHEMA,
+)
+from v3_krx_private_github_backfill import PrivateHistoryError
 
 
 def sample_days(n=10):
@@ -121,6 +125,33 @@ class ActualMoneyDerivationTests(unittest.TestCase):
         self.assertEqual(saved["schema"], CHECKPOINT_SCHEMA)
         self.assertEqual(saved["next_window_index"], 2)
         self.assertEqual(saved["raw_source_file_count"], 0)
+
+    def test_private_archive_failures_are_diagnosed_without_secret_or_path(self):
+        blocked = PrivateHistoryError("private_storage_api_failed")
+        blocked.safe_http_operation = "read_private_content"
+        blocked.safe_http_status = "http_403_rate_limited"
+        report = _safe_private_failure_diagnostics(blocked)
+        self.assertEqual(report["category"], "private_archive_rejected")
+        self.assertEqual(report["private_failure_code"], "private_storage_api_failed")
+        self.assertEqual(report["private_operation"], "read_private_content")
+        self.assertEqual(report["private_http_class"], "http_403_rate_limited")
+        self.assertFalse(report["source_payload_logged"])
+
+        budget = _safe_private_failure_diagnostics(
+            PrivateHistoryError("private_repository_budget_exceeded"))
+        self.assertEqual(budget["private_failure_code"],
+                         "private_repository_budget_exceeded")
+        self.assertNotIn("private_http_class", budget)
+
+        malicious = PrivateHistoryError("Bearer secret at private/path")
+        malicious.safe_http_operation = "private/path"
+        malicious.safe_http_status = "Bearer secret"
+        unknown = _safe_private_failure_diagnostics(malicious)
+        self.assertEqual(unknown["private_failure_code"],
+                         "other_private_archive_failure")
+        self.assertNotIn("private_operation", unknown)
+        self.assertNotIn("private_http_class", unknown)
+        self.assertNotIn("secret", json.dumps(unknown))
 
     def test_corrupt_or_raw_column_blob_is_rejected(self):
         days = sample_days()[:5]
