@@ -32,7 +32,9 @@ from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryErro
 SCHEMA = "v3-private-opendart-original-document-evidence-v1"
 CHECKPOINT = "derived/dart-original-evidence/checkpoint.json"
 BASE = "derived/dart-original-evidence"
-MAX_API_CALLS = 2
+# Keep official ZIP retrieval bounded: up to six independently checked private
+# source documents per scheduled run (never a broad all-issuer download).
+MAX_API_CALLS = 6
 MAX_ZIP_BYTES = 900_000   # below private GitHub transport's own 1MB cap
 MAX_EXPANDED_BYTES = 12_000_000
 MAX_FILES = 100
