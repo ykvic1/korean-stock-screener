@@ -46,6 +46,33 @@ class OriginalTimelineCandidateTests(unittest.TestCase):
                 self.assertEqual(result["candidate_dates"], [])
                 timeline.validate_candidate_summary(result)
 
+    def test_same_row_unrelated_cell_date_cannot_be_borrowed(self):
+        for label, kind in (("합병기일", "candidate_dates"),
+                            ("정정대상 공시서류의 최초제출일", "correction")):
+            for first_value in ("미정", "-"):
+                with self.subTest(label=label, first_value=first_value):
+                    raw = source(
+                        "<DOCUMENT><TABLE><TR><TH>" + label + "</TH><TD>" + first_value +
+                        "</TD><TD>작성일 2026-11-04</TD></TR></TABLE></DOCUMENT>")
+                    result = timeline.inspect_original_zip(raw)
+                    self.assertEqual(result["candidate_dates"], [])
+                    self.assertEqual(result["correction_original_filing_date_inspection"]
+                                     ["candidate_dates"], [])
+                    timeline.validate_candidate_summary(result)
+
+    def test_same_cell_and_adjacent_value_cell_still_capture_real_dates(self):
+        for body in (
+            "<TR><TD>합병기일 2026-11-04</TD><TD>작성일 2026-11-09</TD></TR>",
+            "<TR><TH>합병기일</TH><TD>2026-11-04</TD><TD>작성일 2026-11-09</TD></TR>",
+            "<TR><TH>합병기일 :</TH><TD>2026-11-04</TD><TD>작성일 2026-11-09</TD></TR>",
+        ):
+            with self.subTest(body=body):
+                result = timeline.inspect_original_zip(source("<DOCUMENT>" + body + "</DOCUMENT>"))
+                self.assertEqual([(r["label"], r["candidate_date"])
+                                  for r in result["candidate_dates"]],
+                                 [("합병기일", "2026-11-04")])
+                timeline.validate_candidate_summary(result)
+
     def test_correction_only_document_does_not_invent_an_effective_day(self):
         result = timeline.inspect_original_zip(source(
             "<DOCUMENT>정 정 대 상 공 시 서 류 의 최 초 제 출 일 20261020</DOCUMENT>",
