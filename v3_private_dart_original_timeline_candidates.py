@@ -34,6 +34,10 @@ _DATE_SEPARATED = re.compile(
 _DATE_COMPACT = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
 _TAG = re.compile(r"<[^>]{0,2000}>", re.DOTALL)
 _DIGEST = re.compile(r"[a-f0-9]{64}\Z")
+# Prefer the longest cue, so "분할합병기일" cannot also emit "합병기일".
+_LABEL_PATTERN = re.compile("|".join(
+    re.escape(label) for label in sorted(LABELS, key=len, reverse=True)
+))
 
 
 class TimelineCandidateError(ValueError):
@@ -41,16 +45,18 @@ class TimelineCandidateError(ValueError):
 
 
 def _day_after_label(text):
-    possibilities = []
-    for expression in (_DATE_SEPARATED, _DATE_COMPACT):
-        match = expression.search(text)
-        if match:
-            try:
-                day = date(*(int(group) for group in match.groups()))
-                possibilities.append((match.start(), day.isoformat()))
-            except ValueError:
-                continue
-    return min(possibilities)[1] if possibilities else None
+    # A malformed first date must not silently fall through to a later date.
+    matches = sorted(
+        (match.start(), match)
+        for expression in (_DATE_SEPARATED, _DATE_COMPACT)
+        for match in expression.finditer(text)
+    )
+    if not matches:
+        return None
+    try:
+        return date(*(int(group) for group in matches[0][1].groups())).isoformat()
+    except ValueError:
+        return None
 
 
 def _text(raw):
@@ -99,27 +105,16 @@ def inspect_original_zip(raw):
                 scanned += 1
                 correction_mentioned |= "정정" in source
                 member_sha = sha256(raw_member).hexdigest()
-                for label in LABELS:
-                    for mark in re.finditer(re.escape(label), source):
-                        context = source[mark.end():mark.end() + 100]
-                        # If a second known field starts before the first date,
-                        # do not attribute that other field's value to this one.
-                        candidate = _day_after_label(context)
-                        if candidate is None:
-                            continue
-                        first_date = min(
-                            (m.start() for expression in
-                             (_DATE_SEPARATED, _DATE_COMPACT)
-                             for m in expression.finditer(context)),
-                            default=101,
-                        )
-                        next_field = min(
-                            (context.find(other) for other in LABELS
-                             if other != label and context.find(other) >= 0),
-                            default=101,
-                        )
-                        if next_field < first_date:
-                            continue
+                for mark in _LABEL_PATTERN.finditer(source):
+                    label = mark.group()
+                    next_field = _LABEL_PATTERN.search(source, mark.end())
+                    boundary = min(
+                        mark.end() + 100,
+                        next_field.start() if next_field else len(source),
+                    )
+                    # Never borrow a date from the next named field.
+                    candidate = _day_after_label(source[mark.end():boundary])
+                    if candidate is not None:
                         seen.add((label, candidate, member_sha))
     except (BadZipFile, OSError, RuntimeError, ValueError) as error:
         if isinstance(error, TimelineCandidateError):
