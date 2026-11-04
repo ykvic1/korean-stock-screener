@@ -36,7 +36,9 @@ _DATE_SEPARATED = re.compile(
 _DATE_COMPACT = re.compile(r"(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)")
 _TAG = re.compile(r"<[^>]{0,2000}>", re.DOTALL)
 _ROW_END = re.compile(r"</\s*tr\s*>", re.IGNORECASE)
+_CELL_END = re.compile(r"</\s*(?:td|th)\s*>", re.IGNORECASE)
 _ROW_BOUNDARY = "\ue000"
+_CELL_BOUNDARY = "\ue001"
 _DIGEST = re.compile(r"[a-f0-9]{64}\Z")
 # Prefer the longest cue, so "분할합병기일" cannot also emit "합병기일".
 def _labels_pattern(labels):
@@ -75,9 +77,12 @@ def _text(raw):
     for encoding in ("utf-8-sig", "cp949"):
         try:
             content = raw.decode(encoding, errors="strict")
-            # Retain table row boundaries before stripping tags. A missing
-            # date must never borrow an unrelated date from the following row.
-            flattened = unescape(_TAG.sub(" ", _ROW_END.sub(_ROW_BOUNDARY, content)))
+            # Preserve both row and cell boundaries. A missing date in the
+            # labelled value cell must not borrow an unrelated neighbouring
+            # cell's date, even when both appear in the same table row.
+            delimited = _ROW_END.sub(_ROW_BOUNDARY, content)
+            delimited = _CELL_END.sub(_CELL_BOUNDARY, delimited)
+            flattened = unescape(_TAG.sub(" ", delimited))
             return re.sub(r"\s+", " ", flattened)
         except UnicodeError:
             continue
@@ -123,10 +128,24 @@ def inspect_original_zip(raw):
                     correction_mentioned |= label == CORRECTION_LABEL
                     next_field = _NEXT_FIELD_PATTERN.search(source, mark.end())
                     row_end = source.find(_ROW_BOUNDARY, mark.end())
+                    row_limit = row_end if row_end >= 0 else len(source)
+                    first_cell_end = source.find(_CELL_BOUNDARY, mark.end(), row_limit)
+                    cell_limit = row_limit
+                    if first_cell_end >= 0:
+                        if source[mark.end():first_cell_end].strip(" \t\r\n:：·-"):
+                            # The label and value occupy one cell.
+                            cell_limit = first_cell_end
+                        else:
+                            # Label-only cell: permit exactly the next value
+                            # cell, never a date in a later cell.
+                            second_cell_end = source.find(
+                                _CELL_BOUNDARY, first_cell_end + 1, row_limit)
+                            if second_cell_end >= 0:
+                                cell_limit = second_cell_end
                     boundary = min(
                         mark.end() + 100,
                         next_field.start() if next_field else len(source),
-                        row_end if row_end >= 0 else len(source),
+                        cell_limit,
                     )
                     # Never borrow a date from the next named field.
                     candidate = _day_after_label(source[mark.end():boundary])
