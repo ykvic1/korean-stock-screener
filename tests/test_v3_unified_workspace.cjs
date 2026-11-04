@@ -951,6 +951,15 @@ assert.match(unified.scorePillarExplanation(
   assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:{...money,
    sustained_participation_source:{...money.sustained_participation_source,...changed}}}),null);
  }
+ const independent={...money,sustained_participation_source:{...money.sustained_participation_source,
+  daily_asof:'2026-10-16',weekly_session_end:'2026-10-19',
+  earliest_asof:'2026-10-16',computed_asof:'2026-10-20',retained_prior_source:false}};
+ assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:independent}).earned,13);
+ for(const invalid of [{computed_asof:'2026-10-21'},{earliest_asof:'2026-10-19'},
+                       {computed_asof:'2026-10-18'}]){
+  assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:{...independent,
+   sustained_participation_source:{...independent.sustained_participation_source,...invalid}}}),null);
+ }
  const retained={...money,sustained_participation_source:{...money.sustained_participation_source,
   daily_asof:'2026-10-19',retained_prior_source:true}};
  assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:retained}).earned,13);

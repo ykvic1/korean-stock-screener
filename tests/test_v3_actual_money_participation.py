@@ -99,6 +99,23 @@ class ActualMoneyTests(unittest.TestCase):
             m.collect(store,asof='2026-11-04',catalog=catalog,source_revision='a'*40,
                       days=days,digest='a'*64,forward_days=forward,week_loader=week_days)
 
+    def test_complete_periods_keep_independent_dates_without_waiting_for_market_day_alignment(self):
+        store,days,forward,catalog=fixture()
+        catalog['date']='2026-11-05'
+        result=m.collect(store,asof=catalog['date'],catalog=catalog,source_revision='a'*40,
+                         days=days,digest='a'*64,forward_days=forward,week_loader=week_days)
+        record=result['records']['000001']
+        self.assertEqual(record['daily_asof'],'2026-11-04')
+        self.assertEqual(record['weekly_session_end'],'2026-10-30')
+        self.assertEqual(record['asof'],'2026-10-30')
+        self.assertEqual(record['computed_asof'],'2026-11-05')
+        self.assertEqual(len(m.usable_records(result,catalog)),1)
+        # A later completed calendar week can follow an older daily endpoint.
+        record.update(daily_asof='2026-10-28',weekly_session_end='2026-10-30',asof='2026-10-28')
+        self.assertEqual(len(m.usable_records(result,catalog)),1)
+        bad=copy.deepcopy(result);bad['records']['000001']['computed_asof']='2026-10-29'
+        self.assertFalse(m.usable_records(bad,catalog))
+
     def test_uncommitted_latest_week_and_future_daily_endpoint_are_blocked(self):
         store,days,forward,catalog=fixture()
         state=json.loads(store.files[m.WEEKLY]);state['history_completed']=239

@@ -101,7 +101,7 @@ def _money_dates_valid(row):
     if daily==weekly=="":
         return True
     return (_valid_iso_day(daily) and _valid_iso_day(weekly)
-            and weekly<=daily<=row.get("가격자료기준일",""))
+            and max(weekly,daily)<=row.get("가격자료기준일",""))
 
 
 CSV_AREA_FIELDS = {

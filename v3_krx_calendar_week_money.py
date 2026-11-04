@@ -92,8 +92,13 @@ def derive(client, week_end, days, budget):
                     rows, raw = client.daily_market(market, day)
                     break
                 except KRXProbeError as error:
-                    if attempt == 2 or error.reason not in ('empty_body', 'transport_failure', 'http_server_error'):
-                        raise WeeklyMoneyError('official_weekly_money_source_unavailable') from None
+                    if attempt == 2 or error.reason not in ('empty_body', 'empty_market_rows', 'transport_failure', 'http_server_error'):
+                        issue=WeeklyMoneyError('official_weekly_money_source_unavailable')
+                        issue.safe_krx_reason=error.reason
+                        issue.safe_krx_http_status=error.http_status
+                        issue.safe_source_day=day
+                        issue.safe_source_market=market
+                        raise issue from None
                     time.sleep(attempt+1)
             _snapshot_market(rows, raw, market=market, asof=day)
             usable = 0
@@ -264,5 +269,20 @@ def main():
 if __name__=='__main__':
     try:
         main()
-    except Exception:
-        raise SystemExit('blocked: private_calendar_week_money_not_verified') from None
+    except Exception as error:
+        result={'status':'blocked','category':str(error) if isinstance(error,WeeklyMoneyError)
+                else 'private_calendar_week_money_not_verified','source_payload_logged':False}
+        reason=getattr(error,'safe_krx_reason',None)
+        if reason in KRXProbeError.REASONS:
+            result['krx_allowlisted_failure_reason']=reason
+            result['http_status_only']=getattr(error,'safe_krx_http_status',None)
+            day=getattr(error,'safe_source_day',None)
+            market=getattr(error,'safe_source_market',None)
+            if type(day) is str and re.fullmatch('[0-9]{4}-[0-9]{2}-[0-9]{2}',day):
+                result['source_day']=day
+            if market in ('KOSPI','KOSDAQ'):result['source_market']=market
+        if isinstance(error,PrivateHistoryError):
+            from v3_krx_money_backfill import _safe_private_failure_diagnostics
+            result['private_storage']=_safe_private_failure_diagnostics(error)
+        print(json.dumps(result,sort_keys=True))
+        raise SystemExit(1) from None

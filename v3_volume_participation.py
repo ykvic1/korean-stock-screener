@@ -103,6 +103,12 @@ def observed(stock, *, asof, market, money=None):
             "weekly_session_end":money["weekly_session_end"],
             "actual_acc_trdval":True,"calendar_week_grouping":True,
             "single_day_points":0,"certified":False}
+        if "daily_asof" in money:
+            result["sustained_participation_source"].update({
+                "daily_asof":money["daily_asof"],
+                "earliest_asof":money["asof"],
+                "computed_asof":money["computed_asof"],
+                "retained_prior_source":money["computed_asof"]!=asof})
     return result
 
 

@@ -482,7 +482,9 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         available_weight_distribution[str(available)]=available_weight_distribution.get(str(available),0)+1
         output.append({
             "code":code,"name":listed["name"],"market":listed["market"],
-            **({"volume_money_source_asof":v["sustained_participation_source"]["daily_asof"],
+            **({"volume_money_source_asof":v["sustained_participation_source"].get(
+                    "earliest_asof",v["sustained_participation_source"]["daily_asof"]),
+                "volume_money_daily_asof":v["sustained_participation_source"]["daily_asof"],
                 "volume_money_weekly_asof":v["sustained_participation_source"]["weekly_session_end"]}
                if v is not None and v.get("sustained_participation_source") else {}),
             "asof":asof,"earned":rounded_observed_total(values.values())
@@ -625,7 +627,8 @@ def to_csv(rows,summary):
             "" if row["stop_loss_severity_research"]["research_adjustment_points_not_applied"] is None
                 else row["stop_loss_severity_research"]["research_adjustment_points_not_applied"],
             row["stop_loss_severity_research"]["status"],
-            row.get("volume_money_source_asof",""),row.get("volume_money_weekly_asof","")
+            row.get("volume_money_daily_asof",row.get("volume_money_source_asof","")),
+            row.get("volume_money_weekly_asof","")
         ])
     return "\ufeff"+sink.getvalue()
 

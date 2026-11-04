@@ -126,7 +126,8 @@ class V30bReadinessTests(unittest.TestCase):
         rows[1][-2:]=['2027-01-01','2026-10-30']
         self.assertFalse(issuer_csv_reconciles(observed,scorecard,encode(rows)))
         rows[1][-2:]=['2026-10-29','2026-10-30']
-        self.assertFalse(issuer_csv_reconciles(observed,scorecard,encode(rows)))
+        self.assertTrue(issuer_csv_reconciles(observed,scorecard,encode(rows)),
+                        'daily cohort and completed week have independent endpoints')
         rows[1][-2:]=['','2026-10-30']
         self.assertFalse(issuer_csv_reconciles(observed,scorecard,encode(rows)))
 
