@@ -1745,6 +1745,19 @@ const overlayCount=unified.applyCurrentObservedFinance(
  freshModel,observedPartialSummary,observedPartialCsv);
 assert.ok(overlayCount>=0&&
  overlayCount<=observedPartialSummary.observed_issuer_counts.financial);
+// The additive money source dates preserve the existing financial source joins.
+if(observedPartialSummary.asof===freshModel.date&&overlayCount>0){
+ const lines=observedPartialCsv.trimEnd().split(/\r?\n/);
+ const fields=['거래대금_일봉자료기준일','거래대금_주봉자료기준일'];
+ if(!lines[0].endsWith(fields.join(','))){
+  lines[0]+=','+fields.join(',');for(let i=1;i<lines.length;i++)lines[i]+=',,';
+ }
+ const encode=rows=>rows.join('\n')+'\n';
+ assert.equal(unified.applyCurrentObservedFinance(structuredClone(freshModel),observedPartialSummary,encode(lines)),overlayCount);
+ lines[1]=lines[1].replace(/,[^,]*,[^,]*$/,',2027-01-01,2026-10-30');
+ assert.equal(unified.applyCurrentObservedFinance(structuredClone(freshModel),observedPartialSummary,encode(lines)),0);
+}
+
 if(observedPartialSummary.asof===freshModel.date&&observedPartialSummary.observed_issuer_counts.financial>0){
  assert.ok(overlayCount>0,'same-date verified research should be displayed');
  const financialRow=freshModel.rows.find(x=>

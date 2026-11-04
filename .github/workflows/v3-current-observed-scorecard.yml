@@ -28,6 +28,7 @@ on:
       - v3_observed_momentum.py
       - v3_volume_participation.py
       - v3_actual_money_participation.py
+      - v3_actual_money_contract.py
       - docs/v3-actual-money-participation.json
       - docs/data.json
       - docs/v22-market-catalog.json

@@ -26,7 +26,7 @@ from pathlib import Path
 from v22_full_universe_audit import audit_published_universe
 from v3_dart_bulk_history import _stable_digest, write_json
 from v3_ma240_cross_research import valid_observation as valid_ma_cross
-from v3_actual_money_participation import usable_records, MODEL as MONEY_MODEL, OUTPUT as MONEY_OUTPUT
+from v3_actual_money_contract import usable_records, MODEL as MONEY_MODEL, OUTPUT as MONEY_OUTPUT
 
 SCHEMA="v3-current-market-volume-ma-cross-provisional-research-0.2"
 MAX_POINTS=20

@@ -184,6 +184,14 @@ class ActualMoneyTests(unittest.TestCase):
             self.assertLess(live.index('rm -rf -- .money-private'),live.index('git add -- docs/'))
             self.assertNotIn('upload-artifact',workflow)
 
+    def test_public_volume_consumer_imports_without_any_site_packages(self):
+        import subprocess,sys
+        result=subprocess.run([sys.executable,'-S','-c',
+            "import sys; import v3_actual_money_contract, v3_volume_participation; "
+            "assert 'requests' not in sys.modules; assert 'official_probe.clients' not in sys.modules"],
+            cwd=Path(__file__).resolve().parents[1],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0)
+
     def test_forward_retries_only_transient_source_errors(self):
         from v3_krx_money_forward import RetryingMoneyClient
         client=Client();client.fail_once=True
