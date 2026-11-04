@@ -1,6 +1,9 @@
 name: V3 Private Historical OpenDART Filing Receipts (Research Only)
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/v3-dart-historical-event-receipts.yml
   push:
     branches: [main]
     paths:
@@ -35,19 +38,13 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: v3-dart-private-historical-event-receipts
-  queue: max
-  cancel-in-progress: false
-
 jobs:
-  historical-filing-receipts:
+  offline-safety:
     runs-on: ubuntu-latest
-    timeout-minutes: 17
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -59,8 +56,27 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_dart_historical_event_receipts.py
           python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
+  historical-filing-receipts:
+    needs: offline-safety
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    # Serialize only live writes to the shared receipt checkpoint.
+    concurrency:
+      group: v3-dart-private-historical-event-receipts
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private Git storage import dependencies
+        run: python -m pip install 'requests>=2.31,<3'
       - name: Save bounded historical official DART B C E I receipt metadata in PRIVATE repo
-        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}

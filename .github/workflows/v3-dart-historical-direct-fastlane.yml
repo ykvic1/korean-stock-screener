@@ -34,19 +34,13 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: v3-dart-private-historical-event-receipts
-  queue: max
-  cancel-in-progress: false
-
 jobs:
-  additional-private-collection:
+  offline-safety:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -59,17 +53,36 @@ jobs:
           python -m py_compile v3_dart_historical_event_receipts.py v3_dart_continuous_catchup.py
           python -m unittest discover -s tests -p 'test_v3_dart_historical_event_receipts.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_continuous_catchup.py' -v
+  additional-private-collection:
+    needs: offline-safety
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous direct DART fast-lane until 120 months')) ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'schedule' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    # Offline tests never wait for or occupy the private ingestion queue.
+    concurrency:
+      group: v3-dart-private-historical-event-receipts
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private Git storage transport only
+        run: python -m pip install 'requests>=2.31,<3'
       - name: Skip at exactly 120 source-verified completed months
         id: completion
-        if: >-
-          ${{ github.event_name == 'schedule' ||
-              (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
-              (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): continuous direct DART fast-lane until 120 months')) ||
-              (github.event_name == 'workflow_run' &&
-               github.event.workflow_run.conclusion == 'success' &&
-               github.event.workflow_run.event == 'schedule' &&
-               github.event.workflow_run.head_branch == 'main' &&
-               github.event.workflow_run.head_repository.full_name == github.repository) }}
         run: |
           set -euo pipefail
           python -c 'import json,os; from v3_dart_historical_event_receipts import public_progress_complete; d=json.load(open("docs/v3-dart-historical-receipt-progress.json",encoding="utf-8")); v="true" if public_progress_complete(d) else "false"; open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8").write("done="+v+"\n"); print("archive_120_months_gate_"+v)'
