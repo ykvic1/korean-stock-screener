@@ -128,6 +128,48 @@ class FiveDayDerivativeTests(unittest.TestCase):
         self.assertEqual(wait.call_count,2)
         self.assertEqual(state["after_put_misses"],0)
 
+    def test_readback_after_five_stale_gets_reuses_single_private_write(self):
+        archive=FakePrivate()
+        previous=archive.get_content
+        state={"misses":5}
+        def delayed_read(path):
+            if path in archive.blobs and state["misses"]:
+                state["misses"]-=1
+                return None,None
+            return previous(path)
+        archive.get_content=delayed_read
+        provider=FakeKRX()
+        with patch.object(d.time,"sleep",return_value=None) as sleep:
+            result=d.store_five_day_factors(archive,provider)
+        self.assertEqual(result["status"],"persisted_and_readback_verified_derived")
+        self.assertEqual(len(provider.calls),10)
+        self.assertEqual(archive.posts,1)
+        self.assertEqual(sleep.call_count,5)
+        self.assertEqual(state["misses"],0)
+
+    def test_readback_rate_limit_stops_without_retry_amplification(self):
+        archive=FakePrivate()
+        previous=archive.get_content
+        state={"rate_limited_gets":0}
+        def rate_limited_read(path):
+            if path in archive.blobs:
+                state["rate_limited_gets"]+=1
+                error=d.PrivateHistoryError("private_storage_api_failed")
+                error.safe_http_status="http_403_rate_limited"
+                error.safe_http_operation="read_private_content"
+                raise error
+            return previous(path)
+        archive.get_content=rate_limited_read
+        provider=FakeKRX()
+        with patch.object(d.time,"sleep",return_value=None) as sleep:
+            with self.assertRaises(d.PrivateHistoryError) as blocked:
+                d.store_five_day_factors(archive,provider)
+        self.assertEqual(blocked.exception.safe_http_status,"http_403_rate_limited")
+        self.assertEqual(state["rate_limited_gets"],1)
+        self.assertEqual(sleep.call_count,0)
+        self.assertEqual(len(provider.calls),10)
+        self.assertEqual(archive.posts,1)
+
     def test_readback_never_visible_fails_without_duplicate_api_or_put(self):
         archive=FakePrivate()
         prior=archive.get_content
