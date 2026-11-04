@@ -131,6 +131,16 @@ def _decode(blob, month, category, page):
         raise DARTEventReceiptError("invalid_private_dart_receipt_page") from None
 
 
+def _decode_stage(blob, month, category, page, stage):
+    """Classify one decoded-page failure by storage stage, never by issuer/path."""
+    try:
+        return _decode(blob, month, category, page)
+    except DARTEventReceiptError as error:
+        if error.args != ("invalid_private_dart_receipt_page",):
+            raise
+        raise DARTEventReceiptError(stage) from None
+
+
 def parse_official_response(body, month, category, page):
     """Require exact official pagination and receipt dates; no guessing."""
     if type(body) is not dict or type(page) is not int or page < 1:
@@ -277,15 +287,25 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
             if cursor["last_page_file"] != _path(month, category, pn - 1):
                 raise DARTEventReceiptError("private_dart_receipt_cursor_chain_gap")
             if tail_page is None:
-                tail_page = _decode(tail, month, category, pn - 1)
+                tail_page = _decode_stage(
+                    tail, month, category, pn - 1,
+                    "invalid_private_dart_checkpoint_tail_page")
         else:
             tail_page = None
         saved, _ = storage.get_content(path)
         if saved is None:
             result = fetch(month, category, pn)
             calls += 1
-            packed = parse_official_response(result, month, category, pn)
-            page = _decode(packed, month, category, pn)
+            try:
+                packed = parse_official_response(result, month, category, pn)
+            except DARTEventReceiptError as error:
+                if error.args != ("invalid_private_dart_receipt_page",):
+                    raise
+                raise DARTEventReceiptError(
+                    "invalid_new_official_dart_page_payload") from None
+            page = _decode_stage(
+                packed, month, category, pn,
+                "invalid_new_official_dart_page_payload")
             if tail_page is not None:
                 _check_page_sequence(tail_page, page)
             # Check the adjacent-page evidence BEFORE creating immutable storage:
@@ -294,7 +314,9 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
             saved = packed
             new_pages += 1
         else:
-            page = _decode(saved, month, category, pn)
+            page = _decode_stage(
+                saved, month, category, pn,
+                "invalid_private_dart_saved_page")
             if tail_page is not None:
                 _check_page_sequence(tail_page, page)
             reused_pages += 1
@@ -378,6 +400,9 @@ def public_progress_complete(raw):
 SAFE_PUBLIC_DART_FAILURE_CODES = frozenset({
     "invalid_official_page_counts",
     "invalid_private_dart_receipt_page",
+    "invalid_private_dart_checkpoint_tail_page",
+    "invalid_new_official_dart_page_payload",
+    "invalid_private_dart_saved_page",
     "invalid_official_dart_response",
     "inconsistent_dart_pagination",
     "invalid_official_dart_record",
