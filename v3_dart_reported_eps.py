@@ -5,6 +5,7 @@ comparatives, not independent proof of share adjustments or historical PIT.
 """
 from __future__ import annotations
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from decimal import Decimal
 import json
@@ -12,6 +13,7 @@ import math
 import os
 from pathlib import Path
 import re
+from threading import local
 
 from v3_dart_bulk_history import (_mapping, _valid_receipt, verified_company_mapping_cache,
                                  _stable_digest, write_json)
@@ -20,6 +22,7 @@ from v3_dart_2025_owner_profit_probe import _read_company_cache_from_root
 SCHEMA = 'v3-reported-annual-basic-eps-comparatives-v1'
 EPS_IDS = {'ifrs-full_BasicEarningsLossPerShare', 'ifrs_BasicEarningsLossPerShare'}
 MAX_PER_RUN = 100
+MAX_WORKERS = 3
 YEAR = 2025
 UNUSABLE_REASONS = {'invalid_reported_eps_amount', 'eps_statement_identity_mismatch',
                    'eps_statement_receipt_or_currency_mismatch', 'conflicting_reported_basic_eps',
@@ -33,6 +36,7 @@ SAFE_FAILURE_CODES = UNUSABLE_REASONS | {
     'official_eps_issuer_identity_unavailable', 'official_eps_transport_unavailable',
     'eps_output_must_not_be_symlink', 'saved_eps_snapshot_differs_from_sources',
     'partial_eps_source_stopped_after_checkpoint',
+    'invalid_eps_parallelism', 'parallel_eps_session_factory_required',
 }
 
 
@@ -210,7 +214,12 @@ def snapshot(day, catalog, book, expected, records):
             'records': dict(sorted(records.items()))}
 
 
-def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN, on_progress=None):
+def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN,
+            on_progress=None, workers=1, session_factory=None):
+    if type(workers) is not int or not 1 <= workers <= MAX_WORKERS:
+        raise EPSError('invalid_eps_parallelism')
+    if workers > 1 and not callable(session_factory):
+        raise EPSError('parallel_eps_session_factory_required')
     day, members, expected, retained, selected = plan(catalog, book, prior, limit)
     calls = 0
     if selected:
@@ -226,18 +235,14 @@ def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN
                 mapping = _mapping(reply.content, set(members))
             except Exception:
                 raise EPSError('official_eps_issuer_identity_unavailable') from None
-        for code in selected:
+        def fetch_issuer(code, client):
             if code not in mapping:
-                retained[code] = unusable(expected[code], day, 'official_corp_mapping_missing')
-                if on_progress:
-                    on_progress(snapshot(day, catalog, book, expected, retained))
-                continue
+                return unusable(expected[code], day, 'official_corp_mapping_missing'), 0
             try:
-                reply = session.get('https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json',
+                reply = client.get('https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json',
                                     params={'crtfc_key': key, 'corp_code': mapping[code],
                                             'bsns_year': str(YEAR), 'reprt_code': '11011',
                                             'fs_div': expected[code]['fs_div']}, timeout=(20, 40))
-                calls += 1
                 reply.raise_for_status()
                 parsed = parse(reply.json(), corp=mapping[code], base=expected[code], on_day=day)
             except EPSError as error:
@@ -246,9 +251,47 @@ def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN
                 parsed = unusable(expected[code], day, str(error))
             except Exception:
                 raise EPSError('official_eps_transport_unavailable') from None
+            return parsed, 1
+
+        def checkpoint_issuer(code, parsed):
             retained[code] = parsed
             if on_progress:
                 on_progress(snapshot(day, catalog, book, expected, retained))
+
+        if workers == 1:
+            for code in selected:
+                parsed, used = fetch_issuer(code, session)
+                calls += used
+                checkpoint_issuer(code, parsed)
+        else:
+            # requests.Session is not shared across threads. Only the main
+            # thread updates checkpoints, so a partial provider outage cannot
+            # leave two concurrent writers or a synthetic zero-EPS record.
+            worker_state = local()
+
+            def fetch_isolated(code):
+                if not hasattr(worker_state, 'client'):
+                    worker_state.client = session_factory()
+                return fetch_issuer(code, worker_state.client)
+
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                # Bounded windows prevent an early 020/rate-limit response
+                # from triggering the remaining 100 official requests.
+                for offset in range(0, len(selected), workers):
+                    futures = {executor.submit(fetch_isolated, code): code
+                               for code in selected[offset:offset + workers]}
+                    source_error = None
+                    for future in as_completed(futures):
+                        code = futures[future]
+                        try:
+                            parsed, used = future.result()
+                        except EPSError as error:
+                            source_error = source_error or error
+                            continue
+                        calls += used
+                        checkpoint_issuer(code, parsed)
+                    if source_error is not None:
+                        raise source_error
     return snapshot(day, catalog, book, expected, retained), calls
 
 
@@ -258,7 +301,10 @@ def main(argv=None):
     parser.add_argument('--cache', default='.cache/v3-dart-company-codes.json')
     parser.add_argument('--mode', choices=('dry-run', 'live', 'verify', 'refresh'), default='dry-run')
     parser.add_argument('--limit', type=int, default=MAX_PER_RUN)
+    parser.add_argument('--workers', type=int, default=1)
     args = parser.parse_args(argv)
+    if not 1 <= args.workers <= MAX_WORKERS:
+        raise EPSError('invalid_eps_parallelism')
     root = Path(args.docs)
     catalog = json.loads((root/'v22-market-catalog.json').read_text())
     book = json.loads((root/'v3-dart-book-reference.json').read_text())
@@ -286,7 +332,9 @@ def main(argv=None):
     try:
         output, calls = collect(catalog, book, old, key=os.getenv('DART_API_KEY', ''),
                                 session=requests.Session(), limit=args.limit,
-                                cache=_read_company_cache_from_root(args.cache), on_progress=checkpoint)
+                                cache=_read_company_cache_from_root(args.cache), on_progress=checkpoint,
+                                workers=args.workers,
+                                session_factory=requests.Session if args.workers > 1 else None)
     except EPSError as error:
         if not saved:
             raise

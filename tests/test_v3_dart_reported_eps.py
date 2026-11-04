@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Lock, get_ident
+from time import sleep
 from types import SimpleNamespace
 from unittest.mock import patch
 import unittest
@@ -41,6 +43,126 @@ class EPSTests(unittest.TestCase):
         for error in (EPSError('private_key=not-for-logs'), ValueError('provider response')):
             self.assertEqual(safe_failure_label(error),
                              'blocked: reported_eps_source_not_verified')
+
+    def test_parallel_bounded_window_uses_isolated_sessions_and_main_thread_checkpoints(self):
+        catalog, book = inputs()
+        for code in ('000001', '000002', '000003'):
+            catalog['rows'].append({'code': code, 'name': code, 'market': 'KOSDAQ'})
+            book['records'].append({**copy.deepcopy(book['records'][0]), 'code': code})
+        catalog['listed_total'] = len(catalog['rows'])
+        mapping = {code: str(int(code)).zfill(8) for code in
+                   (BASE['code'], '000001', '000002', '000003')}
+        lock = Lock()
+        active, peak, sessions, calls = [0], [0], [], []
+        main_thread = get_ident()
+
+        class Reply:
+            def __init__(self, corp): self.corp = corp
+            def raise_for_status(self): pass
+            def json(self):
+                result = payload()
+                result['list'][0]['corp_code'] = self.corp
+                return result
+
+        class Session:
+            def __init__(self): self.owner = None
+            def get(self, url, **kwargs):
+                thread = get_ident()
+                self.owner = self.owner or thread
+                assert self.owner == thread, 'session shared across worker threads'
+                with lock:
+                    active[0] += 1
+                    peak[0] = max(peak[0], active[0])
+                    calls.append(kwargs['params']['corp_code'])
+                sleep(0.015)
+                with lock: active[0] -= 1
+                return Reply(kwargs['params']['corp_code'])
+
+        def session_factory():
+            client = Session()
+            sessions.append(client)
+            return client
+
+        snapshots = []
+        def checkpoint(snapshot):
+            self.assertEqual(get_ident(), main_thread)
+            snapshots.append(snapshot)
+
+        with patch('v3_dart_reported_eps.verified_company_mapping_cache', return_value=mapping):
+            report, count = collect(catalog, book, None, key='a'*40, session=Session(),
+                                    workers=3, session_factory=session_factory,
+                                    on_progress=checkpoint)
+        self.assertEqual(count, 4)
+        self.assertEqual(report['attempted_issuers'], 4)
+        self.assertEqual([x['attempted_issuers'] for x in snapshots], [1, 2, 3, 4])
+        self.assertGreaterEqual(peak[0], 2)
+        self.assertLessEqual(peak[0], 3)
+        self.assertEqual(len(set(calls)), 4)
+        self.assertGreaterEqual(len(sessions), 2)
+        self.assertFalse(report['investment_score_certified'])
+
+    def test_parallel_bad_source_stops_before_unbounded_api_requests(self):
+        catalog, book = inputs()
+        for code in ('000001', '000002', '000003', '000004'):
+            catalog['rows'].append({'code': code, 'name': code, 'market': 'KOSDAQ'})
+            book['records'].append({**copy.deepcopy(book['records'][0]), 'code': code})
+        catalog['listed_total'] = 5
+        mapping = {row['code']: str(int(row['code'])).zfill(8) for row in catalog['rows']}
+        calls = []
+        class Session:
+            def get(self, url, **kwargs):
+                code = kwargs['params']['corp_code']
+                calls.append(code)
+                if code == '00000001':
+                    raise OSError('provider down')
+                sleep(0.02)
+                class Reply:
+                    def raise_for_status(self): pass
+                    def json(self): return {'status': '020'}
+                return Reply()
+        with patch('v3_dart_reported_eps.verified_company_mapping_cache', return_value=mapping):
+            with self.assertRaises(EPSError):
+                collect(catalog, book, None, key='a'*40, session=Session(),
+                        workers=3, session_factory=Session)
+        self.assertLessEqual(len(calls), 3)
+        self.assertNotIn('00000004', calls)
+
+    def test_parallel_window_saves_successes_even_when_peer_source_fails(self):
+        catalog, book = inputs()
+        for code in ('000001', '000002', '000003'):
+            catalog['rows'].append({'code': code, 'name': code, 'market': 'KOSDAQ'})
+            book['records'].append({**copy.deepcopy(book['records'][0]), 'code': code})
+        catalog['listed_total'] = 4
+        mapping = {row['code']: str(int(row['code'])).zfill(8) for row in catalog['rows']}
+        calls, checkpoints = [], []
+        class Session:
+            def get(self, url, **kwargs):
+                code = kwargs['params']['corp_code']
+                calls.append(code)
+                sleep(0.01 if code != '00000001' else 0.005)
+                if code == '00000001':
+                    raise OSError('provider failed')
+                class Reply:
+                    def raise_for_status(self): pass
+                    def json(self):
+                        result = payload()
+                        result['list'][0]['corp_code'] = code
+                        return result
+                return Reply()
+        with patch('v3_dart_reported_eps.verified_company_mapping_cache', return_value=mapping):
+            with self.assertRaisesRegex(EPSError, 'official_eps_transport_unavailable'):
+                collect(catalog, book, None, key='a'*40, session=Session(), workers=3,
+                        session_factory=Session, on_progress=checkpoints.append)
+        self.assertEqual(len(calls), 3)
+        self.assertEqual([r['attempted_issuers'] for r in checkpoints], [1, 2])
+        self.assertNotIn('00000003', calls)
+
+    def test_parallelism_invalid_or_without_factory_is_rejected_before_provider_requests(self):
+        catalog, book = inputs()
+        for workers, factory in ((0, None), (4, None), (True, None), (2, None)):
+            with self.subTest(workers=workers), self.assertRaises(EPSError):
+                collect(catalog, book, None, key='a'*40, session=object(),
+                        workers=workers, session_factory=factory)
 
     def test_partial_checkpoint_stops_outer_continuous_collection_on_source_failure(self):
         catalog, book = inputs()
@@ -117,7 +239,7 @@ class EPSTests(unittest.TestCase):
         self.assertNotIn('secrets.', offline)
         self.assertNotIn('concurrency:', offline)
         self.assertIn('needs: offline-safety', live)
-        self.assertIn('--mode live --limit 100', live)
+        self.assertIn('--mode live --limit 100 --workers 3', live)
         self.assertIn('--mode refresh', live)
         self.assertIn('--mode verify', live)
         self.assertIn('git add docs/v3-dart-reported-eps.json', live)
@@ -137,7 +259,7 @@ class EPSTests(unittest.TestCase):
         self.assertIn('python v3_dart_reported_eps.py --mode verify', run)
         self.assertIn('git push origin HEAD:main', run)
         self.assertIn('reported_eps_checkpoint_publication_failed', run)
-        self.assertIn('if ! python v3_dart_reported_eps.py --mode live --limit 100; then\n              source_interrupted=1\n              # A provider outage', run)
+        self.assertIn('if ! python v3_dart_reported_eps.py --mode live --limit 100 --workers 3; then\n              source_interrupted=1\n              # A provider outage', run)
         self.assertIn('publish_eps_checkpoint\n              break\n            fi\n            publish_eps_checkpoint', run)
         self.assertIn('if (( SECONDS >= 3600 )); then', run)
 
