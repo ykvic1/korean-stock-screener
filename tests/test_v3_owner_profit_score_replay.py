@@ -145,6 +145,8 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         from v3_near_100_observed_gap import main as gap_audit
         from v3_dart_2025_owner_profit_probe import verify
         outputs = {
+            "v3-personal-adjusted-scores.csv",
+            "v3-personal-adjusted-score-summary.json",
             "v3-current-observed-all-listed.csv",
             "v3-current-observed-all-listed-summary.json",
             "v3-issuer-last-observed-factors.json",

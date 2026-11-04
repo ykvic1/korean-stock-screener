@@ -711,6 +711,8 @@ def main(argv=None):
     target=root/"v3-current-observed-all-listed.csv"
     status=root/"v3-current-observed-all-listed-summary.json"
     if args.mode=="write":
+        if personal_target.is_symlink() or personal_status.is_symlink():
+            raise LivePartialScorecardError("personal_score_output_must_not_be_symlink")
         target.write_text(new_csv,encoding="utf8")
         from v3_dart_bulk_history import write_json
         write_json(status,summary)
