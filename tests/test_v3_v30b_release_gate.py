@@ -111,6 +111,25 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(r["external_provider_calls"], 0)
         self.assertTrue(r["read_only"])
 
+    def test_optional_money_source_date_columns_keep_reconciliation_strict(self):
+        observed,scorecard,_=public_inputs()
+        raw=(ROOT/'docs/v3-current-observed-all-listed.csv').read_text(encoding='utf-8-sig')
+        rows=list(csv.reader(StringIO(raw)))
+        names=['거래대금_일봉자료기준일','거래대금_주봉자료기준일']
+        if rows[0][-2:]!=names:
+            rows[0]+=names
+            for row in rows[1:]:row+=['','']
+        def encode(values):
+            out=StringIO();csv.writer(out,lineterminator='\n').writerows(values)
+            return out.getvalue()
+        self.assertTrue(issuer_csv_reconciles(observed,scorecard,encode(rows)))
+        rows[1][-2:]=['2027-01-01','2026-10-30']
+        self.assertFalse(issuer_csv_reconciles(observed,scorecard,encode(rows)))
+        rows[1][-2:]=['2026-10-29','2026-10-30']
+        self.assertFalse(issuer_csv_reconciles(observed,scorecard,encode(rows)))
+        rows[1][-2:]=['','2026-10-30']
+        self.assertFalse(issuer_csv_reconciles(observed,scorecard,encode(rows)))
+
     def test_real_issuer_csv_replays_every_five_area_histogram(self):
         o, s, h = public_inputs()
         raw = (ROOT / "docs/v3-current-observed-all-listed.csv").read_text(

@@ -87,6 +87,23 @@ CSV_COLUMNS = (
     "손절거리_참고_퍼센트", "손절심각도_연구가감점_총점미반영",
     "손절심각도_연구상태",
 )
+MONEY_DATE_COLUMNS = ("거래대금_일봉자료기준일", "거래대금_주봉자료기준일")
+
+
+def _csv_columns_valid(fields):
+    return fields in (list(CSV_COLUMNS),list(CSV_COLUMNS+MONEY_DATE_COLUMNS))
+
+
+def _money_dates_valid(row):
+    if MONEY_DATE_COLUMNS[0] not in row:
+        return True
+    daily,weekly=(row.get(key) for key in MONEY_DATE_COLUMNS)
+    if daily==weekly=="":
+        return True
+    return (_valid_iso_day(daily) and _valid_iso_day(weekly)
+            and weekly<=daily<=row.get("가격자료기준일",""))
+
+
 CSV_AREA_FIELDS = {
     "volume": ("거래량_OBV_산출배점", "거래량_OBV_잠정점수"),
     "technical": ("기술_산출배점", "기술_잠정점수"),
@@ -231,7 +248,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
     try:
         reader = csv.DictReader(StringIO(csv_text.lstrip("\ufeff"), newline=""),
                                 strict=True)
-        if reader.fieldnames != list(CSV_COLUMNS):
+        if not _csv_columns_valid(reader.fieldnames):
             return False
         area_hist = {key: Counter() for key in AREA_WEIGHTS}
         fcf_subfactor_counts = {"financial4": 0, "valuation5": 0}
@@ -241,7 +258,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
         seen = set()
         overlaps = 0
         for row in reader:
-            if (None in row or any(v is None for v in row.values())
+            if (not _money_dates_valid(row) or None in row or any(v is None for v in row.values())
                     or not re.fullmatch(r"[0-9]{6}", row["종목코드"])):
                 return False
             code = row["종목코드"]
@@ -407,12 +424,12 @@ def issuer_fcf_preview_reconciles(
 
         reader = csv.DictReader(
             StringIO(csv_text.lstrip("\ufeff"), newline=""), strict=True)
-        if reader.fieldnames != list(CSV_COLUMNS):
+        if not _csv_columns_valid(reader.fieldnames):
             return False
         seen = set()
         counts = {"financial4": 0, "valuation5": 0}
         for row in reader:
-            if None in row or any(v is None for v in row.values()):
+            if not _money_dates_valid(row) or None in row or any(v is None for v in row.values()):
                 return False
             code = row["종목코드"]
             if (code in seen or not re.fullmatch(r"[0-9]{6}", code)
@@ -475,11 +492,11 @@ def issuer_catalog_reconciles(observed: Any, catalog: Any, csv_text: Any) -> boo
             census[code] = (name, market)
         reader = csv.DictReader(StringIO(csv_text.lstrip("\ufeff"), newline=""),
                                 strict=True)
-        if reader.fieldnames != list(CSV_COLUMNS):
+        if not _csv_columns_valid(reader.fieldnames):
             return False
         seen = set()
         for row in reader:
-            if None in row or any(value is None for value in row.values()):
+            if not _money_dates_valid(row) or None in row or any(value is None for value in row.values()):
                 return False
             code = row["종목코드"]
             if (code in seen or code not in census

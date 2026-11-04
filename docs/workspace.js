@@ -380,6 +380,9 @@ const RISK_CURRENT_COLUMNS=Object.freeze([
  ...CURRENT_COLUMNS,'손절거리_참고_퍼센트',
  '손절심각도_연구가감점_총점미반영','손절심각도_연구상태'
 ]);
+const MONEY_DATE_CURRENT_COLUMNS=Object.freeze([
+ ...RISK_CURRENT_COLUMNS,'거래대금_일봉자료기준일','거래대금_주봉자료기준일'
+]);
 const RISK_STATUSES=new Set([
  'source_unavailable','too_close_to_market_noise',
  'low_distance_but_unconfirmed_setup','bounded_downside_and_reference_room',
@@ -431,10 +434,12 @@ function applyCurrentObservedFinance(model,summary,csv){
    rows[0].every((name,i)=>name===CURRENT_COLUMNS[i]);
  const isLegacy=rows[0].length===LEGACY_CURRENT_COLUMNS.length&&
    rows[0].every((name,i)=>name===LEGACY_CURRENT_COLUMNS[i]);
- const isRisk=rows[0].length===RISK_CURRENT_COLUMNS.length&&
-   rows[0].every((name,i)=>name===RISK_CURRENT_COLUMNS[i]);
+ const isMoney=rows[0].length===MONEY_DATE_CURRENT_COLUMNS.length&&
+   rows[0].every((name,i)=>name===MONEY_DATE_CURRENT_COLUMNS[i]);
+ const isRisk=isMoney||(rows[0].length===RISK_CURRENT_COLUMNS.length&&
+   rows[0].every((name,i)=>name===RISK_CURRENT_COLUMNS[i]));
  if(!isNew&&!isLegacy&&!isRisk)return 0;
- const activeColumns=isRisk?RISK_CURRENT_COLUMNS:isNew?CURRENT_COLUMNS:LEGACY_CURRENT_COLUMNS;
+ const activeColumns=isMoney?MONEY_DATE_CURRENT_COLUMNS:isRisk?RISK_CURRENT_COLUMNS:isNew?CURRENT_COLUMNS:LEGACY_CURRENT_COLUMNS;
  const number=(value,max)=>{
   if(value==='')return null;
   if(typeof value!=='string'||!value.trim()||!Number.isFinite(Number(value)))return NaN;
@@ -463,6 +468,11 @@ function applyCurrentObservedFinance(model,summary,csv){
      (isLegacy&&field('산업_잠정점수')!=='')||
      field('투자등급')!=='미검증 연구용')return 0;
   seen.add(code);
+  if(isMoney){
+   const daily=field('거래대금_일봉자료기준일'),weekly=field('거래대금_주봉자료기준일');
+   if(!(daily===''&&weekly==='')&&
+      (!validDate(daily)||!validDate(weekly)||weekly>daily||daily>model.date))return 0;
+  }
   if(isRisk){
    const status=field('손절심각도_연구상태');
    const rawDistance=field('손절거리_참고_퍼센트');
