@@ -16,6 +16,7 @@ from v3_dart_historical_event_receipts import (
     CHECKPOINT as HISTORICAL_CHECKPOINT,
 )
 from v3_krx_private_github_backfill import PrivateHistoryError
+import v3_dart_future_closed_months as future
 
 
 class FakePrivate:
@@ -57,6 +58,28 @@ def empty_response(month, category, page, allowed):
 
 
 class FutureClosedMonthReceiptTests(unittest.TestCase):
+    def test_live_main_allows_one_bounded_read_quota_window_and_keeps_provider_ceiling(self):
+        marker = object()
+        with patch.dict('os.environ', {
+            'V3_PRIVATE_ARCHIVE_REPO': PRIVATE_REPO,
+            'V3_PRIVATE_ARCHIVE_TOKEN': 'synthetic-private-token-at-least-20',
+            'DART_API_KEY': 'a' * 40,
+        }, clear=True), patch.object(future.time, 'monotonic', return_value=100), \
+             patch.object(future, 'QuotaWaitingPrivateGitStorage', return_value=marker) as factory, \
+             patch.object(future, 'collect_closed_months', return_value={'status': 'synthetic'}) as collect, \
+             patch('builtins.print'):
+            future.main()
+        factory.assert_called_once_with(
+            PRIVATE_REPO, 'synthetic-private-token-at-least-20',
+            deadline=100 + future.MAX_RUN_SECONDS)
+        self.assertIs(collect.call_args.args[0], marker)
+        self.assertEqual(future.MAX_API_CALLS, 72)
+        self.assertGreater(future.MAX_RUN_SECONDS, 3605 + 30)
+        workflow = (Path(__file__).resolve().parents[1] /
+                    '.github/workflows/v3-dart-future-closed-months.yml').read_text()
+        self.assertIn('timeout-minutes: 75', workflow)
+        self.assertLess(future.MAX_RUN_SECONDS, 75 * 60 - 60)
+
     def test_explicit_409_reconciles_exact_page_and_separate_cursor_without_refetch(self):
         now = datetime(2026, 11, 4, tzinfo=ZoneInfo("Asia/Seoul"))
         for stage in ("page", "start", "advance"):

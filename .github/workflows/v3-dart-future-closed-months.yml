@@ -63,7 +63,9 @@ jobs:
            github.event.workflow_run.head_branch == 'main' &&
            github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    # Allow one bounded read-quota reset; writes are never blindly retried.
+    # OpenDART remains capped at 72 calls and completed months use zero calls.
+    timeout-minutes: 75
     concurrency:
       group: v3-dart-private-post-120-closed-months
       cancel-in-progress: false
