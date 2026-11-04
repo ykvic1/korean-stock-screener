@@ -196,6 +196,13 @@ function observedVolumeEvidence(r){
    v.trading_signal_authorized!==false||
    !Array.isArray(v.risk_flags)||v.risk_flags.some(x=>typeof x!=='string')||
    !v.subpoints||typeof v.subpoints!=='object')return null;
+ const money=v.sustained_participation_source;
+ if(money!==undefined&&(!money||money.model!=='actual-money-disjoint-d4-w5-persistence-concentration-v1'||
+   !validDate(money.daily_asof)||money.daily_asof>v.asof||
+   !validDate(money.weekly_session_end)||money.weekly_session_end>money.daily_asof||
+   money.actual_acc_trdval!==true||money.calendar_week_grouping!==true||
+   money.single_day_points!==0||money.certified!==false||
+   money.retained_prior_source!==(money.daily_asof!==v.asof)))return null;
  const z=v.subpoints;
  const cross=z.ma20_ma60_cross_near_ma240;
  if(z.post_spike_absorption!==null ||
@@ -1376,7 +1383,13 @@ function volumeParts(r){
  const parts=v?r.v3_volume_observed.subpoints:{};
  return '<div class="u-parts u-volume-parts" aria-label="거래량·OBV 20점 관측 근거">'+
   VOLUME_COMPONENTS.map(([label,max,key])=>{
-   const detail=key==='ma20_ma60_cross_near_ma240'?maCrossDetail(r,v):'';
+   const money=r?.v3_volume_observed?.sustained_participation_source;
+   if(key==='sustained_volume'&&money?.model==='actual-money-disjoint-d4-w5-persistence-concentration-v1'){
+    label='다중기간 실제 거래대금';
+   }
+   const detail=key==='ma20_ma60_cross_near_ma240'?maCrossDetail(r,v):
+    key==='sustained_volume'&&money?.actual_acc_trdval===true
+     ?'20·60·120·240일 / 5·10·20·60·120주 · 일 '+money.daily_asof+' · 주 '+money.weekly_session_end:'';
    return '<div class="u-factor-unverified"><span>'+esc(label)+
     (detail?'<small class="u-ma-cross-note">'+esc(detail)+'</small>':'')+
     '</span><b>'+(v&&finite(parts[key])?parts[key].toFixed(1):'—')+' / '+max+

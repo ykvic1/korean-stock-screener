@@ -27,6 +27,7 @@ import math
 from pathlib import Path
 
 from v3_volume_participation import build as volume_build
+from v3_actual_money_participation import OUTPUT as MONEY_OUTPUT
 from v3_current_price_replay import build as price_build
 from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points
@@ -261,9 +262,9 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
 
 
 def generate(market,catalog,volume,price,financial=None,cashflow=None,
-             path_coverage_receipt=None):
+             path_coverage_receipt=None,money_source=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
-    true_volume=volume_build(market,catalog)
+    true_volume=volume_build(market,catalog,money_source=money_source)
     true_price=price_build(market,catalog)
     if volume!=true_volume or price!=true_price:
         raise LivePartialScorecardError("not_exact_same_day_source_replay")
@@ -682,7 +683,8 @@ def main(argv=None):
             cashflow,_=candidate
     except (OSError,ValueError,KeyError):
         cashflow=None
-    volume=(volume_build(market,catalog) if args.refresh_derived
+    money_source=read(MONEY_OUTPUT) if (root/MONEY_OUTPUT).is_file() else None
+    volume=(volume_build(market,catalog,money_source=money_source) if args.refresh_derived
             else read("v3-volume-obv-observed.json"))
     price=(price_build(market,catalog) if args.refresh_derived
            else read("v3-current-price-technical-momentum.json"))
@@ -690,7 +692,7 @@ def main(argv=None):
         market,catalog,volume,
         price,
         financial=financial,cashflow=cashflow,
-        path_coverage_receipt=path_coverage_receipt)
+        path_coverage_receipt=path_coverage_receipt,money_source=money_source)
     new_csv=to_csv(rows,summary)
     # Per-stock history is additive: a new market census never erases an
     # unrelated issuer's last valid observations. Its dated values are NOT
