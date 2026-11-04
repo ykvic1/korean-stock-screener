@@ -135,7 +135,7 @@ jobs:
           print(json.loads(p.read_text())['attempted_issuers'] if p.is_file() else 0)
           PY
             )
-            if ! python v3_dart_reported_eps.py --mode live --limit 100; then
+            if ! python v3_dart_reported_eps.py --mode live --limit 100 --workers 3; then
               source_interrupted=1
               # A provider outage may occur after some issuers in this segment
               # were already saved locally; publish those before stopping.
