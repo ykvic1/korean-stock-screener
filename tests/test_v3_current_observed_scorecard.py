@@ -248,13 +248,13 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertNotIn("git push --force",flow)
         add=[line for line in flow.splitlines() if line.strip().startswith("git add docs/")]
         self.assertGreaterEqual(len(add),2)
-        self.assertTrue(all(
-            line.strip()=="git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json"
-            for line in add))
+        self.assertEqual({line.strip() for line in add}, {
+            "git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json",
+            "git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json"})
         for html in ("index.html","workspace.html"):
             text=(base/"docs"/html).read_text(encoding="utf8")
-            self.assertIn('href="v3-current-observed-all-listed.csv"',text)
-            self.assertIn('당일 실측 잠정점수 CSV',text)
+            self.assertIn('href="v3-personal-adjusted-scores.csv"',text)
+            self.assertIn('시총·손절 보정 점수 CSV',text)
             self.assertNotIn('당일 3영역 잠정점수 CSV',text)
             self.assertNotIn('href="v3-all-listed-scores.csv"',text)
 
