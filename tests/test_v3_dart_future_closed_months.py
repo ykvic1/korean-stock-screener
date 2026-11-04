@@ -3,6 +3,7 @@ import base64
 from datetime import datetime
 from hashlib import sha256
 import json
+from pathlib import Path
 import unittest
 from zoneinfo import ZoneInfo
 
@@ -54,6 +55,23 @@ def empty_response(month, category, page, allowed):
 
 
 class FutureClosedMonthReceiptTests(unittest.TestCase):
+    def test_verified_progress_completion_triggers_only_gated_closed_month_continuation(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / '.github/workflows/v3-dart-future-closed-months.yml').read_text()
+        reporter = (root / '.github/workflows/v3-dart-public-receipt-progress.yml').read_text()
+        self.assertIn('V3 Private OpenDART Historical Receipt Progress (Anonymous Public Aggregate)', source)
+        self.assertIn('types: [completed]', source)
+        self.assertIn('branches: [main]', source)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", source)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", source)
+        self.assertIn('github.event.workflow_run.head_repository.full_name == github.repository', source)
+        self.assertIn("if: ${{ steps.base.outputs.done == 'true' }}", source)
+        self.assertIn('public_progress_complete(progress)', source)
+        self.assertIn("cron: '37 0,6,12,18 * * *'", source)
+        self.assertIn('group: v3-dart-private-post-120-closed-months', source)
+        # Completion publication must not recursively listen to its consumer.
+        self.assertNotIn('V3 Post-120 Private DART Closed-Month Receipt Continuation', reporter)
+
     def test_kst_month_rollover_excludes_partial_month(self):
         kst = ZoneInfo("Asia/Seoul")
         self.assertEqual(due_months(datetime(

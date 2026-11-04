@@ -14,6 +14,14 @@ on:
     # Bounded monthly continuation checks four times a day. A fully
     # up-to-date private cursor uses zero OpenDART calls.
     - cron: '37 0,6,12,18 * * *'
+  # A verified public completion report can start the next CLOSED month
+  # immediately, without waiting for the six-hour fallback schedule.
+  # This consumer never triggers that reporter, so there is no event loop.
+  workflow_run:
+    workflows:
+      - V3 Private OpenDART Historical Receipt Progress (Anonymous Public Aggregate)
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       mode:
@@ -49,7 +57,11 @@ jobs:
       ${{ github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
           (github.event_name == 'push' &&
-           startsWith(github.event.head_commit.message, 'feat(v3.0b): auto archive new DART months after 120')) }}
+           startsWith(github.event.head_commit.message, 'feat(v3.0b): auto archive new DART months after 120')) ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 18
     concurrency:
