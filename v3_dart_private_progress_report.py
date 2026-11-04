@@ -19,7 +19,7 @@ import time
 from v3_dart_historical_event_receipts import (
     CATEGORIES, CHECKPOINT, MONTHS, PRIVATE_REPO, _check_cursor, _decode, _path,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 from v3_dart_bulk_history import write_json
 
 SCHEMA = "v3-public-dart-historical-receipt-progress-v1"
@@ -28,6 +28,16 @@ OUTPUT = "v3-dart-historical-receipt-progress.json"
 
 class DARTProgressError(ValueError):
     """Static, privacy-safe failure code; never embeds source data."""
+
+
+def public_progress_failure_code(error):
+    """Expose a fixed quota diagnosis; never print private API exceptions."""
+    if (type(error) is PrivateHistoryError
+        and error.args == ("private_storage_api_failed",)
+        and getattr(error, "safe_http_status", None) in (
+            "http_403_rate_limited", "http_429")):
+        return "private_dart_progress_github_api_rate_limited"
+    return "private_dart_progress_validation_or_transport_failed"
 
 
 def _previous_location(cursor):
@@ -211,4 +221,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as error:
+        raise SystemExit("blocked: " + public_progress_failure_code(error)) from None
