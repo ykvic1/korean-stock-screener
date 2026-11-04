@@ -24,10 +24,28 @@ YEAR = 2025
 UNUSABLE_REASONS = {'invalid_reported_eps_amount', 'eps_statement_identity_mismatch',
                    'eps_statement_receipt_or_currency_mismatch', 'conflicting_reported_basic_eps',
                    'official_corp_mapping_missing'}
+SAFE_FAILURE_CODES = UNUSABLE_REASONS | {
+    'invalid_eps_quarantine_reason', 'invalid_reported_eps_series',
+    'official_eps_response_unavailable', 'invalid_eps_source_day',
+    'unaligned_eps_annual_sources', 'duplicate_eps_issuer_census',
+    'duplicate_eps_annual_issuer', 'untrusted_prior_eps_source',
+    'invalid_saved_eps_source', 'missing_official_eps_api_key',
+    'official_eps_issuer_identity_unavailable', 'official_eps_transport_unavailable',
+    'eps_output_must_not_be_symlink', 'saved_eps_snapshot_differs_from_sources',
+    'partial_eps_source_stopped_after_checkpoint',
+}
 
 
 class EPSError(ValueError):
     """Fixed source-independent diagnostics only."""
+
+
+def safe_failure_label(error):
+    """Expose a fixed diagnostic code, never a provider response or secret."""
+    code = str(error)
+    if type(error) is EPSError and code in SAFE_FAILURE_CODES:
+        return 'blocked: ' + code
+    return 'blocked: reported_eps_source_not_verified'
 
 
 def unusable(base, day, reason):
@@ -287,5 +305,5 @@ def main(argv=None):
 if __name__ == '__main__':
     try:
         main()
-    except Exception:
-        raise SystemExit('blocked: reported_eps_source_not_verified') from None
+    except Exception as error:
+        raise SystemExit(safe_failure_label(error)) from None
