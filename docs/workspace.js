@@ -199,10 +199,15 @@ function observedVolumeEvidence(r){
  const money=v.sustained_participation_source;
  if(money!==undefined&&(!money||money.model!=='actual-money-disjoint-d4-w5-persistence-concentration-v1'||
    !validDate(money.daily_asof)||money.daily_asof>v.asof||
-   !validDate(money.weekly_session_end)||money.weekly_session_end>money.daily_asof||
+   !validDate(money.weekly_session_end)||money.weekly_session_end>v.asof||
    money.actual_acc_trdval!==true||money.calendar_week_grouping!==true||
    money.single_day_points!==0||money.certified!==false||
-   money.retained_prior_source!==(money.daily_asof!==v.asof)))return null;
+   money.retained_prior_source!==((money.computed_asof??money.daily_asof)!==v.asof)))return null;
+ if(money?.computed_asof!==undefined&&
+    (!validDate(money.computed_asof)||money.computed_asof>v.asof||
+     money.daily_asof>money.computed_asof||money.weekly_session_end>money.computed_asof||
+     !validDate(money.earliest_asof)||money.earliest_asof!==
+      (money.daily_asof<money.weekly_session_end?money.daily_asof:money.weekly_session_end)))return null;
  const z=v.subpoints;
  const cross=z.ma20_ma60_cross_near_ma240;
  if(z.post_spike_absorption!==null ||
@@ -471,7 +476,7 @@ function applyCurrentObservedFinance(model,summary,csv){
   if(isMoney){
    const daily=field('거래대금_일봉자료기준일'),weekly=field('거래대금_주봉자료기준일');
    if(!(daily===''&&weekly==='')&&
-      (!validDate(daily)||!validDate(weekly)||weekly>daily||daily>model.date))return 0;
+      (!validDate(daily)||!validDate(weekly)||weekly>model.date||daily>model.date))return 0;
   }
   if(isRisk){
    const status=field('손절심각도_연구상태');

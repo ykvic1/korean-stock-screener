@@ -98,7 +98,7 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     windows=[forward_days[5*i:5*(i+1)] for i in range(fcount-1,max(-1,fcount-97),-1)]
     windows += [_cohort_at_recent_first(days,i) for i in range(
         min(progress['five_session_cohorts_completed'],96-len(windows)))]
-    if len(windows)!=96 or windows[0][-1]!=asof:
+    if len(windows)!=96 or windows[0][-1]>asof:
         raise ActualMoneyError('money_daily_source_not_current_complete_480_sessions')
     daily=[]
     for window in windows:
@@ -145,7 +145,8 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         wv=[r['amount_100k_krw']/r['observed_sessions'] if r is not None else None for r in w]
         points=provisional_points(dv,wv)
         if points is not None:
-            records[code]={'market':market,'asof':asof,'points':points,
+            records[code]={'market':market,'asof':min(windows[0][-1],weekly[0]['session_end']),'points':points,
+                'daily_asof':windows[0][-1],'computed_asof':asof,
                 'model':MODEL,'weekly_session_end':weekly[0]['session_end'],
                 'issuer_name':item['name']}
     if catalog.get('listed_total')!=len(members):
@@ -153,6 +154,8 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     if any(store.get_content(p)!=before[p] for p in paths):
         raise ActualMoneyError('private_money_checkpoint_changed_during_score_read')
     return {'schema':SCHEMA,'model':MODEL,'asof':asof,'points_budget':6,
+        'daily_asof':windows[0][-1],
+        'source_dates_are_independent_completed_periods':True,
         'source_catalog_sha256':_stable_digest(catalog),
         'source_private_revision':source_revision,
         'source_checkpoint_sha256':{str(i):sha256(before[p][0]).hexdigest() for i,p in enumerate(paths)},

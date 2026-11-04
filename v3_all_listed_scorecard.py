@@ -22,6 +22,7 @@ from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
 from v3_dart_cashflow_enrichment import CashflowError
 from v3_dart_industry_codes import prior_records, IndustrySourceError
 from v3_volume_participation import build as observed_volume, OBSERVABLE_MAX
+from v3_actual_money_contract import OUTPUT as MONEY_OUTPUT
 from v3_current_price_replay import SCHEMA as PRICE_REPLAY_SCHEMA
 from v3_weekly_rotation import TECH_PARTS
 
@@ -185,7 +186,7 @@ def _verified_price_replay(source,market,catalog,day,members):
 
 
 def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
-             industry_source=None,price_replay=None):
+             industry_source=None,price_replay=None,money_source=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
     # An older WEEKLY research cohort may be omitted when the official
     # market/DART annual ledgers already agree today. Its stale scores never
@@ -198,7 +199,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
     raw_parts={r["code"]:r for r in parts["rows"]}
     # Reuse only same-day v2.2 price-derived volume/OBV fields.
     # An independent live investor-identity API is NOT required.
-    volume_source=observed_volume(market,catalog)
+    volume_source=observed_volume(market,catalog,money_source=money_source)
     volume_rows=volume_source["records"]
     replay_rows,replay_state=_verified_price_replay(
         price_replay,market,catalog,day,members)
@@ -443,8 +444,10 @@ def main(argv=None):
     industry=read(industry_path.name) if industry_path.is_file() else None
     replay_path=d/"v3-current-price-technical-momentum.json"
     replay=read(replay_path.name) if replay_path.is_file() else None
+    money_path=d/MONEY_OUTPUT
+    money=read(money_path.name) if money_path.is_file() else None
     rows,summary=generate(market,catalog,history,parts,weekly,cash,fcf,
-                          industry,replay)
+                          industry,replay,money_source=money)
     content=to_csv(rows,summary)
     dest=d/"v3-all-listed-scores.csv"
     report=d/"v3-all-listed-scorecard-summary.json"

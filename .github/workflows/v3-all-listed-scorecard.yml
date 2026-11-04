@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_all_listed_scorecard.py
+      - v3_actual_money_contract.py
+      - docs/v3-actual-money-participation.json
       - tests/test_v3_all_listed_scorecard.py
       - v3_current_price_replay.py
       - tests/test_v3_current_price_replay.py
@@ -17,6 +19,9 @@ on:
   # Each retry regenerates from latest saved sources: zero DART/KRX calls.
   schedule:
     - cron: '24,54 * * * *'
+  workflow_run:
+    workflows: [V3 Actual Money Personal Participation Score]
+    types: [completed]
   workflow_dispatch:
     inputs:
       mode:
@@ -36,6 +41,11 @@ concurrency:
 
 jobs:
   full-current-listed-observed:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -55,10 +55,19 @@ def usable_records(report, catalog):
                 or r.get('model')!=MODEL or type(r.get('issuer_name')) is not str
                 or type(r.get('weekly_session_end')) is not str
                 or date.fromisoformat(r['weekly_session_end']).isoformat()!=r['weekly_session_end']
-                or r['weekly_session_end']>r['asof']
+                or r['weekly_session_end']>report['asof']
                 or type(r.get('points')) not in (int,float) or not math.isfinite(r['points'])
                 or not 0<=r['points']<=6):
                 return {}
+            if 'daily_asof' in r or 'computed_asof' in r:
+                daily=r.get('daily_asof');computed=r.get('computed_asof')
+                if (type(daily) is not str or type(computed) is not str
+                    or date.fromisoformat(daily).isoformat()!=daily
+                    or date.fromisoformat(computed).isoformat()!=computed
+                    or max(daily,r['weekly_session_end'])>computed
+                    or computed>report['asof']
+                    or r['asof']!=min(daily,r['weekly_session_end'])):
+                    return {}
         return {code:r for code,r in records.items() if code in members
                 and members[code]['market']==r['market']
                 and members[code]['name']==r['issuer_name']}

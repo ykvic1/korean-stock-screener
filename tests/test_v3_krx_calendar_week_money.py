@@ -89,6 +89,18 @@ class CalendarMoneyTests(unittest.TestCase):
         with self.assertRaises(WeeklyMoneyError):
             derive(Client(),'2026-11-01',days('2026-11-01'),{'requests':3000})
 
+    def test_empty_market_failure_has_bounded_retry_and_safe_source_diagnostics(self):
+        client=Client()
+        with patch.object(client,'daily_market',side_effect=KRXProbeError('KOSPI','empty_market_rows',200)) as call, patch(
+            'v3_krx_calendar_week_money.time.sleep'):
+            with self.assertRaises(WeeklyMoneyError) as caught:
+                derive(client,'2026-11-01',days('2026-11-01'),{'requests':0})
+        self.assertEqual(call.call_count,3)
+        self.assertEqual(caught.exception.safe_krx_reason,'empty_market_rows')
+        self.assertEqual(caught.exception.safe_source_market,'KOSPI')
+        self.assertEqual(caught.exception.safe_source_day,'2026-10-26')
+        self.assertEqual(str(caught.exception),'official_weekly_money_source_unavailable')
+
     def test_new_cutoff_cannot_reinterpret_fixed_historical_anchor(self):
         store=FakePrivateStore();client=Client()
         a=collect(store,client,asof='2026-11-04',max_weeks=2,day_loader=days)

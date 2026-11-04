@@ -36,6 +36,37 @@ class AllListedScorecardTests(unittest.TestCase):
         if any(value!=day for value in (
                 snapshot["date"],bulk["asof"],parts["asof"])):
             self.skipTest("source_day_rollover_waiting_for_official_dart_backfill")
+    def test_same_money_receipt_replaces_only_sustained_six_in_secondary_csv(self):
+        from v3_actual_money_contract import SCHEMA,MODEL,DAILY,WEEKLY_WINDOWS,closed_week_end
+        market,catalog,history,parts,weekly,cash,fcf=sources()
+        volume=m.observed_volume(market,catalog)
+        code=next(iter(volume['records']))
+        member=next(row for row in catalog['rows'] if row['code']==code)
+        day=catalog['date']
+        week=(date.fromisoformat(closed_week_end(day))-timedelta(days=2)).isoformat()
+        source=dict(schema=SCHEMA,model=MODEL,asof=day,points_budget=6,
+            source_catalog_sha256=m._stable_digest(catalog),source_private_revision='a'*40,
+            source_checkpoint_sha256={str(i):'a'*64 for i in range(3)},
+            daily_windows=list(DAILY),calendar_week_windows=list(WEEKLY_WINDOWS),
+            daily_cohorts_inspected=96,calendar_weeks_inspected=240,
+            calendar_week_end=closed_week_end(day),weekly_session_end=week,
+            listed_total=catalog['listed_total'],eligible_issuers=1,
+            provisional_personal_use_only=True,original_amounts_or_bars_published=False,
+            independent_regular_session_verified=False,corporate_actions_and_pit_verified=False,
+            investment_score_certified=False,single_day_money_component_points=0,
+            missing_or_zero_baseline_is_unavailable=True,
+            records={code:dict(market=member['market'],issuer_name=member['name'],
+                asof=day,weekly_session_end=week,points=1.2345,model=MODEL)})
+        before,_=m.generate(market,catalog,history,parts,weekly,cash,fcf)
+        after,_=m.generate(market,catalog,history,parts,weekly,cash,fcf,money_source=source)
+        before={row['code']:row for row in before};after={row['code']:row for row in after}
+        old_sustained=volume['records'][code]['subpoints']['sustained_volume']
+        self.assertAlmostEqual(after[code]['factors']['volume'][0],
+            before[code]['factors']['volume'][0]-old_sustained+1.2345,places=4)
+        for target in before:
+            for factor in ('technical','financial','valuation','momentum'):
+                self.assertEqual(before[target]['factors'][factor],after[target]['factors'][factor])
+
     def test_every_catalog_issuer_even_without_usable_price(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         rows,report=m.generate(market,catalog,history,parts,weekly,cash,fcf)
