@@ -154,6 +154,35 @@ class HistoricalReceiptProgressTests(unittest.TestCase):
         self.assertIsNone(report["last_checkpointed_filing_month"])
         self.assertFalse(report["private_tail_digest_and_schema_verified"])
 
+    def test_published_verified_snapshot_can_lag_a_live_private_writer(self):
+        published = p.collect(fixture())
+        latest = {**published,
+                  "private_receipt_pages_checkpointed": 6,
+                  "private_filing_receipts_checkpointed": 120}
+        # The source cursor can advance while Git is preparing the commit.
+        p.verify_published_snapshot(published, latest)
+        p.verify_published_snapshot(published, published)
+
+    def test_published_snapshot_verification_rejects_corruption_or_future_counts(self):
+        original = p.collect(fixture())
+        latest = {**original, "private_receipt_pages_checkpointed": 6,
+                  "private_filing_receipts_checkpointed": 120}
+        bad = {**original, "v3_trade_scores_promoted": True}
+        with self.assertRaisesRegex(p.DARTProgressError, "report_invalid"):
+            p.verify_published_snapshot(bad, latest)
+        bad = {**original, "private_receipt_pages_checkpointed": 7}
+        with self.assertRaisesRegex(p.DARTProgressError, "report_invalid"):
+            p.verify_published_snapshot(bad, latest)
+        bad = {**original, "filing_months_remaining": 118}
+        with self.assertRaisesRegex(p.DARTProgressError, "report_invalid"):
+            p.verify_published_snapshot(bad, latest)
+        bad = {**original, "private_corp_code": "forbidden"}
+        with self.assertRaisesRegex(p.DARTProgressError, "report_invalid"):
+            p.verify_published_snapshot(bad, latest)
+        bad = {**original, "private_filing_receipts_checkpointed": 5000}
+        with self.assertRaisesRegex(p.DARTProgressError, "report_invalid"):
+            p.verify_published_snapshot(bad, latest)
+
     def test_workflow_is_aggregate_only_and_does_not_call_dart(self):
         base = Path(__file__).resolve().parents[1]
         wf = (base / ".github/workflows/v3-dart-public-receipt-progress.yml").read_text()
