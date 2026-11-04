@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_private_dart_original_evidence.py
           python -m unittest discover -s tests -p 'test_v3_private_dart_original_evidence.py' -v
-      - name: Retrieve only two private title-hint receipts from official DART original ZIP API
+      - name: Retrieve up to six private title-hint receipts from official DART original ZIP API
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -56,7 +56,7 @@ jobs:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           set -euo pipefail
-          # Only stored in the already private and size-checked archive.
+          # At most six provider calls per run, with individually size-checked\n          # immutable ZIP evidence and fail-closed private readback.\n          # Only stored in the already private and size-checked archive.
           # No original source, title text, receipt number, corp code or
           # API credential appears in public log/artifact/repository.
           # Original ZIP exists != corporate action or adjusted price proof.
