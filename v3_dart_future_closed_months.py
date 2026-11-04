@@ -11,6 +11,7 @@ from hashlib import sha256
 import json
 import os
 import re
+import time
 from urllib import parse, request
 from zoneinfo import ZoneInfo
 
@@ -20,13 +21,17 @@ from v3_dart_historical_event_receipts import (
     _save_cursor, _save_immutable_page,
     parse_official_response, public_failure_code,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_dart_continuous_catchup import QuotaWaitingPrivateGitStorage
 
 KST = ZoneInfo("Asia/Seoul")
 SCHEMA = "v3-private-dart-future-closed-month-receipts-v1"
 PREFIX = "derived/dart-post-120-closed-months"
 CHECKPOINT = PREFIX + "/checkpoint.json"
 FIRST = (2026, 10)
+# One bounded GitHub quota window can elapse without discarding this run.
+# The workflow's hard timeout leaves setup/readback margin; provider calls
+# remain capped at MAX_API_CALLS and only rejected read requests can wait.
+MAX_RUN_SECONDS = 65 * 60
 
 
 def due_months(now=None):
@@ -178,7 +183,9 @@ def main():
         or len(os.environ.get("V3_PRIVATE_ARCHIVE_TOKEN", "")) < 20
         or len(os.environ.get("DART_API_KEY", "")) != 40):
         raise SystemExit("blocked: required private DART research credentials absent")
-    store = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
+    store = QuotaWaitingPrivateGitStorage(
+        PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"],
+        deadline=time.monotonic() + MAX_RUN_SECONDS)
     api_key = os.environ["DART_API_KEY"]
     try:
         result = collect_closed_months(
