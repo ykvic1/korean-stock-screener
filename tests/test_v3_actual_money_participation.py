@@ -60,7 +60,7 @@ def report_fixture(catalog):
         daily_windows=list(m.DAILY),calendar_week_windows=list(m.WEEKLY_WINDOWS),
         daily_cohorts_inspected=96,calendar_weeks_inspected=240,
         listed_total=catalog['listed_total'],eligible_issuers=0,records={},
-        calendar_week_end=m.closed_week_end(catalog['date']),weekly_session_end=catalog['date'],
+        calendar_week_end=m.closed_week_end(catalog['date']),weekly_session_end=(date.fromisoformat(m.closed_week_end(catalog['date']))-timedelta(days=2)).isoformat(),
         provisional_personal_use_only=True,original_amounts_or_bars_published=False,
         independent_regular_session_verified=False,corporate_actions_and_pit_verified=False,
         investment_score_certified=False,single_day_money_component_points=0,
@@ -114,7 +114,7 @@ class ActualMoneyTests(unittest.TestCase):
         _,catalog=market_fixture();report=report_fixture(catalog)
         item=catalog['rows'][0]
         rec={'market':item['market'],'asof':catalog['date'],'points':2.125,'model':m.MODEL,
-             'weekly_session_end':catalog['date'],'issuer_name':item['name']}
+             'weekly_session_end':report['weekly_session_end'],'issuer_name':item['name']}
         report.update(records={item['code']:rec},eligible_issuers=1)
         self.assertEqual(len(m.usable_records(report,catalog)),1)
         for field,value in [('points',float('nan')),('points',True),('points',7),
@@ -139,14 +139,21 @@ class ActualMoneyTests(unittest.TestCase):
         target.update(stock())
         target["market"]=original_market
         report.update(records={target['code']:{'market':target['market'],'asof':catalog['date'],
-            'points':1.2345,'model':m.MODEL,'weekly_session_end':catalog['date'],
+            'points':1.2345,'model':m.MODEL,'weekly_session_end':report['weekly_session_end'],
             'issuer_name':target['name']}},eligible_issuers=1)
+        report['records'][target['code']]['asof']='2026-10-18'
         before=build(market,catalog);after=build(market,catalog,money_source=report)
         self.assertEqual(after['records'][target['code']]['subpoints']['sustained_volume'],1.2345)
         for code,r in before['records'].items():
             other=after['records'][code]
             for key in ('ma20_ma60_cross_near_ma240','obv_price_not_reflected','post_spike_absorption'):
                 self.assertEqual(r['subpoints'][key],other['subpoints'][key])
+        from v3_current_observed_scorecard import generate
+        from v3_current_price_replay import build as price_build
+        from v3_issuer_factor_ledger import build as ledger_build
+        rows,_=generate(market,catalog,after,price_build(market,catalog),money_source=report)
+        ledger=ledger_build(catalog,rows)
+        self.assertEqual(ledger['rows'][target['code']]['factors']['volume']['asof'],'2026-10-18')
         bad=copy.deepcopy(report);bad['investment_score_certified']=True
         self.assertEqual(build(market,catalog,money_source=bad),before)
 
@@ -155,6 +162,27 @@ class ActualMoneyTests(unittest.TestCase):
             store=m.LocalPrivateSnapshot(tmp,'synthetic-test-token')
             for path in ('../secret','krx/2026/other','derived/money-five-session/../../../../secret'):
                 with self.assertRaises(m.ActualMoneyError):store.get_content(path)
+
+    def test_expected_collection_wait_preserves_existing_report_and_emits_not_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            catalog={'date':'2026-11-04','rows':[]}
+            (root/'v22-market-catalog.json').write_text(json.dumps(catalog))
+            target=root/m.OUTPUT;target.write_text('previous valid score untouched')
+            output=root/'step-output'
+            with patch.object(m,'collect',side_effect=m.ActualMoneyError('money_calendar_week_history_incomplete')), patch.dict(
+                'os.environ',{'GITHUB_OUTPUT':str(output),'V3_PRIVATE_ARCHIVE_TOKEN':'synthetic-offline-no-secret'}),patch('builtins.print'):
+                m.main(['--private-snapshot',directory,'--private-revision','a'*40,
+                        '--docs',directory,'--allow-incomplete'])
+            self.assertEqual(target.read_text(),'previous valid score untouched')
+            self.assertEqual(output.read_text(),'ready=false\n')
+            workflow=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-actual-money-score.yml').read_text()
+            offline,live=workflow.split('  publish:',1)
+            self.assertNotIn('secrets.',offline)
+            self.assertIn("if: steps.projection.outputs.ready == 'true'",live)
+            self.assertIn('if: always()',live)
+            self.assertLess(live.index('rm -rf -- .money-private'),live.index('git add -- docs/'))
+            self.assertNotIn('upload-artifact',workflow)
 
     def test_forward_retries_only_transient_source_errors(self):
         from v3_krx_money_forward import RetryingMoneyClient

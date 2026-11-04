@@ -462,12 +462,17 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
             if (type(value) not in (int,float) or not math.isfinite(value)
                 or not 0<=value<=available):
                 raise IssuerFactorLedgerError("invalid_current_factor_points")
+            source_day=day
+            if key=="volume" and row.get("volume_money_source_asof") is not None:
+                source_day=row["volume_money_source_asof"]
+                if _date(source_day) is None or _date(source_day)>_date(day):
+                    raise IssuerFactorLedgerError("invalid_money_factor_source_date")
             old=target["factors"].get(key)
             # A new but narrower partial source must not erase a larger
             # previously observed budget. Replace on equal/better coverage.
             if old is None or available>=old["available"]:
                 target["factors"][key]={
-                    "asof":day,"available":available,
+                    "asof":source_day,"available":available,
                     "points":float(value),"source":"current_close_replay"}
     return {
         "schema":SCHEMA,"market_asof":day,"listed_total":len(members),

@@ -181,6 +181,8 @@ def usable_records(report, catalog):
             or report['daily_windows']!=list(DAILY) or report['calendar_week_windows']!=list(WEEKLY_WINDOWS)
             or report['daily_cohorts_inspected']!=96 or report['calendar_weeks_inspected']!=240
             or report['calendar_week_end']!=closed_week_end(report['asof'])
+            or date.fromisoformat(report['weekly_session_end']).isoformat()!=report['weekly_session_end']
+            or report['weekly_session_end']>report['calendar_week_end']
             or report['weekly_session_end']>report['asof']
             or report['single_day_money_component_points']!=0
             or report['missing_or_zero_baseline_is_unavailable'] is not True
@@ -197,6 +199,7 @@ def usable_records(report, catalog):
                 or r['asof']>report['asof'] or date.fromisoformat(r['asof']).isoformat()!=r['asof']
                 or r.get('model')!=MODEL or type(r.get('issuer_name')) is not str
                 or type(r.get('weekly_session_end')) is not str
+                or date.fromisoformat(r['weekly_session_end']).isoformat()!=r['weekly_session_end']
                 or r['weekly_session_end']>r['asof']
                 or type(r.get('points')) not in (int,float) or not math.isfinite(r['points'])
                 or not 0<=r['points']<=6):
@@ -236,11 +239,25 @@ def main(argv=None):
     p.add_argument('--private-snapshot',required=True)
     p.add_argument('--private-revision',required=True)
     p.add_argument('--docs',default='docs')
+    p.add_argument('--allow-incomplete',action='store_true')
     args=p.parse_args(argv)
     root=Path(args.docs)
     catalog=json.loads((root/'v22-market-catalog.json').read_text())
     store=LocalPrivateSnapshot(args.private_snapshot,os.getenv('V3_PRIVATE_ARCHIVE_TOKEN',''))
-    report=collect(store,asof=catalog['date'],catalog=catalog,source_revision=args.private_revision)
+    try:
+        report=collect(store,asof=catalog['date'],catalog=catalog,source_revision=args.private_revision)
+    except ActualMoneyError as error:
+        waiting={'money_daily_source_not_current_complete_480_sessions',
+                 'money_calendar_week_history_unavailable','money_calendar_week_history_incomplete',
+                 'money_calendar_week_source_stale'}
+        if not args.allow_incomplete or str(error) not in waiting:
+            raise
+        if os.getenv('GITHUB_OUTPUT'):
+            with open(os.environ['GITHUB_OUTPUT'],'a') as handle: handle.write('ready=false\n')
+        print(json.dumps({'status':'waiting_for_complete_money_source',
+                          'reason':str(error),'existing_scores_preserved':True}))
+        return
+
     if len(usable_records(report,catalog))!=report['eligible_issuers']:
         raise ActualMoneyError('money_public_score_self_validation_failed')
     prior_path=root/OUTPUT
@@ -251,6 +268,8 @@ def main(argv=None):
         report['eligible_issuers']=len(report['records'])
         report['retained_prior_money_issuers']=len(retained)
     (root/OUTPUT).write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+    if os.getenv('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'],'a') as handle: handle.write('ready=true\n')
     print(json.dumps({'actual_money_six_point_issuers':report['eligible_issuers'],
                       'asof':report['asof'],'raw_amounts_published':False}))
 

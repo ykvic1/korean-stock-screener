@@ -74,16 +74,18 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt 'exchange-calendars==4.13.1'
       - name: Derive only bounded six-point money evidence from pinned private snapshot
+        id: projection
         env:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           set -euo pipefail
           revision=$(git -C .money-private rev-parse HEAD)
-          python v3_actual_money_participation.py --private-snapshot .money-private --private-revision "$revision"
+          python v3_actual_money_participation.py --private-snapshot .money-private --private-revision "$revision" --allow-incomplete
       - name: Remove private snapshot before any public staging
         if: always()
         run: rm -rf -- .money-private
       - name: Replay public point receipt into UI, issuer ledger and personal ranking
+        if: steps.projection.outputs.ready == 'true'
         run: |
           set -euo pipefail
           python v3_volume_participation.py --mode write
