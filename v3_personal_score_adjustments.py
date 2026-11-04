@@ -12,6 +12,7 @@ import math
 
 from v3_dart_bulk_history import _stable_digest
 from v3_issuer_factor_ledger import BUDGET, SCHEMA as LEDGER_SCHEMA, _factor
+from v3_eps_valuation import valid as valid_valuation, MODEL as EPS_MODEL
 
 SCHEMA = "v3-personal-stability-adjusted-score-v3"
 
@@ -60,7 +61,7 @@ def profile(row, earned):
     }
 
 
-def build(market, catalog, ledger):
+def build(market, catalog, ledger, *, valuation_overrides=None):
     day = catalog.get("date")
     try:
         if date.fromisoformat(day).isoformat() != day:
@@ -83,7 +84,7 @@ def build(market, catalog, ledger):
         if code in stocks or stock.get("price_date") != day:
             raise ValueError("invalid_personal_score_price_identity")
         stocks[code] = stock
-    output, seen = [], set()
+    output, seen, applied_overrides = [], set(), {}
     for member in catalog["rows"]:
         code = member["code"]
         saved = ledger["rows"].get(code)
@@ -97,6 +98,13 @@ def build(market, catalog, ledger):
             if key not in BUDGET or checked is None or checked["available"] > BUDGET[key]:
                 raise ValueError("invalid_personal_score_retained_factor")
             factors[key] = checked
+        value_model = 'legacy-observed-valuation20'
+        override = (valuation_overrides or {}).get(code)
+        if valid_valuation(override, code=code, name=member['name'], market=member['market'], day=day):
+            applied_overrides[code] = override
+            factors['valuation'] = {'points': override['points'], 'available': 20,
+                                    'asof': override['asof'], 'source': EPS_MODEL}
+            value_model = EPS_MODEL
         available = sum(x["available"] for x in factors.values())
         # Browser PILLARS order and left-to-right IEEE addition are part of
         # the displayed contract. Dict order/Python 3.12's compensated sum
@@ -116,6 +124,7 @@ def build(market, catalog, ledger):
                        "oldest_factor_asof": min((v["asof"] for v in factors.values()), default=None),
                        "retained_factor_count": sum(v["asof"] != day for v in factors.values()),
                        "personal_rank": None, **adjustment})
+        output[-1]['valuation_model'] = value_model
     if not set(stocks) <= seen:
         raise ValueError("unlisted_personal_score_price_identity")
     eligible = [row for row in output if row["price_observed"] and row["base_score"] is not None]
@@ -133,6 +142,8 @@ def build(market, catalog, ledger):
         "official_investment_scores_certified": False, "provider_api_calls": 0,
         "source_sha256": {"market": _stable_digest(market), "catalog": _stable_digest(catalog),
                           "issuer_factors": _stable_digest(ledger)},
+        "valuation_overrides": applied_overrides,
+        "reported_eps_valuation_issuers": sum(r['valuation_model'] == EPS_MODEL for r in output),
     }
     return output, summary
 
@@ -142,7 +153,7 @@ def to_csv(rows):
     writer = csv.writer(buffer, lineterminator="\n")
     fields = ["안정형순위", "종목코드", "종목명", "시장", "가격기준일", "점수산식버전",
               "안정형보정점수", "보정전관측합계", "산출가능배점", "시총감점", "손절거리보정",
-              "손절거리퍼센트", "미확인보정근거수", "최초팩터기준일", "과거팩터유지수"]
+              "손절거리퍼센트", "미확인보정근거수", "최초팩터기준일", "과거팩터유지수", "가치점수모형"]
     for key in BUDGET:
         fields += [key + "_점수", key + "_확보배점", key + "_기준일"]
     writer.writerow(fields)
@@ -150,7 +161,7 @@ def to_csv(rows):
         values = [row["personal_rank"], row["code"], row["name"], row["market"], row["price_asof"], SCHEMA,
                   row["adjusted_score"], row["base_score"], row["available"], row["capital_deduction"],
                   row["stop_adjustment"], row["stop_distance_pct"], row["missing_adjustment_sources"],
-                  row["oldest_factor_asof"], row["retained_factor_count"]]
+                  row["oldest_factor_asof"], row["retained_factor_count"], row['valuation_model']]
         for key in BUDGET:
             factor = row["factors"].get(key, {})
             values += [factor.get("points"), factor.get("available"), factor.get("asof")]

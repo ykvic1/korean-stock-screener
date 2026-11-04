@@ -97,7 +97,14 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN):
         cutoff = date.fromisoformat(day)
     except (ValueError, TypeError):
         raise EPSError('invalid_eps_source_day') from None
-    if (book.get('asof') != day or book.get('raw_dart_account_rows_published') is not False
+    try:
+        book_day = date.fromisoformat(book.get('asof'))
+    except (ValueError, TypeError):
+        raise EPSError('unaligned_eps_annual_sources') from None
+    # Annual EPS is matched to an exact filing, not to the market price.
+    # A new close must not stall an unchanged annual-receipt acquisition.
+    # The official response still has to match that same receipt/scope.
+    if (book_day > cutoff or book.get('raw_dart_account_rows_published') is not False
         or book.get('historical_point_in_time_verified') is not False
         or not isinstance(catalog.get('rows'), list)
         or catalog.get('listed_total') != len(catalog['rows'])

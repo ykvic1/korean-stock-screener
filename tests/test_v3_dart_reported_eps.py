@@ -29,6 +29,14 @@ def inputs():
 
 
 class EPSTests(unittest.TestCase):
+    def test_previous_day_annual_book_keeps_receipt_identity_but_future_book_is_rejected(self):
+        catalog, book = inputs()
+        book['asof'] = '2026-11-02'
+        self.assertEqual(plan(catalog, book)[-1], [BASE['code']])
+        book['asof'] = '2026-11-04'
+        with self.assertRaises(EPSError):
+            plan(catalog, book)
+
     def test_live_workflow_is_bounded_and_offline_checks_never_use_secrets(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root/'.github/workflows/v3-dart-reported-eps.yml').read_text()
