@@ -172,6 +172,10 @@ class HistoricalReceiptProgressTests(unittest.TestCase):
         self.assertIn("options: [verify, write]", wf)
         self.assertIn("default: verify", wf)
         self.assertIn("cancel-in-progress: false", wf)
+        # Live five-hour private collections must not leave public month counts
+        # stale until the entire writer finishes; this read-only source probe
+        # is independent of the provider request budget.
+        self.assertIn("cron: '7 * * * *'", wf)
         self.assertNotIn("DART_API_KEY:", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
         self.assertNotIn("python v3_dart_historical_event_receipts.py", wf)
