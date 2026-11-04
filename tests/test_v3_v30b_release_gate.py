@@ -398,28 +398,36 @@ class V30bReadinessTests(unittest.TestCase):
         o, s, h = public_inputs()
         receipt = json.loads((ROOT / "docs/v3-dart-historical-receipt-progress.json")
                              .read_text(encoding="utf-8"))
-        report = assess_v30b(o, s, h, dart_receipt_progress=receipt)
-        self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
-        self.assertTrue(report["dart_historical_receipt_checkpoint_valid"])
-        self.assertTrue(report["gates"]["dart_receipt_checkpoint_coherence"])
-        self.assertEqual(report["dart_historical_receipts_completed_months"],
-                         receipt["filing_months_checkpointed"])
-        self.assertEqual(report["dart_historical_receipts_remaining_months"],
-                         receipt["filing_months_remaining"])
-        self.assertFalse(report["gates"]["dart_120month_receipt_collection_complete"])
-        self.assertIn("dart_historical_receipts_incomplete", report["blocker_codes"])
-        self.assertFalse(report["dart_receipt_collection_is_pit_or_adjusted_certified"])
-        self.assertIsNone(report["certified_score"])
+        # Live source progress can legitimately finish; test both boundaries
+        # explicitly instead of depending on an unfinished repository snapshot.
+        for completed in (119, 120):
+            with self.subTest(completed=completed):
+                fixture = {**receipt, "filing_months_checkpointed": completed,
+                           "filing_months_remaining": 120 - completed,
+                           "filing_months_checkpointed_ratio": completed / 120,
+                           "last_checkpointed_filing_month": "2026-08" if completed == 119 else "2026-09",
+                           "current_collection_filing_month": "2026-09" if completed == 119 else None}
+                report = assess_v30b(o, s, h, dart_receipt_progress=fixture)
+                self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
+                self.assertTrue(report["dart_historical_receipt_checkpoint_valid"])
+                self.assertTrue(report["gates"]["dart_receipt_checkpoint_coherence"])
+                self.assertEqual(report["dart_historical_receipts_completed_months"], completed)
+                self.assertEqual(report["dart_historical_receipts_remaining_months"], 120 - completed)
+                self.assertEqual(report["gates"]["dart_120month_receipt_collection_complete"], completed == 120)
+                self.assertEqual("dart_historical_receipts_incomplete" in report["blocker_codes"], completed < 120)
+                self.assertFalse(report["dart_receipt_collection_is_pit_or_adjusted_certified"])
+                self.assertFalse(report["confirmed_scoring_authorized"])
+                self.assertIsNone(report["certified_score"])
 
     def test_dart_receipt_tampering_fails_closed_without_private_issuer_leak(self):
         o, s, h = public_inputs()
         original = json.loads((ROOT / "docs/v3-dart-historical-receipt-progress.json")
                               .read_text(encoding="utf-8"))
         variants = (
-            ("filing_months_remaining", 0),
+            ("filing_months_remaining", original["filing_months_remaining"] + 1),
             ("filing_months_checkpointed", True),
             ("filing_months_checkpointed_ratio", 0.99999),
-            ("last_checkpointed_filing_month", "2026-09"),
+            ("last_checkpointed_filing_month", "1900-01"),
             ("current_collection_filing_month", "2018-02"),
             ("filing_category_scope", ["B", "C"]),
             ("private_receipt_pages_checkpointed", 999999),

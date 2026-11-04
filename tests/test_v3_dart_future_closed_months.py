@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from v3_dart_future_closed_months import (
@@ -14,6 +15,7 @@ from v3_dart_historical_event_receipts import (
     DARTEventReceiptError, PRIVATE_REPO,
     CHECKPOINT as HISTORICAL_CHECKPOINT,
 )
+from v3_krx_private_github_backfill import PrivateHistoryError
 
 
 class FakePrivate:
@@ -55,6 +57,63 @@ def empty_response(month, category, page, allowed):
 
 
 class FutureClosedMonthReceiptTests(unittest.TestCase):
+    def test_explicit_409_reconciles_exact_page_and_separate_cursor_without_refetch(self):
+        now = datetime(2026, 11, 4, tzinfo=ZoneInfo("Asia/Seoul"))
+        for stage in ("page", "start", "advance"):
+            for committed in (False, True):
+                with self.subTest(stage=stage, committed=committed):
+                    class ConflictStore(FakePrivate):
+                        fired = False
+                        def conflict(self):
+                            self.fired = True
+                            error = PrivateHistoryError("private_storage_api_failed")
+                            error.safe_http_operation = "write_private_content"
+                            error.safe_http_status = "http_409"
+                            raise error
+                        def put_new(self, path, raw, message):
+                            match = not self.fired and ((stage == "page" and path != CHECKPOINT)
+                                                       or (stage == "start" and path == CHECKPOINT))
+                            if match and not committed:
+                                self.conflict()
+                            super().put_new(path, raw, message)
+                            if match:
+                                self.conflict()
+                        def transport(self, method, path, payload):
+                            match = not self.fired and stage == "advance"
+                            if match and not committed:
+                                self.conflict()
+                            super().transport(method, path, payload)
+                            if match:
+                                self.conflict()
+                    store = ConflictStore()
+                    calls = []
+                    def fetch(*args):
+                        calls.append(args[:3])
+                        return empty_response(*args)
+                    with patch('v3_dart_historical_event_receipts.time.sleep'):
+                        result = collect_closed_months(store, fetch, now=now)
+                    self.assertTrue(store.fired)
+                    self.assertEqual(result["closed_months_completed"], 1)
+                    self.assertEqual(len(calls), 4)
+                    self.assertEqual(len(set(calls)), 4)
+                    self.assertNotIn(HISTORICAL_CHECKPOINT, store.files)
+
+    def test_409_cannot_adopt_a_competing_post_120_cursor(self):
+        store = FakePrivate()
+        now = datetime(2026, 11, 4, tzinfo=ZoneInfo("Asia/Seoul"))
+        collect_closed_months(store, empty_response, now=now, max_calls=1)
+        def competing_write(*args):
+            store.files[CHECKPOINT] = b'competing-cursor'
+            error = PrivateHistoryError("private_storage_api_failed")
+            error.safe_http_operation = "write_private_content"
+            error.safe_http_status = "http_409"
+            raise error
+        store.transport = competing_write
+        with self.assertRaisesRegex(DARTEventReceiptError, 'cursor_concurrent_change'):
+            collect_closed_months(store, empty_response, now=now, max_calls=1)
+        self.assertEqual(store.files[CHECKPOINT], b'competing-cursor')
+        self.assertNotIn(HISTORICAL_CHECKPOINT, store.files)
+
     def test_verified_progress_completion_triggers_only_gated_closed_month_continuation(self):
         root = Path(__file__).resolve().parents[1]
         source = (root / '.github/workflows/v3-dart-future-closed-months.yml').read_text()

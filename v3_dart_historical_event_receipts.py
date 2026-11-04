@@ -326,12 +326,12 @@ def _save_immutable_page(storage, path, packed):
         raise DARTEventReceiptError("private_dart_immutable_page_readback_failed")
 
 
-def _save_cursor(storage, encoded, old_raw, oldsha):
+def _save_cursor(storage, encoded, old_raw, oldsha, *, checkpoint=CHECKPOINT):
     def write():
         if oldsha is None:
-            storage.put_new(CHECKPOINT, encoded, "Start private DART filing receipt cursor")
+            storage.put_new(checkpoint, encoded, "Start private DART filing receipt cursor")
         else:
-            storage.transport("PUT", "contents/" + CHECKPOINT, {
+            storage.transport("PUT", "contents/" + checkpoint, {
                 "message": "Advance private DART filing receipt cursor",
                 "content": base64.b64encode(encoded).decode("ascii"),
                 "sha": oldsha,
@@ -342,7 +342,7 @@ def _save_cursor(storage, encoded, old_raw, oldsha):
         if not _write_conflict(error):
             raise
         for attempt in range(2):
-            observed, observed_sha = storage.get_content(CHECKPOINT)
+            observed, observed_sha = storage.get_content(checkpoint)
             if observed == encoded and type(observed_sha) is str and observed_sha:
                 return observed_sha
             if observed != old_raw or observed_sha != oldsha:
@@ -352,7 +352,7 @@ def _save_cursor(storage, encoded, old_raw, oldsha):
         # Reuse the original CAS SHA; never adopt a competing writer's SHA.
         write()
     for attempt in range(6):
-        observed, observed_sha = storage.get_content(CHECKPOINT)
+        observed, observed_sha = storage.get_content(checkpoint)
         if observed == encoded and type(observed_sha) is str and observed_sha:
             return observed_sha
         if observed is not None and observed != old_raw:
