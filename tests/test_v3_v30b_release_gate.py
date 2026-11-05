@@ -118,7 +118,8 @@ class V30bReadinessTests(unittest.TestCase):
         docs = ROOT / "docs"
         r1d = json.loads((docs / "v3-operational-research-scores.json").read_text())
         compare = json.loads((docs / "v3-operational-research-comparison.json").read_text())
-        found = r1d_public_reconciles(r1d, compare)
+        catalog = json.loads((docs / "v22-market-catalog.json").read_text())
+        found = r1d_public_reconciles(r1d, compare, catalog=catalog)
         self.assertIsNotNone(found)
         self.assertEqual(found["listed_total"], r1d["listed_total"])
         self.assertEqual(found["available_100_count"],
@@ -171,6 +172,9 @@ class V30bReadinessTests(unittest.TestCase):
         altered = copy.deepcopy(r1d)
         altered["rows"][code]["risk_status"] = "safe"
         self.assertIsNone(r1d_public_reconciles(altered, compare))
+        altered = copy.deepcopy(r1d)
+        altered["rows"][code]["name"] = "잘못된 기업명"
+        self.assertIsNone(r1d_public_reconciles(altered, compare, catalog=catalog))
         altered = copy.deepcopy(r1d)
         altered["rows"][code]["oldest_asof"] = "2001-01-01"
         self.assertIsNone(r1d_public_reconciles(altered, compare))

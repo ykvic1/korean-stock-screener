@@ -94,7 +94,8 @@ def _valid_iso_day(value: Any) -> bool:
         return False
 
 
-def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
+def r1d_public_reconciles(report: Any, comparison: Any,
+                          catalog: Any = None) -> dict | None:
     """Replay *all* operational parts and coverage, without authorizing scores.
 
     The old five-area source audit uses different weights (20/25/20/20/15).
@@ -133,6 +134,20 @@ def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
         coverage.get("performance_validated") is not False or
         coverage.get("missing_is_not_zero") is not True):
         return None
+    if catalog is not None:
+        if not isinstance(catalog, dict) or not _valid_iso_day(catalog.get("date")):
+            return None
+        if catalog["date"] == day:
+            members = catalog.get("rows")
+            if (catalog.get("listed_total") != total or type(members) is not list or
+                len(members) != total or any(type(m) is not dict for m in members)):
+                return None
+            identities = {m.get("code"): (m.get("name"), m.get("market"))
+                          for m in members}
+            if (len(identities) != total or
+                any(identities.get(code) != (r.get("name"), r.get("market"))
+                    for code, r in rows.items())):
+                return None
     counts = {"ranked_count": 0, "available_100_count": 0,
               "available_95_count": 0, "available_90_count": 0}
     ranked = []
@@ -848,7 +863,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
 
     r1d_status = None
     if operational_r1d is not None or operational_comparison is not None:
-        r1d_status = r1d_public_reconciles(operational_r1d, operational_comparison)
+        r1d_status = r1d_public_reconciles(operational_r1d, operational_comparison,
+                                            catalog=catalog)
         if r1d_status is None:
             issues.append("r1d_operational_publication_mismatch")
     # A valid previous-day R1d source is useful, not a malformed publication.
