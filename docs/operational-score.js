@@ -48,6 +48,36 @@ function attach(model,report){
  let n=0;for(const {r} of model.rows){const v=report.rows[r.code];if(v){r.v3_operational=v;r.v3_operational_version=report.version;n++;}}
  model.operationalVersion=report.version;return n;
 }
+// The price snapshot intentionally omits suspended/newly listed/unpriced
+// issuers. Keep their dated operational research rows visible without
+// inventing a close, stop reference or an observed legacy score.
+function attachAllListed(model,report){
+ if(!model||!Array.isArray(model.rows)||!Number.isInteger(model.marketEligible)||
+    model.marketEligible!==report?.listed_total||
+    model.rows.length>model.marketEligible)return {linked:0,unpriced:0};
+ const seen=new Set();
+ for(const item of model.rows){
+  const code=item?.r?.code;
+  if(typeof code!=='string'||!/^[0-9]{6}$/.test(code)||seen.has(code))
+   return {linked:0,unpriced:0};
+  seen.add(code);
+ }
+ const attached=attach(model,report);
+ if(attached!==seen.size)return {linked:0,unpriced:0};
+ let unpriced=0;
+ for(const [code,v] of Object.entries(report.rows)){
+  if(seen.has(code))continue;
+  model.rows.push({r:{code,name:v.name,market:v.market,price:null,
+    price_date:null,score:null,coverage_pct:null,components:null,
+    unpriced_operational_only:true,v3_operational:v,
+    v3_operational_version:report.version},q:null,rec:null,
+    watch:null,quant:false,researchCandidate:false,qualified:false,
+    caution:false,risk:null,highRisk:true,financialRef:null,
+    rollingBook:null,fourYearRef:null,decision:null});
+  unpriced++;
+ }
+ return {linked:attached+unpriced,unpriced};
+}
 function compare(a,b){const x=a.r?.v3_operational,y=b.r?.v3_operational;
  return (y?.score??-1)-(x?.score??-1)||(y?.available??0)-(x?.available??0)||String(a.r?.code).localeCompare(String(b.r?.code));}
 function composite(r){const v=r?.v3_operational;
@@ -68,6 +98,6 @@ function markup(r){const v=r?.v3_operational;if(!v)return '<p class="u-muted">�
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
-const api={VERSION,BUDGET,attach,validRow,compare,composite,markup};
+const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

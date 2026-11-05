@@ -168,10 +168,28 @@ if(ops.markup(sorted[0].r).includes('undefined'))throw Error('markup');
 const ui=require('./docs/workspace.js'),core=require('./docs/v3-ranking.js');
 const market=JSON.parse(fs.readFileSync('docs/data.json'));
 const model=core.prepare(market,null,null,null,null,null);
-if(!ops.attach(model,report))throw Error('actual model attachment');
+const priced=model.rows.length;
+const linked=ops.attachAllListed(model,report);
+if(linked.linked!==report.listed_total||linked.unpriced!==report.listed_total-priced)
+ throw Error('all-listed operational attachment');
+if(model.rows.length!==report.listed_total)throw Error('all-listed count');
+for(const x of model.rows.filter(x=>x.r.unpriced_operational_only)){
+ if(x.r.price!==null||x.r.price_date!==null||x.r.score!==null||
+    x.r.v3_operational!==report.rows[x.r.code])throw Error('fabricated unpriced observation');
+}
 const ranked=ui.rankItems(model,core,'all','all','','ops');
+if(ranked.length!==report.listed_total)throw Error('all-listed search');
 for(let i=1;i<ranked.length;i++)if((ranked[i-1].r.v3_operational?.score??-1)<(ranked[i].r.v3_operational?.score??-1))throw Error('actual screen order');
 for(const x of ranked)if(x.r.v3_operational?.rank&&x.candidatePosition!==x.r.v3_operational.rank)throw Error('screen/csv rank identity');
+const invalid=core.prepare(market,null,null,null,null,null);
+const impostor=structuredClone(report);
+impostor.rows[invalid.rows[0].r.code].name='changed issuer';
+if(ops.attachAllListed(invalid,impostor).linked!==0||invalid.rows.length!==priced)
+ throw Error('partial corrupted all-listed screen');
+const mismatched=core.prepare(market,null,null,null,null,null);
+mismatched.marketEligible++;
+if(ops.attachAllListed(mismatched,report).linked!==0)
+ throw Error('unvalidated listed universe');
 """
         subprocess.run(['node','-e',script],cwd=ROOT,check=True)
 
