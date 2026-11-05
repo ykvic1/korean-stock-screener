@@ -4,7 +4,7 @@
   "attempted_issuers": 2501,
   "corporate_actions_adjusted_verified": false,
   "current_price_issuers": 2373,
-  "daily_source_sha256": "49f693cb2e117bf2ce727b61de95cb503c42b38814b11f2250dc8e48248904e6",
+  "daily_source_sha256": "becae86f205f96b8e25580c986f3ffac184174f7e77e25222503ac15e9b2ff2a",
   "interpretation": "unscored_research_coverage_not_a_buy_signal",
   "investment_grade_score_certified": false,
   "issuers_with_complete_high_volume_up_spike": 775,
@@ -14,7 +14,7 @@
   "market_scan_complete": true,
   "observed_121_session_paths": 2104,
   "path_coverage_pct_of_current": 88.66,
-  "positive_five_session_blocks_majority_count": 389,
+  "positive_five_session_blocks_majority_count": 385,
   "raw_ohlcv_exported": false,
   "reason_diagnostics_independently_verified": false,
   "reason_diagnostics_scored_points": 0,
@@ -25,5 +25,5 @@
   "unavailable_path_reason_counts": {
     "nonpositive_or_invalid_price_volume": 269
   },
-  "up_days20_majority_issuer_count": 147
+  "up_days20_majority_issuer_count": 145
 }

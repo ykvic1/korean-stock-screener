@@ -7,7 +7,7 @@
   "market_price_valid": 2373,
   "screened_count": 2373,
   "score_ready_count": 2373,
-  "downside_screen_pass_count": 1464,
+  "downside_screen_pass_count": 1457,
   "research_eligible_count": 4,
   "research_dossier_count": 4,
   "confirmed_recommendation_count": 0,
@@ -19,18 +19,16 @@
   "research_source_date": "2026-11-02",
   "research_source_matched": false,
   "daily_changes": {
-    "entered": [
-      "006280",
-      "012030"
-    ],
+    "entered": [],
     "updated": [
-      "066670",
+      "006280",
+      "012030",
       "005500"
     ],
-    "unchanged": [],
-    "exited": [
-      "101330"
-    ]
+    "unchanged": [
+      "066670"
+    ],
+    "exited": []
   },
   "dossiers": [
     {
@@ -187,14 +185,14 @@
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
       "evidence_fingerprint": "136cae4905114f15",
       "rank": 1,
-      "daily_change": "updated"
+      "daily_change": "unchanged"
     },
     {
       "code": "006280",
       "name": "녹십자",
       "asof": "2026-11-05",
       "market": "KOSPI",
-      "price": 141400,
+      "price": 141800,
       "v2_score": {
         "normalized": 81.4,
         "earned": 57,
@@ -235,16 +233,16 @@
         ],
         "obv_rising": false,
         "one_day_volume_ratio": 2.45,
-        "ma120w_gap_pct": 0.9,
-        "price20_pct": 8.4,
-        "price60_pct": 11.8
+        "ma120w_gap_pct": 1.2,
+        "price20_pct": 8.7,
+        "price60_pct": 12.1
       },
       "downside": {
         "risk_level": "medium",
         "stop": {
           "status": "observed",
           "risk": "medium",
-          "stop_pct": -12.9,
+          "stop_pct": -13.2,
           "stop_price": 123100.0,
           "warning_flags": [],
           "non_stop_warning_flags": []
@@ -306,7 +304,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -12.9,
+        "loss_reference_pct": -13.2,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -338,16 +336,16 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "d5a3b0c1edb3410d",
+      "evidence_fingerprint": "5f1411d6abebec77",
       "rank": 2,
-      "daily_change": "entered"
+      "daily_change": "updated"
     },
     {
       "code": "012030",
       "name": "DB",
       "asof": "2026-11-05",
       "market": "KOSPI",
-      "price": 2240,
+      "price": 2235,
       "v2_score": {
         "normalized": 72.8,
         "earned": 51,
@@ -385,16 +383,16 @@
         ],
         "obv_rising": true,
         "one_day_volume_ratio": 0.36,
-        "ma120w_gap_pct": 45.4,
-        "price20_pct": 11.7,
-        "price60_pct": 53.5
+        "ma120w_gap_pct": 45.1,
+        "price20_pct": 11.5,
+        "price60_pct": 53.2
       },
       "downside": {
         "risk_level": "medium",
         "stop": {
           "status": "observed",
           "risk": "medium",
-          "stop_pct": -10.3,
+          "stop_pct": -10.1,
           "stop_price": 2010.0,
           "warning_flags": [
             "단기 급등 — 추격 주의"
@@ -460,7 +458,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -10.3,
+        "loss_reference_pct": -10.1,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -492,16 +490,16 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "ce6c7914860b0686",
+      "evidence_fingerprint": "8efd88abd8c5b42d",
       "rank": 3,
-      "daily_change": "entered"
+      "daily_change": "updated"
     },
     {
       "code": "005500",
       "name": "삼진제약",
       "asof": "2026-11-05",
       "market": "KOSPI",
-      "price": 20400,
+      "price": 20250,
       "v2_score": {
         "normalized": 70.0,
         "earned": 49,
@@ -539,16 +537,16 @@
         ],
         "obv_rising": true,
         "one_day_volume_ratio": 1.85,
-        "ma120w_gap_pct": 8.5,
-        "price20_pct": 2.9,
-        "price60_pct": 12.1
+        "ma120w_gap_pct": 7.7,
+        "price20_pct": 2.1,
+        "price60_pct": 11.3
       },
       "downside": {
-        "risk_level": "medium",
+        "risk_level": "low",
         "stop": {
           "status": "observed",
-          "risk": "medium",
-          "stop_pct": -8.1,
+          "risk": "low",
+          "stop_pct": -7.4,
           "stop_price": 18750.0,
           "warning_flags": [],
           "non_stop_warning_flags": []
@@ -610,7 +608,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -8.1,
+        "loss_reference_pct": -7.4,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -642,7 +640,7 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "c66b4322826e3aa2",
+      "evidence_fingerprint": "b6a6c600ea17f29b",
       "rank": 4,
       "daily_change": "updated"
     }
