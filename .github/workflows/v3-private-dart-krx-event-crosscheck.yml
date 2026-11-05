@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_dart_candidate_catchup.py
+      - tests/test_v3_dart_candidate_catchup.py
       - v3_private_dart_krx_event_crosscheck.py
       - v3_private_dart_krx_adjacent_month.py
       - v3_private_dart_krx_filing_title_triage.py
@@ -52,6 +54,8 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
         (github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event != 'push' &&
+         github.event.workflow_run.event != 'pull_request' &&
          github.event.workflow_run.head_branch == 'main' &&
          github.event.workflow_run.head_repository.full_name == github.repository)
       }}
@@ -70,7 +74,8 @@ jobs:
       - name: Enforce offline complete-month and no-false-corporate-action rules
         run: |
           set -euo pipefail
-          python -m py_compile v3_private_dart_krx_event_crosscheck.py v3_private_dart_krx_adjacent_month.py v3_private_dart_krx_filing_title_triage.py
+          python -m unittest discover -s tests -p 'test_v3_dart_candidate_catchup.py' -v
+          python -m py_compile v3_dart_candidate_catchup.py v3_private_dart_krx_event_crosscheck.py v3_private_dart_krx_adjacent_month.py v3_private_dart_krx_filing_title_triage.py
           python -m unittest discover -s tests -p 'test_v3_private_dart_krx_event_crosscheck.py' -v
           python -m unittest discover -s tests -p 'test_v3_private_dart_krx_adjacent_month.py' -v
           python -m unittest discover -s tests -p 'test_v3_private_dart_krx_filing_title_triage.py' -v
@@ -90,58 +95,8 @@ jobs:
               output.write('DART_REVIEW_SEGMENTS=' + str(limit) + '\n')
           print('bounded_private_candidate_review_segments_' + str(limit))
           PY
-      - name: Validate complete private KRX risk baseline, all committed chunks and source tail
+      - name: Review complete source chain and bounded candidate phases with immutable input reuse
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-        run: |
-          set -euo pipefail
-          # No source vendor API calls, no public issuer IDs or price disclosure.
-          # Independently validates the upstream archive BEFORE any DART month is
-          # complete; diagnose broken/gapped risk chains early.
-          python v3_private_dart_krx_event_crosscheck.py --risk-preflight
-      - name: Catch up to four fully saved private DART receipt months against verified KRX anomalies
-        env:
-          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
-          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-        run: |
-          set -euo pipefail
-          # ZERO new KRX/OpenDART provider API requests; exact receipt/source
-          # and anomaly records never enter stdout, public git or artifacts.
-          # Matching ticker/date is NOT a split/merger or PIT certification.
-          # Process at most four immutable monthly checkpoints in this job,
-          # each with its own source readback and CAS. Idempotent waiting
-          # statuses are safe; no provider calls, confirmed events, or scores.
-          for segment in 1 2 3 4; do
-            if [[ "$segment" -gt "$DART_REVIEW_SEGMENTS" ]]; then break; fi
-            python v3_private_dart_krx_event_crosscheck.py
-          done
-      - name: Catch up to four completed adjacent-month private filing candidates
-        env:
-          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
-          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-        run: |
-          set -euo pipefail
-          # TWO completed filing months and KRX risk review required;
-          # zero vendor requests, issuer output, PIT or adjusted-price claims.
-          # Independently verify each completed monthly pair. Rereading an
-          # incomplete or already-current private cursor cannot invent events.
-          for segment in 1 2 3 4; do
-            if [[ "$segment" -gt "$DART_REVIEW_SEGMENTS" ]]; then break; fi
-            python v3_private_dart_krx_adjacent_month.py
-          done
-      - name: Catch up to four private title-hint shortlist pairs (not corporate-action proof)
-        env:
-          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
-          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-        run: |
-          set -euo pipefail
-          # Each invocation validates its own complete source months, writes
-          # exactly one immutable private pair and CAS-advances the checkpoint.
-          # Existing waiting/complete gates remain idempotent. No vendor calls.
-          # Title hints cannot verify event causality, effective dates or PIT.
-          # All issuer details stay exclusively in the private source archive.
-          for segment in 1 2 3 4; do
-            if [[ "$segment" -gt "$DART_REVIEW_SEGMENTS" ]]; then break; fi
-            python v3_private_dart_krx_filing_title_triage.py
-          done
+        run: python v3_dart_candidate_catchup.py

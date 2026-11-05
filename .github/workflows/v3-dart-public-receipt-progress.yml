@@ -69,7 +69,7 @@ jobs:
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-        run: python v3_dart_private_progress_report.py --mode write
+        run: python v3_dart_private_progress_report.py --mode write ${{ github.event_name != 'workflow_dispatch' && '--automatic' || '' }}
       - name: Publish only bounded anonymous counts
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         env:

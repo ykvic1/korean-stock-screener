@@ -17,7 +17,7 @@ import re
 import time
 
 from v3_dart_historical_event_receipts import (
-    CATEGORIES, CHECKPOINT, MONTHS, PRIVATE_REPO, _check_cursor, _decode, _path,
+    CATEGORIES, CHECKPOINT, MONTHS, PRIVATE_REPO, _check_cursor, _decode, _path, public_progress_complete,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 from v3_dart_bulk_history import write_json
@@ -187,7 +187,26 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs", default="docs")
     parser.add_argument("--mode", choices=("write", "verify"), default="verify")
+    parser.add_argument("--automatic", action="store_true", help="Retain a completed published archive count without another private read")
     args = parser.parse_args(argv)
+    target = Path(args.docs) / OUTPUT
+    if args.automatic:
+        if args.mode != "write":
+            raise DARTProgressError("automatic_progress_requires_write_mode")
+        try:
+            saved = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            saved = None
+        flags = ("corporate_actions_or_effective_dates_certified", "historical_issuer_universe_pit_certified", "historical_adjusted_prices_certified")
+        if (public_progress_complete(saved) and all(saved.get(k) is False for k in flags)
+            and type(saved.get("private_receipt_pages_checkpointed")) is int
+            and type(saved.get("private_filing_receipts_checkpointed")) is int
+            and saved["private_receipt_pages_checkpointed"] >= len(MONTHS) * len(CATEGORIES)
+            and 0 <= saved["private_filing_receipts_checkpointed"] <= saved["private_receipt_pages_checkpointed"] * 100):
+            print(json.dumps({"status": "retained_completed_published_receipt_count",
+                "private_source_revalidated": False, "private_api_calls": 0,
+                "new_provider_calls": 0, "trade_scores_certified": False}, sort_keys=True))
+            return
     repo = os.environ.get("V3_PRIVATE_ARCHIVE_REPO", "")
     token = os.environ.get("V3_PRIVATE_ARCHIVE_TOKEN", "")
     if repo != PRIVATE_REPO or len(token) < 20:

@@ -52,7 +52,7 @@ class StorageCooldownTests(unittest.TestCase):
         self.assertEqual(ticks[0], 65)
 
     def test_auth_conflict_unknown_and_deadline_errors_stop_without_retry(self):
-        for status in ('http_401', 'http_403', 'http_409', 'http_422', 'http_other', 'http_429'):
+        for status in ('http_401', 'http_403', 'http_422', 'http_other', 'http_429'):
             for checkpoint in (False, True):
                 with self.subTest(status=status, checkpoint=checkpoint):
                     store, _, sleeps = self.store(deadline=90)
@@ -64,6 +64,25 @@ class StorageCooldownTests(unittest.TestCase):
                                 action._put_immutable_report_with_retry(store, 'report', b'new')
                     self.assertEqual(get.call_count, 1)
                     self.assertEqual(sleeps, [])
+
+    def test_repository_head_409_retries_only_after_unchanged_cursor_readback(self):
+        store, _, _ = self.store()
+        with patch.object(store, 'get_content', side_effect=[(b'old', 'sha1'), (b'old', 'sha1')]) as get, \
+             patch.object(store, 'transport', side_effect=[blocked('http_409'), {}]) as put, \
+             patch.object(action.time, 'sleep'):
+            action._write_checkpoint_with_retry(store, b'old', b'new')
+        self.assertEqual(get.call_count, 2)
+        self.assertEqual(put.call_count, 2)
+
+    def test_repository_head_409_never_overwrites_a_concurrent_cursor(self):
+        store, _, _ = self.store()
+        with patch.object(store, 'get_content', side_effect=[(b'old', 'sha1'), (b'other', 'sha2')]) as get, \
+             patch.object(store, 'transport', side_effect=blocked('http_409')) as put, \
+             patch.object(action.time, 'sleep'):
+            with self.assertRaisesRegex(action.StructuredActionError, 'checkpoint_changed'):
+                action._write_checkpoint_with_retry(store, b'old', b'new')
+        self.assertEqual(get.call_count, 2)
+        self.assertEqual(put.call_count, 1)
 
     def test_quota_wait_still_rejects_a_conflicting_checkpoint(self):
         store, _, _ = self.store()

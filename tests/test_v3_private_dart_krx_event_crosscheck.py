@@ -334,14 +334,14 @@ class CrosscheckTests(unittest.TestCase):
         workflow = (Path(__file__).resolve().parents[1]
                     / ".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
         # Complete-month source validation and private CAS remain inside every
-        # individual CLI invocation. Multiplying bounded invocations must not
+        # individual transaction. The shared in-memory input reuse must not
         # add provider credentials or loosen the 20-minute lock.
-        self.assertEqual(workflow.count("for segment in 1 2 3 4; do"), 3)
-        self.assertEqual(workflow.count('if [[ "$segment" -gt "$DART_REVIEW_SEGMENTS" ]]; then break; fi'), 3)
+        self.assertIn("python v3_dart_candidate_catchup.py", workflow)
+        self.assertIn("test_v3_dart_candidate_catchup.py", workflow)
         self.assertIn("candidate_review_segments(progress)", workflow)
         self.assertIn("os.environ['GITHUB_ENV']", workflow)
-        self.assertIn("python v3_private_dart_krx_event_crosscheck.py", workflow)
-        self.assertIn("python v3_private_dart_krx_adjacent_month.py", workflow)
+        self.assertIn("v3_private_dart_krx_event_crosscheck.py", workflow)
+        self.assertIn("v3_private_dart_krx_adjacent_month.py", workflow)
         self.assertIn("timeout-minutes: 20", workflow)
         self.assertIn("group: v3-dart-private-historical-event-receipts", workflow)
         self.assertNotIn("DART_API_KEY:", workflow)
@@ -366,7 +366,7 @@ class CrosscheckTests(unittest.TestCase):
         self.assertNotIn("KRX_API_KEY:",workflow)
         self.assertNotIn("git push",workflow)
         self.assertIn("default: dry_run",workflow)
-        self.assertIn("--risk-preflight",workflow)
+        self.assertIn("python v3_dart_candidate_catchup.py",workflow)
         self.assertIn("cron: '30 9 * * 1-5'",
                       (base/".github/workflows/full-market-batches.yml").read_text())
 
