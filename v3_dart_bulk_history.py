@@ -473,7 +473,11 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
                         if kind=="ConnectionError" else "dart_bulk_http_status_failed"
                         if kind=="HTTPError" else "dart_bulk_invalid_json"
                         if kind=="JSONDecodeError" else "dart_bulk_transport_unavailable")
-                raise BulkHistoryError(reason) from None
+                failure=BulkHistoryError(reason)
+                http_code=getattr(getattr(exc,"response",None),"status_code",None)
+                if type(http_code) is int and 100<=http_code<=599:
+                    failure.http_status=http_code
+                raise failure from None
             if not isinstance(payload,dict):
                 raise BulkHistoryError("dart_bulk_unexpected_response")
             status=payload.get("status")
@@ -485,7 +489,11 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
                     raise BulkHistoryError("dart_bulk_empty_success_response")
             else:
                 # A status such as 020 (quota) must pause the run.
-                raise BulkHistoryError("dart_bulk_provider_stop_or_schema")
+                failure=BulkHistoryError("dart_bulk_provider_stop_or_schema")
+                if status in ("010","011","012","014","020","021",
+                              "100","101","800","900","901"):
+                    failure.provider_status=status
+                raise failure
             diagnostics={}
             try:
                 extracted=_normalize_year(

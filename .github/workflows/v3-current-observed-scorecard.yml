@@ -55,6 +55,7 @@ on:
       - V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)
       - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
       - V3 DART Annual Book Derived Financial Sync (0 API)
+      - V3 Verified Annual DART Source Rebind (No PIT Promotion)
       - V3 FY2025 Verified Owner Profit Gap Recovery (No Score Promotion)
     types: [completed]
   workflow_dispatch:
