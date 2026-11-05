@@ -5,14 +5,14 @@
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 20,
-      "new_kospi": 25,
-      "old_kospi": 19
+      "overlap": 19,
+      "new_kospi": 26,
+      "old_kospi": 18
     },
     "100": {
       "overlap": 43,
-      "new_kospi": 47,
-      "old_kospi": 41
+      "new_kospi": 44,
+      "old_kospi": 42
     },
     "200": {
       "overlap": 82,
@@ -24,7 +24,7 @@
   "same_input_prior_ranked_issuers": 2481,
   "prior_top_overlap": {
     "50": 39,
-    "100": 76,
-    "200": 148
+    "100": 74,
+    "200": 144
   }
 }
