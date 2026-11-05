@@ -28,9 +28,17 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(len(self.report['rows']),self.inputs[1]['listed_total'])
         for r in self.report['rows'].values():
             self.assertNotIn('ma20_ma60_cross_near_ma240',r['parts']['volume'])
-            # Saved November 4 market files predate the new slope receipt.
-            self.assertIsNone(r['parts']['momentum']['daily_ma_slope_turn'])
-            self.assertIsNone(r['parts']['momentum']['weekly_ma_slope_turn'])
+            # The public market snapshot may advance after the next full scan.
+            # Both genuinely missing and valid newly observed receipts must pass.
+            for key,maximum in [('daily_ma_slope_turn',2),('weekly_ma_slope_turn',3)]:
+                receipt=r['parts']['momentum'][key]
+                if receipt is not None:
+                    self.assertEqual(receipt['available'],maximum)
+                    self.assertLessEqual(receipt['points'],maximum)
+            breakout=r['parts']['technical']['independent_breakout_confirmation']
+            if breakout is not None:
+                self.assertEqual(breakout['available'],1.2)
+                self.assertIn(breakout['points'],(0,.6,1.2))
             self.assertLessEqual(r['risk_deduction'],5)
             self.assertNotEqual(r['risk_status'],'safe')
 
