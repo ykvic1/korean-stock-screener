@@ -83,7 +83,7 @@ class OperationalScoreTests(unittest.TestCase):
         previous=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
         self.assertIn(previous['version'],ops.COMPATIBLE_PREVIOUS)
         market,catalog,ledger,history=copy.deepcopy(self.inputs[:4])
-        market['date']='2026-11-05'
+        market['date']=(date.fromisoformat(catalog['date'])+timedelta(days=1)).isoformat()
         self.assertTrue(ops.can_hold_previous_during_temporal_lag(
             market,catalog,ledger,history,previous))
         with self.assertRaisesRegex(ValueError,'unaligned_operational_sources'):
