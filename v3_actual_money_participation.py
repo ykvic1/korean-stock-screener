@@ -26,6 +26,8 @@ from v3_dart_bulk_history import _stable_digest
 from v3_actual_money_contract import (
     SCHEMA, MODEL, OUTPUT, DAILY, WEEKLY_WINDOWS, usable_records, closed_week_end)
 PRIVATE_REPO='ykvic1/korean-stock-private-data'
+COVERAGE_SUMMARY='v3-actual-money-coverage-summary.json'
+COVERAGE_SUMMARY_SCHEMA='v3-personal-actual-money-coverage-summary-0.1'
 
 class ActualMoneyError(ValueError):
     """Fixed codes only, never source data."""
@@ -74,6 +76,40 @@ def provisional_points(daily, weekly):
     if d is None or w is None:
         return None
     return round(max(0,min(6,d+w)),4)
+
+
+def family_coverage_reason(values, windows):
+    """Explain unavailable source history without publishing issuer-level amounts.
+
+    Coverage is NOT an explanation of why an issuer lacks observations: a
+    newly listed stock, an exchange/source gap, or a code change may all cause
+    the same missing-history classification. Never infer a listing date.
+    """
+    if len(values)<2*max(windows) or any(v is None for v in values[:2*max(windows)]):
+        return 'incomplete_periods'
+    for n in windows:
+        recent,baseline=values[:n],values[n:2*n]
+        if any(type(v) not in (int,float) or not math.isfinite(v) or v<0
+               for v in recent+baseline):
+            raise ActualMoneyError('invalid_money_coverage_amount')
+        if sum(baseline)<=0:
+            return 'zero_baseline'
+    return 'complete'
+
+
+def coverage_summary(report):
+    """Tiny, privacy-safe home-page diagnostic, without any issuer receipts."""
+    return {
+        'schema':COVERAGE_SUMMARY_SCHEMA,
+        'source_schema':SCHEMA,
+        'model':MODEL,
+        'asof':report['asof'],
+        'listed_total':report['listed_total'],
+        'eligible_issuers':report['eligible_issuers'],
+        'investment_score_certified':False,
+        'original_amounts_or_bars_published':False,
+        'coverage_gap_diagnostic':report['coverage_gap_diagnostic'],
+    }
 
 
 def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
@@ -131,6 +167,7 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         raw,_=store.get_content(week_path(week))
         weekly.append(validate_week(raw,week,expected))
     records={}
+    gap_counts={}
     members=set()
     for item in catalog['rows']:
         code=item.get('code'); market=item.get('market')
@@ -149,6 +186,13 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
                 'daily_asof':windows[0][-1],'computed_asof':asof,
                 'model':MODEL,'weekly_session_end':weekly[0]['session_end'],
                 'issuer_name':item['name']}
+        else:
+            daily_reason=family_coverage_reason(dv,tuple(n//5 for n in DAILY))
+            weekly_reason=family_coverage_reason(wv,WEEKLY_WINDOWS)
+            if daily_reason=='complete' and weekly_reason=='complete':
+                raise ActualMoneyError('money_unclassified_factor_gap')
+            key=daily_reason+'__'+weekly_reason
+            gap_counts[key]=gap_counts.get(key,0)+1
     if catalog.get('listed_total')!=len(members):
         raise ActualMoneyError('incomplete_money_current_issuer_catalog')
     if any(store.get_content(p)!=before[p] for p in paths):
@@ -163,6 +207,13 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         'calendar_week_end':end.isoformat(),'weekly_session_end':weekly[0]['session_end'],
         'daily_cohorts_inspected':96,'calendar_weeks_inspected':HISTORY_WEEKS,
         'listed_total':len(members),'eligible_issuers':len(records),'records':records,
+        'coverage_gap_diagnostic':{
+            'full_fresh_evidence_issuers':len(records),
+            'fresh_unscored_issuers':len(members)-len(records),
+            'reason_pair_counts':dict(sorted(gap_counts.items())),
+            'incomplete_periods_do_not_prove_recent_listing':True,
+            'zero_baseline_is_unavailable_not_zero_points':True,
+            'issuer_amounts_or_coverage_timeseries_published':False},
         'provisional_personal_use_only':True,'original_amounts_or_bars_published':False,
         'independent_regular_session_verified':False,'corporate_actions_and_pit_verified':False,
         'investment_score_certified':False,'single_day_money_component_points':0,
@@ -228,6 +279,8 @@ def main(argv=None):
         report['eligible_issuers']=len(report['records'])
         report['retained_prior_money_issuers']=len(retained)
     (root/OUTPUT).write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+    (root/COVERAGE_SUMMARY).write_text(json.dumps(coverage_summary(report),sort_keys=True,
+                                                  indent=2)+'\n')
     if os.getenv('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'],'a') as handle: handle.write('ready=true\n')
     print(json.dumps({'actual_money_six_point_issuers':report['eligible_issuers'],
