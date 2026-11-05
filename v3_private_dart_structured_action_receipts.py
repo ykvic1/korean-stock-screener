@@ -56,17 +56,29 @@ SCHEDULE_DATE_FIELDS = {
     "stkExtrDecsn": ("extrsc_extrdt", "extrsc_nstklstprd"),
 }
 SCHEDULE_DATE_MAX_YEAR = 2100
+SCHEDULE_PARSER_VERSION = 2
 
 
 def _schedule_day(value):
     if type(value) is not str:
         return None
+    value = value.strip()
     if re.fullmatch(r"[0-9]{8}", value):
         encoded = value[:4] + "-" + value[4:6] + "-" + value[6:]
     elif re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
         encoded = value
     else:
-        return None
+        # Match the entire date, never a date embedded in a range, note or
+        # amendment explanation. A valid planned date is still not completion.
+        korean = re.fullmatch(r"([0-9]{4})\s*년\s*([0-9]{1,2})\s*월\s*([0-9]{1,2})\s*일", value)
+        separated = re.fullmatch(r"([0-9]{4})([./])([0-9]{1,2})\2([0-9]{1,2})", value)
+        if korean:
+            y, m, d = map(int, korean.groups())
+        elif separated:
+            y, m, d = map(int, (separated[1], separated[3], separated[4]))
+        else:
+            return None
+        encoded = f"{y:04d}-{m:02d}-{d:02d}"
     try:
         parsed = date.fromisoformat(encoded)
         if not 2015 <= parsed.year <= SCHEDULE_DATE_MAX_YEAR:
@@ -88,6 +100,11 @@ def _reported_schedule_candidates(endpoint, exact_row):
 
 
 def _valid_schedule_candidates(info, endpoint):
+    if 'reported_schedule_date_parser_version' in info:
+        if (type(info['reported_schedule_date_parser_version']) is not int
+            or info['reported_schedule_date_parser_version'] != SCHEDULE_PARSER_VERSION
+            or 'reported_schedule_date_candidates' not in info):
+            return False
     # Legacy immutable reports without this optional field remain readable;
     # no candidate is ever interpreted as actual corporate-action completion.
     if "reported_schedule_date_candidates" not in info:
@@ -216,6 +233,7 @@ def inspect_response(body, endpoint, corp, receipt):
             raise StructuredActionError("invalid_structured_action_no_data")
         return {"endpoint": endpoint, "provider_status": "013",
                 "list_rows": 0, "exact_receipt_match": False,
+                "reported_schedule_date_parser_version": SCHEDULE_PARSER_VERSION,
                 "reported_schedule_date_candidates": []}
     if status != "000" or type(body.get("list")) is not list:
         # Never equate auth, quota, maintenance or shape failures to zero events.
@@ -235,6 +253,7 @@ def inspect_response(body, endpoint, corp, receipt):
     exact_row = next((row for row in rows if row["rcept_no"] == receipt), None)
     return {"endpoint": endpoint, "provider_status": "000",
             "list_rows": len(rows), "exact_receipt_match": exact_row is not None,
+            "reported_schedule_date_parser_version": SCHEDULE_PARSER_VERSION,
             "reported_schedule_date_candidates":
                 _reported_schedule_candidates(endpoint, exact_row)}
 

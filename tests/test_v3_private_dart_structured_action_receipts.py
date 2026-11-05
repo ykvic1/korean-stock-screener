@@ -451,7 +451,7 @@ class StructuredActionTests(unittest.TestCase):
         # Existing immutable reports without the new optional field still load.
         legacy = a._report(0, RECORD, [
             {k: v for k, v in item.items()
-             if k != "reported_schedule_date_candidates"} for item in details])
+             if k not in ("reported_schedule_date_candidates", "reported_schedule_date_parser_version")} for item in details])
         self.assertEqual(a._validate_report(a.canonical(legacy), 0, RECORD), legacy)
 
     def test_planned_new_share_listing_dates_are_private_not_actual_listings(self):
@@ -493,7 +493,7 @@ class StructuredActionTests(unittest.TestCase):
 
     def test_schedule_day_rejects_unknown_invalid_and_nonmatching_source(self):
         self.assertIsNone(a._schedule_day("2026-02-30"))
-        self.assertIsNone(a._schedule_day("2026년 10월 29일"))
+        self.assertIsNone(a._schedule_day("2026년 10월 29일 예정"))
         self.assertIsNone(a._schedule_day("2099-13-01"))
         self.assertIsNone(a._schedule_day(20261029))
         self.assertIsNone(a._schedule_day("2014-12-31"))
@@ -509,6 +509,23 @@ class StructuredActionTests(unittest.TestCase):
             RECORD["corp_code"], RECORD["rcept_no"])
         self.assertEqual(nodata["reported_schedule_date_candidates"], [])
         self.assertFalse(nodata["exact_receipt_match"])
+
+    def test_strict_complete_korean_and_separator_dates_normalize_without_false_ranges(self):
+        for raw in ('2026년 10월 9일', '2026년10월09일', '2026.10.09', '2026/10/9', ' 2026-10-09 '):
+            self.assertEqual(a._schedule_day(raw), '2026-10-09')
+        for raw in ('2026년 2월 30일', '2026.02/28', '2026년 10월 9일~10월 10일',
+                    '예정: 2026.10.09', '2026년 10월', '2014년 12월 31일', '2101/1/1'):
+            self.assertIsNone(a._schedule_day(raw))
+        result = a.inspect_response({'status':'000','list':[{
+            'rcept_no':RECORD['rcept_no'],'corp_code':RECORD['corp_code'],
+            'mgsc_mgdt':'2026년 10월 9일'}]}, 'cmpMgDecsn', RECORD['corp_code'], RECORD['rcept_no'])
+        self.assertEqual(result['reported_schedule_date_parser_version'], 2)
+        self.assertEqual(result['reported_schedule_date_candidates'],
+                         [{'field':'mgsc_mgdt','reported_date':'2026-10-09'}])
+        self.assertTrue(a._valid_schedule_candidates(result, 'cmpMgDecsn'))
+        self.assertFalse(a._valid_schedule_candidates({**result,'reported_schedule_date_parser_version':True}, 'cmpMgDecsn'))
+        self.assertFalse(a._valid_schedule_candidates({k:v for k,v in result.items()
+            if k!='reported_schedule_date_candidates'}, 'cmpMgDecsn'))
         supported = {"endpoint": "fricDecsn", "provider_status": "000",
                      "list_rows": 1, "exact_receipt_match": True,
                      "reported_schedule_date_candidates": [
