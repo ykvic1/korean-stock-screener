@@ -21,6 +21,9 @@ from v3_personal_score_adjustments import profile, rounded, build as legacy_buil
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
 from v3_actual_money_structure import valid as valid_money_structure
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
+from v3_dart_reported_eps import plan as reported_eps_plan, EPSError
+from v3_dart_bulk_history import _stable_digest
+from v3_eps_valuation import evaluate as evaluate_reported_eps
 
 VERSION = 'v3-stable-r1d-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
@@ -86,7 +89,8 @@ def risk_assessment(record, financial_sector=False):
         'unverified':['자본금 대비 잠식률','업종별 부채·상환능력','반복 현금흐름 악화']}
 
 
-def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financial_sector=None):
+def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
+                 annual=None, financial_sector=None):
     parts={a:{k:None for k in ks} for a,ks in SPECS.items()}
     def put(area,key,points,available,asof):
         if (finite(points) and finite(available) and 0<available<=SPECS[area][key]+1e-6
@@ -153,6 +157,25 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financ
     c=components.get('valuation',{}).get('earnings_yield_pct')
     if c and c.get('available')==5:
         put('valuation','per_eps_quality_growth',c['points']/3,5/3,c['asof'])
+    # The official reported three-year EPS series is independent of FCF/PBR.
+    # The personal 20pt bundle requires *all four* valuation baselines; that
+    # must not suppress 2/3 of the R1d PER/EPS subfactor for an otherwise
+    # verified EPS receipt. Missing earnings yield remains unavailable weight.
+    if reported_eps is not None:
+        try:
+            series=reported_eps['reported_basic_eps_2023_2025']
+            eps_parts,_=evaluate_reported_eps(series,{k:0 for k in
+                ('pbr','earnings_yield_pct','fcf_yield','sales_to_market_cap')})
+            earned=(eps_parts['eps_growth']+eps_parts['eps_stability'])*5/12
+            available=10/3
+            oldest=reported_eps['observed_on']
+            if c and c.get('available')==5:
+                earned+=c['points']/3
+                available+=5/3
+                oldest=min(oldest,c['asof'])
+            put('valuation','per_eps_quality_growth',earned,available,oldest)
+        except (ValueError,KeyError,TypeError,OverflowError):
+            pass
     if eps and valid_eps(eps,code=saved['code'],name=saved['name'],market=saved['market'],day=day):
         q=eps['parts'];ed=eps['source_oldest_asof']
         put('valuation','per_eps_quality_growth',sum(q[k] for k in ('earnings_yield_pct','eps_growth','eps_stability'))*5/12,5,ed)
@@ -163,12 +186,29 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financ
     return parts,risk_assessment(annual or {},financial_sector=financial_sector)
 
 
-def build(market,catalog,ledger,history,money_source,personal,industry=None,previous=None):
+def verified_reported_eps(catalog, annual_book, source):
+    """Reuse only issuer/receipt-checked annual EPS; no provider or price calls."""
+    if (not isinstance(annual_book,dict) or not isinstance(source,dict)
+        or not isinstance(source.get('source_sha256'),dict)
+        or source['source_sha256'].get('annual_book')!=_stable_digest(annual_book)):
+        return {}
+    try:
+        _,_,_,retained,_=reported_eps_plan(catalog,annual_book,source)
+    except (EPSError,ValueError,KeyError,TypeError):
+        return {}
+    return {code:entry for code,entry in retained.items()
+            if entry.get('status')=='reported_basic_eps'
+            and entry.get('metrics',{}).get('complete_three_years') is True}
+
+
+def build(market,catalog,ledger,history,money_source,personal,industry=None,
+          annual_book=None,reported_eps_source=None,previous=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
     money=usable_records(money_source,catalog)
+    raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
     legacy={r['code']:r for r in old};rows={}
     previous=previous if previous and previous.get('version') in COMPATIBLE_PREVIOUS and previous.get('asof','9999')<=day else {}
@@ -189,7 +229,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
             and isinstance(sector_code,str) and sector_code.isdigit() and len(sector_code)>=2)
         financial_sector=sector_code[:2] in ('64','65','66') if sector_valid else None
         parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),financial_sector=financial_sector,
-            eps=personal.get('valuation_overrides',{}).get(code),annual=history.get('records',{}).get(code))
+            eps=personal.get('valuation_overrides',{}).get(code),reported_eps=raw_eps.get(code),
+            annual=history.get('records',{}).get(code))
         prior=previous.get('rows',{}).get(code)
         if prior and prior['name']==member['name'] and prior['market']==member['market']:
             for area in parts:
@@ -232,6 +273,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
                    '독립 돌파확인: 가격 경로 부족 종목 미관측',
                    'MA 전환: 가격 이력 부족 종목 미관측',
+                   '공식 보고 EPS: 주식수 변동·기업행위 독립 보정은 미검증',
                    '부채상환·현금흐름 위험 검증'],
         'rows':rows}
 
@@ -291,7 +333,8 @@ def main():
     root=args.docs
     def read(name):return json.loads((root/name).read_text())
     names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json','v3-dart-bulk-history.json',
-        'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json']
+        'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json',
+        'v3-dart-book-reference.json','v3-dart-reported-eps.json']
     inputs=[read(n) for n in names]
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):

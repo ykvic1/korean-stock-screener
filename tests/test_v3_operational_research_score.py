@@ -19,7 +19,8 @@ class OperationalScoreTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json',
-            'v3-dart-bulk-history.json','v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json']
+            'v3-dart-bulk-history.json','v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json',
+            'v3-dart-book-reference.json','v3-dart-reported-eps.json']
         cls.inputs=[json.loads((ROOT/'docs'/n).read_text()) for n in names]
         cls.report=ops.build(*cls.inputs)
 
@@ -167,6 +168,31 @@ class OperationalScoreTests(unittest.TestCase):
             corrupt['v3_breakout_followthrough']['source_regular_session_verified']=True
             invalid,_=ops.score_issuer(corrupt,saved,day=day)
             self.assertIsNone(invalid['technical']['independent_breakout_confirmation'])
+
+    def test_reported_eps_valuation_does_not_require_unrelated_fcf_or_pbr(self):
+        catalog,book,source=self.inputs[1],self.inputs[7],self.inputs[8]
+        verified=ops.verified_reported_eps(catalog,book,source)
+        missing=[k for k,r in self.report['rows'].items() if
+            k in verified and r['parts']['valuation']['per_eps_quality_growth'] is not None
+            and k not in self.inputs[5]['valuation_overrides']]
+        self.assertGreater(len(missing),100)
+        code=missing[0];member=next(m for m in catalog['rows'] if m['code']==code)
+        # A verified source can observe EPS growth+stability with absolutely
+        # no price/money/FCF/PBR baseline. The remaining 1/3 stays missing.
+        stub={'code':code,'name':member['name'],'market':member['market']}
+        parts,_=ops.score_issuer(None,stub,day=catalog['date'],reported_eps=verified[code])
+        eps=parts['valuation']['per_eps_quality_growth']
+        self.assertIsNotNone(eps)
+        self.assertAlmostEqual(eps['available'],10/3,places=5)
+        self.assertLessEqual(eps['points'],eps['available'])
+        self.assertIsNone(parts['valuation']['fcf_yield'])
+        self.assertIsNone(parts['valuation']['pbr_equity_quality'])
+        tampered=copy.deepcopy(source)
+        tampered['source_sha256']['annual_book']='0'*64
+        self.assertEqual(ops.verified_reported_eps(catalog,book,tampered),{})
+        tampered=copy.deepcopy(source)
+        tampered['records'][code]['metrics']['complete_three_years']=False
+        self.assertEqual(ops.verified_reported_eps(catalog,book,tampered),{})
 
     def test_browser_csv_server_and_corruption_rejection(self):
         script="""
