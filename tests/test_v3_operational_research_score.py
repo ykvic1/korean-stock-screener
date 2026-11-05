@@ -199,6 +199,16 @@ class OperationalScoreTests(unittest.TestCase):
         tampered['records'][code]['metrics']['complete_three_years']=False
         self.assertEqual(ops.verified_reported_eps(catalog,book,tampered),{})
 
+    def test_new_verified_eps_weight_not_lost_to_later_dated_partial_prior(self):
+        older=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
+        updated=ops.build(*self.inputs,previous=older)
+        for code,r in self.report['rows'].items():
+            fresh=r['parts']['valuation']['per_eps_quality_growth']
+            saved=updated['rows'][code]['parts']['valuation']['per_eps_quality_growth']
+            if fresh:
+                self.assertIsNotNone(saved)
+                self.assertGreaterEqual(saved['available']+1e-6,fresh['available'])
+
     def test_browser_csv_server_and_corruption_rejection(self):
         script="""
 const fs=require('fs'),ops=require('./docs/operational-score.js');

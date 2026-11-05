@@ -239,7 +239,12 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                     older=prior.get('parts',{}).get(area,{}).get(key)
                     if (older and finite(older.get('points')) and finite(older.get('available'))
                         and 0<=older['points']<=older['available']<=SPECS[area][key]+1e-6
-                        and older['asof']<=day and (p is None or older['asof']>p['asof'])):parts[area][key]=older
+                        and older['asof']<=day and (p is None or older['asof']>p['asof'])
+                        # A recent 1/3 earnings-yield receipt must not hide
+                        # older but separately verified 2/3 reported EPS.
+                        and (p is None or key!='per_eps_quality_growth'
+                             or older['available']+1e-6>=p['available'])):
+                        parts[area][key]=older
         if prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
             risk['deduction']=prior['risk_deduction'];risk['status']='partial'
             risk['warnings']=prior.get('risk_warnings',[])
