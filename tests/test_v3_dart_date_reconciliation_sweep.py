@@ -78,9 +78,16 @@ class SweepTests(unittest.TestCase):
         self.assertEqual(before, set(self.store.blobs))
 
     def test_legacy_matched_report_without_schedule_fields_is_unexamined_not_empty(self):
+        for report_path, raw in list(self.store.blobs.items()):
+            if '/reports/' in report_path:
+                obj = json.loads(raw)
+                for row in obj['endpoint_results']:
+                    row['reported_schedule_date_parser_version'] = 2
+                self.store.blobs[report_path] = s.principal.canonical(obj)
         path = s.principal._path(0, RECEIPTS[0]['rcept_no'])
         old = json.loads(self.store.blobs[path])
         old['endpoint_results'][2].pop('reported_schedule_date_candidates')
+        old['endpoint_results'][2].pop('reported_schedule_date_parser_version')
         self.store.blobs[path] = s.principal.canonical(old)
         result = s.sweep(self.store)
         self.assertEqual(result['legacy_matched_schedule_endpoints'], 1)

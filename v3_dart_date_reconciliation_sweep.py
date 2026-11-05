@@ -127,9 +127,9 @@ class _ReadWitness:
                 try:
                     rows = json.loads(raw)['endpoint_results']
                     self.coverage[path] = {
-                        'schedule_examined_endpoints': sum('reported_schedule_date_candidates' in r for r in rows),
-                        'legacy_schedule_endpoints': sum('reported_schedule_date_candidates' not in r for r in rows),
-                        'legacy_matched_schedule_endpoints': sum('reported_schedule_date_candidates' not in r
+                        'schedule_examined_endpoints': sum(r.get('reported_schedule_date_parser_version') == 2 for r in rows),
+                        'legacy_schedule_endpoints': sum(r.get('reported_schedule_date_parser_version') != 2 for r in rows),
+                        'legacy_matched_schedule_endpoints': sum(r.get('reported_schedule_date_parser_version') != 2
                             and r['exact_receipt_match'] is True for r in rows)}
                 except Exception:
                     raise DateSweepError('invalid_private_date_sweep_report_coverage') from None
@@ -176,8 +176,8 @@ def sweep(storage, *, max_batches=MAX_BATCHES, max_seconds=MAX_SECONDS, clock=No
                     'historical_pit_issuers_certified', 'private_identity_or_dates_published'))):
             raise DateSweepError('completed_private_date_sources_missing_or_unsafe')
         queue_hash = witness.evidence[witness.queue_path]
-        # Legacy immutable category reports did not inspect schedule fields.
-        # Preserve that absence rather than counting it as an examined empty date.
+        # Legacy reports had no schedule inspection or a narrower date parser.
+        # Keep their exact matches eligible for a later date refresh.
         for key in TOTALS[5:]:
             result[key] = sum(row[key] for row in witness.coverage.values())
         if j and queue_hash != state['queue_sha256']:

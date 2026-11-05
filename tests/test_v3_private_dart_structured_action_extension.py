@@ -216,7 +216,8 @@ class SupplementalActionTests(unittest.TestCase):
         with self.assertRaises(s.ExtensionError):
             s._validate_report(s.canonical(bad), 0, RECORDS[0])
         old = s._report(0, RECORDS[0], [
-            {k:v for k,v in r.items() if k != "reported_schedule_date_candidates"}
+            {k:v for k,v in r.items() if k not in
+             ("reported_schedule_date_candidates", "reported_schedule_date_parser_version")}
             for r in rows])
         self.assertEqual(s._validate_report(s.canonical(old), 0, RECORDS[0]), old)
 
