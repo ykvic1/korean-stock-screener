@@ -3,6 +3,8 @@ name: V3 Early Operational Research Score R1a (Saved Sources Only)
 on:
   pull_request:
     paths:
+      - v3_operational_evidence_priority.py
+      - tests/test_v3_operational_evidence_priority.py
       - v3_operational_research_score.py
       - v3_ma_slope_transition.py
       - v3_actual_money_structure.py
@@ -15,6 +17,8 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_operational_evidence_priority.py
+      - tests/test_v3_operational_evidence_priority.py
       - v3_operational_research_score.py
       - v3_ma_slope_transition.py
       - v3_actual_money_structure.py
@@ -44,7 +48,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python v3_operational_research_score.py
+      - run: |
+          python v3_operational_research_score.py
+          python v3_operational_evidence_priority.py
+      - run: python -m unittest discover -s tests -p 'test_v3_operational_evidence_priority.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_research_score.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_breakout_followthrough.py' -v
       - run: node --check docs/operational-score.js
@@ -73,7 +80,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Recompute from saved ledgers without provider calls or collection locks
-        run: python v3_operational_research_score.py
+        run: |
+          python v3_operational_research_score.py
+          python v3_operational_evidence_priority.py
       - name: Publish parallel model and append versioned observations
         id: publish_scores
         run: |
@@ -81,14 +90,15 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           for attempt in 1 2 3; do
-            git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/score-history/
+            git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/score-history/
             if git diff --cached --quiet; then exit 0; fi
             git commit -m 'Publish parallel R1a operational research scores from saved inputs'
             git pull --rebase origin main
             # Re-read newly merged input data before publishing; a failure
             # leaves the previously published scores untouched.
             python v3_operational_research_score.py
-            git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/score-history/
+            python v3_operational_evidence_priority.py
+            git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/score-history/
             if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             if git push origin HEAD:main; then
               echo "changed=true" >> "$GITHUB_OUTPUT"
