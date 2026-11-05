@@ -3,6 +3,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'docs/operational-score.js'
+      - 'v3_operational_research_score.py'
       - 'docs/index.html'
       - 'docs/workspace.html'
       - 'docs/workspace.js'
@@ -75,6 +77,8 @@ jobs:
               (root/'v3-personal-adjusted-score-summary.json').write_text(json.dumps(summary),encoding='utf-8')
               print('reported_eps_model_issuers',summary['reported_eps_valuation_issuers'])
           PY
+      - name: Replay early operational model from the same saved browser inputs
+        run: python v3_operational_research_score.py
       - name: Exercise real mobile Chromium against actual published market snapshot
         env:
           V3_UNIFIED_URL: http://127.0.0.1:8765/

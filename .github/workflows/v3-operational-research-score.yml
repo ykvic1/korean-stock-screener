@@ -49,6 +49,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      pages: write
     concurrency:
       group: v3-operational-research-score-publisher
       queue: max
@@ -63,6 +64,7 @@ jobs:
       - name: Recompute from saved ledgers without provider calls or collection locks
         run: python v3_operational_research_score.py
       - name: Publish parallel model and append versioned observations
+        id: publish_scores
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
@@ -77,6 +79,14 @@ jobs:
             python v3_operational_research_score.py
             git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/score-history/
             if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
-            if git push origin HEAD:main; then exit 0; fi
+            if git push origin HEAD:main; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           done
           exit 1
+      - name: Refresh Pages only after score content changes
+        if: steps.publish_scores.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
