@@ -5,8 +5,10 @@ import json
 from pathlib import Path
 import subprocess
 import unittest
+from unittest.mock import patch
 
 import v3_operational_research_score as ops
+from v3_actual_money_structure import SCHEMA as MONEY_SCHEMA
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -67,13 +69,48 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertTrue(all(p is None for ps in parts.values() for p in ps.values()))
         self.assertEqual(risk['status'],'unknown')
 
-    def test_r1a_prior_receipts_migrate_without_relabeling_legacy_scores(self):
+    def test_prior_receipts_migrate_without_relabeling_legacy_scores(self):
         old=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
         self.assertIn(old['version'],ops.COMPATIBLE_PREVIOUS)
         migrated=ops.build(*self.inputs,previous=old)
         self.assertEqual(migrated['version'],ops.VERSION)
+        previous_version=(old.get('prior_operational_version') if old['version']==ops.VERSION
+                          else old['version'])
+        self.assertEqual(migrated['prior_operational_version'],previous_version)
         code='005930'
         self.assertEqual(migrated['rows'][code]['areas'],self.report['rows'][code]['areas'])
+        previous_score=(old['rows'][code].get('prior_operational_score') if old['version']==ops.VERSION
+                        else old['rows'][code]['score'])
+        self.assertEqual(migrated['rows'][code]['prior_operational_score'],previous_score)
+        records=list(csv.DictReader(StringIO(ops.to_csv(migrated))))
+        self.assertEqual(next(r for r in records if r['종목코드']==code)['직전운영모델점수'],
+                         '' if previous_score is None else str(previous_score))
+
+    def test_r1c_money_structure_requires_independent_valid_receipt(self):
+        structure={'schema':MONEY_SCHEMA,'growth6':4.2,'components':{
+            'persistence':3.1,'concentration_quality':1.1,'up_down_asymmetry':.6,
+            'correction_contraction':.3,'weekly_structure_increment':.8},
+            'derived_from_private_reported_acc_trdval':True,
+            'original_amounts_or_paths_exported':False,
+            'intrabucket_boundary_price_sign_known':False,
+            'independent_regular_session_verified':False,'investment_score_certified':False}
+        money={'asof':'2026-11-04','r1c_structure':structure}
+        stub={'subpoints':{'sustained_volume':4.9,'obv_price_not_reflected':2.4,
+            'ma20_ma60_cross_near_ma240':None}}
+        stock={'price_date':'2026-11-04','market':'KOSPI'}
+        saved={'code':'005930','name':'삼성전자','market':'KOSPI'}
+        with patch.object(ops,'volume_observed',return_value=stub),patch.object(ops,'path_preview',return_value=None),\
+             patch.object(ops,'pattern_observed',return_value=None):
+            parts,_=ops.score_issuer(stock,saved,day='2026-11-04',money=money)
+            self.assertEqual(parts['volume']['long_horizon_growth']['points'],4.2)
+            self.assertEqual(parts['volume']['persistence']['points'],3.1)
+            self.assertEqual(parts['volume']['concentration_quality']['points'],1.1)
+            self.assertEqual(parts['volume']['weekly_structure_increment']['points'],.8)
+            self.assertEqual(parts['volume']['obv_price_divergence']['points'],2.4)
+            corrupt=copy.deepcopy(money);corrupt['r1c_structure']['investment_score_certified']=True
+            fallback,_=ops.score_issuer(stock,saved,day='2026-11-04',money=corrupt)
+            self.assertEqual(fallback['volume']['long_horizon_growth']['points'],4.9)
+            self.assertIsNone(fallback['volume']['persistence'])
 
     def test_browser_csv_server_and_corruption_rejection(self):
         script="""

@@ -19,9 +19,11 @@ from v3_path_provisional_factors import preview as path_preview
 from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
+from v3_actual_money_structure import valid as valid_money_structure
 
-VERSION = 'v3-stable-r1b-operational-research'
-COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research', VERSION)
+VERSION = 'v3-stable-r1c-operational-research'
+COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
+                       'v3-stable-r1b-operational-research',VERSION)
 OUTPUT = 'v3-operational-research-scores.json'
 SPECS = {
  'volume': {'long_horizon_growth':6,'persistence':5,'concentration_quality':2,
@@ -94,7 +96,14 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financ
         v=volume_observed(stock,asof=day,market=stock['market'],money=money)
         if v:
             vp=v['subpoints'];vd=money['asof'] if money else day
-            put('volume','long_horizon_growth',vp['sustained_volume'],6,vd)
+            structure=money.get('r1c_structure') if money else None
+            if structure is not None and valid_money_structure(structure):
+                put('volume','long_horizon_growth',structure['growth6'],6,vd)
+                for key,score in structure['components'].items():
+                    if score is not None:
+                        put('volume',key,score,SPECS['volume'][key],vd)
+            else:
+                put('volume','long_horizon_growth',vp['sustained_volume'],6,vd)
             put('volume','obv_price_divergence',vp['obv_price_not_reflected'],4,day)
             cross=vp['ma20_ma60_cross_near_ma240']
             if cross is not None:put('technical','ma20_ma60_cross_near_ma240',cross,6,day)
@@ -158,6 +167,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
     legacy={r['code']:r for r in old};rows={}
     previous=previous if previous and previous.get('version') in COMPATIBLE_PREVIOUS and previous.get('asof','9999')<=day else {}
+    prior_version=(previous.get('prior_operational_version') if previous.get('version')==VERSION
+                   else previous.get('version'))
     if previous.get('format')=='compact-parts-v1':
         previous=json.loads(json.dumps(previous))
         for r in previous.get('rows',{}).values():
@@ -191,6 +202,10 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
         base=round(sum(v['points'] for v in areas.values()),6) if available else None
         adj=profile(stock,base)
         score=rounded(max(0,min(100,base-adj['capital_deduction']+adj['stop_adjustment']-risk['deduction']))) if base is not None else None
+        previous_score=(prior.get('prior_operational_score') if previous.get('version')==VERSION
+                        else prior.get('score')) if prior else None
+        previous_rank=(prior.get('prior_operational_rank') if previous.get('version')==VERSION
+                       else prior.get('rank')) if prior else None
         rows[code]={'name':member['name'],'market':member['market'],'score':score,'base':base,
             'available':available,'capital_deduction':adj['capital_deduction'],'stop_adjustment':adj['stop_adjustment'],
             'missing_adjustment_sources':adj['missing_adjustment_sources'],
@@ -199,26 +214,31 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
             'asof':max((p['asof'] for ps in parts.values() for p in ps.values() if p),default=day),
             'oldest_asof':min((p['asof'] for ps in parts.values() for p in ps.values() if p),default=None),
             'legacy_score':legacy[code]['adjusted_score'],'legacy_rank':legacy[code]['personal_rank'],
+            'prior_operational_score':previous_score,'prior_operational_rank':previous_rank,
             'parts':parts,'areas':areas,'rank':None}
     eligible=sorted((k for k,r in rows.items() if r['score'] is not None),
         key=lambda k:(-rows[k]['score'],-rows[k]['available'],k))
     for rank,k in enumerate(eligible,1):rows[k]['rank']=rank
     return {'version':VERSION,'asof':day,'budgets':BUDGET,'status':'provisional_operational',
+        'prior_operational_version':prior_version,
         'investment_score_certified':False,'performance_validated':False,'provider_calls':0,
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
-        'pending':['거래 세부구조 추가 12점','독립 돌파확인 1.2점','MA 전환: 새 가격 이력 수집 전 종목별 미관측','부채상환·현금흐름 위험 검증'],
+        'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
+                   '독립 돌파확인 1.2점','MA 전환: 가격 이력 부족 종목 미관측',
+                   '부채상환·현금흐름 위험 검증'],
         'rows':rows}
 
 
 def to_csv(report):
     out=StringIO(newline='');w=csv.writer(out,lineterminator='\n')
     w.writerow(['운영순위','종목코드','종목명','시장','모델버전','잠정운영점수','관측합계','확보배점','기준일','가장오래된기준일',
-        '시총감점','손절보정','재무위험감점','재무위험상태','기존점수','기존순위']+
+        '시총감점','손절보정','재무위험감점','재무위험상태','기존점수','기존순위','직전운영모델점수','직전운영모델순위']+
         [a+'_'+k for a in BUDGET for k in ('점수','확보배점')])
     for code,r in sorted(report['rows'].items(),key=lambda x:x[1]['rank'] or 100000):
         w.writerow([r['rank'],code,r['name'],r['market'],VERSION,r['score'],r['base'],r['available'],r['asof'],r['oldest_asof'],
-            r['capital_deduction'],r['stop_adjustment'],r['risk_deduction'],r['risk_status'],r['legacy_score'],r['legacy_rank']]+
+            r['capital_deduction'],r['stop_adjustment'],r['risk_deduction'],r['risk_status'],r['legacy_score'],r['legacy_rank'],
+            r['prior_operational_score'],r['prior_operational_rank']]+
             [r['areas'][a][k] for a in BUDGET for k in ('points','available')])
     return out.getvalue()
 
@@ -247,6 +267,14 @@ def main():
         'performance_validated':False,'top':{str(n):{'overlap':len({k for k,_ in new[:n]} & {k for k,_ in old[:n]}),
         'new_kospi':sum(r['market']=='KOSPI' for _,r in new[:n]),'old_kospi':sum(r['market']=='KOSPI' for _,r in old[:n])}
         for n in (50,100,200)}}
+    prior=[(k,r) for k,r in report['rows'].items() if r['rank'] and r['prior_operational_rank']]
+    if prior:
+        comparison['prior_operational_version']=report['prior_operational_version']
+        comparison['same_input_prior_ranked_issuers']=len(prior)
+        comparison['prior_top_overlap']={str(n):len(
+            {k for k,_ in sorted(prior,key=lambda x:x[1]['rank'])[:n]} &
+            {k for k,_ in sorted(prior,key=lambda x:x[1]['prior_operational_rank'])[:n]})
+            for n in (50,100,200)}
     (root/'v3-operational-research-comparison.json').write_text(json.dumps(comparison,ensure_ascii=False,indent=2)+'\n')
     archive=root/'score-history'/VERSION;archive.mkdir(parents=True,exist_ok=True)
     snapshot={'version':VERSION,'asof':report['asof'],'source_digest':digest,'rows':{

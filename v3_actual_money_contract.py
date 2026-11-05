@@ -5,6 +5,7 @@ Source acquisition is intentionally separate from volume score consumption.
 from datetime import date,timedelta
 import math
 from v3_dart_bulk_history import _stable_digest
+from v3_actual_money_structure import valid as valid_r1c_structure
 
 SCHEMA='v3-personal-actual-money-participation-six-0.1'
 MODEL='actual-money-disjoint-d4-w5-persistence-concentration-v1'
@@ -99,6 +100,9 @@ def usable_records(report, catalog):
                 or r['weekly_session_end']>report['asof']
                 or type(r.get('points')) not in (int,float) or not math.isfinite(r['points'])
                 or not 0<=r['points']<=6):
+                return {}
+            if ('r1c_structure' in r and
+                not valid_r1c_structure(r['r1c_structure'])):
                 return {}
             if 'daily_asof' in r or 'computed_asof' in r:
                 daily=r.get('daily_asof');computed=r.get('computed_asof')
