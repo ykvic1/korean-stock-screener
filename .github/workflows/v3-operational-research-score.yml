@@ -4,13 +4,16 @@ on:
   pull_request:
     paths:
       - v3_operational_research_score.py
+      - v3_ma_slope_transition.py
       - docs/operational-score.js
       - tests/test_v3_operational_research_score.py
+      - tests/test_v3_ma_slope_transition.py
       - .github/workflows/v3-operational-research-score.yml
   push:
     branches: [main]
     paths:
       - v3_operational_research_score.py
+      - v3_ma_slope_transition.py
       - docs/operational-score.js
       - .github/workflows/v3-operational-research-score.yml
   workflow_run:

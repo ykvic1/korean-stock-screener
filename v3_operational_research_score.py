@@ -18,8 +18,10 @@ from v3_pattern_composite_score import _observed as pattern_observed, _weekly_tr
 from v3_path_provisional_factors import preview as path_preview
 from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
+from v3_ma_slope_transition import valid_observation as valid_ma_slope
 
-VERSION = 'v3-stable-r1a-operational-research'
+VERSION = 'v3-stable-r1b-operational-research'
+COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research', VERSION)
 OUTPUT = 'v3-operational-research-scores.json'
 SPECS = {
  'volume': {'long_horizon_growth':6,'persistence':5,'concentration_quality':2,
@@ -98,6 +100,14 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financ
             if cross is not None:put('technical','ma20_ma60_cross_near_ma240',cross,6,day)
         p=path_preview(stock,asof=day)
         if p:put('volume','post_spike_absorption',p['research_volume_post_spike_absorption_points']*.75,3,day)
+        slope=stock.get('v3_ma_slope_transition')
+        if slope is not None and valid_ma_slope(slope,day):
+            for frame in ('daily','weekly'):
+                pieces=slope['parts'][frame]
+                if pieces is not None:
+                    weight=SPECS['momentum'][frame+'_ma_slope_turn']
+                    put('momentum',frame+'_ma_slope_turn',sum(pieces.values()),weight,
+                        slope['weekly_asof'] if frame=='weekly' else day)
         for frame,limit,rsi_max in [('daily',8.4,1.2),('weekly',9.6,1.8)]:
             evidence=pattern_observed(stock,frame)
             if not evidence:continue
@@ -147,7 +157,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
     money=usable_records(money_source,catalog)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
     legacy={r['code']:r for r in old};rows={}
-    previous=previous if previous and previous.get('version')==VERSION and previous.get('asof','9999')<=day else {}
+    previous=previous if previous and previous.get('version') in COMPATIBLE_PREVIOUS and previous.get('asof','9999')<=day else {}
     if previous.get('format')=='compact-parts-v1':
         previous=json.loads(json.dumps(previous))
         for r in previous.get('rows',{}).values():
@@ -197,7 +207,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
         'investment_score_certified':False,'performance_validated':False,'provider_calls':0,
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
-        'pending':['거래 세부구조 추가 12점','독립 돌파확인 1.2점','MA 기울기 전환 5점','부채상환·현금흐름 위험 검증'],
+        'pending':['거래 세부구조 추가 12점','독립 돌파확인 1.2점','MA 전환: 새 가격 이력 수집 전 종목별 미관측','부채상환·현금흐름 위험 검증'],
         'rows':rows}
 
 
