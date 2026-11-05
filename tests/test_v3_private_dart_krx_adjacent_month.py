@@ -232,7 +232,7 @@ class AdjacentMonthTests(unittest.TestCase):
         old = Path(".github/workflows/full-market-batches.yml").read_text()
         self.assertIn("v3_private_dart_krx_adjacent_month.py", wf)
         self.assertIn("test_v3_private_dart_krx_adjacent_month.py", wf)
-        self.assertIn("python v3_private_dart_krx_adjacent_month.py", wf)
+        self.assertIn("python v3_dart_candidate_catchup.py", wf)
         self.assertIn("contents: read", wf)
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN:", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)

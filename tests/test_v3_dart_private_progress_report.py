@@ -3,6 +3,8 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import unittest
+import tempfile
+from unittest.mock import patch
 
 import v3_dart_private_progress_report as p
 from v3_dart_historical_event_receipts import (
@@ -73,6 +75,42 @@ def fixture_mid_category():
 
 
 class HistoricalReceiptProgressTests(unittest.TestCase):
+    def terminal_report(self):
+        report = p.collect(fixture())
+        report.update({'filing_months_checkpointed': len(MONTHS),
+            'filing_months_remaining': 0, 'filing_months_checkpointed_ratio': 1.0,
+            'last_checkpointed_filing_month': MONTHS[-1], 'current_collection_filing_month': None,
+            'private_receipt_pages_checkpointed': len(MONTHS)*4})
+        return report
+
+    def test_automatic_terminal_refresh_retains_file_without_private_calls(self):
+        report = self.terminal_report()
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / p.OUTPUT
+            raw = json.dumps(report).encode()
+            target.write_bytes(raw)
+            with patch.object(p, 'PrivateGitStorage') as storage:
+                p.main(['--docs', folder, '--mode', 'write', '--automatic'])
+            storage.assert_not_called()
+            self.assertEqual(target.read_bytes(), raw)
+
+    def test_manual_verify_and_incomplete_or_invalid_terminal_report_still_read_source(self):
+        reports = [self.terminal_report(), p.collect(fixture()),
+                   {**self.terminal_report(), 'historical_adjusted_prices_certified': True},
+                   {**self.terminal_report(), 'private_receipt_pages_checkpointed': 0}]
+        for index, report in enumerate(reports):
+            with self.subTest(index=index), tempfile.TemporaryDirectory() as folder:
+                (Path(folder) / p.OUTPUT).write_text(json.dumps(report))
+                with patch.dict(p.os.environ, {'V3_PRIVATE_ARCHIVE_REPO': p.PRIVATE_REPO,
+                        'V3_PRIVATE_ARCHIVE_TOKEN': 'synthetic-private-token-at-least-20'}), \
+                     patch.object(p, 'PrivateGitStorage') as storage, \
+                     patch.object(p, 'collect', return_value=report) as collect:
+                    args = ['--docs', folder, '--mode', 'verify'] if index == 0 else [
+                        '--docs', folder, '--mode', 'write', '--automatic']
+                    p.main(args)
+                storage.assert_called_once()
+                collect.assert_called_once()
+
     def test_public_progress_error_codes_do_not_leak_private_transport_details(self):
         limit=p.PrivateHistoryError("private_storage_api_failed")
         limit.safe_http_status="http_403_rate_limited"

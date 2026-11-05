@@ -266,7 +266,7 @@ class FilingTitleTriageTests(unittest.TestCase):
         legacy = Path(".github/workflows/full-market-batches.yml").read_text()
         self.assertIn("v3_private_dart_krx_filing_title_triage.py", wf)
         self.assertIn("test_v3_private_dart_krx_filing_title_triage.py", wf)
-        self.assertIn("python v3_private_dart_krx_filing_title_triage.py", wf)
+        self.assertIn("python v3_dart_candidate_catchup.py", wf)
         # Bulk long-run completion must unlock the same source-guarded private
         # correction/title research pipeline as the short collector.
         self.assertIn("V3 Private Direct DART Receipt Fast Lane (Stop at 120 Months)", wf)
