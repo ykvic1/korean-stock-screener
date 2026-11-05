@@ -19,7 +19,7 @@
     "KOSDAQ": 1572
   },
   "flow_confirmed_count": 0,
-  "flow_unavailable_in_errors_count": 7,
+  "flow_unavailable_in_errors_count": 8,
   "pbr_observed_count": 0,
   "all_attempted_stock_codes_reconciled_once": true,
   "independent_historical_prices_verified": false,

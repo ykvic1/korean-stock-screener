@@ -7,7 +7,7 @@
   "market_price_valid": 2373,
   "screened_count": 2373,
   "score_ready_count": 2373,
-  "downside_screen_pass_count": 1457,
+  "downside_screen_pass_count": 1452,
   "research_eligible_count": 4,
   "research_dossier_count": 4,
   "confirmed_recommendation_count": 0,
@@ -21,12 +21,12 @@
   "daily_changes": {
     "entered": [],
     "updated": [
-      "066670",
       "006280",
+      "012030",
       "005500"
     ],
     "unchanged": [
-      "012030"
+      "066670"
     ],
     "exited": []
   },
@@ -185,14 +185,14 @@
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
       "evidence_fingerprint": "b1db53abbe728212",
       "rank": 1,
-      "daily_change": "updated"
+      "daily_change": "unchanged"
     },
     {
       "code": "006280",
       "name": "녹십자",
       "asof": "2026-11-05",
       "market": "KOSPI",
-      "price": 141800,
+      "price": 142000,
       "v2_score": {
         "normalized": 81.4,
         "earned": 57,
@@ -232,17 +232,17 @@
           "20일 고점·거래량 돌파"
         ],
         "obv_rising": false,
-        "one_day_volume_ratio": 2.45,
-        "ma120w_gap_pct": 1.2,
-        "price20_pct": 8.7,
-        "price60_pct": 12.1
+        "one_day_volume_ratio": 2.46,
+        "ma120w_gap_pct": 1.3,
+        "price20_pct": 8.9,
+        "price60_pct": 12.3
       },
       "downside": {
         "risk_level": "medium",
         "stop": {
           "status": "observed",
           "risk": "medium",
-          "stop_pct": -13.2,
+          "stop_pct": -13.3,
           "stop_price": 123100.0,
           "warning_flags": [],
           "non_stop_warning_flags": []
@@ -304,7 +304,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -13.2,
+        "loss_reference_pct": -13.3,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -336,7 +336,7 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "39ed1b6719910a8c",
+      "evidence_fingerprint": "ea8eb9e6dbc400d6",
       "rank": 2,
       "daily_change": "updated"
     },
@@ -345,10 +345,10 @@
       "name": "DB",
       "asof": "2026-11-05",
       "market": "KOSPI",
-      "price": 2235,
+      "price": 2215,
       "v2_score": {
-        "normalized": 72.8,
-        "earned": 51,
+        "normalized": 74.2,
+        "earned": 52,
         "available": 70,
         "coverage_pct": 70,
         "missing": [
@@ -382,17 +382,17 @@
           "역헤드앤숄더 근사 후보"
         ],
         "obv_rising": true,
-        "one_day_volume_ratio": 0.36,
-        "ma120w_gap_pct": 45.1,
-        "price20_pct": 11.5,
-        "price60_pct": 53.2
+        "one_day_volume_ratio": 0.37,
+        "ma120w_gap_pct": 43.8,
+        "price20_pct": 10.5,
+        "price60_pct": 51.8
       },
       "downside": {
         "risk_level": "medium",
         "stop": {
           "status": "observed",
           "risk": "medium",
-          "stop_pct": -10.1,
+          "stop_pct": -9.3,
           "stop_price": 2010.0,
           "warning_flags": [
             "단기 급등 — 추격 주의"
@@ -458,7 +458,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -10.1,
+        "loss_reference_pct": -9.3,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -490,16 +490,16 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "8efd88abd8c5b42d",
+      "evidence_fingerprint": "7288c571f2684030",
       "rank": 3,
-      "daily_change": "unchanged"
+      "daily_change": "updated"
     },
     {
       "code": "005500",
       "name": "삼진제약",
       "asof": "2026-11-05",
       "market": "KOSPI",
-      "price": 20250,
+      "price": 20400,
       "v2_score": {
         "normalized": 70.0,
         "earned": 49,
@@ -536,17 +536,17 @@
           "역헤드앤숄더 근사 후보"
         ],
         "obv_rising": true,
-        "one_day_volume_ratio": 1.85,
-        "ma120w_gap_pct": 7.7,
-        "price20_pct": 2.1,
-        "price60_pct": 11.3
+        "one_day_volume_ratio": 1.9,
+        "ma120w_gap_pct": 8.5,
+        "price20_pct": 2.9,
+        "price60_pct": 12.1
       },
       "downside": {
-        "risk_level": "low",
+        "risk_level": "medium",
         "stop": {
           "status": "observed",
-          "risk": "low",
-          "stop_pct": -7.4,
+          "risk": "medium",
+          "stop_pct": -8.1,
           "stop_price": 18750.0,
           "warning_flags": [],
           "non_stop_warning_flags": []
@@ -608,7 +608,7 @@
       "return_assessment": {
         "expected_gain_pct": null,
         "expected_return_independently_validated": false,
-        "loss_reference_pct": -7.4,
+        "loss_reference_pct": -8.1,
         "expected_reward_risk": null,
         "past_52week_high_used_as_target": false,
         "caution": "과거 유사조건 수익은 미래 기대수익률이 아님"
@@ -640,7 +640,7 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "9df30d42bd97b37e",
+      "evidence_fingerprint": "dd3baa127778a445",
       "rank": 4,
       "daily_change": "updated"
     }
