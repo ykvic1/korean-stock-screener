@@ -1854,7 +1854,8 @@ function applyActualCashflowPreview(model,report){
 }
 function summary(model,core){
  const discover=rankItems(model,core,'discover');
- return {date:model.date,total:model.rows.length,eligible:model.marketEligible,
+ return {date:model.date,total:model.rows.filter(x=>!x.r.unpriced_operational_only).length,
+  eligible:model.marketEligible,
   discover:discover.length,pattern:rankItems(model,core,'patterns').length,
   rsi:rankItems(model,core,'rsi').length,
   technical:model.rows.filter(x=>technicalEvidence(x.r)!==null).length,
@@ -2421,6 +2422,17 @@ function renderDetails(x){
  const view=$('detail');
  if(!x){view.innerHTML='';view.hidden=true;return;}
  const r=x.r;
+ if(r.unpriced_operational_only){
+  view.hidden=false;
+  view.innerHTML='<div class="u-detail-top"><div><small>전종목 등재 · '+esc(model.date)+
+   '</small><h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
+   '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
+   '<p class="u-muted">현재 가격 관측 목록에서 제외된 종목입니다. 가격·손절선·차트·기존 점수를 임의로 채우지 않습니다. 신규 운영점수는 개별 종목별 마지막 실제 관측 자료만 유지하며, 미관측 배점은 0점이 아닙니다.</p>'+
+   (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
+   '<p class="u-muted">가격 데이터 및 기업행위 검증 후 차트·위험 상세가 연결됩니다. 정규장 원천·수정주가·공시 효력 검증 전으로 매수 판단에 사용하지 마세요.</p>';
+  $('detailClose').onclick=()=>{view.hidden=true;selected=null;draw();};
+  return;
+ }
  const pillars=pillarState(r);
  const annual=x.financialRef;
  const annualReference=core.simpleAnnualOfsBookReference(r,annual);
@@ -2543,7 +2555,7 @@ function draw(){
    '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="현재 조건에서의 표시 순서">'+
    String(i+1).padStart(2,'0')+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
-   '<div class="u-card-kpis"><div class="u-card-price"><small>종가 · '+esc(r.price_date||model.date)+'</small><b>'+won(r.price)+'</b></div>'+
+   '<div class="u-card-kpis"><div class="u-card-price"><small>'+(r.unpriced_operational_only?'종가 미관측':'종가 · '+esc(r.price_date||model.date))+'</small><b>'+won(r.price)+'</b></div>'+
    '<div class="u-card-score"><small>'+(sort==='ops'?'신규 운영 R1 · 잠정':sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
    (sort==='ops'?(ops?.score===null||ops?.score===undefined?'—':ops.score.toFixed(1)):sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
     (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
@@ -2560,7 +2572,7 @@ function draw(){
    '<div class="u-card-meta"><span>시총 '+(stable.capitalEok===null?'미확인':Math.round(stable.capitalEok).toLocaleString('ko-KR')+'억')+'</span>'+
    '<span>당일 거래대금 '+(stable.tradingEok===null?'미확인':stable.tradingEok.toLocaleString('ko-KR',{maximumFractionDigits:1})+'억')+'</span>'+
    '<span>업종 '+esc(r.v3_sector_research?.name||'미확인')+'</span>'+
-   '<span>점수 관측일 '+esc(x.composite.asof||model.date)+
+   '<span>점수 관측일 '+esc(ops?.asof||x.composite.asof||'미확인')+
    (x.composite.stalePillars?' · 이전 관측 '+x.composite.stalePillars+'영역':'')+
    '</span></div>'+
    '<div class="u-tags">'+(tags||'<span class="u-faint">확인된 차트 신호 없음</span>')+'</div>'+
@@ -2597,7 +2609,8 @@ function present(data){
  $('statTechnical').textContent=metrics.technical.toLocaleString('ko-KR');
  $('statV3').textContent=metrics.provisional.toLocaleString('ko-KR')+'종목';
  $('sourceNotes').textContent='전체 '+(metrics.eligible||'미확인')+
-  '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
+  '종목 중 가격 분석 '+metrics.total+'종목 · 나머지 '+(metrics.eligible-metrics.total)+
+  '종목은 종가 미관측으로 별도 보존(신규 운영점수만 확인 가능) · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
   '종목. 시총(연속형 최대 -5점)과 구조 손절거리(-3~+2점)만 안정형 추가 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 거래량·OBV 영역의 지속참여 6점에는 20·60·120·240일 및 5·10·20·60·120주 실제 거래대금 근거가 '+actualMoneyCount+
@@ -2670,17 +2683,21 @@ async function load(){
   applyCurrentObservedFinance(model,responses[16],observedCsv);
   applyIssuerFactorLedger(model,responses[19]);
   applyPersonalValuation(model,responses[20]);
-  const linkedOps=root.V3OperationalScore?.attach(model,responses[22])||0;
-  if(sort==='ops'&&!linkedOps){sort='stable';if($('sort'))$('sort').value=sort;}
-  if($('operationalModelNote'))$('operationalModelNote').textContent=linkedOps?
-    'R1 잠정 운영모델 · 25/30/12.5/12.5/20 · '+linkedOps+'종목 연결 · 미관측 가점은 보류 · 기존 모델 비교 가능':
-    '신규 운영점수 연결 대기 · 기존 모델을 표시합니다.';
   if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
    fiveAreaCoverageView(responses[16],model.date,model.marketEligible,model)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';
   const industry=industryEvidenceView(responses[12],model.date);
   const industryPrice=industryPriceEvidenceView(responses[15],model.date,model.marketEligible);
   applyIndustryReference(model,responses[17],industryPrice);
+  // Enrich the genuinely priced rows first. Then append strictly validated
+  // operational-only issuers so all listed names remain searchable/rankable.
+  const operationalLink=root.V3OperationalScore?.attachAllListed(model,responses[22])||
+   {linked:0,unpriced:0};
+  if(sort==='ops'&&!operationalLink.linked){sort='stable';if($('sort'))$('sort').value=sort;}
+  if($('operationalModelNote'))$('operationalModelNote').textContent=operationalLink.linked?
+    'R1d 잠정 운영모델 · 25/30/12.5/12.5/20 · '+operationalLink.linked+
+    '종목 연결 (종가 미관측 '+operationalLink.unpriced+'종목 포함) · 미관측 가점은 보류 · 기존 모델 비교 가능':
+    '신규 운영점수 연결 대기 · 기존 모델을 표시합니다.';
   $('industryResearchContent').innerHTML=
     (industryPrice?industryPrice.html:'<p class="u-muted">동일 시장일 업종 상대강도 집계 자료 동기화 대기 중입니다.</p>')+
     (industry?industry.html:
