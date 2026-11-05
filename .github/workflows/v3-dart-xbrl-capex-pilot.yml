@@ -46,6 +46,7 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_dart_xbrl_capex_pilot.py
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_capex_pilot.py' -v
+          python -m unittest discover -s tests -p 'test_v3_xbrl_gap_sampling.py' -v
       - name: Install official HTTP client only for live mode
         if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || inputs.mode == 'live' }}
         run: python -m pip install 'requests>=2.31,<3'
@@ -53,13 +54,13 @@ jobs:
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'live' || inputs.mode }}
-          # Code-change runs reproduce the known duplicate-label cohort for
-          # real-world regression evidence. Weekly runs keep rotating across
-          # the full source pool; manual runs respect the requested cohort.
+          # Keep a deterministic seed for code-change research. Prefer bounded
+          # current-model completion gaps while retaining general year/type
+          # exploration. Weekly/manual seeds still rotate the source pool.
           COHORT_INDEX: ${{ github.event_name == 'push' && '20' || github.event_name == 'schedule' && github.run_number || inputs.cohort_index }}
         run: |
           set -euo pipefail
-          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 --cohort-index "$COHORT_INDEX" | tee /tmp/v3-xbrl-evidence-counts.json
+          python v3_dart_xbrl_capex_pilot.py --mode "$MODE" --limit 4 --cohort-index "$COHORT_INDEX" --prioritize-operational-gaps | tee /tmp/v3-xbrl-evidence-counts.json
       - name: Report anonymous aggregate-only structure evidence
         if: always()
         run: |
@@ -70,6 +71,8 @@ jobs:
           labels = (
               ('source_readiness', '원천 일치 상태'),
               ('sample_cohort_mode', '표본 순환 방식'),
+              ('operational_gap_priority_issuer_count', 'R1d 단일 FCF 결측 보완 대상'),
+              ('operational_gap_priority_sampled_issuers', '이번 표본 중 보완 대상'),
               ('sample_cohort_index', '재현 가능한 표본 회차'),
               ('sample_cohort_distinct_issuers', '서로 다른 표본 기업 수'),
               ('sample_fiscal_year_counts', '표본 회계연도별 건수(익명)'),
@@ -293,3 +296,11 @@ jobs:
           Path(os.environ['GITHUB_STEP_SUMMARY']).write_text(
               '\n'.join(lines) + '\n', encoding='utf8')
           PY
+      - name: Keep anonymous original-file evidence counts for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-xbrl-gap-research-${{ github.run_id }}
+          path: /tmp/v3-xbrl-evidence-counts.json
+          retention-days: 14
+          if-no-files-found: warn
