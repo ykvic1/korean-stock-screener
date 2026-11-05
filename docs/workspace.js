@@ -1371,6 +1371,42 @@ function sustainedParticipationNote(r){
    source.daily_asof+' · 주 '+source.weekly_session_end+' · 정규장 원천 미인증)'
   :'지속참여 6점: 기존 거래량(주식수) 비율 잠정 대체 · 기간별 실제 거래대금 미적용';
 }
+function actualMoneyGapText(raw,asof,listed){
+ const d=raw?.coverage_gap_diagnostic,counts=d?.reason_pair_counts;
+ if(!raw||raw.schema!=='v3-personal-actual-money-coverage-summary-0.1'||
+    raw.source_schema!=='v3-personal-actual-money-participation-six-0.1'||
+    raw.model!=='actual-money-disjoint-d4-w5-persistence-concentration-v1'||
+    raw.asof!==asof||raw.listed_total!==listed||
+    raw.investment_score_certified!==false||
+    raw.original_amounts_or_bars_published!==false||
+    !d||!counts||Array.isArray(counts)||typeof counts!=='object'||
+    d.incomplete_periods_do_not_prove_recent_listing!==true||
+    d.zero_baseline_is_unavailable_not_zero_points!==true||
+    d.issuer_amounts_or_coverage_timeseries_published!==false||
+    !Number.isInteger(raw.eligible_issuers)||raw.eligible_issuers<0||
+    !Number.isInteger(d.full_fresh_evidence_issuers)||d.full_fresh_evidence_issuers<0||
+    !Number.isInteger(d.fresh_unscored_issuers)||d.fresh_unscored_issuers<0||
+    d.full_fresh_evidence_issuers+d.fresh_unscored_issuers!==listed||
+    d.full_fresh_evidence_issuers>raw.eligible_issuers||raw.eligible_issuers>listed)return '';
+ const states=['complete','incomplete_periods','zero_baseline'];
+ let total=0,dailyMissing=0,weeklyMissing=0,zeroBaseline=0;
+ for(const [key,value] of Object.entries(counts)){
+  const [daily,weekly,extra]=key.split('__');
+  if(!states.includes(daily)||!states.includes(weekly)||extra!==undefined||
+     (daily==='complete'&&weekly==='complete')||
+     !Number.isInteger(value)||value<=0)return '';
+  total+=value;
+  if(daily==='incomplete_periods')dailyMissing+=value;
+  if(weekly==='incomplete_periods')weeklyMissing+=value;
+  if(daily==='zero_baseline'||weekly==='zero_baseline')zeroBaseline+=value;
+ }
+ if(total!==d.fresh_unscored_issuers)return '';
+ return ' · 거래대금 6점 원천의 완전 관측 '+d.full_fresh_evidence_issuers+
+  '종목 / 미산출 '+total+'종목: 일봉 연속기간 미확보 '+dailyMissing+
+  ', 주봉 연속기간 미확보 '+weeklyMissing+
+  ', 기준기간 거래대금 0으로 비교 불가 '+zeroBaseline+
+  '종목(원인별 중복 가능). 자료 부족이 신규상장·거래정지·종목변경의 확정 원인을 뜻하지는 않습니다.';
+}
 // Price is NOT used for the golden-cross/MA240 band. Show exactly the
 // same dated crossing receipt that can justify (or reject) its six points.
 function maCrossDetail(r,evidence){
@@ -2247,13 +2283,13 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
+ sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
-let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null;
+let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null,actualMoneyCoverage=null;
 let model=null,core=null,tab='discover',sort='stable',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20,compareShown=false;
 function refreshCoverageGroups(data){
  const control=$('coverageGroup');
@@ -2551,7 +2587,8 @@ function present(data){
   '종목 (재무 20점 확정 아님). 업종은 100점 배점에서 제외하고, 종목별 현재 DART 업종과 20·60·120일 시장대비 상대강도를 점수 외 참고자료로 표시합니다. 확인되지 않은 수치는 미확인으로 표시합니다.'+
   weeklyCoverageText(weeklyCoverage,model.date)+
   realSourceCoverageText(realSavedCoverage,model.date)+
-  actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible);
+  actualCashflowCoverageText(actualCashflowCoverage,model.date,model.marketEligible)+
+  actualMoneyGapText(actualMoneyCoverage,model.date,model.marketEligible);
  refreshCoverageGroups(data);
  if(compareShown)renderCompare();
  draw();
@@ -2569,7 +2606,8 @@ async function load(){
   'v3-current-observed-all-listed-summary.json',
   'v3-dart-industry-classification.json',
   'v3-dart-cashflow-issuer-evidence.json',
-  'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json'];
+  'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
+  'v3-actual-money-coverage-summary.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2597,6 +2635,7 @@ async function load(){
   applyBulkFinancialPreview(model,responses[9]);
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
+  actualMoneyCoverage=responses[21];
   const attachedFcf=applyActualCashflowPreview(model,actualCashflowCoverage);
   applyIssuerCashflowEvidence(model,responses[18],
    attachedFcf>0?actualCashflowCoverage:null);

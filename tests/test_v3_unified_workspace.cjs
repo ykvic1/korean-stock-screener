@@ -67,9 +67,9 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
  assert.ok(entry.includes('v30b-20261103-cross-explain'),'homepage uses compact ranking UI assets');
  assert.ok(html.includes('v30b-20261103-cross-explain'),'classic research route keeps its pinned assets');
- assert.ok(entry.includes('workspace.js?v=v30b-20261105-money-eps-source'),
+ assert.ok(entry.includes('workspace.js?v=v30b-20261105-money-gap-audit'),
   'homepage must fetch updated monetary and EPS source explanations');
- assert.ok(html.includes('workspace.js?v=v30b-20261105-money-eps-source'),
+ assert.ok(html.includes('workspace.js?v=v30b-20261105-money-gap-audit'),
   'research route must fetch the same updated script');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
@@ -810,7 +810,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261105-money-eps-source','v30b-20261103-cross-explain'],[entry,'v30b-20261105-money-eps-source','v30b-20261103-cross-explain']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261105-money-gap-audit','v30b-20261103-cross-explain'],[entry,'v30b-20261105-money-gap-audit','v30b-20261103-cross-explain']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin its independently versioned JS and CSS assets');
@@ -938,6 +938,35 @@ assert.match(unified.scorePillarExplanation(
 
 // Actual money replaces only the sustained six-point factor, with honest source dates.
 {
+ const coverage={schema:'v3-personal-actual-money-coverage-summary-0.1',
+  source_schema:'v3-personal-actual-money-participation-six-0.1',
+  model:'actual-money-disjoint-d4-w5-persistence-concentration-v1',
+  asof:'2026-11-04',listed_total:5,eligible_issuers:4,
+  investment_score_certified:false,original_amounts_or_bars_published:false,
+  coverage_gap_diagnostic:{full_fresh_evidence_issuers:3,fresh_unscored_issuers:2,
+   reason_pair_counts:{incomplete_periods__incomplete_periods:1,
+    complete__zero_baseline:1},
+   incomplete_periods_do_not_prove_recent_listing:true,
+   zero_baseline_is_unavailable_not_zero_points:true,
+   issuer_amounts_or_coverage_timeseries_published:false}};
+ const gap=unified.actualMoneyGapText(coverage,'2026-11-04',5);
+ assert.match(gap,/완전 관측 3종목 \/ 미산출 2종목/);
+ assert.match(gap,/일봉 연속기간 미확보 1/);
+ assert.match(gap,/주봉 연속기간 미확보 1/);
+ assert.match(gap,/비교 불가 1종목/);
+ assert.match(gap,/원인별 중복 가능/);
+ assert.doesNotMatch(gap,/신규상장 확정/);
+ for(const changed of [{asof:'2026-11-03'},{listed_total:6},
+  {coverage_gap_diagnostic:{...coverage.coverage_gap_diagnostic,fresh_unscored_issuers:3}},
+  {coverage_gap_diagnostic:{...coverage.coverage_gap_diagnostic,
+   reason_pair_counts:{complete__complete:2}}},
+  {coverage_gap_diagnostic:{...coverage.coverage_gap_diagnostic,
+   issuer_amounts_or_coverage_timeseries_published:true}}]){
+  assert.equal(unified.actualMoneyGapText({...coverage,...changed},'2026-11-04',5),'');
+ }
+ assert.ok(source.includes("'v3-actual-money-coverage-summary.json'"));
+ assert.ok(source.includes('actualMoneyCoverage=responses[21]'));
+ assert.ok(source.includes('actualMoneyGapText(actualMoneyCoverage,model.date,model.marketEligible)'));
  const money={...volumeRow,sustained_participation_source:{
   model:'actual-money-disjoint-d4-w5-persistence-concentration-v1',
   daily_asof:'2026-10-20',weekly_session_end:'2026-10-16',
