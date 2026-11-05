@@ -1251,7 +1251,7 @@ function stabilityProfile(r,composite){
  const cap=finite(r?.market_cap_eok)&&r.market_cap_eok>0?r.market_cap_eok:null;
  const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
  const capitalDeduction=cap===null?0:tenths(5*Math.max(0,1-cap/5000));
- const liquidityDeduction=0; // actual 20/60/120/240d & 5/10/20/60/120w money series not collected
+ const liquidityDeduction=0; // multi-period money enters volume's six points, not a second penalty
  const price=finite(r?.price)&&r.price>0?r.price:null;
  const stop=finite(r?.stop_line)&&r.stop_line>0?r.stop_line:null;
  const pct=price!==null&&stop!==null&&stop<price?100*(price-stop)/price:null;
@@ -1362,6 +1362,15 @@ function volumeStatus(pillar){
   ?'신규 MA20·60일선 교차점/240일선 근거 또는 거래량 자료가 미확보입니다. 구형 OBV 상승 6점은 중단했으며 결측은 0점이 아닙니다.'
   :'거래량/OBV 괴리 및 최근20일 골든크로스의 240일선 대비 ±12%를 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 매집 증거 또는 매수 신호가 아닙니다.';
 }
+function sustainedParticipationNote(r){
+ const evidence=observedVolumeEvidence(r);
+ if(!evidence)return '지속참여 6점 자료 미확보';
+ const source=r.v3_volume_observed.sustained_participation_source;
+ return source?.actual_acc_trdval===true
+  ?'지속참여 6점: 실제 거래대금 20·60·120·240일 / 5·10·20·60·120주 (일 '+
+   source.daily_asof+' · 주 '+source.weekly_session_end+' · 정규장 원천 미인증)'
+  :'지속참여 6점: 기존 거래량(주식수) 비율 잠정 대체 · 기간별 실제 거래대금 미적용';
+}
 // Price is NOT used for the golden-cross/MA240 band. Show exactly the
 // same dated crossing receipt that can justify (or reject) its six points.
 function maCrossDetail(r,evidence){
@@ -1398,7 +1407,7 @@ function volumeParts(r){
  const parts=v?r.v3_volume_observed.subpoints:{};
  return '<div class="u-parts u-volume-parts" aria-label="거래량·OBV 20점 관측 근거">'+
   VOLUME_COMPONENTS.map(([label,max,key])=>{
-   const money=r?.v3_volume_observed?.sustained_participation_source;
+   const money=v?r?.v3_volume_observed?.sustained_participation_source:null;
    if(key==='sustained_volume'&&money?.model==='actual-money-disjoint-d4-w5-persistence-concentration-v1'){
     label='다중기간 실제 거래대금';
    }
@@ -2236,7 +2245,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -2376,7 +2385,7 @@ function renderDetails(x){
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
  (root.V3StopEvidence?root.V3StopEvidence.markup(r,model?.date):'')+
- '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · 기간별 실제 거래대금 20·60·120·240일/5·10·20·60·120주 검증 전 미반영</small></div>'+
+ '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
@@ -2405,11 +2414,11 @@ function renderDetails(x){
  '<h3>거래량·OBV /20 · 실제 자료 관측</h3>'+
  '<p class="u-muted">'+esc(volumeStatus(pillars.find(p=>p.key==='volume')))+'</p>'+
  volumeParts(r)+
- '<p class="u-muted">저장된 20일 거래량 비율·60일 OBV 방향·주가 미반영 16점까지만 산출합니다. 4점 매물 소화는 미확보이며 기존 기술25의 당일 거래량 점수와 중복하지 않습니다. 정규장 원자료·기업행사는 미검증입니다.</p>'+
+ '<p class="u-muted">'+esc(sustainedParticipationNote(r))+' · 60일 OBV/주가 괴리 및 MA 교차는 각각 별도 잠정점수입니다. 4점 매물 소화는 미확보이며 기존 기술25의 당일 거래량 점수와 중복하지 않습니다. 정규장 원자료·기업행사는 미검증입니다.</p>'+
  '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
  technicalParts(r)+
  '<h3>재무 · 밸류 참고</h3>'+
- '<p class="u-muted"><b>현재 가치 20점 배점:</b> PBR 5 · 이익수익률 5(지배주주순이익/시총; PER 역수 유사, 적정 PER 검증 아님) · 매출/시총 5 · FCF수익률 5. <b>EPS 성장성·지속성은 아직 미수집·미평가</b>입니다. 공시의 실제 주당순이익과 주식분할·정정·공시 효력일 검증 후 배점을 개편할 예정이며, 결측을 0점 처리하거나 기존 점수를 지우지 않습니다.</p>'+
+ '<p class="u-muted"><b>현재 가치 20점 배점:</b> PBR 5 · 이익수익률 5(지배주주순이익/시총; PER 역수 유사, 적정 PER 검증 아님) · 매출/시총 5 · FCF수익률 5. <b>DART 연간 보고 EPS 원자료의 대상 기업 조회는 완료됐지만 EPS 성장성·지속성 점수는 아직 미평가</b>입니다. 기업별 유효값·비교기간과 주식분할·정정·공시 효력일을 검증한 뒤 배점을 개편하며, 결측을 0점 처리하거나 기존 점수를 지우지 않습니다.</p>'+
  '<p class="u-muted">'+(annual?
   esc(annual.year)+'년 '+esc(annual.fs_div)+' 재무: 매출 '+eok(yearly.revenue)+
   ' / 영업이익 '+eok(yearly.operating_income)+
@@ -2509,6 +2518,10 @@ function draw(){
 function present(data){
  const metrics=summary(data,core);
  const freshness=marketFreshness(metrics.date);
+ const observedVolumeCount=data.rows.filter(x=>observedVolumeEvidence(x.r)!==null).length;
+ const actualMoneyCount=data.rows.filter(x=>
+   observedVolumeEvidence(x.r)!==null&&
+   x.r.v3_volume_observed?.sustained_participation_source?.actual_acc_trdval===true).length;
  if(freshness.status==='invalid'||freshness.status==='future')
    throw Error('invalid_or_future_market_snapshot');
  $('state').textContent='자료 기준 '+metrics.date+
@@ -2524,9 +2537,9 @@ function present(data){
   '종목 중 가격 분석 '+metrics.total+'종목 · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
-  '종목. 시총(연속형 최대 -5점)과 구조 손절거리(-3~+2점)만 안정형 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 과거 실제 거래대금 20·60·120·240일 및 5·10·20·60·120주 비교 자료는 미확보 상태이고, 기존 5개 영역 점수와 거래량·OBV 산식은 아직 변경하지 않았습니다. 거래량·OBV 신규 관측은 '+data.rows.filter(x=>
-    observedVolumeEvidence(x.r)!==null).length+
-  '종목 / 관측가능 16점·미확보 4점입니다. 실시간 투자등급이 아닌 미검증 점수입니다. '+
+  '종목. 시총(연속형 최대 -5점)과 구조 손절거리(-3~+2점)만 안정형 추가 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 거래량·OBV 영역의 지속참여 6점에는 20·60·120·240일 및 5·10·20·60·120주 실제 거래대금 근거가 '+actualMoneyCount+
+  '종목에 잠정 적용됐습니다. 나머지 종목은 관측된 기존 거래량(주식수) 비율 잠정 대체 또는 자료 미확보이며, 미확보를 0점으로 보지 않습니다. 거래량·OBV 신규 관측은 '+observedVolumeCount+
+  '종목 / 관측가능 최대 16점·매물소화 4점 미확보입니다. 정규장 원천과 기업행사 독립 검증 전의 연구점수이며 실시간 투자등급이 아닙니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
   '당일 CSV 재무 잠정점수 표시 '+data.rows.filter(x=>
     x.r.v3_same_day_observed_finance?.financial?.available>0).length+
