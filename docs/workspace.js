@@ -2418,7 +2418,11 @@ function renderDetails(x){
  '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
  technicalParts(r)+
  '<h3>재무 · 밸류 참고</h3>'+
- '<p class="u-muted"><b>현재 가치 20점 배점:</b> PBR 5 · 이익수익률 5(지배주주순이익/시총; PER 역수 유사, 적정 PER 검증 아님) · 매출/시총 5 · FCF수익률 5. <b>DART 연간 보고 EPS 원자료의 대상 기업 조회는 완료됐지만 EPS 성장성·지속성 점수는 아직 미평가</b>입니다. 기업별 유효값·비교기간과 주식분할·정정·공시 효력일을 검증한 뒤 배점을 개편하며, 결측을 0점 처리하거나 기존 점수를 지우지 않습니다.</p>'+
+ '<p class="u-muted">'+(validEPSValuation(r.v3_personal_valuation,r)?
+  '<b>개인 연구용 가치20 · 실제 보고 EPS 개편 적용:</b> PBR 4 · PER 역수 성격의 이익수익률 4 · 3개년 EPS 성장 4 · EPS 안정 4 · FCF수익률 2 · 매출/시총 2. '+
+  '2023~2025년 동일 연간공시 기본 EPS를 사용한 잠정 계산이며, 공시 효력일·주식분할 독립 검증 전으로 정식 투자점수가 아닙니다.'
+  :'<b>기존 잠정 가치20 배점 유지:</b> PBR 5 · 이익수익률 5 · 매출/시총 5 · FCF수익률 5. '+
+   '연간 보고 EPS 대상 기업 조회는 진행됐지만 이 종목의 EPS 성장성·안정성 8점 개편은 유효자료 부족 또는 별도 검증 대기로 미적용했습니다. 기존 점수를 지우거나 결측을 0점 처리하지 않습니다.')+'</p>'+
  '<p class="u-muted">'+(annual?
   esc(annual.year)+'년 '+esc(annual.fs_div)+' 재무: 매출 '+eok(yearly.revenue)+
   ' / 영업이익 '+eok(yearly.operating_income)+
