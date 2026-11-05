@@ -30,5 +30,8 @@ allowlisted status metadata is carried for classification.
 The 16-request/1,200-second source budgets, four scheduled partitions,
 strict post-rebase verification, source receipt rules and all research-only
 flags remain in effect. Partial output must still pass strict source/score
-verification before publication. This change does not certify historical
+verification before publication. A successful annual-source refresh also
+triggers the existing saved-source scorecard replay, then operational
+publication, without waiting for the hourly timer or querying providers.
+This change does not certify historical
 PIT disclosures, adjusted prices, corporate actions or investment outcomes.
