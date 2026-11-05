@@ -45,6 +45,9 @@ def _storage_diagnostic(error):
     if operation in ('read_repository_metadata', 'read_private_content',
                      'write_private_content', 'other_private_operation'):
         result['storage_operation'] = operation
+    retry = getattr(error, 'safe_retry_after_seconds', None)
+    if type(retry) is int and 5 <= retry <= 3605:
+        result['storage_retry_after_seconds'] = retry
     code = str(error)
     if code in ('target_repo_not_confirmed_private', 'private_repo_size_not_reported',
                 'private_repository_budget_exceeded', 'invalid_private_blob_base64',

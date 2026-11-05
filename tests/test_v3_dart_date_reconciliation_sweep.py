@@ -201,8 +201,11 @@ class SweepTests(unittest.TestCase):
         error.safe_http_operation = 'read_repository_metadata'
         self.assertEqual(s._storage_diagnostic(error), {
             'storage_status': 'http_403_rate_limited', 'storage_operation': 'read_repository_metadata'})
+        error.safe_retry_after_seconds = 1800
+        self.assertEqual(s._storage_diagnostic(error)['storage_retry_after_seconds'], 1800)
         error.safe_http_status = 'private-token'
         error.safe_http_operation = 'private-receipt'
+        error.safe_retry_after_seconds = 'private-header'
         self.assertEqual(s._storage_diagnostic(error), {})
 
 
