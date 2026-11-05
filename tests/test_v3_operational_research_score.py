@@ -198,8 +198,16 @@ for(const x of ranked)if(x.r.v3_operational?.rank&&x.candidatePosition!==x.r.v3_
 const invalid=core.prepare(market,null,null,null,null,null);
 const impostor=structuredClone(report);
 impostor.rows[invalid.rows[0].r.code].name='changed issuer';
-if(ops.attachAllListed(invalid,impostor).linked!==0||invalid.rows.length!==priced)
- throw Error('partial corrupted all-listed screen');
+const mismatchedCode=invalid.rows[0].r.code;
+const isolation=ops.attachAllListed(invalid,impostor);
+if(isolation.linked!==report.listed_total-1||isolation.blocked!==1||
+   isolation.unpriced!==report.listed_total-priced||invalid.rows.length!==report.listed_total)
+ throw Error('identity mismatch must isolate only the disputed issuer');
+const isolated=invalid.rows.find(x=>x.r.code===mismatchedCode);
+if(!isolated.r.v3_operational_identity_blocked||isolated.r.v3_operational||
+   !ops.markup(isolated.r).includes('불일치'))throw Error('unsafe score attributed to disputed identity');
+if(invalid.rows.filter(x=>x.r.v3_operational).length!==report.listed_total-1)
+ throw Error('other valid issuers lost their operational scores');
 const mismatched=core.prepare(market,null,null,null,null,null);
 mismatched.marketEligible++;
 if(ops.attachAllListed(mismatched,report).linked!==0)

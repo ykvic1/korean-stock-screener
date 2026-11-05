@@ -44,8 +44,20 @@ function attach(model,report){
     report.provider_calls!==0||!Number.isInteger(report.listed_total)||report.listed_total<1||report.listed_total>10000||!report.rows||Object.keys(report.rows).some(k=>!/^\d{6}$/.test(k))||Object.keys(report.rows).length!==report.listed_total||
     Object.entries(BUDGET).some(([k,v])=>report.budgets?.[k]!==v)||
     Object.values(report.rows).some(r=>!validRow(r,report.asof)))return 0;
- for(const {r} of model.rows){const v=report.rows[r.code];if(v&&(v.name!==r.name||v.market!==r.market))return 0;}
- let n=0;for(const {r} of model.rows){const v=report.rows[r.code];if(v){r.v3_operational=v;r.v3_operational_version=report.version;n++;}}
+ // A single renamed/reclassified issuer must never blank the entire market.
+ // Quarantine the disputed identity; do not assign its score by code alone.
+ let n=0;
+ for(const {r} of model.rows){
+  const v=report.rows[r.code];if(!v)continue;
+  if(v.name!==r.name||v.market!==r.market){
+   delete r.v3_operational;
+   delete r.v3_operational_version;
+   r.v3_operational_identity_blocked=true;
+   continue;
+  }
+  delete r.v3_operational_identity_blocked;
+  r.v3_operational=v;r.v3_operational_version=report.version;n++;
+ }
  model.operationalVersion=report.version;return n;
 }
 // The price snapshot intentionally omits suspended/newly listed/unpriced
@@ -54,16 +66,17 @@ function attach(model,report){
 function attachAllListed(model,report){
  if(!model||!Array.isArray(model.rows)||!Number.isInteger(model.marketEligible)||
     model.marketEligible!==report?.listed_total||
-    model.rows.length>model.marketEligible)return {linked:0,unpriced:0};
+    model.rows.length>model.marketEligible)return {linked:0,unpriced:0,blocked:0};
  const seen=new Set();
  for(const item of model.rows){
   const code=item?.r?.code;
   if(typeof code!=='string'||!/^[0-9]{6}$/.test(code)||seen.has(code))
-   return {linked:0,unpriced:0};
+   return {linked:0,unpriced:0,blocked:0};
   seen.add(code);
  }
  const attached=attach(model,report);
- if(attached!==seen.size)return {linked:0,unpriced:0};
+ const blocked=model.rows.filter(x=>x.r.v3_operational_identity_blocked).length;
+ if(attached+blocked!==seen.size)return {linked:0,unpriced:0,blocked:0};
  let unpriced=0;
  for(const [code,v] of Object.entries(report.rows)){
   if(seen.has(code))continue;
@@ -76,14 +89,16 @@ function attachAllListed(model,report){
     rollingBook:null,fourYearRef:null,decision:null});
   unpriced++;
  }
- return {linked:attached+unpriced,unpriced};
+ return {linked:attached+unpriced,unpriced,blocked};
 }
 function compare(a,b){const x=a.r?.v3_operational,y=b.r?.v3_operational;
  return (y?.score??-1)-(x?.score??-1)||(y?.available??0)-(x?.available??0)||String(a.r?.code).localeCompare(String(b.r?.code));}
 function composite(r){const v=r?.v3_operational;
  return {earned:v?.base??null,available:v?.available??0,pillars:Object.entries(BUDGET).map(([key,max])=>({key,label:LABELS[key],max,
   candidate:v?.areas?.[key]?.available?v.areas[key].points:null,available:v?.areas?.[key]?.available??0}))};}
-function markup(r){const v=r?.v3_operational;if(!v)return '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
+function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
+ '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':
+ '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
  return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
   '</p><p>시총 -'+v.capital_deduction+' · 손절거리 '+(v.stop_adjustment>=0?'+':'')+v.stop_adjustment+' · 재무위험 -'+v.risk_deduction.toFixed(2)+
