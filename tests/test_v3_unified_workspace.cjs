@@ -959,6 +959,9 @@ assert.match(unified.scorePillarExplanation(
  assert.doesNotMatch(source,/기간별 실제 거래대금 20·60·120·240일\/5·10·20·60·120주 검증 전 미반영/);
  assert.doesNotMatch(source,/EPS 성장성·지속성은 아직 미수집/);
  assert.match(source,/actualMoneyCount\+/);
+ assert.match(source,/validEPSValuation\(r\.v3_personal_valuation,r\)\?/);
+ assert.match(source,/개인 연구용 가치20 · 실제 보고 EPS 개편 적용/);
+ assert.match(source,/기존 잠정 가치20 배점 유지/);
  for(const changed of [{single_day_points:1},{certified:true},{daily_asof:'2027-01-01'},
                        {retained_prior_source:true},{calendar_week_grouping:false}]){
   assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:{...money,
