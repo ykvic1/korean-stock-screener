@@ -188,6 +188,7 @@ class ContinuationTests(unittest.TestCase):
         self.assertIn('group: v3-dart-private-structured-action-receipts',live)
         self.assertNotIn('upload-artifact',text);self.assertNotIn('git add',text)
         self.assertIn("options: [dry_run, live]",text)
+        self.assertIn("cron: '17 1 * * *'",text)
         self.assertIn("cron: '55 2,6,10,14,18,22 * * *'",text)
         self.assertIn("default: '256'",text)
         self.assertIn("|| '256'",live)

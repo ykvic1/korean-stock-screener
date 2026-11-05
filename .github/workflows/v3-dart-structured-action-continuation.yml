@@ -27,6 +27,9 @@ on:
     # UTC-day ledger caps all newly budgeted runs at 9,216 attempts/day.
     # Each verified two-candidate transaction, 55-minute deadline and
     # provider auth/quota stop remain unchanged. Completed cursors use no API.
+    # First safe post-UTC-rollover retry (10:17 KST); offset from the crowded
+    # 00:11-00:53 UTC source jobs and leave the daily reservation cap intact.
+    - cron: '17 1 * * *'
     - cron: '55 2,6,10,14,18,22 * * *'
   workflow_dispatch:
     inputs:
