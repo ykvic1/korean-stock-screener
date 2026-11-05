@@ -172,6 +172,28 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             self.assertFalse(invalid["rows"])
             self.assertEqual(len(invalid["errors"]), 100)
 
+    def test_ma_slope_receipt_is_stored_and_invalid_scoring_claim_is_rejected(self):
+        import numpy as np
+        import pandas as pd
+        from v3_ma_slope_transition import observe as observe_slope
+        days=pd.bdate_range(end=DAY,periods=1000)
+        close=np.r_[np.linspace(140,80,980),np.linspace(80,240,20)]
+        bars=pd.DataFrame({'Open':close,'High':close*1.01,'Low':close*.99,
+                           'Close':close,'Volume':np.full(1000,1000.)},index=days)
+        receipt=observe_slope(bars)
+        self.assertIsNotNone(receipt)
+        def analyzer(code,cfg,day):
+            return {**mock_history(code,cfg,day),'v3_ma_slope_transition':receipt}
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest,_,_=self._plan(tmp,105)
+            folder,_=self._scan_all(tmp,manifest,analyzer=analyzer)
+            self.assertEqual(len(b.load_receipts(manifest,folder)['rows']),105)
+            tampered=json.loads((folder/'part-000.json').read_text())
+            tampered['rows'][0]['metrics']['v3_ma_slope_transition'][
+                'parts']['daily']['20']=1.0
+            with self.assertRaisesRegex(b.BatchError,'untrusted_ma_slope_transition'):
+                b.validate_part(manifest,tampered)
+
     def test_failed_history_still_accounted_for_with_no_fabricated_zero(self):
         def source(code, cfg, day):
             if code.endswith("00"):

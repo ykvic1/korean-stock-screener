@@ -24,6 +24,7 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(len(self.report['rows']),self.inputs[1]['listed_total'])
         for r in self.report['rows'].values():
             self.assertNotIn('ma20_ma60_cross_near_ma240',r['parts']['volume'])
+            # Saved November 4 market files predate the new slope receipt.
             self.assertIsNone(r['parts']['momentum']['daily_ma_slope_turn'])
             self.assertIsNone(r['parts']['momentum']['weekly_ma_slope_turn'])
             self.assertLessEqual(r['risk_deduction'],5)
@@ -65,6 +66,14 @@ class OperationalScoreTests(unittest.TestCase):
         parts,risk=ops.score_issuer(None,{'code':'000001','name':'x','market':'KOSPI'},day='2026-11-04')
         self.assertTrue(all(p is None for ps in parts.values() for p in ps.values()))
         self.assertEqual(risk['status'],'unknown')
+
+    def test_r1a_prior_receipts_migrate_without_relabeling_legacy_scores(self):
+        old=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
+        self.assertIn(old['version'],ops.COMPATIBLE_PREVIOUS)
+        migrated=ops.build(*self.inputs,previous=old)
+        self.assertEqual(migrated['version'],ops.VERSION)
+        code='005930'
+        self.assertEqual(migrated['rows'][code]['areas'],self.report['rows'][code]['areas'])
 
     def test_browser_csv_server_and_corruption_rejection(self):
         script="""

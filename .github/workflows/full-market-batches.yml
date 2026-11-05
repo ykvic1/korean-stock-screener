@@ -15,6 +15,7 @@ on:
       - full_market_batch.py
       - screener.py
       - v3_ma240_cross_research.py
+      - v3_ma_slope_transition.py
       - v3_pattern_composite_score.py
       - .github/workflows/full-market-batches.yml
   workflow_dispatch:
@@ -54,6 +55,8 @@ jobs:
           python-version: '3.11'
       - name: Install full market listing dependencies
         run: pip install -r requirements.txt
+      - name: Check MA-slope source calculations before requesting 2,500 stock histories
+        run: python -m unittest discover -s tests -p 'test_v3_ma_slope_transition.py' -v
       - id: plan
         name: Plan all stocks, codes only, chunks of 100
         env:
