@@ -12,7 +12,7 @@ import time
 import v3_private_dart_structured_action_extension as source
 import v3_action_daily_budget as budget
 from v3_dart_continuous_catchup import QuotaWaitingPrivateGitStorage
-from v3_krx_private_github_backfill import PrivateHistoryError
+from v3_krx_private_github_backfill import PrivateHistoryError, storage_diagnostic
 
 MAX_BATCHES = 128
 MAX_REQUESTS = 640
@@ -208,7 +208,7 @@ def main():
                   source.ExtensionError, source.StructuredActionError, budget.DailyBudgetError)) else
                   'supplemental_private_storage_unavailable' if isinstance(error, PrivateHistoryError)
                   else 'supplemental_continuation_unavailable')
-        print(json.dumps({'status': 'blocked', 'reason': reason, 'source_values_exposed': False}))
+        print(json.dumps({'status': 'blocked', 'reason': reason, **(storage_diagnostic(error) if isinstance(error,PrivateHistoryError) else {}), 'source_values_exposed': False}))
         return 1
 
 

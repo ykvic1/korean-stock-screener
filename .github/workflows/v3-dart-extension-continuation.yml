@@ -3,6 +3,10 @@ name: V3 Private Supplemental Action Receipt Continuation
 on:
   pull_request:
     paths:
+      - v3_dart_continuous_catchup.py
+      - v3_krx_private_github_backfill.py
+      - v3_private_dart_structured_action_receipts.py
+      - tests/test_v3_action_storage_cooldown.py
       - v3_action_daily_budget.py
       - tests/test_v3_action_daily_budget.py
       - v3_dart_extension_continuation.py
@@ -12,6 +16,10 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_dart_continuous_catchup.py
+      - v3_krx_private_github_backfill.py
+      - v3_private_dart_structured_action_receipts.py
+      - tests/test_v3_action_storage_cooldown.py
       - v3_action_daily_budget.py
       - v3_dart_extension_continuation.py
       - .github/workflows/v3-dart-extension-continuation.yml
@@ -49,6 +57,7 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install 'requests>=2.31,<3'
       - run: |
+          python -m unittest discover -s tests -p 'test_v3_action_storage_cooldown.py' -v
           python -m py_compile v3_dart_extension_continuation.py
           python -m unittest discover -s tests -p 'test_v3_action_daily_budget.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_extension_continuation.py' -v

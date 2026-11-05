@@ -329,6 +329,22 @@ def _same_bytes(storage, path, expected):
     raise StructuredActionError("private_structured_action_readback_failed")
 
 
+def _pause_storage_retry(storage, error, attempt):
+    """No rapid retries of auth/quota failures or ambiguous HTTP rejects."""
+    if str(error) != "private_storage_api_failed" or attempt >= 3:
+        return False
+    status = getattr(error, "safe_http_status", None)
+    if status in ("http_403_rate_limited", "http_429"):
+        wait = getattr(storage, "wait_for_quota", None)
+        return bool(callable(wait) and wait(error))
+    # Legacy unclassified transport errors still need readback reconciliation.
+    # 401/403, conflicts, size/schema guards and other explicit rejects stop.
+    if status not in (None, "transport_or_response", "http_500", "http_502", "http_503", "http_504"):
+        return False
+    time.sleep(.7 * (attempt + 1))
+    return True
+
+
 def _put_immutable_report_with_retry(storage, path, encoded):
     """Recover only transient private-Git write conflicts, without a DART refetch.
 
@@ -346,9 +362,8 @@ def _put_immutable_report_with_retry(storage, path, encoded):
             storage.put_new(path, encoded, "Save private structured action receipt research")
             return
         except PrivateHistoryError as exc:
-            if str(exc) != "private_storage_api_failed" or attempt == 3:
+            if not _pause_storage_retry(storage, exc, attempt):
                 raise
-            time.sleep(.7 * (attempt + 1))
 
 
 def _write_checkpoint_with_retry(storage, previous, updated, *, checkpoint_path=CHECKPOINT):
@@ -384,9 +399,8 @@ def _write_checkpoint_with_retry(storage, previous, updated, *, checkpoint_path=
                 })
             return
         except PrivateHistoryError as error:
-            if str(error) != "private_storage_api_failed" or attempt == 3:
+            if not _pause_storage_retry(storage, error, attempt):
                 raise
-            time.sleep(.7 * (attempt + 1))
 
 
 def run(storage, fetch, limit=MAX_CANDIDATES, stage_hook=None):

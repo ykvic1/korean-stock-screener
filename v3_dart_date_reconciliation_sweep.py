@@ -13,7 +13,7 @@ import v3_private_dart_declared_date_proximity as audit
 import v3_private_dart_structured_action_receipts as principal
 import v3_private_dart_structured_action_extension as supplement
 from v3_dart_continuous_catchup import QuotaWaitingPrivateGitStorage
-from v3_krx_private_github_backfill import PrivateHistoryError
+from v3_krx_private_github_backfill import PrivateHistoryError, storage_diagnostic as _storage_diagnostic
 
 SCHEMA = 'v3-private-declared-date-sweep-v1'
 BASE = 'derived/dart-declared-date-reconciliation'
@@ -32,28 +32,6 @@ class DateSweepError(ValueError):
     """Fixed codes without source values."""
 
 
-def _storage_diagnostic(error):
-    # Only transport-defined enums cross into public logs; never error text,
-    # URLs, headers, response bodies, filenames, receipts or credentials.
-    status = getattr(error, 'safe_http_status', None)
-    operation = getattr(error, 'safe_http_operation', None)
-    result = {}
-    if status in ('http_401', 'http_403', 'http_403_rate_limited', 'http_404',
-                  'http_409', 'http_422', 'http_429', 'http_500', 'http_502',
-                  'http_503', 'http_504', 'http_other', 'transport_or_response'):
-        result['storage_status'] = status
-    if operation in ('read_repository_metadata', 'read_private_content',
-                     'write_private_content', 'other_private_operation'):
-        result['storage_operation'] = operation
-    retry = getattr(error, 'safe_retry_after_seconds', None)
-    if type(retry) is int and 5 <= retry <= 3605:
-        result['storage_retry_after_seconds'] = retry
-    code = str(error)
-    if code in ('target_repo_not_confirmed_private', 'private_repo_size_not_reported',
-                'private_repository_budget_exceeded', 'invalid_private_blob_base64',
-                'untrusted_private_blob', 'private_storage_api_failed'):
-        result['storage_reason'] = code
-    return result
 
 
 def _empty():
