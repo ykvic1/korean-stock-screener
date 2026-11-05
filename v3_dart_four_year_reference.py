@@ -351,6 +351,65 @@ def latest_verified_annual_seeds(annual_book, targets, asof):
     return result
 
 
+def isolate_temporal_receipts(replies, cached, selected, day):
+    """Drop only unusable annual periods, preserving other issuers and years.
+
+    A pre-December receipt may be a non-calendar fiscal period, not fraud.
+    Its period is unverified for this calendar-year collector and stays out.
+    Strict public merge/_record validation remains unchanged.
+    """
+    if type(replies) is not list or len(replies) != len(selected):
+        raise FourYearEvidenceError("incomplete_pilot_batch")
+    normalized=[]; reviews={}; seen=set(); retained=0
+    for row in replies:
+        if type(row) is not dict or row.get('code') not in selected:
+            raise FourYearEvidenceError("unexpected_fouryear_issuer")
+        code=row['code']
+        if code in seen:
+            raise FourYearEvidenceError("duplicate_pilot_issuer")
+        seen.add(code)
+        incoming=row.get('reports') or []
+        if type(incoming) is not list or len(incoming)>4:
+            raise FourYearEvidenceError("unexpected_annual_report_count")
+        accepted={}; years=set(); rejected=[]
+        for annual in incoming:
+            if type(annual) is not dict:
+                raise FourYearEvidenceError("invalid_annual_report")
+            year=annual.get('year')
+            if type(year) is not int or not 2015<=year<_day(day).year:
+                raise FourYearEvidenceError("invalid_annual_year")
+            if year in years:
+                raise FourYearEvidenceError("repeated_annual_year")
+            years.add(year)
+            try:
+                verified=_record(code,[annual],day)['reports'][0]
+            except FourYearEvidenceError as error:
+                if str(error)!='lookahead_or_pre_yearend_receipt':raise
+                stamp=annual['receipt_id'][:8]
+                reason=('receipt_not_visible_at_asof' if stamp>day.replace('-','')
+                        else 'calendar_fiscal_period_unverified')
+                rejected.append({'year':year,'reason':reason})
+                continue
+            accepted[year]=verified
+        kept=dict(accepted)
+        for annual in cached.get(code,{}).get('reports',[]):
+            if annual['year'] not in kept:
+                kept[annual['year']]=annual
+        reports=[kept[y] for y in sorted(kept)[-4:]]
+        retained+=sum(x['year'] not in accepted for x in reports)
+        clean={**row,'reports':reports}
+        fresh=clean.get('newly_fetched_annual_years')
+        if fresh is not None:
+            if type(fresh) is not int or not 0<=fresh<=len(incoming):
+                raise FourYearEvidenceError("invalid_fresh_dart_report_count")
+            clean['newly_fetched_annual_years']=max(0,min(len(accepted),fresh-len(rejected)))
+        elif not accepted:
+            clean['newly_fetched_annual_years']=0
+        if rejected:reviews[code]=rejected
+        normalized.append(clean)
+    return normalized,reviews,retained
+
+
 def write(market,catalog,annual_book,*,output,prior=None,key=None,
           collector=None,limit=MAX_COMPANIES):
     day,members,cached,selected=plan(
@@ -376,7 +435,17 @@ def write(market,catalog,annual_book,*,output,prior=None,key=None,
         replies=collector(targets,day,key,years=4,budget_seconds=budget) if targets else []
     if not isinstance(replies,list):
         raise FourYearEvidenceError("unexpected_collector_response")
+    replies,quarantined,retained=isolate_temporal_receipts(replies,cached,selected,day)
     report=merge(market,catalog,annual_book,replies,prior=prior,limit=limit)
+    report['temporal_receipts_quarantined_this_run']=sum(map(len,quarantined.values()))
+    report['issuers_with_temporal_quarantine_this_run']=len(quarantined)
+    report['prior_valid_annual_years_retained_this_run']=retained
+    for record in report['records']:
+        if record['code'] in quarantined:
+            record['annual_period_review_required']=quarantined[record['code']]
+    if quarantined:
+        report['consecutive_healthy_batches']=0
+        report['next_schedule_max_issuers']=automatic_daily_limit(report)
     output=Path(output)
     output.parent.mkdir(parents=True,exist_ok=True)
     payload=json.dumps(report,ensure_ascii=False,allow_nan=False,

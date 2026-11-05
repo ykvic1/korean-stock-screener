@@ -47,6 +47,7 @@ jobs:
         run: |
           python -m py_compile v3_dart_four_year_reference.py official_data.py
           python -m unittest discover -s tests -p 'test_v3_dart_four_year_reference.py' -v
+          python -m unittest discover -s tests -p 'test_v3_fouryear_temporal_isolation.py' -v
       - name: Plan bounded four-year cohort and optionally request real receipts
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -95,6 +96,8 @@ jobs:
                     'cached_or_fresh_filing_issuers=',result['observed_filings_issuers_this_run'],
                     'fresh_provider_filing_issuers=',result['newly_fetched_filings_issuers_this_run'],
                     'current_FY_DART_reused=',result['same_day_valid_annual_report_reused'],
+                    'temporal_periods_quarantined=',result['temporal_receipts_quarantined_this_run'],
+                    'prior_valid_years_retained=',result['prior_valid_annual_years_retained_this_run'],
                     'healthy_batches=',result['consecutive_healthy_batches'],
                     'next_schedule_limit=',result['next_schedule_max_issuers'],
                     'full_financial15_scoring=False')
