@@ -332,7 +332,7 @@ def _put_immutable_report_with_retry(storage, path, encoded):
             time.sleep(.7 * (attempt + 1))
 
 
-def _write_checkpoint_with_retry(storage, previous, updated):
+def _write_checkpoint_with_retry(storage, previous, updated, *, checkpoint_path=CHECKPOINT):
     """Compare-and-swap a private cursor; adopt an ambiguous successful write.
 
     Every retry first re-reads the checkpoint. A different cursor is a genuine
@@ -342,7 +342,7 @@ def _write_checkpoint_with_retry(storage, previous, updated):
     """
     for attempt in range(4):
         try:
-            current, sha = storage.get_content(CHECKPOINT)
+            current, sha = storage.get_content(checkpoint_path)
             if current == updated:
                 if type(sha) is not str or not sha:
                     raise StructuredActionError(
@@ -353,12 +353,12 @@ def _write_checkpoint_with_retry(storage, previous, updated):
                     "private_structured_action_checkpoint_changed")
             if current is None:
                 storage.put_new(
-                    CHECKPOINT, updated, "Start private structured action research cursor")
+                    checkpoint_path, updated, "Start private structured action research cursor")
             else:
                 if type(sha) is not str or not sha:
                     raise StructuredActionError(
                         "private_structured_action_checkpoint_sha_missing")
-                storage.transport("PUT", "contents/" + CHECKPOINT, {
+                storage.transport("PUT", "contents/" + checkpoint_path, {
                     "message": "Advance private structured action receipt cursor",
                     "content": base64.b64encode(updated).decode("ascii"),
                     "sha": sha,

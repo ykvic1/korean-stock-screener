@@ -7,7 +7,6 @@ No ZIP content, response rows, price, member path or issuer identity is public.
 """
 from __future__ import annotations
 
-import base64
 from hashlib import sha256
 import json
 import os
@@ -21,6 +20,7 @@ from v3_private_dart_krx_filing_title_triage import (
 from v3_private_dart_original_evidence import _candidate_queue
 from v3_private_dart_structured_action_receipts import (
     StructuredActionError, _same_bytes, _put_immutable_report_with_retry,
+    _write_checkpoint_with_retry,
     official_fetch, inspect_response, SUPPLEMENTAL_ENDPOINTS,
     _valid_checkpoint_report_pointer, _valid_schedule_candidates,
 )
@@ -170,7 +170,7 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
         triage = triage_cursor(triage_raw)
     except Exception:
         raise ExtensionError("invalid_private_extension_source_cursor") from None
-    cursor_raw, cursor_sha = storage.get_content(CHECKPOINT)
+    cursor_raw, _ = storage.get_content(CHECKPOINT)
     state = _cursor(cursor_raw)
     if state["last_report_file"]:
         previous, _ = storage.get_content(state["last_report_file"])
@@ -200,8 +200,8 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
             for endpoint in endpoints_for_hints(record["title_hints"]):
                 if calls >= MAX_PROVIDER_CALLS:
                     raise ExtensionError("private_extension_provider_budget_exceeded")
+                calls += 1  # Failed official attempts consume the same budget.
                 response = fetch(endpoint, record["corp_code"], start, end)
-                calls += 1
                 observations.append(inspect_response(
                     response, endpoint, record["corp_code"], record["rcept_no"]))
             encoded = canonical(_report(i, record, observations))
@@ -239,14 +239,15 @@ def run(storage, fetch, limit=MAX_CANDIDATES):
     data = canonical({**state, "next_pair_index": i, "next_candidate_index": j,
                       "queue_sha256": digest if j else None,
                       "last_report_file": last_path, "last_report_sha256": last_digest})
-    if cursor_sha is None:
-        storage.put_new(CHECKPOINT, data, "Start supplemental DART action cursor")
-    else:
-        storage.transport("PUT", "contents/" + CHECKPOINT, {
-            "message": "Advance supplemental DART action cursor",
-            "content": base64.b64encode(data).decode("ascii"), "sha": cursor_sha,
-        })
-    _same_bytes(storage, CHECKPOINT, data)
+    try:
+        # Adopt an identical cursor after a lost successful PUT response. Never
+        # restart run() from the *next* four candidates after committing these.
+        _write_checkpoint_with_retry(storage, cursor_raw, data, checkpoint_path=CHECKPOINT)
+        _same_bytes(storage, CHECKPOINT, data)
+    except PrivateHistoryError:
+        # A readback outage may occur after a successful commit. The next job
+        # can verify that checkpoint; this job must not execute another batch.
+        raise ExtensionError("private_extension_checkpoint_unavailable") from None
     return {
         "status": "private_structured_action_supplement_completed",
         "processed_candidates": advanced, "provider_calls": calls,
@@ -275,10 +276,17 @@ def main():
     try:
         storage = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         key = os.environ["DART_API_KEY"]
+        provider_attempts = 0
+        def fetch(endpoint, corp, start, end):
+            nonlocal provider_attempts
+            if provider_attempts >= MAX_PROVIDER_CALLS:
+                raise ExtensionError("private_extension_provider_budget_exceeded")
+            provider_attempts += 1
+            return official_fetch(key, endpoint, corp, start, end)
         for attempt in range(3):
             try:
-                result = run(storage, lambda ep, corp, start, end:
-                             official_fetch(key, ep, corp, start, end))
+                result = run(storage, fetch)
+                result["provider_calls_across_storage_retries"] = provider_attempts
                 print(json.dumps(result, sort_keys=True))
                 return 0
             except PrivateHistoryError as exc:
