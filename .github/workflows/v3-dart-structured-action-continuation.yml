@@ -1,0 +1,75 @@
+name: V3 Private Structured Action Receipt Continuation
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_structured_action_continuation.py
+      - tests/test_v3_dart_structured_action_continuation.py
+      - .github/workflows/v3-dart-structured-action-continuation.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_structured_action_continuation.py
+      - .github/workflows/v3-dart-structured-action-continuation.yml
+  schedule:
+    # Two bounded continuations after the existing :43 pilot. At most
+    # 768 extra provider attempts/day; existing pilot and source limits stay.
+    - cron: '55 2,14 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+      batches:
+        type: choice
+        options: ['1', '16', '32', '64']
+        default: '64'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - run: |
+          python -m py_compile v3_dart_structured_action_continuation.py
+          python -m unittest discover -s tests -p 'test_v3_dart_structured_action_continuation.py' -v
+  private-continuation:
+    needs: offline
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): structured action continuation')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    concurrency:
+      group: v3-dart-private-structured-action-receipts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Continue exact receipt/category checks through verified private checkpoints
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          V3_ACTION_CONTINUATION_BATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.batches || '64' }}
+        run: python v3_dart_structured_action_continuation.py
