@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import csv
+from datetime import date, timedelta
 from contextlib import redirect_stdout
 from io import StringIO
 import json
@@ -12,7 +13,8 @@ import unittest
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
                                     issuer_csv_reconciles,
                                     issuer_catalog_reconciles,
-                                    issuer_fcf_preview_reconciles)
+                                    issuer_fcf_preview_reconciles,
+                                    r1d_public_reconciles)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -111,6 +113,74 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(r["investment_grade_certified_count"], 0)
         self.assertEqual(r["external_provider_calls"], 0)
         self.assertTrue(r["read_only"])
+
+    def test_r1d_operational_readiness_is_independent_of_legacy_five_area(self):
+        docs = ROOT / "docs"
+        r1d = json.loads((docs / "v3-operational-research-scores.json").read_text())
+        compare = json.loads((docs / "v3-operational-research-comparison.json").read_text())
+        catalog = json.loads((docs / "v22-market-catalog.json").read_text())
+        found = r1d_public_reconciles(r1d, compare, catalog=catalog)
+        self.assertIsNotNone(found)
+        self.assertEqual(found["listed_total"], r1d["listed_total"])
+        self.assertEqual(found["available_100_count"],
+                         sum(z["available"] >= 100 for z in r1d["rows"].values()))
+        self.assertEqual(found["ranked_count"],
+                         sum(z["rank"] is not None for z in r1d["rows"].values()))
+        observed, scorecard, history = public_inputs()
+        gate = assess_v30b(observed, scorecard, history,
+                           operational_r1d=r1d, operational_comparison=compare)
+        self.assertTrue(gate["r1d_operational_publication_reconciled"])
+        self.assertTrue(gate["gates"]["r1d_operational_publication_reconciled"])
+        self.assertEqual(gate["r1d_100weight_observed_count"], found["available_100_count"])
+        self.assertTrue(gate["five_area_weight_contract_is_legacy_not_r1d"])
+        self.assertFalse(gate["gates"]["r1d_observation_all_listed"])
+        self.assertFalse(gate["confirmed_scoring_authorized"])
+
+        later_observed = copy.deepcopy(observed)
+        later_scorecard = copy.deepcopy(scorecard)
+        following_day = (date.fromisoformat(observed["asof"]) +
+                         timedelta(days=1)).isoformat()
+        later_observed["asof"] = following_day
+        later_scorecard["asof"] = following_day
+        lag = assess_v30b(later_observed, later_scorecard, history,
+                          operational_r1d=r1d, operational_comparison=compare)
+        self.assertTrue(lag["public_summary_valid"])
+        self.assertTrue(lag["r1d_operational_publication_reconciled"])
+        self.assertFalse(lag["r1d_same_market_day_and_roster"])
+        self.assertFalse(lag["gates"]["r1d_observation_all_listed"])
+        self.assertIn("r1d_operational_snapshot_lag", lag["blocker_codes"])
+
+        # A plausible-looking all-listed aggregate cannot hide one changed
+        # component, rank, or coverage count. Every affected issuer is replayed.
+        code = next(k for k, v in r1d["rows"].items()
+                    if v["parts"]["valuation"].get("per_eps_quality_growth"))
+        tampered = copy.deepcopy(r1d)
+        tampered["rows"][code]["parts"]["valuation"]["per_eps_quality_growth"][0] += .01
+        self.assertIsNone(r1d_public_reconciles(tampered, compare))
+        blocked = assess_v30b(observed, scorecard, history,
+                              operational_r1d=tampered, operational_comparison=compare)
+        self.assertIn("r1d_operational_publication_mismatch", blocked["blocker_codes"])
+        self.assertFalse(blocked["public_summary_valid"])
+        self.assertFalse(blocked["confirmed_scoring_authorized"])
+
+        altered = copy.deepcopy(compare)
+        altered["operational_coverage"]["available_100_count"] += 1
+        self.assertIsNone(r1d_public_reconciles(r1d, altered))
+        altered = copy.deepcopy(r1d)
+        altered["rows"][code]["rank"] = 1_000_000
+        self.assertIsNone(r1d_public_reconciles(altered, compare))
+        altered = copy.deepcopy(r1d)
+        altered["rows"][code]["risk_status"] = "safe"
+        self.assertIsNone(r1d_public_reconciles(altered, compare))
+        altered = copy.deepcopy(r1d)
+        altered["rows"][code]["name"] = "잘못된 기업명"
+        self.assertIsNone(r1d_public_reconciles(altered, compare, catalog=catalog))
+        altered = copy.deepcopy(r1d)
+        altered["rows"][code]["oldest_asof"] = "2001-01-01"
+        self.assertIsNone(r1d_public_reconciles(altered, compare))
+        altered = copy.deepcopy(r1d)
+        altered["investment_score_certified"] = True
+        self.assertIsNone(r1d_public_reconciles(altered, compare))
 
     def test_optional_money_source_date_columns_keep_reconciliation_strict(self):
         observed,scorecard,_=public_inputs()
