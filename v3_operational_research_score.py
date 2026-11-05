@@ -169,10 +169,11 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             earned=(eps_parts['eps_growth']+eps_parts['eps_stability'])*5/12
             available=10/3
             oldest=reported_eps['observed_on']
-            if c and c.get('available')==5:
-                earned+=c['points']/3
-                available+=5/3
-                oldest=min(oldest,c['asof'])
+            baseline=parts['valuation']['per_eps_quality_growth']
+            if baseline is not None:
+                earned+=baseline['points']
+                available+=baseline['available']
+                oldest=min(oldest,baseline['asof'])
             put('valuation','per_eps_quality_growth',earned,available,oldest)
         except (ValueError,KeyError,TypeError,OverflowError):
             pass

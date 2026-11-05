@@ -187,6 +187,11 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertLessEqual(eps['points'],eps['available'])
         self.assertIsNone(parts['valuation']['fcf_yield'])
         self.assertIsNone(parts['valuation']['pbr_equity_quality'])
+        future=copy.deepcopy(stub)
+        future['components']={'valuation':{'earnings_yield_pct':
+            {'available':5,'points':5,'asof':'2099-01-01'}}}
+        safe,_=ops.score_issuer(None,future,day=catalog['date'],reported_eps=verified[code])
+        self.assertAlmostEqual(safe['valuation']['per_eps_quality_growth']['available'],10/3,places=5)
         tampered=copy.deepcopy(source)
         tampered['source_sha256']['annual_book']='0'*64
         self.assertEqual(ops.verified_reported_eps(catalog,book,tampered),{})
