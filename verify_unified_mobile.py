@@ -136,6 +136,7 @@ with sync_playwright() as p:
     assert first_score and float(first_score.group()) == operational["rows"][first_code]["score"], "visible operational score must equal server/CSV model"
     first_card.click()
     assert page.locator(".u-operational-detail").is_visible()
+    page.locator(".u-operational-detail details summary").click()
     assert "MA 기울기 전환 5점" in page.locator(".u-operational-detail").inner_text()
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "operational detail must fit mobile viewport"
     page.locator("#detailClose").click()
