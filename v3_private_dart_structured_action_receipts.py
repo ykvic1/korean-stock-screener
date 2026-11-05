@@ -338,8 +338,11 @@ def _pause_storage_retry(storage, error, attempt):
         wait = getattr(storage, "wait_for_quota", None)
         return bool(callable(wait) and wait(error))
     # Legacy unclassified transport errors still need readback reconciliation.
-    # 401/403, conflicts, size/schema guards and other explicit rejects stop.
-    if status not in (None, "transport_or_response", "http_500", "http_502", "http_503", "http_504"):
+    # A GitHub 409 may be a repository-head race between different files.
+    # The next attempt MUST re-read: a changed cursor/different immutable blob
+    # is rejected by the caller before any subsequent write.
+    # 401/403, size/schema guards and other explicit rejects still stop.
+    if status not in (None, "transport_or_response", "http_409", "http_500", "http_502", "http_503", "http_504"):
         return False
     time.sleep(.7 * (attempt + 1))
     return True
