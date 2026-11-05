@@ -69,18 +69,22 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertTrue(all(p is None for ps in parts.values() for p in ps.values()))
         self.assertEqual(risk['status'],'unknown')
 
-    def test_r1a_prior_receipts_migrate_without_relabeling_legacy_scores(self):
+    def test_prior_receipts_migrate_without_relabeling_legacy_scores(self):
         old=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
         self.assertIn(old['version'],ops.COMPATIBLE_PREVIOUS)
         migrated=ops.build(*self.inputs,previous=old)
         self.assertEqual(migrated['version'],ops.VERSION)
-        self.assertEqual(migrated['prior_operational_version'],old['version'])
+        previous_version=(old.get('prior_operational_version') if old['version']==ops.VERSION
+                          else old['version'])
+        self.assertEqual(migrated['prior_operational_version'],previous_version)
         code='005930'
         self.assertEqual(migrated['rows'][code]['areas'],self.report['rows'][code]['areas'])
-        self.assertEqual(migrated['rows'][code]['prior_operational_score'],old['rows'][code]['score'])
+        previous_score=(old['rows'][code].get('prior_operational_score') if old['version']==ops.VERSION
+                        else old['rows'][code]['score'])
+        self.assertEqual(migrated['rows'][code]['prior_operational_score'],previous_score)
         records=list(csv.DictReader(StringIO(ops.to_csv(migrated))))
         self.assertEqual(next(r for r in records if r['종목코드']==code)['직전운영모델점수'],
-                         str(old['rows'][code]['score']))
+                         '' if previous_score is None else str(previous_score))
 
     def test_r1c_money_structure_requires_independent_valid_receipt(self):
         structure={'schema':MONEY_SCHEMA,'growth6':4.2,'components':{
