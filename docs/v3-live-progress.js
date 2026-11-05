@@ -2,6 +2,7 @@
 (function(root){
 'use strict';
 const AREA_WEIGHTS={volume:20,technical:25,financial:20,valuation:20,momentum:15};
+const R1D_WEIGHTS={volume:25,technical:30,financial:12.5,valuation:12.5,momentum:20};
 const nonnegative=x=>Number.isSafeInteger(x)&&x>=0;
 function validDate(x){
  if(typeof x!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x))return false;
@@ -24,6 +25,25 @@ function observedSummary(raw){
     return null;
  return {asof:raw.asof,total:raw.listed_total,
   observed:raw.provisional_complete_100point_observation_count};
+}
+function operationalSummary(raw){
+ const c=raw?.operational_coverage;
+ if(!raw||raw.version!=='v3-stable-r1d-operational-research'||
+    raw.performance_validated!==false||!validDate(raw.asof)||
+    !c||c.status!=='provisional_operational'||
+    !/^[a-f0-9]{64}$/.test(c.source_digest||'')||
+    c.provider_calls!==0||c.missing_is_not_zero!==true||
+    c.investment_score_certified!==false||c.performance_validated!==false||
+    !nonnegative(c.listed_total)||c.listed_total<100||c.listed_total>6000||
+    !nonnegative(c.ranked_count)||!nonnegative(c.available_100_count)||
+    !nonnegative(c.available_95_count)||!nonnegative(c.available_90_count)||
+    c.available_100_count>c.available_95_count||
+    c.available_95_count>c.available_90_count||
+    c.available_90_count>c.ranked_count||c.ranked_count>c.listed_total||
+    !c.budgets||Object.keys(c.budgets).length!==5||
+    Object.keys(R1D_WEIGHTS).some(k=>c.budgets[k]!==R1D_WEIGHTS[k]))return null;
+ return {asof:raw.asof,total:c.listed_total,observed:c.available_100_count,
+  near95:c.available_95_count,near90:c.available_90_count,ranked:c.ranked_count};
 }
 // A new market close can arrive before the annual DART replay. Explain the
 // temporary drop without blending previous-day finance into today's 100pts.
@@ -88,7 +108,7 @@ function dartSummary(raw){
   remaining:raw.filing_months_remaining};
 }
 if(typeof module!=='undefined'&&module.exports)
- module.exports={observedSummary,dartSummary,scoreRolloverNotice};
+ module.exports={observedSummary,operationalSummary,dartSummary,scoreRolloverNotice};
 if(!root.document)return;
 const doc=root.document;
 const fields={
@@ -111,24 +131,30 @@ async function load(){
  fields.coverage.textContent='확인 중';
  fields.dart.textContent='확인 중';
  fields.note.textContent='각 데이터 원천의 기준일과 수집 상태를 확인 중입니다.';
- const [market,filings,previous]=await Promise.allSettled([
+ const [market,filings,previous,operational]=await Promise.allSettled([
   getJson('v3-current-observed-all-listed-summary.json'),
   getJson('v3-dart-historical-receipt-progress.json'),
-  getJson('v3-real-source-six-area-coverage.json')
+  getJson('v3-real-source-six-area-coverage.json'),
+  getJson('v3-operational-research-comparison.json')
  ]);
  if(run!==generation)return;
  const m=market.status==='fulfilled'?observedSummary(market.value):null;
  const f=filings.status==='fulfilled'?dartSummary(filings.value):null;
- fields.date.textContent=m?m.asof:'재확인 필요';
- fields.coverage.textContent=m?
-  fmt(m.observed)+' / '+fmt(m.total)+'종목':'재확인 필요';
+ const proposed=operational.status==='fulfilled'?operationalSummary(operational.value):null;
+ const o=proposed&&(!m||(proposed.total===m.total&&proposed.asof<=m.asof))?proposed:null;
+ fields.date.textContent=o?o.asof+' · R1d 점수':m?m.asof:'재확인 필요';
+ fields.coverage.textContent=o?
+  fmt(o.observed)+' / '+fmt(o.total)+'종목 (R1d)':m?
+  fmt(m.observed)+' / '+fmt(m.total)+'종목 (기존 모델)':'재확인 필요';
  fields.dart.textContent=f?
   fmt(f.complete)+' / '+fmt(f.total)+'개월':'재확인 필요';
- const rollover=market.status==='fulfilled'?scoreRolloverNotice(
+ const rollover=!o&&market.status==='fulfilled'?scoreRolloverNotice(
   market.value,previous.status==='fulfilled'?previous.value:null):'';
- fields.note.textContent=(rollover?rollover+' ':'')+(m||f?
+ fields.note.textContent=(rollover?rollover+' ':'')+
+  (o&&m&&o.asof<m.asof?'신규 운영점수는 '+o.asof+' 기준으로 유지 중이며 최신 종가의 재계산을 기다립니다. ':'')+
+  (m||f||o?
   '각 원천의 마지막 저장 결과입니다. ':'원천 자료 확인 대기 중입니다. ')+
-  '100점은 계산 가능한 배점의 관측 범위이며 정식 투자점수나 수익 전망이 아닙니다. '+
+  'R1d 100점은 새 배점(25/30/12.5/12.5/20)의 근거가 모두 관측된 종목 수이며 획득점수·정식 투자점수·예상 수익률이 아닙니다. '+
   '과거 공시 접수 수집도 수정주가·기업행위·PIT 인증과 별개입니다.';
 }
 doc.getElementById('reload')?.addEventListener('click',load);

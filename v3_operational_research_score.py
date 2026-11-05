@@ -272,6 +272,20 @@ def to_csv(report):
     return out.getvalue()
 
 
+def coverage_summary(report, source_digest):
+    """Small public R1d observation meter; not a performance or source audit."""
+    rows=list(report['rows'].values())
+    return {'status':'provisional_operational',
+        'source_digest':source_digest,'listed_total':report['listed_total'],
+        'ranked_count':sum(r['rank'] is not None for r in rows),
+        'available_100_count':sum(r['available']>=100 for r in rows),
+        'available_95_count':sum(r['available']>=95 for r in rows),
+        'available_90_count':sum(r['available']>=90 for r in rows),
+        'budgets':BUDGET,'provider_calls':0,
+        'missing_is_not_zero':True,'investment_score_certified':False,
+        'performance_validated':False}
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--docs',type=Path,default=Path('docs'));args=parser.parse_args()
     root=args.docs
@@ -301,7 +315,8 @@ def main():
     comparison={'asof':report['asof'],'version':VERSION,'same_input_common_issuers':len(common),
         'performance_validated':False,'top':{str(n):{'overlap':len({k for k,_ in new[:n]} & {k for k,_ in old[:n]}),
         'new_kospi':sum(r['market']=='KOSPI' for _,r in new[:n]),'old_kospi':sum(r['market']=='KOSPI' for _,r in old[:n])}
-        for n in (50,100,200)}}
+        for n in (50,100,200)},
+        'operational_coverage':coverage_summary(report,digest)}
     prior=[(k,r) for k,r in report['rows'].items() if r['rank'] and r['prior_operational_rank']]
     if prior:
         comparison['prior_operational_version']=report['prior_operational_version']
