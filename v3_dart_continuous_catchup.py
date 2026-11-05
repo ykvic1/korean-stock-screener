@@ -40,30 +40,39 @@ class QuotaWaitingPrivateGitStorage(PrivateGitStorage):
         self.deadline = deadline
         self.quota_pauses = 0
 
+    def wait_for_quota(self, exc):
+        """Wait once for a classified quota rejection; never perform a write.
+
+        Write callers MUST read back and reconcile after this returns, because
+        even storage retries must preserve immutable reports and CAS cursors.
+        """
+        delay = getattr(exc, "safe_retry_after_seconds", None)
+        if (type(exc) is not PrivateHistoryError
+            or exc.args != ("private_storage_api_failed",)
+            or getattr(exc, "safe_http_status", None) not in
+                ("http_403_rate_limited", "http_429")
+            or type(delay) is not int or not 5 <= delay <= 3605
+            or self.quota_pauses >= 3
+            or self.clock() + delay + 30 >= self.deadline):
+            return False
+        self.quota_pauses += 1
+        print("private_github_quota_cooldown_seconds_" + str(delay), flush=True)
+        until = self.clock() + delay
+        while True:
+            remaining = until - self.clock()
+            if remaining <= 0:
+                break
+            self.sleeper(min(30, remaining))
+        return True
+
     def _http(self, method, path, body=None):
         while True:
             try:
                 return super()._http(method, path, body)
             except PrivateHistoryError as exc:
-                delay = getattr(exc, "safe_retry_after_seconds", None)
-                if (method != "GET" or type(exc) is not PrivateHistoryError
-                    or exc.args != ("private_storage_api_failed",)
-                    or getattr(exc, "safe_http_status", None) not in
-                        ("http_403_rate_limited", "http_429")
-                    or type(delay) is not int or not 5 <= delay <= 3605
-                    or self.quota_pauses >= 3
-                    or self.clock() + delay + 30 >= self.deadline):
+                if method != "GET" or not self.wait_for_quota(exc):
                     raise
-                self.quota_pauses += 1
-                print("private_github_read_quota_cooldown", flush=True)
-                until = self.clock() + delay
-                while True:
-                    remaining = until - self.clock()
-                    if remaining <= 0:
-                        break
-                    self.sleeper(min(30, remaining))
-                # Retry only this rejected read. No provider fetch, new page,
-                # checkpoint write or segment accounting is replayed here.
+                # Retry only this rejected read, never a provider request or PUT.
 
 
 def continuous_catchup(collect, *, clock=None, max_batches=MAX_BATCHES,
