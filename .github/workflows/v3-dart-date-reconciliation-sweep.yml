@@ -1,0 +1,83 @@
+name: V3 Private Declared Date Reconciliation Sweep (Zero Provider Calls)
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_date_reconciliation_sweep.py
+      - tests/test_v3_dart_date_reconciliation_sweep.py
+      - .github/workflows/v3-dart-date-reconciliation-sweep.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_date_reconciliation_sweep.py
+      - .github/workflows/v3-dart-date-reconciliation-sweep.yml
+  workflow_run:
+    workflows:
+      - V3 Private Structured Action Receipt Continuation
+      - V3 Private Supplemental Action Receipt Continuation
+    types: [completed]
+  schedule:
+    - cron: '17 1,5,9,13,17,21 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - run: python -m unittest discover -s tests -p 'test_v3_dart_date_reconciliation_sweep.py' -v
+  private-sweep:
+    needs: offline
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): reconcile declared action dates')) ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    permissions:
+      contents: read
+      actions: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: v3-dart-private-declared-date-reconciliation
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Reconcile completed private date sources and save verified checkpoints
+        id: reconcile
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_dart_date_reconciliation_sweep.py
+      - name: Continue existing ready evidence without any provider query
+        if: steps.reconcile.outputs.resume == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-dart-date-reconciliation-sweep.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live
