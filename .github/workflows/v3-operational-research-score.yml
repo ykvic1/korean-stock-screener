@@ -3,6 +3,8 @@ name: V3 Early Operational Research Score R1a (Saved Sources Only)
 on:
   pull_request:
     paths:
+      - v3_revenue_growth_evidence.py
+      - tests/test_v3_revenue_growth_evidence.py
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
@@ -19,6 +21,8 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_revenue_growth_evidence.py
+      - tests/test_v3_revenue_growth_evidence.py
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
@@ -56,6 +60,7 @@ jobs:
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
           python v3_operational_model_diagnostics.py
+      - run: python -m unittest discover -s tests -p 'test_v3_revenue_growth_evidence.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_model_diagnostics.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_evidence_priority.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_research_score.py' -v
