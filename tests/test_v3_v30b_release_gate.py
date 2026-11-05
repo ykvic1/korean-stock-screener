@@ -169,6 +169,12 @@ class V30bReadinessTests(unittest.TestCase):
         altered["rows"][code]["rank"] = 1_000_000
         self.assertIsNone(r1d_public_reconciles(altered, compare))
         altered = copy.deepcopy(r1d)
+        altered["rows"][code]["risk_status"] = "safe"
+        self.assertIsNone(r1d_public_reconciles(altered, compare))
+        altered = copy.deepcopy(r1d)
+        altered["rows"][code]["oldest_asof"] = "2001-01-01"
+        self.assertIsNone(r1d_public_reconciles(altered, compare))
+        altered = copy.deepcopy(r1d)
         altered["investment_score_certified"] = True
         self.assertIsNone(r1d_public_reconciles(altered, compare))
 

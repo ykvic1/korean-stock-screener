@@ -156,9 +156,13 @@ def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
             or not number(item.get("stop_adjustment"))
             or not -3 <= item["stop_adjustment"] <= 2
             or not number(item.get("risk_deduction"))
-            or not 0 <= item["risk_deduction"] <= 5):
+            or not 0 <= item["risk_deduction"] <= 5
+            or item.get("risk_status") not in ("unknown", "partial")
+            or type(item.get("risk_warnings")) is not list
+            or any(type(w) is not str for w in item["risk_warnings"])):
             return None
         points = available = 0
+        all_dates = []
         for area, limits in R1D_PART_LIMITS.items():
             ps = item["parts"][area]
             if type(ps) is not dict or not set(ps).issubset(limits):
@@ -172,6 +176,7 @@ def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
                     return None
                 subtotal += p[0]
                 ceiling += p[1]
+                all_dates.append(p[2])
             saved = item["areas"][area]
             if (type(saved) is not dict or
                 not near(saved.get("points"), subtotal) or
@@ -181,6 +186,9 @@ def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
             points += subtotal
             available += ceiling
         if not near(available, item["available"]):
+            return None
+        if (item.get("oldest_asof") != (min(all_dates) if all_dates else None)
+            or item["asof"] != (max(all_dates) if all_dates else day)):
             return None
         if not available:
             if item.get("score") is not None or item.get("base") is not None or item.get("rank") is not None:
@@ -192,6 +200,8 @@ def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
                                   item["stop_adjustment"] - item["risk_deduction"]))
             rounded = math.floor((expected + 2.220446049250313e-16) * 10 + .5) / 10
             if not near(item["score"], rounded):
+                return None
+            if type(item.get("rank")) is not int or not 1 <= item["rank"] <= total:
                 return None
             ranked.append((code, item["score"], item["available"], item.get("rank")))
         for threshold, name in ((100, "available_100_count"),
