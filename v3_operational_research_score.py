@@ -23,6 +23,7 @@ from v3_actual_money_structure import valid as valid_money_structure
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
 from v3_dart_reported_eps import plan as reported_eps_plan, EPSError
 from v3_dart_bulk_history import _stable_digest
+from v3_revenue_growth_evidence import derive as revenue_growth_evidence
 from v3_eps_valuation import evaluate as evaluate_reported_eps
 
 VERSION = 'v3-stable-r1d-operational-research'
@@ -210,6 +211,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
     stocks={r['code']:r for r in market['stocks']}
     money=usable_records(money_source,catalog)
     raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source)
+    revenue_parts,revenue_summary=revenue_growth_evidence(history,catalog)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
     legacy={r['code']:r for r in old};rows={}
     previous=previous if previous and previous.get('version') in COMPATIBLE_PREVIOUS and previous.get('asof','9999')<=day else {}
@@ -232,6 +234,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),financial_sector=financial_sector,
             eps=personal.get('valuation_overrides',{}).get(code),reported_eps=raw_eps.get(code),
             annual=history.get('records',{}).get(code))
+        if code in revenue_parts:
+            parts['financial']['revenue_growth']=revenue_parts[code]
         prior=previous.get('rows',{}).get(code)
         if prior and prior['name']==member['name'] and prior['market']==member['market']:
             for area in parts:
@@ -276,6 +280,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         'investment_score_certified':False,'performance_validated':False,'provider_calls':0,
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
+        'revenue_growth_source_summary':revenue_summary,
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
                    '독립 돌파확인: 가격 경로 부족 종목 미관측',
                    'MA 전환: 가격 이력 부족 종목 미관측',
@@ -351,7 +356,10 @@ def main():
     report=build(*inputs,previous=previous)
     report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
-    digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes']],sort_keys=True).encode()).hexdigest()
+    report['implementation_dependency_sha256']={name:sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+        for name in ('v3_revenue_growth_evidence.py','v3_dart_bulk_history.py')}
+    digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes'],
+        report['implementation_dependency_sha256']],sort_keys=True).encode()).hexdigest()
     report['source_digest']=digest
     compact=json.loads(json.dumps(report));compact['format']='compact-parts-v1'
     for r in compact['rows'].values():
