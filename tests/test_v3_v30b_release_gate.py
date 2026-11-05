@@ -31,6 +31,7 @@ class V30bReadinessTests(unittest.TestCase):
         # independent scorecard and market publisher have both rolled over.
         positive_live_checks = {
             "test_current_public_sources_are_consistent_but_not_certified",
+            "test_optional_money_source_date_columns_keep_reconciliation_strict",
             "test_real_issuer_csv_replays_every_five_area_histogram",
             "test_exact_per_issuer_fcf_candidate_and_receipt_joins",
             "test_catalog_census_exactly_matches_all_real_public_issuer_rows",

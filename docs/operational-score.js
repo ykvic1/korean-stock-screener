@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
-const VERSION='v3-stable-r1c-operational-research';
-const ACCEPTED_VERSIONS=new Set([VERSION,'v3-stable-r1b-operational-research','v3-stable-r1a-operational-research']);
+const VERSION='v3-stable-r1d-operational-research';
+const ACCEPTED_VERSIONS=new Set([VERSION,'v3-stable-r1c-operational-research','v3-stable-r1b-operational-research','v3-stable-r1a-operational-research']);
 const BUDGET={volume:25,technical:30,financial:12.5,valuation:12.5,momentum:20};
 const MAXES={volume:{long_horizon_growth:6,persistence:5,concentration_quality:2,up_down_asymmetry:2,post_spike_absorption:3,correction_contraction:1,weekly_structure_increment:2,obv_price_divergence:4},technical:{daily_pattern:8.4,weekly_pattern:9.6,ma20_ma60_cross_near_ma240:6,daily_rsi:1.2,weekly_rsi:1.8,long_ma_position:1.8,independent_breakout_confirmation:1.2},financial:{revenue_growth:3.5,operating_growth_margin:3,cashflow_fcf_persistence:3,balance_sheet_strength:3},valuation:{per_eps_quality_growth:5,pbr_equity_quality:2.5,fcf_yield:2.5,sales_to_cap:2.5},momentum:{existing_momentum:15,daily_ma_slope_turn:2,weekly_ma_slope_turn:3}};
 const isDay=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
@@ -54,7 +54,7 @@ function composite(r){const v=r?.v3_operational;
  return {earned:v?.base??null,available:v?.available??0,pillars:Object.entries(BUDGET).map(([key,max])=>({key,label:LABELS[key],max,
   candidate:v?.areas?.[key]?.available?v.areas[key].points:null,available:v?.areas?.[key]?.available??0}))};}
 function markup(r){const v=r?.v3_operational;if(!v)return '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
- return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
+ return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
   '</p><p>시총 -'+v.capital_deduction+' · 손절거리 '+(v.stop_adjustment>=0?'+':'')+v.stop_adjustment+' · 재무위험 -'+v.risk_deduction.toFixed(2)+
   '점 · 재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
@@ -65,7 +65,7 @@ function markup(r){const v=r?.v3_operational;if(!v)return '<p class="u-muted">�
    '<tr><td>'+LABELS[a]+'</td><td>'+(v.areas[a].available?v.areas[a].points.toFixed(2):'미관측')+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+'</tbody></table>'+
   '<details><summary>신규 점수 세부 근거</summary>'+Object.entries(v.parts).map(([a,ps])=>'<h4>'+LABELS[a]+'</h4><ul>'+Object.entries(ps).map(([k,p])=>
    '<li>'+esc(COMPONENTS[k])+': '+p[0].toFixed(2)+' / '+p[1].toFixed(2)+' · '+esc(p[2])+'</li>').join('')+'</ul>').join('')+
-  '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점과 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
+  '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
 const api={VERSION,BUDGET,attach,validRow,compare,composite,markup};

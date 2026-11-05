@@ -308,3 +308,17 @@ class ActualMoneyTests(unittest.TestCase):
         with patch.object(client,'daily_market',side_effect=KRXProbeError('KOSPI','http_forbidden',403)) as call:
             with self.assertRaises(KRXProbeError):adapter.daily_market('KOSPI','2026-11-04')
             self.assertEqual(call.call_count,1)
+
+    def test_private_money_failure_diagnostics_are_bounded_and_never_export_source(self):
+        from v3_krx_private_github_backfill import PrivateHistoryError
+        issue=PrivateHistoryError('private_storage_api_failed')
+        issue.safe_http_status='http_403_rate_limited'
+        issue.safe_http_operation='read_repository_metadata'
+        issue.safe_retry_after_seconds=65
+        details=m.safe_failure_diagnostic(issue)
+        self.assertEqual(details['kind'],'private_storage')
+        self.assertEqual(details['details']['storage_status'],'http_403_rate_limited')
+        self.assertEqual(details['details']['storage_retry_after_seconds'],65)
+        self.assertNotIn('private-data',json.dumps(details))
+        self.assertEqual(m.safe_failure_diagnostic(ValueError('secret opaque source')),
+                         {'kind':'unexpected_failure'})

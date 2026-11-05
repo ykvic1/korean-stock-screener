@@ -9,6 +9,8 @@ from unittest.mock import patch
 
 import v3_operational_research_score as ops
 from v3_actual_money_structure import SCHEMA as MONEY_SCHEMA
+from v3_breakout_followthrough import observe as breakout_observe
+from datetime import date,timedelta
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -26,9 +28,17 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(len(self.report['rows']),self.inputs[1]['listed_total'])
         for r in self.report['rows'].values():
             self.assertNotIn('ma20_ma60_cross_near_ma240',r['parts']['volume'])
-            # Saved November 4 market files predate the new slope receipt.
-            self.assertIsNone(r['parts']['momentum']['daily_ma_slope_turn'])
-            self.assertIsNone(r['parts']['momentum']['weekly_ma_slope_turn'])
+            # The public market snapshot may advance after the next full scan.
+            # Both genuinely missing and valid newly observed receipts must pass.
+            for key,maximum in [('daily_ma_slope_turn',2),('weekly_ma_slope_turn',3)]:
+                receipt=r['parts']['momentum'][key]
+                if receipt is not None:
+                    self.assertEqual(receipt['available'],maximum)
+                    self.assertLessEqual(receipt['points'],maximum)
+            breakout=r['parts']['technical']['independent_breakout_confirmation']
+            if breakout is not None:
+                self.assertEqual(breakout['available'],1.2)
+                self.assertIn(breakout['points'],(0,.6,1.2))
             self.assertLessEqual(r['risk_deduction'],5)
             self.assertNotEqual(r['risk_status'],'safe')
 
@@ -68,6 +78,22 @@ class OperationalScoreTests(unittest.TestCase):
         parts,risk=ops.score_issuer(None,{'code':'000001','name':'x','market':'KOSPI'},day='2026-11-04')
         self.assertTrue(all(p is None for ps in parts.values() for p in ps.values()))
         self.assertEqual(risk['status'],'unknown')
+
+    def test_new_market_day_does_not_destroy_prior_scores_during_ledger_lag(self):
+        previous=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
+        self.assertIn(previous['version'],ops.COMPATIBLE_PREVIOUS)
+        market,catalog,ledger,history=copy.deepcopy(self.inputs[:4])
+        market['date']=(date.fromisoformat(catalog['date'])+timedelta(days=1)).isoformat()
+        self.assertTrue(ops.can_hold_previous_during_temporal_lag(
+            market,catalog,ledger,history,previous))
+        with self.assertRaisesRegex(ValueError,'unaligned_operational_sources'):
+            ops.build(*[market,catalog,ledger,history]+self.inputs[4:])
+        broken=copy.deepcopy(previous);broken['investment_score_certified']=True
+        self.assertFalse(ops.can_hold_previous_during_temporal_lag(
+            market,catalog,ledger,history,broken))
+        broken=copy.deepcopy(ledger);broken['missing_is_not_zero']=False
+        self.assertFalse(ops.can_hold_previous_during_temporal_lag(
+            market,catalog,broken,history,previous))
 
     def test_prior_receipts_migrate_without_relabeling_legacy_scores(self):
         old=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
@@ -111,6 +137,22 @@ class OperationalScoreTests(unittest.TestCase):
             fallback,_=ops.score_issuer(stock,saved,day='2026-11-04',money=corrupt)
             self.assertEqual(fallback['volume']['long_horizon_growth']['points'],4.9)
             self.assertIsNone(fallback['volume']['persistence'])
+
+    def test_price_only_breakout_confirmation_is_fifth_independent_observation(self):
+        day='2026-11-04';last=date.fromisoformat(day)
+        receipt=breakout_observe([100.]*82+[104.]*18,asof=day,
+            session_days=[last-timedelta(days=99-i) for i in range(100)])
+        stock={'price_date':day,'market':'KOSPI','v3_breakout_followthrough':receipt}
+        saved={'code':'005930','name':'삼성전자','market':'KOSPI'}
+        with patch.object(ops,'volume_observed',return_value=None),patch.object(ops,'path_preview',return_value=None),\
+             patch.object(ops,'pattern_observed',return_value=None):
+            parts,_=ops.score_issuer(stock,saved,day=day)
+            self.assertEqual(parts['technical']['independent_breakout_confirmation']['points'],1.2)
+            self.assertEqual(parts['technical']['independent_breakout_confirmation']['available'],1.2)
+            corrupt=copy.deepcopy(stock)
+            corrupt['v3_breakout_followthrough']['source_regular_session_verified']=True
+            invalid,_=ops.score_issuer(corrupt,saved,day=day)
+            self.assertIsNone(invalid['technical']['independent_breakout_confirmation'])
 
     def test_browser_csv_server_and_corruption_rejection(self):
         script="""

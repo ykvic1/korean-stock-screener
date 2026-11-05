@@ -20,10 +20,12 @@ from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
 from v3_actual_money_structure import valid as valid_money_structure
+from v3_breakout_followthrough import valid as valid_breakout_followthrough
 
-VERSION = 'v3-stable-r1c-operational-research'
+VERSION = 'v3-stable-r1d-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
-                       'v3-stable-r1b-operational-research',VERSION)
+                       'v3-stable-r1b-operational-research',
+                       'v3-stable-r1c-operational-research',VERSION)
 OUTPUT = 'v3-operational-research-scores.json'
 SPECS = {
  'volume': {'long_horizon_growth':6,'persistence':5,'concentration_quality':2,
@@ -117,6 +119,9 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financ
                     weight=SPECS['momentum'][frame+'_ma_slope_turn']
                     put('momentum',frame+'_ma_slope_turn',sum(pieces.values()),weight,
                         slope['weekly_asof'] if frame=='weekly' else day)
+        breakout=stock.get('v3_breakout_followthrough')
+        if breakout is not None and valid_breakout_followthrough(breakout,day):
+            put('technical','independent_breakout_confirmation',breakout['points'],1.2,day)
         for frame,limit,rsi_max in [('daily',8.4,1.2),('weekly',9.6,1.8)]:
             evidence=pattern_observed(stock,frame)
             if not evidence:continue
@@ -225,9 +230,33 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
-                   '독립 돌파확인 1.2점','MA 전환: 가격 이력 부족 종목 미관측',
+                   '독립 돌파확인: 가격 경로 부족 종목 미관측',
+                   'MA 전환: 가격 이력 부족 종목 미관측',
                    '부채상환·현금흐름 위험 검증'],
         'rows':rows}
+
+
+def can_hold_previous_during_temporal_lag(market,catalog,ledger,history,previous):
+    """Keep an already published dated ranking while upstream files catch up.
+
+    This must never authorize mixing different trading days in a new score,
+    or bypass tampered/malformed source flags. No report is rewritten on hold.
+    """
+    if (ledger.get('missing_is_not_zero') is not True or
+        ledger.get('investment_score_certified') is not False):
+        return False
+    day=catalog['date']
+    mismatch=(market['date']!=day or ledger['market_asof']!=day or
+              history.get('asof',day)>day)
+    return (mismatch and isinstance(previous,dict) and
+        previous.get('version') in COMPATIBLE_PREVIOUS and
+        previous.get('format')=='compact-parts-v1' and
+        previous.get('investment_score_certified') is False and
+        previous.get('missing_is_not_zero') is True and
+        previous.get('status')=='provisional_operational' and
+        isinstance(previous.get('rows'),dict) and
+        len(previous['rows'])==previous.get('listed_total') and
+        previous.get('asof','9999')<=max(day,market['date']))
 
 
 def to_csv(report):
@@ -250,7 +279,13 @@ def main():
     names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json','v3-dart-bulk-history.json',
         'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json']
     inputs=[read(n) for n in names]
-    report=build(*inputs,previous=read(OUTPUT) if (root/OUTPUT).exists() else None)
+    previous=read(OUTPUT) if (root/OUTPUT).exists() else None
+    if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
+        print(json.dumps({'status':'waiting_for_aligned_daily_sources',
+            'previous_operational_score_preserved':True,
+            'previous_score_asof':previous['asof'],'provider_calls':0}))
+        return
+    report=build(*inputs,previous=previous)
     report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
     digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes']],sort_keys=True).encode()).hexdigest()
