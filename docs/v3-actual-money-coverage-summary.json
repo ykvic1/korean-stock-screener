@@ -1,5 +1,22 @@
 {
   "asof": "2026-11-04",
+  "comparison_window_coverage": {
+    "complete_window_is_not_full_six_point_eligibility": true,
+    "daily_comparison_eligible_issuers": {
+      "120": 1993,
+      "20": 2310,
+      "240": 1866,
+      "60": 2108
+    },
+    "issuer_window_flags_or_amounts_published": false,
+    "weekly_comparison_eligible_issuers": {
+      "10": 2196,
+      "120": 1516,
+      "20": 2028,
+      "5": 2280,
+      "60": 1813
+    }
+  },
   "coverage_gap_diagnostic": {
     "fresh_unscored_issuers": 985,
     "full_fresh_evidence_issuers": 1516,
