@@ -1,0 +1,21 @@
+{
+  "asof": "2026-11-04",
+  "coverage_gap_diagnostic": {
+    "fresh_unscored_issuers": 985,
+    "full_fresh_evidence_issuers": 1516,
+    "incomplete_periods_do_not_prove_recent_listing": true,
+    "issuer_amounts_or_coverage_timeseries_published": false,
+    "reason_pair_counts": {
+      "complete__incomplete_periods": 350,
+      "incomplete_periods__incomplete_periods": 635
+    },
+    "zero_baseline_is_unavailable_not_zero_points": true
+  },
+  "eligible_issuers": 1516,
+  "investment_score_certified": false,
+  "listed_total": 2501,
+  "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+  "original_amounts_or_bars_published": false,
+  "schema": "v3-personal-actual-money-coverage-summary-0.1",
+  "source_schema": "v3-personal-actual-money-participation-six-0.1"
+}

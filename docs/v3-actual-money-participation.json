@@ -10,6 +10,17 @@
   ],
   "calendar_weeks_inspected": 240,
   "corporate_actions_and_pit_verified": false,
+  "coverage_gap_diagnostic": {
+    "fresh_unscored_issuers": 985,
+    "full_fresh_evidence_issuers": 1516,
+    "incomplete_periods_do_not_prove_recent_listing": true,
+    "issuer_amounts_or_coverage_timeseries_published": false,
+    "reason_pair_counts": {
+      "complete__incomplete_periods": 350,
+      "incomplete_periods__incomplete_periods": 635
+    },
+    "zero_baseline_is_unavailable_not_zero_points": true
+  },
   "daily_asof": "2026-11-04",
   "daily_cohorts_inspected": 96,
   "daily_windows": [
