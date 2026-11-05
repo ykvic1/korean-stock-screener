@@ -10,6 +10,7 @@ import os
 import time
 
 import v3_private_dart_structured_action_receipts as source
+import v3_action_daily_budget as budget
 from v3_dart_continuous_catchup import QuotaWaitingPrivateGitStorage
 from v3_krx_private_github_backfill import PrivateHistoryError
 
@@ -141,18 +142,41 @@ def continuous(storage,fetch,*,max_batches=MAX_BATCHES,
 
 
 def main():
+    budget.write_resume(os.getenv('GITHUB_OUTPUT'),False)
     if (os.getenv('V3_PRIVATE_ARCHIVE_REPO')!=source.PRIVATE_REPO
         or len(os.getenv('V3_PRIVATE_ARCHIVE_TOKEN',''))<20
         or len(os.getenv('DART_API_KEY',''))!=40):
         raise ActionContinuationError('private_structured_action_credentials_missing')
     max_batches=int(os.getenv('V3_ACTION_CONTINUATION_BATCHES',str(MAX_BATCHES)))
+    if not 1<=max_batches<=MAX_BATCHES:
+        raise ActionContinuationError('invalid_structured_action_continuation_budget')
+    day=budget.utc_day()
+    duration=budget.runtime_seconds(day)
+    if duration==0:
+        print(json.dumps({'status':'waiting_for_next_action_budget_day','provider_requests':0}))
+        return
     phase=['private_archive_init']
     store=QuotaWaitingPrivateGitStorage(source.PRIVATE_REPO,os.environ['V3_PRIVATE_ARCHIVE_TOKEN'],
-                                       deadline=time.monotonic()+MAX_SECONDS)
+                                       deadline=time.monotonic()+duration)
+    ticket=budget.reserve(store,'principal',max_batches*source.MAX_CALLS,day=day)
+    if ticket is None:
+        print(json.dumps({'status':'waiting_for_daily_action_budget','provider_requests':0}))
+        return
+    duration=budget.runtime_seconds(day)
+    if duration==0:
+        budget.finish(store,ticket,0)
+        print(json.dumps({'status':'waiting_for_next_action_budget_day','provider_requests':0}))
+        return
     key=os.environ['DART_API_KEY']
     result=continuous(store,lambda ep,corp,start,end:source.official_fetch(key,ep,corp,start,end),
-        max_batches=max_batches,max_requests=max_batches*source.MAX_CALLS,emit=lambda event:print(json.dumps(event,sort_keys=True),flush=True),
+        max_batches=max_batches,max_requests=ticket['reserved'],max_seconds=duration,
+        emit=lambda event:print(json.dumps(event,sort_keys=True),flush=True),
         stage_hook=lambda name:phase.__setitem__(0,name))
+    remaining=budget.finish(store,ticket,result['provider_requests'])
+    resume=budget.resumable(result,remaining,source.MAX_CALLS)
+    result['daily_provider_budget_remaining']=remaining
+    result['automatic_resume_ready']=resume
+    budget.write_resume(os.getenv('GITHUB_OUTPUT'),resume)
     print(json.dumps(result,sort_keys=True))
     if os.getenv('GITHUB_STEP_SUMMARY'):
         lines=['### 기업행위 공시 접수번호 공식 대조',
@@ -168,7 +192,7 @@ def main():
 if __name__=='__main__':
     try:main()
     except Exception as error:
-        reason=str(error) if isinstance(error,(ActionContinuationError,source.StructuredActionError)) else (
+        reason=str(error) if isinstance(error,(ActionContinuationError,source.StructuredActionError,budget.DailyBudgetError)) else (
             'private_storage_unavailable' if isinstance(error,PrivateHistoryError)
             else 'structured_action_continuation_unavailable')
         print(json.dumps({'status':'blocked','reason':reason,'provider_source_values_exposed':False},sort_keys=True))
