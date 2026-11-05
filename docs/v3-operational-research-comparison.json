@@ -5,26 +5,26 @@
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 23,
-      "new_kospi": 24,
+      "overlap": 20,
+      "new_kospi": 25,
       "old_kospi": 19
     },
     "100": {
-      "overlap": 49,
+      "overlap": 43,
       "new_kospi": 47,
       "old_kospi": 42
     },
     "200": {
-      "overlap": 90,
-      "new_kospi": 90,
+      "overlap": 82,
+      "new_kospi": 94,
       "old_kospi": 84
     }
   },
   "prior_operational_version": "v3-stable-r1c-operational-research",
   "same_input_prior_ranked_issuers": 2481,
   "prior_top_overlap": {
-    "50": 38,
-    "100": 79,
-    "200": 156
+    "50": 39,
+    "100": 76,
+    "200": 148
   }
 }
