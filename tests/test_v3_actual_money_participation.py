@@ -91,14 +91,21 @@ class ActualMoneyTests(unittest.TestCase):
         self.assertEqual(d['full_fresh_evidence_issuers'],1)
         self.assertEqual(d['fresh_unscored_issuers'],2)
         self.assertEqual(d['reason_pair_counts'],{'incomplete_periods__incomplete_periods':2})
+        comparison=report['comparison_window_coverage']
+        self.assertEqual(comparison['daily_comparison_eligible_issuers'],
+                         {str(n):1 for n in m.DAILY})
+        self.assertEqual(comparison['weekly_comparison_eligible_issuers'],
+                         {str(n):1 for n in m.WEEKLY_WINDOWS})
+        self.assertFalse(comparison['issuer_window_flags_or_amounts_published'])
         summary=m.coverage_summary(report)
         self.assertEqual(summary['schema'],m.COVERAGE_SUMMARY_SCHEMA)
         self.assertEqual(summary['eligible_issuers'],1)
         self.assertEqual(summary['coverage_gap_diagnostic'],d)
+        self.assertEqual(summary['comparison_window_coverage'],comparison)
         self.assertNotIn('records',summary)
         self.assertNotIn('000001',json.dumps(summary))
         self.assertNotIn('000002',json.dumps(summary))
-        self.assertLess(len(json.dumps(summary)),1600)
+        self.assertLess(len(json.dumps(summary)),2400)
         self.assertNotIn('000002',report['records'])
         self.assertNotIn('000003',report['records'])
         self.assertNotIn('amount_100k',json.dumps(d))
@@ -109,6 +116,16 @@ class ActualMoneyTests(unittest.TestCase):
             corrupted=copy.deepcopy(report)
             corrupted['coverage_gap_diagnostic'].update(change)
             self.assertEqual(m.usable_records(corrupted,catalog),{})
+        bad_counts=copy.deepcopy(report)
+        bad_counts['comparison_window_coverage']['weekly_comparison_eligible_issuers']['20']=0
+        self.assertEqual(m.usable_records(bad_counts,catalog),{})
+
+    def test_shorter_windows_can_be_observable_without_full_six_point_eligibility(self):
+        weeks=[3]*10+[None]*230
+        self.assertEqual(m.family_coverage_reason(weeks,(5,)),'complete')
+        self.assertEqual(m.family_coverage_reason(weeks,(10,)),'incomplete_periods')
+        self.assertEqual(m.family_coverage_reason(weeks,(120,)),'incomplete_periods')
+        self.assertIsNone(m.family(weeks,m.WEEKLY_WINDOWS))
 
     def test_ratio_scale_invariance_persistence_and_concentration(self):
         self.assertEqual(m.window_strength([3]*5,[1]*5),1)
