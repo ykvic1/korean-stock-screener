@@ -1,29 +1,29 @@
 {
   "additional_volume_or_momentum_points_authorized": 0,
-  "asof": "2026-11-04",
+  "asof": "2026-11-05",
   "attempted_issuers": 2501,
   "corporate_actions_adjusted_verified": false,
   "current_price_issuers": 2373,
-  "daily_source_sha256": "862dcccca751c3c128a828f109e6a57307dfd99a0fca6771b1daa56963729dfb",
+  "daily_source_sha256": "49f693cb2e117bf2ce727b61de95cb503c42b38814b11f2250dc8e48248904e6",
   "interpretation": "unscored_research_coverage_not_a_buy_signal",
   "investment_grade_score_certified": false,
-  "issuers_with_complete_high_volume_up_spike": 834,
-  "issuers_with_post_spike_price_hold_and_volume_easing": 342,
+  "issuers_with_complete_high_volume_up_spike": 775,
+  "issuers_with_post_spike_price_hold_and_volume_easing": 332,
   "listed_eligible_issuers": 2501,
   "market_index_path_verified": false,
   "market_scan_complete": true,
-  "observed_121_session_paths": 2102,
-  "path_coverage_pct_of_current": 88.58,
-  "positive_five_session_blocks_majority_count": 326,
+  "observed_121_session_paths": 2104,
+  "path_coverage_pct_of_current": 88.66,
+  "positive_five_session_blocks_majority_count": 389,
   "raw_ohlcv_exported": false,
   "reason_diagnostics_independently_verified": false,
   "reason_diagnostics_scored_points": 0,
-  "recent60_outperformed_prior60_issuer_count": 1724,
+  "recent60_outperformed_prior60_issuer_count": 1637,
   "regular_session_independently_verified": false,
   "schema": "v3-unscored-path-source-coverage-0.1",
-  "unavailable_121_session_paths": 271,
+  "unavailable_121_session_paths": 269,
   "unavailable_path_reason_counts": {
-    "nonpositive_or_invalid_price_volume": 271
+    "nonpositive_or_invalid_price_volume": 269
   },
-  "up_days20_majority_issuer_count": 152
+  "up_days20_majority_issuer_count": 147
 }
