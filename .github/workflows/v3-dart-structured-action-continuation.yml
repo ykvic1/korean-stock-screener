@@ -12,9 +12,10 @@ on:
       - v3_dart_structured_action_continuation.py
       - .github/workflows/v3-dart-structured-action-continuation.yml
   schedule:
-    # Two bounded continuations after the existing :43 pilot. At most
-    # 768 extra provider attempts/day; existing pilot and source limits stay.
-    - cron: '55 2,14 * * *'
+    # Six bounded continuations, at most 9,216 provider attempts/day.
+    # Each verified two-candidate transaction, 55-minute deadline and
+    # provider auth/quota stop remain unchanged. Completed cursors use no API.
+    - cron: '55 2,6,10,14,18,22 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -24,8 +25,8 @@ on:
         required: true
       batches:
         type: choice
-        options: ['1', '16', '32', '64']
-        default: '64'
+        options: ['1', '16', '32', '64', '128', '256']
+        default: '256'
         required: true
 
 permissions:
@@ -51,11 +52,14 @@ jobs:
     if: >-
       ${{ github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
-          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): structured action continuation')) }}
+          (github.event_name == 'push' &&
+           (startsWith(github.event.head_commit.message, 'feat(v3.0b): structured action continuation') ||
+            startsWith(github.event.head_commit.message, 'feat(v3.0b): accelerate structured action'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 65
     concurrency:
       group: v3-dart-private-structured-action-receipts
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -71,5 +75,5 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-          V3_ACTION_CONTINUATION_BATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.batches || '64' }}
+          V3_ACTION_CONTINUATION_BATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.batches || '256' }}
         run: python v3_dart_structured_action_continuation.py
