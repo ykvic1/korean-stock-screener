@@ -1297,11 +1297,12 @@ function compareStableResearchScores(a,b){
 }
 function rankItems(model,core,tab='discover',market='all',query='',sort='stable',safeOnly=false,top100Only=false,obvOnly=false,coverageOnly='all'){
  if(!model?.rows||!core)return [];
- const ordered=model.rows.slice().sort(sort==='stable'?compareStableResearchScores:compareResearchScores);
+ const ordered=model.rows.slice().sort(sort==='ops'&&root.V3OperationalScore?root.V3OperationalScore.compare:sort==='stable'?compareStableResearchScores:compareResearchScores);
  const candidatePositions=new Map();
  let next=0;
  for(const x of ordered)
-  if(researchComposite(x.r).earned!==null)candidatePositions.set(x.r.code,++next);
+  if(sort==='ops'){if(x.r.v3_operational?.rank)candidatePositions.set(x.r.code,x.r.v3_operational.rank);}
+  else if(researchComposite(x.r).earned!==null)candidatePositions.set(x.r.code,++next);
  const search=String(query).trim().toLocaleLowerCase('ko-KR');
  const rows=model.rows.map(x=>{
   const daily=evidence(x.r,'daily'),weekly=evidence(x.r,'weekly');
@@ -1337,6 +1338,7 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='stable'
   return true;
  });
  rows.sort((a,b)=>{
+  if(sort==='ops'&&root.V3OperationalScore)return root.V3OperationalScore.compare(a,b);
   if(sort==='stable')return b.composite.available-a.composite.available||
     (b.stability.score??-1)-(a.stability.score??-1)||
     a.stability.missing-b.stability.missing||compareResearchScores(a,b);
@@ -2308,7 +2310,7 @@ if(!root.document)return;
 const D=root.document,$=id=>D.getElementById(id);
 if(!$('unifiedApp'))return;
 let weeklyCoverage=null,realSavedCoverage=null,actualCashflowCoverage=null,actualMoneyCoverage=null;
-let model=null,core=null,tab='discover',sort='stable',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20,compareShown=false;
+let model=null,core=null,tab='discover',sort='ops',safeOnly=false,top100Only=false,obvOnly=false,selected=null,limit=20,compareShown=false;
 function refreshCoverageGroups(data){
  const control=$('coverageGroup');
  const previous=control.value;
@@ -2437,7 +2439,8 @@ function renderDetails(x){
  '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
- scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
+ (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
+ '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
  (root.V3StopEvidence?root.V3StopEvidence.markup(r,model?.date):'')+
  '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
@@ -2525,13 +2528,15 @@ function draw(){
   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'현재 정렬 상위 100개 중 ':'전체 시장 중 ')+
   (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
   (coverageOnly!=='all'&&!query?'5영역별 확보배점 '+coverageOnly.split('-').join('/')+' 동일 그룹 · ':'')+
-   (sort==='stable'?'안정형 보정순 (시총 소폭 보정·손절 구조 가감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+   (sort==='ops'?'신규 잠정 운영점수 R1a · 점수 우선':sort==='stable'?'안정형 보정순 (시총 소폭 보정·손절 구조 가감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
   const tags=(obvLagCandidate(r)?'<span class="u-signal u-obv-lag">OBV↑ · 주가 미반영 관찰</span>':'')+
    x.signals.slice(0,3).map(patternPill).join('');
   const stable=x.stability;
+  const ops=r.v3_operational;
+  const shownComposite=sort==='ops'&&root.V3OperationalScore?root.V3OperationalScore.composite(r):x.composite;
   const state=x.risk.unsafe?'위험 주의':x.risk.distance===null?'손절선 미확인':'구조적 위험 검토';
   return '<button class="u-stock '+(selected===r.code?'selected':'')+
    '" type="button" data-stock="'+esc(r.code)+'" aria-label="'+esc(r.name)+' 종목 상세 분석 열기">'+
@@ -2539,14 +2544,14 @@ function draw(){
    String(i+1).padStart(2,'0')+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-card-kpis"><div class="u-card-price"><small>종가 · '+esc(r.price_date||model.date)+'</small><b>'+won(r.price)+'</b></div>'+
-   '<div class="u-card-score"><small>'+(sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
-   (sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
+   '<div class="u-card-score"><small>'+(sort==='ops'?'신규 운영 R1a · 잠정':sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
+   (sort==='ops'?(ops?.score===null||ops?.score===undefined?'—':ops.score.toFixed(1)):sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
     (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
-   (sort==='stable'?'<small>V3 원점수 '+(x.composite.earned===null?'—':x.composite.earned.toFixed(1))+' · 보정 '+(stable.deduction>0?'-':stable.deduction<0?'+':'')+Math.abs(stable.deduction)+'</small>':
+   (sort==='ops'?'<small>기존 '+(ops?.legacy_score===null||ops?.legacy_score===undefined?'미관측':ops.legacy_score.toFixed(1))+'점 · '+esc(ops?.asof||'기준일 미확인')+'</small>':sort==='stable'?'<small>V3 원점수 '+(x.composite.earned===null?'—':x.composite.earned.toFixed(1))+' · 보정 '+(stable.deduction>0?'-':stable.deduction<0?'+':'')+Math.abs(stable.deduction)+'</small>':
     sort==='personal'?'<small>개인환산 '+(x.personal100===null?'—':x.personal100.toFixed(1))+'점</small>':'')+'</div>'+
-   '<div class="u-card-coverage"><small>산출 배점</small><b>'+x.composite.available+'/100</b></div></div>'+
+   '<div class="u-card-coverage"><small>산출 배점</small><b>'+shownComposite.available.toFixed(1)+'/100</b></div></div>'+
    '<div class="u-compact-pillars" aria-label="5개 영역별 잠정점수 · 자세한 기준일과 검증 상태는 종목 상세">'+
-   x.composite.pillars.map(p=>{
+   shownComposite.pillars.map(p=>{
     const short={volume:'거래량',technical:'기술',financial:'재무',valuation:'가치',momentum:'모멘텀'}[p.key]||p.label;
     return '<span data-pillar="'+esc(p.key)+'" title="'+esc(p.label+' · 확보 '+p.available+'/'+p.max+
       ' · 기준일 '+(p.asof||'미확인')+' · 미검증')+'"><small>'+esc(short)+'</small><b>'+
@@ -2625,7 +2630,7 @@ async function load(){
   'v3-dart-industry-classification.json',
   'v3-dart-cashflow-issuer-evidence.json',
   'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
-  'v3-actual-money-coverage-summary.json'];
+  'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2665,6 +2670,11 @@ async function load(){
   applyCurrentObservedFinance(model,responses[16],observedCsv);
   applyIssuerFactorLedger(model,responses[19]);
   applyPersonalValuation(model,responses[20]);
+  const linkedOps=root.V3OperationalScore?.attach(model,responses[22])||0;
+  if(sort==='ops'&&!linkedOps){sort='stable';if($('sort'))$('sort').value=sort;}
+  if($('operationalModelNote'))$('operationalModelNote').textContent=linkedOps?
+    'R1a 잠정 운영모델 · 25/30/12.5/12.5/20 · '+linkedOps+'종목 연결 · 미관측 가점은 보류 · 기존 모델 비교 가능':
+    '신규 운영점수 연결 대기 · 기존 모델을 표시합니다.';
   if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
    fiveAreaCoverageView(responses[16],model.date,model.marketEligible,model)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';

@@ -1,0 +1,23 @@
+{
+  "asof": "2026-11-04",
+  "version": "v3-stable-r1a-operational-research",
+  "same_input_common_issuers": 2373,
+  "performance_validated": false,
+  "top": {
+    "50": {
+      "overlap": 25,
+      "new_kospi": 25,
+      "old_kospi": 19
+    },
+    "100": {
+      "overlap": 49,
+      "new_kospi": 47,
+      "old_kospi": 40
+    },
+    "200": {
+      "overlap": 100,
+      "new_kospi": 93,
+      "old_kospi": 80
+    }
+  }
+}

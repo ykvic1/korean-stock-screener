@@ -6,10 +6,11 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261103-cross-explain">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261103-cross-explain-r1a">
 <script src="v3-ranking.js" defer></script>
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
-<script src="workspace.js?v=v30b-20261105-money-period-coverage" defer></script>
+<script src="operational-score.js?v=r1a" defer></script>
+<script src="workspace.js?v=v30b-20261105-money-period-coverage-r1a" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-fcf-gap.js" defer></script>
@@ -92,11 +93,13 @@
   <p class="u-source" id="dartHistoryNotes">공시 수집 기록을 비식별로 검증 중입니다. 기업행위·수정주가 인증 자료는 아닙니다.</p>
   <p class="u-source"><a href="v3-dart-historical-receipt-progress.json">실제 수집 진행률 원천 집계 JSON ↗</a> · 완료 개월 수는 기업행위 효력일·상장폐지 종목·과거 수정주가·정식 100점 투자점수 검증을 뜻하지 않습니다.</p>
  </details>
- <section class="u-controls" aria-label="종목 발굴 조건">
+ <p id="operationalModelNote" class="u-research-note">R1a 잠정 운영모델 연결 중</p>
+<p class="u-research-note"><a href="v3-operational-research-scores.csv" download>신규 운영점수 CSV</a> · 기존 점수는 정렬 기준에서 비교할 수 있습니다.</p>
+<section class="u-controls" aria-label="종목 발굴 조건">
   <label class="u-quick-search" for="stockSearch">종목 검색
     <input id="stockSearch" type="search" placeholder="전체 종목에서 이름 또는 6자리 코드 검색" autocomplete="off" spellcheck="false">
    </label>
-  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · 현재 정렬</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><label class="u-coverage-control" for="coverageGroup">5영역 확보배점 맞춰보기
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · 현재 정렬</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><label class="u-coverage-control" for="coverageGroup">기존 모델 확보배점 필터
     <select id="coverageGroup" aria-label="5영역별 관측 가능 배점이 같은 종목 묶음"><option value="all">전체 배점 그룹</option></select>
    </label><span id="filterNotice">종목명 검색은 TOP100 제한 없이 전체에서 검색됩니다.</span></div>
   <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
@@ -112,7 +115,7 @@
     <select id="market"><option value="all">코스피 + 코스닥</option>
      <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
    <label>정렬 기준
-    <select id="sort"><option value="stable" selected>안정형 보정순 (시총·손절 구조)</option><option value="score">V3 잠정 원점수순</option><option value="personal">개인 연구용 100점 환산순</option>
+    <select id="sort"><option value="ops" selected>신규 잠정 운영점수 R1a</option><option value="stable">안정형 보정순 (시총·손절 구조)</option><option value="score">V3 잠정 원점수순</option><option value="personal">개인 연구용 100점 환산순</option>
      <option value="research">패턴·위험 우선</option>
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
