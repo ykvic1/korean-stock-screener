@@ -49,6 +49,30 @@ def usable_records(report, catalog):
         records=report['records']
         if type(records) is not dict or report['eligible_issuers']!=len(records):
             return {}
+        diagnostic=report.get('coverage_gap_diagnostic')
+        if diagnostic is not None:
+            statuses={'complete','incomplete_periods','zero_baseline'}
+            pairs={a+'__'+b for a in statuses for b in statuses
+                   if a!='complete' or b!='complete'}
+            if (type(diagnostic) is not dict or set(diagnostic)!={
+                'full_fresh_evidence_issuers','fresh_unscored_issuers',
+                'reason_pair_counts','incomplete_periods_do_not_prove_recent_listing',
+                'zero_baseline_is_unavailable_not_zero_points',
+                'issuer_amounts_or_coverage_timeseries_published'}
+                or type(diagnostic['full_fresh_evidence_issuers']) is not int
+                or type(diagnostic['fresh_unscored_issuers']) is not int
+                or diagnostic['full_fresh_evidence_issuers']<0
+                or diagnostic['fresh_unscored_issuers']<0
+                or diagnostic['full_fresh_evidence_issuers']+diagnostic['fresh_unscored_issuers']!=report['listed_total']
+                or diagnostic['full_fresh_evidence_issuers']>report['eligible_issuers']
+                or diagnostic['incomplete_periods_do_not_prove_recent_listing'] is not True
+                or diagnostic['zero_baseline_is_unavailable_not_zero_points'] is not True
+                or diagnostic['issuer_amounts_or_coverage_timeseries_published'] is not False
+                or type(diagnostic['reason_pair_counts']) is not dict
+                or any(k not in pairs or type(v) is not int or v<=0
+                       for k,v in diagnostic['reason_pair_counts'].items())
+                or sum(diagnostic['reason_pair_counts'].values())!=diagnostic['fresh_unscored_issuers']):
+                return {}
         for code,r in records.items():
             if (type(r) is not dict or type(r.get('asof')) is not str
                 or r['asof']>report['asof'] or date.fromisoformat(r['asof']).isoformat()!=r['asof']
