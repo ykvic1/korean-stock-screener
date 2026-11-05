@@ -20,7 +20,8 @@ from v3_krx_money_forward import CHECKPOINT as FORWARD, _manifest, _verify_tail,
 from v3_krx_money_5day import validate_money_blob
 from v3_krx_calendar_week_money import (CHECKPOINT as WEEKLY, HISTORY_WEEKS,
     manifest, path as week_path, week_days, validate as validate_week)
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import (
+    PrivateGitStorage,PrivateHistoryError,storage_diagnostic)
 from v3_dart_bulk_history import _stable_digest
 
 from v3_actual_money_contract import (
@@ -32,6 +33,29 @@ COVERAGE_SUMMARY_SCHEMA='v3-personal-actual-money-coverage-summary-0.1'
 
 class ActualMoneyError(ValueError):
     """Fixed codes only, never source data."""
+
+
+def safe_failure_diagnostic(issue):
+    """Fixed reason enums only: never emit private paths, HTTP bodies or token."""
+    if isinstance(issue,PrivateHistoryError):
+        return {'kind':'private_storage','details':storage_diagnostic(issue)}
+    if isinstance(issue,ActualMoneyError):
+        reason=str(issue)
+        allowed={'invalid_money_score_source_identity',
+            'invalid_money_history_forward_boundary',
+            'money_daily_source_not_current_complete_480_sessions',
+            'money_daily_amount_unit_mismatch','money_daily_calendar_chain_gap',
+            'money_calendar_week_history_unavailable',
+            'money_calendar_week_history_incomplete','money_calendar_week_source_stale',
+            'money_calendar_week_checkpoint_tail_changed',
+            'invalid_money_current_issuer_catalog',
+            'money_unclassified_factor_gap','incomplete_money_current_issuer_catalog',
+            'private_money_checkpoint_changed_during_score_read',
+            'money_public_score_self_validation_failed',
+            'invalid_money_coverage_amount','money_snapshot_path_not_allowed',
+            'money_snapshot_path_escape','money_snapshot_file_too_large'}
+        return {'kind':'source_contract','reason':reason if reason in allowed else 'other_source_contract'}
+    return {'kind':'unexpected_failure'}
 
 
 def window_strength(recent, baseline):
@@ -309,5 +333,7 @@ def main(argv=None):
 if __name__=='__main__':
     try:
         main()
-    except Exception:
+    except Exception as issue:
+        print(json.dumps({'status':'blocked_actual_money_source',
+            'safe_diagnostic':safe_failure_diagnostic(issue)},sort_keys=True))
         raise SystemExit('blocked: actual_money_score_source_not_complete') from None
