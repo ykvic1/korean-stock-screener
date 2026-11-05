@@ -16,17 +16,40 @@ from io import StringIO
 import re
 from datetime import date
 import json
+import math
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 MAX_INPUT_BYTES = 2_000_000
 MAX_CSV_BYTES = 4_000_000
+MAX_OPERATIONAL_BYTES = 7_000_000
 AREA_WEIGHTS = {
     "volume": 20, "technical": 25, "financial": 20,
     "valuation": 20, "momentum": 15,
 }
 EXPECTED_SCORE_STATE = "provisional_observed_only_not_investment_grade"
+R1D_VERSION = "v3-stable-r1d-operational-research"
+# Independent published-contract limits, not a replacement scoring formula.
+R1D_PART_LIMITS = {
+    "volume": {"long_horizon_growth": 6, "persistence": 5,
+               "concentration_quality": 2, "up_down_asymmetry": 2,
+               "post_spike_absorption": 3, "correction_contraction": 1,
+               "weekly_structure_increment": 2, "obv_price_divergence": 4},
+    "technical": {"daily_pattern": 8.4, "weekly_pattern": 9.6,
+                  "ma20_ma60_cross_near_ma240": 6, "daily_rsi": 1.2,
+                  "weekly_rsi": 1.8, "long_ma_position": 1.8,
+                  "independent_breakout_confirmation": 1.2},
+    "financial": {"revenue_growth": 3.5, "operating_growth_margin": 3,
+                  "cashflow_fcf_persistence": 3, "balance_sheet_strength": 3},
+    "valuation": {"per_eps_quality_growth": 5, "pbr_equity_quality": 2.5,
+                  "fcf_yield": 2.5, "sales_to_cap": 2.5},
+    "momentum": {"existing_momentum": 15, "daily_ma_slope_turn": 2,
+                 "weekly_ma_slope_turn": 3},
+}
+R1D_WEIGHTS = {a: sum(parts.values()) for a, parts in R1D_PART_LIMITS.items()}
+assert R1D_WEIGHTS == {"volume": 25, "technical": 30, "financial": 12.5,
+                       "valuation": 12.5, "momentum": 20}
 
 
 class V30bInputError(ValueError):
@@ -69,6 +92,120 @@ def _valid_iso_day(value: Any) -> bool:
         return date.fromisoformat(value).isoformat() == value
     except ValueError:
         return False
+
+
+def r1d_public_reconciles(report: Any, comparison: Any) -> dict | None:
+    """Replay *all* operational parts and coverage, without authorizing scores.
+
+    The old five-area source audit uses different weights (20/25/20/20/15).
+    Never use its full-100 issuer count as the operational R1d readiness count.
+    """
+    if not isinstance(report, dict) or not isinstance(comparison, dict):
+        return None
+    day = report.get("asof")
+    digest = report.get("source_digest")
+    rows = report.get("rows")
+    total = report.get("listed_total")
+    coverage = comparison.get("operational_coverage")
+    if (report.get("version") != R1D_VERSION or
+        report.get("format") != "compact-parts-v1" or
+        report.get("status") != "provisional_operational" or
+        report.get("investment_score_certified") is not False or
+        report.get("performance_validated") is not False or
+        report.get("missing_is_not_zero") is not True or
+        report.get("unobserved_weight_not_normalized") is not True or
+        report.get("provider_calls") != 0 or
+        report.get("budgets") != R1D_WEIGHTS or
+        not _valid_iso_day(day) or
+        type(digest) is not str or not re.fullmatch("[0-9a-f]{64}", digest) or
+        not _is_count(total) or not 100 <= total <= 6000 or
+        type(rows) is not dict or len(rows) != total or
+        comparison.get("asof") != day or
+        comparison.get("version") != R1D_VERSION or
+        comparison.get("performance_validated") is not False or
+        not isinstance(coverage, dict) or
+        coverage.get("status") != "provisional_operational" or
+        coverage.get("source_digest") != digest or
+        coverage.get("budgets") != R1D_WEIGHTS or
+        coverage.get("listed_total") != total or
+        coverage.get("provider_calls") != 0 or
+        coverage.get("investment_score_certified") is not False or
+        coverage.get("performance_validated") is not False or
+        coverage.get("missing_is_not_zero") is not True):
+        return None
+    counts = {"ranked_count": 0, "available_100_count": 0,
+              "available_95_count": 0, "available_90_count": 0}
+    ranked = []
+    def number(value):
+        return type(value) in (int, float) and math.isfinite(value)
+    def near(a, b):
+        return number(a) and number(b) and abs(a - b) < 0.00002
+    for code, item in rows.items():
+        if (type(code) is not str or not re.fullmatch("[0-9]{6}", code)
+            or type(item) is not dict or not isinstance(item.get("name"), str)
+            or not item["name"].strip() or item.get("market") not in ("KOSPI", "KOSDAQ")
+            or not _valid_iso_day(item.get("asof")) or item["asof"] > day
+            or not number(item.get("available"))
+            or not 0 <= item["available"] <= 100
+            or type(item.get("parts")) is not dict
+            or set(item["parts"]) != set(R1D_WEIGHTS)
+            or type(item.get("areas")) is not dict
+            or set(item["areas"]) != set(R1D_WEIGHTS)
+            or not number(item.get("capital_deduction"))
+            or not 0 <= item["capital_deduction"] <= 5
+            or not number(item.get("stop_adjustment"))
+            or not -3 <= item["stop_adjustment"] <= 2
+            or not number(item.get("risk_deduction"))
+            or not 0 <= item["risk_deduction"] <= 5):
+            return None
+        points = available = 0
+        for area, limits in R1D_PART_LIMITS.items():
+            ps = item["parts"][area]
+            if type(ps) is not dict or not set(ps).issubset(limits):
+                return None
+            subtotal = ceiling = 0
+            for key, p in ps.items():
+                if (type(p) is not list or len(p) != 3 or
+                    not number(p[0]) or not number(p[1]) or
+                    not 0 <= p[0] <= p[1] <= limits[key] or
+                    p[1] <= 0 or not _valid_iso_day(p[2]) or p[2] > day):
+                    return None
+                subtotal += p[0]
+                ceiling += p[1]
+            saved = item["areas"][area]
+            if (type(saved) is not dict or
+                not near(saved.get("points"), subtotal) or
+                not near(saved.get("available"), ceiling) or
+                ceiling > R1D_WEIGHTS[area] + .000001):
+                return None
+            points += subtotal
+            available += ceiling
+        if not near(available, item["available"]):
+            return None
+        if not available:
+            if item.get("score") is not None or item.get("base") is not None or item.get("rank") is not None:
+                return None
+        else:
+            if not near(points, item.get("base")) or not number(item.get("score")):
+                return None
+            expected = max(0, min(100, points - item["capital_deduction"] +
+                                  item["stop_adjustment"] - item["risk_deduction"]))
+            rounded = math.floor((expected + 2.220446049250313e-16) * 10 + .5) / 10
+            if not near(item["score"], rounded):
+                return None
+            ranked.append((code, item["score"], item["available"], item.get("rank")))
+        for threshold, name in ((100, "available_100_count"),
+                                (95, "available_95_count"),
+                                (90, "available_90_count")):
+            counts[name] += item["available"] >= threshold
+    for rank, (_, _, _, supplied) in enumerate(sorted(
+            ranked, key=lambda x: (-x[1], -x[2], x[0])), 1):
+        if supplied != rank:
+            return None
+    counts["ranked_count"] = len(ranked)
+    if any(coverage.get(k) != v for k, v in counts.items()):
+        return None
+    return {"asof": day, "listed_total": total, **counts}
 
 
 
@@ -566,7 +703,9 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
                  catalog: Any = None,
                  dart_receipt_progress: Any = None,
                  fcf_preview: Any = None,
-                 fcf_cashflow_gap: Any = None) -> dict:
+                 fcf_cashflow_gap: Any = None,
+                 operational_r1d: Any = None,
+                 operational_comparison: Any = None) -> dict:
     """Measure validated coverage and fail closed on independent certification.
 
     The optional proof argument is intentionally ignored: unverified assertions
@@ -697,6 +836,18 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         if not fcf_issuer_reconciled:
             issues.append("public_fcf_issuer_subscore_source_mismatch")
 
+    r1d_status = None
+    if operational_r1d is not None or operational_comparison is not None:
+        r1d_status = r1d_public_reconciles(operational_r1d, operational_comparison)
+        if r1d_status is None:
+            issues.append("r1d_operational_publication_mismatch")
+    # A valid previous-day R1d source is useful, not a malformed publication.
+    # A delayed score refresh or changed listing count cannot certify today's
+    # coverage, but must not block independent data-collection CI either.
+    r1d_current = (r1d_status is not None and _valid_iso_day(asof) and
+                   r1d_status["asof"] == asof and
+                   r1d_status["listed_total"] == safe_total)
+
     # The old backfill's 490/490 extraction window is *not* adjusted-price or
     # delisted-universe verification, and must never be presented as such.
     cohorts = h.get("five_session_cohorts_completed")
@@ -727,6 +878,11 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
             snapshot_valid and fcf_issuer_reconciled is True
             and fcf_source_reconciled is True),
         "five_area_observation_all_listed": snapshot_valid and full == safe_total,
+        "r1d_operational_publication_reconciled": (
+            snapshot_valid and r1d_status is not None),
+        "r1d_observation_all_listed": (
+            snapshot_valid and r1d_current and
+            r1d_status["available_100_count"] == safe_total),
         "fixed_window_krx_extraction": snapshot_valid and window_complete,
         "dart_receipt_checkpoint_coherence": snapshot_valid and dart_counts is not None,
         "dart_120month_receipt_collection_complete": (
@@ -745,6 +901,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
     blockers = set(issues)
     if snapshot_valid and missing_count:
         blockers.add("all_listed_observation_incomplete")
+    if snapshot_valid and r1d_status is not None and not r1d_current:
+        blockers.add("r1d_operational_snapshot_lag")
     if dart_counts is None:
         blockers.add("dart_historical_receipt_checkpoint_unavailable")
     elif dart_counts[1]:
@@ -767,6 +925,17 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "public_fcf_receipt_source_reconciled": fcf_source_reconciled,
         "listed_total": safe_total if snapshot_valid else None,
         "observed_all_five_areas_100weight_count": full,
+        "five_area_weight_contract_is_legacy_not_r1d": True,
+        "r1d_operational_publication_reconciled": r1d_status is not None,
+        "r1d_same_market_day_and_roster": r1d_current,
+        "r1d_source_asof": r1d_status["asof"] if r1d_status else None,
+        "r1d_100weight_observed_count": (
+            r1d_status["available_100_count"] if r1d_status else None),
+        "r1d_95weight_observed_count": (
+            r1d_status["available_95_count"] if r1d_status else None),
+        "r1d_90weight_observed_count": (
+            r1d_status["available_90_count"] if r1d_status else None),
+        "r1d_ranked_count": r1d_status["ranked_count"] if r1d_status else None,
         "missing_all_five_area_observation_count": missing_count,
         "complete_area_issuer_counts": counts,
         "area_completion_gaps": (
@@ -817,6 +986,16 @@ def _read_public_csv(path: Path) -> str:
         raise V30bInputError("public_issuer_csv_unreadable") from None
 
 
+def _read_operational_json(path: Path) -> dict:
+    try:
+        if path.stat().st_size > MAX_OPERATIONAL_BYTES:
+            raise V30bInputError("r1d_operational_source_too_large")
+        return _read_public_json(path) if path.stat().st_size <= MAX_INPUT_BYTES else json.loads(
+            path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        raise V30bInputError("r1d_operational_source_unreadable") from None
+
+
 def main(argv: list[str] | None = None) -> dict:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--observed", type=Path,
@@ -835,6 +1014,10 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-dart-fcf-research-preview.json")
     p.add_argument("--fcf-gap", type=Path,
                    default=ROOT / "docs/v3-dart-cashflow-gap-summary.json")
+    p.add_argument("--r1d-report", type=Path,
+                   default=ROOT / "docs/v3-operational-research-scores.json")
+    p.add_argument("--r1d-comparison", type=Path,
+                   default=ROOT / "docs/v3-operational-research-comparison.json")
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
@@ -845,7 +1028,9 @@ def main(argv: list[str] | None = None) -> dict:
                           catalog=_read_public_json(a.catalog),
                           dart_receipt_progress=_read_public_json(a.dart_receipts),
                           fcf_preview=_read_public_json(a.fcf_preview),
-                          fcf_cashflow_gap=_read_public_json(a.fcf_gap))
+                          fcf_cashflow_gap=_read_public_json(a.fcf_gap),
+                          operational_r1d=_read_operational_json(a.r1d_report),
+                          operational_comparison=_read_public_json(a.r1d_comparison))
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
