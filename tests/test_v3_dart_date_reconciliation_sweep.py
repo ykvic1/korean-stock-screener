@@ -77,6 +77,18 @@ class SweepTests(unittest.TestCase):
         self.assertEqual(result['stop_reason'], 'waiting_for_completed_source_pairs')
         self.assertEqual(before, set(self.store.blobs))
 
+    def test_legacy_matched_report_without_schedule_fields_is_unexamined_not_empty(self):
+        path = s.principal._path(0, RECEIPTS[0]['rcept_no'])
+        old = json.loads(self.store.blobs[path])
+        old['endpoint_results'][2].pop('reported_schedule_date_candidates')
+        self.store.blobs[path] = s.principal.canonical(old)
+        result = s.sweep(self.store)
+        self.assertEqual(result['legacy_matched_schedule_endpoints'], 1)
+        self.assertEqual(result['legacy_schedule_endpoints'], 1)
+        self.assertEqual(result['schedule_examined_endpoints'], 7)
+        self.assertEqual(result['declared_date_field_observations'], 1)
+        self.assertFalse(result['actual_completion_verified'])
+
     def test_completed_source_missing_report_cannot_advance_cursor(self):
         self.store.blobs.pop(s.principal._path(0, RECEIPTS[0]['rcept_no']))
         with self.assertRaisesRegex(s.DateSweepError, 'missing_or_unsafe'):

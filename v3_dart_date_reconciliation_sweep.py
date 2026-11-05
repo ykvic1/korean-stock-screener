@@ -24,7 +24,8 @@ MAX_SECONDS = 20 * 60
 HEX = re.compile(r'[a-f0-9]{64}\Z')
 FLAGS = ('actual_completion_verified', 'adjusted_prices_certified', 'historical_pit_certified')
 TOTALS = ('reviewed_pair_receipts', 'category_match_observations', 'declared_date_fields',
-          'dates_near_risk_window', 'dates_outside_risk_window')
+          'dates_near_risk_window', 'dates_outside_risk_window',
+          'schedule_examined_endpoints', 'legacy_schedule_endpoints', 'legacy_matched_schedule_endpoints')
 
 
 class DateSweepError(ValueError):
@@ -108,6 +109,7 @@ class _ReadWitness:
         self.repository = storage.repository
         self.queue_path = audit.triage_path(pair)
         self.evidence = {}
+        self.coverage = {}
 
     def verify_private(self):
         self.storage.verify_private()
@@ -121,6 +123,16 @@ class _ReadWitness:
             if path in self.evidence and self.evidence[path] != digest:
                 raise DateSweepError('private_date_sweep_source_mutated')
             self.evidence[path] = digest
+            if path != self.queue_path:
+                try:
+                    rows = json.loads(raw)['endpoint_results']
+                    self.coverage[path] = {
+                        'schedule_examined_endpoints': sum('reported_schedule_date_candidates' in r for r in rows),
+                        'legacy_schedule_endpoints': sum('reported_schedule_date_candidates' not in r for r in rows),
+                        'legacy_matched_schedule_endpoints': sum('reported_schedule_date_candidates' not in r
+                            and r['exact_receipt_match'] is True for r in rows)}
+                except Exception:
+                    raise DateSweepError('invalid_private_date_sweep_report_coverage') from None
         return raw, version
 
 
@@ -164,6 +176,10 @@ def sweep(storage, *, max_batches=MAX_BATCHES, max_seconds=MAX_SECONDS, clock=No
                     'historical_pit_issuers_certified', 'private_identity_or_dates_published'))):
             raise DateSweepError('completed_private_date_sources_missing_or_unsafe')
         queue_hash = witness.evidence[witness.queue_path]
+        # Legacy immutable category reports did not inspect schedule fields.
+        # Preserve that absence rather than counting it as an examined empty date.
+        for key in TOTALS[5:]:
+            result[key] = sum(row[key] for row in witness.coverage.values())
         if j and queue_hash != state['queue_sha256']:
             raise DateSweepError('private_date_sweep_queue_changed')
         count = result['selected_unique_receipts']
@@ -183,7 +199,7 @@ def sweep(storage, *, max_batches=MAX_BATCHES, max_seconds=MAX_SECONDS, clock=No
         principal._same_bytes(storage, path, encoded)
         fields = ('selected_unique_receipts', 'exact_receipt_category_matches',
                   'declared_schedule_date_fields', 'declared_dates_near_krx_risk_window',
-                  'declared_dates_outside_krx_risk_window')
+                  'declared_dates_outside_krx_risk_window', *TOTALS[5:])
         totals = {k: state['totals'][k] + result[f] for k, f in zip(TOTALS, fields)}
         updated = {**state, 'next_pair_index': i + 1 if remaining == 0 else i,
                    'next_candidate_index': 0 if remaining == 0 else end,
@@ -214,6 +230,7 @@ def sweep(storage, *, max_batches=MAX_BATCHES, max_seconds=MAX_SECONDS, clock=No
             'declared_date_field_observations': state['totals']['declared_date_fields'],
             'dates_near_risk_window': state['totals']['dates_near_risk_window'],
             'dates_outside_risk_window': state['totals']['dates_outside_risk_window'],
+            **{k: state['totals'][k] for k in TOTALS[5:]},
             'automatic_resume_ready': batches > 0 and reason in ('batch_limit', 'time_limit')
                 and state['next_pair_index'] < ready,
             'provider_calls': 0, **dict.fromkeys(FLAGS, False), 'scores_promoted': 0}
