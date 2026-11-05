@@ -37,7 +37,9 @@ from v3_real_six_pillar_coverage_audit import (
     CoverageAuditError,
 )
 from v3_dart_cashflow_factor_preview import score_preview, FCFPreviewError
-from v3_dart_cashflow_enrichment import CashflowError, fingerprint
+from v3_dart_cashflow_enrichment import (
+    CashflowError, fingerprint, retained_current_market_cashflow,
+)
 from v3_unscored_path_coverage import summarize as summarize_path_coverage
 from v3_path_provisional_factors import preview as path_preview
 from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
@@ -247,11 +249,15 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
         stored_preview.get("valuation15_complete") is not False):
         raise LivePartialScorecardError("untrusted_fcf_source_claim")
     try:
-        expected=score_preview(market,catalog,history,cash,minimum_peers=30)
+        # A verified annual revision invalidates only its exact issuer/year.
+        # Reuse the collector's strict reconciliation rather than dropping
+        # every unrelated company's FCF when one receipt has changed.
+        reconciled=retained_current_market_cashflow(market,catalog,history,cash)
+        expected=score_preview(market,catalog,history,reconciled,minimum_peers=30)
     except (CashflowError,FCFPreviewError,ValueError,KeyError,TypeError):
         return None
     if (stored_preview.get("market_catalog_sha256")==fingerprint(catalog) and
-        stored_preview.get("cashflow_snapshot_sha256")==fingerprint(cash) and
+        stored_preview.get("cashflow_snapshot_sha256")==fingerprint(reconciled) and
         stored_preview.get("major_history_sha256")==fingerprint(history) and
         stored_preview!=expected):
         raise LivePartialScorecardError("matched_fcf_preview_rows_changed_without_source")

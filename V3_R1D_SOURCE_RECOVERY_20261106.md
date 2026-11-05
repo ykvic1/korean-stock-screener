@@ -22,6 +22,15 @@ does not count rejected periods as fresh evidence, and resets batch-health
 expansion. Identity, malformed values and other schema failures remain
 blocking. Public `merge` and `_record` remain strict.
 
+Integration CI also reproduced a separate publication defect after an
+automatic major-account receipt rebind: one revised annual receipt caused
+the current scorecard to withhold all unrelated issuers' FCF. The scorecard
+now uses the collector's existing strict per-period reconciliation in memory
+before recomputing peer scores. Old values are never assigned a new receipt,
+source checkpoints remain unchanged, and same-source preview tampering
+continues to fail. Three synthetic regressions cover isolation and tampering;
+the two previously failing saved-source integration tests pass.
+
 ## Current-model completion queue
 
 `v3_operational_evidence_priority.py` independently reconciles the R1d
