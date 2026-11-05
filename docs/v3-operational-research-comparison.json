@@ -20,6 +20,26 @@
       "old_kospi": 83
     }
   },
+  "operational_coverage": {
+    "status": "provisional_operational",
+    "source_digest": "18210c2ecf08d3517698904a66b2b777ca36cc0a1e49cee2dfd97e80deb3cd16",
+    "listed_total": 2501,
+    "ranked_count": 2481,
+    "available_100_count": 556,
+    "available_95_count": 756,
+    "available_90_count": 1188,
+    "budgets": {
+      "volume": 25,
+      "technical": 30.0,
+      "financial": 12.5,
+      "valuation": 12.5,
+      "momentum": 20
+    },
+    "provider_calls": 0,
+    "missing_is_not_zero": true,
+    "investment_score_certified": false,
+    "performance_validated": false
+  },
   "prior_operational_version": "v3-stable-r1c-operational-research",
   "same_input_prior_ranked_issuers": 2481,
   "prior_top_overlap": {
