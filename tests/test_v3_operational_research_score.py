@@ -52,6 +52,20 @@ class OperationalScoreTests(unittest.TestCase):
             self.assertEqual(line['잠정운영점수'],'' if r['score'] is None else str(r['score']))
             self.assertEqual(line['모델버전'],ops.VERSION)
 
+    def test_lightweight_r1d_coverage_meter_preserves_missing_weight(self):
+        meter=ops.coverage_summary(self.report,'a'*64)
+        rows=list(self.report['rows'].values())
+        self.assertEqual(meter['listed_total'],len(rows))
+        self.assertEqual(meter['ranked_count'],sum(r['rank'] is not None for r in rows))
+        for field,threshold in [('available_100_count',100),
+                                ('available_95_count',95),('available_90_count',90)]:
+            self.assertEqual(meter[field],sum(r['available']>=threshold for r in rows))
+        self.assertEqual(meter['budgets'],ops.BUDGET)
+        self.assertFalse(meter['investment_score_certified'])
+        self.assertFalse(meter['performance_validated'])
+        self.assertTrue(meter['missing_is_not_zero'])
+        self.assertEqual(meter['provider_calls'],0)
+
     def test_known_risk_lower_bound_is_continuous_and_never_claims_safe(self):
         def record(equity,loss_years):
             return {'years':{str(2022+i):{'CFS':{'values':{'assets':100,'equity':equity,

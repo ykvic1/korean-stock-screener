@@ -228,6 +228,36 @@ const liveReceipts=JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/v3-dart-historical-receipt-progress.json'),'utf8'));
 const visibleMarket=liveProgress.observedSummary(liveObserved);
 const visibleDart=liveProgress.dartSummary(liveReceipts);
+const operationalReport=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-operational-research-scores.json'),'utf8'));
+const operationalRows=Object.values(operationalReport.rows);
+const operationalProgress={version:operationalReport.version,asof:operationalReport.asof,
+ performance_validated:false,operational_coverage:{
+  status:'provisional_operational',source_digest:operationalReport.source_digest,
+  listed_total:operationalReport.listed_total,
+  ranked_count:operationalRows.filter(r=>r.rank!==null).length,
+  available_100_count:operationalRows.filter(r=>r.available>=100).length,
+  available_95_count:operationalRows.filter(r=>r.available>=95).length,
+  available_90_count:operationalRows.filter(r=>r.available>=90).length,
+  budgets:{volume:25,technical:30,financial:12.5,valuation:12.5,momentum:20},
+  provider_calls:0,missing_is_not_zero:true,investment_score_certified:false,
+  performance_validated:false}};
+const visibleR1d=liveProgress.operationalSummary(operationalProgress);
+assert.equal(visibleR1d.total,operationalReport.listed_total);
+assert.equal(visibleR1d.observed,operationalRows.filter(r=>r.available>=100).length);
+assert.equal(visibleR1d.ranked,operationalRows.filter(r=>r.rank!==null).length);
+for(const [field,value] of [
+ ['provider_calls',1],['investment_score_certified',true],
+ ['missing_is_not_zero',false],['status','certified'],
+ ['source_digest','unsigned'],['available_100_count',2502],
+ ['available_95_count',0],['available_90_count',2502],
+ ['budgets',{volume:20,technical:25,financial:20,valuation:20,momentum:15}]
+]){
+ const corrupted=structuredClone(operationalProgress);
+ corrupted.operational_coverage[field]=value;
+ assert.equal(liveProgress.operationalSummary(corrupted),null,
+  'reject tampered R1d coverage '+field);
+}
 assert.ok(visibleMarket,'same-day observed source must validate for progress display');
 assert.ok(visibleDart,'anonymous DART checkpoint must validate for progress display');
 assert.equal(visibleMarket.observed,liveObserved.provisional_complete_100point_observation_count);

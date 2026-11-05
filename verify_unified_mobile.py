@@ -87,10 +87,29 @@ with sync_playwright() as p:
     public_receipts = context.request.get(
         URL + "v3-dart-historical-receipt-progress.json"
     ).json()
-    assert page.locator("#liveProgressAsOf").inner_text() == observed["asof"]
-    assert page.locator("#liveProgressCoverage").inner_text() == (
-        f'{observed["provisional_complete_100point_observation_count"]:,} / {observed["listed_total"]:,}종목'
-    )
+    comparison = context.request.get(
+        URL + "v3-operational-research-comparison.json"
+    ).json()
+    r1d = comparison.get("operational_coverage")
+    if (comparison.get("version") == "v3-stable-r1d-operational-research"
+            and r1d and comparison["asof"] <= observed["asof"]
+            and r1d["listed_total"] == observed["listed_total"]):
+        assert r1d["budgets"] == {"volume": 25, "technical": 30,
+                                    "financial": 12.5, "valuation": 12.5,
+                                    "momentum": 20}
+        assert r1d["investment_score_certified"] is False
+        assert page.locator("#liveProgressAsOf").inner_text() == (
+            comparison["asof"] + " · R1d 점수"
+        )
+        assert page.locator("#liveProgressCoverage").inner_text() == (
+            f'{r1d["available_100_count"]:,} / {r1d["listed_total"]:,}종목 (R1d)'
+        )
+    else:
+        assert page.locator("#liveProgressAsOf").inner_text() == observed["asof"]
+        assert page.locator("#liveProgressCoverage").inner_text() == (
+            f'{observed["provisional_complete_100point_observation_count"]:,} / '
+            f'{observed["listed_total"]:,}종목 (기존 모델)'
+        )
     assert page.locator("#liveProgressDart").inner_text() == (
         f'{public_receipts["filing_months_checkpointed"]:,} / 120개월'
     )
@@ -107,6 +126,9 @@ with sync_playwright() as p:
             "sort": page.locator("#sort").input_value(timeout=5000),
         }, ensure_ascii=False))
         raise
+    assert page.locator("#resultCount").inner_text().startswith(
+        f'{observed["listed_total"]:,}종목'
+    ), "R1d interactive all-listed view must include unpriced issuers"
     # Before selection, use the whole desktop width for a two-column issuer list.
     page.set_viewport_size({"width": 1440, "height": 900})
     desktop_grid = page.evaluate("""() => {
