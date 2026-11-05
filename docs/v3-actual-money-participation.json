@@ -39476,13 +39476,13 @@
   "retained_prior_money_issuers": 0,
   "schema": "v3-personal-actual-money-participation-six-0.1",
   "single_day_money_component_points": 0,
-  "source_catalog_sha256": "9aaccaaca0fcbf90ab9c62ea85e4e72ac9e43b6bbf6bb5efbfc590a23e3a4f0c",
+  "source_catalog_sha256": "77e25a144dd304ef7e22ac1b77a7793b03c52a6710ac1e5ecd17b12b59c248dc",
   "source_checkpoint_sha256": {
     "0": "3cbca1d9645682c93b7176d0a676a50c3fd64baa2a24832fd63013efadc6152e",
     "1": "079dc5ac27c7da0fc93a718ff708ae936ad0d37c233fdcac4ed253314ee647e0",
     "2": "fcc107e65f5b17dccefff3876466cbc5a84804923cb8daa7854182961aa366d7"
   },
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "eb17bc04ad98e3df211bd981d7d0a54a2b3dff0d",
+  "source_private_revision": "6305807392a9a55af0777b542122532e4a658051",
   "weekly_session_end": "2026-10-30"
 }
