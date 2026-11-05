@@ -137,7 +137,7 @@ with sync_playwright() as p:
     first_card.click()
     assert page.locator(".u-operational-detail").is_visible()
     page.locator(".u-operational-detail details summary").click()
-    assert "MA 기울기 전환은 종목별 일·주봉 가격 이력" in page.locator(".u-operational-detail").inner_text()
+    assert "거래 구조 12점은 완성된 장기 거래대금" in page.locator(".u-operational-detail").inner_text()
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "operational detail must fit mobile viewport"
     page.locator("#detailClose").click()
     # The existing comparison paths remain available and independently tested.

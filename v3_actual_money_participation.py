@@ -25,6 +25,7 @@ from v3_dart_bulk_history import _stable_digest
 
 from v3_actual_money_contract import (
     SCHEMA, MODEL, OUTPUT, DAILY, WEEKLY_WINDOWS, usable_records, closed_week_end)
+from v3_actual_money_structure import derive as derive_r1c_structure
 PRIVATE_REPO='ykvic1/korean-stock-private-data'
 COVERAGE_SUMMARY='v3-actual-money-coverage-summary.json'
 COVERAGE_SUMMARY_SCHEMA='v3-personal-actual-money-coverage-summary-0.1'
@@ -195,6 +196,11 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
                 'daily_asof':windows[0][-1],'computed_asof':asof,
                 'model':MODEL,'weekly_session_end':weekly[0]['session_end'],
                 'issuer_name':item['name']}
+            # A separate R1c decomposition leaves the original six-point
+            # personal/legacy model untouched. No source amounts are emitted.
+            structure=derive_r1c_structure(dv,wv,d)
+            if structure is not None:
+                records[code]['r1c_structure']=structure
         else:
             daily_reason=family_coverage_reason(dv,tuple(n//5 for n in DAILY))
             weekly_reason=family_coverage_reason(wv,WEEKLY_WINDOWS)

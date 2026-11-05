@@ -5,13 +5,16 @@ on:
     paths:
       - v3_actual_money_participation.py
       - v3_actual_money_contract.py
+      - v3_actual_money_structure.py
       - tests/test_v3_actual_money_participation.py
+      - tests/test_v3_actual_money_structure.py
       - .github/workflows/v3-actual-money-score.yml
   push:
     branches: [main]
     paths:
       - v3_actual_money_participation.py
       - v3_actual_money_contract.py
+      - v3_actual_money_structure.py
       - .github/workflows/v3-actual-money-score.yml
   workflow_run:
     workflows:
@@ -39,6 +42,7 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install 'requests>=2.31,<3'
       - run: python -m unittest discover -s tests -p 'test_v3_actual_money_participation.py' -v
+      - run: python -m unittest discover -s tests -p 'test_v3_actual_money_structure.py' -v
   publish:
     needs: offline
     if: >-

@@ -5,6 +5,7 @@ on:
     paths:
       - v3_operational_research_score.py
       - v3_ma_slope_transition.py
+      - v3_actual_money_structure.py
       - docs/operational-score.js
       - tests/test_v3_operational_research_score.py
       - tests/test_v3_ma_slope_transition.py
@@ -14,6 +15,7 @@ on:
     paths:
       - v3_operational_research_score.py
       - v3_ma_slope_transition.py
+      - v3_actual_money_structure.py
       - docs/operational-score.js
       - .github/workflows/v3-operational-research-score.yml
   workflow_run:

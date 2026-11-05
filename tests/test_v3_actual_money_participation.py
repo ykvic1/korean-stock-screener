@@ -147,11 +147,16 @@ class ActualMoneyTests(unittest.TestCase):
                          days=days,digest='a'*64,forward_days=forward,week_loader=week_days)
         self.assertEqual(result['eligible_issuers'],1)
         self.assertEqual(result['records']['000001']['points'],0)
+        self.assertIn('r1c_structure',result['records']['000001'])
+        self.assertTrue(m.usable_records(result,catalog))
         self.assertEqual(len(m.usable_records(result,catalog)),1)
         text=json.dumps(result)
         for field in ('amount_100k','ACC_TRDVAL','TDD_CLSPRC','"ratio"','total_actual_amount'):
             self.assertNotIn(field,text)
         self.assertFalse(result['investment_score_certified'])
+        tampered=copy.deepcopy(result)
+        tampered['records']['000001']['r1c_structure']['growth6']=10
+        self.assertEqual(m.usable_records(tampered,catalog),{})
         # Removing a committed middle file must fail, even with the same tail.
         del store.files[_path(_cohort_at_recent_first(days,10))]
         with self.assertRaises(ValueError):
