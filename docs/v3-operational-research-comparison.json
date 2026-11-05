@@ -1,30 +1,30 @@
 {
-  "asof": "2026-11-04",
-  "version": "v3-stable-r1c-operational-research",
+  "asof": "2026-11-05",
+  "version": "v3-stable-r1d-operational-research",
   "same_input_common_issuers": 2373,
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 25,
-      "new_kospi": 25,
+      "overlap": 23,
+      "new_kospi": 24,
       "old_kospi": 19
     },
     "100": {
       "overlap": 49,
       "new_kospi": 47,
-      "old_kospi": 40
+      "old_kospi": 42
     },
     "200": {
-      "overlap": 100,
-      "new_kospi": 93,
-      "old_kospi": 80
+      "overlap": 90,
+      "new_kospi": 90,
+      "old_kospi": 84
     }
   },
-  "prior_operational_version": "v3-stable-r1b-operational-research",
+  "prior_operational_version": "v3-stable-r1c-operational-research",
   "same_input_prior_ranked_issuers": 2481,
   "prior_top_overlap": {
-    "50": 50,
-    "100": 100,
-    "200": 200
+    "50": 38,
+    "100": 79,
+    "200": 156
   }
 }
