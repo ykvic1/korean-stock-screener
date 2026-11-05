@@ -1,0 +1,77 @@
+name: V3 Private Supplemental Action Receipt Continuation
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_extension_continuation.py
+      - v3_private_dart_structured_action_extension.py
+      - tests/test_v3_dart_extension_continuation.py
+      - .github/workflows/v3-dart-extension-continuation.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_extension_continuation.py
+      - .github/workflows/v3-dart-extension-continuation.yml
+  schedule:
+    # At most 3,840 supplemental provider attempts/day, separately from
+    # 9,216 principal scheduled attempts. Source auth/quota errors still stop.
+    - cron: '25 0,4,8,12,16,20 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [dry_run, live]
+        default: dry_run
+        required: true
+      batches:
+        type: choice
+        options: ['1', '16', '64', '128']
+        default: '128'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - run: |
+          python -m py_compile v3_dart_extension_continuation.py
+          python -m unittest discover -s tests -p 'test_v3_dart_extension_continuation.py' -v
+  private-continuation:
+    needs: offline
+    if: >-
+      ${{ github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
+          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): continue supplemental action')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    concurrency:
+      group: v3-dart-private-historical-event-receipts
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Continue verified supplemental receipt-category checkpoints
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          V3_EXTENSION_CONTINUATION_BATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.batches || '128' }}
+        run: python v3_dart_extension_continuation.py
