@@ -67,6 +67,10 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
  assert.ok(entry.includes('v30b-20261103-cross-explain'),'homepage uses compact ranking UI assets');
  assert.ok(html.includes('v30b-20261103-cross-explain'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('workspace.js?v=v30b-20261105-money-eps-source'),
+  'homepage must fetch updated monetary and EPS source explanations');
+ assert.ok(html.includes('workspace.js?v=v30b-20261105-money-eps-source'),
+  'research route must fetch the same updated script');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
 
@@ -806,7 +810,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261104-eps-dated-fcf','v30b-20261103-cross-explain'],[entry,'v30b-20261104-eps-dated-fcf','v30b-20261103-cross-explain']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261105-money-eps-source','v30b-20261103-cross-explain'],[entry,'v30b-20261105-money-eps-source','v30b-20261103-cross-explain']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin its independently versioned JS and CSS assets');
