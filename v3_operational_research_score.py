@@ -236,6 +236,29 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
         'rows':rows}
 
 
+def can_hold_previous_during_temporal_lag(market,catalog,ledger,history,previous):
+    """Keep an already published dated ranking while upstream files catch up.
+
+    This must never authorize mixing different trading days in a new score,
+    or bypass tampered/malformed source flags. No report is rewritten on hold.
+    """
+    if (ledger.get('missing_is_not_zero') is not True or
+        ledger.get('investment_score_certified') is not False):
+        return False
+    day=catalog['date']
+    mismatch=(market['date']!=day or ledger['market_asof']!=day or
+              history.get('asof',day)>day)
+    return (mismatch and isinstance(previous,dict) and
+        previous.get('version') in COMPATIBLE_PREVIOUS and
+        previous.get('format')=='compact-parts-v1' and
+        previous.get('investment_score_certified') is False and
+        previous.get('missing_is_not_zero') is True and
+        previous.get('status')=='provisional_operational' and
+        isinstance(previous.get('rows'),dict) and
+        len(previous['rows'])==previous.get('listed_total') and
+        previous.get('asof','9999')<=max(day,market['date']))
+
+
 def to_csv(report):
     out=StringIO(newline='');w=csv.writer(out,lineterminator='\n')
     w.writerow(['운영순위','종목코드','종목명','시장','모델버전','잠정운영점수','관측합계','확보배점','기준일','가장오래된기준일',
@@ -256,7 +279,13 @@ def main():
     names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json','v3-dart-bulk-history.json',
         'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json']
     inputs=[read(n) for n in names]
-    report=build(*inputs,previous=read(OUTPUT) if (root/OUTPUT).exists() else None)
+    previous=read(OUTPUT) if (root/OUTPUT).exists() else None
+    if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
+        print(json.dumps({'status':'waiting_for_aligned_daily_sources',
+            'previous_operational_score_preserved':True,
+            'previous_score_asof':previous['asof'],'provider_calls':0}))
+        return
+    report=build(*inputs,previous=previous)
     report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
     digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes']],sort_keys=True).encode()).hexdigest()

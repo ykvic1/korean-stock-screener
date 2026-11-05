@@ -79,6 +79,22 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertTrue(all(p is None for ps in parts.values() for p in ps.values()))
         self.assertEqual(risk['status'],'unknown')
 
+    def test_new_market_day_does_not_destroy_prior_scores_during_ledger_lag(self):
+        previous=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
+        self.assertIn(previous['version'],ops.COMPATIBLE_PREVIOUS)
+        market,catalog,ledger,history=copy.deepcopy(self.inputs[:4])
+        market['date']='2026-11-05'
+        self.assertTrue(ops.can_hold_previous_during_temporal_lag(
+            market,catalog,ledger,history,previous))
+        with self.assertRaisesRegex(ValueError,'unaligned_operational_sources'):
+            ops.build(*[market,catalog,ledger,history]+self.inputs[4:])
+        broken=copy.deepcopy(previous);broken['investment_score_certified']=True
+        self.assertFalse(ops.can_hold_previous_during_temporal_lag(
+            market,catalog,ledger,history,broken))
+        broken=copy.deepcopy(ledger);broken['missing_is_not_zero']=False
+        self.assertFalse(ops.can_hold_previous_during_temporal_lag(
+            market,catalog,broken,history,previous))
+
     def test_prior_receipts_migrate_without_relabeling_legacy_scores(self):
         old=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
         self.assertIn(old['version'],ops.COMPATIBLE_PREVIOUS)
