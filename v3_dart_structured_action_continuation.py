@@ -13,7 +13,7 @@ import v3_private_dart_structured_action_receipts as source
 from v3_dart_continuous_catchup import QuotaWaitingPrivateGitStorage
 from v3_krx_private_github_backfill import PrivateHistoryError
 
-MAX_BATCHES=64
+MAX_BATCHES=256
 MAX_REQUESTS=MAX_BATCHES*source.MAX_CALLS
 MAX_SECONDS=55*60
 TARGET_PAIRS=len(source.MONTHS)-1
@@ -145,7 +145,7 @@ def main():
         or len(os.getenv('V3_PRIVATE_ARCHIVE_TOKEN',''))<20
         or len(os.getenv('DART_API_KEY',''))!=40):
         raise ActionContinuationError('private_structured_action_credentials_missing')
-    max_batches=int(os.getenv('V3_ACTION_CONTINUATION_BATCHES','64'))
+    max_batches=int(os.getenv('V3_ACTION_CONTINUATION_BATCHES',str(MAX_BATCHES)))
     phase=['private_archive_init']
     store=QuotaWaitingPrivateGitStorage(source.PRIVATE_REPO,os.environ['V3_PRIVATE_ARCHIVE_TOKEN'],
                                        deadline=time.monotonic()+MAX_SECONDS)

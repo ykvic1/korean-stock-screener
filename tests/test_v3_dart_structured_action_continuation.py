@@ -100,7 +100,7 @@ class ContinuationTests(unittest.TestCase):
         report=c.continuous(self.store,self.fetch,max_batches=1)
         self.assertEqual(report['completed_batches'],1)
         self.assertEqual(report['stop_reason'],'batch_limit')
-        for values in ({'max_batches':65},{'max_batches':True},{'max_requests':385},
+        for values in ({'max_batches':c.MAX_BATCHES+1},{'max_batches':True},{'max_requests':c.MAX_REQUESTS+1},
                        {'max_requests':5},{'max_seconds':3301},{'max_seconds':0}):
             with self.assertRaises(c.ActionContinuationError):c.continuous(self.store,self.fetch,**values)
     def test_empty_queue_advances_without_provider_calls(self):
@@ -109,6 +109,35 @@ class ContinuationTests(unittest.TestCase):
         self.assertEqual(report['provider_requests'],0)
         self.assertEqual(report['completed_month_pairs'],1)
         self.assertEqual(report['stop_reason'],'waiting_for_upstream')
+
+    def test_accelerated_run_crosses_old_cap_and_resumes_without_duplicate_calls(self):
+        # A busy pair must survive many independent CAS transactions, not just
+        # a higher config value. Stop at 128 batches, then resume its tail.
+        records=[{'rcept_no':f'20161101{i:06d}', 'corp_code':'00121932','title_hints':['fixture']}
+                 for i in range(1,514)]
+        with patch.object(a,'_candidate_queue',return_value=(records,'b'*64,len(records))):
+            first=c.continuous(self.store,self.fetch,max_batches=128)
+            self.assertEqual(first['processed_candidates'],256)
+            self.assertEqual(first['provider_requests'],768)
+            self.assertEqual(first['stop_reason'],'batch_limit')
+            second=c.continuous(self.store,self.fetch)
+        self.assertEqual(second['processed_candidates'],257)
+        self.assertEqual(second['provider_requests'],771)
+        self.assertEqual(second['completed_month_pairs'],1)
+        self.assertEqual(len(self.calls),513*3)
+        self.assertEqual(second['scores_promoted'],0)
+
+    def test_accelerated_run_still_stops_at_deadline_after_old_cap(self):
+        records=[{'rcept_no':f'20161101{i:06d}', 'corp_code':'00121932','title_hints':['fixture']}
+                 for i in range(1,301)]
+        now=[0]
+        def emit(event):
+            if event['completed_batches']==65:now[0]=5
+        with patch.object(a,'_candidate_queue',return_value=(records,'b'*64,len(records))):
+            result=c.continuous(self.store,self.fetch,clock=lambda:now[0],max_seconds=5,emit=emit)
+        self.assertEqual(result['completed_batches'],65)
+        self.assertEqual(result['stop_reason'],'time_limit')
+        self.assertEqual(result['provider_requests'],390)
     def test_complete_cursor_requires_existing_tail_and_never_claims_effect_dates(self):
         with patch.object(c,'TARGET_PAIRS',1):
             result=c.continuous(self.store,self.fetch)
@@ -159,6 +188,11 @@ class ContinuationTests(unittest.TestCase):
         self.assertIn('group: v3-dart-private-structured-action-receipts',live)
         self.assertNotIn('upload-artifact',text);self.assertNotIn('git add',text)
         self.assertIn("options: [dry_run, live]",text)
+        self.assertIn("cron: '55 2,6,10,14,18,22 * * *'",text)
+        self.assertIn("default: '256'",text)
+        self.assertIn("|| '256'",live)
+        self.assertIn('queue: max',live)
+        self.assertIn('timeout-minutes: 65',live)
 
 
 if __name__=='__main__':unittest.main()
