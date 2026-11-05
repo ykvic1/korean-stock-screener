@@ -128,7 +128,7 @@ with sync_playwright() as p:
     assert desktop_grid["secondLeft"] > desktop_grid["firstLeft"] + 300, desktop_grid
     assert desktop_grid["firstWidth"] > 450 and not desktop_grid["overflow"], desktop_grid
     page.set_viewport_size({"width": 390, "height": 844})
-    assert page.locator("#sort").input_value() == "ops", "default sort must use provisional R1a operational points"
+    assert page.locator("#sort").input_value() == "ops", "default sort must use provisional R1 operational points"
     operational = context.request.get(URL + "v3-operational-research-scores.json").json()
     first_card = page.locator(".u-stock").first
     first_code = first_card.get_attribute("data-stock")
@@ -137,7 +137,7 @@ with sync_playwright() as p:
     first_card.click()
     assert page.locator(".u-operational-detail").is_visible()
     page.locator(".u-operational-detail details summary").click()
-    assert "MA 기울기 전환 5점" in page.locator(".u-operational-detail").inner_text()
+    assert "MA 기울기 전환은 종목별 일·주봉 가격 이력" in page.locator(".u-operational-detail").inner_text()
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "operational detail must fit mobile viewport"
     page.locator("#detailClose").click()
     # The existing comparison paths remain available and independently tested.
