@@ -51,12 +51,15 @@ def fiscal(record):
     return [years[y][scope]['values'] for y in keys] if scope else []
 
 
-def risk_assessment(record):
+def risk_assessment(record, financial_sector=False):
     annual=fiscal(record); severity=[]; warnings=[]
     if annual:
         last=annual[-1]; assets=last.get('assets'); equity=last.get('equity')
         if finite(assets) and assets>0 and finite(equity):
-            severity.append(smooth((.22-equity/assets)/.22))
+            # Financial firms normally operate with lower equity/assets.
+            # Unknown industry also cannot justify this generic threshold.
+            if equity<=0 or financial_sector is False:
+                severity.append(smooth((.22-equity/assets)/.22))
             if equity<=0:warnings.append('자기자본 0 이하 · 고위험')
         losses=[]; streak=0
         for v in annual:
@@ -77,7 +80,7 @@ def risk_assessment(record):
         'unverified':['자본금 대비 잠식률','업종별 부채·상환능력','반복 현금흐름 악화']}
 
 
-def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None):
+def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financial_sector=None):
     parts={a:{k:None for k in ks} for a,ks in SPECS.items()}
     def put(area,key,points,available,asof):
         if (finite(points) and finite(available) and 0<available<=SPECS[area][key]+1e-6
@@ -133,10 +136,10 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None):
             put('valuation',new,q[old]*2.5/m,2.5,ed)
     mom=saved.get('factors',{}).get('momentum')
     if mom:put('momentum','existing_momentum',mom['points'],mom['available'],mom['asof'])
-    return parts,risk_assessment(annual or {})
+    return parts,risk_assessment(annual or {},financial_sector=financial_sector)
 
 
-def build(market,catalog,ledger,history,money_source,personal,previous=None):
+def build(market,catalog,ledger,history,money_source,personal,industry=None,previous=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -153,7 +156,13 @@ def build(market,catalog,ledger,history,money_source,personal,previous=None):
         code=member['code'];saved=ledger['rows'].get(code);stock=stocks.get(code)
         if not saved or any(saved.get(k)!=member.get(k) for k in ('code','name','market')):
             raise ValueError('operational_issuer_identity_mismatch')
-        parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),
+        sector=(industry or {}).get('records',{}).get(code,{})
+        sector_code=sector.get('industry_code')
+        sector_valid=(sector.get('status')=='observed' and sector.get('origin')=='OpenDART_company_json'
+            and sector.get('market')==member['market'] and sector.get('checked_on','9999')<=day
+            and isinstance(sector_code,str) and sector_code.isdigit() and len(sector_code)>=2)
+        financial_sector=sector_code[:2] in ('64','65','66') if sector_valid else None
+        parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),financial_sector=financial_sector,
             eps=personal.get('valuation_overrides',{}).get(code),annual=history.get('records',{}).get(code))
         prior=previous.get('rows',{}).get(code)
         if prior and prior['name']==member['name'] and prior['market']==member['market']:
@@ -209,7 +218,7 @@ def main():
     root=args.docs
     def read(name):return json.loads((root/name).read_text())
     names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json','v3-dart-bulk-history.json',
-        'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json']
+        'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json']
     inputs=[read(n) for n in names]
     report=build(*inputs,previous=read(OUTPUT) if (root/OUTPUT).exists() else None)
     report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}

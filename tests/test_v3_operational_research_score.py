@@ -15,7 +15,7 @@ class OperationalScoreTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json',
-            'v3-dart-bulk-history.json','v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json']
+            'v3-dart-bulk-history.json','v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json','v3-dart-industry-classification.json']
         cls.inputs=[json.loads((ROOT/'docs'/n).read_text()) for n in names]
         cls.report=ops.build(*cls.inputs)
 
@@ -49,6 +49,10 @@ class OperationalScoreTests(unittest.TestCase):
         a=ops.risk_assessment(record(21.99,0))['deduction']
         b=ops.risk_assessment(record(22.01,0))['deduction']
         self.assertLess(abs(a-b),.01)
+        bank=ops.risk_assessment(record(8,0),financial_sector=True)
+        unknown=ops.risk_assessment(record(8,0),financial_sector=None)
+        self.assertEqual(bank['deduction'],0)
+        self.assertEqual(unknown['deduction'],0)
 
     def test_source_identity_future_and_missing_evidence(self):
         changed=copy.deepcopy(self.inputs)
