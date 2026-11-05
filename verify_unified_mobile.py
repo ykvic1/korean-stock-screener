@@ -141,7 +141,9 @@ with sync_playwright() as p:
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "operational detail must fit mobile viewport"
     page.locator("#detailClose").click()
     # The existing comparison paths remain available and independently tested.
+    page.locator("#advancedFilters > summary").click()
     page.locator("#sort").select_option("stable")
+    page.locator("#advancedFilters > summary").click()
     assert page.locator("#sort").input_value() == "stable", "legacy stability comparison remains available"
     assert "안정형 보정" in page.locator(".u-card-score").first.inner_text()
     assert "시총" in page.locator(".u-card-meta").first.inner_text()
