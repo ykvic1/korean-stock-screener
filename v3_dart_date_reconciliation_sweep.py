@@ -32,6 +32,27 @@ class DateSweepError(ValueError):
     """Fixed codes without source values."""
 
 
+def _storage_diagnostic(error):
+    # Only transport-defined enums cross into public logs; never error text,
+    # URLs, headers, response bodies, filenames, receipts or credentials.
+    status = getattr(error, 'safe_http_status', None)
+    operation = getattr(error, 'safe_http_operation', None)
+    result = {}
+    if status in ('http_401', 'http_403', 'http_403_rate_limited', 'http_404',
+                  'http_409', 'http_422', 'http_429', 'http_500', 'http_502',
+                  'http_503', 'http_504', 'http_other', 'transport_or_response'):
+        result['storage_status'] = status
+    if operation in ('read_repository_metadata', 'read_private_content',
+                     'write_private_content', 'other_private_operation'):
+        result['storage_operation'] = operation
+    code = str(error)
+    if code in ('target_repo_not_confirmed_private', 'private_repo_size_not_reported',
+                'private_repository_budget_exceeded', 'invalid_private_blob_base64',
+                'untrusted_private_blob', 'private_storage_api_failed'):
+        result['storage_reason'] = code
+    return result
+
+
 def _empty():
     return {'schema': SCHEMA, 'next_pair_index': 0, 'next_candidate_index': 0,
             'queue_sha256': None, 'last_file': None, 'last_digest': None,
@@ -254,7 +275,9 @@ def main():
                   principal.StructuredActionError, supplement.ExtensionError)) else
                   'private_date_sweep_storage_unavailable' if isinstance(error, PrivateHistoryError)
                   else 'private_date_sweep_unavailable')
-        print(json.dumps({'status': 'blocked', 'reason': reason, 'source_values_exposed': False}))
+        diagnostic = _storage_diagnostic(error) if isinstance(error, PrivateHistoryError) else {}
+        print(json.dumps({'status': 'blocked', 'reason': reason,
+                          **diagnostic, 'source_values_exposed': False}))
         return 1
 
 

@@ -195,6 +195,16 @@ class SweepTests(unittest.TestCase):
         self.assertIn("if: steps.reconcile.outputs.resume == 'true'", live)
         self.assertIn('queue: max', live)
 
+    def test_storage_failure_logs_only_allowlisted_transport_codes(self):
+        error = s.PrivateHistoryError('private-token-and-receipt-must-not-print')
+        error.safe_http_status = 'http_403_rate_limited'
+        error.safe_http_operation = 'read_repository_metadata'
+        self.assertEqual(s._storage_diagnostic(error), {
+            'storage_status': 'http_403_rate_limited', 'storage_operation': 'read_repository_metadata'})
+        error.safe_http_status = 'private-token'
+        error.safe_http_operation = 'private-receipt'
+        self.assertEqual(s._storage_diagnostic(error), {})
+
 
 if __name__ == '__main__':
     unittest.main()
