@@ -73,6 +73,23 @@ def usable_records(report, catalog):
                        for k,v in diagnostic['reason_pair_counts'].items())
                 or sum(diagnostic['reason_pair_counts'].values())!=diagnostic['fresh_unscored_issuers']):
                 return {}
+        windows=report.get('comparison_window_coverage')
+        if windows is not None:
+            if (type(windows) is not dict or set(windows)!={
+                'daily_comparison_eligible_issuers','weekly_comparison_eligible_issuers',
+                'complete_window_is_not_full_six_point_eligibility',
+                'issuer_window_flags_or_amounts_published'}
+                or windows['complete_window_is_not_full_six_point_eligibility'] is not True
+                or windows['issuer_window_flags_or_amounts_published'] is not False):
+                return {}
+            fresh=diagnostic['full_fresh_evidence_issuers'] if diagnostic else 0
+            for field,periods in [('daily_comparison_eligible_issuers',DAILY),
+                                  ('weekly_comparison_eligible_issuers',WEEKLY_WINDOWS)]:
+                counts=windows[field]
+                if (type(counts) is not dict or set(counts)!={str(n) for n in periods}
+                    or any(type(v) is not int or not fresh<=v<=report['listed_total']
+                           for v in counts.values())):
+                    return {}
         for code,r in records.items():
             if (type(r) is not dict or type(r.get('asof')) is not str
                 or r['asof']>report['asof'] or date.fromisoformat(r['asof']).isoformat()!=r['asof']

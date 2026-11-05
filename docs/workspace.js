@@ -1401,11 +1401,29 @@ function actualMoneyGapText(raw,asof,listed){
   if(daily==='zero_baseline'||weekly==='zero_baseline')zeroBaseline+=value;
  }
  if(total!==d.fresh_unscored_issuers)return '';
+ let windowText='';
+ const w=raw.comparison_window_coverage;
+ if(w!==undefined){
+  const daily=w?.daily_comparison_eligible_issuers;
+  const weekly=w?.weekly_comparison_eligible_issuers;
+  if(!w||w.complete_window_is_not_full_six_point_eligibility!==true||
+     w.issuer_window_flags_or_amounts_published!==false||
+     !daily||!weekly||Array.isArray(daily)||Array.isArray(weekly)||
+     typeof daily!=='object'||typeof weekly!=='object'||
+     Object.keys(daily).sort().join(',')!=='120,20,240,60'||
+     Object.keys(weekly).sort().join(',')!=='10,120,20,5,60'||
+     [...Object.values(daily),...Object.values(weekly)].some(n=>!Number.isInteger(n)||
+      n<d.full_fresh_evidence_issuers||n>listed))return '';
+  windowText=' · 주봉 실제 거래대금 비교 가능 5주 '+weekly['5']+
+   ' / 20주 '+weekly['20']+' / 120주 '+weekly['120']+
+   '종목(기간별 부분 관측이며 전 구간 6점 산출과 구분).';
+ }
  return ' · 거래대금 6점 원천의 완전 관측 '+d.full_fresh_evidence_issuers+
   '종목 / 미산출 '+total+'종목: 일봉 연속기간 미확보 '+dailyMissing+
   ', 주봉 연속기간 미확보 '+weeklyMissing+
   ', 기준기간 거래대금 0으로 비교 불가 '+zeroBaseline+
-  '종목(원인별 중복 가능). 자료 부족이 신규상장·거래정지·종목변경의 확정 원인을 뜻하지는 않습니다.';
+  '종목(원인별 중복 가능). 자료 부족이 신규상장·거래정지·종목변경의 확정 원인을 뜻하지는 않습니다.'+
+  windowText;
 }
 // Price is NOT used for the golden-cross/MA240 band. Show exactly the
 // same dated crossing receipt that can justify (or reject) its six points.

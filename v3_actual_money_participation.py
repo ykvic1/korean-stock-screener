@@ -109,6 +109,7 @@ def coverage_summary(report):
         'investment_score_certified':False,
         'original_amounts_or_bars_published':False,
         'coverage_gap_diagnostic':report['coverage_gap_diagnostic'],
+        'comparison_window_coverage':report['comparison_window_coverage'],
     }
 
 
@@ -168,6 +169,8 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         weekly.append(validate_week(raw,week,expected))
     records={}
     gap_counts={}
+    daily_window_counts={str(n):0 for n in DAILY}
+    weekly_window_counts={str(n):0 for n in WEEKLY_WINDOWS}
     members=set()
     for item in catalog['rows']:
         code=item.get('code'); market=item.get('market')
@@ -180,6 +183,12 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         w=[r['issuer_week_factors'].get(key) for r in weekly]
         dv=[r['total_actual_amount_100k_krw']/5 if r is not None else None for r in d]
         wv=[r['amount_100k_krw']/r['observed_sessions'] if r is not None else None for r in w]
+        for n in DAILY:
+            if family_coverage_reason(dv,(n//5,))=='complete':
+                daily_window_counts[str(n)]+=1
+        for n in WEEKLY_WINDOWS:
+            if family_coverage_reason(wv,(n,))=='complete':
+                weekly_window_counts[str(n)]+=1
         points=provisional_points(dv,wv)
         if points is not None:
             records[code]={'market':market,'asof':min(windows[0][-1],weekly[0]['session_end']),'points':points,
@@ -214,6 +223,11 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
             'incomplete_periods_do_not_prove_recent_listing':True,
             'zero_baseline_is_unavailable_not_zero_points':True,
             'issuer_amounts_or_coverage_timeseries_published':False},
+        'comparison_window_coverage':{
+            'daily_comparison_eligible_issuers':daily_window_counts,
+            'weekly_comparison_eligible_issuers':weekly_window_counts,
+            'complete_window_is_not_full_six_point_eligibility':True,
+            'issuer_window_flags_or_amounts_published':False},
         'provisional_personal_use_only':True,'original_amounts_or_bars_published':False,
         'independent_regular_session_verified':False,'corporate_actions_and_pit_verified':False,
         'investment_score_certified':False,'single_day_money_component_points':0,
