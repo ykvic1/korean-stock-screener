@@ -415,6 +415,96 @@ class SupplementalActionTests(unittest.TestCase):
         self.assertTrue(json.loads(log.getvalue())["previous_reports_reused"] == 1)
         self.assertNotIn(RECORDS[0]["rcept_no"], log.getvalue())
 
+    def _run_main_with_store(self, store, queue):
+        log = io.StringIO()
+        calls = []
+        with (patch.dict(s.os.environ, {"V3_PRIVATE_ARCHIVE_REPO": s.PRIVATE_REPO,
+                                       "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                                       "DART_API_KEY": "A" * 40}),
+              patch.object(s, "PrivateGitStorage", return_value=store),
+              patch.object(s, "triage_cursor", return_value={"next_pair_index": 1}),
+              patch.object(s, "_candidate_queue", return_value=(queue, "a" * 64, len(queue))),
+              patch.object(s, "official_fetch", side_effect=lambda key, ep, *args:
+                           (calls.append(ep), {"status": "013"})[1]),
+              patch.object(s.time, "sleep"), redirect_stdout(log)):
+            code = s.main()
+        return code, calls, json.loads(log.getvalue())
+
+    def test_ambiguous_checkpoint_reply_never_starts_a_second_candidate_batch(self):
+        class LostCheckpointReply(Private):
+            failed = False
+            def put_new(self, key, raw, comment):
+                result = super().put_new(key, raw, comment)
+                if key == s.CHECKPOINT and not self.failed:
+                    self.failed = True
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return result
+        store = LostCheckpointReply(); store.blobs.update(self.store.blobs)
+        queue = [record(f"201611030000{n:02d}", list(s.HINT_ENDPOINTS)) for n in range(1,9)]
+        code, calls, result = self._run_main_with_store(store, queue)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(calls), s.MAX_PROVIDER_CALLS)
+        self.assertEqual(result["processed_candidates"], 4)
+        self.assertEqual(json.loads(store.blobs[s.CHECKPOINT])["next_candidate_index"], 4)
+        self.assertNotIn(s._report_path(0, queue[4]["rcept_no"]), store.blobs)
+
+    def test_checkpoint_readback_outage_never_replays_an_already_committed_batch(self):
+        class LostReadback(Private):
+            failed = False
+            def get_content(self, key):
+                if key == s.CHECKPOINT and key in self.blobs and not self.failed:
+                    self.failed = True
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return super().get_content(key)
+        store = LostReadback(); store.blobs.update(self.store.blobs)
+        queue = [record(f"201611030000{n:02d}", list(s.HINT_ENDPOINTS)) for n in range(1,9)]
+        code, calls, result = self._run_main_with_store(store, queue)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(calls), s.MAX_PROVIDER_CALLS)
+        self.assertEqual(result["reason"], "private_extension_checkpoint_unavailable")
+        self.assertEqual(json.loads(store.blobs[s.CHECKPOINT])["next_candidate_index"], 4)
+
+    def test_ambiguous_existing_checkpoint_update_adopts_same_cursor_only(self):
+        queue = [record(f"201611030000{n:02d}", list(s.HINT_ENDPOINTS)) for n in range(1,10)]
+        class LostUpdateReply(Private):
+            failed = False
+            def transport(self, method, path, payload=None):
+                result = super().transport(method, path, payload)
+                if path == "contents/" + s.CHECKPOINT and not self.failed:
+                    self.failed = True
+                    raise s.PrivateHistoryError("private_storage_api_failed")
+                return result
+        store = LostUpdateReply(); store.blobs.update(self.store.blobs)
+        with (patch.object(s, "triage_cursor", return_value={"next_pair_index": 1}),
+              patch.object(s, "_candidate_queue", return_value=(queue, "a"*64, len(queue)))):
+            s.run(store, lambda *args: {"status": "013"}, limit=1)
+        code, calls, result = self._run_main_with_store(store, queue)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(calls), 20)
+        self.assertEqual(json.loads(store.blobs[s.CHECKPOINT])["next_candidate_index"], 5)
+        self.assertEqual(result["provider_calls_across_storage_retries"], 20)
+        self.assertNotIn("derived/dart-structured-action-receipts/checkpoint.json", store.blobs)
+
+    def test_main_provider_attempt_cap_spans_whole_transaction_retries(self):
+        calls = []
+        def interrupted_run(store, fetch):
+            for _ in range(15):fetch("fixture", "fixture", "fixture", "fixture")
+            raise s.PrivateHistoryError("private_storage_api_failed")
+        log = io.StringIO()
+        with (patch.dict(s.os.environ, {"V3_PRIVATE_ARCHIVE_REPO": s.PRIVATE_REPO,
+                                       "V3_PRIVATE_ARCHIVE_TOKEN": "t" * 40,
+                                       "DART_API_KEY": "A" * 40}),
+              patch.object(s, "PrivateGitStorage", return_value=self.store),
+              patch.object(s, "run", side_effect=interrupted_run),
+              patch.object(s, "official_fetch", side_effect=lambda *args:
+                           (calls.append(1), {"status":"013"})[1]),
+              patch.object(s.time, "sleep"), redirect_stdout(log)):
+            code = s.main()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(calls), 20)
+        self.assertEqual(json.loads(log.getvalue())["reason"],
+                         "private_extension_provider_budget_exceeded")
+
     def test_storage_authentication_or_shape_failure_not_retried(self):
         class InvalidPrivate(Private):
             calls = 0
