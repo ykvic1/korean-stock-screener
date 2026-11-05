@@ -946,6 +946,19 @@ assert.match(unified.scorePillarExplanation(
  assert.match(unified.volumeParts(company),/120주/);
  assert.match(unified.volumeParts(company),/2026-10-16/);
  assert.doesNotMatch(unified.volumeParts(company),/최근20일\/이전40일 거래량/);
+ assert.match(unified.sustainedParticipationNote(company),/실제 거래대금 20·60·120·240일/);
+ assert.match(unified.sustainedParticipationNote(company),/일 2026-10-20 · 주 2026-10-16/);
+ assert.match(unified.sustainedParticipationNote(company),/정규장 원천 미인증/);
+ assert.match(unified.sustainedParticipationNote(withVolume),/기존 거래량\(주식수\) 비율 잠정 대체/);
+ assert.match(unified.sustainedParticipationNote(row),/지속참여 6점 자료 미확보/);
+ const invalidMoney={...row,v3_volume_observed:{...money,
+  sustained_participation_source:{...money.sustained_participation_source,certified:true}}};
+ assert.match(unified.sustainedParticipationNote(invalidMoney),/자료 미확보/);
+ assert.doesNotMatch(unified.volumeParts(invalidMoney),/다중기간 실제 거래대금/);
+ assert.doesNotMatch(source,/과거 실제 거래대금 20·60·120·240일 및 5·10·20·60·120주 비교 자료는 미확보 상태/);
+ assert.doesNotMatch(source,/기간별 실제 거래대금 20·60·120·240일\/5·10·20·60·120주 검증 전 미반영/);
+ assert.doesNotMatch(source,/EPS 성장성·지속성은 아직 미수집/);
+ assert.match(source,/actualMoneyCount\+/);
  for(const changed of [{single_day_points:1},{certified:true},{daily_asof:'2027-01-01'},
                        {retained_prior_source:true},{calendar_week_grouping:false}]){
   assert.equal(unified.observedVolumeEvidence({...row,v3_volume_observed:{...money,
