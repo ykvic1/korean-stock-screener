@@ -68,6 +68,48 @@ def report_fixture(catalog):
 
 
 class ActualMoneyTests(unittest.TestCase):
+    def test_missing_period_and_zero_baseline_reason_are_not_issuer_or_price_leaks(self):
+        daily=[2]*96
+        self.assertEqual(m.family_coverage_reason(daily,(4,12,24,48)),'complete')
+        self.assertEqual(m.family_coverage_reason(daily[:95]+[None],(4,12,24,48)),
+                         'incomplete_periods')
+        self.assertEqual(m.family_coverage_reason([2]*4+[0]*4+[2]*88,(4,12,24,48)),
+                         'zero_baseline')
+        with self.assertRaises(m.ActualMoneyError):
+            m.family_coverage_reason([2]*95+[-1],(4,12,24,48))
+
+    def test_coverage_gap_aggregate_reconciles_all_listed_without_fake_scores(self):
+        store,days,forward,catalog=fixture()
+        catalog['listed_total']=3
+        catalog['rows']+= [
+            {'code':'000002','market':'KOSPI','name':'insufficient A'},
+            {'code':'000003','market':'KOSDAQ','name':'insufficient B'}]
+        report=m.collect(store,asof='2026-11-04',catalog=catalog,source_revision='a'*40,
+                         days=days,digest='a'*64,forward_days=forward,week_loader=week_days)
+        d=report['coverage_gap_diagnostic']
+        self.assertEqual(report['eligible_issuers'],1)
+        self.assertEqual(d['full_fresh_evidence_issuers'],1)
+        self.assertEqual(d['fresh_unscored_issuers'],2)
+        self.assertEqual(d['reason_pair_counts'],{'incomplete_periods__incomplete_periods':2})
+        summary=m.coverage_summary(report)
+        self.assertEqual(summary['schema'],m.COVERAGE_SUMMARY_SCHEMA)
+        self.assertEqual(summary['eligible_issuers'],1)
+        self.assertEqual(summary['coverage_gap_diagnostic'],d)
+        self.assertNotIn('records',summary)
+        self.assertNotIn('000001',json.dumps(summary))
+        self.assertNotIn('000002',json.dumps(summary))
+        self.assertLess(len(json.dumps(summary)),1600)
+        self.assertNotIn('000002',report['records'])
+        self.assertNotIn('000003',report['records'])
+        self.assertNotIn('amount_100k',json.dumps(d))
+        self.assertEqual(len(m.usable_records(report,catalog)),1)
+        for change in ({'fresh_unscored_issuers':3},
+                       {'reason_pair_counts':{'complete__complete':2}},
+                       {'issuer_amounts_or_coverage_timeseries_published':True}):
+            corrupted=copy.deepcopy(report)
+            corrupted['coverage_gap_diagnostic'].update(change)
+            self.assertEqual(m.usable_records(corrupted,catalog),{})
+
     def test_ratio_scale_invariance_persistence_and_concentration(self):
         self.assertEqual(m.window_strength([3]*5,[1]*5),1)
         self.assertEqual(m.window_strength([300]*5,[100]*5),1)
@@ -208,12 +250,15 @@ class ActualMoneyTests(unittest.TestCase):
             catalog={'date':'2026-11-04','rows':[]}
             (root/'v22-market-catalog.json').write_text(json.dumps(catalog))
             target=root/m.OUTPUT;target.write_text('previous valid score untouched')
+            summary_path=root/m.COVERAGE_SUMMARY
+            summary_path.write_text('previous valid summary untouched')
             output=root/'step-output'
             with patch.object(m,'collect',side_effect=m.ActualMoneyError('money_calendar_week_history_incomplete')), patch.dict(
                 'os.environ',{'GITHUB_OUTPUT':str(output),'V3_PRIVATE_ARCHIVE_TOKEN':'synthetic-offline-no-secret'}),patch('builtins.print'):
                 m.main(['--private-snapshot',directory,'--private-revision','a'*40,
                         '--docs',directory,'--allow-incomplete'])
             self.assertEqual(target.read_text(),'previous valid score untouched')
+            self.assertEqual(summary_path.read_text(),'previous valid summary untouched')
             self.assertEqual(output.read_text(),'ready=false\n')
             workflow=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-actual-money-score.yml').read_text()
             offline,live=workflow.split('  publish:',1)
