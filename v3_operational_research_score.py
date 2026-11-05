@@ -1,0 +1,239 @@
+"""Early operational R1a: saved evidence only, parallel to the legacy model.
+
+Unimplemented/new observations remain unavailable. No missing-weight inflation,
+provider calls, source-collection locks, or replacement of legacy score history.
+"""
+import argparse
+import csv
+from datetime import date
+from hashlib import sha256
+from io import StringIO
+import json
+import math
+from pathlib import Path
+
+from v3_actual_money_contract import usable_records
+from v3_volume_participation import observed as volume_observed
+from v3_pattern_composite_score import _observed as pattern_observed, _weekly_trend
+from v3_path_provisional_factors import preview as path_preview
+from v3_eps_valuation import valid as valid_eps
+from v3_personal_score_adjustments import profile, rounded, build as legacy_build
+
+VERSION = 'v3-stable-r1a-operational-research'
+OUTPUT = 'v3-operational-research-scores.json'
+SPECS = {
+ 'volume': {'long_horizon_growth':6,'persistence':5,'concentration_quality':2,
+   'up_down_asymmetry':2,'post_spike_absorption':3,'correction_contraction':1,
+   'weekly_structure_increment':2,'obv_price_divergence':4},
+ 'technical': {'daily_pattern':8.4,'weekly_pattern':9.6,'ma20_ma60_cross_near_ma240':6,
+   'daily_rsi':1.2,'weekly_rsi':1.8,'long_ma_position':1.8,'independent_breakout_confirmation':1.2},
+ 'financial': {'revenue_growth':3.5,'operating_growth_margin':3,'cashflow_fcf_persistence':3,'balance_sheet_strength':3},
+ 'valuation': {'per_eps_quality_growth':5,'pbr_equity_quality':2.5,'fcf_yield':2.5,'sales_to_cap':2.5},
+ 'momentum': {'existing_momentum':15,'daily_ma_slope_turn':2,'weekly_ma_slope_turn':3}}
+BUDGET = {k:round(sum(v.values()),6) for k,v in SPECS.items()}
+assert BUDGET == {'volume':25,'technical':30,'financial':12.5,'valuation':12.5,'momentum':20}
+
+
+def finite(x):
+    return type(x) in (int,float) and math.isfinite(x)
+
+
+def smooth(x):
+    u=max(0,min(1,x))
+    return u*u*(3-2*u)
+
+
+def fiscal(record):
+    years=record.get('years',{})
+    keys=sorted(y for y in years if y.isdigit())[-5:]
+    scope=next((s for s in ('CFS','OFS') if len(keys)>=3 and all(
+        isinstance(years[y].get(s,{}).get('values'),dict) for y in keys)),None)
+    return [years[y][scope]['values'] for y in keys] if scope else []
+
+
+def risk_assessment(record):
+    annual=fiscal(record); severity=[]; warnings=[]
+    if annual:
+        last=annual[-1]; assets=last.get('assets'); equity=last.get('equity')
+        if finite(assets) and assets>0 and finite(equity):
+            severity.append(smooth((.22-equity/assets)/.22))
+            if equity<=0:warnings.append('자기자본 0 이하 · 고위험')
+        losses=[]; streak=0
+        for v in annual:
+            op,rev=v.get('operating_income'),v.get('revenue')
+            if not finite(op) or not finite(rev) or rev<=0:break
+            losses.append(max(0,-op/rev))
+        if len(losses)==len(annual):
+            for v in reversed(annual):
+                if v['operating_income']>=0:break
+                streak+=1
+            severity.append(sum(v['operating_income']<0 for v in annual)/len(annual)
+                *smooth(streak/3)*smooth(sum(losses)/len(losses)/.2))
+            if streak>=3:warnings.append('3개년 이상 연속 영업적자')
+    # Debt maturity/interest service, capital impairment and repeated CFO are
+    # not fully authenticated by this saved annual subset. Never label safe.
+    return {'deduction':round(5*max(severity,default=0),4),
+        'status':'partial' if severity else 'unknown','warnings':warnings,
+        'unverified':['자본금 대비 잠식률','업종별 부채·상환능력','반복 현금흐름 악화']}
+
+
+def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None):
+    parts={a:{k:None for k in ks} for a,ks in SPECS.items()}
+    def put(area,key,points,available,asof):
+        if (finite(points) and finite(available) and 0<available<=SPECS[area][key]+1e-6
+            and 0<=points<=available and isinstance(asof,str) and asof<=day
+            and date.fromisoformat(asof).isoformat()==asof):
+            parts[area][key]={'points':round(points,6),'available':round(available,6),'asof':asof}
+    fresh=stock and stock.get('price_date')==day
+    if fresh:
+        v=volume_observed(stock,asof=day,market=stock['market'],money=money)
+        if v:
+            vp=v['subpoints'];vd=money['asof'] if money else day
+            put('volume','long_horizon_growth',vp['sustained_volume'],6,vd)
+            put('volume','obv_price_divergence',vp['obv_price_not_reflected'],4,day)
+            cross=vp['ma20_ma60_cross_near_ma240']
+            if cross is not None:put('technical','ma20_ma60_cross_near_ma240',cross,6,day)
+        p=path_preview(stock,asof=day)
+        if p:put('volume','post_spike_absorption',p['research_volume_post_spike_absorption_points']*.75,3,day)
+        for frame,limit,rsi_max in [('daily',8.4,1.2),('weekly',9.6,1.8)]:
+            evidence=pattern_observed(stock,frame)
+            if not evidence:continue
+            candidates=[1 if q['stage']=='breakout_observed' else .7 for q in evidence['patterns']]
+            geometry=evidence['pattern_geometry']
+            if any(geometry.get(k) for k in ('falling_wedge_candidate',
+                    'inverse_head_shoulders_breakout_candidate','post_rise_consolidation_candidate')):
+                candidates.append(.7)
+            # No bearish/unknown-trend triangle preference. This is a dated
+            # price-trend proxy, not a calibrated pattern win probability.
+            if (geometry.get('triangle_candidate') and finite(stock.get('price60'))
+                and finite(stock.get('price120')) and stock['price60']>0 and stock['price120']>0):
+                candidates.append(.7)
+            put('technical',frame+'_pattern',max(candidates,default=0)*limit,limit,evidence['asof'])
+            put('technical',frame+'_rsi',rsi_max if evidence['rsi30_cross_recent'] or
+                evidence['rsi_bullish_divergence_recent'] else 0,rsi_max,evidence['asof'])
+            if frame=='weekly':
+                ma=_weekly_trend(evidence)
+                if ma is not None:put('technical','long_ma_position',ma*.6,1.8,evidence['asof'])
+    components=saved.get('components',{})
+    for new,old,maximum in [('revenue_growth','revenue_cagr_3y_pct',3.5),
+            ('operating_growth_margin','operating_margin_3y_pct',3),
+            ('cashflow_fcf_persistence','fcf_assets_3y',3),('balance_sheet_strength','liabilities_to_assets_pct',3)]:
+        c=components.get('financial',{}).get(old)
+        if c and c.get('available')==4:put('financial',new,c['points']*maximum/4,maximum,c['asof'])
+    for new,old,maximum in [('pbr_equity_quality','pbr',2.5),('fcf_yield','fcf_yield',2.5),('sales_to_cap','sales_to_market_cap',2.5)]:
+        c=components.get('valuation',{}).get(old)
+        if c and c.get('available')==5:put('valuation',new,c['points']*maximum/5,maximum,c['asof'])
+    c=components.get('valuation',{}).get('earnings_yield_pct')
+    if c and c.get('available')==5:
+        put('valuation','per_eps_quality_growth',c['points']/3,5/3,c['asof'])
+    if eps and valid_eps(eps,code=saved['code'],name=saved['name'],market=saved['market'],day=day):
+        q=eps['parts'];ed=eps['source_oldest_asof']
+        put('valuation','per_eps_quality_growth',sum(q[k] for k in ('earnings_yield_pct','eps_growth','eps_stability'))*5/12,5,ed)
+        for new,old,m in [('pbr_equity_quality','pbr',4),('fcf_yield','fcf_yield',2),('sales_to_cap','sales_to_market_cap',2)]:
+            put('valuation',new,q[old]*2.5/m,2.5,ed)
+    mom=saved.get('factors',{}).get('momentum')
+    if mom:put('momentum','existing_momentum',mom['points'],mom['available'],mom['asof'])
+    return parts,risk_assessment(annual or {})
+
+
+def build(market,catalog,ledger,history,money_source,personal,previous=None):
+    day=catalog['date']
+    if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
+        or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
+    stocks={r['code']:r for r in market['stocks']}
+    money=usable_records(money_source,catalog)
+    old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
+    legacy={r['code']:r for r in old};rows={}
+    previous=previous if previous and previous.get('version')==VERSION and previous.get('asof','9999')<=day else {}
+    if previous.get('format')=='compact-parts-v1':
+        previous=json.loads(json.dumps(previous))
+        for r in previous.get('rows',{}).values():
+            r['parts']={a:{k:{'points':p[0],'available':p[1],'asof':p[2]} for k,p in ps.items()} for a,ps in r['parts'].items()}
+    for member in catalog['rows']:
+        code=member['code'];saved=ledger['rows'].get(code);stock=stocks.get(code)
+        if not saved or any(saved.get(k)!=member.get(k) for k in ('code','name','market')):
+            raise ValueError('operational_issuer_identity_mismatch')
+        parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),
+            eps=personal.get('valuation_overrides',{}).get(code),annual=history.get('records',{}).get(code))
+        prior=previous.get('rows',{}).get(code)
+        if prior and prior['name']==member['name'] and prior['market']==member['market']:
+            for area in parts:
+                for key,p in parts[area].items():
+                    older=prior.get('parts',{}).get(area,{}).get(key)
+                    if (older and finite(older.get('points')) and finite(older.get('available'))
+                        and 0<=older['points']<=older['available']<=SPECS[area][key]+1e-6
+                        and older['asof']<=day and (p is None or older['asof']>p['asof'])):parts[area][key]=older
+        if prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
+            risk['deduction']=prior['risk_deduction'];risk['status']='partial'
+            risk['warnings']=prior.get('risk_warnings',[])
+        areas={a:{'points':round(sum(p['points'] for p in ps.values() if p),6),
+                  'available':round(sum(p['available'] for p in ps.values() if p),6)} for a,ps in parts.items()}
+        available=round(sum(v['available'] for v in areas.values()),6)
+        base=round(sum(v['points'] for v in areas.values()),6) if available else None
+        adj=profile(stock,base)
+        score=rounded(max(0,min(100,base-adj['capital_deduction']+adj['stop_adjustment']-risk['deduction']))) if base is not None else None
+        rows[code]={'name':member['name'],'market':member['market'],'score':score,'base':base,
+            'available':available,'capital_deduction':adj['capital_deduction'],'stop_adjustment':adj['stop_adjustment'],
+            'missing_adjustment_sources':adj['missing_adjustment_sources'],
+            'risk_asof':history.get('asof') if history.get('records',{}).get(code) else (prior or {}).get('risk_asof'),
+            'risk_deduction':risk['deduction'],'risk_status':risk['status'],'risk_warnings':risk['warnings'],
+            'asof':max((p['asof'] for ps in parts.values() for p in ps.values() if p),default=day),
+            'oldest_asof':min((p['asof'] for ps in parts.values() for p in ps.values() if p),default=None),
+            'legacy_score':legacy[code]['adjusted_score'],'legacy_rank':legacy[code]['personal_rank'],
+            'parts':parts,'areas':areas,'rank':None}
+    eligible=sorted((k for k,r in rows.items() if r['score'] is not None),
+        key=lambda k:(-rows[k]['score'],-rows[k]['available'],k))
+    for rank,k in enumerate(eligible,1):rows[k]['rank']=rank
+    return {'version':VERSION,'asof':day,'budgets':BUDGET,'status':'provisional_operational',
+        'investment_score_certified':False,'performance_validated':False,'provider_calls':0,
+        'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
+        'risk_scope':'observed_lower_bound_not_complete_solvency_review',
+        'pending':['거래 세부구조 추가 12점','독립 돌파확인 1.2점','MA 기울기 전환 5점','부채상환·현금흐름 위험 검증'],
+        'rows':rows}
+
+
+def to_csv(report):
+    out=StringIO(newline='');w=csv.writer(out,lineterminator='\n')
+    w.writerow(['운영순위','종목코드','종목명','시장','모델버전','잠정운영점수','관측합계','확보배점','기준일','가장오래된기준일',
+        '시총감점','손절보정','재무위험감점','재무위험상태','기존점수','기존순위']+
+        [a+'_'+k for a in BUDGET for k in ('점수','확보배점')])
+    for code,r in sorted(report['rows'].items(),key=lambda x:x[1]['rank'] or 100000):
+        w.writerow([r['rank'],code,r['name'],r['market'],VERSION,r['score'],r['base'],r['available'],r['asof'],r['oldest_asof'],
+            r['capital_deduction'],r['stop_adjustment'],r['risk_deduction'],r['risk_status'],r['legacy_score'],r['legacy_rank']]+
+            [r['areas'][a][k] for a in BUDGET for k in ('points','available')])
+    return out.getvalue()
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--docs',type=Path,default=Path('docs'));args=parser.parse_args()
+    root=args.docs
+    def read(name):return json.loads((root/name).read_text())
+    names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json','v3-dart-bulk-history.json',
+        'v3-actual-money-participation.json','v3-personal-adjusted-score-summary.json']
+    inputs=[read(n) for n in names]
+    report=build(*inputs,previous=read(OUTPUT) if (root/OUTPUT).exists() else None)
+    report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
+    report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
+    digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes']],sort_keys=True).encode()).hexdigest()
+    report['source_digest']=digest
+    compact=json.loads(json.dumps(report));compact['format']='compact-parts-v1'
+    for r in compact['rows'].values():
+        r['parts']={a:{k:[p['points'],p['available'],p['asof']] for k,p in ps.items() if p} for a,ps in r['parts'].items()}
+    payload=json.dumps(compact,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n'
+    (root/OUTPUT).write_text(payload)
+    (root/'v3-operational-research-scores.csv').write_text(to_csv(report),encoding='utf-8-sig')
+    common=[(k,r) for k,r in report['rows'].items() if r['rank'] is not None and r['legacy_rank'] is not None]
+    new=sorted(common,key=lambda x:x[1]['rank']);old=sorted(common,key=lambda x:x[1]['legacy_rank'])
+    comparison={'asof':report['asof'],'version':VERSION,'same_input_common_issuers':len(common),
+        'performance_validated':False,'top':{str(n):{'overlap':len({k for k,_ in new[:n]} & {k for k,_ in old[:n]}),
+        'new_kospi':sum(r['market']=='KOSPI' for _,r in new[:n]),'old_kospi':sum(r['market']=='KOSPI' for _,r in old[:n])}
+        for n in (50,100,200)}}
+    (root/'v3-operational-research-comparison.json').write_text(json.dumps(comparison,ensure_ascii=False,indent=2)+'\n')
+    archive=root/'score-history'/VERSION;archive.mkdir(parents=True,exist_ok=True)
+    snapshot={'version':VERSION,'asof':report['asof'],'source_digest':digest,'rows':{
+        k:[r['name'],r['market'],r['score'],r['available'],r['legacy_score'],r['risk_deduction']] for k,r in report['rows'].items()}}
+    (archive/(report['asof']+'-'+digest[:12]+'.json')).write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':'))+'\n')
+    print(json.dumps({'version':VERSION,'listed':report['listed_total'],'ranked':sum(r['rank'] is not None for r in report['rows'].values()),'provider_calls':0}))
+
+
+if __name__=='__main__':main()
