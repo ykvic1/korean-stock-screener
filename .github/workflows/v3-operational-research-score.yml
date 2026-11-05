@@ -24,6 +24,8 @@ on:
   workflow_run:
     workflows:
       - V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
+      - Full-Market 100-Stock Batches
+      - V3 Actual Money Personal Participation Score
     types: [completed]
   schedule:
     - cron: '23 * * * *'

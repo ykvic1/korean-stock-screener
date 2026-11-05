@@ -174,3 +174,11 @@ for(let i=1;i<ranked.length;i++)if((ranked[i-1].r.v3_operational?.score??-1)<(ra
 for(const x of ranked)if(x.r.v3_operational?.rank&&x.candidatePosition!==x.r.v3_operational.rank)throw Error('screen/csv rank identity');
 """
         subprocess.run(['node','-e',script],cwd=ROOT,check=True)
+
+    def test_operational_score_refreshes_immediately_on_completed_source_jobs(self):
+        workflow=(ROOT/'.github/workflows/v3-operational-research-score.yml').read_text()
+        self.assertIn('- Full-Market 100-Stock Batches',workflow)
+        self.assertIn('- V3 Actual Money Personal Participation Score',workflow)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'",workflow)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'",workflow)
+        self.assertIn('provider calls or collection locks',workflow)
