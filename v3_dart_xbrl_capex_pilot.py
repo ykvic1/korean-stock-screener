@@ -66,7 +66,7 @@ def _classify(record):
 
 
 def select_candidates(state, major, *, asof, limit=MAX_PROBES,
-                      cohort_index=0):
+                      cohort_index=0, priority_codes=()):
     """Rotate verified, distinct issuer-years across missingness and fiscal years.
 
     For a fixed cohort index, receipt selection is reproducible. Each next
@@ -77,6 +77,7 @@ def select_candidates(state, major, *, asof, limit=MAX_PROBES,
         raise XbrlPilotError("invalid_bounded_xbrl_limit")
     if type(cohort_index) is not int or not 0 <= cohort_index <= 1000000:
         raise XbrlPilotError("invalid_xbrl_cohort_index")
+    priority_codes=_priority_set(priority_codes)
     choices = {kind: [] for kind in CLASSES}
     for code, issuer in state["records"].items():
         scope = issuer["scope"]
@@ -94,35 +95,61 @@ def select_candidates(state, major, *, asof, limit=MAX_PROBES,
                 or not _valid_receipt(receipt, year, _day(asof))):
                 raise XbrlPilotError("xbrl_receipt_identity_changed")
             choices[kind].append((code, year, scope, receipt, kind))
-            break
     used = set()
     selected = []
-    for class_index, kind in enumerate(CLASSES):
-        by_year = {}
-        for choice in choices[kind]:
-            by_year.setdefault(choice[1], []).append(choice)
-        years = sorted(by_year, reverse=True)
-        if not years:
-            continue
-        # Spread a four-call cohort across different eligible fiscal years,
-        # then advance through issuers inside each year's verified pool.
-        # All selection happens *after* receipt validation, never before it.
-        fiscal_start = (cohort_index + class_index) % len(years)
-        for fiscal_offset in range(len(years)):
-            year = years[(fiscal_start + fiscal_offset) % len(years)]
-            rows = sorted(by_year[year], key=lambda item: item[0])
-            issuer_start = (cohort_index // len(years) + class_index) % len(rows)
-            for offset in range(len(rows)):
-                choice = rows[(issuer_start + offset) % len(rows)]
-                if choice[0] not in used:
-                    selected.append(choice)
-                    used.add(choice[0])
-                    break
-            else:
-                continue
-            break
-        if len(selected) == limit:
-            break
+    preferred_slots=0
+    round_index=0
+    class_order=[(cohort_index+i)%len(CLASSES) for i in range(len(CLASSES))]
+    while len(selected)<limit:
+        progressed=False
+        for class_index in class_order:
+            pool=[c for c in choices[CLASSES[class_index]] if c[0] not in used]
+            preferred=[c for c in pool if c[0] in priority_codes]
+            prefer=bool(preferred) and preferred_slots<(limit+1)//2
+            if prefer:pool=preferred
+            by_year={}
+            for choice in pool:by_year.setdefault(choice[1],[]).append(choice)
+            years=sorted(by_year,reverse=True)
+            if not years:continue
+            year=years[(cohort_index+class_index+round_index)%len(years)]
+            rows=sorted(by_year[year],key=lambda item:item[0])
+            offset=(cohort_index//len(years)+class_index+round_index)%len(rows)
+            choice=rows[offset]
+            selected.append(choice);used.add(choice[0]);progressed=True
+            preferred_slots+=int(prefer)
+            if len(selected)==limit:break
+        if not progressed:break
+        round_index+=1
+    return selected
+
+
+def _priority_set(codes):
+    if (type(codes) not in (list,tuple,set,frozenset) or len(codes)>6000 or
+        any(type(c) is not str or not re.fullmatch(r'[0-9]{6}',c) for c in codes)):
+        raise XbrlPilotError('invalid_operational_gap_priority_codes')
+    return set(codes)
+
+
+def operational_gap_priority(report, comparison, catalog, major):
+    """Source-work preference only; independently reconcile actual R1d gaps."""
+    from v3_v30b_release_gate import r1d_public_reconciles, R1D_PART_LIMITS
+    if not all(type(x) is dict for x in (report,comparison,catalog,major)):
+        raise XbrlPilotError('unreconciled_operational_gap_priority')
+    if (_day(report.get('asof'))>_day(catalog.get('date')) or
+        _day(major.get('asof'))>_day(catalog.get('date'))):
+        raise XbrlPilotError('future_operational_gap_priority')
+    if (report.get('asof')!=catalog.get('date') or major.get('asof')!=catalog.get('date')):
+        return set()
+    if r1d_public_reconciles(report,comparison,catalog) is None:
+        raise XbrlPilotError('unreconciled_operational_gap_priority')
+    selected=set()
+    for code,row in report['rows'].items():
+        gaps=[(area,key) for area,parts in R1D_PART_LIMITS.items()
+              for key,maximum in parts.items()
+              if maximum-row['parts'][area].get(key,[0,0])[1]>.00001]
+        if len(gaps)==1 and gaps[0] in (
+            ('financial','cashflow_fcf_persistence'),('valuation','fcf_yield')):
+            selected.add(code)
     return selected
 
 
@@ -1511,13 +1538,14 @@ def _read_response_limited(response):
 
 
 def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
-              limit=MAX_PROBES, cohort_index=0):
+              limit=MAX_PROBES, cohort_index=0, priority_codes=()):
     try:
         if mode not in ("dry-run", "live") or type(limit) is not int or not 1 <= limit <= MAX_PROBES:
             raise XbrlPilotError("invalid_bounded_xbrl_limit_or_mode")
         if type(cohort_index) is not int or not 0 <= cohort_index <= 1000000:
             raise XbrlPilotError("invalid_xbrl_cohort_index")
         asof, members = _inputs(market, catalog)
+        priority_codes=_priority_set(priority_codes)
         if type(major) is not dict:
             raise XbrlPilotError("saved_xbrl_source_identity_invalid")
         # The annual DART archive can legitimately lag today's market scan.
@@ -1545,7 +1573,7 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
             verify_state(state, market, catalog, major)
             choices = select_candidates(
                 state, major, asof=asof, limit=limit,
-                cohort_index=cohort_index)
+                cohort_index=cohort_index,priority_codes=priority_codes)
     except (ValueError, TypeError, KeyError):
         raise XbrlPilotError("saved_xbrl_source_identity_invalid") from None
     report = {
@@ -1555,6 +1583,9 @@ def run_pilot(market, catalog, major, state, *, mode, key="", session=None,
         "sample_cohort_mode": "verified_receipt_year_stratified_rotation",
         "sample_cohort_index": cohort_index,
         "sample_cohort_distinct_issuers": len({row[0] for row in choices}),
+        "operational_gap_priority_issuer_count":len(priority_codes) if not source_pending else 0,
+        "operational_gap_priority_sampled_issuers":sum(c[0] in priority_codes for c in choices) if not source_pending else 0,
+        "operational_gap_priority_is_not_investment_rank":True,
         "sample_fiscal_year_counts": {
             str(year): sum(choice[1] == year for choice in choices)
             for year in YEARS
@@ -1762,17 +1793,25 @@ def main(argv=None):
     parser.add_argument("--limit", type=int, default=MAX_PROBES)
     parser.add_argument("--cohort-index", type=int, default=0,
                         help="Nonnegative bounded research cohort (0..1000000)")
+    parser.add_argument('--prioritize-operational-gaps',action='store_true')
+    parser.add_argument('--operational-scores',default='docs/v3-operational-research-scores.json')
+    parser.add_argument('--operational-comparison',default='docs/v3-operational-research-comparison.json')
     args = parser.parse_args(argv)
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
+    market,catalog,major,state=[read(path) for path in (args.market,args.catalog,args.major,args.state)]
+    priority=set()
+    if args.prioritize_operational_gaps:
+        priority=operational_gap_priority(read(args.operational_scores),
+            read(args.operational_comparison),catalog,major)
     session = None
     if args.mode == "live":
         import requests
         session = requests.Session()
     report = run_pilot(
-        read(args.market), read(args.catalog), read(args.major), read(args.state),
+        market,catalog,major,state,
         mode=args.mode, key=os.getenv("DART_API_KEY", ""), session=session,
-        limit=args.limit, cohort_index=args.cohort_index,
+        limit=args.limit, cohort_index=args.cohort_index,priority_codes=priority,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
 
