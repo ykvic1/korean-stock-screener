@@ -1,0 +1,78 @@
+{
+  "area_totals": {
+    "financial": 12.5,
+    "momentum": 20,
+    "technical": 30.0,
+    "valuation": 12.5,
+    "volume": 25
+  },
+  "distributions": {
+    "annual_loss_fraction": {
+      "nonpositive": 1010,
+      "observed": 2065,
+      "quantiles_nearest_index": {
+        "0.05": 0.0,
+        "0.25": 0.0,
+        "0.5": 0.25,
+        "0.75": 0.5,
+        "0.95": 1.0
+      },
+      "unobserved": 436
+    },
+    "equity_assets_pct": {
+      "nonpositive": 8,
+      "observed": 1631,
+      "quantiles_nearest_index": {
+        "0.05": 22.1672,
+        "0.25": 41.8179,
+        "0.5": 59.3393,
+        "0.75": 75.489,
+        "0.95": 91.4421
+      },
+      "unobserved": 870
+    },
+    "liabilities_assets_pct": {
+      "nonpositive": 0,
+      "observed": 1632,
+      "quantiles_nearest_index": {
+        "0.05": 8.5579,
+        "0.25": 24.511,
+        "0.5": 40.6922,
+        "0.75": 58.1846,
+        "0.95": 77.8328
+      },
+      "unobserved": 869
+    },
+    "operating_margin_pct": {
+      "nonpositive": 671,
+      "observed": 2046,
+      "quantiles_nearest_index": {
+        "0.05": -69.4548,
+        "0.25": -3.2889,
+        "0.5": 2.8369,
+        "0.75": 7.4372,
+        "0.95": 19.6533
+      },
+      "unobserved": 455
+    }
+  },
+  "fiscal_years": [
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "historical_pit_certified": false,
+  "issuer_scores_written": 0,
+  "listed_records": 2501,
+  "model_proposal": "v3-stable-r1-proposal",
+  "production_model_changed": false,
+  "proposal_sha256": "5520888ba01d9032d0d7344770a4420ff0db1c50bf5e73ba85477fd8c8c7ae7d",
+  "provider_calls": 0,
+  "scope_rule": "same_scope_all_years_CFS_else_OFS",
+  "sector_neutral_thresholds_validated": false,
+  "source_asof": "2026-11-04",
+  "source_sha256": "36947ed59ad1ebb65c315cf54dea4a906dd3903acfcfecd882a6df612606e634",
+  "status": "proposal_inventory_only",
+  "total_points": 100.0
+}
