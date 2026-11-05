@@ -77,7 +77,7 @@ def _decision(before, after, year, cutoff):
 
 
 def reconcile(market, catalog, book, archive, observed, *,
-              when, part, selected=None, unmapped=()):
+              when, part, selected=None, unmapped=(), verified_pairs=None):
     """Pure transform: never mutate original input nor call the provider."""
     state = fresh.prepare(market, catalog, archive, when, part)
     if not state["ready"]:
@@ -92,6 +92,12 @@ def reconcile(market, catalog, book, archive, observed, *,
     unknown = set(unmapped)
     if not unknown <= set(state["selected"]):
         raise RebindError("unexpected_unmapped_source_issuer")
+    expected_pairs={(code,str(year)) for code in state['selected']
+                    if code not in unknown for year in state['fiscal']}
+    if verified_pairs is None:
+        verified_pairs=expected_pairs
+    if type(verified_pairs) is not set or not verified_pairs<=expected_pairs:
+        raise RebindError('unexpected_verified_source_pairs')
     cutoff = bulk._day(state["asof"])  # NEVER accept filings after market close.
     updated = deepcopy(archive)
     updated["asof"] = state["asof"]
@@ -110,6 +116,9 @@ def reconcile(market, catalog, book, archive, observed, *,
                               "reason": "unmapped_keep_previous"})
                 continue
             key = str(year)
+            if (code,key) not in verified_pairs:
+                counts['not_rechecked_keep_previous']=counts.get('not_rechecked_keep_previous',0)+1
+                continue
             before = state["previous"][code]["years"][key]
             after = row[key]
             if type(before) is not dict or type(after) is not dict:
@@ -148,6 +157,8 @@ def reconcile(market, catalog, book, archive, observed, *,
         "financial_baseline_asof": state["baseline_asof"],
         "cohort_index": state["slot"], "part_index": part,
         "selected_company_count": len(state["selected"]),
+        "verified_company_year_count": len(verified_pairs),
+        "not_rechecked_company_year_count": len(expected_pairs)-len(verified_pairs),
         "reconciled_company_count": len(edited),
         "reconciled_company_year_count": counts.get("newer_official_source_reconciled", 0),
         "reason_counts": dict(sorted(counts.items())),
@@ -161,6 +172,35 @@ def reconcile(market, catalog, book, archive, observed, *,
         "source_archive_changed": bool(edited),
     }
     return report, updated, research
+
+
+def _source_wait_reason(error):
+    """Only fixed transport/budget codes defer; schema/auth failures block."""
+    reason=str(error)
+    if reason in ('dart_bulk_http_timeout','dart_bulk_http_connection_failed'):
+        return 'waiting_annual_source_transport'
+    if reason in ('dart_bulk_safe_source_call_budget_reached',
+                  'dart_bulk_safe_elapsed_time_budget_reached'):
+        return 'waiting_annual_source_budget'
+    if reason=='dart_bulk_http_status_failed':
+        status=getattr(error,'http_status',None)
+        if status==429:return 'waiting_annual_source_rate_limit'
+        if type(status) is int and 500<=status<=599:return 'waiting_annual_source_service'
+    if reason=='dart_bulk_provider_stop_or_schema':
+        status=getattr(error,'provider_status',None)
+        if status=='020':return 'waiting_annual_source_quota'
+        if status in ('800','900'):return 'waiting_annual_source_service'
+    return None
+
+
+class _RequestMeter:
+    def __init__(self,session):
+        self.session=session
+        self.calls=0
+
+    def get(self,*args,**kwargs):
+        self.calls+=1  # failed issued requests count too; never store URLs/keys
+        return self.session.get(*args,**kwargs)
 
 
 def execute(market, catalog, book, archive, *,
@@ -247,26 +287,70 @@ def execute(market, catalog, book, archive, *,
     # Missing corporation mappings are quarantined individually; correctly
     # mapped issuers are still eligible for official validated refresh.
     unmapped = set(state["selected"]) - set(mapping)
+    # Source callbacks arrive only AFTER a complete, normalized response.
+    # Retain a separate pair mask so unrequested baseline rows can never be
+    # mistaken for newly verified or newly missing observations.
+    completed={}
+    def checkpoint(records,year):
+        if (year not in state['fiscal'] or type(records) is not dict
+            or not set(records)<=set(state['selected'])-unmapped):
+            raise RebindError('invalid_verified_source_checkpoint')
+        for code,years in records.items():
+            if type(years) is not dict or set(years)!={str(year)}:
+                raise RebindError('invalid_verified_source_checkpoint')
+            pair=(code,str(year))
+            if pair in completed:raise RebindError('duplicate_verified_source_checkpoint')
+            completed[pair]=deepcopy(years[str(year)])
+    metered=_RequestMeter(session)
+    waiting=None
     try:
         observed, requests_made = bulk.fetch_group(
-            session, key, state["asof"], state["fiscal"],
+            metered, key, state["asof"], state["fiscal"],
             state["selected"], mapping,
             prior_years={code: {} for code in state["selected"]},
+            on_year=checkpoint,
             max_requests=MAX_REQUESTS,
             deadline=time.monotonic() + fresh.MAX_SOURCE_SECONDS)
-    except bulk.BulkHistoryError:
-        raise RebindError("source_provider_quota_or_validation_stop") from None
+    except bulk.BulkHistoryError as error:
+        waiting=_source_wait_reason(error)
+        if waiting is None:
+            failure=RebindError("source_provider_quota_or_validation_stop")
+            safe_reasons={'dart_bulk_provider_stop_or_schema','dart_bulk_http_status_failed',
+                'dart_bulk_invalid_json','dart_bulk_unexpected_response',
+                'dart_bulk_empty_success_response','dart_bulk_fatal_no_trustworthy_source_rows'}
+            failure.report={'schema':REPORT_SCHEMA,'status':'blocked_annual_source_validation',
+                'reason':str(error) if str(error) in safe_reasons else 'unclassified_source_validation',
+                'source_api_calls':master_calls+metered.calls,'source_archive_changed':False,
+                'validated_pairs_discarded':len(completed),'historical_PIT_certified':False,
+                'full_V3_100point_certified':False,'buy_recommendations_authorized':False}
+            raise failure from None
+        requests_made=metered.calls
+        if not completed:
+            return {'schema':REPORT_SCHEMA,'status':waiting,'market_asof':state['asof'],
+                'run_kst':when.isoformat(),'part_index':part,
+                'source_api_calls':master_calls+requests_made,'source_archive_changed':False,
+                'verified_company_year_count':0,'historical_PIT_certified':False,
+                'full_V3_100point_certified':False,'buy_recommendations_authorized':False},None,None
+        observed={code:{str(y):{} for y in state['fiscal']} for code in state['selected']}
+        for (code,year),value in completed.items():observed[code][year]=value
     if not 0 <= requests_made <= MAX_REQUESTS:
         raise RebindError("source_budget_exceeded")
     report, updated, score = reconcile(
         market, catalog, book, archive, observed,
-        when=when, part=part, selected=state["selected"], unmapped=unmapped)
+        when=when, part=part, selected=state["selected"], unmapped=unmapped,
+        verified_pairs=set(completed) if waiting else None)
     report["source_api_calls"] = master_calls + requests_made
     report["company_master_cache_used"] = cache_used
     report["company_master_source_api_calls"] = master_calls
     report["unmapped_issuer_count"] = len(unmapped)
     report["status"] = ("verified_candidate_for_publication" if mode == "publish"
                         else "verified_live_candidate_not_published")
+    if waiting:
+        report['status']='partial_'+report['status']
+        report['waiting_reason']=waiting
+        report['source_slice_requests_completed']=False
+    else:
+        report['source_slice_requests_completed']=True
     return report, updated, score
 
 
@@ -343,10 +427,17 @@ def main(argv=None):
     else:
         key = None
         session = None
-    report, updated, score = execute(
-        market, catalog, book, archive, when=when,
-        part=args.part, mode=args.mode, key=key, session=session,
-        company_cache=company_cache)
+    try:
+        report, updated, score = execute(
+            market, catalog, book, archive, when=when,
+            part=args.part, mode=args.mode, key=key, session=session,
+            company_cache=company_cache)
+    except RebindError as error:
+        if hasattr(error,'report'):
+            report_path=Path(args.report)
+            report_path.parent.mkdir(parents=True,exist_ok=True)
+            report_path.write_text(json.dumps(error.report,sort_keys=True)+'\n',encoding='utf8')
+        raise
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True,
