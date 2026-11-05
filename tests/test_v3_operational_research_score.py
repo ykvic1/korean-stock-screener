@@ -9,6 +9,8 @@ from unittest.mock import patch
 
 import v3_operational_research_score as ops
 from v3_actual_money_structure import SCHEMA as MONEY_SCHEMA
+from v3_breakout_followthrough import observe as breakout_observe
+from datetime import date,timedelta
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -111,6 +113,22 @@ class OperationalScoreTests(unittest.TestCase):
             fallback,_=ops.score_issuer(stock,saved,day='2026-11-04',money=corrupt)
             self.assertEqual(fallback['volume']['long_horizon_growth']['points'],4.9)
             self.assertIsNone(fallback['volume']['persistence'])
+
+    def test_price_only_breakout_confirmation_is_fifth_independent_observation(self):
+        day='2026-11-04';last=date.fromisoformat(day)
+        receipt=breakout_observe([100.]*82+[104.]*18,asof=day,
+            session_days=[last-timedelta(days=99-i) for i in range(100)])
+        stock={'price_date':day,'market':'KOSPI','v3_breakout_followthrough':receipt}
+        saved={'code':'005930','name':'삼성전자','market':'KOSPI'}
+        with patch.object(ops,'volume_observed',return_value=None),patch.object(ops,'path_preview',return_value=None),\
+             patch.object(ops,'pattern_observed',return_value=None):
+            parts,_=ops.score_issuer(stock,saved,day=day)
+            self.assertEqual(parts['technical']['independent_breakout_confirmation']['points'],1.2)
+            self.assertEqual(parts['technical']['independent_breakout_confirmation']['available'],1.2)
+            corrupt=copy.deepcopy(stock)
+            corrupt['v3_breakout_followthrough']['source_regular_session_verified']=True
+            invalid,_=ops.score_issuer(corrupt,saved,day=day)
+            self.assertIsNone(invalid['technical']['independent_breakout_confirmation'])
 
     def test_browser_csv_server_and_corruption_rejection(self):
         script="""

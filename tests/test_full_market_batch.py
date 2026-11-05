@@ -194,6 +194,24 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             with self.assertRaisesRegex(b.BatchError,'untrusted_ma_slope_transition'):
                 b.validate_part(manifest,tampered)
 
+    def test_breakout_followthrough_receipt_is_scanned_and_tampering_rejected(self):
+        from v3_breakout_followthrough import observe as breakout_observe
+        last=date.fromisoformat(DAY)
+        sessions=[last-timedelta(days=99-i) for i in range(100)]
+        receipt=breakout_observe([100.]*82+[104.]*18,asof=DAY,session_days=sessions)
+        self.assertEqual(receipt['points'],1.2)
+        def analyzer(code,cfg,day):
+            return {**mock_history(code,cfg,day),'v3_breakout_followthrough':receipt}
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest,_,_=self._plan(tmp,105)
+            folder,_=self._scan_all(tmp,manifest,analyzer=analyzer)
+            self.assertEqual(len(b.load_receipts(manifest,folder)['rows']),105)
+            tampered=json.loads((folder/'part-000.json').read_text())
+            tampered['rows'][0]['metrics']['v3_breakout_followthrough'][
+                'investment_score_certified']=True
+            with self.assertRaisesRegex(b.BatchError,'untrusted_breakout_followthrough'):
+                b.validate_part(manifest,tampered)
+
     def test_failed_history_still_accounted_for_with_no_fabricated_zero(self):
         def source(code, cfg, day):
             if code.endswith("00"):

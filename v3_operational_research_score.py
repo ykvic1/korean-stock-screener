@@ -20,10 +20,12 @@ from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
 from v3_actual_money_structure import valid as valid_money_structure
+from v3_breakout_followthrough import valid as valid_breakout_followthrough
 
-VERSION = 'v3-stable-r1c-operational-research'
+VERSION = 'v3-stable-r1d-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
-                       'v3-stable-r1b-operational-research',VERSION)
+                       'v3-stable-r1b-operational-research',
+                       'v3-stable-r1c-operational-research',VERSION)
 OUTPUT = 'v3-operational-research-scores.json'
 SPECS = {
  'volume': {'long_horizon_growth':6,'persistence':5,'concentration_quality':2,
@@ -117,6 +119,9 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, annual=None, financ
                     weight=SPECS['momentum'][frame+'_ma_slope_turn']
                     put('momentum',frame+'_ma_slope_turn',sum(pieces.values()),weight,
                         slope['weekly_asof'] if frame=='weekly' else day)
+        breakout=stock.get('v3_breakout_followthrough')
+        if breakout is not None and valid_breakout_followthrough(breakout,day):
+            put('technical','independent_breakout_confirmation',breakout['points'],1.2,day)
         for frame,limit,rsi_max in [('daily',8.4,1.2),('weekly',9.6,1.8)]:
             evidence=pattern_observed(stock,frame)
             if not evidence:continue
@@ -225,7 +230,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,prev
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
-                   '독립 돌파확인 1.2점','MA 전환: 가격 이력 부족 종목 미관측',
+                   '독립 돌파확인: 가격 경로 부족 종목 미관측',
+                   'MA 전환: 가격 이력 부족 종목 미관측',
                    '부채상환·현금흐름 위험 검증'],
         'rows':rows}
 
