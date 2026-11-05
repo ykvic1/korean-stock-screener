@@ -198,12 +198,35 @@ for(const x of ranked)if(x.r.v3_operational?.rank&&x.candidatePosition!==x.r.v3_
 const invalid=core.prepare(market,null,null,null,null,null);
 const impostor=structuredClone(report);
 impostor.rows[invalid.rows[0].r.code].name='changed issuer';
-if(ops.attachAllListed(invalid,impostor).linked!==0||invalid.rows.length!==priced)
- throw Error('partial corrupted all-listed screen');
+const mismatchedCode=invalid.rows[0].r.code;
+const isolation=ops.attachAllListed(invalid,impostor);
+if(isolation.linked!==report.listed_total-1||isolation.blocked!==1||
+   isolation.unpriced!==report.listed_total-priced||invalid.rows.length!==report.listed_total)
+ throw Error('identity mismatch must isolate only the disputed issuer');
+const isolated=invalid.rows.find(x=>x.r.code===mismatchedCode);
+if(!isolated.r.v3_operational_identity_blocked||isolated.r.v3_operational||
+   !ops.markup(isolated.r).includes('불일치'))throw Error('unsafe score attributed to disputed identity');
+if(invalid.rows.filter(x=>x.r.v3_operational).length!==report.listed_total-1)
+ throw Error('other valid issuers lost their operational scores');
 const mismatched=core.prepare(market,null,null,null,null,null);
 mismatched.marketEligible++;
-if(ops.attachAllListed(mismatched,report).linked!==0)
- throw Error('unvalidated listed universe');
+const rollover=ops.attachAllListed(mismatched,report);
+if(rollover.linked!==priced||rollover.unpriced!==0||!rollover.stale||
+   mismatched.rows.length!==priced)
+ throw Error('changed roster must preserve only dated evidence for matching priced issuers');
+const newer=core.prepare(market,null,null,null,null,null);
+newer.date='2026-11-06';
+const older=ops.attachAllListed(newer,report);
+if(older.linked!==priced||older.unpriced!==0||!older.stale||newer.rows.length!==priced)
+ throw Error('previous-day report must not restore unknown delistings');
+const changed=core.prepare(structuredClone(market),null,null,null,null,null);
+changed.rows[0].r.code='999999';
+const replaced=ops.attachAllListed(changed,report);
+if(replaced.linked!==priced-1||replaced.missing!==1||replaced.unpriced!==0||
+   !replaced.stale||changed.rows.length!==priced||
+   !changed.rows[0].r.v3_operational_evidence_missing||changed.rows[0].r.v3_operational||
+   !ops.markup(changed.rows[0].r).includes('저장본'))
+ throw Error('new issuer must not be assigned a delisted issuer score');
 """
         subprocess.run(['node','-e',script],cwd=ROOT,check=True)
 
