@@ -3,6 +3,8 @@ name: V3 Private Supplemental Action Receipt Continuation
 on:
   pull_request:
     paths:
+      - v3_action_daily_budget.py
+      - tests/test_v3_action_daily_budget.py
       - v3_dart_extension_continuation.py
       - v3_private_dart_structured_action_extension.py
       - tests/test_v3_dart_extension_continuation.py
@@ -10,10 +12,12 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_action_daily_budget.py
       - v3_dart_extension_continuation.py
       - .github/workflows/v3-dart-extension-continuation.yml
   schedule:
-    # At most 3,840 supplemental provider attempts/day, separately from
+    # Fallbacks; immediate resumes share the 3,840-attempt UTC-day ledger.
+    # Supplemental provider attempts/day are separate from
     # 9,216 principal scheduled attempts. Source auth/quota errors still stop.
     - cron: '25 0,4,8,12,16,20 * * *'
   workflow_dispatch:
@@ -46,15 +50,21 @@ jobs:
       - run: python -m pip install 'requests>=2.31,<3'
       - run: |
           python -m py_compile v3_dart_extension_continuation.py
+          python -m unittest discover -s tests -p 'test_v3_action_daily_budget.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_extension_continuation.py' -v
   private-continuation:
     needs: offline
     if: >-
       ${{ github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
-          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): continue supplemental action')) }}
+          (github.event_name == 'push' &&
+           (startsWith(github.event.head_commit.message, 'feat(v3.0b): continue supplemental action') ||
+            startsWith(github.event.head_commit.message, 'feat(v3.0b): resume action audits'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 65
+    permissions:
+      contents: read
+      actions: write
     concurrency:
       group: v3-dart-private-historical-event-receipts
       queue: max
@@ -69,9 +79,15 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
       - name: Continue verified supplemental receipt-category checkpoints
+        id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
           V3_EXTENSION_CONTINUATION_BATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.batches || '128' }}
         run: python v3_dart_extension_continuation.py
+      - name: Resume unfinished verified supplemental audit within the daily budget
+        if: steps.collect.outputs.resume == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-dart-extension-continuation.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live -f batches=128
