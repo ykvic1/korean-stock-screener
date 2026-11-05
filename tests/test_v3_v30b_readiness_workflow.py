@@ -35,6 +35,9 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
             "historical_fixed_window_extracted","v30b_release_ready",
             "confirmed_scoring_authorized","investment_grade_certified_count",
             "blocker_codes","external_provider_calls",
+            "r1d_operational_publication_reconciled",
+            "r1d_100weight_observed_count",
+            "r1d_same_market_day_and_roster",
         ):
             self.assertIn(required,content)
         self.assertNotIn("|| true",next(line for line in content.splitlines()
