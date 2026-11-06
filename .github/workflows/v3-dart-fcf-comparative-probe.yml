@@ -61,7 +61,9 @@ jobs:
           COHORT: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && github.run_number || inputs.cohort_index }}
         run: |
           set -euo pipefail
-          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 20 --cohort-index "$COHORT" > /tmp/v3-cf-comparative-counts.json
+          # Only fixed aggregate counters (no codes/receipts/amounts) appear
+          # in the job log, so progress is auditable without private access.
+          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 20 --cohort-index "$COHORT" | tee /tmp/v3-cf-comparative-counts.json
       - name: Aggregate-only report; no original-year or investment certification
         if: always()
         run: |
