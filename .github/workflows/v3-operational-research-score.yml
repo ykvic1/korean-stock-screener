@@ -7,6 +7,8 @@ on:
       - tests/test_v3_dart_revenue_2023_comparative.py
       - v3_dart_revenue_2022.py
       - tests/test_v3_dart_revenue_2022.py
+      - v3_pages_deployment_retry.py
+      - tests/test_v3_pages_deployment_retry.py
       - v3_revenue_growth_evidence.py
       - tests/test_v3_revenue_growth_evidence.py
       - v3_operational_model_diagnostics.py
@@ -29,6 +31,8 @@ on:
       - tests/test_v3_dart_revenue_2023_comparative.py
       - v3_dart_revenue_2022.py
       - tests/test_v3_dart_revenue_2022.py
+      - v3_pages_deployment_retry.py
+      - tests/test_v3_pages_deployment_retry.py
       - v3_revenue_growth_evidence.py
       - tests/test_v3_revenue_growth_evidence.py
       - v3_operational_model_diagnostics.py
@@ -77,6 +81,7 @@ jobs:
       - run: python -m unittest discover -s tests -p 'test_v3_operational_evidence_priority.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_research_score.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_breakout_followthrough.py' -v
+      - run: python -m unittest discover -s tests -p 'test_v3_pages_deployment_retry.py' -v
       - run: node --check docs/operational-score.js
   publish:
     needs: offline
@@ -91,6 +96,7 @@ jobs:
     permissions:
       contents: write
       pages: write
+      actions: read
     concurrency:
       group: v3-operational-research-score-publisher
       queue: max
@@ -131,8 +137,34 @@ jobs:
             fi
           done
           exit 1
-      - name: Refresh Pages only after score content changes
-        if: steps.publish_scores.outputs.changed == 'true'
+      - name: Check failed Pages publication even when scores are unchanged
+        id: pages_recovery
+        if: steps.publish_scores.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "retry=false" >> "$GITHUB_OUTPUT"
+          # A failed metadata read must not change scores or authorize a retry.
+          if ! pages_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" --jq '.workflows[] | select(.name == "pages build and deployment") | .id'); then
+            echo "::warning::pages_retry_metadata_unavailable"
+            exit 0
+          fi
+          if [[ ! "$pages_id" =~ ^[0-9]+$ ]]; then
+            echo "::warning::pages_workflow_identity_not_unique"
+            exit 0
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$pages_id/runs?per_page=100" > /tmp/v3-pages-runs.json; then
+            echo "::warning::pages_retry_runs_unavailable"
+            exit 0
+          fi
+          if ! retry=$(python v3_pages_deployment_retry.py --runs /tmp/v3-pages-runs.json); then
+            echo "::warning::pages_retry_metadata_not_verified"
+            exit 0
+          fi
+          echo "retry=$retry" >> "$GITHUB_OUTPUT"
+      - name: Refresh Pages after score changes or a failed deployment
+        if: steps.publish_scores.outputs.changed == 'true' || steps.pages_recovery.outputs.retry == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
