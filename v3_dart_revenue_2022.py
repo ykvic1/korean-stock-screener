@@ -108,6 +108,8 @@ def verified_prior(prior, expected, day):
         if base is None or any(row.get(k) != v for k, v in base.items()):
             continue  # Changed 2022 annual receipt or accounting scope.
         if (row.get('status') not in ('observed', 'not_observed')
+            or row.get('source_error') not in (None, 'conflicting_annual_accounts')
+            or (row.get('source_error') is not None and row.get('status') != 'not_observed')
             or type(row.get('checked_on')) is not str
             or row['checked_on'] > day
             or (row['status'] == 'observed') != (
@@ -229,7 +231,19 @@ def collect(catalog, history, prior, *, key, session, cache=None,
                             'fs_div': base['scope']}, timeout=(20, 40))
                 resp.raise_for_status()
                 calls += 1
-                parsed = parse(resp.json(), base, mapping[code], catalog['date'])
+                try:
+                    parsed = parse(resp.json(), base, mapping[code], catalog['date'])
+                except Revenue2022Error as error:
+                    if str(error) != 'revenue_2022_conflicting_annual_accounts':
+                        raise
+                    # A single issuer's contradictory annual accounts cannot
+                    # earn score credit and must not halt other issuers' source
+                    # collection.  Publish an explicit, receipt-bound gap.
+                    parsed = {**base, 'checked_on': catalog['date'],
+                              'status': 'not_observed', 'revenue_krw': None,
+                              'source_account_id': None, 'source_receipt_id': None,
+                              'source_account_name': None,
+                              'source_error': 'conflicting_annual_accounts'}
             except Revenue2022Error:
                 raise
             except Exception:
