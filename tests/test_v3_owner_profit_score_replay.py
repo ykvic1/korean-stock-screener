@@ -46,9 +46,18 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         if any(date.fromisoformat(source["asof"]) < day
                for source in (cls.annual,cls.priority)):
             raise unittest.SkipTest("waiting for same-day annual and priority sources")
-        cls.day,_,cls.expected,_,cls.selected=plan(
-            cls.catalog,cls.annual,cls.priority,None,limit=1)
-        cls.code=cls.selected[0]
+        saved=read("v3-dart-owner-profit-supplement.json")
+        cls.day,_,cls.expected,cls.retained,cls.selected=plan(
+            cls.catalog,cls.annual,cls.priority,saved,limit=1)
+        # All-listed admission means the first queue entry need not have
+        # ten observed valuation points. Pick the explicit legacy test
+        # condition instead of assuming sorted acquisition order implies it.
+        added=set(cls.priority.get('r1d_all_listed_appended_codes',[]))
+        partial={r['code']:r for r in cls.parts['rows']}
+        candidates=[c for c in sorted(cls.expected) if c not in added and
+                    partial.get(c,{}).get('valuation_available_max')==10]
+        if not candidates:raise unittest.SkipTest('no current legacy ten-weight valuation fixture')
+        cls.code=candidates[0]
         cls.base=cls.expected[cls.code]
 
     def proof(self, amount="123456789"):
@@ -66,8 +75,16 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         }
         entry=parse_response({"status":"000","list":[row]},
                              corp="12345678",base=a,on_day=self.day)
-        return snapshot(self.day,self.catalog,self.annual,self.priority,
-                        {code:entry})
+        records=copy.deepcopy(self.retained)
+        records[code]=entry
+        return snapshot(self.day,self.catalog,self.annual,self.priority,records)
+
+    def original_finance(self):
+        records=copy.deepcopy(self.retained)
+        records.pop(self.code,None)
+        source=snapshot(self.day,self.catalog,self.annual,self.priority,records)
+        return finance_source(self.catalog,self.history,self.parts,self.annual,self.audit,
+            owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
 
     def fiscal_options(self,**kwargs):
         # Combined audit can lag the official same-day DART source.
@@ -77,8 +94,7 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
 
     def test_exact_proof_replays_market_peers_into_real_95_weight_candidate(self):
         source=self.proof()
-        old=finance_source(
-            self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
+        old=self.original_finance()
         new=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,
             owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
@@ -96,8 +112,7 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         self.assertEqual(new[code]["asof"],self.day)
 
     def test_owner_profit_adds_five_without_falsely_restoring_removed_obv_six(self):
-        original=finance_source(
-            self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
+        original=self.original_finance()
         suplement=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,
             owner_profit_source=self.proof("-123456789"),
@@ -134,9 +149,11 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
             summary["provisional_complete_100point_observation_count"],
             base_summary["provisional_complete_100point_observation_count"]+new_full)
         self.assertEqual(
-            summary["observed_100weight_issuers_with_2025_owner_profit_supplement"],new_full)
+            summary["observed_100weight_issuers_with_2025_owner_profit_supplement"],
+            base_summary["observed_100weight_issuers_with_2025_owner_profit_supplement"]+new_full)
         self.assertEqual(
-            summary["owner_profit_2025_official_receipt_replayed_issuers"],1)
+            summary["owner_profit_2025_official_receipt_replayed_issuers"],
+            self.proof()["observed_official_owner_profit_issuers"])
         self.assertFalse(summary["owner_profit_supplement_investment_grade_certified"])
         self.assertEqual(summary["certified_100point_count"],0)
 
@@ -194,8 +211,7 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         changed=finance_source(
             self.catalog,self.history,self.parts,self.annual,self.audit,
             owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
-        original=finance_source(
-            self.catalog,self.history,self.parts,self.annual,self.audit,**self.fiscal_options())
+        original=self.original_finance()
         self.assertEqual(changed,original)
 
     def test_altered_profit_or_receipt_source_fails_closed(self):
