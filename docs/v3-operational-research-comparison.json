@@ -22,10 +22,10 @@
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "440f8625cd853960e6d164ac187f31b78f84db3df0d8a985ee0c85e59634e958",
+    "source_digest": "1d584afbfca4524c22fbf980f65c6736daa7d43bc2a68fdcb84d5a873c1a172a",
     "listed_total": 2501,
     "ranked_count": 2481,
-    "available_100_count": 758,
+    "available_100_count": 763,
     "available_95_count": 1046,
     "available_90_count": 1426,
     "budgets": {
@@ -44,7 +44,7 @@
   "same_input_prior_ranked_issuers": 2481,
   "prior_top_overlap": {
     "50": 30,
-    "100": 63,
+    "100": 64,
     "200": 141
   }
 }
