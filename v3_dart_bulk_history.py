@@ -266,10 +266,70 @@ def _validate_prior(prior, asof, members):
     return keep
 
 
+SEED_BALANCE_RESULTS=frozenset(('enriched','source_scope_absent','receipt_mismatch',
+    'missing_or_ambiguous_balance','existing_balance_conflict'))
+
+
+def _seed_balance_pending(scopes,year,asof):
+    if not isinstance(scopes,dict):return False
+    for ref in scopes.values():
+        if (not isinstance(ref,dict) or ref.get('source_origin')!='previously_observed_dart_annual_book'
+            or ref.get('values',{}).get('assets') is not None
+            or not _valid_receipt(ref.get('receipt_id'),int(year),_day(asof))):continue
+        checked=ref.get('bulk_balance_probe')
+        if checked is not None:
+            if (type(checked) is not dict or checked.get('result') not in SEED_BALANCE_RESULTS
+                or type(checked.get('receipt_id')) is not str):
+                raise BulkHistoryError('invalid_seed_balance_probe_marker')
+            if checked['receipt_id']==ref['receipt_id']:continue
+        return True
+    return False
+
+
+def _merge_seed_balance_year(previous,incoming,year,asof):
+    """Fill BS gaps only, from explicit-KRW SAME-receipt normalized rows.
+
+    Original income and known balance values are never replaced. An empty,
+    revised or conflicting source records a checked-but-unavailable result;
+    it never erases the valid annual-book seed or becomes a repeated query.
+    """
+    from copy import deepcopy
+    if not _seed_balance_pending(previous,year,asof):
+        raise BulkHistoryError('conflicting_saved_year_evidence')
+    merged=deepcopy(previous)
+    for scope,old in previous.items():
+        if not _seed_balance_pending({scope:old},year,asof):continue
+        new=incoming.get(scope,{})
+        result='source_scope_absent'
+        if new:
+            if new.get('receipt_id')!=old['receipt_id']:result='receipt_mismatch'
+            else:
+                values=new.get('values',{});old_values=old['values']
+                balance=('assets','liabilities','equity')
+                vals=[values.get(k) for k in balance]
+                ambiguous=set(new.get('ambiguous',[]))&set(balance)
+                if (ambiguous or any(type(v) is not int for v in vals)
+                    or not 0<=vals[0]<=10**18 or not 0<=vals[1]<=10**18
+                    or abs(vals[2])>10**18
+                    or abs(vals[0]-vals[1]-vals[2])>max(1,vals[0]*.01)):
+                    result='missing_or_ambiguous_balance'
+                elif any(old_values.get(k) is not None and old_values[k]!=values[k] for k in balance):
+                    result='existing_balance_conflict'
+                else:
+                    for key in balance:
+                        if old_values.get(key) is None:merged[scope]['values'][key]=values[key]
+                    result='enriched'
+        merged[scope]['bulk_balance_probe']={'receipt_id':old['receipt_id'],'result':result}
+    return merged
+
+
 RECENT_EARNINGS_RESERVED_PER_MARKET=20  # within the existing 50/market
 
-def plan(market,catalog,*,prior=None,groups=MAX_GROUPS,recent_pair_priority=False):
+def plan(market,catalog,*,prior=None,groups=MAX_GROUPS,recent_pair_priority=False,
+         recover_seed_balance=False):
     asof,members=_inputs(market,catalog)
+    if type(recover_seed_balance) is not bool:
+        raise BulkHistoryError("invalid_seed_balance_selector")
     if type(recent_pair_priority) is not bool:
         raise BulkHistoryError("invalid_recent_earnings_backfill_selector")
     if type(groups) is not int or not 1<=groups<=MAX_GROUPS:
@@ -287,7 +347,9 @@ def plan(market,catalog,*,prior=None,groups=MAX_GROUPS,recent_pair_priority=Fals
     for code in sorted(members):
         years=retained.get(code,{}).get("years",{})
         observed=sum(str(y) in years for y in fiscal)
-        if observed<len(fiscal):
+        seed_pending=(recover_seed_balance and any(
+            _seed_balance_pending(years.get(str(y)),y,asof) for y in fiscal))
+        if observed<len(fiscal) or seed_pending:
             queues[members[code]["market"]].append((-observed,code))
     for market_name in queues:
         queues[market_name]=[code for _,code in sorted(queues[market_name])]
@@ -435,7 +497,7 @@ def make_company_mapping_cache(mapping,asof,members):
 
 def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
                 prior_years=None,on_year=None,max_requests=None,
-                deadline=None):
+                deadline=None,recover_seed_balance=False):
     """Query ≤25 actual issuers per annual request; checkpoint every batch.
 
     The official 100-company API allows *at most* 100 names, but repeated
@@ -448,7 +510,8 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
     available=[c for c in code_cohort if c in corp_map]
     requests_made=0
     for year in years:
-        needed=[c for c in available if str(year) not in found[c]]
+        needed=[c for c in available if str(year) not in found[c] or
+                (recover_seed_balance and _seed_balance_pending(found[c].get(str(year)),year,asof))]
         for offset in range(0,len(needed),25):
             if max_requests is not None and requests_made>=max_requests:
                 raise BulkHistoryError("dart_bulk_safe_source_call_budget_reached")
@@ -519,9 +582,9 @@ def fetch_group(session,key,asof,years,code_cohort,corp_map,*,
     return found,requests_made
 
 
-def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
+def combine(market,catalog,prior,results,*,groups=MAX_GROUPS,recover_seed_balance=False):
     asof,members,retained,fiscal,cohorts=plan(
-        market,catalog,prior=prior,groups=groups)
+        market,catalog,prior=prior,groups=groups,recover_seed_balance=recover_seed_balance)
     expected=set(code for cohort in cohorts for code in cohort)
     if type(results) is not dict or set(results)!=expected:
         raise BulkHistoryError("partial_or_unexpected_bulk_cohort")
@@ -533,7 +596,10 @@ def combine(market,catalog,prior,results,*,groups=MAX_GROUPS):
                 raise BulkHistoryError("bad_bulk_scope")
         previous=retained.get(code,{"years":{}})
         new_years=dict(previous["years"])
-        new_years.update(years)
+        for year,scopes in years.items():
+            if year in new_years and new_years[year]!=scopes:
+                scopes=_merge_seed_balance_year(new_years[year],scopes,year,asof)
+            new_years[year]=scopes
         retained[code]={"years":new_years}
     completed=sum(all(str(y) in rec["years"] for y in fiscal)
                   for rec in retained.values())
@@ -634,7 +700,7 @@ def partial_year_checkpoint(market,catalog,prior,updates):
         value=dict(retained.get(code,{"years":{}})["years"])
         for year,scopes in years.items():
             if year in value and value[year]!=scopes:
-                raise BulkHistoryError("conflicting_saved_year_evidence")
+                scopes=_merge_seed_balance_year(value[year],scopes,year,asof)
             value[year]=scopes
         retained[code]={"years":value}
     completed=sum(all(str(y) in r["years"] for y in fiscal)
@@ -996,7 +1062,7 @@ def write_json(path,value):
 def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
             on_progress=None,annual_book=None,
             company_cache=None,on_company_cache=None,
-            recent_pair_priority=False):
+            recent_pair_priority=False,recover_seed_balance=False):
     # Enrich from ALREADY VERIFIED 2025 DART annual filings before any
     # additional source request. Independently persist this observed evidence.
     if annual_book is not None:
@@ -1008,7 +1074,7 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
                 on_progress(prior,_day(prior["asof"]).year-1)
     asof,members,retained,years,cohorts=plan(
         market,catalog,prior=prior,groups=groups,
-        recent_pair_priority=recent_pair_priority)
+        recent_pair_priority=recent_pair_priority,recover_seed_balance=recover_seed_balance)
     if not cohorts:
         return combine(market,catalog,prior,{},groups=groups),0
     if type(key) is not str or len(key)<20:
@@ -1076,7 +1142,7 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
                 prior_years={c:retained.get(c,{}).get("years",{}) for c in cohort},
                 on_year=save_year,
                 max_requests=MAX_SOURCE_FISCAL_CALLS-(calls-master_calls),
-                deadline=deadline)
+                deadline=deadline,recover_seed_balance=recover_seed_balance)
         except BulkHistoryError as exc:
             # A known *local* request/time budget is normal bounded work,
             # not a provider error. Do not swallow quota status 020, invalid
@@ -1094,7 +1160,8 @@ def collect(market,catalog,prior,*,key,session,groups=MAX_GROUPS,
             raise
         complete.update(row)
         calls+=n
-    return combine(market,catalog,prior,complete,groups=groups),calls
+    return combine(market,catalog,prior,complete,groups=groups,
+                   recover_seed_balance=recover_seed_balance),calls
 
 
 def main(argv=None):
@@ -1109,6 +1176,8 @@ def main(argv=None):
     p.add_argument("--groups",type=int,default=3)
     p.add_argument("--prioritize-latest-earnings",action="store_true",
                    help="reserve 20 of each market's 50 seats for unqueried FY2024/25")
+    p.add_argument('--recover-seed-balance',action='store_true',
+                   help='Query only never-bulk-checked annual-book seed balance gaps')
     p.add_argument("--mode",choices=("dry-run","live","verify","replay"),default="dry-run")
     args=p.parse_args(argv)
     market=json.loads(Path(args.market).read_text(encoding="utf8"))
@@ -1118,7 +1187,8 @@ def main(argv=None):
     prior=json.loads(state.read_text(encoding="utf8")) if state.is_file() else None
     asof,members,_,years,cohorts=plan(
         market,catalog,prior=prior,groups=args.groups,
-        recent_pair_priority=args.prioritize_latest_earnings)
+        recent_pair_priority=args.prioritize_latest_earnings,
+        recover_seed_balance=args.recover_seed_balance)
     if args.mode=="replay":
         # The rolling annual-book collector may finish AFTER the bulk job.
         # Re-score only the already published, same-day BS/IS source rows.
@@ -1186,7 +1256,8 @@ def main(argv=None):
             groups=args.groups,on_progress=save_verified_year,
             annual_book=annual,company_cache=cached_corp,
             on_company_cache=save_company_master,
-            recent_pair_priority=args.prioritize_latest_earnings)
+            recent_pair_priority=args.prioritize_latest_earnings,
+            recover_seed_balance=args.recover_seed_balance)
     except BulkHistoryError as err:
         if not checkpoints:
             raise
