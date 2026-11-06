@@ -8,6 +8,54 @@ from v3_v30b_release_gate import r1d_public_reconciles, R1D_PART_LIMITS
 
 OUTPUT='v3-operational-evidence-priority.json'
 
+# These are WORKSTREAM labels, not interchangeable valuation inputs.  The
+# counterfactual counts issuers whose *entire* missing R1d weight lies inside
+# one workstream. It is an upper bound on possible 100-weight observations if
+# every required, independently checked fact were subsequently recovered.
+# No unobserved amount or nominal score is inferred by this grouping.
+SOURCE_FAMILIES={
+    'dart_cashflow_capex': frozenset((
+        ('financial','cashflow_fcf_persistence'),('valuation','fcf_yield'))),
+    'dart_annual_fundamentals': frozenset((
+        ('financial','revenue_growth'),('financial','operating_growth_margin'),
+        ('financial','balance_sheet_strength'),('valuation','pbr_equity_quality'),
+        ('valuation','sales_to_cap'))),
+    'reported_eps_earnings_yield': frozenset((
+        ('valuation','per_eps_quality_growth'),)),
+    'exchange_actual_money_windows': frozenset((
+        ('volume','long_horizon_growth'),('volume','persistence'),
+        ('volume','concentration_quality'),('volume','up_down_asymmetry'),
+        ('volume','correction_contraction'),('volume','weekly_structure_increment'))),
+    'price_chart_windows': frozenset((
+        ('volume','obv_price_divergence'),('volume','post_spike_absorption'),
+        ('technical','daily_pattern'),('technical','weekly_pattern'),
+        ('technical','ma20_ma60_cross_near_ma240'),('technical','daily_rsi'),
+        ('technical','weekly_rsi'),('technical','long_ma_position'),
+        ('technical','independent_breakout_confirmation'),
+        ('momentum','existing_momentum'),('momentum','daily_ma_slope_turn'),
+        ('momentum','weekly_ma_slope_turn'))),
+}
+
+
+def source_family_completion_upper_bounds(queue):
+    """Exact missing-factor set containment; never simulate missing points."""
+    counts={name:0 for name in SOURCE_FAMILIES}
+    for row in queue:
+        missing={(gap['area'],gap['component']) for gap in row['gaps']}
+        if not missing:
+            raise ValueError('empty_source_recovery_gap')
+        for name,components in SOURCE_FAMILIES.items():
+            if missing<=components:
+                counts[name]+=1
+    return {
+        'conditional_only_not_provider_recoverability':True,
+        'full_100_if_all_missing_family_facts_became_observed':counts,
+        'maximum_missing_issuers_in_one_family':max(counts.values(),default=0),
+        'no_issuer_added_to_full_100_observed':True,
+        'no_missing_factor_assumed_zero_or_observed':True,
+        'source_eligibility_not_inferred_from_gap_shape':True,
+    }
+
 
 def category(area,key,status,queried_capex):
     if key in ('cashflow_fcf_persistence','fcf_yield'):
@@ -67,6 +115,7 @@ def build(report,comparison,catalog,legacy_priority=None):
         'reason_component_counts':dict(sorted(reasons.items())),
         'gap_shapes':dict(sorted(shapes.items(),key=lambda x:(-x[1],x[0]))),
         'single_component_queue':[r for r in queue if r['missing_components']==1],
+        'source_family_completion_upper_bounds':source_family_completion_upper_bounds(queue),
         'multiple_missing_index_columns':['code','available','missing_weight','shape_index','catalog_price_status'],
         'multiple_missing_index':multiple,'shape_names':shape_names,
         'source_status_issuer_counts':dict(Counter(members[r['code']].get('price_history_status','unknown') for r in queue)),
