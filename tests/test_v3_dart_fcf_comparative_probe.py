@@ -164,6 +164,7 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", workflow)
         self.assertIn("python v3_dart_fcf_comparative_probe.py --mode", workflow)
         self.assertIn("--limit 20", workflow)
+        self.assertIn("| tee /tmp/v3-cf-comparative-counts.json", workflow)
         self.assertIn("github.event_name != 'pull_request'", workflow)
         self.assertNotIn("git push", workflow)
         self.assertNotIn("git add", workflow)
