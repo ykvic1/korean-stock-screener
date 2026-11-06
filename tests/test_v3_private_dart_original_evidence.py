@@ -563,6 +563,7 @@ class OriginalEvidenceTests(unittest.TestCase):
                          max_calls=7)
         self.assertIn("v3_private_dart_original_evidence.py", wf)
         self.assertIn("test_v3_private_dart_original_evidence.py", wf)
+        self.assertIn("pull_request:", wf)
         self.assertIn("DART_API_KEY:", wf)
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN:", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)

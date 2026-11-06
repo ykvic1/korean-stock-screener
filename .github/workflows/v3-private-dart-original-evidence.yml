@@ -9,6 +9,14 @@ on:
       - tests/test_v3_private_dart_original_evidence.py
       - tests/test_v3_private_dart_original_timeline_candidates.py
       - .github/workflows/v3-private-dart-original-evidence.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - v3_private_dart_original_evidence.py
+      - v3_private_dart_original_timeline_candidates.py
+      - tests/test_v3_private_dart_original_evidence.py
+      - tests/test_v3_private_dart_original_timeline_candidates.py
+      - .github/workflows/v3-private-dart-original-evidence.yml
   # Auxiliary original ZIP research is scheduled, not spawned on every crosscheck.
   schedule:
     # Fallbacks for a pending private title queue, never provider quota retries.
