@@ -162,3 +162,17 @@ class SeedBalanceTests(unittest.TestCase):
         self.assertGreater(sum(r['available']>=100 for r in after['rows'].values()),
             sum(r['available']>=100 for r in before['rows'].values()))
         self.assertFalse(after['investment_score_certified'])
+
+    def test_verified_zero_assets_remains_zero_without_a_defined_ratio(self):
+        market,catalog,prior,_=self.fixture()
+        code=next(iter(prior['records']))
+        old=copy.deepcopy(prior['records'][code]['years']['2025'])
+        old['CFS']['values'].update(liabilities=0,equity=0)
+        incoming=copy.deepcopy(old)
+        incoming['CFS']['values']['assets']=0
+        merged=b._merge_seed_balance_year(old,incoming,2025,catalog['date'])
+        self.assertEqual(merged['CFS']['values']['assets'],0)
+        self.assertEqual(merged['CFS']['bulk_balance_probe']['result'],'enriched')
+        self.assertFalse(b._seed_balance_pending(merged,2025,catalog['date']))
+        rec=copy.deepcopy(prior['records'][code]);rec['years']['2025']=merged
+        self.assertEqual(b._balance_financial_metrics(rec,prior['fiscal_years'],catalog['date']),(None,None))

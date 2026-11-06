@@ -309,7 +309,7 @@ def _merge_seed_balance_year(previous,incoming,year,asof):
                 vals=[values.get(k) for k in balance]
                 ambiguous=set(new.get('ambiguous',[]))&set(balance)
                 if (ambiguous or any(type(v) is not int for v in vals)
-                    or not 0<vals[0]<=10**18 or not 0<=vals[1]<=10**18
+                    or not 0<=vals[0]<=10**18 or not 0<=vals[1]<=10**18
                     or abs(vals[2])>10**18
                     or abs(vals[0]-vals[1]-vals[2])>max(1,vals[0]*.01)):
                     result='missing_or_ambiguous_balance'

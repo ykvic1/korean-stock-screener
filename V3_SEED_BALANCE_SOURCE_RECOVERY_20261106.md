@@ -32,9 +32,10 @@ eligible again. Non-seed source years retain the overwrite prohibition.
 Quota, malformed responses and unknown currency still stop the source runner
 with previously verified checkpoints preserved.
 
-Six new regressions cover opt-in admission, single-year-only requests,
+Seven new regressions cover opt-in admission, single-year-only requests,
 preservation of existing values, no repeat requests, empty/foreign/revised/
-conflicting results, fixed budgets, strict overwrite/marker guards and the
+conflicting results, fixed budgets, strict overwrite/marker guards, observed zero assets versus an undefined
+ratio, and the
 whole real saved census. A deliberately synthetic same-receipt integration
 replays restored asset denominators through financial/FCF source checks,
 issuer ledger, operational score and CSV verification. It proves plumbing,
