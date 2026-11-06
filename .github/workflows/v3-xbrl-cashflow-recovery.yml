@@ -57,7 +57,10 @@ jobs:
         run: |
           set -euo pipefail
           interrupted=0
-          if ! python v3_dart_xbrl_cashflow_recovery.py --mode live --limit 16; then interrupted=1; fi
+          # Cohort 20 was independently surveyed by the structural pilot;
+          # two missing facts had target-year dimensional contexts. Recheck
+          # those receipts first, without bypassing the stronger verifier.
+          if ! python v3_dart_xbrl_cashflow_recovery.py --mode live --limit 16 --structural-cohort-index 20; then interrupted=1; fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish
