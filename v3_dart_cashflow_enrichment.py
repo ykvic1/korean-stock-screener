@@ -194,10 +194,15 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
 
 
 def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS,
-         recover_missing_names=False):
+         recover_missing_names=False,priority_codes=()):
     asof,members=asof_members(market,catalog,bulk)
     if type(limit) is not int or not 1<=limit<=MAX_ISSUERS:
         raise CashflowError("invalid_cashflow_max_issuers")
+    if (type(priority_codes) not in (list,tuple,set,frozenset)
+        or len(priority_codes)>6000 or
+        any(type(code) is not str or code not in members for code in priority_codes)):
+        raise CashflowError("untrusted_cashflow_recovery_priority")
+    priority_codes=set(priority_codes)
     prior=retained_current_market_cashflow(market,catalog,bulk,prior)
     retained=prior["records"] if prior is not None else {}
     queues={"KOSPI":[],"KOSDAQ":[]}
@@ -250,7 +255,11 @@ def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS,
                     missing.append(year)
             if missing:
                 retries.append((len(missing),code,scope,missing,member["market"]))
-        retries.sort(key=lambda item:(item[0],item[4]!="KOSPI",item[1]))
+        # Independent R1d one-missing-FCF priority is a COLLECTION order,
+        # never a score or a reason to skip receipt checks. If those saved
+        # reports are stale, the caller passes an empty priority set.
+        retries.sort(key=lambda item:(item[1] not in priority_codes,
+                                      item[0],item[4]!="KOSPI",item[1]))
         chosen.extend(item[:4] for item in retries[:limit-len(chosen)])
     return asof,members,retained,chosen
 
@@ -538,10 +547,11 @@ def merge_account_name_recheck(prior,observed):
 
 def collect(market,catalog,bulk,prior,*,key,session,corp_cache=None,
             issuer_limit=MAX_ISSUERS,on_progress=None,
-            recover_missing_names=False):
+            recover_missing_names=False,priority_codes=()):
     asof,members,retained,chosen=plan(
         market,catalog,bulk,prior=prior,limit=issuer_limit,
-        recover_missing_names=recover_missing_names)
+        recover_missing_names=recover_missing_names,
+        priority_codes=priority_codes)
     state=dict(retained)
     if not chosen:
         return summary(asof,members,state,fingerprint(bulk)),0
@@ -625,8 +635,20 @@ def main(argv=None):
     bulk=read(a.major)
     state_path=Path(a.state)
     prior=read(a.state) if state_path.is_file() else None
+    priority=set()
+    if a.mode=="recover-name-fallback":
+        # Calculate this from the independently reconciled actual R1d report,
+        # not from a potentially stale or hand-edited UI rank field.
+        from v3_dart_xbrl_capex_pilot import operational_gap_priority
+        root=Path(a.catalog).parent
+        score_file=root/"v3-operational-research-scores.json"
+        compare_file=root/"v3-operational-research-comparison.json"
+        if score_file.is_file() and compare_file.is_file():
+            priority=operational_gap_priority(
+                read(score_file),read(compare_file),catalog,bulk)
     asof,members,_,chosen=plan(market,catalog,bulk,prior=prior,limit=a.issuer_limit,
-        recover_missing_names=a.mode=="recover-name-fallback")
+        recover_missing_names=a.mode=="recover-name-fallback",
+        priority_codes=priority)
     if a.mode=="dry-run":
         print(json.dumps({"status":"dry_run_no_api","asof":asof,
              "eligible_next_company_count":len(chosen),"source_calls":0,
@@ -668,7 +690,8 @@ def main(argv=None):
         finished,calls=collect(market,catalog,bulk,prior,key=key,
                  session=requests.Session(),corp_cache=cache,
                  issuer_limit=a.issuer_limit,on_progress=checkpoint,
-                 recover_missing_names=a.mode=="recover-name-fallback")
+                 recover_missing_names=a.mode=="recover-name-fallback",
+                 priority_codes=priority)
     except CashflowError as exc:
         if not saved:
             raise

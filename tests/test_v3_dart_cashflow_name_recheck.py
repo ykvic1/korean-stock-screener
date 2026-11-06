@@ -71,6 +71,20 @@ class NameRecheckTests(unittest.TestCase):
         self.assertEqual((n,again.calls), (0,[]))
         self.assertEqual(repeated,saved)
 
+    def test_reconciled_single_factor_fcf_priority_beats_arbitrary_code_order(self):
+        market,catalog,bulk,prior=self.incomplete()
+        baseline=cf.plan(market,catalog,bulk,prior,limit=2,
+                         recover_missing_names=True)[3]
+        high=sorted(set(prior["records"])-{r[1] for r in baseline})[-1]
+        chosen=cf.plan(market,catalog,bulk,prior,limit=2,
+            recover_missing_names=True,priority_codes={high})[3]
+        self.assertEqual(chosen[0][1],high)
+        self.assertEqual(len(chosen),2)
+        self.assertTrue(all(row[3]==[2024] for row in chosen))
+        with self.assertRaises(cf.CashflowError):
+            cf.plan(market,catalog,bulk,prior,limit=2,
+                    recover_missing_names=True,priority_codes={'999999'})
+
     def test_nonstandard_name_not_used_in_initial_exact_ifrs_collector(self):
         year=2024;code="005930"
         entries=rows(year,code,skip_intangible=True)+[nonstandard(year,code)]
