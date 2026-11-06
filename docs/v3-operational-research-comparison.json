@@ -5,29 +5,29 @@
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 20,
+      "overlap": 28,
       "new_kospi": 24,
-      "old_kospi": 20
+      "old_kospi": 23
     },
     "100": {
-      "overlap": 37,
-      "new_kospi": 48,
-      "old_kospi": 42
+      "overlap": 56,
+      "new_kospi": 47,
+      "old_kospi": 45
     },
     "200": {
-      "overlap": 76,
+      "overlap": 108,
       "new_kospi": 98,
-      "old_kospi": 87
+      "old_kospi": 85
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "5eff1a47d636400a415f071c6717aee51ccb97bc16c09cb76b2b297b43305a65",
+    "source_digest": "289df7f4bc7f13766cf7154a705dbedbc626e0fe040c0c47766593eadba3ce42",
     "listed_total": 2501,
     "ranked_count": 2481,
-    "available_100_count": 556,
-    "available_95_count": 789,
-    "available_90_count": 1405,
+    "available_100_count": 672,
+    "available_95_count": 956,
+    "available_90_count": 1417,
     "budgets": {
       "volume": 25,
       "technical": 30.0,
@@ -43,8 +43,8 @@
   "prior_operational_version": "v3-stable-r1c-operational-research",
   "same_input_prior_ranked_issuers": 2481,
   "prior_top_overlap": {
-    "50": 36,
-    "100": 72,
-    "200": 144
+    "50": 29,
+    "100": 63,
+    "200": 141
   }
 }
