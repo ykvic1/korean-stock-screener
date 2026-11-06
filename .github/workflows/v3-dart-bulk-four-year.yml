@@ -134,6 +134,7 @@ jobs:
           python - <<'PY'
           import json, os
           from pathlib import Path
+          from v3_dart_bulk_history import seed_balance_recovery_progress
           summary=Path(os.environ['GITHUB_STEP_SUMMARY'])
           archive=Path('docs/v3-dart-bulk-history.json')
           parts=Path('docs/v3-dart-bulk-provisional.json')
@@ -148,6 +149,11 @@ jobs:
             a=json.loads(archive.read_text(encoding='utf8'))
             p=json.loads(parts.read_text(encoding='utf8'))
             rows=a.get('records',{})
+            seed=seed_balance_recovery_progress(a)
+            lines.append('- 연간 공시 재사용 자산총계 복구 대상: **'+str(seed['targets'])+'건**')
+            lines.append('- 동일 접수번호 확인 후 실제 보완: **'+str(seed['enriched'])+'건**')
+            lines.append('- 조회했으나 보완 불가: **'+str(seed['checked_unavailable'])+'건**')
+            lines.append('- 아직 조회하지 않은 복구 대상: **'+str(seed['pending'])+'건**')
             observed=sum(sum(bool(y) for y in r.get('years',{}).values())
                          for r in rows.values())
             years=sum(len(r.get('years',{})) for r in rows.values())

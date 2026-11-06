@@ -176,3 +176,18 @@ class SeedBalanceTests(unittest.TestCase):
         self.assertFalse(b._seed_balance_pending(merged,2025,catalog['date']))
         rec=copy.deepcopy(prior['records'][code]);rec['years']['2025']=merged
         self.assertEqual(b._balance_financial_metrics(rec,prior['fiscal_years'],catalog['date']),(None,None))
+
+    def test_receipt_checked_progress_counts_never_claim_missing_assets(self):
+        market,catalog,prior,cache=self.fixture()
+        self.assertEqual(b.seed_balance_recovery_progress(prior),
+                         {'targets':5,'pending':5,'enriched':0,'checked_unavailable':0})
+        with contextlib.redirect_stdout(io.StringIO()):
+            recovered,_=b.collect(market,catalog,prior,key='synthetic-test-not-credential',
+                session=fixtures.FakeDART(),company_cache=cache,recover_seed_balance=True)
+        self.assertEqual(b.seed_balance_recovery_progress(recovered),
+                         {'targets':5,'pending':0,'enriched':5,'checked_unavailable':0})
+        damaged=copy.deepcopy(recovered)
+        first=next(iter(damaged['records'].values()))['years']['2025']['CFS']
+        first['bulk_balance_probe']['receipt_id']='20260101000001'
+        with self.assertRaises(b.BulkHistoryError):
+            b.seed_balance_recovery_progress(damaged)
