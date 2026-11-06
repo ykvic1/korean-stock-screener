@@ -30,8 +30,16 @@ NONSTANDARD_BASIC_EPS_NAMES = frozenset((
     '기본주당순이익(손실)', '기본주당손익', '기본주당순손익',
 ))
 LEGACY_NAME_RECHECK_VERSION = 'one_receipt_exact_basic_eps_name_v1'
-NAME_RECHECK_VERSION = 'one_receipt_whitespace_basic_eps_name_v2'
-NAME_RECHECK_VERSIONS = {LEGACY_NAME_RECHECK_VERSION, NAME_RECHECK_VERSION}
+WHITESPACE_NAME_RECHECK_VERSION = 'one_receipt_whitespace_basic_eps_name_v2'
+NAME_RECHECK_VERSION = 'one_receipt_explicit_joint_basic_eps_name_v3'
+NAME_RECHECK_VERSIONS = {LEGACY_NAME_RECHECK_VERSION, WHITESPACE_NAME_RECHECK_VERSION, NAME_RECHECK_VERSION}
+# IAS 33.67 permits one-line presentation when basic and diluted EPS are
+# equal. An explicit joint label reports BASIC EPS too; diluted-only labels
+# remain excluded. No equality is inferred from another account's amount.
+# https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2022/issued/part-a/ias-33-earnings-per-share.pdf
+JOINT_BASIC_DILUTED_EPS_NAMES = frozenset(
+    name.replace('기본', '기본및희석', 1) for name in NONSTANDARD_BASIC_EPS_NAMES)
+ALLOWED_BASIC_EPS_NAMES = NONSTANDARD_BASIC_EPS_NAMES | JOINT_BASIC_DILUTED_EPS_NAMES
 MAX_PER_RUN = 100
 MAX_WORKERS = 3
 YEAR = 2025
@@ -111,7 +119,7 @@ def canonical_basic_eps_name(value):
     if type(value) is not str or len(value) > 120:
         return None
     compact = "".join(value.split())
-    return compact if compact in NONSTANDARD_BASIC_EPS_NAMES else None
+    return compact if compact in ALLOWED_BASIC_EPS_NAMES else None
 
 
 def parse(payload, *, corp, base, on_day, allow_nonstandard_names=False):
@@ -236,8 +244,11 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
             label=row.get('source_account_name_fallback')
             marker=row.get('source_name_recheck')
             if (bool(label) != (row['source_account_id']==NONSTANDARD_ID)
-                or (label is not None and label not in NONSTANDARD_BASIC_EPS_NAMES)
+                or (label is not None and label not in ALLOWED_BASIC_EPS_NAMES)
                 or (marker is None and label is not None)):
+                raise EPSError('invalid_saved_eps_source')
+            if (label in JOINT_BASIC_DILUTED_EPS_NAMES and
+                (type(marker) is not dict or marker.get('version') != NAME_RECHECK_VERSION)):
                 raise EPSError('invalid_saved_eps_source')
             if marker is not None:
                 if (type(marker) is not dict or set(marker)!={'version','receipt_id','result'}

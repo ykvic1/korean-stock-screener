@@ -90,6 +90,46 @@ class EPSNameRecheckTests(unittest.TestCase):
         legacy_complete['records']['005930']['source_name_recheck']['version']=eps.LEGACY_NAME_RECHECK_VERSION
         self.assertEqual(eps.plan(catalog,book,legacy_complete,recover_missing_names=True)[-1],[])
 
+    def test_explicit_joint_basic_and_diluted_line_reports_basic_eps(self):
+        catalog,book,prior=blank_state()
+        for label in ('기본 및 희석 주당이익', '기본및희석주당순이익 (손실)'):
+            with patch.object(eps,'verified_company_mapping_cache',return_value={'005930':'00123456'}):
+                result,calls=eps.collect(catalog,book,prior,key='a'*40,
+                    session=FakeSession({'status':'000','list':[fallback(label=label)]}),recover_missing_names=True)
+            row=result['records']['005930']
+            self.assertEqual(calls,1)
+            self.assertEqual(row['reported_basic_eps_2023_2025'],[100,200,350])
+            self.assertIn(row['source_account_name_fallback'],eps.JOINT_BASIC_DILUTED_EPS_NAMES)
+            self.assertIn('005930',verified_reported_eps(catalog,book,result))
+            self.assertEqual(eps.plan(catalog,book,result,recover_missing_names=True)[-1],[])
+            for version in (eps.LEGACY_NAME_RECHECK_VERSION,eps.WHITESPACE_NAME_RECHECK_VERSION):
+                forged=copy.deepcopy(result)
+                forged['records']['005930']['source_name_recheck']['version']=version
+                with self.assertRaises(eps.EPSError):
+                    eps.plan(catalog,book,forged,recover_missing_names=True)
+        for label in ('희석주당이익', '기본/희석주당이익', '기본또는희석주당이익',
+                      '계속영업기본및희석주당이익', '기본및희석주당이익(주석)'):
+            self.assertIsNone(eps.canonical_basic_eps_name(label))
+        with self.assertRaisesRegex(eps.EPSError,'conflicting_reported_basic_eps'):
+            eps.parse({'status':'000','list':[fallback(),fallback(label='기본및희석주당이익',amount='351')]},
+                corp='00123456',base=BASE,on_day=DAY,allow_nonstandard_names=True)
+
+    def test_v2_missing_source_may_use_v3_once_but_observed_v2_is_kept(self):
+        catalog,book,prior=blank_state()
+        with patch.object(eps,'verified_company_mapping_cache',return_value={'005930':'00123456'}):
+            checked,_=eps.collect(catalog,book,prior,key='a'*40,
+                session=FakeSession({'status':'013'}),recover_missing_names=True)
+            checked['records']['005930']['source_name_recheck']['version']=eps.WHITESPACE_NAME_RECHECK_VERSION
+            self.assertEqual(eps.plan(catalog,book,checked,recover_missing_names=True)[-1],['005930'])
+            result,_=eps.collect(catalog,book,checked,key='a'*40,
+                session=FakeSession({'status':'000','list':[fallback(label='기본및희석주당이익')]}),recover_missing_names=True)
+            self.assertEqual(result['complete_three_year_eps_issuers'],1)
+            self.assertEqual(eps.plan(catalog,book,result,recover_missing_names=True)[-1],[])
+            observed,_=eps.collect(catalog,book,prior,key='a'*40,
+                session=FakeSession({'status':'000','list':[fallback()]}),recover_missing_names=True)
+        observed['records']['005930']['source_name_recheck']['version']=eps.WHITESPACE_NAME_RECHECK_VERSION
+        self.assertEqual(eps.plan(catalog,book,observed,recover_missing_names=True)[-1],[])
+
     def test_exact_name_not_accepted_in_initial_standard_id_collection(self):
         nonstandard={'status':'000','list':[fallback()]}
         unverified=eps.parse(nonstandard,corp='00123456',base=BASE,on_day=DAY)
