@@ -44,6 +44,19 @@ INTANGIBLE_IDS={
     "ifrs-full_PurchaseOfIntangibleAssets",
     "ifrs_PurchaseOfIntangibleAssets",
 }
+# OpenDART documents this literal marker for an issuer-specific XBRL account.
+# Never match a loosely normalized label, a non-CF row, or an arbitrary
+# extension account ID: two identical Korean labels are NOT necessarily one
+# verified standard concept. Use this only in a bounded missing-fact recheck.
+NONSTANDARD_ACCOUNT_ID="-표준계정코드 미사용-"
+NONSTANDARD_CAPEX_NAMES={
+    "ppe":"유형자산의 취득",
+    "intangible":"무형자산의 취득",
+}
+NAME_RECHECK_VERSION="exact_nonstandard_cf_name_v1"
+SOURCE_IFRS="OpenDART fnlttSinglAcntAll exact IFRS CF account IDs"
+SOURCE_WITH_NAMES=("OpenDART fnlttSinglAcntAll exact IFRS CF IDs or "
+                   "receipt-bound exact nonstandard CF names")
 
 class CashflowError(ValueError):
     """Fixed, non-sensitive failure codes."""
@@ -180,10 +193,16 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
     return rebound
 
 
-def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS):
+def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS,
+         recover_missing_names=False,priority_codes=()):
     asof,members=asof_members(market,catalog,bulk)
     if type(limit) is not int or not 1<=limit<=MAX_ISSUERS:
         raise CashflowError("invalid_cashflow_max_issuers")
+    if (type(priority_codes) not in (list,tuple,set,frozenset)
+        or len(priority_codes)>6000 or
+        any(type(code) is not str or code not in members for code in priority_codes)):
+        raise CashflowError("untrusted_cashflow_recovery_priority")
+    priority_codes=set(priority_codes)
     prior=retained_current_market_cashflow(market,catalog,bulk,prior)
     retained=prior["records"] if prior is not None else {}
     queues={"KOSPI":[],"KOSDAQ":[]}
@@ -212,6 +231,36 @@ def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS):
         chosen+=queues[market_name][:limit//2]
     rest=sorted(queues["KOSPI"][limit//2:]+queues["KOSDAQ"][limit//2:])
     chosen+=rest[:limit-len(chosen)]
+    if recover_missing_names and len(chosen)<limit:
+        # The original exact-IFRS collection is already complete for most
+        # listed issuers. Retry ONLY genuinely missing CFO/CAPEX account years
+        # once per unchanged receipt. This is not a wholesale refetch and
+        # a negative result never turns missing CAPEX into numeric zero.
+        selected={code for _,code,_,_ in chosen}
+        retries=[]
+        for code,member in members.items():
+            if code in selected or code not in retained:
+                continue
+            priorrow=retained[code]
+            scope=priorrow["scope"]
+            record=bulk["records"].get(code,{})
+            missing=[]
+            for year in source_receipt_years(record,scope,asof=asof):
+                observed=priorrow["years"].get(str(year))
+                if (observed and observed.get("major_annual_receipt_matched") is True
+                    and any(observed.get(k) is None for k in
+                            ("operating_cashflow_krw","ppe_capex_krw",
+                             "intangible_capex_krw"))
+                    and observed.get("account_name_recheck") is None):
+                    missing.append(year)
+            if missing:
+                retries.append((len(missing),code,scope,missing,member["market"]))
+        # Independent R1d one-missing-FCF priority is a COLLECTION order,
+        # never a score or a reason to skip receipt checks. If those saved
+        # reports are stale, the caller passes an empty priority set.
+        retries.sort(key=lambda item:(item[1] not in priority_codes,
+                                      item[0],item[4]!="KOSPI",item[1]))
+        chosen.extend(item[:4] for item in retries[:limit-len(chosen)])
     return asof,members,retained,chosen
 
 
@@ -231,7 +280,19 @@ def _matching_amount(rows, identifiers):
     return amounts[0]
 
 
-def normalize_year(rows,*,code,corp,year,scope,asof,major_receipt):
+def _matching_exact_nonstandard_name(rows, name):
+    candidates=[r for r in rows if r.get("account_id")==NONSTANDARD_ACCOUNT_ID
+                and r.get("account_nm")==name]
+    if not candidates:
+        return None
+    values=[_amount(r.get("thstrm_amount")) for r in candidates]
+    if any(v is None for v in values) or len(set(values))!=1:
+        return None
+    return values[0]
+
+
+def normalize_year(rows,*,code,corp,year,scope,asof,major_receipt,
+                   allow_nonstandard_names=False):
     """A single request is specific to one company, year and CF scope."""
     if type(rows) is not list or len(rows)>18000:
         raise CashflowError("bad_single_full_statement_row_count")
@@ -248,11 +309,20 @@ def normalize_year(rows,*,code,corp,year,scope,asof,major_receipt):
             raise CashflowError("single_full_statement_issuer_or_fiscal_mismatch")
         if row.get("sj_div")!="CF":
             continue
-        if row.get("account_id") not in CFO_IDS|PPE_IDS|INTANGIBLE_IDS:
+        is_standard=row.get("account_id") in CFO_IDS|PPE_IDS|INTANGIBLE_IDS
+        is_exact_name=(allow_nonstandard_names and
+            row.get("account_id")==NONSTANDARD_ACCOUNT_ID and
+            row.get("account_nm") in NONSTANDARD_CAPEX_NAMES.values())
+        if not (is_standard or is_exact_name):
             continue
         if row.get("account_detail","-") not in ("-",""):
             continue
         if row.get("currency")!="KRW":
+            if is_exact_name:
+                # Quarantine only the optional nonstandard candidate. It
+                # cannot stand in for KRW, but must not discard already
+                # validated exact-IFRS facts from the same annual receipt.
+                continue
             raise CashflowError("non_krw_standard_cashflow")
         receipt=row.get("rcept_no")
         if not _valid_receipt(receipt,year,_day(asof)):
@@ -266,13 +336,26 @@ def normalize_year(rows,*,code,corp,year,scope,asof,major_receipt):
     cfo=_matching_amount(selected,CFO_IDS)
     ppe=_matching_amount(selected,PPE_IDS)
     intangible=_matching_amount(selected,INTANGIBLE_IDS)
+    name_fallback=[]
+    if allow_nonstandard_names:
+        # Never resolve conflicting/malformed IFRS rows through a looser
+        # name match. A fallback is allowed only when the standard ID is
+        # completely absent in the same annual CF statement.
+        if ppe is None and not any(r.get("account_id") in PPE_IDS for r in selected):
+            ppe=_matching_exact_nonstandard_name(selected,NONSTANDARD_CAPEX_NAMES["ppe"])
+            if ppe is not None and ppe>=0:name_fallback.append("ppe")
+        if (intangible is None and
+            not any(r.get("account_id") in INTANGIBLE_IDS for r in selected)):
+            intangible=_matching_exact_nonstandard_name(
+                selected,NONSTANDARD_CAPEX_NAMES["intangible"])
+            if intangible is not None and intangible>=0:name_fallback.append("intangible")
     # Standard IFRS "purchase" cash outflows are stored as nonnegative
     # expense amounts here; negative or missing signs require human review.
     if ppe is not None and ppe<0: ppe=None
     if intangible is not None and intangible<0: intangible=None
     capex=ppe+intangible if ppe is not None and intangible is not None else None
     fcf=cfo-capex if cfo is not None and capex is not None else None
-    return {
+    result={
         "year":year,"scope":scope,"annual_receipt_id":receipt,
         "major_annual_receipt_matched":(receipt is not None
                                          and receipt==major_receipt),
@@ -284,6 +367,9 @@ def normalize_year(rows,*,code,corp,year,scope,asof,major_receipt):
         "raw_source_account_rows_published":False,
         "historical_PIT_certified":False,
     }
+    if name_fallback:
+        result["source_account_name_fallback"]=sorted(name_fallback)
+    return result
 
 
 def summary(asof,members,records,major_source_hash):
@@ -292,6 +378,10 @@ def summary(asof,members,records,major_source_hash):
            "fcf_company_years":0,"receipt_matched_fcf_company_years":0,
            "three_year_fcf_receipt_matched_issuers":0,
            "most_recent_year_receipt_matched_fcf_issuers":0}
+    name_probe_years=0
+    name_probe_enriched_years=0
+    name_fallback_years=0
+    name_fallback_components=0
     for code,r in records.items():
         if code not in members or type(r) is not dict or r.get("scope") not in ("CFS","OFS"):
             raise CashflowError("invalid_cashflow_checkpoint_issuer")
@@ -315,6 +405,29 @@ def summary(asof,members,records,major_source_hash):
             intangible=z.get("intangible_capex_krw")
             capex=z.get("total_capex_krw")
             fcf=z.get("free_cashflow_krw")
+            names=z.get("source_account_name_fallback")
+            if names is not None:
+                if (type(names) is not list or not names
+                    or names!=sorted(set(names))
+                    or not set(names)<=set(NONSTANDARD_CAPEX_NAMES)
+                    or ("ppe" in names and ppe is None)
+                    or ("intangible" in names and intangible is None)
+                    or z.get("major_annual_receipt_matched") is not True):
+                    raise CashflowError("untrusted_nonstandard_capex_provenance")
+                name_fallback_years+=1
+                name_fallback_components+=len(names)
+            marker=z.get("account_name_recheck")
+            if marker is not None:
+                if (type(marker) is not dict or set(marker)!={
+                        "version","receipt_id","result"}
+                    or marker.get("version")!=NAME_RECHECK_VERSION
+                    or marker.get("result") not in ("enriched","checked_unavailable")
+                    or marker.get("receipt_id")!=z.get("annual_receipt_id")
+                    or z.get("major_annual_receipt_matched") is not True
+                    or not _valid_receipt(marker.get("receipt_id"),int(y),_day(asof))):
+                    raise CashflowError("untrusted_cashflow_name_recheck")
+                name_probe_years+=1
+                name_probe_enriched_years+=int(marker["result"]=="enriched")
             if capex!=(ppe+intangible if ppe is not None and intangible is not None else None):
                 raise CashflowError("untrusted_cashflow_capex_sum")
             if fcf!=(cfo-capex if cfo is not None and capex is not None else None):
@@ -333,10 +446,15 @@ def summary(asof,members,records,major_source_hash):
             three.append((int(y),matched))
         if len(three)==3 and all(v for _,v in three):
             count["three_year_fcf_receipt_matched_issuers"]+=1
+    if name_probe_years or name_fallback_years:
+        count.update(name_recheck_company_years=name_probe_years,
+            name_recheck_enriched_company_years=name_probe_enriched_years,
+            nonstandard_capex_name_company_years=name_fallback_years,
+            nonstandard_capex_name_components=name_fallback_components)
     return {"schema":SCHEMA,"asof":asof,"listed_total":len(members),
             "source_major_history_sha256":major_source_hash,
             "source_fiscal_years":list(YEARS),
-            "source":"OpenDART fnlttSinglAcntAll exact IFRS CF account IDs",
+            "source":SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS,
             "cashflow_accounting_consolidated_with_major_source":False,
             "three_year_fcf_financial15_certified":False,
             "current_year_fcf_valuation15_certified":False,
@@ -381,10 +499,59 @@ def verify_state(state,market,catalog,bulk,strict_fingerprint=True):
     return True
 
 
+def merge_account_name_recheck(prior,observed):
+    """Add only independently re-observed missing facts from one receipt.
+
+    Existing non-null CFO/CAPEX can never be overwritten, including by a
+    different value under the same receipt. A response with no recognized CF
+    rows leaves every previously observed amount untouched and is marked
+    checked to avoid an hourly blind-refetch loop.
+    """
+    if (type(prior) is not dict or type(observed) is not dict or
+        prior.get("major_annual_receipt_matched") is not True or
+        prior.get("account_name_recheck") is not None or
+        prior.get("year")!=observed.get("year") or
+        prior.get("scope")!=observed.get("scope") or
+        (observed.get("annual_receipt_id") is not None and
+         observed.get("annual_receipt_id")!=prior.get("annual_receipt_id"))):
+        raise CashflowError("cashflow_name_recheck_receipt_or_scope_mismatch")
+    updated=dict(prior)
+    added=[]
+    columns=(("operating_cashflow_krw",None),
+             ("ppe_capex_krw","ppe"),
+             ("intangible_capex_krw","intangible"))
+    used=set(prior.get("source_account_name_fallback",[]))
+    observed_names=set(observed.get("source_account_name_fallback",[]))
+    for field,name in columns:
+        old,new=prior.get(field),observed.get(field)
+        if old is not None and new is not None and old!=new:
+            raise CashflowError("cashflow_name_recheck_original_amount_conflict")
+        if old is None and new is not None:
+            updated[field]=new
+            added.append(field)
+            if name in observed_names:
+                used.add(name)
+    if used:updated["source_account_name_fallback"]=sorted(used)
+    ppe=updated["ppe_capex_krw"]
+    intangible=updated["intangible_capex_krw"]
+    capex=ppe+intangible if ppe is not None and intangible is not None else None
+    updated["total_capex_krw"]=capex
+    cfo=updated["operating_cashflow_krw"]
+    updated["free_cashflow_krw"]=cfo-capex if cfo is not None and capex is not None else None
+    updated["account_name_recheck"]={
+        "version":NAME_RECHECK_VERSION,
+        "receipt_id":prior["annual_receipt_id"],
+        "result":"enriched" if added else "checked_unavailable"}
+    return updated
+
+
 def collect(market,catalog,bulk,prior,*,key,session,corp_cache=None,
-            issuer_limit=MAX_ISSUERS,on_progress=None):
+            issuer_limit=MAX_ISSUERS,on_progress=None,
+            recover_missing_names=False,priority_codes=()):
     asof,members,retained,chosen=plan(
-        market,catalog,bulk,prior=prior,limit=issuer_limit)
+        market,catalog,bulk,prior=prior,limit=issuer_limit,
+        recover_missing_names=recover_missing_names,
+        priority_codes=priority_codes)
     state=dict(retained)
     if not chosen:
         return summary(asof,members,state,fingerprint(bulk)),0
@@ -433,9 +600,15 @@ def collect(market,catalog,bulk,prior,*,key,session,corp_cache=None,
             else:
                 raise CashflowError("cashflow_provider_stop")
             major=bulk["records"][code]["years"][str(year)][scope]
+            recheck=(str(year) in years)
             result=normalize_year(rows,code=code,corp=mapping[code],year=year,
                                   scope=scope,asof=asof,
-                                  major_receipt=major["receipt_id"])
+                                  major_receipt=major["receipt_id"],
+                                  allow_nonstandard_names=recheck and recover_missing_names)
+            if recheck:
+                if not recover_missing_names:
+                    raise CashflowError("unexpected_cashflow_account_name_recheck")
+                result=merge_account_name_recheck(years[str(year)],result)
             years[str(year)]=result
             state[code]={"scope":scope,"years":years}
             snap=summary(asof,members,state,fingerprint(bulk))
@@ -452,7 +625,8 @@ def main(argv=None):
     p.add_argument("--state",default="docs/v3-dart-cashflow-reference.json")
     p.add_argument("--cache",default=".cache/v3-dart-company-codes.json")
     p.add_argument("--issuer-limit",type=int,default=MAX_ISSUERS)
-    p.add_argument("--mode",choices=("dry-run","live","verify","rebind"),default="dry-run")
+    p.add_argument("--mode",choices=("dry-run","live","recover-name-fallback",
+                                    "verify","rebind"),default="dry-run")
     a=p.parse_args(argv)
     def read(path):
         return json.loads(Path(path).read_text(encoding="utf8"))
@@ -461,7 +635,20 @@ def main(argv=None):
     bulk=read(a.major)
     state_path=Path(a.state)
     prior=read(a.state) if state_path.is_file() else None
-    asof,members,_,chosen=plan(market,catalog,bulk,prior=prior,limit=a.issuer_limit)
+    priority=set()
+    if a.mode=="recover-name-fallback":
+        # Calculate this from the independently reconciled actual R1d report,
+        # not from a potentially stale or hand-edited UI rank field.
+        from v3_dart_xbrl_capex_pilot import operational_gap_priority
+        root=Path(a.catalog).parent
+        score_file=root/"v3-operational-research-scores.json"
+        compare_file=root/"v3-operational-research-comparison.json"
+        if score_file.is_file() and compare_file.is_file():
+            priority=operational_gap_priority(
+                read(score_file),read(compare_file),catalog,bulk)
+    asof,members,_,chosen=plan(market,catalog,bulk,prior=prior,limit=a.issuer_limit,
+        recover_missing_names=a.mode=="recover-name-fallback",
+        priority_codes=priority)
     if a.mode=="dry-run":
         print(json.dumps({"status":"dry_run_no_api","asof":asof,
              "eligible_next_company_count":len(chosen),"source_calls":0,
@@ -502,7 +689,9 @@ def main(argv=None):
     try:
         finished,calls=collect(market,catalog,bulk,prior,key=key,
                  session=requests.Session(),corp_cache=cache,
-                 issuer_limit=a.issuer_limit,on_progress=checkpoint)
+                 issuer_limit=a.issuer_limit,on_progress=checkpoint,
+                 recover_missing_names=a.mode=="recover-name-fallback",
+                 priority_codes=priority)
     except CashflowError as exc:
         if not saved:
             raise
@@ -518,6 +707,10 @@ def main(argv=None):
         "observed_fcf_years":finished["metrics"]["fcf_company_years"],
         "fully_matched_three_fcf_issuers":
         finished["metrics"]["three_year_fcf_receipt_matched_issuers"],
+        "account_name_recheck_company_years":
+        finished["metrics"].get("name_recheck_company_years",0),
+        "account_name_recheck_enriched_years":
+        finished["metrics"].get("name_recheck_enriched_company_years",0),
         "full_v3_ready":False},sort_keys=True))
 
 

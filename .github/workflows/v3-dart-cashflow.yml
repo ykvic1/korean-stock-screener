@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_dart_cashflow_enrichment.py
+      - tests/test_v3_dart_cashflow_name_recheck.py
       - v3_dart_cashflow_factor_preview.py
       - v3_dart_cashflow_gap_audit.py
       - tests/test_v3_dart_cashflow_gap_audit.py
@@ -22,7 +23,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [dry-run, live]
+        options: [dry-run, live, recover-name-fallback]
         default: dry-run
         required: true
 
@@ -49,32 +50,33 @@ jobs:
         with:
           path: .cache/v3-dart-company-codes.json
           key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
-      - name: Run no-network exact-IFRS cashflow and no-fabrication tests
+      - name: Run no-network receipt-matched IFRS and exact-name CAPEX tests
         run: |
           set -euo pipefail
           python -m py_compile v3_dart_cashflow_enrichment.py v3_dart_cashflow_factor_preview.py v3_dart_cashflow_gap_audit.py
           python -m unittest discover -s tests -p 'test_v3_dart_cashflow_enrichment.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_name_recheck.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_cashflow_factor_preview.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_cashflow_gap_audit.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_source_day_preflight.py' -v
       - name: Install official DART HTTP dependencies only in live mode
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'live' || inputs.mode == 'recover-name-fallback' }}
         run: python -m pip install 'requests>=2.31,<3'
       - name: Gate cashflow ingestion on the latest verified major-account market date
         id: date_gate
         run: |
           set -euo pipefail
           python v3_dart_source_day_preflight.py --kind major
-      - name: Query only genuine fiscal 2023-2025 annual statement cashflows
+      - name: Query verified annual cashflows then one-time exact-name CAPEX gaps
         if: ${{ steps.date_gate.outputs.ready == 'true' }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'live' }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'recover-name-fallback' }}
         run: |
           set -euo pipefail
           python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 40
       - name: Publish derived cashflow ONLY after successfully validated source
-        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') && steps.date_gate.outputs.ready == 'true' }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live' || inputs.mode == 'recover-name-fallback') && steps.date_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -126,7 +128,8 @@ jobs:
           dest=Path(os.environ['GITHUB_STEP_SUMMARY'])
           lines=[
             '### V3 공식 재무현금흐름 실측 소스 · 매수 미인증',
-            '단일회사 전체 재무제표에서 실제 확인된 표준 계정만 이용합니다.',
+            '단일회사 전체 재무제표에서 확인한 IFRS 표준 CF 계정 또는 같은 접수번호의 정확한 비표준 계정명만 이용합니다.',
+            '비표준 계정명 재확인은 결측 회사·연도에 1회만 허용하며, 값이 없으면 결측으로 유지합니다.',
             'CAPEX 유형/무형 중 하나라도 없으면 FCF는 결측입니다.',
           ]
           if os.getenv("DAY_READY")!="true":
