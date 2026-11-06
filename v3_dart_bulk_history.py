@@ -323,6 +323,52 @@ def _merge_seed_balance_year(previous,incoming,year,asof):
     return merged
 
 
+def seed_balance_recovery_progress(ledger):
+    """Count receipt-checked seed repairs, without promoting score coverage.
+
+    Each target is one issuer/fiscal-year/scope, not an investment-grade
+    issuer. Unqueried gaps stay separate from verified-but-unavailable ones.
+    """
+    if not isinstance(ledger,dict) or not isinstance(ledger.get('records'),dict):
+        raise BulkHistoryError('invalid_seed_balance_progress_ledger')
+    result={'targets':0,'pending':0,'enriched':0,'checked_unavailable':0}
+    for company in ledger['records'].values():
+        if not isinstance(company,dict) or not isinstance(company.get('years'),dict):
+            raise BulkHistoryError('invalid_seed_balance_progress_record')
+        for scopes in company['years'].values():
+            if not isinstance(scopes,dict):
+                raise BulkHistoryError('invalid_seed_balance_progress_record')
+            for ref in scopes.values():
+                if not isinstance(ref,dict):
+                    raise BulkHistoryError('invalid_seed_balance_progress_record')
+                if ref.get('source_origin')!='previously_observed_dart_annual_book':
+                    continue
+                values=ref.get('values')
+                if not isinstance(values,dict):
+                    raise BulkHistoryError('invalid_seed_balance_progress_record')
+                assets=values.get('assets')
+                probe=ref.get('bulk_balance_probe')
+                if probe is None and assets is not None:
+                    continue
+                result['targets']+=1
+                if probe is None:
+                    result['pending']+=1
+                    continue
+                if (not isinstance(probe,dict)
+                    or probe.get('result') not in SEED_BALANCE_RESULTS
+                    or probe.get('receipt_id')!=ref.get('receipt_id')):
+                    raise BulkHistoryError('invalid_seed_balance_progress_probe')
+                if probe['result']=='enriched':
+                    if type(assets) is not int:
+                        raise BulkHistoryError('invalid_seed_balance_progress_probe')
+                    result['enriched']+=1
+                else:
+                    if assets is not None:
+                        raise BulkHistoryError('invalid_seed_balance_progress_probe')
+                    result['checked_unavailable']+=1
+    return result
+
+
 RECENT_EARNINGS_RESERVED_PER_MARKET=20  # within the existing 50/market
 
 def plan(market,catalog,*,prior=None,groups=MAX_GROUPS,recent_pair_priority=False,
