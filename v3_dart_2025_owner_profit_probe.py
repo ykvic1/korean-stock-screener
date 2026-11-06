@@ -339,6 +339,8 @@ def main(argv=None):
     p.add_argument("--mode",choices=("dry-run","live","verify","refresh"),default="dry-run")
     p.add_argument('--completion-first',action='store_true')
     p.add_argument("--limit",type=int,default=MAX_PER_RUN)
+    p.add_argument("--batches",type=int,choices=range(1,7),default=1,
+                   help="At most six bounded20-issuer batches, with per-response checkpoints")
     args=p.parse_args(argv)
     root=Path(args.docs)
     def read(filename):
@@ -401,10 +403,18 @@ def main(argv=None):
         nonlocal saved
         write_json(target,report)
         saved+=1
+    calls=0
+    before_observed=old.get('observed_official_owner_profit_issuers',0) if old else 0
+    before_records=len(old.get('records',{})) if old else 0
+    session=requests.Session()
     try:
-        result,calls=collect(catalog,book,priority,old,key=key,
-                             session=requests.Session(),cache=cache,
-                             limit=args.limit,on_progress=checkpoint,preferred_codes=preferred)
+        for batch in range(args.batches):
+            result,batch_calls=collect(catalog,book,priority,old,key=key,
+                                 session=session,cache=cache,
+                                 limit=args.limit,on_progress=checkpoint,preferred_codes=preferred)
+            calls+=batch_calls
+            old=result
+            if result['target_95weight_issuers']==len(result['records']):break
     except ProfitProbeError as exc:
         if not saved:
             raise
@@ -415,6 +425,9 @@ def main(argv=None):
     write_json(target,result)
     print(json.dumps({"status":"official_owner_profit_source_only",
                       "provider_calls":calls,
+                      "newly_queried_issuers":len(result["records"])-before_records,
+                      "newly_observed_profit_issuers":result["observed_official_owner_profit_issuers"]-before_observed,
+                      "batch_ceiling":args.batches,
                       "observed_profit_count":
                           result["observed_official_owner_profit_issuers"],
                       "remaining_priority_codes":
