@@ -1,0 +1,5 @@
+# Keep historical backup archives in Git, not the user-facing Pages site.
+# Current scores, research JSON/CSV, HTML, JS and downloadable reports
+# remain published; no source evidence or recovery backup is deleted.
+exclude:
+  - archive
