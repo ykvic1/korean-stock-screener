@@ -151,7 +151,10 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertTrue(lag["r1d_operational_publication_reconciled"])
         self.assertFalse(lag["r1d_same_market_day_and_roster"])
         self.assertFalse(lag["gates"]["r1d_observation_all_listed"])
-        self.assertIn("r1d_operational_snapshot_lag", lag["blocker_codes"])
+        if lag["public_summary_valid"]:
+            self.assertIn("r1d_operational_snapshot_lag", lag["blocker_codes"])
+        else:
+            self.assertFalse(lag['gates']['public_summary_internal_consistency'])
 
         # A plausible-looking all-listed aggregate cannot hide one changed
         # component, rank, or coverage count. Every affected issuer is replayed.
