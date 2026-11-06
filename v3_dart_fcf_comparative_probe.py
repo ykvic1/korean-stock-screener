@@ -199,6 +199,82 @@ def inspect(payload, *, corp, code, scope, receipt, current, missing):
     return output
 
 
+def audit_annual_receipts(payload, *, corp, original_receipts, asof):
+    """Match FY2023/24 source receipts to independent annual filing metadata.
+
+    List metadata never authenticates statement facts or correction effective
+    dates. If one page does not cover the full response, certify *nothing*.
+    """
+    if (type(original_receipts) is not dict or not original_receipts
+        or set(original_receipts) - set(COMP_FIELDS)
+        or any(not _valid_receipt(receipt, int(year), date.fromisoformat(asof))
+               for year, receipt in original_receipts.items())):
+        raise ComparativeProbeError("invalid_original_annual_receipt_request")
+    if type(payload) is not dict:
+        raise ComparativeProbeError("invalid_official_annual_receipt_list")
+    if payload.get("status") == "013":
+        rows = []
+    elif payload.get("status") == "000":
+        try:
+            count = int(payload["total_count"])
+            pages = int(payload["total_page"])
+            page_no = int(payload["page_no"])
+            page_count = int(payload["page_count"])
+        except (TypeError, ValueError, KeyError):
+            raise ComparativeProbeError("invalid_annual_receipt_pagination") from None
+        if (any(type(payload[x]) not in (str, int) for x in
+                ("total_count", "total_page", "page_no", "page_count"))
+            or not 0 <= count <= 100000 or pages != (count + 99) // 100
+            or page_no != 1 or page_count != 100):
+            raise ComparativeProbeError("invalid_annual_receipt_pagination")
+        if pages > 1:
+            return Counter({"annual_receipt_list_censored_multi_page": 1})
+        rows = payload.get("list")
+        if (type(rows) is not list or len(rows) != count):
+            raise ComparativeProbeError("invalid_annual_receipt_pagination")
+    else:
+        raise ComparativeProbeError("official_annual_receipt_list_unavailable")
+    seen = set()
+    by_year = {year: [] for year in original_receipts}
+    for row in rows:
+        if type(row) is not dict or row.get("corp_code") != corp:
+            raise ComparativeProbeError("annual_receipt_issuer_mismatch")
+        receipt, submitted, title = (row.get("rcept_no"), row.get("rcept_dt"),
+                                      row.get("report_nm"))
+        if (type(receipt) is not str or not re.fullmatch(r"[0-9]{14}", receipt)
+            or receipt in seen or type(submitted) is not str
+            or not re.fullmatch(r"[0-9]{8}", submitted)
+            or receipt[:8] != submitted or type(title) is not str
+            or not 0 < len(title) <= 500):
+            raise ComparativeProbeError("invalid_annual_receipt_metadata")
+        try:
+            submitted_day = date.fromisoformat(
+                submitted[:4] + "-" + submitted[4:6] + "-" + submitted[6:])
+        except ValueError:
+            raise ComparativeProbeError("invalid_annual_receipt_metadata") from None
+        if submitted_day > date.fromisoformat(asof):
+            raise ComparativeProbeError("future_annual_receipt_metadata")
+        seen.add(receipt)
+        for year in original_receipts:
+            if re.search(r"사업보고서\s*\(\s*" + year + r"\.(?:0[1-9]|1[0-2])\s*\)", title):
+                by_year[year].append(receipt)
+    output = Counter()
+    for year, expected in original_receipts.items():
+        output["checked_historical_annual_receipt_" + year] += 1
+        found = sorted(by_year[year])
+        if expected in found:
+            output["matched_historical_annual_receipt_" + year] += 1
+            if expected == found[0]:
+                output["source_receipt_earliest_listed_" + year] += 1
+            if any(r > expected for r in found):
+                output["later_annual_filing_exists_" + year] += 1
+        elif found:
+            output["other_annual_filing_only_" + year] += 1
+    output["issuers_with_all_historical_annual_receipts_listed"] = int(all(
+        original_receipts[year] in by_year[year] for year in original_receipts))
+    return output
+
+
 def run(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs", default="docs")
@@ -206,6 +282,8 @@ def run(argv=None):
     parser.add_argument("--mode", choices=("dry-run", "live"), default="dry-run")
     parser.add_argument("--limit", type=int, default=MAX_ISSUERS)
     parser.add_argument("--cohort-index", type=int, default=0)
+    parser.add_argument("--audit-annual-receipts", action="store_true",
+                        help="Also compare FY2023/24 receipt IDs against official annual filing listings")
     args = parser.parse_args(argv)
     root = Path(args.docs)
     def read(path):
@@ -283,6 +361,29 @@ def run(argv=None):
                                   scope=scope, receipt=receipt,
                                   current=current, missing=missing))
             counts["sampled_official_responses"] += 1
+            if args.audit_annual_receipts:
+                years = cashflow["records"][code]["years"]
+                original_receipts = {
+                    year: years[year]["annual_receipt_id"] for year in missing}
+                # Receipt IDs must be anchored in the original fiscal year's
+                # reconciled cashflow source, never inferred from comparison.
+                if any(not _valid_receipt(value, int(year), date.fromisoformat(day))
+                       for year, value in original_receipts.items()):
+                    raise ComparativeProbeError("invalid_original_annual_receipt_request")
+                try:
+                    response = session.get("https://opendart.fss.or.kr/api/list.json",
+                        params={"crtfc_key": key, "corp_code": mapping[code],
+                                "bgn_de": "20240101", "end_de": day.replace("-", ""),
+                                "pblntf_detail_ty": "A001", "last_reprt_at": "N",
+                                "page_no": "1", "page_count": "100"}, timeout=(20, 40))
+                    response.raise_for_status()
+                    listing = response.json()
+                except Exception:
+                    raise ComparativeProbeError("official_annual_receipt_transport_unavailable") from None
+                output["provider_calls"] += 1
+                counts.update(audit_annual_receipts(listing, corp=mapping[code],
+                    original_receipts=original_receipts, asof=day))
+                counts["sampled_official_annual_lists"] += 1
     output["candidate_fact_counts"] = dict(sorted(counts.items()))
     print(json.dumps(output, sort_keys=True))
     return output
