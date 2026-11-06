@@ -1,8 +1,9 @@
 import unittest
+from unittest.mock import patch
 
 from v3_dart_bulk_history import SCHEMA as BULK_SCHEMA
 from v3_dart_revenue_2022 import (
-    NONSTANDARD, Revenue2022Error, expected_sources, parse, plan,
+    NONSTANDARD, Revenue2022Error, collect, expected_sources, parse, plan,
     snapshot, verified_prior,
 )
 
@@ -108,6 +109,47 @@ class Revenue2022Tests(unittest.TestCase):
         mixed = [{**row}, {**row, 'rcept_no': '20230312000001'}]
         with self.assertRaisesRegex(Revenue2022Error, 'conflicting'):
             parse({'status': '000', 'list': mixed}, expected, '00123456', '2026-11-05')
+
+    def test_one_conflicted_issuer_remains_unobserved_and_next_is_collected(self):
+        catalog, history, base, row = fixtures()
+        second = '005491'
+        catalog['rows'].append({'code': second, 'name': '두번째', 'market': 'KOSPI'})
+        catalog['listed_total'] = history['listed_total'] = 2
+        history['records'][second] = {
+            'years': {year: {'CFS': dict(part['CFS'])}
+                      for year, part in history['records']['005490']['years'].items()}}
+
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+            def raise_for_status(self):
+                pass
+            def json(self):
+                return self.payload
+
+        class Session:
+            def get(self, url, params, timeout):
+                if params['corp_code'] == '00123456':
+                    return Response({'status': '000', 'list': [
+                        row, {**row, 'thstrm_amount': '1,001'}]})
+                return Response({'status': '000', 'list': [
+                    {**row, 'corp_code': '00123457', 'stock_code': second}]})
+
+        checkpoints = []
+        with patch('v3_dart_revenue_2022.verified_company_mapping_cache',
+                   return_value={'005490': '00123456', second: '00123457'}):
+            saved, calls = collect(catalog, history, None, key='A' * 40,
+                session=Session(), cache={}, limit=2,
+                on_progress=checkpoints.append)
+        self.assertEqual(calls, 2)
+        self.assertEqual(len(checkpoints), 2)
+        self.assertEqual(saved['observed_issuer_count'], 1)
+        self.assertEqual(saved['records']['005490']['source_error'],
+                         'conflicting_annual_accounts')
+        self.assertIsNone(saved['records']['005490']['revenue_krw'])
+        self.assertEqual(saved['records'][second]['revenue_krw'], 1000)
+        self.assertEqual(len(verified_prior(saved, expected_sources(catalog, history),
+                                            catalog['date'])), 2)
 
 
 if __name__ == '__main__':
