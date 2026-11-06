@@ -32,6 +32,13 @@ EXACT_NAMES = frozenset({
 })
 CODE = re.compile(r'[0-9]{6}\Z')
 CORP = re.compile(r'[0-9]{8}\Z')
+ISSUER_SOURCE_GAP_ERRORS = frozenset({
+    'revenue_2022_conflicting_annual_accounts',
+    'revenue_2022_receipt_or_unit_mismatch',
+    'revenue_2022_statement_identity_mismatch',
+    'revenue_2022_invalid_reported_amount',
+})
+MAX_ISSUER_SOURCE_GAPS_PER_RUN = 20
 
 
 class Revenue2022Error(ValueError):
@@ -108,7 +115,7 @@ def verified_prior(prior, expected, day):
         if base is None or any(row.get(k) != v for k, v in base.items()):
             continue  # Changed 2022 annual receipt or accounting scope.
         if (row.get('status') not in ('observed', 'not_observed')
-            or row.get('source_error') not in (None, 'conflicting_annual_accounts')
+            or row.get('source_error') not in (None, *ISSUER_SOURCE_GAP_ERRORS)
             or (row.get('source_error') is not None and row.get('status') != 'not_observed')
             or type(row.get('checked_on')) is not str
             or row['checked_on'] > day
@@ -206,6 +213,7 @@ def collect(catalog, history, prior, *, key, session, cache=None,
     expected, records, selected = plan(catalog, history, prior, limit=limit,
                                        priority_codes=priority_codes)
     calls = 0
+    source_gaps = 0
     if selected:
         if type(key) is not str or not re.fullmatch(r'[A-Za-z0-9]{40}', key):
             raise Revenue2022Error('missing_revenue_2022_dart_key')
@@ -234,16 +242,20 @@ def collect(catalog, history, prior, *, key, session, cache=None,
                 try:
                     parsed = parse(resp.json(), base, mapping[code], catalog['date'])
                 except Revenue2022Error as error:
-                    if str(error) != 'revenue_2022_conflicting_annual_accounts':
+                    if str(error) not in ISSUER_SOURCE_GAP_ERRORS:
                         raise
-                    # A single issuer's contradictory annual accounts cannot
-                    # earn score credit and must not halt other issuers' source
-                    # collection.  Publish an explicit, receipt-bound gap.
+                    # An individual conflicting/invalid annual statement never
+                    # earns points. Continue with other issuers, but a flood of
+                    # invalid responses stops the run for source investigation.
+                    source_gaps += 1
+                    if source_gaps > MAX_ISSUER_SOURCE_GAPS_PER_RUN:
+                        raise Revenue2022Error(
+                            'revenue_2022_excessive_issuer_evidence_failures') from None
                     parsed = {**base, 'checked_on': catalog['date'],
                               'status': 'not_observed', 'revenue_krw': None,
                               'source_account_id': None, 'source_receipt_id': None,
                               'source_account_name': None,
-                              'source_error': 'conflicting_annual_accounts'}
+                              'source_error': str(error)}
             except Revenue2022Error:
                 raise
             except Exception:

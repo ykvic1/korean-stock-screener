@@ -128,28 +128,37 @@ class Revenue2022Tests(unittest.TestCase):
                 return self.payload
 
         class Session:
+            def __init__(self, first_rows):
+                self.first_rows = first_rows
             def get(self, url, params, timeout):
                 if params['corp_code'] == '00123456':
-                    return Response({'status': '000', 'list': [
-                        row, {**row, 'thstrm_amount': '1,001'}]})
+                    return Response({'status': '000', 'list': self.first_rows})
                 return Response({'status': '000', 'list': [
                     {**row, 'corp_code': '00123457', 'stock_code': second}]})
-
-        checkpoints = []
-        with patch('v3_dart_revenue_2022.verified_company_mapping_cache',
-                   return_value={'005490': '00123456', second: '00123457'}):
-            saved, calls = collect(catalog, history, None, key='A' * 40,
-                session=Session(), cache={}, limit=2,
-                on_progress=checkpoints.append)
-        self.assertEqual(calls, 2)
-        self.assertEqual(len(checkpoints), 2)
-        self.assertEqual(saved['observed_issuer_count'], 1)
-        self.assertEqual(saved['records']['005490']['source_error'],
-                         'conflicting_annual_accounts')
-        self.assertIsNone(saved['records']['005490']['revenue_krw'])
-        self.assertEqual(saved['records'][second]['revenue_krw'], 1000)
-        self.assertEqual(len(verified_prior(saved, expected_sources(catalog, history),
-                                            catalog['date'])), 2)
+        cases = [([row, {**row, 'thstrm_amount': '1,001'}],
+                  'revenue_2022_conflicting_annual_accounts'),
+                 ([{**row, 'currency': 'USD'}],
+                  'revenue_2022_receipt_or_unit_mismatch'),
+                 ([{**row, 'corp_code': '00123455'}],
+                  'revenue_2022_statement_identity_mismatch'),
+                 ([{**row, 'thstrm_amount': '0'}],
+                  'revenue_2022_invalid_reported_amount')]
+        for first, reason in cases:
+            with self.subTest(source_gap=reason):
+                checkpoints = []
+                with patch('v3_dart_revenue_2022.verified_company_mapping_cache',
+                           return_value={'005490': '00123456', second: '00123457'}):
+                    saved, calls = collect(catalog, history, None, key='A' * 40,
+                        session=Session(first), cache={}, limit=2,
+                        on_progress=checkpoints.append)
+                self.assertEqual(calls, 2)
+                self.assertEqual(len(checkpoints), 2)
+                self.assertEqual(saved['observed_issuer_count'], 1)
+                self.assertEqual(saved['records']['005490']['source_error'], reason)
+                self.assertIsNone(saved['records']['005490']['revenue_krw'])
+                self.assertEqual(saved['records'][second]['revenue_krw'], 1000)
+                self.assertEqual(len(verified_prior(saved, expected_sources(catalog, history),
+                                                    catalog['date'])), 2)
 
 
 if __name__ == '__main__':
