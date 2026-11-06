@@ -28,7 +28,9 @@ jobs:
           python v3_dart_xbrl_cashflow_recovery.py --mode dry-run --limit 16
   recover:
     needs: offline
-    if: github.event_name != 'pull_request'
+    # Two live batches recovered no additional facts. Keep this low-yield
+    # route available explicitly, without launching broad retries on code edits.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
