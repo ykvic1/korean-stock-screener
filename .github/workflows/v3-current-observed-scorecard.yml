@@ -69,6 +69,9 @@ on:
 
 permissions:
   contents: write
+  # A successful source-verified CSV publication dispatches the downstream
+  # R1d score replay without depending on nested workflow_run depth.
+  actions: write
 
 concurrency:
   group: korea-stock-screener-current-observed-publisher
@@ -120,6 +123,7 @@ jobs:
           # claiming that older ledger scores are fresh closing evidence.
           python v3_near_100_observed_gap.py --mode write
       - name: Publish current-day CSV and aggregate evidence counts only
+        id: publication
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
           set -euo pipefail
@@ -152,6 +156,7 @@ jobs:
               python v3_near_100_observed_gap.py --mode verify
               if git push origin HEAD:main; then
                 echo "current_close_research_csv_published"
+                echo "changed=true" >> "$GITHUB_OUTPUT"
                 break
               fi
               if [[ "$attempt" == 3 ]]; then
@@ -160,6 +165,11 @@ jobs:
               fi
             done
           fi
+      - name: Recalculate R1d immediately after verified source publication
+        if: steps.publication.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
       - name: Manual read-only consistency verification
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: |
