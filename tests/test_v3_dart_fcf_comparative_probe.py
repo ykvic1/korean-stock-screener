@@ -112,8 +112,19 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertEqual(counts["candidate_2023_ppe_capex_krw"], 1)
         self.assertEqual(counts["checked_2024_ppe_capex_krw"], 1)
         self.assertEqual(counts["checked_2023_ppe_capex_krw"], 1)
+        self.assertEqual(counts["issuers_with_any_comparative_candidate"], 1)
+        self.assertEqual(counts["issuers_with_all_missing_comparatives"], 1)
         self.assertEqual(inspect([row(current="21")])["candidate_2024_ppe_capex_krw"], 0)
         self.assertEqual(inspect([row(last="-10")])["candidate_2024_ppe_capex_krw"], 0)
+
+    def test_issuer_completeness_is_not_inferred_from_partial_candidates(self):
+        partial = inspect([row(last="-10")])
+        self.assertEqual(partial["issuers_with_any_comparative_candidate"], 1)
+        self.assertEqual(partial["issuers_with_all_missing_comparatives"], 0)
+        wrong_anchor = inspect([row(current="21")])
+        self.assertEqual(wrong_anchor["issuers_with_any_comparative_candidate"], 0)
+        self.assertEqual(wrong_anchor["issuers_with_all_missing_comparatives"], 0)
+        self.assertEqual(inspect([])["issuers_with_all_missing_comparatives"], 0)
 
     def test_current_zero_or_negative_cfo_remains_valid_observation(self):
         missing = {"2023": ("intangible_capex_krw", "operating_cashflow_krw")}
