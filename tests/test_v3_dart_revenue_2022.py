@@ -78,6 +78,18 @@ class Revenue2022Tests(unittest.TestCase):
         self.assertEqual(selected, [])
         self.assertEqual(retained['005490'], result)
 
+    def test_previous_conflict_label_retains_live_source_checkpoint(self):
+        catalog, history, base, _ = fixtures()
+        source = snapshot(catalog['date'], {'005490': {
+            **base, 'checked_on': catalog['date'], 'status': 'not_observed',
+            'revenue_krw': None, 'source_account_id': None,
+            'source_account_name': None, 'source_receipt_id': None,
+            'source_error': 'conflicting_annual_accounts',
+        }}, catalog)
+        _, retained, selected = plan(catalog, history, source, limit=1)
+        self.assertEqual(selected, [])
+        self.assertEqual(retained['005490']['source_error'], 'conflicting_annual_accounts')
+
     def test_revised_original_receipt_invalidates_old_observation(self):
         catalog, history, base, row = fixtures()
         result = parse({'status': '000', 'list': [row]}, base, '00123456', '2026-11-05')
@@ -128,28 +140,37 @@ class Revenue2022Tests(unittest.TestCase):
                 return self.payload
 
         class Session:
+            def __init__(self, first_rows):
+                self.first_rows = first_rows
             def get(self, url, params, timeout):
                 if params['corp_code'] == '00123456':
-                    return Response({'status': '000', 'list': [
-                        row, {**row, 'thstrm_amount': '1,001'}]})
+                    return Response({'status': '000', 'list': self.first_rows})
                 return Response({'status': '000', 'list': [
                     {**row, 'corp_code': '00123457', 'stock_code': second}]})
-
-        checkpoints = []
-        with patch('v3_dart_revenue_2022.verified_company_mapping_cache',
-                   return_value={'005490': '00123456', second: '00123457'}):
-            saved, calls = collect(catalog, history, None, key='A' * 40,
-                session=Session(), cache={}, limit=2,
-                on_progress=checkpoints.append)
-        self.assertEqual(calls, 2)
-        self.assertEqual(len(checkpoints), 2)
-        self.assertEqual(saved['observed_issuer_count'], 1)
-        self.assertEqual(saved['records']['005490']['source_error'],
-                         'conflicting_annual_accounts')
-        self.assertIsNone(saved['records']['005490']['revenue_krw'])
-        self.assertEqual(saved['records'][second]['revenue_krw'], 1000)
-        self.assertEqual(len(verified_prior(saved, expected_sources(catalog, history),
-                                            catalog['date'])), 2)
+        cases = [([row, {**row, 'thstrm_amount': '1,001'}],
+                  'revenue_2022_conflicting_annual_accounts'),
+                 ([{**row, 'currency': 'USD'}],
+                  'revenue_2022_receipt_or_unit_mismatch'),
+                 ([{**row, 'corp_code': '00123455'}],
+                  'revenue_2022_statement_identity_mismatch'),
+                 ([{**row, 'thstrm_amount': '0'}],
+                  'revenue_2022_invalid_reported_amount')]
+        for first, reason in cases:
+            with self.subTest(source_gap=reason):
+                checkpoints = []
+                with patch('v3_dart_revenue_2022.verified_company_mapping_cache',
+                           return_value={'005490': '00123456', second: '00123457'}):
+                    saved, calls = collect(catalog, history, None, key='A' * 40,
+                        session=Session(first), cache={}, limit=2,
+                        on_progress=checkpoints.append)
+                self.assertEqual(calls, 2)
+                self.assertEqual(len(checkpoints), 2)
+                self.assertEqual(saved['observed_issuer_count'], 1)
+                self.assertEqual(saved['records']['005490']['source_error'], reason)
+                self.assertIsNone(saved['records']['005490']['revenue_krw'])
+                self.assertEqual(saved['records'][second]['revenue_krw'], 1000)
+                self.assertEqual(len(verified_prior(saved, expected_sources(catalog, history),
+                                                    catalog['date'])), 2)
 
 
 if __name__ == '__main__':
