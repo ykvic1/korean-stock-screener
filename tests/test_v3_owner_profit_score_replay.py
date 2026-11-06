@@ -86,6 +86,35 @@ class OwnerProfitScoreReplayerTests(unittest.TestCase):
         return finance_source(self.catalog,self.history,self.parts,self.annual,self.audit,
             owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
 
+    def test_derived_same_receipt_owner_profit_replays_only_the_missing_earnings_yield(self):
+        partial={r['code']:r for r in self.parts['rows']}
+        codes=[code for code,base in self.expected.items() if base['fs_div']=='CFS' and
+               partial.get(code,{}).get('valuation_available_max')==10]
+        if not codes:self.skipTest('no current CFS ten-weight valuation fixture')
+        code=codes[0];base=self.expected[code]
+        row={'corp_code':'12345678','stock_code':code,'bsns_year':'2025',
+            'reprt_code':'11011','fs_div':'CFS','sj_div':'IS','account_detail':'-',
+            'currency':'KRW','rcept_no':base['annual_receipt_id']}
+        rows=[{**row,'account_id':'ifrs-full_ProfitLoss','thstrm_amount':'100000000'},
+              {**row,'account_id':'ifrs-full_ProfitLossAttributableToNoncontrollingInterests',
+               'thstrm_amount':'20000000'}]
+        evidence=parse_response({'status':'000','list':rows},corp='12345678',base=base,
+                                on_day=self.day,allow_reconciliation=True)
+        self.assertEqual(evidence['owners_profit_krw'],80000000)
+        retained=copy.deepcopy(self.retained);retained.pop(code,None)
+        before=snapshot(self.day,self.catalog,self.annual,self.priority,retained)
+        retained[code]=evidence
+        after=snapshot(self.day,self.catalog,self.annual,self.priority,retained)
+        def replay(source):
+            return finance_source(self.catalog,self.history,self.parts,self.annual,self.audit,
+                owner_profit_source=source,owner_profit_priority=self.priority,**self.fiscal_options())
+        old,new=replay(before),replay(after)
+        self.assertEqual(old[code]['valuation_available_max'],10)
+        self.assertEqual(new[code]['valuation_available_max'],15)
+        self.assertEqual(new[code]['financial_available_max'],old[code]['financial_available_max'])
+        self.assertTrue(new[code]['owner_profit_2025_source_replayed'])
+        self.assertFalse(new[code]['scoring_certified'])
+
     def fiscal_options(self,**kwargs):
         # Combined audit can lag the official same-day DART source.
         if self.audit.get("market_asof") != self.catalog["date"]:

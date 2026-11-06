@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_owner_profit_completion.py
+      - v3_owner_profit_reconciliation.py
+      - tests/test_v3_owner_profit_reconciliation.py
       - tests/test_v3_profit_source_quarantine.py
       - tests/test_v3_owner_profit_completion.py
       - v3_dart_2025_owner_profit_probe.py
@@ -53,6 +55,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_v3_dart_2025_owner_profit_probe.py' -v
           python -m unittest discover -s tests -p 'test_v3_owner_profit_completion.py' -v
           python -m unittest discover -s tests -p 'test_v3_profit_source_quarantine.py' -v
+          python -m unittest discover -s tests -p 'test_v3_owner_profit_reconciliation.py' -v
       - name: Wait until receipt-validated source cohort matches closing day
         id: source_day
         shell: bash
@@ -82,7 +85,7 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           set -euo pipefail
-          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20 --batches 6 --completion-first
+          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20 --batches 6 --completion-first --recover-reconciliation
       - name: Publish original-receipt matched derived source, NO score
         if: ${{ steps.source_day.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') }}
         run: |
@@ -133,6 +136,8 @@ jobs:
                   ("조회했지만 계정 미확인 종목","missing_standard_account_issuers"),
                   ("통화·접수·금액 검증 실패로 보류한 종목","quarantined_source_account_issuers"),
                   ("원천 확인 대상(기존 이력 포함)","target_95weight_issuers"),
+                  ("같은 공시 전체순이익·비지배지분순이익 대조 완료","reconciliation_rechecked_issuers"),
+                  ("명시된 두 순이익 항목으로 지배주주 순이익 보완","reconciliation_derived_issuers"),
               ):
                   lines.append(name+": "+str(source.get(key)))
           else:
