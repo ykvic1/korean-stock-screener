@@ -235,4 +235,4 @@ class CompletionTests(unittest.TestCase):
             def get(self,*a,**k):raise AssertionError('request after deadline')
         with self.assertRaisesRegex(proof.ProfitProbeError,'profit_run_time_budget_reached'):
             proof.collect(self.inputs[0],self.inputs[1],priority,source,
-                key='synthetic-key',session=NoProvider(),cache=cache,deadline=0)
+                key='synthetic-key-not-a-secret',session=NoProvider(),cache=cache,deadline=0)
