@@ -41,6 +41,23 @@ class ComparativeProbeError(ValueError):
     """Provider data and private identifiers never appear in error messages."""
 
 
+def source_day_aligned(market, catalog, bulk, book, cashflow,
+                       operational, comparison, priority):
+    """Routine source-day rollover waits without making an official API call."""
+    raw = (market.get("date"), catalog.get("date"), bulk.get("asof"),
+           book.get("asof"), cashflow.get("asof"), operational.get("asof"),
+           comparison.get("asof"), priority.get("asof"))
+    try:
+        days = [date.fromisoformat(x) for x in raw]
+        if any(d.isoformat() != x for d, x in zip(days, raw)):
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ComparativeProbeError("invalid_comparative_source_day") from None
+    if (max(days)-min(days)).days > 9:
+        raise ComparativeProbeError("expired_comparative_source_day")
+    return len(set(days)) == 1
+
+
 def select_targets(market, catalog, bulk, book, cashflow, operational,
                    comparison, priority, *, limit=MAX_ISSUERS, cohort_index=0):
     """Check saved sources before selecting any official API request."""
@@ -192,6 +209,16 @@ def run(argv=None):
     operational = read("v3-operational-research-scores.json")
     comparison = read("v3-operational-research-comparison.json")
     priority = read("v3-operational-evidence-priority.json")
+    if not source_day_aligned(market, catalog, bulk, book, cashflow,
+                              operational, comparison, priority):
+        output = {"status": "waiting_exact_source_day_alignment",
+                  "asof": catalog.get("date"), "provider_calls": 0,
+                  "sampled_issuers": 0,
+                  "eligible_one_gap_fcf_issuers": None,
+                  "amounts_published": False,
+                  "scores_or_fcf_source_promoted": False}
+        print(json.dumps(output, sort_keys=True))
+        return output
     day, members, selected, total = select_targets(
         market, catalog, bulk, book, cashflow, operational, comparison, priority,
         limit=args.limit, cohort_index=args.cohort_index)
