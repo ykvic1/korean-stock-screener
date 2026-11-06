@@ -767,7 +767,8 @@ def _midrank(value, ordered, direction):
 
 
 def research_parts(data,catalog,book,*,minimum_peers=30,
-                   include_sales_to_cap=True,include_balance_factors=True):
+                   include_sales_to_cap=True,include_balance_factors=True,
+                   include_independent_earnings=False):
     """Produce 4+4+4+4 financial and 5+5+5 valuation research points.
 
     Only observed, date-linked inputs with >=30 same-market peers contribute.
@@ -777,6 +778,7 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
         type(minimum_peers) is not int or minimum_peers<8 or
         type(include_sales_to_cap) is not bool or
         type(include_balance_factors) is not bool or
+        type(include_independent_earnings) is not bool or
         catalog.get("date")!=data.get("asof") or
         book.get("asof")!=data.get("asof") or
         catalog.get("listed_total")!=data.get("listed_total") or
@@ -838,6 +840,22 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
                 and type(cap) in (int,float) and math.isfinite(cap)
                 and 0<cap<1e12 and abs(profit)<1e19
                 and a.get("year")==fiscal[-1]
+                and a.get("currency")=="KRW"):
+                earnings_yield[code]=round(100*profit/(cap*1e8),6)
+    # The independently verified source replay can observe earnings yield
+    # without positive-equity PBR. Default preserves the saved raw report's
+    # established contract until its own publisher adopts a new version.
+    if include_independent_earnings:
+        for code,record in book_annual.items():
+            a=record.get("annual") or {}
+            profit=a.get("values",{}).get("owners_profit")
+            cap=cap_by_code.get(code)
+            if (code in market and record.get("status")=="observed"
+                and type(profit) in (int,float) and math.isfinite(profit)
+                and type(cap) in (int,float) and math.isfinite(cap)
+                and 0<cap<1e12 and abs(profit)<1e19
+                and a.get("year")==fiscal[-1] and a.get("fs_div") in ("CFS","OFS")
+                and _valid_receipt(a.get("receipt_id"),fiscal[-1],_day(data["asof"]))
                 and a.get("currency")=="KRW"):
                 earnings_yield[code]=round(100*profit/(cap*1e8),6)
     valuation_metrics=(("pbr","earnings_yield_pct")+

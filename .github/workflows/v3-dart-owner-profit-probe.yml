@@ -9,7 +9,7 @@ on:
       - v3_dart_2025_owner_profit_probe.py
       - tests/test_v3_dart_2025_owner_profit_probe.py
       - .github/workflows/v3-dart-owner-profit-probe.yml
-  # Bounded 20 audited FY2025 missing-profit candidates per hour. Once the
+  # Bounded six x20 audited FY2025 missing-profit candidates per hour. Once the
   # receipt-matched source queue is exhausted, there are ZERO provider requests.
   # One-gap R1d completion targets precede other pending source requests.
   schedule:
@@ -80,7 +80,7 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           set -euo pipefail
-          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20 --completion-first
+          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20 --batches 6 --completion-first
       - name: Publish original-receipt matched derived source, NO score
         if: ${{ steps.source_day.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') }}
         run: |

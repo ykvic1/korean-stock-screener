@@ -200,7 +200,7 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
             # profit peers and old peers are normalized consistently.
             # The new book lives in memory only and has a separately
             # audited official 2025 supplemental receipt provenance.
-            replayed=research_parts(history,catalog,audited)
+            replayed=research_parts(history,catalog,audited,include_independent_earnings=True)
             refreshed={r["code"]:r for r in replayed["rows"]}
             if len(refreshed)!=len(replayed["rows"]):
                 raise LivePartialScorecardError(
