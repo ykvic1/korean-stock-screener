@@ -45,6 +45,13 @@ jobs:
           for attempt in 1 2 3; do
             git fetch origin main
             git switch -C v3-derived-finance-replay origin/main
+            # A normal close rollover must wait without rewriting old fiscal
+            # facts. The bulk collector follows the annual publication too.
+            source_gate=$(python v3_dart_source_day_preflight.py --kind major)
+            if [[ $(printf '%s' "$source_gate" | python -c 'import json,sys; print(json.load(sys.stdin)["ready"])') != True ]]; then
+              echo "::notice::waiting_same_day_major_source; retain_prior_combined_audit"
+              exit 0
+            fi
             python v3_dart_bulk_history.py --mode replay
             # A current DART annual publication can arrive before the weekly
             # seven-day screen or current census. Preserve previous certified-

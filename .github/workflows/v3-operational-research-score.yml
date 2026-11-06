@@ -66,6 +66,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Reconcile the retained issuer ledger in the offline workspace
+        run: python v3_current_observed_scorecard.py --mode write --refresh-derived
       - run: |
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py

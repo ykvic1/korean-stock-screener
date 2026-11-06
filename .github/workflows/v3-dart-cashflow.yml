@@ -20,6 +20,10 @@ on:
   # The existing bulk major-account collector remains independent.
   schedule:
     - cron: '47 * * * *'
+  workflow_run:
+    workflows:
+      - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
+    types: [completed]
   workflow_dispatch:
     inputs:
       mode:
@@ -37,6 +41,7 @@ concurrency:
 
 jobs:
   cashflow-source:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

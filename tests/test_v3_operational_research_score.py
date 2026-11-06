@@ -170,13 +170,16 @@ class OperationalScoreTests(unittest.TestCase):
             self.assertIsNone(invalid['technical']['independent_breakout_confirmation'])
 
     def test_reported_eps_valuation_does_not_require_unrelated_fcf_or_pbr(self):
-        catalog,book,source=self.inputs[1],self.inputs[7],self.inputs[8]
+        # Fixed source fixture: a live annual book can advance before the
+        # independently published EPS digest. That lag must not break CI.
+        from test_v3_dart_reported_eps import inputs, payload, BASE, DAY
+        from v3_dart_reported_eps import parse, snapshot
+        catalog,book=inputs()
+        record=parse(payload(),corp='00123456',base=BASE,on_day=DAY)
+        source=snapshot(DAY,catalog,book,{BASE['code']:BASE},{BASE['code']:record})
         verified=ops.verified_reported_eps(catalog,book,source)
-        missing=[k for k,r in self.report['rows'].items() if
-            k in verified and r['parts']['valuation']['per_eps_quality_growth'] is not None
-            and k not in self.inputs[5]['valuation_overrides']]
-        self.assertGreater(len(missing),100)
-        code=missing[0];member=next(m for m in catalog['rows'] if m['code']==code)
+        self.assertEqual(set(verified),{BASE['code']})
+        code=BASE['code'];member=catalog['rows'][0]
         # A verified source can observe EPS growth+stability with absolutely
         # no price/money/FCF/PBR baseline. The remaining 1/3 stays missing.
         stub={'code':code,'name':member['name'],'market':member['market']}
@@ -276,7 +279,7 @@ if(rollover.linked!==priced||rollover.unpriced!==0||!rollover.stale||
    mismatched.rows.length!==priced)
  throw Error('changed roster must preserve only dated evidence for matching priced issuers');
 const newer=core.prepare(market,null,null,null,null,null);
-newer.date='2026-11-06';
+newer.date=new Date(Date.parse(report.asof+'T00:00:00Z')+86400000).toISOString().slice(0,10);
 const older=ops.attachAllListed(newer,report);
 if(older.linked!==priced||older.unpriced!==0||!older.stale||newer.rows.length!==priced)
  throw Error('previous-day report must not restore unknown delistings');
