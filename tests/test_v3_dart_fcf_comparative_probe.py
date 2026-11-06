@@ -261,6 +261,37 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertEqual(result["status"], "partial_comparative_research_time_budget")
         client.return_value.__enter__.return_value.get.assert_not_called()
 
+    def test_malformed_issuer_listing_is_quarantined_without_losing_other_issuers(self):
+        source = {"2024": {"annual_receipt_id": "20250315000002"}}
+        selected = [(code, "CFS", "20260312001236", {}, {"2024": ("ppe_capex_krw",)})
+                    for code in ("000100", "000200")]
+        client = MagicMock()
+        client.return_value.__enter__.return_value.get.return_value.json.return_value = {}
+        annual = Counter({"issuers_with_all_historical_annual_receipts_listed": 1})
+        comp = Counter({"issuers_with_all_missing_comparatives": 1})
+        book = {"records": {code: {"years": source} for code in ("000100", "000200")}}
+        real_loads = json.loads
+        def load_sources(raw):
+            data = real_loads(raw)
+            return book if data.get("schema") == self.inputs[4].get("schema") and \
+                data.get("records") == self.inputs[4].get("records") else data
+        with patch.object(probe, "source_day_aligned", return_value=True), \
+             patch.object(probe, "select_targets", return_value=("2026-11-06", {}, selected, 2)), \
+             patch.object(probe, "verified_company_mapping_cache", return_value={"000100": "00123456", "000200": "00123457"}), \
+             patch.dict("os.environ", {"DART_API_KEY": "x" * 40}), \
+             patch.dict("sys.modules", {"requests": SimpleNamespace(Session=client)}), \
+             patch.object(probe.json, "loads", side_effect=load_sources), \
+             patch.object(probe, "inspect", return_value=comp), \
+             patch.object(probe, "audit_annual_receipts", side_effect=[probe.ComparativeProbeError("invalid_annual_receipt_metadata"), annual]), \
+             redirect_stdout(io.StringIO()):
+            result = probe.run(["--docs", str(DOCS), "--mode", "live", "--audit-annual-receipts"])
+        self.assertEqual(result["provider_calls"], 4)
+        self.assertEqual(result["completed_issuers"], 1)
+        self.assertEqual(result["quarantined_issuers"], 1)
+        self.assertEqual(result["unprocessed_issuers"], 0)
+        self.assertEqual(result["candidate_fact_counts"]["issuers_with_all_comparatives_and_listed_receipts"], 1)
+        self.assertFalse(result["scores_or_fcf_source_promoted"])
+
     def test_joint_coverage_cannot_be_inferred_from_different_issuers(self):
         comp = {"issuers_with_all_missing_comparatives": 1}
         annual = {"issuers_with_all_historical_annual_receipts_listed": 1}

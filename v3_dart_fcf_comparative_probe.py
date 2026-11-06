@@ -331,7 +331,7 @@ def run(argv=None):
         limit=args.limit, cohort_index=args.cohort_index)
     output = {"asof": day, "status": "comparison_candidates_not_original_receipts",
               "eligible_one_gap_fcf_issuers": total, "sampled_issuers": len(selected),
-              "provider_calls": 0, "completed_issuers": 0,
+              "provider_calls": 0, "completed_issuers": 0, "quarantined_issuers": 0,
               "unprocessed_issuers": len(selected),
               "selection_covers_all_eligible": len(selected) == total,
               "amounts_published": False,
@@ -375,6 +375,7 @@ def run(argv=None):
                 break
             if code not in mapping:
                 counts["missing_verified_company_mapping"] += 1
+                output["quarantined_issuers"] += 1
                 output["unprocessed_issuers"] -= 1
                 continue
             try:
@@ -412,8 +413,16 @@ def run(argv=None):
                 except Exception:
                     raise ComparativeProbeError("official_annual_receipt_transport_unavailable") from None
                 output["provider_calls"] += 1
-                annual = audit_annual_receipts(listing, corp=mapping[code],
-                    original_receipts=original_receipts, asof=day)
+                try:
+                    annual = audit_annual_receipts(listing, corp=mapping[code],
+                        original_receipts=original_receipts, asof=day)
+                except ComparativeProbeError:
+                    # An invalid issuer list must not certify ANY receipt for
+                    # that issuer or erase successful independent issuers.
+                    counts["quarantined_annual_receipt_issuers"] += 1
+                    output["quarantined_issuers"] += 1
+                    output["unprocessed_issuers"] -= 1
+                    continue
                 counts.update(annual)
                 counts.update(joint_evidence_counts(comparative, annual))
                 counts["sampled_official_annual_lists"] += 1
