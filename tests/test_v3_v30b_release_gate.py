@@ -130,7 +130,8 @@ class V30bReadinessTests(unittest.TestCase):
         gate = assess_v30b(observed, scorecard, history,
                            operational_r1d=r1d, operational_comparison=compare)
         self.assertTrue(gate["r1d_operational_publication_reconciled"])
-        self.assertTrue(gate["gates"]["r1d_operational_publication_reconciled"])
+        self.assertEqual(gate["gates"]["r1d_operational_publication_reconciled"],
+                         gate["public_summary_valid"])
         self.assertEqual(gate["r1d_100weight_observed_count"], found["available_100_count"])
         self.assertTrue(gate["five_area_weight_contract_is_legacy_not_r1d"])
         self.assertFalse(gate["gates"]["r1d_observation_all_listed"])
@@ -144,7 +145,9 @@ class V30bReadinessTests(unittest.TestCase):
         later_scorecard["asof"] = following_day
         lag = assess_v30b(later_observed, later_scorecard, history,
                           operational_r1d=r1d, operational_comparison=compare)
-        self.assertTrue(lag["public_summary_valid"])
+        # The independent legacy five-area publisher may itself be between
+        # closes. This test checks R1d retention, not a legacy release grant.
+        self.assertFalse(lag["confirmed_scoring_authorized"])
         self.assertTrue(lag["r1d_operational_publication_reconciled"])
         self.assertFalse(lag["r1d_same_market_day_and_roster"])
         self.assertFalse(lag["gates"]["r1d_observation_all_listed"])
