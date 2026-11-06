@@ -55,10 +55,10 @@ def _number(node):
     return int(value) if value==value.to_integral_value() and abs(value)<=10**18 else None
 
 
-def instance_values(data,*,year,scope,identifiers,expected_cfo,diagnostic=None):
+def verified_contexts(data,*,year,scope,identifiers,diagnostic=None):
     diagnostic=diagnostic if diagnostic is not None else Counter()
     root=xp._safe_xbrl_xml(data)
-    if root.tag!=X+'xbrl':return {}
+    if root.tag!=X+'xbrl':return root,{},{}
     bindings=xp._unambiguous_namespace_bindings(data)
     contexts={};units=set()
     for ctx in root.findall(X+'context'):
@@ -89,6 +89,13 @@ def instance_values(data,*,year,scope,identifiers,expected_cfo,diagnostic=None):
             and axis[1]=='ConsolidatedAndSeparateFinancialStatementsAxis'
             and member==(axis[0],'ConsolidatedMember' if scope=='CFS' else 'SeparateMember')):
             contexts[key]=True;diagnostic['explicit_scope_contexts']+=1
+    return root,bindings,contexts
+
+
+def instance_values(data,*,year,scope,identifiers,expected_cfo,diagnostic=None):
+    root,bindings,contexts=verified_contexts(data,year=year,scope=scope,identifiers=identifiers,diagnostic=diagnostic)
+    diagnostic=diagnostic if diagnostic is not None else Counter()
+    units=set()
     seen=set()
     for unit in root.findall(X+'unit'):
         key=unit.get('id')

@@ -246,6 +246,10 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
                 raise EPSError('invalid_saved_eps_source')
             label=row.get('source_account_name_fallback')
             marker=row.get('source_name_recheck')
+            original_recovered=False
+            if row.get('original_xbrl_review') is not None or row.get('original_xbrl_proof') is not None:
+                from v3_dart_xbrl_eps_recovery import verify_review
+                original_recovered=verify_review(row)
             if (bool(label) != (row['source_account_id']==NONSTANDARD_ID)
                 or (label is not None and label not in ALLOWED_BASIC_EPS_NAMES)
                 or (marker is None and label is not None)):
@@ -262,7 +266,7 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
                     or (marker['result']=='enriched' and
                         row['status']!='reported_basic_eps')
                     or (marker['result']=='checked_unavailable' and
-                        row['status']!='standard_eps_not_observed')):
+                        row['status']!='standard_eps_not_observed' and not original_recovered)):
                     raise EPSError('invalid_saved_eps_source')
             if row.get('source_reason') == 'official_corp_mapping_missing' and observed_day < cutoff:
                 continue
@@ -304,6 +308,11 @@ def snapshot(day, catalog, book, expected, records):
         report['name_recheck_complete_three_year_issuers']=sum(
             row['source_name_recheck']['result']=='enriched'
             and row['metrics']['complete_three_years'] for row in reviewed)
+    original_reviews=[row for row in records.values() if row.get('original_xbrl_review') is not None]
+    if original_reviews:
+        from v3_dart_xbrl_eps_recovery import verify_review
+        report['original_xbrl_reviewed_issuers']=len(original_reviews)
+        report['original_xbrl_recovered_issuers']=sum(verify_review(row) for row in original_reviews)
     return report
 
 
