@@ -391,6 +391,8 @@ def summary(asof,members,records,major_source_hash):
            "fcf_company_years":0,"receipt_matched_fcf_company_years":0,
            "three_year_fcf_receipt_matched_issuers":0,
            "most_recent_year_receipt_matched_fcf_issuers":0}
+    original_reviews=0
+    original_recovered=0
     name_probe_years=0
     name_probe_enriched_years=0
     name_fallback_years=0
@@ -429,6 +431,11 @@ def summary(asof,members,records,major_source_hash):
                     raise CashflowError("untrusted_nonstandard_capex_provenance")
                 name_fallback_years+=1
                 name_fallback_components+=len(names)
+            if z.get("original_xbrl_review") is not None or z.get("original_xbrl_proof") is not None:
+                from v3_dart_xbrl_cashflow_recovery import verify_recovery
+                if not _valid_receipt(z.get("annual_receipt_id"),int(y),_day(asof)):
+                    raise CashflowError("invalid_original_xbrl_receipt")
+                original_recovered+=int(verify_recovery(z));original_reviews+=1
             marker=z.get("account_name_recheck")
             if marker is not None:
                 if (type(marker) is not dict or set(marker)!={
@@ -460,6 +467,8 @@ def summary(asof,members,records,major_source_hash):
             three.append((int(y),matched))
         if len(three)==3 and all(v for _,v in three):
             count["three_year_fcf_receipt_matched_issuers"]+=1
+    if original_reviews:
+        count.update(original_xbrl_reviewed_years=original_reviews,original_xbrl_recovered_years=original_recovered)
     if name_probe_years or name_fallback_years:
         count.update(name_recheck_company_years=name_probe_years,
             name_recheck_enriched_company_years=name_probe_enriched_years,
@@ -468,7 +477,7 @@ def summary(asof,members,records,major_source_hash):
     return {"schema":SCHEMA,"asof":asof,"listed_total":len(members),
             "source_major_history_sha256":major_source_hash,
             "source_fiscal_years":list(YEARS),
-            "source":SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS,
+            "source":("OpenDART API plus receipt/entity/scope/CFO-anchored original IFRS XBRL" if original_recovered else SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS),
             "cashflow_accounting_consolidated_with_major_source":False,
             "three_year_fcf_financial15_certified":False,
             "current_year_fcf_valuation15_certified":False,

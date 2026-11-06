@@ -147,8 +147,8 @@ def operational_gap_priority(report, comparison, catalog, major):
         gaps=[(area,key) for area,parts in R1D_PART_LIMITS.items()
               for key,maximum in parts.items()
               if maximum-row['parts'][area].get(key,[0,0])[1]>.00001]
-        if len(gaps)==1 and gaps[0] in (
-            ('financial','cashflow_fcf_persistence'),('valuation','fcf_yield')):
+        if gaps and set(gaps)<= {
+            ('financial','cashflow_fcf_persistence'),('valuation','fcf_yield')}:
             selected.add(code)
     return selected
 

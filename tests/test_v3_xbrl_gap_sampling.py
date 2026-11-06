@@ -69,7 +69,9 @@ class GapSamplingTests(unittest.TestCase):
         got=p.operational_gap_priority(report,comparison,catalog,major)
         queue=read('v3-operational-evidence-priority.json')['single_component_queue']
         expected={r['code'] for r in queue if r['gaps'][0]['component'] in ('cashflow_fcf_persistence','fcf_yield')}
-        self.assertEqual(got,expected)
+        self.assertTrue(expected<=got)
+        full=read('v3-operational-evidence-priority.json')['source_family_completion_upper_bounds']['full_100_if_all_missing_family_facts_became_observed']['dart_cashflow_capex']
+        self.assertEqual(len(got),full)
         bad=copy.deepcopy(comparison);bad['operational_coverage']['available_100_count']+=1
         with self.assertRaises(p.XbrlPilotError):p.operational_gap_priority(report,bad,catalog,major)
         old={**major,'asof':'2026-11-04'}
