@@ -71,7 +71,10 @@ permissions:
 
 concurrency:
   group: korea-stock-screener-current-observed-publisher
-  cancel-in-progress: false
+  # Routine source-completion events queue without discarding active work.
+  # A main code/source push may replace a stalled older derived publisher;
+  # the last verified public snapshot stays until the new replay is verified.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   same-close-current-price-only:

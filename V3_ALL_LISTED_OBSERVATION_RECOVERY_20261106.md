@@ -88,3 +88,19 @@ identity mismatches and transport failure still stop the run with saved
 progress preserved. Three new no-network regressions cover all four rejected
 account classes, continued valid issuer collection, no repeat requests,
 null-versus-zero integrity, unknown reason rejection and quota stopping.
+
+## Live cohort completed and stalled derived publisher recovery
+
+All505 new targets were queried:341 observed owner profits,148 missing standard
+accounts and16 quarantined accounts. The combined source cohort is616/616
+attempted (415 observed,185 missing,16 quarantined). This closes this source
+acquisition cohort only; it does not close all missing score components.
+
+Derived publisher run42144794763 remained in-progress after its twelve steps,
+including Complete job, reported success; its check started01:35:03UTC and a
+newer publication remained pending beyond the configured15-minute timeout.
+The last verified public snapshot remained present. Source collection finished
+independently. A main push now may cancel/replace an older derived publisher,
+while routine workflow-completion and scheduled events continue to queue.
+The existing group, source checks, rebase/recompute/verify and nonforce push
+remain. Source acquisition groups and financial/price data are unchanged.
