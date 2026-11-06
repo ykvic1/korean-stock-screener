@@ -10,24 +10,24 @@
       "old_kospi": 20
     },
     "100": {
-      "overlap": 36,
+      "overlap": 37,
       "new_kospi": 48,
       "old_kospi": 42
     },
     "200": {
       "overlap": 76,
-      "new_kospi": 99,
-      "old_kospi": 86
+      "new_kospi": 98,
+      "old_kospi": 87
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "38b7d079168126115741d84da7610a7df61ad338c8c83f091f7d862ec08a9e73",
+    "source_digest": "337e1e589bd92738e8e0e31b702ef99774d10ec3cc683a7b13d1ae11b15b19f4",
     "listed_total": 2501,
     "ranked_count": 2481,
     "available_100_count": 556,
-    "available_95_count": 788,
-    "available_90_count": 1389,
+    "available_95_count": 789,
+    "available_90_count": 1405,
     "budgets": {
       "volume": 25,
       "technical": 30.0,
@@ -45,6 +45,6 @@
   "prior_top_overlap": {
     "50": 36,
     "100": 72,
-    "200": 143
+    "200": 144
   }
 }
