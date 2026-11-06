@@ -1,0 +1,116 @@
+name: V3 DART 2022 Receipt-Matched Revenue Recovery
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_revenue_2022.py
+      - tests/test_v3_dart_revenue_2022.py
+      - .github/workflows/v3-dart-revenue-2022.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_revenue_2022.py
+      - tests/test_v3_dart_revenue_2022.py
+      - .github/workflows/v3-dart-revenue-2022.yml
+  schedule:
+    # 100 issuer/year requests max, only missing FY2022 annual source,
+    # once per unchanged receipt; separate from EPS (23) and FCF (47).
+    - cron: '37 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, live]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korean-screener-2022-revenue-source
+  cancel-in-progress: false
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'main' }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reuse verified listed-company identity cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Source receipt and known-only revenue offline tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_revenue_2022.py v3_revenue_growth_evidence.py
+          python -m unittest discover -s tests -p 'test_v3_dart_revenue_2022.py' -v
+          python -m unittest discover -s tests -p 'test_v3_revenue_growth_evidence.py' -v
+      - name: Wait for aligned current DART major-account snapshot
+        id: gate
+        run: |
+          set -euo pipefail
+          python v3_dart_source_day_preflight.py --kind major
+      - name: Confirm aligned FY2022 filing candidates without network
+        if: ${{ steps.gate.outputs.ready == 'true' }}
+        run: python v3_dart_revenue_2022.py --mode dry-run
+      - name: Install official provider dependency only for live collection
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Recheck exact annual receipts from official DART
+        id: source
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          interrupted=0
+          if ! python v3_dart_revenue_2022.py --mode live --limit 100 \
+                  | tee /tmp/v3-2022-revenue-source.json; then
+            interrupted=1
+          elif grep -q '"status": "partial_receipt_bound_revenue_saved"' /tmp/v3-2022-revenue-source.json; then
+            interrupted=1
+          fi
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+      - name: Publish only verified revenue observations after source attempts
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f docs/v3-dart-revenue-2022-supplement.json ]]; then
+            exit 0
+          fi
+          python v3_dart_revenue_2022.py --mode verify
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-dart-revenue-2022-supplement.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Publish receipt-matched 2022 revenue observations (missing stays unknown)'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_dart_revenue_2022.py --mode refresh
+            python v3_dart_revenue_2022.py --mode verify
+            git add docs/v3-dart-revenue-2022-supplement.json
+            if ! git diff --cached --quiet; then
+              git commit --amend --no-edit
+            fi
+            if git push origin HEAD:main; then
+              echo 'verified_2022_revenue_checkpoint_published'
+              exit 0
+            fi
+            if (( attempt == 3 )); then
+              echo '::error::revenue_2022_publish_retries_exhausted'
+              exit 1
+            fi
+          done
+      - name: Keep source failure visible after saving usable checkpoints
+        if: ${{ steps.source.outputs.interrupted == '1' }}
+        run: |
+          echo '::error::revenue_2022_source_interrupted_after_checkpoint'
+          exit 1
