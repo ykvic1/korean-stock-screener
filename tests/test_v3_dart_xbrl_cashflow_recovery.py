@@ -73,6 +73,8 @@ class OriginalRecoveryTests(unittest.TestCase):
                       '000002':{'years':{'2024':prior()}}}}
         chosen=targets(s,{'000001','000002'},2)
         self.assertEqual([x[0] for x in chosen],['000002','000001'])
+        seeded=targets(s,{'000001','000002'},1,[('000001',2024)])
+        self.assertEqual((seeded[0][0],seeded[0][1]),('000001','2024'))
         s['records']['000002']['years']['2024']['original_xbrl_review']={'contract':'x'}
         self.assertTrue(all(x[0]=='000001' for x in targets(s,{'000001','000002'},2)))
 

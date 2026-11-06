@@ -105,6 +105,7 @@ def instance_values(data,*,year,scope,identifiers,expected_cfo,diagnostic=None):
         for field,ids in FIELDS.items():
             if any(local==name.split('_',1)[1] for name in ids):
                 facts[field].setdefault(ctx,[]).append(_number(fact))
+                diagnostic['scope_krw_standard_'+field+'_facts']+=1
     cfo=[v for values in facts['operating_cashflow_krw'].values() for v in values]
     if not cfo:return {}
     if any(v is None for v in cfo) or set(cfo)!={expected_cfo}:raise RecoveryError('unverified_original_cfo')
@@ -182,7 +183,7 @@ def merge(old,values,*,reason,archive_hash,profile_hash):
     return new
 
 
-def targets(state,priority,limit):
+def targets(state,priority,limit,seed_years=()):
     if type(limit) is not int or not 1<=limit<=32:raise RecoveryError('invalid_original_xbrl_budget')
     queue=[]
     for code,issuer in state['records'].items():
@@ -190,17 +191,29 @@ def targets(state,priority,limit):
                  and row.get('operating_cashflow_krw') is not None and row.get('major_annual_receipt_matched') is True
                  and row.get('original_xbrl_review') is None]
         if missing:queue.append((code not in priority,len(missing),code,missing))
-    return [(code,year,row) for _,_,code,missing in sorted(queue) for year,row in sorted(missing)][:limit]
+    candidates=[(code,year,row) for _,_,code,missing in sorted(queue) for year,row in sorted(missing)]
+    # Revisit the deterministic structural sample with this stronger verifier.
+    # Sample membership never bypasses receipt/entity/scope/CFO validation.
+    seeds=set(seed_years)
+    return sorted(candidates,key=lambda item:(item[0],int(item[1])) not in seeds)[:limit]
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('dry-run','live'),default='dry-run')
-    p.add_argument('--limit',type=int,default=16);a=p.parse_args();root=Path('docs')
+    p.add_argument('--limit',type=int,default=16)
+    p.add_argument('--structural-cohort-index',type=int,
+                   help='Recheck a completed original-file structural sample first (0..1000000)')
+    a=p.parse_args();root=Path('docs')
     read=lambda name:json.loads((root/name).read_text())
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json','v3-dart-cashflow-reference.json')]
     state=cf.retained_current_market_cashflow(market,catalog,bulk,state);cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True)
     priority=xp.operational_gap_priority(read('v3-operational-research-scores.json'),read('v3-operational-research-comparison.json'),catalog,bulk)
-    selected=targets(state,priority,a.limit)
+    seeds=[]
+    if a.structural_cohort_index is not None:
+        seeds=[(code,year) for code,year,*_ in xp.select_candidates(
+            state,bulk,asof=catalog['date'],limit=xp.MAX_PROBES,
+            cohort_index=a.structural_cohort_index,priority_codes=priority)]
+    selected=targets(state,priority,a.limit,seeds)
     output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),'provider_calls':0,'completed':0,'recovered_fields':0,'reasons':{},'scores_certified':False,'context_checks':{}}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
