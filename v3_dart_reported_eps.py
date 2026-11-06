@@ -115,10 +115,13 @@ def metrics(values):
 
 
 def canonical_basic_eps_name(value):
-    """Exact allowed characters only; no inferred or diluted EPS concepts."""
+    """Finite basic/joint labels with optional exact won-unit annotation."""
     if type(value) is not str or len(value) > 120:
         return None
     compact = "".join(value.split())
+    # Presentation-only suffix. Never rescale a thousand-won/million-won
+    # figure or accept an unspecified unit; row currency must still be KRW.
+    compact = compact.removesuffix("(단위:원)")
     return compact if compact in ALLOWED_BASIC_EPS_NAMES else None
 
 

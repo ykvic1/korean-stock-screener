@@ -130,6 +130,21 @@ class EPSNameRecheckTests(unittest.TestCase):
         observed['records']['005930']['source_name_recheck']['version']=eps.WHITESPACE_NAME_RECHECK_VERSION
         self.assertEqual(eps.plan(catalog,book,observed,recover_missing_names=True)[-1],[])
 
+    def test_explicit_won_unit_suffix_is_metadata_and_never_rescales_values(self):
+        for label in ('기본주당이익(단위:원)', '기본주당이익(손실) (단위 : 원)',
+                      '기본 및 희석 주당순이익(손실) (단위: 원)'):
+            got=eps.parse({'status':'000','list':[fallback(label=label)]},corp='00123456',
+                base=BASE,on_day=DAY,allow_nonstandard_names=True)
+            self.assertEqual(got['reported_basic_eps_2023_2025'],[100,200,350])
+            self.assertIn(got['source_account_name_fallback'],eps.ALLOWED_BASIC_EPS_NAMES)
+        for suffix in ('(단위:천원)', '(단위:백만원)', '(단위:USD)', '(원)', '(주석)',
+                       '(단위:원)(단위:원)'):
+            self.assertIsNone(eps.canonical_basic_eps_name('기본주당이익'+suffix))
+        with self.assertRaisesRegex(eps.EPSError,'receipt_or_currency_mismatch'):
+            row=dict(fallback(label='기본주당이익(단위:원)'),currency='USD')
+            eps.parse({'status':'000','list':[row]},corp='00123456',base=BASE,
+                on_day=DAY,allow_nonstandard_names=True)
+
     def test_exact_name_not_accepted_in_initial_standard_id_collection(self):
         nonstandard={'status':'000','list':[fallback()]}
         unverified=eps.parse(nonstandard,corp='00123456',base=BASE,on_day=DAY)
