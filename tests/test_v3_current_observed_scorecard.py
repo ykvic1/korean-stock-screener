@@ -249,6 +249,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         add=[line for line in flow.splitlines() if line.strip().startswith("git add docs/")]
         self.assertGreaterEqual(len(add),2)
         self.assertEqual({line.strip() for line in add}, {
+            "git add docs/v3-dart-fcf-research-preview.json",
             "git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json",
             "git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json"})
         for html in ("index.html","workspace.html"):
@@ -623,6 +624,21 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertIn("V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)",flow)
         self.assertIn("cron: '11 * * * *'",flow)
         self.assertNotIn("cron: '26,56 * * * *'",flow)
+        self.assertNotIn("DART_API_KEY:",flow)
+        self.assertNotIn("KRX_API_KEY:",flow)
+
+    def test_fcf_preview_is_published_atomically_with_its_dependent_score(self):
+        flow=(Path(__file__).resolve().parents[1]/
+              ".github/workflows/v3-current-observed-scorecard.yml").read_text(
+                  encoding="utf8")
+        self.assertIn("python v3_dart_cashflow_factor_preview.py --mode write",flow)
+        self.assertIn("python v3_dart_cashflow_factor_preview.py --mode verify",flow)
+        self.assertIn("git add docs/v3-dart-fcf-research-preview.json",flow)
+        self.assertLess(flow.index("python v3_dart_cashflow_factor_preview.py --mode write"),
+                        flow.index("python v3_current_observed_scorecard.py --mode write"))
+        self.assertGreaterEqual(
+            flow.count("python v3_dart_cashflow_factor_preview.py --mode write"),2)
+        self.assertGreaterEqual(flow.count("git add docs/v3-dart-fcf-research-preview.json"),2)
         self.assertNotIn("DART_API_KEY:",flow)
         self.assertNotIn("KRX_API_KEY:",flow)
 
