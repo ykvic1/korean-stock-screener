@@ -3,6 +3,9 @@ import copy
 import json
 from pathlib import Path
 import unittest
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+from datetime import date, timedelta
 
 from test_v3_dart_cashflow_enrichment import live_inputs, FakeSession
 import v3_dart_cashflow_enrichment as cf
@@ -74,6 +77,43 @@ def fifty_source_matched():
 
 
 class FCFPreviewTests(unittest.TestCase):
+    def test_cli_rollover_defers_only_valid_lag_without_rewriting_sources(self):
+        market,catalog,bulk,cash=five_complete()
+        with TemporaryDirectory() as folder:
+            base=Path(folder)
+            paths=[base/n for n in ('market.json','catalog.json','major.json','cash.json','out.json')]
+            def save():
+                for p,v in zip(paths,(market,catalog,bulk,cash)):
+                    p.write_text(json.dumps(v))
+            save();paths[-1].write_text('dated-preview')
+            args=[item for pair in zip(('--market','--catalog','--major','--cashflow','--out'),map(str,paths)) for item in pair]
+            market['date']=catalog['date']=(date.fromisoformat(bulk['asof'])+timedelta(days=1)).isoformat()
+            for row in market['stocks']:row['price_date']=catalog['date']
+            bulk['raw_source_rows_published']=False
+            save();before=[p.read_bytes() for p in paths]
+            with patch.object(factor,'score_preview',side_effect=AssertionError('must defer')):
+                factor.main(args+['--defer-source-lag'])
+            self.assertEqual([p.read_bytes() for p in paths],before)
+            with self.assertRaises(cf.CashflowError):factor.main(args)
+            bulk['asof']='2099-01-01';save()
+            with self.assertRaises(ValueError):factor.main(args+['--defer-source-lag'])
+
+    def test_cli_rechecks_old_receipts_in_memory_after_major_day_catches_up(self):
+        market,catalog,bulk,cash=five_complete()
+        market['date']=catalog['date']=bulk['asof']=(date.fromisoformat(bulk['asof'])+timedelta(days=1)).isoformat()
+        for row in market['stocks']:row['price_date']=catalog['date']
+        bulk['raw_source_rows_published']=False
+        with TemporaryDirectory() as folder:
+            base=Path(folder)
+            paths=[base/n for n in ('market.json','catalog.json','major.json','cash.json','out.json')]
+            for p,v in zip(paths,(market,catalog,bulk,cash)):p.write_text(json.dumps(v))
+            before=[p.read_bytes() for p in paths[:-1]]
+            args=[item for pair in zip(('--market','--catalog','--major','--cashflow','--out'),map(str,paths)) for item in pair]
+            factor.main(args+['--defer-source-lag'])
+            factor.main(args+['--mode','verify','--defer-source-lag'])
+            self.assertEqual([p.read_bytes() for p in paths[:-1]],before)
+            self.assertEqual(json.loads(paths[-1].read_text())['asof'],catalog['date'])
+
     def test_latest_only_fcf_yield_observed_without_three_year_assets_score(self):
         market,catalog,bulk=live_inputs()
         for year in (2023,2024):

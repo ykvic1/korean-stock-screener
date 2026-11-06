@@ -97,6 +97,7 @@ jobs:
           python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_stop_loss_severity.py v3_issuer_factor_ledger.py v3_path_provisional_factors.py v3_unscored_path_coverage.py
           python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
           python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_factor_preview.py' -v
           python -m unittest discover -s tests -p 'test_v3_stop_loss_severity.py' -v
           python -m unittest discover -s tests -p 'test_v3_personal_score_adjustments.py' -v
           python -m unittest discover -s tests -p 'test_v3_eps_valuation.py' -v
@@ -113,7 +114,7 @@ jobs:
           # A verified major-account asset recovery changes FCF/assets peer
           # coverage without changing the cashflow reference. Publish its
           # same-receipt preview together with the dependent scorecard.
-          python v3_dart_cashflow_factor_preview.py --mode write
+          python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
           python v3_current_observed_scorecard.py --mode write --refresh-derived
           # Target independently observed 95/96-point source gaps without
           # claiming that older ledger scores are fresh closing evidence.
@@ -134,7 +135,7 @@ jobs:
             git commit -m "Publish actual closing market price+DART receipt-checked partial CSV"
             for attempt in 1 2 3; do
               git pull --rebase origin main
-              python v3_dart_cashflow_factor_preview.py --mode write
+              python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
               python v3_current_observed_scorecard.py --mode write --refresh-derived
               python v3_near_100_observed_gap.py --mode write
               git add docs/v3-dart-fcf-research-preview.json
@@ -146,7 +147,7 @@ jobs:
               if ! git diff --cached --quiet; then
                 git commit --amend --no-edit
               fi
-              python v3_dart_cashflow_factor_preview.py --mode verify
+              python v3_dart_cashflow_factor_preview.py --mode verify --defer-source-lag
               python v3_current_observed_scorecard.py --mode verify --refresh-derived
               python v3_near_100_observed_gap.py --mode verify
               if git push origin HEAD:main; then

@@ -14,6 +14,7 @@ COMPONENT_MAX = {'persistence':5, 'concentration_quality':2,
                  'weekly_structure_increment':2}
 DAILY_WINDOWS = (4,12,24,48)
 WEEKLY_WINDOWS = (5,10,20,60,120)
+CORRECTION_COHORT_WINDOWS = (12,24,48)  # 60, 120, 240 observed sessions
 
 
 def _clip(value):
@@ -38,6 +39,30 @@ def _score_window(values, n):
             'ratio':ratio}
 
 
+def correction_observation(cohorts):
+    """Use the shortest complete window with three up AND three down buckets.
+
+    A one-sided 60-session market is not missing turnover history. Extend
+    the actual sample to 120/240 sessions before declaring it unavailable.
+    Never skip a corrupt/missing cohort, infer a price sign at boundaries,
+    change the one-point formula, or count absent corrections as zero.
+    """
+    for size in CORRECTION_COHORT_WINDOWS:
+        if len(cohorts)<size:return None,None
+        up=[];down=[]
+        for row in cohorts[:size]:
+            if type(row) is not dict:return None,None
+            move=row.get('intrabucket_price_change_bp')
+            amount=row.get('total_actual_amount_100k_krw')
+            if type(move) is not int or type(amount) is not int or not 0<=amount<10**15:
+                return None,None
+            if move>0:up.append(amount)
+            elif move<0:down.append(amount)
+        if len(up)>=3 and len(down)>=3 and sum(up)>0:
+            return _clip(2*(1-(sum(down)/len(down))/(sum(up)/len(up)))),size
+    return None,None
+
+
 def derive(daily, weekly, cohorts):
     """Newest-first quantized actual-money buckets; no public source series."""
     if (type(daily) is not list or type(weekly) is not list or type(cohorts) is not list):
@@ -53,23 +78,16 @@ def derive(daily, weekly, cohorts):
     # The four within-cohort intervals have directional trading-value
     # pressure, but cross-cohort price signs are absent. Do not claim exact
     # day-by-day signed turnover/OBV or investor buying.
-    pressures=[];up=[];down=[]
+    pressures=[]
     for row in cohorts[:12]:
         if type(row) is not dict:
             continue
         pressure=row.get('money_pressure_intrabucket_bp')
-        amount=row.get('total_actual_amount_100k_krw')
-        move=row.get('intrabucket_price_change_bp')
         if type(pressure) is int and -10000<=pressure<=10000:
             pressures.append(pressure)
-        if type(move) is int and type(amount) is int and 0<=amount<10**15:
-            if move>0:up.append(amount)
-            elif move<0:down.append(amount)
     asymmetry=(2*_clip(sum(pressures)/len(pressures)/5000)
                if len(pressures)==12 else None)
-    contraction=None
-    if len(up)>=3 and len(down)>=3 and sum(up)>0:
-        contraction=_clip(2*(1-(sum(down)/len(down))/(sum(up)/len(up))))
+    contraction,correction_window=correction_observation(cohorts)
     # Residual long-weekly increase OVER recent daily increase, not a
     # second award for the same daily growth ratio.
     weekly_increment=2*_clip((w[-1]['ratio']-max(1.,d[0]['ratio']))/1.0)
@@ -77,6 +95,7 @@ def derive(daily, weekly, cohorts):
             'up_down_asymmetry':asymmetry,'correction_contraction':contraction,
             'weekly_structure_increment':weekly_increment}
     result={'schema':SCHEMA,'growth6':round(growth,6),
+            'correction_window_cohorts':correction_window,
             'components':{key:round(value,6) if value is not None else None
                           for key,value in values.items()},
             'derived_from_private_reported_acc_trdval':True,
@@ -88,10 +107,11 @@ def derive(daily, weekly, cohorts):
 
 
 def valid(source):
-    if (type(source) is not dict or set(source)!=set(('schema','growth6',
+    fields=set(('schema','growth6',
         'components','derived_from_private_reported_acc_trdval',
         'original_amounts_or_paths_exported','intrabucket_boundary_price_sign_known',
         'independent_regular_session_verified','investment_score_certified'))
+    if (type(source) is not dict or set(source) not in (fields,fields|{'correction_window_cohorts'})
         or source['schema']!=SCHEMA
         or source['derived_from_private_reported_acc_trdval'] is not True
         or any(source[k] is not False for k in ('original_amounts_or_paths_exported',
@@ -103,6 +123,13 @@ def valid(source):
         or type(source['components']) is not dict
         or set(source['components'])!=set(COMPONENT_MAX)):
         return False
+    if 'correction_window_cohorts' in source:
+        size=source['correction_window_cohorts']
+        value=source['components']['correction_contraction']
+        if value is None:
+            if size is not None:return False
+        elif type(size) is not int or size not in CORRECTION_COHORT_WINDOWS:
+            return False
     return all(source['components'][k] is None or
                (type(source['components'][k]) in (float,int)
                 and math.isfinite(source['components'][k])

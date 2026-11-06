@@ -156,11 +156,25 @@ def main(argv=None):
     ap.add_argument("--cashflow",default="docs/v3-dart-cashflow-reference.json")
     ap.add_argument("--out",default="docs/v3-dart-fcf-research-preview.json")
     ap.add_argument("--mode",choices=("write","verify"),default="write")
+    ap.add_argument("--defer-source-lag",action="store_true",
+                    help="Preserve the dated preview during a validated major-source lag")
     args=ap.parse_args(argv)
     def read(p):
         return json.loads(Path(p).read_text(encoding="utf8"))
-    out=score_preview(read(args.market),read(args.catalog),
-                      read(args.major),read(args.cashflow))
+    market,catalog,major=read(args.market),read(args.catalog),read(args.major)
+    if args.defer_source_lag:
+        from v3_dart_source_day_preflight import check
+        gate=check(market,catalog,major,kind="major")
+        if not gate['ready']:
+            print(json.dumps({"status":"waiting_same_day_major_source",
+                "previous_fcf_preview_preserved":True,"provider_calls":0,
+                "market_asof":gate['market_asof'],"source_asof":gate['source_asof']}))
+            return
+    cash=read(args.cashflow)
+    if args.defer_source_lag:
+        from v3_dart_cashflow_enrichment import retained_current_market_cashflow
+        cash=retained_current_market_cashflow(market,catalog,major,cash)
+    out=score_preview(market,catalog,major,cash)
     path=Path(args.out)
     if args.mode=="write":
         write_json(path,out)

@@ -23,6 +23,13 @@ class CompletionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.inputs=[json.loads((ROOT/n).read_text()) for n in NAMES]
+        catalog,book,priority,prior=cls.inputs[:4]
+        # Rebuild only the synthetic test acquisition plan at the current
+        # close. Validate every annual identity and retain original observed_on
+        # dates through the production planner; no filing amount is relabeled.
+        priority['asof']=catalog['date']
+        day,_,_,retained,_=proof.plan(catalog,book,priority,prior)
+        cls.inputs[3]=proof.snapshot(day,catalog,book,priority,retained)
 
     def test_extension_preserves_previous_values_dates_and_acquisition_cohort(self):
         inputs=copy.deepcopy(self.inputs);before=copy.deepcopy(inputs)
@@ -52,7 +59,7 @@ class CompletionTests(unittest.TestCase):
         day,members,expected,retained,selected=proof.plan(catalog,book,priority,rebound)
         mapping={code:f'{10000000+i:08d}' for i,code in enumerate(sorted(members))}
         reverse={v:k for k,v in mapping.items()}
-        pending=set(selected)
+        pending=set(expected)-set(retained)
         class Response:
             def __init__(self,payload):self.payload=payload
             def raise_for_status(self):pass
@@ -74,7 +81,13 @@ class CompletionTests(unittest.TestCase):
         cache=make_company_mapping_cache(mapping,day,members)
         source,calls=proof.collect(catalog,book,priority,rebound,key='synthetic-key-not-a-secret',
             session=caller,cache=cache,preferred_codes=preferred)
-        return priority,source,pending,caller,calls
+        # Completion preference can select a different bounded subset than
+        # plan()'s default interleaving. All calls must still be unqueried.
+        self.assertLessEqual(calls,proof.MAX_PER_RUN)
+        self.assertEqual(len(caller.codes),len(set(caller.codes)))
+        self.assertTrue(set(caller.codes)<=pending)
+        if preferred&pending and caller.codes:self.assertIn(caller.codes[0],preferred)
+        return priority,source,set(caller.codes),caller,calls
 
     def test_only_unqueried_receipts_are_requested_and_zero_loss_are_observed(self):
         priority,source,pending,caller,calls=self.simulated_source()

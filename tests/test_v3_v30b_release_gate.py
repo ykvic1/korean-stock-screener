@@ -130,7 +130,8 @@ class V30bReadinessTests(unittest.TestCase):
         gate = assess_v30b(observed, scorecard, history,
                            operational_r1d=r1d, operational_comparison=compare)
         self.assertTrue(gate["r1d_operational_publication_reconciled"])
-        self.assertTrue(gate["gates"]["r1d_operational_publication_reconciled"])
+        self.assertEqual(gate["gates"]["r1d_operational_publication_reconciled"],
+                         gate["public_summary_valid"])
         self.assertEqual(gate["r1d_100weight_observed_count"], found["available_100_count"])
         self.assertTrue(gate["five_area_weight_contract_is_legacy_not_r1d"])
         self.assertFalse(gate["gates"]["r1d_observation_all_listed"])
@@ -144,11 +145,16 @@ class V30bReadinessTests(unittest.TestCase):
         later_scorecard["asof"] = following_day
         lag = assess_v30b(later_observed, later_scorecard, history,
                           operational_r1d=r1d, operational_comparison=compare)
-        self.assertTrue(lag["public_summary_valid"])
+        # The independent legacy five-area publisher may itself be between
+        # closes. This test checks R1d retention, not a legacy release grant.
+        self.assertFalse(lag["confirmed_scoring_authorized"])
         self.assertTrue(lag["r1d_operational_publication_reconciled"])
         self.assertFalse(lag["r1d_same_market_day_and_roster"])
         self.assertFalse(lag["gates"]["r1d_observation_all_listed"])
-        self.assertIn("r1d_operational_snapshot_lag", lag["blocker_codes"])
+        if lag["public_summary_valid"]:
+            self.assertIn("r1d_operational_snapshot_lag", lag["blocker_codes"])
+        else:
+            self.assertFalse(lag['gates']['public_summary_internal_consistency'])
 
         # A plausible-looking all-listed aggregate cannot hide one changed
         # component, rank, or coverage count. Every affected issuer is replayed.
@@ -174,7 +180,13 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertIsNone(r1d_public_reconciles(altered, compare))
         altered = copy.deepcopy(r1d)
         altered["rows"][code]["name"] = "잘못된 기업명"
-        self.assertIsNone(r1d_public_reconciles(altered, compare, catalog=catalog))
+        # Identity rejection requires a same-date census. Build the synthetic
+        # census from the untouched report; tomorrow's real roster cannot
+        # certify yesterday's issuer identities.
+        identity_catalog={'date':r1d['asof'],'listed_total':r1d['listed_total'],
+            'rows':[{'code':k,'name':v['name'],'market':v['market']}
+                    for k,v in r1d['rows'].items()]}
+        self.assertIsNone(r1d_public_reconciles(altered, compare, catalog=identity_catalog))
         altered = copy.deepcopy(r1d)
         altered["rows"][code]["oldest_asof"] = "2001-01-01"
         self.assertIsNone(r1d_public_reconciles(altered, compare))

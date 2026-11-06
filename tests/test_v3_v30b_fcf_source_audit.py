@@ -7,6 +7,7 @@ from io import StringIO
 import json
 from pathlib import Path
 import unittest
+from datetime import date, timedelta
 
 from v3_v30b_fcf_source_audit import (
     audit_fcf_sources, FCFReconciliationError, main,
@@ -64,11 +65,9 @@ class FCFSourceAuditTests(unittest.TestCase):
         observed, gap, preview = (copy.deepcopy(self.observed),
                                   copy.deepcopy(self.gap),
                                   copy.deepcopy(self.preview))
-        if observed.get("asof") == gap.get("asof") == preview.get("asof"):
-            gap["asof"] = "2026-10-01"
-        else:
-            self.assertLess(gap["asof"], observed["asof"])
-            self.assertLess(preview["asof"], observed["asof"])
+        # One source can catch up before the other; construct the stale
+        # condition explicitly instead of assuming both real files lag.
+        gap["asof"]=(date.fromisoformat(observed['asof'])-timedelta(days=1)).isoformat()
         with self.assertRaisesRegex(FCFReconciliationError,
                                     "fcf_source_day_mismatch"):
             audit_fcf_sources(observed, gap, preview)

@@ -230,8 +230,7 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
     if type(cash) is not dict or type(stored_preview) is not dict:
         return None
     day=catalog["date"]
-    if (cash.get("asof")!=day or stored_preview.get("asof")!=day
-        or history.get("asof")!=day):
+    if (stored_preview.get("asof")!=day or history.get("asof")!=day):
         return None
     if (cash.get("historical_PIT_certified") is not False or
         cash.get("raw_dart_rows_published") is not False or
@@ -249,6 +248,9 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
         stored_preview.get("valuation15_complete") is not False):
         raise LivePartialScorecardError("untrusted_fcf_source_claim")
     try:
+        # A dated annual CF snapshot can be reused at the next close ONLY
+        # through receipt-by-receipt reconciliation against the current major
+        # archive. This also rejects future/expired/tampered snapshots.
         # A verified annual revision invalidates only its exact issuer/year.
         # Reuse the collector's strict reconciliation rather than dropping
         # every unrelated company's FCF when one receipt has changed.

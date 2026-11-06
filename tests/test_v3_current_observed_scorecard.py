@@ -442,6 +442,29 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             self.assertEqual(summary["provider_requests"],0)
             main(["--docs",str(root),"--mode","verify","--refresh-derived"])
 
+    def test_unchanged_fiscal_receipts_can_replay_after_close_without_refetch(self):
+        from test_v3_dart_cashflow_factor_preview import five_complete
+        from v3_dart_cashflow_enrichment import retained_current_market_cashflow
+        from v3_dart_cashflow_factor_preview import score_preview
+        from datetime import date, timedelta
+        market,catalog,history,cash=five_complete()
+        old_day=cash['asof'];before=copy.deepcopy(cash)
+        day=(date.fromisoformat(old_day)+timedelta(days=1)).isoformat()
+        market['date']=catalog['date']=history['asof']=day
+        for row in market['stocks']:row['price_date']=day
+        reconciled=retained_current_market_cashflow(market,catalog,history,cash)
+        preview=score_preview(market,catalog,history,reconciled)
+        actual=cashflow_source(market,catalog,history,cash,preview)
+        self.assertIsNotNone(actual)
+        self.assertEqual(cash,before)
+        self.assertEqual(actual[1]['asof'],day)
+        self.assertEqual(actual[1]['real_latest_fcf_yield_raw_issuer_count'],5)
+        future=copy.deepcopy(cash);future['asof']='2099-01-01'
+        self.assertIsNone(cashflow_source(market,catalog,history,future,preview))
+        forged=copy.deepcopy(cash)
+        forged['records'][next(iter(forged['records']))]['years']['2025']['free_cashflow_krw']+=1
+        self.assertIsNone(cashflow_source(market,catalog,history,forged,preview))
+
     def test_real_stored_three_year_receipts_replay_before_publish(self):
         docs=DOCS
         names=("data.json","v22-market-catalog.json",
