@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import time
 from typing import Callable
+import v3_owner_profit_reconciliation as profit_allocation
 
 from v3_dart_bulk_history import (
     _amount, _mapping, _valid_receipt, _stable_digest,
@@ -159,14 +160,27 @@ def _validated_record(record, cutoff):
     value = record.get("owners_profit_krw")
     account = record.get("source_account_id")
     if record["status"] == "observed_owner_profit":
-        if (type(value) is not int or abs(value) > 10**18
-            or account not in PROFIT_IDS[record["fs_div"]]):
+        if account==profit_allocation.DERIVED_ID:
+            try:
+                if record['fs_div']!='CFS':raise ValueError()
+                profit_allocation.verify(record.get('profit_reconciliation'),value)
+            except (ValueError,TypeError,KeyError):
+                raise ProfitProbeError('invalid_profit_reconciliation_proof') from None
+        elif (type(value) is not int or abs(value) > 10**18
+              or account not in PROFIT_IDS[record["fs_div"]]):
             raise ProfitProbeError("invalid_profit_evidence_value")
     elif value is not None or account is not None:
         raise ProfitProbeError("missing_account_misrepresented_as_zero")
+    if ('profit_reconciliation' in record and
+        (record['status']!='observed_owner_profit' or account!=profit_allocation.DERIVED_ID)):
+        raise ProfitProbeError('unexpected_profit_reconciliation_proof')
+    if 'profit_recheck_contract' in record or 'profit_recheck_on' in record:
+        if (record.get('profit_recheck_contract')!=profit_allocation.CONTRACT or
+            not _day(record['observed_on'])<=_day(record.get('profit_recheck_on'))<=_day(cutoff)):
+            raise ProfitProbeError('invalid_profit_recheck_marker')
 
 
-def parse_response(payload, *,corp, base, on_day):
+def parse_response(payload, *,corp, base, on_day, allow_reconciliation=False):
     if not isinstance(payload,dict):
         raise ProfitProbeError("invalid_annual_profit_response")
     status=payload.get("status")
@@ -210,6 +224,14 @@ def parse_response(payload, *,corp, base, on_day):
         "owners_profit_krw":next(iter(values)) if matches else None,
         "source_account_id":sorted(matches)[0][0] if matches else None,
     }
+    if allow_reconciliation and not matches:
+        try:reconciled=profit_allocation.derive(rows,base=base,corp=corp,amount=_amount)
+        except profit_allocation.ReconciliationError as error:
+            raise ProfitProbeError(str(error)) from None
+        if reconciled is not None:
+            value,proof=reconciled
+            result.update(status='observed_owner_profit',owners_profit_krw=value,
+                source_account_id=profit_allocation.DERIVED_ID,profit_reconciliation=proof)
     _validated_record(result,on_day)
     return result
 
@@ -241,6 +263,11 @@ def snapshot(day, catalog, book, priority, records):
         report['source_rejection_reason_counts']={reason:sum(
             r['source_rejection_reason']==reason for r in quarantined)
             for reason in sorted({r['source_rejection_reason'] for r in quarantined})}
+    if any('profit_recheck_contract' in r for r in records.values()):
+        report['reconciliation_rechecked_issuers']=sum(
+            r.get('profit_recheck_contract')==profit_allocation.CONTRACT for r in records.values())
+        report['reconciliation_derived_issuers']=sum(
+            r.get('source_account_id')==profit_allocation.DERIVED_ID for r in records.values())
     return report
 
 
@@ -262,10 +289,12 @@ def verify(report, catalog, book, priority):
 
 
 def collect(catalog,book,priority,prior,*,key,session,cache=None,
-            limit=MAX_PER_RUN,on_progress:Callable|None=None,preferred_codes=(),deadline=None):
+            limit=MAX_PER_RUN,on_progress:Callable|None=None,preferred_codes=(),deadline=None,
+            recover_reconciliation=False):
     day,members,expected,retained,selected=plan(
         catalog,book,priority,prior,limit)
-    if preferred_codes:
+    if type(recover_reconciliation) is not bool:raise ProfitProbeError('invalid_profit_recovery_selector')
+    if preferred_codes or recover_reconciliation:
         preferred=set(preferred_codes)
         if not preferred<=set(expected):raise ProfitProbeError('invalid_completion_priority')
         def interleave(codes):
@@ -275,7 +304,8 @@ def collect(catalog,book,priority,prior,*,key,session,cache=None,
                 for m in groups:
                     if groups[m]:result.append(groups[m].pop(0))
             return result
-        pending=set(expected)-set(retained)
+        pending=(profit_allocation.pending(expected,retained) if recover_reconciliation
+                 else set(expected)-set(retained))
         selected=(interleave(pending&preferred)+interleave(pending-preferred))[:limit]
     if not selected:
         result=snapshot(day,catalog,book,priority,retained)
@@ -332,7 +362,8 @@ def collect(catalog,book,priority,prior,*,key,session,cache=None,
                 continue
             try:
                 result=parse_response(
-                    response.json(),corp=mapping[code],base=base,on_day=day)
+                    response.json(),corp=mapping[code],base=base,on_day=day,
+                    allow_reconciliation=recover_reconciliation)
             except ProfitProbeError as error:
                 if str(error) not in QUARANTINED_REASONS:raise
                 # Reject this issuer's numeric account, record the fixed safe
@@ -345,6 +376,9 @@ def collect(catalog,book,priority,prior,*,key,session,cache=None,
                 raise ProfitProbeError(
                     "official_annual_profit_payload_unreadable") from None
             break
+        if recover_reconciliation:
+            result.update(profit_recheck_contract=profit_allocation.CONTRACT,profit_recheck_on=day)
+            _validated_record(result,day)
         retained[code]=result
         current=snapshot(day,catalog,book,priority,retained)
         if on_progress:
@@ -360,6 +394,8 @@ def main(argv=None):
     p.add_argument("--cache",default=".cache/v3-dart-company-codes.json")
     p.add_argument("--mode",choices=("dry-run","live","verify","refresh"),default="dry-run")
     p.add_argument('--completion-first',action='store_true')
+    p.add_argument('--recover-reconciliation',action='store_true',
+                   help='Once per unchanged missing CFS receipt, test explicit profit minus NCI profit')
     p.add_argument("--limit",type=int,default=MAX_PER_RUN)
     p.add_argument("--batches",type=int,choices=range(1,7),default=1,
                    help="At most six bounded20-issuer batches, with per-response checkpoints")
@@ -405,7 +441,9 @@ def main(argv=None):
             if old is None:old=snapshot(day,catalog,book,priority,retained)
             write_json(root/'v3-near-100-evidence-priority.json',priority)
             write_json(target,old)
-    day,_,_,_,selected=plan(catalog,book,priority,old,args.limit)
+    day,_,expected,retained,selected=plan(catalog,book,priority,old,args.limit)
+    if args.recover_reconciliation:
+        selected=sorted(profit_allocation.pending(expected,retained))[:args.limit]
     if args.mode=="dry-run":
         print(json.dumps({"status":"bounded_fy2025_profit_plan",
                           "candidate_95weight_issuers":
@@ -434,10 +472,14 @@ def main(argv=None):
         for batch in range(args.batches):
             result,batch_calls=collect(catalog,book,priority,old,key=key,
                                  session=session,cache=cache,
-                                 limit=args.limit,on_progress=checkpoint,preferred_codes=preferred,deadline=deadline)
+                                 limit=args.limit,on_progress=checkpoint,preferred_codes=preferred,deadline=deadline,
+                                 recover_reconciliation=args.recover_reconciliation)
             calls+=batch_calls
             old=result
-            if result['target_95weight_issuers']==len(result['records']):break
+            if args.recover_reconciliation:
+                _,_,expected,retained,_=plan(catalog,book,priority,result,args.limit)
+                if not profit_allocation.pending(expected,retained):break
+            elif result['target_95weight_issuers']==len(result['records']):break
     except ProfitProbeError as exc:
         if not saved:
             raise
@@ -455,6 +497,10 @@ def main(argv=None):
                           result["observed_official_owner_profit_issuers"],
                       "remaining_priority_codes":
                           result["target_95weight_issuers"]-len(result["records"]),
+                      "reconciliation_rechecked_issuers":result.get('reconciliation_rechecked_issuers',0),
+                      "reconciliation_derived_issuers":result.get('reconciliation_derived_issuers',0),
+                      "reconciliation_pending_issuers":len(profit_allocation.pending(expected,retained))
+                          if args.recover_reconciliation else None,
                       "score_promoted":False},sort_keys=True))
 
 
