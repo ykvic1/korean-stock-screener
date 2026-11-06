@@ -69,23 +69,38 @@ jobs:
           set -euo pipefail
           python v3_dart_source_day_preflight.py --kind major
       - name: Query verified annual cashflows then one-time exact-name CAPEX gaps
+        id: cashflow_collection
         if: ${{ steps.date_gate.outputs.ready == 'true' }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'recover-name-fallback' }}
         run: |
           set -euo pipefail
+          # A later batch may fail after earlier source-verified issuer-years
+          # were saved. Publish those checkpoints first and fail the job after
+          # publication; never treat an outage as a clean complete harvest.
+          interrupted=0
           if [[ "$MODE" == "recover-name-fallback" ]]; then
-            # Three bounded serial batches make progress without extra API
-            # concurrency, while persisting every successfully checked year.
             for round in 1 2 3; do
               echo "::group::Bounded source recovery batch $round/3"
-              python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 40
+              if ! python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 40 \
+                      | tee /tmp/v3-cashflow-batch.json; then
+                interrupted=1
+              elif grep -q '"status": "partial_observed_cashflow_saved"' /tmp/v3-cashflow-batch.json; then
+                interrupted=1
+              fi
               echo "::endgroup::"
+              if (( interrupted )); then break; fi
             done
           else
-            python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 40
+            if ! python v3_dart_cashflow_enrichment.py --mode "$MODE" --issuer-limit 40 \
+                    | tee /tmp/v3-cashflow-batch.json; then
+              interrupted=1
+            elif grep -q '"status": "partial_observed_cashflow_saved"' /tmp/v3-cashflow-batch.json; then
+              interrupted=1
+            fi
           fi
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Publish derived cashflow ONLY after successfully validated source
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'live' || inputs.mode == 'recover-name-fallback') && steps.date_gate.outputs.ready == 'true' }}
         run: |
@@ -95,6 +110,9 @@ jobs:
           if [[ -f docs/v3-dart-cashflow-reference.json ]]; then
             python v3_dart_cashflow_factor_preview.py --mode write
             python v3_dart_cashflow_gap_audit.py --mode write --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+            python v3_dart_cashflow_enrichment.py --mode verify
+            python v3_dart_cashflow_factor_preview.py --mode verify
+            python v3_dart_cashflow_gap_audit.py --mode verify --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
             git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
           fi
           if ! git diff --cached --quiet; then
@@ -127,6 +145,11 @@ jobs:
               fi
             done
           fi
+      - name: Report interrupted source only after preserving verified checkpoints
+        if: ${{ steps.cashflow_collection.outputs.interrupted == '1' }}
+        run: |
+          echo "::error::cashflow_source_interrupted_after_publishing_valid_checkpoints"
+          exit 1
       - name: Report real cashflow sources and missingness, never buy signals
         if: always()
         env:
