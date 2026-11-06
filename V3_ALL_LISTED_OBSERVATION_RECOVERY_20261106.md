@@ -31,8 +31,10 @@ not queried again under the same receipt.
 
 A live workflow processes at most six batches of20 issuers. Each response is
 checkpointed. A provider error stops the run, preserving validated progress;
-a later run resumes remaining identities. At most120 financial requests and
-six optional identity-map requests can occur. No unbounded retries or fake
+a later run resumes remaining identities. At most120 issuer requests are selected, each with the existing maximum
+of three transport attempts (360 financial calls), plus six optional
+identity-map calls. A shared12-minute budget stops further issuer calls
+or retries so validated checkpoints can publish within the job deadline. No unbounded retries or fake
 source observations are introduced. Full-observation candidates still go first,
 followed by the rest, interleaving KOSPI and KOSDAQ.
 

@@ -224,3 +224,15 @@ class CompletionTests(unittest.TestCase):
         guarded=research_parts(history,catalog,book,include_independent_earnings=True)
         guarded={r['code']:r['unverified_components'] for r in guarded['rows']}
         for row in valid[:2]:self.assertIsNone(guarded[row['code']]['earnings_yield_pct']['candidate_points'])
+
+    def test_expired_shared_budget_stops_before_issuer_request(self):
+        priority,source,_,_=completion.extend(*self.inputs)
+        day,members,_,_,selected=proof.plan(self.inputs[0],self.inputs[1],priority,source)
+        if not selected:self.skipTest('all real source identities already captured')
+        mapping={code:f'{10000000+i:08d}' for i,code in enumerate(sorted(members))}
+        cache=make_company_mapping_cache(mapping,day,members)
+        class NoProvider:
+            def get(self,*a,**k):raise AssertionError('request after deadline')
+        with self.assertRaisesRegex(proof.ProfitProbeError,'profit_run_time_budget_reached'):
+            proof.collect(self.inputs[0],self.inputs[1],priority,source,
+                key='synthetic-key',session=NoProvider(),cache=cache,deadline=0)
