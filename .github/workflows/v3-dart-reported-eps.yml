@@ -195,16 +195,19 @@ jobs:
           # failed/fuzzy match is retained as unavailable, never zero EPS.
           if [[ "$source_interrupted" == 0 ]] && (( eps_pending == 0 )); then
             eps_recheck_interrupted=0
-            if ! python v3_dart_reported_eps.py --mode recover-exact-name --limit 100 --workers 3; then
-              eps_recheck_interrupted=1
-            fi
-            # The source process writes each verified issuer immediately;
-            # always commit valid partial results before reporting an outage.
-            publish_eps_checkpoint
-            if [[ "$eps_recheck_interrupted" == 1 ]]; then
-              echo "::error::eps_exact_name_recheck_stopped_after_valid_checkpoints"
-              exit 1
-            fi
+            # Three finite batches cover the current 211 missing accounts;
+            # receipt/version markers prevent duplicate calls across batches.
+            for eps_recheck_batch in 1 2 3; do
+              if ! python v3_dart_reported_eps.py --mode recover-exact-name --limit 100 --workers 3; then
+                eps_recheck_interrupted=1
+              fi
+              # Always commit validated partial results before an outage.
+              publish_eps_checkpoint
+              if [[ "$eps_recheck_interrupted" == 1 ]]; then
+                echo "::error::eps_exact_name_recheck_stopped_after_valid_checkpoints"
+                exit 1
+              fi
+            done
           fi
           # Continue immediately only after real, error-free progress. A DART
           # outage, exhausted quota, or empty batch falls back to the hourly

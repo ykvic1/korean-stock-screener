@@ -23,12 +23,15 @@ SCHEMA = 'v3-reported-annual-basic-eps-comparatives-v1'
 EPS_IDS = {'ifrs-full_BasicEarningsLossPerShare', 'ifrs_BasicEarningsLossPerShare'}
 NONSTANDARD_ID = '-표준계정코드 미사용-'
 # Only literal Korean statement labels disclosed by the issuer. Never infer
-# an EPS amount from profit, share count or a loosely normalized account name.
+# an EPS amount from profit, share count, synonyms or punctuation changes.
+# Only whitespace is ignored in the explicit missing-account recovery path.
 NONSTANDARD_BASIC_EPS_NAMES = frozenset((
     '기본주당이익', '기본주당이익(손실)', '기본주당순이익',
     '기본주당순이익(손실)', '기본주당손익', '기본주당순손익',
 ))
-NAME_RECHECK_VERSION = 'one_receipt_exact_basic_eps_name_v1'
+LEGACY_NAME_RECHECK_VERSION = 'one_receipt_exact_basic_eps_name_v1'
+NAME_RECHECK_VERSION = 'one_receipt_whitespace_basic_eps_name_v2'
+NAME_RECHECK_VERSIONS = {LEGACY_NAME_RECHECK_VERSION, NAME_RECHECK_VERSION}
 MAX_PER_RUN = 100
 MAX_WORKERS = 3
 YEAR = 2025
@@ -103,6 +106,14 @@ def metrics(values):
                             'nonpositive_path_no_cagr' if complete else 'missing_comparatives'}
 
 
+def canonical_basic_eps_name(value):
+    """Exact allowed characters only; no inferred or diluted EPS concepts."""
+    if type(value) is not str or len(value) > 120:
+        return None
+    compact = "".join(value.split())
+    return compact if compact in NONSTANDARD_BASIC_EPS_NAMES else None
+
+
 def parse(payload, *, corp, base, on_day, allow_nonstandard_names=False):
     status = payload.get('status') if type(payload) is dict else None
     rows = payload.get('list') if status == '000' else [] if status == '013' else None
@@ -119,7 +130,7 @@ def parse(payload, *, corp, base, on_day, allow_nonstandard_names=False):
         standard = row.get('account_id') in EPS_IDS
         exact_name = (allow_nonstandard_names
                       and row.get('account_id') == NONSTANDARD_ID
-                      and row.get('account_nm') in NONSTANDARD_BASIC_EPS_NAMES)
+                      and canonical_basic_eps_name(row.get('account_nm')) is not None)
         if (not (standard or exact_name) or row.get('sj_div') not in ('IS', 'CIS')
             or row.get('account_detail', '-') not in ('', '-')):
             continue
@@ -130,7 +141,7 @@ def parse(payload, *, corp, base, on_day, allow_nonstandard_names=False):
         if standard:
             matches.append((row['account_id'], values))
         elif exact_name:
-            name_candidates.append((row['account_nm'], values))
+            name_candidates.append((canonical_basic_eps_name(row['account_nm']), values))
     if len({tuple(values) for _, values in matches}) > 1:
         raise EPSError('conflicting_reported_basic_eps')
     # Do not rescue a malformed or conflicting IFRS account with an account
@@ -230,7 +241,8 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
                 raise EPSError('invalid_saved_eps_source')
             if marker is not None:
                 if (type(marker) is not dict or set(marker)!={'version','receipt_id','result'}
-                    or marker.get('version')!=NAME_RECHECK_VERSION
+                    or type(marker.get('version')) is not str
+                    or marker.get('version') not in NAME_RECHECK_VERSIONS
                     or marker.get('receipt_id')!=row['annual_receipt_id']
                     or marker.get('result') not in ('enriched','checked_unavailable')
                     or (marker['result']=='enriched' and
@@ -253,7 +265,7 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
         # recorded without making a missing EPS into observed zero.
         pending=[code for code,row in retained.items()
                  if row['status']=='standard_eps_not_observed'
-                 and row.get('source_name_recheck') is None]
+                 and (row.get('source_name_recheck') or {}).get('version') != NAME_RECHECK_VERSION]
         pending.sort(key=lambda code:(code not in priority_codes,
                                      members[code][1]!='KOSPI',code))
         selected.extend(pending[:limit-len(selected)])

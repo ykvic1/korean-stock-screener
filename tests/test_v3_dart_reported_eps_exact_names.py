@@ -60,6 +60,36 @@ class EPSNameRecheckTests(unittest.TestCase):
         self.assertIn('005930',verified_reported_eps(catalog,book,out))
         self.assertEqual(eps.plan(catalog,book,out,recover_missing_names=True)[-1],[])
 
+    def test_only_whitespace_changes_are_allowed_and_label_is_canonical(self):
+        for label in ('기본주당 이익', ' 기본주당이익 ', '기본주당이익 (손실)',
+                      '기본주당순이익\u00a0(손실)', '기본주당\t순손익'):
+            got=eps.parse({'status':'000','list':[fallback(label=label)]},
+                corp='00123456',base=BASE,on_day=DAY,allow_nonstandard_names=True)
+            self.assertEqual(got['reported_basic_eps_2023_2025'],[100,200,350])
+            self.assertIn(got['source_account_name_fallback'],eps.NONSTANDARD_BASIC_EPS_NAMES)
+        for label in ('희석주당 이익', '기본주당이익(주석)', '기본주당이익\u200b', '주당 이익'):
+            self.assertIsNone(eps.canonical_basic_eps_name(label))
+        with self.assertRaisesRegex(eps.EPSError,'conflicting_reported_basic_eps'):
+            eps.parse({'status':'000','list':[fallback(label='기본주당 이익'),fallback(amount='351')]},
+                corp='00123456',base=BASE,on_day=DAY,allow_nonstandard_names=True)
+
+    def test_legacy_unavailable_marker_gets_one_v2_recheck_then_no_repeat(self):
+        catalog,book,prior=blank_state()
+        with patch.object(eps,'verified_company_mapping_cache',return_value={'005930':'00123456'}):
+            checked,_=eps.collect(catalog,book,prior,key='a'*40,
+                session=FakeSession({'status':'013'}),recover_missing_names=True)
+            checked['records']['005930']['source_name_recheck']['version']=eps.LEGACY_NAME_RECHECK_VERSION
+            self.assertEqual(eps.plan(catalog,book,checked,recover_missing_names=True)[-1],['005930'])
+            recovered,calls=eps.collect(catalog,book,checked,key='a'*40,
+                session=FakeSession({'status':'000','list':[fallback(label='기본주당 이익')]}),recover_missing_names=True)
+            self.assertEqual(calls,1)
+            self.assertEqual(recovered['complete_three_year_eps_issuers'],1)
+            self.assertEqual(eps.plan(catalog,book,recovered,recover_missing_names=True)[-1],[])
+            self.assertIn('005930',verified_reported_eps(catalog,book,recovered))
+        legacy_complete=copy.deepcopy(recovered)
+        legacy_complete['records']['005930']['source_name_recheck']['version']=eps.LEGACY_NAME_RECHECK_VERSION
+        self.assertEqual(eps.plan(catalog,book,legacy_complete,recover_missing_names=True)[-1],[])
+
     def test_exact_name_not_accepted_in_initial_standard_id_collection(self):
         nonstandard={'status':'000','list':[fallback()]}
         unverified=eps.parse(nonstandard,corp='00123456',base=BASE,on_day=DAY)
@@ -70,7 +100,7 @@ class EPSNameRecheckTests(unittest.TestCase):
         self.assertEqual(verified['reported_basic_eps_2023_2025'],[100,200,350])
 
     def test_untrusted_or_ambiguous_labels_never_create_eps(self):
-        for row in (fallback(label='기본주당 이익'),
+        for row in (fallback(label='기본주당이익(주석)'),
                     fallback(label='희석주당이익'),
                     fallback(label='당기순이익'),
                     dict(fallback(),account_id='dart_CustomBasicEPS')):
