@@ -180,7 +180,13 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertIsNone(r1d_public_reconciles(altered, compare))
         altered = copy.deepcopy(r1d)
         altered["rows"][code]["name"] = "잘못된 기업명"
-        self.assertIsNone(r1d_public_reconciles(altered, compare, catalog=catalog))
+        # Identity rejection requires a same-date census. Build the synthetic
+        # census from the untouched report; tomorrow's real roster cannot
+        # certify yesterday's issuer identities.
+        identity_catalog={'date':r1d['asof'],'listed_total':r1d['listed_total'],
+            'rows':[{'code':k,'name':v['name'],'market':v['market']}
+                    for k,v in r1d['rows'].items()]}
+        self.assertIsNone(r1d_public_reconciles(altered, compare, catalog=identity_catalog))
         altered = copy.deepcopy(r1d)
         altered["rows"][code]["oldest_asof"] = "2001-01-01"
         self.assertIsNone(r1d_public_reconciles(altered, compare))

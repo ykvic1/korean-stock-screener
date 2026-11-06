@@ -38,6 +38,52 @@ class MoneyStructureTests(unittest.TestCase):
         self.assertIsNone(r['components']['up_down_asymmetry'])
         self.assertTrue(m.valid(r))
 
+    def test_one_sided_short_window_uses_actual_120_or_240_session_sample(self):
+        d,w,c=self.inputs()
+        for n in (12,24):
+            with self.subTest(one_sided_cohorts=n):
+                observed=copy.deepcopy(c)
+                for row in observed[:n]:row['intrabucket_price_change_bp']=100
+                result=m.derive(d,w,observed)
+                self.assertIsNotNone(result['components']['correction_contraction'])
+                self.assertEqual(result['correction_window_cohorts'],2*n)
+                self.assertTrue(m.valid(result))
+                baseline=m.derive(d,w,c)
+                for key in m.COMPONENT_MAX:
+                    if key!='correction_contraction':
+                        self.assertEqual(result['components'][key],baseline['components'][key])
+        baseline=m.derive(d,w,c)
+        self.assertEqual(baseline['correction_window_cohorts'],12)
+        self.assertEqual(baseline['components']['correction_contraction'],1)
+
+    def test_missing_or_one_sided_long_history_never_becomes_zero_or_complete(self):
+        d,w,c=self.inputs()
+        for row in c:row['intrabucket_price_change_bp']=100
+        for defect in ('one_sided','missing','boolean','short','zero_up_baseline'):
+            sample=copy.deepcopy(c)
+            if defect=='missing':sample[10]=None
+            elif defect=='boolean':sample[10]['intrabucket_price_change_bp']=True
+            elif defect=='short':sample=sample[:23]
+            elif defect=='zero_up_baseline':
+                for i,row in enumerate(sample):
+                    row['intrabucket_price_change_bp']=100 if i%2 else -100
+                    row['total_actual_amount_100k_krw']=0
+            result=m.derive(d,w,sample)
+            self.assertIsNone(result['components']['correction_contraction'])
+            self.assertIsNone(result['correction_window_cohorts'])
+        legacy=m.derive(*self.inputs());legacy.pop('correction_window_cohorts')
+        self.assertTrue(m.valid(legacy))
+        forged=m.derive(*self.inputs());forged['correction_window_cohorts']=1
+        self.assertFalse(m.valid(forged))
+        # A measured failure of contraction is a genuine observed zero,
+        # different from a missing or one-sided comparison sample.
+        d,w,c=self.inputs()
+        for row in c:
+            if row['intrabucket_price_change_bp']<0:row['total_actual_amount_100k_krw']=500
+        measured=m.derive(d,w,c)
+        self.assertEqual(measured['components']['correction_contraction'],0)
+        self.assertEqual(measured['correction_window_cohorts'],12)
+
     def test_concentration_no_double_credit_on_flat_or_spiky_money(self):
         d,w,c=self.inputs()
         base=m.derive(d,w,c)
