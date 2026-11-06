@@ -146,7 +146,7 @@ jobs:
           set -euo pipefail
           echo "retry=false" >> "$GITHUB_OUTPUT"
           # A failed metadata read must not change scores or authorize a retry.
-          if ! pages_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" --jq '.workflows[] | select(.name == "pages build and deployment") | .id'); then
+          if ! pages_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" --jq '.workflows[] | select(.path == "dynamic/pages/pages-build-deployment") | .id'); then
             echo "::warning::pages_retry_metadata_unavailable"
             exit 0
           fi

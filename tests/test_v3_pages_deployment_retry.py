@@ -35,4 +35,5 @@ class PagesRetryTests(unittest.TestCase):
         self.assertIn("steps.pages_recovery.outputs.retry == 'true'",s)
         self.assertIn('python v3_pages_deployment_retry.py --runs',s)
         self.assertIn('per_page=100',s)
+        self.assertIn('dynamic/pages/pages-build-deployment',s)
         self.assertLess(s.index('id: publish_scores'),s.index('id: pages_recovery'))
