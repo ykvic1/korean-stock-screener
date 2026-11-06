@@ -39,6 +39,7 @@ ISSUER_SOURCE_GAP_ERRORS = frozenset({
     'revenue_2022_invalid_reported_amount',
 })
 MAX_ISSUER_SOURCE_GAPS_PER_RUN = 20
+PRIOR_SOURCE_GAP_ERRORS = ISSUER_SOURCE_GAP_ERRORS | {'conflicting_annual_accounts'}
 
 
 class Revenue2022Error(ValueError):
@@ -115,7 +116,7 @@ def verified_prior(prior, expected, day):
         if base is None or any(row.get(k) != v for k, v in base.items()):
             continue  # Changed 2022 annual receipt or accounting scope.
         if (row.get('status') not in ('observed', 'not_observed')
-            or row.get('source_error') not in (None, *ISSUER_SOURCE_GAP_ERRORS)
+            or row.get('source_error') not in (None, *PRIOR_SOURCE_GAP_ERRORS)
             or (row.get('source_error') is not None and row.get('status') != 'not_observed')
             or type(row.get('checked_on')) is not str
             or row['checked_on'] > day

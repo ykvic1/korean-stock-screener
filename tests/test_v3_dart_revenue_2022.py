@@ -78,6 +78,18 @@ class Revenue2022Tests(unittest.TestCase):
         self.assertEqual(selected, [])
         self.assertEqual(retained['005490'], result)
 
+    def test_previous_conflict_label_retains_live_source_checkpoint(self):
+        catalog, history, base, _ = fixtures()
+        source = snapshot(catalog['date'], {'005490': {
+            **base, 'checked_on': catalog['date'], 'status': 'not_observed',
+            'revenue_krw': None, 'source_account_id': None,
+            'source_account_name': None, 'source_receipt_id': None,
+            'source_error': 'conflicting_annual_accounts',
+        }}, catalog)
+        _, retained, selected = plan(catalog, history, source, limit=1)
+        self.assertEqual(selected, [])
+        self.assertEqual(retained['005490']['source_error'], 'conflicting_annual_accounts')
+
     def test_revised_original_receipt_invalidates_old_observation(self):
         catalog, history, base, row = fixtures()
         result = parse({'status': '000', 'list': [row]}, base, '00123456', '2026-11-05')
