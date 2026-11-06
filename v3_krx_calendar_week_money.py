@@ -60,7 +60,11 @@ def week_days(week_end):
     if end.weekday() != 6:
         raise WeeklyMoneyError('invalid_money_calendar_week_boundary')
     start = end-timedelta(days=6)
-    days = candidate_dates(calendar_weekday_candidates(start.isoformat(), end.isoformat()), source='xkrx')['dates']
+    # Sunday labels the ISO week; it is never a requested trading session.
+    # On Friday evening that label is still in the future. Ask the bounded
+    # finished-day planner only through Friday, preserving historical hashes.
+    friday = end-timedelta(days=2)
+    days = candidate_dates(calendar_weekday_candidates(start.isoformat(), friday.isoformat()), source='xkrx')['dates']
     if not 1 <= len(days) <= 5 or any(date.fromisoformat(d).isocalendar()[:2] != start.isocalendar()[:2] for d in days):
         raise WeeklyMoneyError('unavailable_money_calendar_week_sessions')
     return days

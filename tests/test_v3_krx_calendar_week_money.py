@@ -1,5 +1,5 @@
 import copy
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from hashlib import sha256
 import gzip
 import json
@@ -10,7 +10,7 @@ from unittest.mock import patch
 from official_probe.clients import KRXProbeError
 from test_v3_krx_money_backfill import FakePrivateStore, private_409
 from v3_krx_calendar_week_money import (derive, validate, collect, manifest,
-    closed_week_end, path, CHECKPOINT, WeeklyMoneyError, canonical)
+    closed_week_end, week_days, path, CHECKPOINT, WeeklyMoneyError, canonical)
 
 
 def days(end):
@@ -32,6 +32,21 @@ class Client:
 
 
 class CalendarMoneyTests(unittest.TestCase):
+    def test_friday_close_queries_only_finished_sessions_not_future_sunday_label(self):
+        with patch('v3_krx_private_backfill_plan.datetime') as clock, \
+             patch('v3_krx_calendar_week_money.candidate_dates',
+                   side_effect=lambda values,source:{'dates':values}):
+            clock.now.return_value=datetime(2026,11,6,20,0)
+            self.assertEqual(closed_week_end('2026-11-06'),'2026-11-08')
+            self.assertEqual(week_days('2026-11-08'),
+                ['2026-11-02','2026-11-03','2026-11-04','2026-11-05','2026-11-06'])
+            with self.assertRaises(ValueError):week_days('2026-11-15')
+
+    def test_historical_week_query_keeps_the_identical_monday_to_friday_sequence(self):
+        with patch('v3_krx_calendar_week_money.candidate_dates',
+                   side_effect=lambda values,source:{'dates':values}):
+            self.assertEqual(week_days('2026-11-01'),days('2026-11-01'))
+
     def test_complete_anchor_is_idempotent_and_next_week_appends(self):
         store=FakePrivateStore();client=Client()
         with patch('v3_krx_calendar_week_money.HISTORY_WEEKS',2):
