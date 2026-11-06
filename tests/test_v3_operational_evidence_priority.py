@@ -42,3 +42,30 @@ class EvidencePriorityTests(unittest.TestCase):
                          'chart_window_or_adjustment_review')
         self.assertEqual(p.category('financial','cashflow_fcf_persistence','insufficient_history',True),
                          'original_filing_review_no_blind_refetch')
+
+    def test_conditional_source_family_upper_bounds_never_count_mixed_gaps(self):
+        def row(*pairs):
+            return {'gaps':[{'area':a,'component':k} for a,k in pairs]}
+        fcf=('financial','cashflow_fcf_persistence')
+        yield_gap=('valuation','fcf_yield')
+        eps=('valuation','per_eps_quality_growth')
+        money=('volume','correction_contraction')
+        summary=p.source_family_completion_upper_bounds([
+            row(fcf),row(fcf,yield_gap),row(eps),row(money),row(fcf,eps)])
+        self.assertEqual(summary['full_100_if_all_missing_family_facts_became_observed'],{
+            'dart_cashflow_capex':2,'dart_annual_fundamentals':0,
+            'reported_eps_earnings_yield':1,'exchange_actual_money_windows':1,
+            'price_chart_windows':0})
+        self.assertTrue(summary['no_missing_factor_assumed_zero_or_observed'])
+        with self.assertRaises(ValueError):p.source_family_completion_upper_bounds([row()])
+
+    def test_full_market_bounds_are_subset_of_incomplete_issuers(self):
+        out=p.build(self.report,self.comparison,self.catalog,self.legacy)
+        bounds=out['source_family_completion_upper_bounds']
+        values=bounds['full_100_if_all_missing_family_facts_became_observed']
+        self.assertLessEqual(max(values.values()),out['incomplete_count'])
+        self.assertGreaterEqual(values['dart_cashflow_capex'],
+                                sum(r['gaps'][0]['component']=='cashflow_fcf_persistence'
+                                    for r in out['single_component_queue']))
+        self.assertEqual(out['available_100_count']+out['incomplete_count'],
+                         out['listed_total'])
