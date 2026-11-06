@@ -28,7 +28,10 @@ MAX_ISSUERS=40
 # if the verified listing-mapping cache is unavailable. Partial progress is
 # checkpointed after every year when the wall-clock budget is reached.
 MAX_SOURCE_CALLS=121
-MAX_SECONDS=950
+# The workflow runs three serial batches under a 30-minute job limit.
+# Stop each batch early enough to publish its source-verified checkpoints
+# before the runner can kill the whole job (including publication steps).
+MAX_SECONDS=300
 YEARS=(2023,2024,2025)
 CFO_IDS={
     "ifrs-full_CashFlowsFromUsedInOperatingActivities",

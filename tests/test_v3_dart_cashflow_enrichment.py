@@ -132,6 +132,30 @@ class CashflowSourceTests(unittest.TestCase):
             self.assertEqual(no_repeat.calls,[])
             self.assertEqual(repeated,state)
 
+    def test_time_budget_keeps_verified_year_and_resume_does_not_refetch_it(self):
+        market,catalog,bulk=live_inputs()
+        snapshots=[]
+        mapping={code:CORPS[code] for code in CORPS}
+        first=FakeSession()
+        with patch.object(cf,"verified_company_mapping_cache",return_value=mapping):
+            with patch.object(cf.time,"monotonic",side_effect=[0,0,cf.MAX_SECONDS+1]):
+                with self.assertRaisesRegex(cf.CashflowError,"safe_call_or_time_budget"):
+                    cf.collect(market,catalog,bulk,None,
+                        key="synthetic-non-sensitive-DART-api-key",session=first,
+                        issuer_limit=1,on_progress=lambda x:snapshots.append(copy.deepcopy(x)))
+            self.assertEqual(len(snapshots),1)
+            saved=snapshots[0]
+            self.assertTrue(cf.verify_state(saved,market,catalog,bulk))
+            code=next(iter(saved["records"]))
+            year=next(iter(saved["records"][code]["years"]))
+            resumed=FakeSession()
+            result,calls=cf.collect(market,catalog,bulk,saved,
+                key="synthetic-non-sensitive-DART-api-key",session=resumed,issuer_limit=1)
+        self.assertEqual(calls,2)
+        self.assertNotIn((CORPS[code],year),[(q["corp_code"],q["bsns_year"]) for _,q in resumed.calls])
+        self.assertEqual(result["metrics"]["three_year_fcf_receipt_matched_issuers"],1)
+        self.assertEqual(result["records"][code]["years"][year],saved["records"][code]["years"][year])
+
     def test_same_receipt_three_year_full_statement_no_guessing_and_resume(self):
         market,catalog,bulk=live_inputs()
         prior=[]
