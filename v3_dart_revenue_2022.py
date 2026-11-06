@@ -311,6 +311,11 @@ def main(argv=None):
         nonlocal saved
         write_json(path, state)
         saved += 1
+        if saved % 10 == 0:
+            print(json.dumps({'status': 'revenue_2022_checkpoint',
+                              'newly_checked_issuers': saved,
+                              'observed_total': state['observed_issuer_count']}),
+                  flush=True)
     try:
         result, calls = collect(catalog, history, prior, key=os.getenv('DART_API_KEY', ''),
             session=requests.Session(), cache=cache, limit=a.limit,
