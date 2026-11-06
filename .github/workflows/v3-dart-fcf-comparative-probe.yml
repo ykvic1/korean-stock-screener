@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths: [v3_dart_fcf_comparative_probe.py, .github/workflows/v3-dart-fcf-comparative-probe.yml]
   # Four bounded sweeps daily: up to 120 issuers / 241 calls including mapping.
-  # Ten-minute live deadline keeps partial progress explicit.
+  # Three disjoint partitions run concurrently within the same total budget.
   schedule:
     - cron: '31 1,7,13,19 * * *'
   workflow_dispatch:
@@ -33,6 +33,10 @@ jobs:
   receipt-checked-comparative-candidates:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,12 +63,13 @@ jobs:
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'live' || inputs.mode }}
+          PARTITION: ${{ matrix.partition }}
           COHORT: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && github.run_number || inputs.cohort_index }}
         run: |
           set -euo pipefail
           # Only fixed aggregate counters (no codes/receipts/amounts) appear
           # in the job log, so progress is auditable without private access.
-          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 120 --cohort-index "$COHORT" --audit-annual-receipts | tee /tmp/v3-cf-comparative-counts.json
+          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 120 --cohort-index "$COHORT" --partition-index "$PARTITION" --partition-count 3 --audit-annual-receipts | tee /tmp/v3-cf-comparative-counts.json
       - name: Aggregate-only report; no original-year or investment certification
         if: always()
         run: |
@@ -77,7 +82,7 @@ jobs:
               'No stock IDs, amounts, API keys, FCF ledger changes or score promotion.']
           if p.is_file() and p.stat().st_size:
               a=json.loads(p.read_text(encoding='utf8'))
-              for k in ('asof','eligible_one_gap_fcf_issuers','sampled_issuers','completed_issuers','quarantined_issuers','unprocessed_issuers','selection_covers_all_eligible','status','provider_calls'):
+              for k in ('asof','eligible_one_gap_fcf_issuers','sampled_issuers','completed_issuers','quarantined_issuers','unprocessed_issuers','selection_covers_all_eligible','partition_index','partition_count','status','provider_calls'):
                   lines.append('- '+k+': '+str(a.get(k)))
               for k,v in a.get('candidate_fact_counts',{}).items():
                   lines.append('- '+k+': '+str(v))
