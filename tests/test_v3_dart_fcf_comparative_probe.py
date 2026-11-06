@@ -5,6 +5,10 @@ from datetime import date, timedelta
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch, MagicMock
+from types import SimpleNamespace
+import io
+from contextlib import redirect_stdout
 
 import v3_dart_fcf_comparative_probe as probe
 
@@ -105,7 +109,7 @@ class ComparativeProbeTests(unittest.TestCase):
             probe.select_targets(*args)
         with self.assertRaisesRegex(probe.ComparativeProbeError,
                                     "invalid_comparative_budget"):
-            probe.select_targets(*self.inputs, limit=21)
+            probe.select_targets(*self.inputs, limit=121)
 
     def test_known_source_day_lag_waits_without_provider_calls(self):
         args = copy.deepcopy(self.inputs)
@@ -229,6 +233,49 @@ class ComparativeProbeTests(unittest.TestCase):
                                 account_nm="유형자산의 취득")])
         self.assertEqual(accepted["candidate_2024_ppe_capex_krw"], 1)
 
+    def test_full_sweep_covers_every_eligible_issuer_once(self):
+        if not probe.source_day_aligned(*self.inputs):
+            self.skipTest("source-day rollover")
+        day, members, sample, total = probe.select_targets(*self.inputs, limit=120)
+        self.assertGreater(total, 0)
+        self.assertEqual(len(sample), min(total, 120))
+        self.assertEqual(len(sample), len({s[0] for s in sample}))
+        if total <= 120:
+            self.assertEqual({s[0] for s in sample}, {s[0] for s in
+                probe.select_targets(*self.inputs, limit=120, cohort_index=1)[2]})
+
+    def test_live_deadline_reports_unfinished_work_without_starting_provider_call(self):
+        selected = [("000100", "CFS", "20260312001236", {}, {"2024": ("ppe_capex_krw",)})]
+        client = MagicMock()
+        with patch.object(probe, "source_day_aligned", return_value=True), \
+             patch.object(probe, "select_targets", return_value=("2026-11-06", {}, selected, 1)), \
+             patch.object(probe, "verified_company_mapping_cache", return_value={"000100": "00123456"}), \
+             patch.dict("os.environ", {"DART_API_KEY": "x" * 40}), \
+             patch.dict("sys.modules", {"requests": SimpleNamespace(Session=client)}), \
+             patch.object(probe.time, "monotonic", side_effect=[0, 481]), \
+             redirect_stdout(io.StringIO()):
+            result = probe.run(["--docs", str(DOCS), "--mode", "live"])
+        self.assertEqual(result["provider_calls"], 0)
+        self.assertEqual(result["completed_issuers"], 0)
+        self.assertEqual(result["unprocessed_issuers"], 1)
+        self.assertEqual(result["status"], "partial_comparative_research_time_budget")
+        client.return_value.__enter__.return_value.get.assert_not_called()
+
+    def test_joint_coverage_cannot_be_inferred_from_different_issuers(self):
+        comp = {"issuers_with_all_missing_comparatives": 1}
+        annual = {"issuers_with_all_historical_annual_receipts_listed": 1}
+        # One issuer has the comparisons, a different one the receipt match.
+        separate = probe.joint_evidence_counts(comp, {})
+        separate.update(probe.joint_evidence_counts({}, annual))
+        self.assertEqual(separate["issuers_with_all_comparatives_and_listed_receipts"], 0)
+        joined = probe.joint_evidence_counts(comp, annual)
+        self.assertEqual(joined["issuers_with_all_comparatives_and_listed_receipts"], 1)
+        self.assertEqual(joined["joint_candidates_without_later_listed_filing"], 1)
+        annual["later_annual_filing_exists_2024"] = 1
+        corrected = probe.joint_evidence_counts(comp, annual)
+        self.assertEqual(corrected["joint_candidates_without_later_listed_filing"], 0)
+        self.assertEqual(corrected["joint_candidates_requiring_correction_review"], 1)
+
     def test_automated_research_never_publishes_amounts_or_scores(self):
         path = DOCS.parent / ".github/workflows/v3-dart-fcf-comparative-probe.yml"
         workflow = path.read_text(encoding="utf8")
@@ -236,7 +283,7 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertIn("timeout-minutes: 15", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
         self.assertIn("python v3_dart_fcf_comparative_probe.py --mode", workflow)
-        self.assertIn("--limit 20", workflow)
+        self.assertIn("--limit 120", workflow)
         self.assertIn("--audit-annual-receipts", workflow)
         self.assertIn("| tee /tmp/v3-cf-comparative-counts.json", workflow)
         self.assertIn("github.event_name != 'pull_request'", workflow)

@@ -5,7 +5,8 @@ These are NOT the original FY2024/FY2023 filing receipts, so this pilot never
 stores a fiscal amount, patches the FCF ledger or promotes any score weight.
 It asks whether a missing historical fact has a same-scope, same-2025-receipt,
 same-current-fact comparison candidate worth independently verifying next.
-Only aggregate counts leave the workflow. One API call per selected issuer.
+Only aggregate counts leave the workflow. At most two API calls per issuer,
+plus one company-map fetch, within a ten-minute live research deadline.
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 
 from v3_dart_bulk_history import (
     _amount, _mapping, _valid_receipt,
@@ -27,7 +29,8 @@ from v3_dart_cashflow_enrichment import (
 )
 from v3_v30b_release_gate import r1d_public_reconciles
 
-MAX_ISSUERS = 20
+MAX_ISSUERS = 120
+MAX_LIVE_SECONDS = 600
 CAPEX_FIELDS = {
     "operating_cashflow_krw": CFO_IDS,
     "ppe_capex_krw": PPE_IDS,
@@ -275,6 +278,23 @@ def audit_annual_receipts(payload, *, corp, original_receipts, asof):
     return output
 
 
+def joint_evidence_counts(comparative, annual):
+    """Intersect evidence within ONE issuer; marginal totals cannot prove it.
+
+    Even both checks do not authenticate the historical statement body, its
+    scope, or a correction's effective date. They only prioritize body review.
+    """
+    complete = comparative.get("issuers_with_all_missing_comparatives") == 1
+    listed = annual.get("issuers_with_all_historical_annual_receipts_listed") == 1
+    later = any(value > 0 for key, value in annual.items()
+                if key.startswith("later_annual_filing_exists_"))
+    return Counter({
+        "issuers_with_all_comparatives_and_listed_receipts": int(complete and listed),
+        "joint_candidates_requiring_correction_review": int(complete and listed and later),
+        "joint_candidates_without_later_listed_filing": int(complete and listed and not later),
+    })
+
+
 def run(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs", default="docs")
@@ -311,7 +331,10 @@ def run(argv=None):
         limit=args.limit, cohort_index=args.cohort_index)
     output = {"asof": day, "status": "comparison_candidates_not_original_receipts",
               "eligible_one_gap_fcf_issuers": total, "sampled_issuers": len(selected),
-              "provider_calls": 0, "amounts_published": False,
+              "provider_calls": 0, "completed_issuers": 0,
+              "unprocessed_issuers": len(selected),
+              "selection_covers_all_eligible": len(selected) == total,
+              "amounts_published": False,
               "scores_or_fcf_source_promoted": False,
               "historical_filing_effective_dates_verified": False,
               "comparison_values_used_as_original_filing": False}
@@ -331,6 +354,7 @@ def run(argv=None):
         mapping = verified_company_mapping_cache(cache, day, members)
     except BulkHistoryError:
         raise ComparativeProbeError("untrusted_comparative_company_cache") from None
+    deadline = time.monotonic() + MAX_LIVE_SECONDS
     with requests.Session() as session:
         if mapping is None:
             try:
@@ -344,8 +368,14 @@ def run(argv=None):
             output["provider_calls"] += 1
         counts = Counter()
         for code, scope, receipt, current, missing in selected:
+            # Reserve the full worst-case timeout of both source calls before
+            # starting an issuer. Stop cleanly with explicit remaining work.
+            if time.monotonic() + 120 >= deadline:
+                output["status"] = "partial_comparative_research_time_budget"
+                break
             if code not in mapping:
                 counts["missing_verified_company_mapping"] += 1
+                output["unprocessed_issuers"] -= 1
                 continue
             try:
                 response = session.get("https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json",
@@ -357,9 +387,10 @@ def run(argv=None):
             except Exception:
                 raise ComparativeProbeError("official_comparative_transport_unavailable") from None
             output["provider_calls"] += 1
-            counts.update(inspect(payload, corp=mapping[code], code=code,
+            comparative = inspect(payload, corp=mapping[code], code=code,
                                   scope=scope, receipt=receipt,
-                                  current=current, missing=missing))
+                                  current=current, missing=missing)
+            counts.update(comparative)
             counts["sampled_official_responses"] += 1
             if args.audit_annual_receipts:
                 years = cashflow["records"][code]["years"]
@@ -381,9 +412,13 @@ def run(argv=None):
                 except Exception:
                     raise ComparativeProbeError("official_annual_receipt_transport_unavailable") from None
                 output["provider_calls"] += 1
-                counts.update(audit_annual_receipts(listing, corp=mapping[code],
-                    original_receipts=original_receipts, asof=day))
+                annual = audit_annual_receipts(listing, corp=mapping[code],
+                    original_receipts=original_receipts, asof=day)
+                counts.update(annual)
+                counts.update(joint_evidence_counts(comparative, annual))
                 counts["sampled_official_annual_lists"] += 1
+            output["completed_issuers"] += 1
+            output["unprocessed_issuers"] -= 1
     output["candidate_fact_counts"] = dict(sorted(counts.items()))
     print(json.dumps(output, sort_keys=True))
     return output
