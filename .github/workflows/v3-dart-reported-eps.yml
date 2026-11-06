@@ -5,11 +5,13 @@ on:
     paths:
       - v3_dart_reported_eps.py
       - tests/test_v3_dart_reported_eps.py
+      - tests/test_v3_dart_reported_eps_exact_names.py
       - .github/workflows/v3-dart-reported-eps.yml
   push:
     branches: [main]
     paths:
       - v3_dart_reported_eps.py
+      - tests/test_v3_dart_reported_eps_exact_names.py
       - .github/workflows/v3-dart-reported-eps.yml
   schedule:
     - cron: '23 * * * *'
@@ -17,7 +19,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [dry-run, live]
+        options: [dry-run, live, recover-exact-name]
         default: dry-run
         required: true
 
@@ -38,13 +40,14 @@ jobs:
       - run: |
           python -m py_compile v3_dart_reported_eps.py
           python -m unittest discover -s tests -p 'test_v3_dart_reported_eps.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_reported_eps_exact_names.py' -v
   reported-eps:
     needs: offline-safety
     if: >-
       ${{ github.event_name == 'schedule' ||
-          (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
-          (github.event_name == 'push' &&
-           startsWith(github.event.head_commit.message, 'feat(v3.0b): collect reported EPS')) }}
+          (github.event_name == 'workflow_dispatch' &&
+           (inputs.mode == 'live' || inputs.mode == 'recover-exact-name')) ||
+          github.event_name == 'push' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -186,6 +189,23 @@ jobs:
           print(r['pending_issuers'])
           PY
           )
+          # Primary 2,438/2,438 annual requests are complete. Re-examine
+          # only the originally missing standard EPS rows once per matching
+          # receipt, using literal Korean nonstandard account names. A
+          # failed/fuzzy match is retained as unavailable, never zero EPS.
+          if [[ "$source_interrupted" == 0 ]] && (( eps_pending == 0 )); then
+            eps_recheck_interrupted=0
+            if ! python v3_dart_reported_eps.py --mode recover-exact-name --limit 100 --workers 3; then
+              eps_recheck_interrupted=1
+            fi
+            # The source process writes each verified issuer immediately;
+            # always commit valid partial results before reporting an outage.
+            publish_eps_checkpoint
+            if [[ "$eps_recheck_interrupted" == 1 ]]; then
+              echo "::error::eps_exact_name_recheck_stopped_after_valid_checkpoints"
+              exit 1
+            fi
+          fi
           # Continue immediately only after real, error-free progress. A DART
           # outage, exhausted quota, or empty batch falls back to the hourly
           # schedule; never create a rapid failing dispatch loop.

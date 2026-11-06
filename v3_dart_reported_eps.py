@@ -21,6 +21,14 @@ from v3_dart_2025_owner_profit_probe import _read_company_cache_from_root
 
 SCHEMA = 'v3-reported-annual-basic-eps-comparatives-v1'
 EPS_IDS = {'ifrs-full_BasicEarningsLossPerShare', 'ifrs_BasicEarningsLossPerShare'}
+NONSTANDARD_ID = '-표준계정코드 미사용-'
+# Only literal Korean statement labels disclosed by the issuer. Never infer
+# an EPS amount from profit, share count or a loosely normalized account name.
+NONSTANDARD_BASIC_EPS_NAMES = frozenset((
+    '기본주당이익', '기본주당이익(손실)', '기본주당순이익',
+    '기본주당순이익(손실)', '기본주당손익', '기본주당순손익',
+))
+NAME_RECHECK_VERSION = 'one_receipt_exact_basic_eps_name_v1'
 MAX_PER_RUN = 100
 MAX_WORKERS = 3
 YEAR = 2025
@@ -95,37 +103,56 @@ def metrics(values):
                             'nonpositive_path_no_cagr' if complete else 'missing_comparatives'}
 
 
-def parse(payload, *, corp, base, on_day):
+def parse(payload, *, corp, base, on_day, allow_nonstandard_names=False):
     status = payload.get('status') if type(payload) is dict else None
     rows = payload.get('list') if status == '000' else [] if status == '013' else None
     if not isinstance(rows, list) or len(rows) > 18000 or (status == '000' and not rows):
         raise EPSError('official_eps_response_unavailable')
     matches = []
+    name_candidates = []
     for row in rows:
         if (type(row) is not dict or row.get('corp_code') != corp
             or str(row.get('bsns_year')) != str(YEAR) or row.get('reprt_code') != '11011'
             or ('stock_code' in row and row['stock_code'] != base['code'])
             or ('fs_div' in row and row['fs_div'] != base['fs_div'])):
             raise EPSError('eps_statement_identity_mismatch')
-        if (row.get('account_id') not in EPS_IDS or row.get('sj_div') not in ('IS', 'CIS')
+        standard = row.get('account_id') in EPS_IDS
+        exact_name = (allow_nonstandard_names
+                      and row.get('account_id') == NONSTANDARD_ID
+                      and row.get('account_nm') in NONSTANDARD_BASIC_EPS_NAMES)
+        if (not (standard or exact_name) or row.get('sj_div') not in ('IS', 'CIS')
             or row.get('account_detail', '-') not in ('', '-')):
             continue
         if row.get('currency') != 'KRW' or row.get('rcept_no') != base['annual_receipt_id']:
             raise EPSError('eps_statement_receipt_or_currency_mismatch')
-        matches.append((row['account_id'], [amount(row.get(key)) for key in
-                       ('bfefrmtrm_amount', 'frmtrm_amount', 'thstrm_amount')]))
+        values = [amount(row.get(key)) for key in
+                  ('bfefrmtrm_amount', 'frmtrm_amount', 'thstrm_amount')]
+        if standard:
+            matches.append((row['account_id'], values))
+        elif exact_name:
+            name_candidates.append((row['account_nm'], values))
     if len({tuple(values) for _, values in matches}) > 1:
         raise EPSError('conflicting_reported_basic_eps')
+    # Do not rescue a malformed or conflicting IFRS account with an account
+    # name. Fallback is allowed only when *no* standard row exists.
+    if not matches and name_candidates:
+        if len({tuple(values) for _, values in name_candidates}) > 1:
+            raise EPSError('conflicting_reported_basic_eps')
+        matches = [(NONSTANDARD_ID, name_candidates[0][1])]
     values = matches[0][1] if matches else [None, None, None]
-    return {**base, 'observed_on': on_day,
+    result = {**base, 'observed_on': on_day,
             'source_account_id': sorted(x[0] for x in matches)[0] if matches else None,
             'reported_basic_eps_2023_2025': values,
             'comparative_basis': 'one_annual_filing_same_scope',
             'status': 'reported_basic_eps' if matches else 'standard_eps_not_observed',
             'metrics': metrics(values)}
+    if matches and matches[0][0] == NONSTANDARD_ID:
+        result['source_account_name_fallback'] = sorted(x[0] for x in name_candidates)[0]
+    return result
 
 
-def plan(catalog, book, prior=None, limit=MAX_PER_RUN):
+def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
+         recover_missing_names=False, priority_codes=()):
     day = catalog.get('date')
     try:
         cutoff = date.fromisoformat(day)
@@ -164,6 +191,11 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN):
         expected[code] = {'code': code, 'name': members[code][0], 'market': members[code][1],
                           'fiscal_year': YEAR, 'fs_div': annual['fs_div'],
                           'annual_receipt_id': annual['receipt_id']}
+    if (type(priority_codes) not in (list, tuple, set, frozenset)
+        or len(priority_codes)>6000 or any(
+            type(code) is not str or code not in members for code in priority_codes)):
+        raise EPSError('untrusted_eps_recovery_priority')
+    priority_codes=set(priority_codes)
     retained = {}
     if prior is not None:
         if (prior.get('schema') != SCHEMA or prior.get('investment_score_certified') is not False
@@ -182,13 +214,30 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN):
             if (observed_day > cutoff or row.get('comparative_basis') != (
                     'statement_not_usable' if quarantined else 'one_annual_filing_same_scope')
                 or row.get('status') not in ('reported_basic_eps', 'standard_eps_not_observed', 'statement_not_usable')
-                or row.get('source_account_id') not in EPS_IDS | {None}
+                or row.get('source_account_id') not in EPS_IDS | {NONSTANDARD_ID, None}
                 or row.get('metrics') != metrics(row.get('reported_basic_eps_2023_2025'))
                 or (row['status'] in ('standard_eps_not_observed', 'statement_not_usable') and
                     (row['source_account_id'] is not None or row['reported_basic_eps_2023_2025'] != [None]*3))
                 or (quarantined and row.get('source_reason') not in UNUSABLE_REASONS)
-                or (row['status'] == 'reported_basic_eps' and row['source_account_id'] not in EPS_IDS)):
+                or (row['status'] == 'reported_basic_eps'
+                    and row['source_account_id'] not in EPS_IDS | {NONSTANDARD_ID})):
                 raise EPSError('invalid_saved_eps_source')
+            label=row.get('source_account_name_fallback')
+            marker=row.get('source_name_recheck')
+            if (bool(label) != (row['source_account_id']==NONSTANDARD_ID)
+                or (label is not None and label not in NONSTANDARD_BASIC_EPS_NAMES)
+                or (marker is None and label is not None)):
+                raise EPSError('invalid_saved_eps_source')
+            if marker is not None:
+                if (type(marker) is not dict or set(marker)!={'version','receipt_id','result'}
+                    or marker.get('version')!=NAME_RECHECK_VERSION
+                    or marker.get('receipt_id')!=row['annual_receipt_id']
+                    or marker.get('result') not in ('enriched','checked_unavailable')
+                    or (marker['result']=='enriched' and
+                        row['status']!='reported_basic_eps')
+                    or (marker['result']=='checked_unavailable' and
+                        row['status']!='standard_eps_not_observed')):
+                    raise EPSError('invalid_saved_eps_source')
             if row.get('source_reason') == 'official_corp_mapping_missing' and observed_day < cutoff:
                 continue
             retained[code] = row
@@ -199,11 +248,20 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN):
         for market in groups:
             if groups[market] and len(selected) < limit:
                 selected.append(groups[market].pop(0))
+    if recover_missing_names and len(selected)<limit:
+        # One recheck per unchanged annual receipt; a negative answer is
+        # recorded without making a missing EPS into observed zero.
+        pending=[code for code,row in retained.items()
+                 if row['status']=='standard_eps_not_observed'
+                 and row.get('source_name_recheck') is None]
+        pending.sort(key=lambda code:(code not in priority_codes,
+                                     members[code][1]!='KOSPI',code))
+        selected.extend(pending[:limit-len(selected)])
     return day, members, expected, retained, selected
 
 
 def snapshot(day, catalog, book, expected, records):
-    return {'schema': SCHEMA, 'market_asof': day, 'fiscal_year': YEAR,
+    report={'schema': SCHEMA, 'market_asof': day, 'fiscal_year': YEAR,
             'listed_total': catalog['listed_total'], 'eligible_annual_issuers': len(expected),
             'attempted_issuers': len(records), 'pending_issuers': len(expected)-len(records),
             'complete_three_year_eps_issuers': sum(r['metrics']['complete_three_years'] for r in records.values()),
@@ -212,15 +270,26 @@ def snapshot(day, catalog, book, expected, records):
             'raw_provider_rows_published': False,
             'source_sha256': {'catalog': _stable_digest(catalog), 'annual_book': _stable_digest(book)},
             'records': dict(sorted(records.items()))}
+    reviewed=[row for row in records.values() if row.get('source_name_recheck') is not None]
+    if reviewed:
+        report['name_recheck_issuers']=len(reviewed)
+        report['name_recheck_enriched_issuers']=sum(
+            row['source_name_recheck']['result']=='enriched' for row in reviewed)
+        report['name_recheck_complete_three_year_issuers']=sum(
+            row['source_name_recheck']['result']=='enriched'
+            and row['metrics']['complete_three_years'] for row in reviewed)
+    return report
 
 
 def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN,
-            on_progress=None, workers=1, session_factory=None):
+            on_progress=None, workers=1, session_factory=None,
+            recover_missing_names=False, priority_codes=()):
     if type(workers) is not int or not 1 <= workers <= MAX_WORKERS:
         raise EPSError('invalid_eps_parallelism')
     if workers > 1 and not callable(session_factory):
         raise EPSError('parallel_eps_session_factory_required')
-    day, members, expected, retained, selected = plan(catalog, book, prior, limit)
+    day, members, expected, retained, selected = plan(
+        catalog, book, prior, limit, recover_missing_names, priority_codes)
     calls = 0
     if selected:
         if type(key) is not str or not re.fullmatch('[A-Za-z0-9]{40}', key):
@@ -244,7 +313,17 @@ def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN
                                             'bsns_year': str(YEAR), 'reprt_code': '11011',
                                             'fs_div': expected[code]['fs_div']}, timeout=(20, 40))
                 reply.raise_for_status()
-                parsed = parse(reply.json(), corp=mapping[code], base=expected[code], on_day=day)
+                recheck=code in retained
+                parsed = parse(reply.json(),corp=mapping[code],base=expected[code],
+                               on_day=day,allow_nonstandard_names=recheck and recover_missing_names)
+                if recheck:
+                    if not recover_missing_names or retained[code]['status']!='standard_eps_not_observed':
+                        raise EPSError('invalid_saved_eps_source')
+                    parsed['source_name_recheck']={
+                        'version':NAME_RECHECK_VERSION,
+                        'receipt_id':expected[code]['annual_receipt_id'],
+                        'result':'enriched' if parsed['status']=='reported_basic_eps'
+                                 else 'checked_unavailable'}
             except EPSError as error:
                 if str(error) not in UNUSABLE_REASONS:
                     raise
@@ -299,7 +378,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--docs', default='docs')
     parser.add_argument('--cache', default='.cache/v3-dart-company-codes.json')
-    parser.add_argument('--mode', choices=('dry-run', 'live', 'verify', 'refresh'), default='dry-run')
+    parser.add_argument('--mode', choices=('dry-run', 'live', 'recover-exact-name',
+                                          'verify', 'refresh'), default='dry-run')
     parser.add_argument('--limit', type=int, default=MAX_PER_RUN)
     parser.add_argument('--workers', type=int, default=1)
     args = parser.parse_args(argv)
@@ -310,13 +390,29 @@ def main(argv=None):
     book = json.loads((root/'v3-dart-book-reference.json').read_text())
     target = root/'v3-dart-reported-eps.json'
     old = json.loads(target.read_text()) if target.is_file() else None
-    day, _, expected, retained, selected = plan(catalog, book, old, args.limit)
+    recovery=args.mode=='recover-exact-name'
+    priority=set()
+    if recovery:
+        priority_file=root/'v3-operational-evidence-priority.json'
+        if priority_file.is_file():
+            saved_priority=json.loads(priority_file.read_text())
+            if (saved_priority.get('asof')==catalog.get('date')
+                and saved_priority.get('listed_total')==catalog.get('listed_total')
+                and saved_priority.get('schema')=='v3-r1d-observation-work-priority-v1'
+                and saved_priority.get('missing_is_not_zero') is True):
+                priority={entry['code'] for entry in
+                    saved_priority.get('single_component_queue',[])
+                    if len(entry.get('gaps',[]))==1
+                    and entry['gaps'][0].get('area')=='valuation'
+                    and entry['gaps'][0].get('component')=='per_eps_quality_growth'}
+    day, _, expected, retained, selected = plan(catalog, book, old, args.limit,
+        recover_missing_names=recovery,priority_codes=priority)
     if args.mode == 'refresh':
         if target.is_symlink():
             raise EPSError('eps_output_must_not_be_symlink')
         write_json(target, snapshot(day, catalog, book, expected, retained))
         return
-    if args.mode != 'live':
+    if args.mode not in ('live','recover-exact-name'):
         if args.mode == 'verify' and old != snapshot(day, catalog, book, expected, retained):
             raise EPSError('saved_eps_snapshot_differs_from_sources')
         print(json.dumps({'status': 'eps_'+args.mode, 'pending': len(expected)-len(retained),
@@ -334,7 +430,8 @@ def main(argv=None):
                                 session=requests.Session(), limit=args.limit,
                                 cache=_read_company_cache_from_root(args.cache), on_progress=checkpoint,
                                 workers=args.workers,
-                                session_factory=requests.Session if args.workers > 1 else None)
+                                session_factory=requests.Session if args.workers > 1 else None,
+                                recover_missing_names=recovery,priority_codes=priority)
     except EPSError as error:
         if not saved:
             raise
@@ -347,6 +444,10 @@ def main(argv=None):
     print(json.dumps({'status': 'reported_eps_saved', 'provider_calls': calls,
                       'attempted': output['attempted_issuers'],
                       'complete_three_years': output['complete_three_year_eps_issuers'],
+                      'name_recheck_issuers':output.get('name_recheck_issuers',0),
+                      'name_recheck_enriched_issuers':output.get('name_recheck_enriched_issuers',0),
+                      'name_recheck_complete_three_year_issuers':
+                          output.get('name_recheck_complete_three_year_issuers',0),
                       'pending': output['pending_issuers']}))
 
 
