@@ -3,6 +3,8 @@ name: V3 Operational Research Score R1d (Saved Sources Only)
 on:
   pull_request:
     paths:
+      - v3_dart_revenue_2023_comparative.py
+      - tests/test_v3_dart_revenue_2023_comparative.py
       - v3_dart_revenue_2022.py
       - tests/test_v3_dart_revenue_2022.py
       - v3_revenue_growth_evidence.py
@@ -23,6 +25,8 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_dart_revenue_2023_comparative.py
+      - tests/test_v3_dart_revenue_2023_comparative.py
       - v3_dart_revenue_2022.py
       - tests/test_v3_dart_revenue_2022.py
       - v3_revenue_growth_evidence.py
@@ -39,6 +43,7 @@ on:
       - .github/workflows/v3-operational-research-score.yml
   workflow_run:
     workflows:
+      - V3 DART FY2023 Strict Comparative Revenue Recovery
       - V3 DART 2022 Receipt-Matched Revenue Recovery
       - V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
       - Full-Market 100-Stock Batches

@@ -205,7 +205,7 @@ def verified_reported_eps(catalog, annual_book, source):
 
 def build(market,catalog,ledger,history,money_source,personal,industry=None,
           annual_book=None,reported_eps_source=None,previous=None,
-          revenue_2022_source=None):
+          revenue_2022_source=None,revenue_2023_comparative=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -213,7 +213,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
     money=usable_records(money_source,catalog)
     raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source)
     revenue_parts,revenue_summary=revenue_growth_evidence(
-        history,catalog,revenue_2022_source)
+        history,catalog,revenue_2022_source,revenue_2023_comparative)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
     legacy={r['code']:r for r in old};rows={}
     previous=previous if previous and previous.get('version') in COMPATIBLE_PREVIOUS and previous.get('asof','9999')<=day else {}
@@ -351,20 +351,25 @@ def main():
     inputs=[read(n) for n in names]
     revenue_2022_file='v3-dart-revenue-2022-supplement.json'
     revenue_2022_source=read(revenue_2022_file) if (root/revenue_2022_file).exists() else None
+    comparative_file='v3-dart-revenue-2023-comparative.json'
+    comparative_source=read(comparative_file) if (root/comparative_file).exists() else None
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
         print(json.dumps({'status':'waiting_for_aligned_daily_sources',
             'previous_operational_score_preserved':True,
             'previous_score_asof':previous['asof'],'provider_calls':0}))
         return
-    report=build(*inputs,previous=previous,revenue_2022_source=revenue_2022_source)
+    report=build(*inputs,previous=previous,revenue_2022_source=revenue_2022_source,
+                 revenue_2023_comparative=comparative_source)
     report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     if revenue_2022_source is not None:
         report['source_hashes'][revenue_2022_file]=sha256((root/revenue_2022_file).read_bytes()).hexdigest()
+    if comparative_source is not None:
+        report['source_hashes'][comparative_file]=sha256((root/comparative_file).read_bytes()).hexdigest()
     report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
     report['implementation_dependency_sha256']={name:sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
         for name in ('v3_revenue_growth_evidence.py','v3_dart_bulk_history.py',
-                     'v3_dart_revenue_2022.py')}
+                     'v3_dart_revenue_2022.py','v3_dart_revenue_2023_comparative.py')}
     digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes'],
         report['implementation_dependency_sha256']],sort_keys=True).encode()).hexdigest()
     report['source_digest']=digest

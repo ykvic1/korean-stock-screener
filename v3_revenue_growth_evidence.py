@@ -3,9 +3,13 @@ import math
 
 from v3_dart_bulk_history import SCHEMA, _day, _valid_receipt, _best_income_window, _midrank
 from v3_dart_revenue_2022 import expected_sources, verified_prior
+from v3_dart_revenue_2023_comparative import (
+    expected_sources as expected_comparatives,
+    verified_prior as verified_comparatives,
+)
 
 
-def window(record, fiscal, asof, revenue_2022_source=None):
+def window(record, fiscal, asof, revenue_2022_source=None, comparative_2023_source=None):
     """Same scope and four dated annual receipts; never shorten the horizon."""
     cutoff=_day(asof)
     if fiscal!=list(range(cutoff.year-4,cutoff.year)) or not isinstance(record,dict):return None
@@ -20,6 +24,7 @@ def window(record, fiscal, asof, revenue_2022_source=None):
         revenues=[s.get('values',{}).get('revenue') for s in statements]
         receipts=[s.get('receipt_id') for s in statements]
         supplemented=False
+        comparable=False
         if (revenues[0] is None and revenue_2022_source is not None
             and revenue_2022_source.get('status')=='observed'
             and revenue_2022_source.get('scope')==scope
@@ -30,18 +35,31 @@ def window(record, fiscal, asof, revenue_2022_source=None):
             revenues[0]=revenue_2022_source['revenue_krw']
             receipts[0]=revenue_2022_source['source_receipt_id']
             supplemented=True
+        if (revenues[0] is None and comparative_2023_source is not None
+            and comparative_2023_source.get('status')=='observed'
+            and comparative_2023_source.get('scope')==scope
+            and comparative_2023_source.get('source_2023_receipt_id')==receipts[1]
+            and comparative_2023_source.get('source_receipt_id')==receipts[1]
+            and comparative_2023_source.get('source_2023_revenue_krw')==revenues[1]
+            and _valid_receipt(receipts[1],fiscal[1],cutoff)
+            and type(comparative_2023_source.get('revenue_2022_krw')) is int
+            and 0<comparative_2023_source['revenue_2022_krw']<=10**18):
+            revenues[0]=comparative_2023_source['revenue_2022_krw']
+            receipts[0]=receipts[1]  # The source is the FY2023 filing, not an FY2022 filing.
+            comparable=True
         if not all(type(v) is int and 0<v<=10**18 and
-                   _valid_receipt(receipt,y,cutoff)
-                   for v,receipt,y in zip(revenues,receipts,fiscal)):continue
+                   _valid_receipt(receipt,fiscal[i+1] if i==0 and comparable else y,cutoff)
+                   for i,(v,receipt,y) in enumerate(zip(revenues,receipts,fiscal))):continue
         growth=100*((revenues[-1]/revenues[0])**(1/3)-1)
         if math.isfinite(growth) and abs(growth)<10**7:
             return {'growth':round(growth,6),'scope':scope,
                     'independent_of_missing_profit':full is None,
-                    'official_2022_supplement':supplemented}
+                    'official_2022_supplement':supplemented,
+                    'official_2023_comparative':comparable}
     return None
 
 
-def derive(history,catalog,official_2022_revenue=None):
+def derive(history,catalog,official_2022_revenue=None,official_2023_comparative=None):
     """Rebuild the same-market revenue peer cohort from saved actual values."""
     day=catalog['date']
     summary={'provider_calls':0,'eligible_revenue_issuers':0,'independent_revenue_only_issuers':0,
@@ -55,12 +73,16 @@ def derive(history,catalog,official_2022_revenue=None):
         # fiscal-year or annual-receipt identity rules.
         source_rows=verified_prior(official_2022_revenue,
             expected_sources(catalog,history),day)
+    comparative_rows={}
+    if official_2023_comparative is not None:
+        comparative_rows=verified_comparatives(official_2023_comparative,
+            expected_comparatives(catalog,history,official_2022_revenue),day)
     values={}
     members={r['code']:r['market'] for r in catalog['rows']}
     for code,record in history.get('records',{}).items():
         if code not in members:continue
         observation=window(record,history.get('fiscal_years'),day,
-                           source_rows.get(code))
+                           source_rows.get(code),comparative_rows.get(code))
         if observation is not None:values[code]=observation
     peers={m:sorted(v['growth'] for c,v in values.items() if members[c]==m)
            for m in ('KOSPI','KOSDAQ')}
@@ -72,5 +94,6 @@ def derive(history,catalog,official_2022_revenue=None):
     summary.update(status='four_observed_revenue_years_only',eligible_revenue_issuers=len(values),
         independent_revenue_only_issuers=sum(v['independent_of_missing_profit'] for v in values.values()),
         verified_2022_supplement_issuers=sum(v['official_2022_supplement'] for v in values.values()),
+        verified_2023_comparative_issuers=sum(v['official_2023_comparative'] for v in values.values()),
         same_market_peer_counts={m:len(p) for m,p in peers.items()})
     return parts,summary

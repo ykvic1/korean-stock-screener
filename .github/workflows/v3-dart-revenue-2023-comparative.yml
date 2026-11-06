@@ -1,0 +1,105 @@
+name: V3 DART FY2023 Strict Comparative Revenue Recovery
+
+on:
+  pull_request:
+    paths:
+      - v3_dart_revenue_2023_comparative.py
+      - tests/test_v3_dart_revenue_2023_comparative.py
+      - .github/workflows/v3-dart-revenue-2023-comparative.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_revenue_2023_comparative.py
+      - tests/test_v3_dart_revenue_2023_comparative.py
+      - .github/workflows/v3-dart-revenue-2023-comparative.yml
+  schedule:
+    - cron: '52 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, live]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: korean-screener-2023-comparative-revenue-source
+  cancel-in-progress: false
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'main' }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reuse verified official issuer identity cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Offline exact comparative and no score-on-unverified-data tests
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_dart_revenue_2023_comparative.py v3_revenue_growth_evidence.py
+          python -m unittest discover -s tests -p 'test_v3_dart_revenue_2023_comparative.py' -v
+          python -m unittest discover -s tests -p 'test_v3_revenue_growth_evidence.py' -v
+      - name: Wait for aligned DART annual source
+        id: gate
+        run: python v3_dart_source_day_preflight.py --kind major
+      - name: Inspect actual FY2023 source candidates without provider calls
+        if: ${{ steps.gate.outputs.ready == 'true' }}
+        run: python v3_dart_revenue_2023_comparative.py --mode dry-run
+      - name: Install provider dependency only for authorized live collection
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Verify 2022 comparative in exact official FY2023 annual statement
+        id: source
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          interrupted=0
+          if ! python v3_dart_revenue_2023_comparative.py --mode live --limit 100 \
+                  | tee /tmp/v3-2023-comparative-source.json; then
+            interrupted=1
+          elif grep -q '"status": "partial_comparative_saved"' /tmp/v3-2023-comparative-source.json; then
+            interrupted=1
+          fi
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+      - name: Publish only exact, validated revenue comparatives
+        if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f docs/v3-dart-revenue-2023-comparative.json ]]; then exit 0; fi
+          python v3_dart_revenue_2023_comparative.py --mode verify
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-dart-revenue-2023-comparative.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Publish FY2022 revenue only from verified FY2023 official comparatives'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_dart_revenue_2023_comparative.py --mode refresh
+            python v3_dart_revenue_2023_comparative.py --mode verify
+            git add docs/v3-dart-revenue-2023-comparative.json
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+            if git push origin HEAD:main; then
+              echo 'verified_comparative_checkpoint_published'
+              exit 0
+            fi
+            if (( attempt == 3 )); then exit 1; fi
+          done
+      - name: Preserve visible source failure after checkpoint
+        if: ${{ steps.source.outputs.interrupted == '1' }}
+        run: |
+          echo '::error::2023_comparative_source_interrupted_after_checkpoint'
+          exit 1

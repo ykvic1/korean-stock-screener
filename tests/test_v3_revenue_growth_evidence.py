@@ -7,6 +7,7 @@ import v3_dart_bulk_history as bulk
 import v3_revenue_growth_evidence as revenue
 import v3_operational_research_score as ops
 import v3_dart_revenue_2022 as revenue_2022
+import v3_dart_revenue_2023_comparative as comparative
 
 ROOT=Path(__file__).resolve().parents[1]/'docs'
 YEARS=[2022,2023,2024,2025]
@@ -20,6 +21,33 @@ def record(scope='CFS'):
 
 
 class RevenueEvidenceTests(unittest.TestCase):
+    def test_exact_2023_annual_comparative_can_restore_missing_2022(self):
+        catalog={'date':DAY,'listed_total':31,'rows':[
+            {'code':f'{i:06d}','name':f'기업{i}','market':'KOSPI'} for i in range(31)]}
+        history={'schema':bulk.SCHEMA,'asof':DAY,
+            'historical_PIT_source_certified':False,'fiscal_years':YEARS,
+            'listed_total':31,'records':{f'{i:06d}':record() for i in range(31)}}
+        history['records']['000000']['years']['2022']['CFS']['values']['revenue']=None
+        base=comparative.expected_sources(catalog,history)['000000']
+        receipt=base['source_2023_receipt_id']
+        row={'corp_code':'00123456','bsns_year':'2023','reprt_code':'11011',
+            'stock_code':'000000','fs_div':'CFS','sj_div':'IS','account_detail':'-',
+            'account_id':'ifrs-full_Revenue','account_nm':'매출액',
+            'currency':'KRW','rcept_no':receipt,'frmtrm_amount':'100',
+            'thstrm_amount':str(base['source_2023_revenue_krw'])}
+        observed=comparative.parse({'status':'000','list':[row]},base,
+                                   '00123456',DAY)
+        saved=comparative.snapshot(DAY,{'000000':observed},catalog)
+        before=json.dumps(history,sort_keys=True)
+        parts,summary=revenue.derive(history,catalog,None,saved)
+        self.assertEqual(parts['000000']['available'],3.5)
+        self.assertEqual(summary['verified_2023_comparative_issuers'],1)
+        self.assertEqual(summary['verified_2022_supplement_issuers'],0)
+        self.assertEqual(json.dumps(history,sort_keys=True),before)
+        saved['records']['000000']['source_receipt_id']='20240401000002'
+        with self.assertRaises(comparative.ComparativeRevenueError):
+            revenue.derive(history,catalog,None,saved)
+
     def test_exact_2022_official_supplement_only_recovers_missing_first_year(self):
         catalog={'date':DAY,'listed_total':31,'rows':[
             {'code':f'{i:06d}','name':f'기업{i}','market':'KOSPI'} for i in range(31)]}
