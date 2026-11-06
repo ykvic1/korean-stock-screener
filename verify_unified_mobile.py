@@ -158,7 +158,12 @@ with sync_playwright() as p:
     assert first_score and float(first_score.group()) == operational["rows"][first_code]["score"], "visible operational score must equal server/CSV model"
     first_card.click()
     assert page.locator(".u-operational-detail").is_visible()
-    page.locator(".u-operational-detail details summary").click()
+    if operational["rows"][first_code]["available"] < 100:
+        assert page.locator(".u-operational-missing summary").count() == 1
+        assert "미관측 항목" in page.locator(".u-operational-missing summary").inner_text()
+    else:
+        assert "평가항목 100점 배점의 근거가 모두 관측" in page.locator(".u-operational-detail").inner_text()
+    page.locator(".u-operational-detail details summary").filter(has_text="신규 점수 세부 근거").click()
     assert "거래 구조 12점은 완성된 장기 거래대금" in page.locator(".u-operational-detail").inner_text()
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "operational detail must fit mobile viewport"
     page.locator("#detailClose").click()

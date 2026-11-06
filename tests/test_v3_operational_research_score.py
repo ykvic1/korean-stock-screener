@@ -220,6 +220,26 @@ for(let i=0;i<sorted.length;i++)if(sorted[i].r.v3_operational.rank!==i+1)throw E
 const corrupt=structuredClone(report);corrupt.rows[Object.keys(corrupt.rows)[0]].score=99;
 if(ops.attach({rows,date:report.asof},corrupt)!==0)throw Error('corruption');
 if(ops.markup(sorted[0].r).includes('undefined'))throw Error('markup');
+for(const {r} of rows){
+ const gaps=ops.missingComponents(r.v3_operational);
+ const remainder=gaps.reduce((sum,item)=>sum+item.missing,0);
+ if(Math.abs(remainder-(100-r.v3_operational.available))>0.00002)
+  throw Error('missing component weight must reconcile with available');
+ if(gaps.some(item=>item.missing<=0||!Number.isFinite(item.missing)))
+  throw Error('invalid missing weight');
+}
+const incomplete=rows.find(x=>x.r.v3_operational.available>0&&x.r.v3_operational.available<100);
+if(!incomplete||!ops.markup(incomplete.r).includes('미관측 항목')||
+   !ops.markup(incomplete.r).includes('미관측은 0점이 아닙니다'))
+ throw Error('missing evidence explanation absent');
+const complete=rows.find(x=>x.r.v3_operational.available===100);
+if(!complete||!ops.markup(complete.r).includes('근거가 모두 관측되었습니다')||
+   ops.markup(complete.r).includes('미관측 항목'))
+ throw Error('fully observed row mislabeled missing');
+const split=ops.missingComponents({parts:{valuation:{per_eps_quality_growth:[.5,5/3,report.asof]}}});
+const epsGap=split.find(item=>item.key==='per_eps_quality_growth');
+if(!epsGap||!epsGap.partiallyObserved||Math.abs(epsGap.missing-10/3)>.00002)
+ throw Error('partial EPS receipt remaining weight hidden');
 const ui=require('./docs/workspace.js'),core=require('./docs/v3-ranking.js');
 const market=JSON.parse(fs.readFileSync('docs/data.json'));
 const model=core.prepare(market,null,null,null,null,null);
