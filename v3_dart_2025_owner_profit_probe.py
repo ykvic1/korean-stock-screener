@@ -250,9 +250,21 @@ def verify(report, catalog, book, priority):
 
 
 def collect(catalog,book,priority,prior,*,key,session,cache=None,
-            limit=MAX_PER_RUN,on_progress:Callable|None=None):
+            limit=MAX_PER_RUN,on_progress:Callable|None=None,preferred_codes=()):
     day,members,expected,retained,selected=plan(
         catalog,book,priority,prior,limit)
+    if preferred_codes:
+        preferred=set(preferred_codes)
+        if not preferred<=set(expected):raise ProfitProbeError('invalid_completion_priority')
+        def interleave(codes):
+            groups={m:sorted(c for c in codes if members[c][1]==m) for m in ('KOSPI','KOSDAQ')}
+            result=[]
+            while any(groups.values()):
+                for m in groups:
+                    if groups[m]:result.append(groups[m].pop(0))
+            return result
+        pending=set(expected)-set(retained)
+        selected=(interleave(pending&preferred)+interleave(pending-preferred))[:limit]
     if not selected:
         result=snapshot(day,catalog,book,priority,retained)
         verify(result,catalog,book,priority)
@@ -324,7 +336,8 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--docs",default="docs")
     p.add_argument("--cache",default=".cache/v3-dart-company-codes.json")
-    p.add_argument("--mode",choices=("dry-run","live","verify"),default="dry-run")
+    p.add_argument("--mode",choices=("dry-run","live","verify","refresh"),default="dry-run")
+    p.add_argument('--completion-first',action='store_true')
     p.add_argument("--limit",type=int,default=MAX_PER_RUN)
     args=p.parse_args(argv)
     root=Path(args.docs)
@@ -335,6 +348,14 @@ def main(argv=None):
     priority=read("v3-near-100-evidence-priority.json")
     target=root/"v3-dart-owner-profit-supplement.json"
     old=read(target.name) if target.exists() else None
+    if args.mode=='refresh':
+        if old is None:return
+        day,_,_,retained,_=plan(catalog,book,priority,old,args.limit)
+        current=snapshot(day,catalog,book,priority,retained)
+        verify(current,catalog,book,priority)
+        write_json(target,current)
+        print(json.dumps({'status':'retained_same_receipt_profit_source_refreshed','provider_calls':0}))
+        return
     if args.mode=="verify":
         if old is None:
             print('{"status":"no_owner_profit_source_yet","source_api_calls":0}')
@@ -346,6 +367,20 @@ def main(argv=None):
                               old["observed_official_owner_profit_issuers"],
                           "score_promoted":False},sort_keys=True))
         return
+    preferred=set()
+    if args.completion_first:
+        from v3_owner_profit_completion import extend
+        priority,old,preferred,completion=extend(catalog,book,priority,old,
+            read('v3-operational-research-scores.json'),read('v3-operational-research-comparison.json'),
+            read('v3-dart-reported-eps.json'))
+        print(json.dumps(completion,sort_keys=True))
+        if args.mode=='live':
+            # Publish the expanded queue and unchanged verified old records
+            # together. Partial new responses can then retain this anchor.
+            day,_,_,retained,_=plan(catalog,book,priority,old,args.limit)
+            if old is None:old=snapshot(day,catalog,book,priority,retained)
+            write_json(root/'v3-near-100-evidence-priority.json',priority)
+            write_json(target,old)
     day,_,_,_,selected=plan(catalog,book,priority,old,args.limit)
     if args.mode=="dry-run":
         print(json.dumps({"status":"bounded_fy2025_profit_plan",
@@ -369,7 +404,7 @@ def main(argv=None):
     try:
         result,calls=collect(catalog,book,priority,old,key=key,
                              session=requests.Session(),cache=cache,
-                             limit=args.limit,on_progress=checkpoint)
+                             limit=args.limit,on_progress=checkpoint,preferred_codes=preferred)
     except ProfitProbeError as exc:
         if not saved:
             raise

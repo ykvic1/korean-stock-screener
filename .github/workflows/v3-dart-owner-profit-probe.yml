@@ -4,11 +4,14 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_owner_profit_completion.py
+      - tests/test_v3_owner_profit_completion.py
       - v3_dart_2025_owner_profit_probe.py
       - tests/test_v3_dart_2025_owner_profit_probe.py
       - .github/workflows/v3-dart-owner-profit-probe.yml
   # Bounded 20 audited FY2025 missing-profit candidates per hour. Once the
-  # verified 95-point group is exhausted, there are ZERO provider requests.
+  # receipt-matched source queue is exhausted, there are ZERO provider requests.
+  # One-gap R1d completion targets precede other pending source requests.
   schedule:
     - cron: '53 * * * *'
   workflow_dispatch:
@@ -47,7 +50,8 @@ jobs:
           set -euo pipefail
           python -m py_compile v3_dart_2025_owner_profit_probe.py
           python -m unittest discover -s tests -p 'test_v3_dart_2025_owner_profit_probe.py' -v
-      - name: Wait until validated 95-point source cohort matches closing day
+          python -m unittest discover -s tests -p 'test_v3_owner_profit_completion.py' -v
+      - name: Wait until receipt-validated source cohort matches closing day
         id: source_day
         shell: bash
         run: |
@@ -76,7 +80,7 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           set -euo pipefail
-          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20
+          python v3_dart_2025_owner_profit_probe.py --mode live --limit 20 --completion-first
       - name: Publish original-receipt matched derived source, NO score
         if: ${{ steps.source_day.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'live') }}
         run: |
@@ -85,7 +89,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [[ -f docs/v3-dart-owner-profit-supplement.json ]]; then
-            git add -- docs/v3-dart-owner-profit-supplement.json
+            git add -- docs/v3-dart-owner-profit-supplement.json docs/v3-near-100-evidence-priority.json
           fi
           if ! git diff --cached --quiet; then
             git commit -m "Verify official FY2025 attributable owner profit source (no point promotion)"
@@ -93,7 +97,10 @@ jobs:
               git pull --rebase origin main
               # Recheck the exact same issuer, year, scope and filing receipt
               # after concurrent market and annual-account publications.
+              python v3_dart_2025_owner_profit_probe.py --mode refresh
               python v3_dart_2025_owner_profit_probe.py --mode verify
+              git add -- docs/v3-dart-owner-profit-supplement.json docs/v3-near-100-evidence-priority.json
+              if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
               if git push origin HEAD:main; then
                 echo "official_profit_source_recovery_checkpoint_saved"
                 break
@@ -112,7 +119,7 @@ jobs:
           from pathlib import Path
           p=Path("docs/v3-dart-owner-profit-supplement.json")
           lines=[
-            "### V3.0b 95점 근접종목 공식 지배주주 순이익 원천 검증",
+            "### V3.0b 100점 전체관측 우선 · 공식 지배주주 순이익 검증",
             "원자료 일치 검증 전에는 점수·순위 변경하지 않습니다.",
             "계정 미확인은 0원이나 0점으로 간주하지 않습니다.",
           ]
@@ -122,7 +129,7 @@ jobs:
                   ("기준일","market_asof"),
                   ("원천 확인 지배주주 순이익 종목","observed_official_owner_profit_issuers"),
                   ("조회했지만 계정 미확인 종목","missing_standard_account_issuers"),
-                  ("전체 95점 우선 확인 대상","target_95weight_issuers"),
+                  ("원천 확인 대상(기존 이력 포함)","target_95weight_issuers"),
               ):
                   lines.append(name+": "+str(source.get(key)))
           else:
