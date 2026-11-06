@@ -108,6 +108,26 @@ function compare(a,b){const x=a.r?.v3_operational,y=b.r?.v3_operational;
 function composite(r){const v=r?.v3_operational;
  return {earned:v?.base??null,available:v?.available??0,pillars:Object.entries(BUDGET).map(([key,max])=>({key,label:LABELS[key],max,
   candidate:v?.areas?.[key]?.available?v.areas[key].points:null,available:v?.areas?.[key]?.available??0}))};}
+function missingComponents(v){
+ if(!v||!v.parts)return [];
+ const gaps=[];
+ for(const [area,components] of Object.entries(MAXES)){
+  for(const [key,maximum] of Object.entries(components)){
+   const receipt=v.parts[area]?.[key];
+   const observed=Array.isArray(receipt)&&finite(receipt[1])?receipt[1]:0;
+   const missing=maximum-observed;
+   if(missing>0.00002)gaps.push({area,key,missing,partiallyObserved:observed>0});
+  }
+ }
+ return gaps;
+}
+function missingMarkup(v){
+ const gaps=missingComponents(v);
+ if(!gaps.length)return '<p class="u-muted">평가항목 100점 배점의 근거가 모두 관측되었습니다. 원천 독립검증·실제 성과 인증은 별도입니다.</p>';
+ return '<details class="u-operational-missing"><summary>미관측 항목 '+gaps.length+'개 · 부족한 근거 '+(100-v.available).toFixed(1)+' / 100점</summary>'+
+  '<p class="u-muted">미관측은 0점이 아닙니다. 아래 숫자는 점수 손실이 아닌 아직 확보되지 않은 배점입니다. 구체적인 원천 결손 사유는 검증 중입니다.</p><ul>'+
+  gaps.map(g=>'<li>'+esc(LABELS[g.area])+' · '+esc(COMPONENTS[g.key])+' · '+g.missing.toFixed(2)+'점 '+(g.partiallyObserved?'추가 근거 필요':'근거 미관측')+'</li>').join('')+'</ul></details>';
+}
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
  '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':
  r?.v3_operational_evidence_missing?
@@ -122,11 +142,12 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
   (finite(v.prior_operational_score)?'<p class="u-muted">직전 운영모델 '+v.prior_operational_score.toFixed(1)+'점 · '+(v.prior_operational_rank??'—')+'위 (점수 계산식 변경 전 비교)</p>':'')+
   '<table><thead><tr><th>영역</th><th>점수</th><th>확보/전체</th></tr></thead><tbody>'+Object.entries(BUDGET).map(([a,max])=>
    '<tr><td>'+LABELS[a]+'</td><td>'+(v.areas[a].available?v.areas[a].points.toFixed(2):'미관측')+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+'</tbody></table>'+
+  missingMarkup(v)+
   '<details><summary>신규 점수 세부 근거</summary>'+Object.entries(v.parts).map(([a,ps])=>'<h4>'+LABELS[a]+'</h4><ul>'+Object.entries(ps).map(([k,p])=>
    '<li>'+esc(COMPONENTS[k])+': '+p[0].toFixed(2)+' / '+p[1].toFixed(2)+' · '+esc(p[2])+'</li>').join('')+'</ul>').join('')+
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
-const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,markup};
+const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,missingComponents,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
