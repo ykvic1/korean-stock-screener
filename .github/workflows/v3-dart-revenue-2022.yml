@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: korean-screener-2022-revenue-source
@@ -71,6 +72,13 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           set -euo pipefail
+          before_count=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('docs/v3-dart-revenue-2022-supplement.json')
+          print(json.loads(path.read_text())['attempted_issuer_count'] if path.exists() else 0)
+          PY
+          )
           interrupted=0
           if ! python v3_dart_revenue_2022.py --mode live --limit 100 \
                   | tee /tmp/v3-2022-revenue-source.json; then
@@ -79,6 +87,18 @@ jobs:
             interrupted=1
           fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+          after_count=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('docs/v3-dart-revenue-2022-supplement.json')
+          print(json.loads(path.read_text())['attempted_issuer_count'] if path.exists() else 0)
+          PY
+          )
+          if (( after_count < before_count )); then
+            echo '::error::revenue_2022_checkpoint_regressed'
+            exit 1
+          fi
+          echo "new_attempts=$((after_count-before_count))" >> "$GITHUB_OUTPUT"
       - name: Publish only verified revenue observations after source attempts
         if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
         run: |
@@ -114,3 +134,19 @@ jobs:
         run: |
           echo '::error::revenue_2022_source_interrupted_after_checkpoint'
           exit 1
+      - name: Resume only after positive verified-source checkpoint progress
+        if: >-
+          ${{ steps.gate.outputs.ready == 'true' &&
+              steps.source.outputs.interrupted == '0' &&
+              steps.source.outputs.new_attempts != '0' &&
+              (github.event_name == 'push' || github.event_name == 'schedule' ||
+               (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pending=$(python v3_dart_revenue_2022.py --mode dry-run | python -c 'import json,sys; print(json.load(sys.stdin)["remaining"])')
+          if (( pending > 0 )); then
+            echo "::notice::${pending} FY2022 exact-source issuers remain; safely queue next bounded batch"
+            gh workflow run v3-dart-revenue-2022.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live
+          fi
