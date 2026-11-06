@@ -180,13 +180,22 @@ def inspect(payload, *, corp, code, scope, receipt, current, missing):
             if value is not None and (field == "operating_cashflow_krw" or value >= 0):
                 values[year][field].append(value)
     output = Counter()
+    required = sum(len(fields) for fields in missing.values())
+    candidate_count = 0
     for year, fields in values.items():
         for field, amounts in fields.items():
             output["checked_" + year + "_" + field] += 1
             if amounts and len(set(amounts)) == 1:
                 output["candidate_" + year + "_" + field] += 1
+                candidate_count += 1
             elif len(set(amounts)) > 1:
                 output["ambiguous_" + year + "_" + field] += 1
+    # Fact counts alone can overstate how many ISSUERS could eventually close
+    # their entire three-year FCF gap. These are still comparative candidates,
+    # never observed FCF source facts or score weights.
+    output["issuers_with_any_comparative_candidate"] = int(candidate_count > 0)
+    output["issuers_with_all_missing_comparatives"] = int(
+        required > 0 and candidate_count == required)
     return output
 
 
