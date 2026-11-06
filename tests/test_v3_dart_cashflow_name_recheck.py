@@ -71,6 +71,57 @@ class NameRecheckTests(unittest.TestCase):
         self.assertEqual((n,again.calls), (0,[]))
         self.assertEqual(repeated,saved)
 
+    def test_whitespace_only_labels_recover_same_receipt_and_scope(self):
+        year=2024;code="005930"
+        base=rows(year,code,skip_intangible=True)
+        for label in ("무형자산의취득", " 무형자산의  취득 ", "무형자산의\u00a0취득", "무형자산의\t취득"):
+            found=cf.normalize_year(base+[nonstandard(year,code,label=label)],
+                code=code,corp=CORPS[code],year=year,scope="CFS",asof="2026-10-19",
+                major_receipt=f"{year+1}0318000001",allow_nonstandard_names=True)
+            self.assertEqual(found["intangible_capex_krw"],100000000)
+        for label in ("무형자산 취득", "무형자산의 취득액", "무형자산의 취득(주석)", "무형자산의 취득\u200b"):
+            found=cf.normalize_year(base+[nonstandard(year,code,label=label)],
+                code=code,corp=CORPS[code],year=year,scope="CFS",asof="2026-10-19",
+                major_receipt=f"{year+1}0318000001",allow_nonstandard_names=True)
+            self.assertIsNone(found["intangible_capex_krw"])
+        conflicting=[nonstandard(year,code,label="무형자산의취득",amount="10"),
+                     nonstandard(year,code,label="무형자산의 취득",amount="20")]
+        found=cf.normalize_year(base+conflicting,code=code,corp=CORPS[code],year=year,
+            scope="CFS",asof="2026-10-19",major_receipt=f"{year+1}0318000001",allow_nonstandard_names=True)
+        self.assertIsNone(found["intangible_capex_krw"])
+
+    def test_legacy_negative_checks_are_revisited_once_without_refetching_complete_years(self):
+        market,catalog,bulk,prior=self.incomplete()
+        checked,_=cf.collect(market,catalog,bulk,prior,
+            key="synthetic-non-sensitive-DART-api-key",session=ExactNameSession(),
+            issuer_limit=5,recover_missing_names=True)
+        legacy=copy.deepcopy(checked)
+        for company in legacy["records"].values():
+            company["years"]["2024"]["account_name_recheck"]["version"]=cf.LEGACY_NAME_RECHECK_VERSION
+        self.assertTrue(cf.verify_state(legacy,market,catalog,bulk))
+        chosen=cf.plan(market,catalog,bulk,legacy,limit=5,recover_missing_names=True)[3]
+        self.assertEqual(len(chosen),5)
+        self.assertTrue(all(row[3]==[2024] for row in chosen))
+        saved,calls=cf.collect(market,catalog,bulk,legacy,
+            key="synthetic-non-sensitive-DART-api-key",
+            session=ExactNameSession(variants=[{"label":"무형자산의취득"}]),
+            issuer_limit=5,recover_missing_names=True)
+        self.assertEqual(calls,6)
+        self.assertEqual(saved["metrics"]["three_year_fcf_receipt_matched_issuers"],5)
+        self.assertTrue(cf.verify_state(saved,market,catalog,bulk))
+        self.assertEqual(cf.plan(market,catalog,bulk,saved,limit=5,recover_missing_names=True)[3],[])
+
+    def test_unknown_recheck_versions_cannot_authorize_recovery(self):
+        market,catalog,bulk,prior=self.incomplete()
+        checked,_=cf.collect(market,catalog,bulk,prior,
+            key="synthetic-non-sensitive-DART-api-key",session=ExactNameSession(),
+            issuer_limit=5,recover_missing_names=True)
+        for version in ("future_version", []):
+            forged=copy.deepcopy(checked)
+            forged["records"]["005930"]["years"]["2024"]["account_name_recheck"]["version"]=version
+            with self.assertRaisesRegex(cf.CashflowError,"untrusted_cashflow_name_recheck"):
+                cf.verify_state(forged,market,catalog,bulk)
+
     def test_reconciled_single_factor_fcf_priority_beats_arbitrary_code_order(self):
         market,catalog,bulk,prior=self.incomplete()
         baseline=cf.plan(market,catalog,bulk,prior,limit=2,

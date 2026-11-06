@@ -45,7 +45,8 @@ INTANGIBLE_IDS={
     "ifrs_PurchaseOfIntangibleAssets",
 }
 # OpenDART documents this literal marker for an issuer-specific XBRL account.
-# Never match a loosely normalized label, a non-CF row, or an arbitrary
+# Match the exact label characters after whitespace removal only; never
+# substitute synonyms, a non-CF row, or an arbitrary
 # extension account ID: two identical Korean labels are NOT necessarily one
 # verified standard concept. Use this only in a bounded missing-fact recheck.
 NONSTANDARD_ACCOUNT_ID="-표준계정코드 미사용-"
@@ -53,7 +54,9 @@ NONSTANDARD_CAPEX_NAMES={
     "ppe":"유형자산의 취득",
     "intangible":"무형자산의 취득",
 }
-NAME_RECHECK_VERSION="exact_nonstandard_cf_name_v1"
+LEGACY_NAME_RECHECK_VERSION="exact_nonstandard_cf_name_v1"
+NAME_RECHECK_VERSION="whitespace_exact_nonstandard_cf_name_v2"
+NAME_RECHECK_VERSIONS={LEGACY_NAME_RECHECK_VERSION,NAME_RECHECK_VERSION}
 SOURCE_IFRS="OpenDART fnlttSinglAcntAll exact IFRS CF account IDs"
 SOURCE_WITH_NAMES=("OpenDART fnlttSinglAcntAll exact IFRS CF IDs or "
                    "receipt-bound exact nonstandard CF names")
@@ -251,7 +254,7 @@ def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS,
                     and any(observed.get(k) is None for k in
                             ("operating_cashflow_krw","ppe_capex_krw",
                              "intangible_capex_krw"))
-                    and observed.get("account_name_recheck") is None):
+                    and (observed.get("account_name_recheck") or {}).get("version") != NAME_RECHECK_VERSION):
                     missing.append(year)
             if missing:
                 retries.append((len(missing),code,scope,missing,member["market"]))
@@ -280,9 +283,15 @@ def _matching_amount(rows, identifiers):
     return amounts[0]
 
 
+def _compact_account_name(value):
+    # Whitespace is the only permitted change: no punctuation stripping,
+    # Unicode compatibility conversion, substring search or synonym matching.
+    return "".join(value.split()) if type(value) is str and len(value)<=120 else None
+
+
 def _matching_exact_nonstandard_name(rows, name):
     candidates=[r for r in rows if r.get("account_id")==NONSTANDARD_ACCOUNT_ID
-                and r.get("account_nm")==name]
+                and _compact_account_name(r.get("account_nm"))==_compact_account_name(name)]
     if not candidates:
         return None
     values=[_amount(r.get("thstrm_amount")) for r in candidates]
@@ -312,7 +321,8 @@ def normalize_year(rows,*,code,corp,year,scope,asof,major_receipt,
         is_standard=row.get("account_id") in CFO_IDS|PPE_IDS|INTANGIBLE_IDS
         is_exact_name=(allow_nonstandard_names and
             row.get("account_id")==NONSTANDARD_ACCOUNT_ID and
-            row.get("account_nm") in NONSTANDARD_CAPEX_NAMES.values())
+            _compact_account_name(row.get("account_nm")) in
+            {_compact_account_name(v) for v in NONSTANDARD_CAPEX_NAMES.values()})
         if not (is_standard or is_exact_name):
             continue
         if row.get("account_detail","-") not in ("-",""):
@@ -420,7 +430,8 @@ def summary(asof,members,records,major_source_hash):
             if marker is not None:
                 if (type(marker) is not dict or set(marker)!={
                         "version","receipt_id","result"}
-                    or marker.get("version")!=NAME_RECHECK_VERSION
+                    or type(marker.get("version")) is not str
+                    or marker.get("version") not in NAME_RECHECK_VERSIONS
                     or marker.get("result") not in ("enriched","checked_unavailable")
                     or marker.get("receipt_id")!=z.get("annual_receipt_id")
                     or z.get("major_annual_receipt_matched") is not True
@@ -509,7 +520,10 @@ def merge_account_name_recheck(prior,observed):
     """
     if (type(prior) is not dict or type(observed) is not dict or
         prior.get("major_annual_receipt_matched") is not True or
-        prior.get("account_name_recheck") is not None or
+        (prior.get("account_name_recheck") is not None and
+         (type(prior["account_name_recheck"]) is not dict or
+          prior["account_name_recheck"].get("version") != LEGACY_NAME_RECHECK_VERSION or
+          prior["account_name_recheck"].get("receipt_id") != prior.get("annual_receipt_id"))) or
         prior.get("year")!=observed.get("year") or
         prior.get("scope")!=observed.get("scope") or
         (observed.get("annual_receipt_id") is not None and
