@@ -244,6 +244,20 @@ class ComparativeProbeTests(unittest.TestCase):
             self.assertEqual({s[0] for s in sample}, {s[0] for s in
                 probe.select_targets(*self.inputs, limit=120, cohort_index=1)[2]})
 
+    def test_three_partitions_cover_full_cohort_without_duplicate_source_reads(self):
+        if not probe.source_day_aligned(*self.inputs):
+            self.skipTest("source-day rollover")
+        partitions = [probe.select_targets(*self.inputs, partition_index=i,
+                        partition_count=3)[2] for i in range(3)]
+        all_codes = [s[0] for part in partitions for s in part]
+        full = probe.select_targets(*self.inputs)[2]
+        self.assertEqual(set(all_codes), {s[0] for s in full})
+        self.assertEqual(len(all_codes), len(set(all_codes)))
+        self.assertLessEqual(max(map(len, partitions)) - min(map(len, partitions)), 1)
+        for idx, count in [(3, 3), (-1, 3), (0, 4), (0, 0)]:
+            with self.assertRaisesRegex(probe.ComparativeProbeError, "invalid_comparative_budget"):
+                probe.select_targets(*self.inputs, partition_index=idx, partition_count=count)
+
     def test_live_deadline_reports_unfinished_work_without_starting_provider_call(self):
         selected = [("000100", "CFS", "20260312001236", {}, {"2024": ("ppe_capex_krw",)})]
         client = MagicMock()

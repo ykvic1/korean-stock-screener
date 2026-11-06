@@ -62,10 +62,13 @@ def source_day_aligned(market, catalog, bulk, book, cashflow,
 
 
 def select_targets(market, catalog, bulk, book, cashflow, operational,
-                   comparison, priority, *, limit=MAX_ISSUERS, cohort_index=0):
+                   comparison, priority, *, limit=MAX_ISSUERS, cohort_index=0,
+                   partition_index=0, partition_count=1):
     """Check saved sources before selecting any official API request."""
     if (type(limit) is not int or not 1 <= limit <= MAX_ISSUERS
-        or type(cohort_index) is not int or not 0 <= cohort_index <= 1000000):
+        or type(cohort_index) is not int or not 0 <= cohort_index <= 1000000
+        or type(partition_count) is not int or not 1 <= partition_count <= 3
+        or type(partition_index) is not int or not 0 <= partition_index < partition_count):
         raise ComparativeProbeError("invalid_comparative_budget")
     day = catalog.get("date")
     if (type(day) is not str or
@@ -125,9 +128,13 @@ def select_targets(market, catalog, bulk, book, cashflow, operational,
         return day, members, [], 0
     # Every scheduled cohort advances by one disjoint bounded slice, wrapping
     # after the full set. No stale or completed-account provider calls.
+    total = len(selected)
+    selected = selected[partition_index::partition_count]
+    if not selected:
+        return day, members, [], total
     start = (cohort_index * limit) % len(selected)
     window = (selected * 2)[start:start + min(limit, len(selected))]
-    return day, members, window, len(selected)
+    return day, members, window, total
 
 
 def _kind(row):
@@ -302,6 +309,8 @@ def run(argv=None):
     parser.add_argument("--mode", choices=("dry-run", "live"), default="dry-run")
     parser.add_argument("--limit", type=int, default=MAX_ISSUERS)
     parser.add_argument("--cohort-index", type=int, default=0)
+    parser.add_argument("--partition-index", type=int, default=0)
+    parser.add_argument("--partition-count", type=int, default=1)
     parser.add_argument("--audit-annual-receipts", action="store_true",
                         help="Also compare FY2023/24 receipt IDs against official annual filing listings")
     args = parser.parse_args(argv)
@@ -328,9 +337,11 @@ def run(argv=None):
         return output
     day, members, selected, total = select_targets(
         market, catalog, bulk, book, cashflow, operational, comparison, priority,
-        limit=args.limit, cohort_index=args.cohort_index)
+        limit=args.limit, cohort_index=args.cohort_index,
+        partition_index=args.partition_index, partition_count=args.partition_count)
     output = {"asof": day, "status": "comparison_candidates_not_original_receipts",
               "eligible_one_gap_fcf_issuers": total, "sampled_issuers": len(selected),
+              "partition_index": args.partition_index, "partition_count": args.partition_count,
               "provider_calls": 0, "completed_issuers": 0, "quarantined_issuers": 0,
               "unprocessed_issuers": len(selected),
               "selection_covers_all_eligible": len(selected) == total,
