@@ -48,6 +48,23 @@ def inspect(rows, *, missing=None, current=None):
     )
 
 
+def filing(receipt, title):
+    return {"corp_code": "00123456", "rcept_no": receipt,
+            "rcept_dt": receipt[:8], "report_nm": title}
+
+
+def annual_listing(rows):
+    return {"status": "000", "total_count": str(len(rows)),
+            "total_page": str((len(rows) + 99) // 100), "page_count": "100",
+            "page_no": "1", "list": rows}
+
+
+def annual_audit(payload):
+    return probe.audit_annual_receipts(payload, corp="00123456",
+        original_receipts={"2023": "20240315000001", "2024": "20250315000002"},
+        asof="2026-11-06")
+
+
 class ComparativeProbeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -126,6 +143,51 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertEqual(wrong_anchor["issuers_with_all_missing_comparatives"], 0)
         self.assertEqual(inspect([])["issuers_with_all_missing_comparatives"], 0)
 
+    def test_official_list_matches_each_original_annual_receipt_without_promoting_facts(self):
+        counts = annual_audit(annual_listing([
+            filing("20240315000001", "사업보고서 (2023.12)"),
+            filing("20250315000002", "사업보고서 (2024.12)"),
+            filing("20250601000003", "[기재정정]사업보고서 (2024.12)"),
+        ]))
+        self.assertEqual(counts["matched_historical_annual_receipt_2023"], 1)
+        self.assertEqual(counts["matched_historical_annual_receipt_2024"], 1)
+        self.assertEqual(counts["issuers_with_all_historical_annual_receipts_listed"], 1)
+        self.assertEqual(counts["later_annual_filing_exists_2024"], 1)
+        self.assertEqual(counts["later_annual_filing_exists_2023"], 0)
+        self.assertEqual(counts["source_receipt_earliest_listed_2024"], 1)
+
+    def test_missing_year_annual_receipt_cannot_be_filled_with_other_filing(self):
+        counts = annual_audit(annual_listing([
+            filing("20240315000001", "사업보고서 (2023.12)"),
+            filing("20250315000199", "사업보고서 (2024.12)"),
+        ]))
+        self.assertEqual(counts["matched_historical_annual_receipt_2023"], 1)
+        self.assertEqual(counts["matched_historical_annual_receipt_2024"], 0)
+        self.assertEqual(counts["other_annual_filing_only_2024"], 1)
+        self.assertEqual(counts["issuers_with_all_historical_annual_receipts_listed"], 0)
+        self.assertEqual(annual_audit({"status":"013"})[
+            "issuers_with_all_historical_annual_receipts_listed"], 0)
+
+    def test_pagination_identity_and_future_receipts_fail_closed(self):
+        listing = annual_listing([filing("20240315000001", "사업보고서 (2023.12)")])
+        listing["total_count"], listing["total_page"] = "101", "2"
+        self.assertEqual(annual_audit(listing)[
+            "annual_receipt_list_censored_multi_page"], 1)
+        for changes, reason in [
+            ({"corp_code": "99999999"}, "issuer_mismatch"),
+            ({"rcept_dt": "20240316"}, "invalid_annual_receipt_metadata"),
+            ({"rcept_no": "20270315000001", "rcept_dt": "20270315"},
+                "future_annual_receipt_metadata"),
+        ]:
+            with self.subTest(changes=changes):
+                row_value = filing("20240315000001", "사업보고서 (2023.12)")
+                row_value.update(changes)
+                with self.assertRaisesRegex(probe.ComparativeProbeError, reason):
+                    annual_audit(annual_listing([row_value]))
+        with self.assertRaisesRegex(probe.ComparativeProbeError,
+                                    "official_annual_receipt_list_unavailable"):
+            annual_audit({"status": "020"})
+
     def test_current_zero_or_negative_cfo_remains_valid_observation(self):
         missing = {"2023": ("intangible_capex_krw", "operating_cashflow_krw")}
         counts = inspect([
@@ -175,6 +237,7 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", workflow)
         self.assertIn("python v3_dart_fcf_comparative_probe.py --mode", workflow)
         self.assertIn("--limit 20", workflow)
+        self.assertIn("--audit-annual-receipts", workflow)
         self.assertIn("| tee /tmp/v3-cf-comparative-counts.json", workflow)
         self.assertIn("github.event_name != 'pull_request'", workflow)
         self.assertNotIn("git push", workflow)
