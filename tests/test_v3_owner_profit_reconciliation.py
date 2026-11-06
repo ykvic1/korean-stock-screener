@@ -15,6 +15,20 @@ import test_v3_dart_2025_owner_profit_probe as fixtures
 
 
 class ProfitAllocationTests(unittest.TestCase):
+    def test_continuation_requires_verified_progress_and_pending_work(self):
+        summary={'status':'official_owner_profit_source_only','provider_calls':20,
+                 'reconciliation_pending_issuers':81}
+        self.assertTrue(allocation.should_resume(summary,40,60))
+        for change in ({'status':'partial_profit_evidence_saved'},
+                       {'provider_calls':0},{'provider_calls':True},
+                       {'reconciliation_pending_issuers':0},
+                       {'reconciliation_pending_issuers':None}):
+            self.assertFalse(allocation.should_resume({**summary,**change},40,60))
+        self.assertFalse(allocation.should_resume(summary,40,40))
+        self.assertFalse(allocation.should_resume(summary,41,40))
+        self.assertEqual(allocation.checkpoint_count({'records':{
+            'a':{},'b':{'profit_recheck_contract':allocation.CONTRACT}}}),3)
+
     def inputs(self):
         catalog,book,priority=fixtures.inputs()
         day,members,expected,_,_=p.plan(catalog,book,priority)
