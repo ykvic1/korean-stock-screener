@@ -1,6 +1,7 @@
 """No-network tests: prior-year comparatives are candidates, not FCF facts."""
 from collections import Counter
 import copy
+from datetime import date, timedelta
 import json
 from pathlib import Path
 import unittest
@@ -80,6 +81,17 @@ class ComparativeProbeTests(unittest.TestCase):
         with self.assertRaisesRegex(probe.ComparativeProbeError,
                                     "invalid_comparative_budget"):
             probe.select_targets(*self.inputs, limit=21)
+
+    def test_known_source_day_lag_waits_without_provider_calls(self):
+        args = copy.deepcopy(self.inputs)
+        self.assertTrue(probe.source_day_aligned(*args))
+        day = args[1]["date"]
+        args[4]["asof"] = (date.fromisoformat(day)-timedelta(days=1)).isoformat()
+        self.assertFalse(probe.source_day_aligned(*args))
+        args[4]["asof"] = "2035-01-01"
+        with self.assertRaisesRegex(probe.ComparativeProbeError,
+                                    "expired_comparative_source_day"):
+            probe.source_day_aligned(*args)
 
     def test_same_receipt_same_2025_fact_is_required(self):
         counts = inspect([row()])
