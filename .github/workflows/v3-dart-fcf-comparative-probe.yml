@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
     paths: [v3_dart_fcf_comparative_probe.py, .github/workflows/v3-dart-fcf-comparative-probe.yml]
-  # Four 20-issuer source-research cohorts daily. No score/source publications.
+  # Four 20-issuer source-research cohorts daily, at most 40 API calls/cohort.
   schedule:
     - cron: '31 1,7,13,19 * * *'
   workflow_dispatch:
@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           # Only fixed aggregate counters (no codes/receipts/amounts) appear
           # in the job log, so progress is auditable without private access.
-          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 20 --cohort-index "$COHORT" | tee /tmp/v3-cf-comparative-counts.json
+          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 20 --cohort-index "$COHORT" --audit-annual-receipts | tee /tmp/v3-cf-comparative-counts.json
       - name: Aggregate-only report; no original-year or investment certification
         if: always()
         run: |
@@ -72,7 +72,7 @@ jobs:
           from pathlib import Path
           p=Path('/tmp/v3-cf-comparative-counts.json')
           lines=['### V3.0b FY2023-2024 FCF comparison-candidate audit',
-              'FY2025 comparative columns are not original FY2023/2024 receipt evidence.',
+              'FY2025 comparative columns are not original FY2023/2024 facts; DART list metadata is not original disclosure body proof.',
               'No stock IDs, amounts, API keys, FCF ledger changes or score promotion.']
           if p.is_file():
               a=json.loads(p.read_text(encoding='utf8'))
