@@ -10,6 +10,7 @@ on:
     branches: [main]
     paths:
       - v3_krx_calendar_week_money.py
+      - v3_actual_money_structure.py
       - .github/workflows/v3-krx-calendar-week-money.yml
   schedule:
     - cron: '35 12,18 * * *'
@@ -44,7 +45,7 @@ jobs:
     if: >-
       ${{ github.event_name == 'schedule' ||
           (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') ||
-          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'feat(v3.0b): collect calendar-week actual money')) }}
+          github.event_name == 'push' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     concurrency:
