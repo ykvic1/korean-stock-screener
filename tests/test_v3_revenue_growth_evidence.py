@@ -6,6 +6,7 @@ import unittest
 import v3_dart_bulk_history as bulk
 import v3_revenue_growth_evidence as revenue
 import v3_operational_research_score as ops
+import v3_dart_revenue_2022 as revenue_2022
 
 ROOT=Path(__file__).resolve().parents[1]/'docs'
 YEARS=[2022,2023,2024,2025]
@@ -19,6 +20,50 @@ def record(scope='CFS'):
 
 
 class RevenueEvidenceTests(unittest.TestCase):
+    def test_exact_2022_official_supplement_only_recovers_missing_first_year(self):
+        catalog={'date':DAY,'listed_total':31,'rows':[
+            {'code':f'{i:06d}','name':f'기업{i}','market':'KOSPI'} for i in range(31)]}
+        history={'schema':bulk.SCHEMA,'asof':DAY,
+            'historical_PIT_source_certified':False,'fiscal_years':YEARS,
+            'listed_total':31,'records':{f'{i:06d}':record() for i in range(31)}}
+        target=history['records']['000000']
+        target['years']['2022']['CFS']['values']['revenue']=None
+        expected=revenue_2022.expected_sources(catalog,history)['000000']
+        source=revenue_2022.snapshot(DAY,{'000000':{**expected,'checked_on':DAY,
+            'status':'observed','revenue_krw':100,
+            'source_account_id':'ifrs-full_Revenue','source_account_name':None,
+            'source_receipt_id':expected['receipt_id']}},catalog)
+        before=json.dumps(history,sort_keys=True)
+        parts,summary=revenue.derive(history,catalog,source)
+        self.assertIn('000000',parts)
+        self.assertEqual(parts['000000']['available'],3.5)
+        self.assertEqual(summary['verified_2022_supplement_issuers'],1)
+        self.assertEqual(json.dumps(history,sort_keys=True),before)
+        source['records']['000000']['receipt_id']='20230319000001'
+        stale,summary=revenue.derive(history,catalog,source)
+        self.assertNotIn('000000',stale)
+        self.assertEqual(summary['verified_2022_supplement_issuers'],0)
+
+    def test_wholly_missing_2022_major_row_needs_real_direct_annual_receipt(self):
+        catalog={'date':DAY,'listed_total':31,'rows':[
+            {'code':f'{i:06d}','name':f'기업{i}','market':'KOSPI'} for i in range(31)]}
+        history={'schema':bulk.SCHEMA,'asof':DAY,
+            'historical_PIT_source_certified':False,'fiscal_years':YEARS,
+            'listed_total':31,'records':{f'{i:06d}':record() for i in range(31)}}
+        history['records']['000000']['years']['2022']={}
+        expected=revenue_2022.expected_sources(catalog,history)['000000']
+        self.assertIsNone(expected['receipt_id'])
+        source=revenue_2022.snapshot(DAY,{'000000':{**expected,'checked_on':DAY,
+            'status':'observed','revenue_krw':100,
+            'source_account_id':'ifrs-full_Revenue','source_account_name':None,
+            'source_receipt_id':'20230318000001'}},catalog)
+        actual,summary=revenue.derive(history,catalog,source)
+        self.assertIn('000000',actual)
+        self.assertEqual(summary['verified_2022_supplement_issuers'],1)
+        source['records']['000000']['source_receipt_id']='20220318000001'
+        with self.assertRaises(revenue_2022.Revenue2022Error):
+            revenue.derive(history,catalog,source)
+
     def test_four_actual_revenues_do_not_require_profit_values(self):
         source=record();before=copy.deepcopy(source)
         self.assertIsNone(bulk._best_income_window(source,YEARS))
