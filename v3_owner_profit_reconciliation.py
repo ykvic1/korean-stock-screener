@@ -75,3 +75,17 @@ def pending(expected, retained):
         (retained[code]['status']=='missing_standard_account' and
          retained[code]['fs_div']=='CFS' and
          retained[code].get('profit_recheck_contract')!=CONTRACT)}
+
+
+def checkpoint_count(source):
+    records=source.get('records',{})
+    return len(records)+sum(r.get('profit_recheck_contract')==CONTRACT for r in records.values())
+
+
+def should_resume(summary, before, after):
+    """Queue only finite, error-free source progress, never a quota retry loop."""
+    calls=summary.get('provider_calls')
+    remaining=summary.get('reconciliation_pending_issuers')
+    return (summary.get('status')=='official_owner_profit_source_only' and
+        type(calls) is int and calls>0 and type(remaining) is int and remaining>0 and
+        type(before) is int and type(after) is int and 0<=before<after)
