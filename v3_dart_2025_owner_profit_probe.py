@@ -27,6 +27,9 @@ PROFIT_IDS = {
         "ifrs_ProfitLossAttributableToOwnersOfParent")),
     "OFS": frozenset(("ifrs-full_ProfitLoss", "ifrs_ProfitLoss")),
 }
+QUARANTINED_REASONS=frozenset((
+    'annual_profit_currency_not_krw','annual_profit_receipt_not_matched',
+    'conflicting_official_owner_profit_accounts','annual_profit_amount_not_integer_krw'))
 CODE = re.compile(r"[0-9]{6}\Z")
 
 
@@ -139,7 +142,7 @@ def plan(catalog, book, priority, prior=None, limit=MAX_PER_RUN):
 
 def _validated_record(record, cutoff):
     if (type(record) is not dict or record.get("status") not in
-        ("observed_owner_profit","missing_standard_account")
+        ("observed_owner_profit","missing_standard_account","quarantined_source_account")
         or record.get("fiscal_year") != 2025
         or record.get("fs_div") not in PROFIT_IDS
         or not _valid_receipt(record.get("annual_receipt_id"),2025,_day(cutoff))
@@ -150,6 +153,9 @@ def _validated_record(record, cutoff):
         or _day(record.get("observed_on")) > _day(cutoff)
         or record.get("raw_provider_rows_published") is not False):
         raise ProfitProbeError("invalid_profit_evidence_record")
+    if (record['status']=='quarantined_source_account' and
+        record.get('source_rejection_reason') not in QUARANTINED_REASONS):
+        raise ProfitProbeError('invalid_profit_source_quarantine_reason')
     value = record.get("owners_profit_krw")
     account = record.get("source_account_id")
     if record["status"] == "observed_owner_profit":
@@ -222,13 +228,19 @@ def snapshot(day, catalog, book, priority, records):
         "target_95weight_issuers":
             priority["official_2025_owners_profit_missing_priority_count"],
         "observed_official_owner_profit_issuers":observed,
-        "missing_standard_account_issuers":len(records)-observed,
+        "missing_standard_account_issuers":sum(x["status"]=="missing_standard_account" for x in records.values()),
         "investment_grade_score_certified":False,
         "historical_pit_verified":False,
         "missing_account_is_not_zero":True,
         "account_value_used_in_scores":False,
         "records":dict(sorted(records.items())),
     }
+    quarantined=[r for r in records.values() if r['status']=='quarantined_source_account']
+    if quarantined:
+        report['quarantined_source_account_issuers']=len(quarantined)
+        report['source_rejection_reason_counts']={reason:sum(
+            r['source_rejection_reason']==reason for r in quarantined)
+            for reason in sorted({r['source_rejection_reason'] for r in quarantined})}
     return report
 
 
@@ -321,8 +333,14 @@ def collect(catalog,book,priority,prior,*,key,session,cache=None,
             try:
                 result=parse_response(
                     response.json(),corp=mapping[code],base=base,on_day=day)
-            except ProfitProbeError:
-                raise
+            except ProfitProbeError as error:
+                if str(error) not in QUARANTINED_REASONS:raise
+                # Reject this issuer's numeric account, record the fixed safe
+                # reason and continue other issuers. Quota/identity/transport
+                # errors still stop the run; no amount or false zero is saved.
+                result={**base,'observed_on':day,'raw_provider_rows_published':False,
+                    'status':'quarantined_source_account','owners_profit_krw':None,
+                    'source_account_id':None,'source_rejection_reason':str(error)}
             except Exception:
                 raise ProfitProbeError(
                     "official_annual_profit_payload_unreadable") from None

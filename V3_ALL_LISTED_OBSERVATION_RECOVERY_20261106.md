@@ -64,3 +64,27 @@ strict source identity, zero/loss versus missing profit, PBR independence,
 future-receipt rejection, six bounded batches with no repeated identities,
 source checkpoint preservation and isolated full publication. Synthetic values
 used in tests are never provider evidence or published observations.
+
+## First live run and issuer-local quarantine
+
+Run42141639985 queried84 previously unqueried issuers before receiving a
+non-KRW matching account.68 supplied verified owners-profit values;16 supplied
+no standard account. All84 records were checkpointed and published. The
+source cohort then had195 queried records (142 observed,53 missing) and421
+unqueried targets. These are actual source observations, not full-score claims.
+
+Rejecting the non-KRW account was correct, but stopping all remaining issuers
+would retry the same blocking issuer on every subsequent run. The collector
+now isolates four issuer-account rejection reasons: non-KRW currency, changed
+receipt, conflicting supported accounts and invalid integer-KRW amount. It
+stores a separate `quarantined_source_account` record with a fixed safe reason
+and null value/account ID, then continues other issuers. Such records are
+counted separately from missing accounts and observed profit, do not enter
+score replay and are not retried under the same requested receipt. A changed
+annual receipt invalidates the old record through the existing identity gate.
+
+Parser rejection rules remain strict. Quota/unknown service errors, issuer
+identity mismatches and transport failure still stop the run with saved
+progress preserved. Three new no-network regressions cover all four rejected
+account classes, continued valid issuer collection, no repeat requests,
+null-versus-zero integrity, unknown reason rejection and quota stopping.
