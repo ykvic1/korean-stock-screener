@@ -16,6 +16,7 @@ from io import BytesIO
 import json
 import os
 import re
+import time
 from urllib import parse, request
 import zipfile
 
@@ -209,6 +210,72 @@ def _private_storage_failure_message(exc):
     return "blocked: private original source archive [storage_reason=" + reason + detail + "]"
 
 
+def _pause_transient_private_write(error, attempt):
+    """Retry only bounded storage write races, never source/API failures."""
+    if str(error) != "private_storage_api_failed" or attempt >= 3:
+        return False
+    status = getattr(error, "safe_http_status", None)
+    if status not in ("http_409", "http_500", "http_502", "http_503",
+                      "http_504", "transport_or_response"):
+        return False
+    time.sleep(.7 * (attempt + 1))
+    return True
+
+
+def _put_immutable_with_retry(storage, path, encoded, message):
+    """Resolve ambiguous private PUTs by readback, without re-fetching DART.
+
+    Never overwrite another blob, including one created by a competing run.
+    The return value indicates whether this run received a successful new PUT.
+    """
+    for attempt in range(4):
+        try:
+            prior, sha = storage.get_content(path)
+            if prior is not None:
+                if prior != encoded or type(sha) is not str or not sha:
+                    raise OriginalEvidenceError("private_original_immutable_write_conflict")
+                return False
+            storage.put_new(path, encoded, message)
+            return True
+        except PrivateHistoryError as error:
+            if not _pause_transient_private_write(error, attempt):
+                raise
+
+
+def _put_cursor_with_retry(storage, previous, updated, triage_before):
+    """CAS only the original cursor; adopt already committed identical bytes.
+
+    A 409 from a different file may be transient. A changed cursor/triage is
+    not transient, and must never be rolled back or overwritten by a retry.
+    """
+    for attempt in range(4):
+        try:
+            if storage.get_content(TRIAGE_CHECKPOINT)[0] != triage_before:
+                raise OriginalEvidenceError("private_title_triage_cursor_changed")
+            current, sha = storage.get_content(CHECKPOINT)
+            if current == updated:
+                if type(sha) is not str or not sha:
+                    raise OriginalEvidenceError("private_original_document_cursor_sha_missing")
+                return
+            if current != previous:
+                raise OriginalEvidenceError("private_original_document_cursor_changed")
+            if current is None:
+                storage.put_new(CHECKPOINT, updated,
+                                "Start private original document evidence cursor")
+            else:
+                if type(sha) is not str or not sha:
+                    raise OriginalEvidenceError("private_original_document_cursor_sha_missing")
+                storage.transport("PUT", "contents/" + CHECKPOINT, {
+                    "message": "Advance private original filing evidence cursor",
+                    "content": base64.b64encode(updated).decode("ascii"),
+                    "sha": sha,
+                })
+            return
+        except PrivateHistoryError as error:
+            if not _pause_transient_private_write(error, attempt):
+                raise
+
+
 def _check_zip(raw):
     """Validate in memory; expose only a fixed stage, never source identity."""
     stage = "payload_envelope"
@@ -363,7 +430,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         triage = triage_cursor(triage_raw)
     except Exception:
         raise OriginalEvidenceError("invalid_private_title_triage_pointer") from None
-    raw, original_sha = storage.get_content(CHECKPOINT)
+    raw, _ = storage.get_content(CHECKPOINT)
     state = _cursor(raw)
     if state["last_report_file"]:
         last, _ = storage.get_content(state["last_report_file"])
@@ -422,9 +489,10 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                             raise
                         kind, details = "unsafe_zip_quarantined", {}
             if kind == "zip" and archived is None:
-                storage.put_new(source_path, returned,
-                                "Save private official original ZIP source")
-                new_zips += 1
+                created = _put_immutable_with_retry(
+                    storage, source_path, returned,
+                    "Save private official original ZIP source")
+                new_zips += int(created)
                 archived, _ = storage.get_content(source_path)
                 if archived != returned:
                     raise OriginalEvidenceError("private_original_zip_not_read_back")
@@ -458,8 +526,9 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
                 "scores_authorized": False,
             }
             encoded = canonical(report)
-            storage.put_new(report_path, encoded,
-                            "Save private original document retrieval evidence")
+            _put_immutable_with_retry(
+                storage, report_path, encoded,
+                "Save private original document retrieval evidence")
             observed, _ = storage.get_content(report_path)
             if observed != encoded:
                 raise OriginalEvidenceError("private_original_receipt_report_readback_failed")
@@ -485,16 +554,7 @@ def run(storage, fetch, max_calls=MAX_API_CALLS):
         "queue_sha256": digest if j else None,
         "last_report_file": last_path, "last_report_digest": last_digest,
     })
-    if storage.get_content(TRIAGE_CHECKPOINT)[0] != triage_raw:
-        raise OriginalEvidenceError("private_title_triage_cursor_changed")
-    if original_sha is None:
-        storage.put_new(CHECKPOINT, new, "Start private original document evidence cursor")
-    else:
-        storage.transport("PUT", "contents/" + CHECKPOINT, {
-            "message": "Advance private original filing evidence cursor",
-            "content": base64.b64encode(new).decode("ascii"),
-            "sha": original_sha,
-        })
+    _put_cursor_with_retry(storage, raw, new, triage_raw)
     updated, _ = storage.get_content(CHECKPOINT)
     if updated != new or storage.get_content(TRIAGE_CHECKPOINT)[0] != triage_raw:
         raise OriginalEvidenceError("private_original_document_cursor_readback_failed")

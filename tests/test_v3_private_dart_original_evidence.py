@@ -41,6 +41,13 @@ def pair_source(*, empty=False):
     return gzip.compress(canonical(obj), mtime=0)
 
 
+def storage_error(status):
+    error = PrivateHistoryError("private_storage_api_failed")
+    error.safe_http_status = status
+    error.safe_http_operation = "write_private_content"
+    return error
+
+
 class Private:
     repository = original.PRIVATE_REPO
 
@@ -78,6 +85,115 @@ class Private:
 
 
 class OriginalEvidenceTests(unittest.TestCase):
+    def test_transient_409_on_zip_and_cursor_does_not_refetch_source(self):
+        store = Private()
+        original_put = store.put_new
+        zip_path = original._zip_path(0, "20161031000001")
+        retries = {zip_path: 0, original.CHECKPOINT: 0}
+        calls = []
+
+        def conflicting_put(path, value, message):
+            if path in retries and retries[path] == 0:
+                retries[path] += 1
+                raise storage_error("http_409")
+            return original_put(path, value, message)
+
+        store.put_new = conflicting_put
+        with patch.object(original.time, "sleep") as delay:
+            result = original.run(
+                store, lambda no: calls.append(no) or zip_source(), max_calls=1)
+        self.assertEqual(result["provider_calls"], 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result["new_original_zips_archived"], 1)
+        self.assertEqual(retries, {zip_path: 1, original.CHECKPOINT: 1})
+        self.assertEqual(delay.call_count, 2)
+        self.assertEqual(json.loads(store.blobs[original.CHECKPOINT])[
+            "next_receipt_index"], 1)
+
+    def test_ambiguous_409_committed_report_adopted_by_readback(self):
+        store = Private()
+        original_put = store.put_new
+        report_path = original._report_path(0, "20161031000001")
+        failures = []
+        calls = []
+
+        def committed_then_error(path, value, message):
+            original_put(path, value, message)
+            if path == report_path and not failures:
+                failures.append(path)
+                raise storage_error("http_409")
+
+        store.put_new = committed_then_error
+        with patch.object(original.time, "sleep"):
+            result = original.run(
+                store, lambda no: calls.append(no) or zip_source(), max_calls=1)
+        self.assertEqual(failures, [report_path])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result["provider_calls"], 1)
+        self.assertEqual(result["available_original_zip_receipts"], 1)
+
+    def test_409_on_existing_cursor_cas_retries_with_fresh_sha(self):
+        store = Private()
+        original.run(store, lambda _: zip_source(), max_calls=1)
+        original_transport = store.transport
+        calls = []
+        attempts = []
+
+        def conflicting_transport(method, path, payload=None):
+            attempts.append(path)
+            if len(attempts) == 1:
+                raise storage_error("http_409")
+            return original_transport(method, path, payload)
+
+        store.transport = conflicting_transport
+        with patch.object(original.time, "sleep"):
+            result = original.run(
+                store, lambda no: calls.append(no) or zip_source(), max_calls=1)
+        self.assertEqual(result["provider_calls"], 1)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(json.loads(store.blobs[original.CHECKPOINT])[
+            "next_pair_index"], 1)
+
+    def test_concurrent_cursor_change_and_nontransient_denial_fail_closed(self):
+        store = Private()
+        existing_put = store.put_new
+        changed = canonical({**original._empty(), "next_pair_index": 2})
+        failures = []
+
+        def conflicting_cursor(path, value, message):
+            if path == original.CHECKPOINT:
+                store.blobs[path] = changed
+                failures.append(path)
+                raise storage_error("http_409")
+            return existing_put(path, value, message)
+
+        store.put_new = conflicting_cursor
+        with patch.object(original.time, "sleep"):
+            with self.assertRaisesRegex(
+                    original.OriginalEvidenceError,
+                    "^private_original_document_cursor_changed$"):
+                original.run(store, lambda _: zip_source(), max_calls=1)
+        self.assertEqual(failures, [original.CHECKPOINT])
+        self.assertEqual(store.blobs[original.CHECKPOINT], changed)
+
+        denied = Private()
+        original_put = denied.put_new
+        attempts = []
+
+        def forbidden_write(path, value, message):
+            if path == original._zip_path(0, "20161031000001"):
+                attempts.append(path)
+                raise storage_error("http_403")
+            return original_put(path, value, message)
+
+        denied.put_new = forbidden_write
+        with patch.object(original.time, "sleep") as delay:
+            with self.assertRaises(PrivateHistoryError):
+                original.run(denied, lambda _: zip_source(), max_calls=1)
+        self.assertEqual(len(attempts), 1)
+        delay.assert_not_called()
+
     def catchup_source(self, count, empty):
         store = Private()
         store.blobs[original.TRIAGE_CHECKPOINT] = canonical({
