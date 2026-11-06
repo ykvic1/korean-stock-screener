@@ -22,11 +22,11 @@
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "a132f611783b1280a326cded7c5e2539304859a65a2bd37510db69d57dc5f500",
+    "source_digest": "35bfb10f24e833a63088a1fb3edbdbe8558df1d5eeb9b5a0f3264de49c8ff221",
     "listed_total": 2501,
     "ranked_count": 2481,
     "available_100_count": 777,
-    "available_95_count": 1054,
+    "available_95_count": 1055,
     "available_90_count": 1427,
     "budgets": {
       "volume": 25,
