@@ -1,0 +1,130 @@
+name: V3 Pinned Saved Money Structure Replay (0 KRX Calls)
+
+on:
+  pull_request:
+    paths: [v3_money_saved_structure_replay.py, tests/test_v3_money_saved_structure_replay.py, .github/workflows/v3-money-saved-structure-replay.yml]
+  push:
+    branches: [main]
+    paths: [v3_money_saved_structure_replay.py, .github/workflows/v3-money-saved-structure-replay.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p 'test_v3_money_saved_structure_replay.py' -v
+  replay:
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pages: write
+    concurrency:
+      group: korea-stock-screener-current-observed-publisher
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Read the exact historical public catalog, never reconstruct it
+        uses: actions/checkout@v4
+        with:
+          ref: 89702d140b2087596e363d7df8c7a64f3a245549
+          path: .saved-catalog
+          persist-credentials: false
+          sparse-checkout: docs/v22-market-catalog.json
+          sparse-checkout-cone-mode: false
+      - name: Validate last successful source receipt before any private read
+        id: source
+        run: |
+          python - <<'PY'
+          import json,os,shutil
+          from pathlib import Path
+          from v3_dart_bulk_history import _stable_digest
+          old=json.loads(Path('docs/v3-actual-money-participation.json').read_text())
+          catalog=json.loads(Path('.saved-catalog/docs/v22-market-catalog.json').read_text())
+          ready=(catalog['date']==old['asof'] and _stable_digest(catalog)==old['source_catalog_sha256'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('ready='+str(ready).lower()+'\n')
+              if ready:out.write('revision='+old['source_private_revision']+'\n')
+          if ready:
+              Path('.saved-replay').mkdir()
+              shutil.copy('.saved-catalog/docs/v22-market-catalog.json','.saved-replay/v22-market-catalog.json')
+              shutil.copy('docs/v3-actual-money-participation.json','.saved-replay/v3-actual-money-participation.json')
+          else:print('newer_source_already_present_or_historical_catalog_not_exact; preserve_current_source')
+          PY
+      - uses: actions/checkout@v4
+        if: steps.source.outputs.ready == 'true'
+        with:
+          repository: ykvic1/korean-stock-private-data
+          ref: ${{ steps.source.outputs.revision }}
+          token: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          path: .money-private
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /derived/money-five-session/
+            /derived/money-calendar-weeks/
+            /derived/money-historical-checkpoint.json
+            /derived/money-forward-checkpoint.json
+            /derived/money-calendar-week-checkpoint.json
+      - name: Recompute from the same pinned receipt and reject all unrelated changes
+        if: steps.source.outputs.ready == 'true'
+        env:
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          SOURCE_REVISION: ${{ steps.source.outputs.revision }}
+        run: |
+          set -euo pipefail
+          python v3_actual_money_participation.py --private-snapshot .money-private --private-revision "$SOURCE_REVISION" --docs .saved-replay
+          python - <<'PY'
+          import json,shutil
+          from pathlib import Path
+          from v3_money_saved_structure_replay import verify
+          old=json.loads(Path('docs/v3-actual-money-participation.json').read_text())
+          new=json.loads(Path('.saved-replay/v3-actual-money-participation.json').read_text())
+          print(json.dumps({'recovered_correction_observations':verify(old,new),'source_asof_unchanged':old['asof'],'krx_calls':0}))
+          for name in ('v3-actual-money-participation.json','v3-actual-money-coverage-summary.json'):
+              shutil.copy('.saved-replay/'+name,'docs/'+name)
+          PY
+      - name: Delete private snapshot before public staging
+        if: always()
+        run: rm -rf -- .money-private .saved-catalog .saved-replay
+      - name: Publish source-verified saved-date replay with current issuer scores
+        if: steps.source.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            python v3_volume_participation.py --mode write
+            python v3_current_observed_scorecard.py --mode write --refresh-derived
+            python v3_operational_research_score.py
+            python v3_operational_evidence_priority.py
+            python v3_operational_model_diagnostics.py
+            git add docs/v3-actual-money-participation.json docs/v3-actual-money-coverage-summary.json docs/v3-volume-obv-observed.json docs/v3-volume-obv-observed.csv docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/score-history/
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Replay saved-date actual-money correction structure without new KRX calls'
+            if git push origin HEAD:main; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          exit 1
