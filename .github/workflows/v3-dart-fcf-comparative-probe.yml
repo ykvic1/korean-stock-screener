@@ -6,7 +6,8 @@ on:
   push:
     branches: [main]
     paths: [v3_dart_fcf_comparative_probe.py, .github/workflows/v3-dart-fcf-comparative-probe.yml]
-  # Four 20-issuer source-research cohorts daily, at most 40 API calls/cohort.
+  # Four bounded sweeps daily: up to 120 issuers / 241 calls including mapping.
+  # Ten-minute live deadline keeps partial progress explicit.
   schedule:
     - cron: '31 1,7,13,19 * * *'
   workflow_dispatch:
@@ -43,7 +44,7 @@ jobs:
         run: |
           python -m py_compile v3_dart_fcf_comparative_probe.py
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_comparative_probe.py' -v
-          python v3_dart_fcf_comparative_probe.py --mode dry-run --limit 20 --cohort-index 0
+          python v3_dart_fcf_comparative_probe.py --mode dry-run --limit 120 --cohort-index 0
       - name: Restore verified DART company code mapping
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/cache/restore@v4
@@ -63,7 +64,7 @@ jobs:
           set -euo pipefail
           # Only fixed aggregate counters (no codes/receipts/amounts) appear
           # in the job log, so progress is auditable without private access.
-          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 20 --cohort-index "$COHORT" --audit-annual-receipts | tee /tmp/v3-cf-comparative-counts.json
+          python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 120 --cohort-index "$COHORT" --audit-annual-receipts | tee /tmp/v3-cf-comparative-counts.json
       - name: Aggregate-only report; no original-year or investment certification
         if: always()
         run: |
@@ -76,7 +77,7 @@ jobs:
               'No stock IDs, amounts, API keys, FCF ledger changes or score promotion.']
           if p.is_file():
               a=json.loads(p.read_text(encoding='utf8'))
-              for k in ('asof','eligible_one_gap_fcf_issuers','sampled_issuers','provider_calls'):
+              for k in ('asof','eligible_one_gap_fcf_issuers','sampled_issuers','completed_issuers','unprocessed_issuers','selection_covers_all_eligible','status','provider_calls'):
                   lines.append('- '+k+': '+str(a.get(k)))
               for k,v in a.get('candidate_fact_counts',{}).items():
                   lines.append('- '+k+': '+str(v))
