@@ -133,12 +133,12 @@ def candidates(cash, research_state):
         if (not missing or later.get('major_annual_receipt_matched') is not True
             or later.get('scope') != source_record['scope']
             or later.get('annual_receipt_id') != source_record['fy2025_receipt']
-            or set(source_record['years']) != {year for year, _ in missing}
-            or source_record['prior_anchor_digest'] != research.anchors_digest(missing)
-            or any(source_record['years'][year]['reason'] != 'complete_comparative_candidate'
-                   for year, _ in missing)):
+            or not research.anchors_unchanged(source_record, years)):
             continue
-        selected.append((code, source_record, later, missing))
+        complete = [(year, anchor) for year, anchor in missing
+                    if source_record['years'][year]['reason'] == 'complete_comparative_candidate']
+        if complete:
+            selected.append((code, source_record, later, complete))
     return selected
 
 
@@ -168,7 +168,12 @@ def main():
         'v3-dart-cashflow-reference.json', 'v3-fcf-prior-comparative-research.json')]
     cash = cf.retained_current_market_cashflow(market, catalog, bulk, saved)
     proposed, codes = apply(cash, source)
-    result = {'eligible_current_full_issuer_completions': len(codes),
+    result = {'eligible_prior_year_issuer_repairs': len(codes),
+              'new_three_year_fcf_issuer_completions': sum(
+                  all(proposed['records'][code]['years'][year].get('free_cashflow_krw') is not None
+                      for year in ('2023', '2024', '2025'))
+                  and not all(cash['records'][code]['years'][year].get('free_cashflow_krw') is not None
+                              for year in ('2023', '2024', '2025')) for code in codes),
               'added_years': sum(
                   old.get(PROOF) is None and proposed['records'][code]['years'][year].get(PROOF) is not None
                   for code in codes
