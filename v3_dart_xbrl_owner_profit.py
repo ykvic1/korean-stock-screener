@@ -35,7 +35,7 @@ REJECTED_ARCHIVE_REASONS={
     'duplicate_xbrl_context_reference','unparseable_xbrl_archive_member',
     'unparseable_xbrl_instance','unsafe_xbrl_archive_member','unsafe_xbrl_xml_entities',
     'xbrl_binary_response_out_of_bounds','xbrl_zip_decompression_bounds_exceeded',
-    'xbrl_zip_member_count_exceeded','xbrl_zip_unreadable'}
+    'xbrl_zip_member_count_exceeded','xbrl_zip_unreadable','xbrl_response_too_large'}
 X=original.X
 
 class OriginalProfitError(ValueError):pass
@@ -195,13 +195,17 @@ def main():
             retained[code]=new;saved=profit.snapshot(day,catalog,book,priority,retained);profit.verify(saved,catalog,book,priority);write_json(target,saved)
             output['completed']+=1;reasons['unverified_company_identity']+=1
             continue
-        raw=xp._read_response_limited(get('fnlttXbrl.xml',{'rcept_no':row['annual_receipt_id'],'reprt_code':'11011'},True))
-        try:value,bases,reason=extract_archive(raw,scope=row['fs_div'],identifiers=identifiers,cfo_anchor=cfo,diagnostic=diagnostic)
+        response=get('fnlttXbrl.xml',{'rcept_no':row['annual_receipt_id'],'reprt_code':'11011'},True)
+        raw=None
+        try:
+            raw=xp._read_response_limited(response)
+            value,bases,reason=extract_archive(raw,scope=row['fs_div'],identifiers=identifiers,cfo_anchor=cfo,diagnostic=diagnostic)
         except OriginalProfitError:value,bases,reason=None,[],'unusable_original_profit'
         except xp.XbrlPilotError as error:
             if str(error) not in REJECTED_ARCHIVE_REASONS:raise
             value,bases,reason=None,[],'unusable_original_profit'
-        new=merge(row,value,bases,reason=reason,cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile),cfo_response_hash=cfo_response_hash,asof=day)
+        finally:response.close()
+        new=merge(row,value,bases,reason=reason,cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest() if raw is not None else None,profile_hash=cf.fingerprint(profile),cfo_response_hash=cfo_response_hash,asof=day)
         retained[code]=new;saved=profit.snapshot(day,catalog,book,priority,retained);profit.verify(saved,catalog,book,priority);write_json(target,saved)
         output['completed']+=1;output['recovered_issuers']+=int(verify_review(new));reasons[new['original_xbrl_review']['reason']]+=1
     output['context_checks']=dict(diagnostic);output['reasons']=dict(reasons);print(json.dumps(output,sort_keys=True))
