@@ -19,13 +19,15 @@ scope, period and known components. Only explicit nonnegative integer-KRW
 standard PPE and intangible purchase facts complete the pair. Zero must be
 actually reported. Conflicts and missing facts cannot add observations.
 
-Eight issuers per batch are checkpointed individually, with the existing
-six-minute deadline and a maximum of sixteen selectable issuers. Each identity
+Initial acquisition uses four concurrent readers and up to six consecutive
+sixteen-issuer batches (96 maximum), with one checkpoint writer and a shared
+twelve-minute budget. Each batch retains the six-minute source deadline. Each identity
 uses one profile request and one original archive request, plus an optional
 company-map request per run. Provider/transport/auth/quota errors stop with
 prior checkpoints preserved, without saving a missing-account marker for the
-failed response. Successful runs continue the finite unreviewed queue; a daily
-06:37 KST run resumes after a provider reset/outage. Unchanged source identities
+failed response. Successful runs continue the finite unreviewed queue; a weekday
+18:40 KST backup and successful current CF-source completions resume after a
+provider reset/outage. The full-market close owner remains 18:30 KST. Unchanged source identities
 are not queried again.
 
 Source research cannot alter the scored cashflow reference. Successful main

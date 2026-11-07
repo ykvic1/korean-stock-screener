@@ -7,6 +7,7 @@ research; a separate proof-checked promotion step updates current observations.
 from __future__ import annotations
 import argparse
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from copy import deepcopy
 from datetime import date
 import hashlib
@@ -16,6 +17,7 @@ import os
 from pathlib import Path
 import re
 import time
+import threading
 import zipfile
 
 import v3_dart_cashflow_enrichment as cf
@@ -169,38 +171,102 @@ def apply(cash, research_state):
 
 
 def collect(choices, previous, *, get, mapping, day, total, limit=8,
-            on_progress=None, clock=time.monotonic):
-    if type(limit) is not int or not 1 <= limit <= 16:
+            on_progress=None, clock=time.monotonic, workers=1, deadline=None):
+    if (type(limit) is not int or not 1 <= limit <= 16
+        or type(workers) is not int or not 1 <= workers <= 4):
         raise Prior2024Error('invalid_fy2024_prior_limit')
     records = deepcopy(previous)
-    deadline = clock() + 360
+    deadline = min(clock() + 360, deadline) if deadline is not None else clock() + 360
     reasons = Counter()
     reviewed = 0
-    for code, anchor, source in choices:
-        if reviewed >= limit or clock() + 120 >= deadline:
-            break
-        if code not in mapping:
-            continue
+    seen = set()
+    halt = threading.Event()
+    def fetch_record(choice):
+        code, anchor, source = choice
         profile = get('company.json', {'corp_code': mapping[code]}).json()
         identifiers = original.company_ids(profile, mapping[code], code)
         raw = xp._read_response_limited(get('fnlttXbrl.xml', {
             'rcept_no': source['annual_receipt_id'], 'reprt_code': '11011'}, True))
         proposal = probe_archive(raw, anchor, source, identifiers)
-        records[code] = make_record(code, anchor, source, proposal, raw, profile, day)
+        return code, make_record(code, anchor, source, proposal, raw, profile, day)
+
+    def fetch(choice):
+        if halt.is_set():
+            raise Prior2024Error('source_stopped_after_peer_failure')
+        try:
+            return fetch_record(choice)
+        except Exception:
+            halt.set()
+            raise
+
+    def save(result):
+        nonlocal reviewed
+        code, row = result
+        records[code] = row
         result = snapshot(day, total, records)
         if on_progress is not None:
             on_progress(result)
         reviewed += 1
-        reasons[proposal['reason']] += 1
+        reasons[row['years']['2023']['reason']] += 1
+
+    if workers == 1:
+        for choice in choices:
+            if reviewed >= limit or clock() + 120 >= deadline:
+                break
+            code = choice[0]
+            if code not in mapping or code in seen:
+                continue
+            seen.add(code)
+            save(fetch(choice))
+    else:
+        iterator = iter(choices)
+        pending = set()
+        exhausted = False
+        error = None
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            def fill():
+                nonlocal exhausted
+                while (not exhausted and not halt.is_set() and len(pending) < workers
+                       and reviewed + len(pending) < limit and clock() + 120 < deadline):
+                    choice = next(iterator, None)
+                    if choice is None:
+                        exhausted = True
+                        break
+                    code = choice[0]
+                    if code not in mapping or code in seen:
+                        continue
+                    seen.add(code)
+                    pending.add(pool.submit(fetch, choice))
+            fill()
+            while pending:
+                done, _ = wait(pending, return_when=FIRST_COMPLETED)
+                for future in done:
+                    pending.remove(future)
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        error = error or exc
+                    else:
+                        # Only the controlling thread writes checkpoints.
+                        save(result)
+                if error is None:
+                    fill()
+            # Preserve validated in-flight responses before surfacing a quota
+            # or transport error. No additional issuers start after that error.
+            if error is not None:
+                raise error
     return {'reviewed': reviewed, 'reasons': dict(reasons)}, records
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('dry-run', 'live'), default='dry-run')
     parser.add_argument('--limit', type=int, default=8)
-    args = parser.parse_args()
-    if not 1 <= args.limit <= 16:
+    parser.add_argument('--workers', type=int, default=1)
+    parser.add_argument('--batches', type=int, default=1)
+    parser.add_argument('--defer-source-lag', action='store_true')
+    args = parser.parse_args(argv)
+    if not 1 <= args.limit <= 16 or not 1 <= args.workers <= 4 or not 1 <= args.batches <= 6:
         raise Prior2024Error('invalid_fy2024_prior_limit')
     root = Path('docs')
     output = root / OUTPUT
@@ -211,6 +277,12 @@ def main():
         'data.json', 'v22-market-catalog.json', 'v3-dart-bulk-history.json',
         'v3-dart-cashflow-reference.json', 'v3-operational-research-scores.json',
         'v3-operational-research-comparison.json')]
+    if args.defer_source_lag:
+        from v3_dart_source_day_preflight import check
+        if not check(market, catalog, bulk, kind='major')['ready']:
+            print(json.dumps({'selected': 0, 'remaining': None, 'provider_calls': 0,
+                              'scores_unchanged': True, 'status': 'waiting_same_day_major_source'}))
+            return
     cash = cf.retained_current_market_cashflow(market, catalog, bulk, cash)
     priority = xp.operational_gap_priority(report, comparison, catalog, bulk)
     from v3_v30b_release_gate import R1D_PART_LIMITS
@@ -226,6 +298,8 @@ def main():
     records = saved.get('records', {})
     choices = targets(cash, priority, records)
     result = {'selected': min(args.limit, len(choices)), 'remaining': len(choices),
+              'maximum_run_issuers': min(args.limit * args.batches, len(choices)),
+              'workers': args.workers,
               'priority_targets': sum(code in priority for code, _, _ in choices),
               'provider_calls': 0, 'scores_unchanged': True}
     if args.mode == 'dry-run' or not choices:
@@ -235,11 +309,15 @@ def main():
     key = os.getenv('DART_API_KEY', '')
     if not re.fullmatch('[A-Za-z0-9]{40}', key):
         raise Prior2024Error('missing_fy2024_prior_key')
-    client = requests.Session()
+    local = threading.local()
+    count_lock = threading.Lock()
     def get(endpoint, params, stream=False):
         try:
-            result['provider_calls'] += 1
-            response = client.get('https://opendart.fss.or.kr/api/' + endpoint,
+            if not hasattr(local, 'client'):
+                local.client = requests.Session()
+            with count_lock:
+                result['provider_calls'] += 1
+            response = local.client.get('https://opendart.fss.or.kr/api/' + endpoint,
                 params={'crtfc_key': key, **params}, timeout=(20, 90), stream=stream)
             response.raise_for_status()
             return response
@@ -251,10 +329,27 @@ def main():
                                              catalog['date'], members)
     if mapping is None:
         mapping = _mapping(get('corpCode.xml', {}).content, set(members))
-    collected, _ = collect(choices, records, get=get, mapping=mapping,
-        day=catalog['date'], total=catalog['listed_total'], limit=args.limit,
-        on_progress=lambda state: write_json(output, state))
-    result.update(collected)
+    mapped = [choice for choice in choices if choice[0] in mapping]
+    result['unmapped_pending_issuers'] = len(choices) - len(mapped)
+    deadline = time.monotonic() + 720
+    totals = Counter()
+    result['reviewed'] = 0
+    result['completed_batches'] = 0
+    for batch in range(args.batches):
+        selected = mapped[batch * args.limit:(batch + 1) * args.limit]
+        if not selected or time.monotonic() + 120 >= deadline:
+            break
+        collected, records = collect(selected, records, get=get, mapping=mapping,
+            day=catalog['date'], total=catalog['listed_total'], limit=args.limit,
+            workers=args.workers, deadline=deadline,
+            on_progress=lambda state: write_json(output, state))
+        result['reviewed'] += collected['reviewed']
+        result['completed_batches'] += 1
+        totals.update(collected['reasons'])
+        if collected['reviewed'] < len(selected):
+            break
+    result['reasons'] = dict(totals)
+    result['remaining_after'] = len(targets(cash, priority, records))
     print(json.dumps(result, sort_keys=True))
 
 
