@@ -176,8 +176,8 @@ def collect(choices, previous, *, get, mapping, day, total, limit=8,
     deadline = clock() + 360
     reasons = Counter()
     reviewed = 0
-    for code, anchor, source in choices[:limit]:
-        if clock() + 120 >= deadline:
+    for code, anchor, source in choices:
+        if reviewed >= limit or clock() + 120 >= deadline:
             break
         if code not in mapping:
             continue

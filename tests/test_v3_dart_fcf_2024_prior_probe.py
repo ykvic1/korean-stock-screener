@@ -161,6 +161,15 @@ class FY2024PriorTests(unittest.TestCase):
         self.assertEqual(len(checkpoints), 1)
         self.assertEqual(checkpoints[0]['reviewed_total'], 1)
         self.assertEqual(calls, ['company.json', 'fnlttXbrl.xml', 'company.json'])
+        # An unmapped leading issuer cannot consume the one real-call slot
+        # and starve the next independently mapped issuer forever.
+        calls.clear()
+        selected = [('000000', choices[0][1], choices[0][2]), choices[0]]
+        result, retained = probe.collect(selected, {}, get=get, mapping={CODE:'00123456'},
+            day='2026-11-06', total=2501, limit=1)
+        self.assertEqual(result['reviewed'], 1)
+        self.assertEqual(set(retained), {CODE})
+        self.assertEqual(calls, ['company.json', 'fnlttXbrl.xml'])
         times = iter([0, 250])
         result, _ = probe.collect(choices, {}, get=lambda *a: self.fail('deadline call'),
             mapping={CODE:'00123456'}, day='2026-11-06', total=2501, clock=lambda: next(times))
