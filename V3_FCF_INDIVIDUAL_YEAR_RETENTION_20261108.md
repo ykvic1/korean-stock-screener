@@ -30,3 +30,13 @@ source files or investment scores are edited by the patch itself. Tests cover
 mixed complete/incomplete years, unchanged-marker reuse, source changes,
 idempotency, absence versus zero and tampered provenance; the actual saved
 source replay passes cashflow state verification without provider requests.
+
+Full CI also exposed an existing publication-order defect: comparative source
+promotion updated the cashflow reference but left the gap summary pointing to
+an older source fingerprint. Promotion now publishes source, factor preview,
+gap summary and issuer classifications together and verifies them after
+rebase. Current-close replay and CI rebuild the gap outputs beside the factor
+preview. During an independently validated major-source lag, both preserve
+their dated outputs; otherwise both use the same retained current receipts.
+The fingerprint audit remains strict. An offline regression checks preserved
+files during lag and exact matching fingerprints on aligned replay.

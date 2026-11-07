@@ -6,6 +6,7 @@ on:
     paths:
       - v3_current_observed_scorecard.py
       - v3_dart_cashflow_factor_preview.py
+      - v3_dart_cashflow_gap_audit.py
       - v3_stop_loss_severity.py
       - v3_eps_valuation.py
       - tests/test_v3_eps_valuation.py
@@ -120,6 +121,7 @@ jobs:
           # coverage without changing the cashflow reference. Publish its
           # same-receipt preview together with the dependent scorecard.
           python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
+          python v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
           python v3_current_observed_scorecard.py --mode write --refresh-derived
           # Target independently observed 95/96-point source gaps without
           # claiming that older ledger scores are fresh closing evidence.
@@ -133,6 +135,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local http.version HTTP/1.1
           git add docs/v3-dart-fcf-research-preview.json
+          git add docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
           git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json
           git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json
           if [[ -f docs/v3-near-100-evidence-priority.json ]]; then
@@ -143,9 +146,11 @@ jobs:
             for attempt in 1 2 3; do
               git pull --rebase origin main
               python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
+              python v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
               python v3_current_observed_scorecard.py --mode write --refresh-derived
               python v3_near_100_observed_gap.py --mode write
               git add docs/v3-dart-fcf-research-preview.json
+              git add docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
               git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json
               git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json
               if [[ -f docs/v3-near-100-evidence-priority.json ]]; then
@@ -155,6 +160,7 @@ jobs:
                 git commit --amend --no-edit
               fi
               python v3_dart_cashflow_factor_preview.py --mode verify --defer-source-lag
+              python v3_dart_cashflow_gap_audit.py --mode verify --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
               python v3_current_observed_scorecard.py --mode verify --refresh-derived
               python v3_near_100_observed_gap.py --mode verify
               if git push origin HEAD:main; then
@@ -177,6 +183,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: |
           python v3_dart_cashflow_factor_preview.py --mode verify
+          python v3_dart_cashflow_gap_audit.py --mode verify --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
           python v3_current_observed_scorecard.py --mode verify --refresh-derived
           python v3_near_100_observed_gap.py --mode verify
       - name: Display source-specific observed count, not investment grades

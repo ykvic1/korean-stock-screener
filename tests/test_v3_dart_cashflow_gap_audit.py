@@ -2,6 +2,11 @@
 import copy
 import json
 import unittest
+from unittest.mock import patch
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+import tempfile
 
 from test_v3_dart_cashflow_enrichment import live_inputs
 import v3_dart_cashflow_enrichment as cash
@@ -9,6 +14,32 @@ import v3_dart_cashflow_gap_audit as gap
 
 
 class GapAuditTests(unittest.TestCase):
+    def test_cli_deferred_source_preserves_both_files_and_replays_aligned_receipts(self):
+        market, catalog, major, state, _ = self._fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args = ['--defer-source-lag']
+            for flag, value in [('market', market), ('catalog', catalog),
+                                ('major', major), ('cashflow', state)]:
+                path = root / (flag + '.json')
+                path.write_text(json.dumps(value))
+                args += ['--' + flag, str(path)]
+            output, issuer = root / 'gap.json', root / 'issuer.json'
+            output.write_text('previous-gap')
+            issuer.write_text('previous-issuer')
+            args += ['--out', str(output), '--issuer-out', str(issuer)]
+            with patch('v3_dart_source_day_preflight.check', return_value={'ready': False}), redirect_stdout(StringIO()):
+                gap.main(args)
+            self.assertEqual(output.read_text(), 'previous-gap')
+            self.assertEqual(issuer.read_text(), 'previous-issuer')
+            with patch('v3_dart_source_day_preflight.check', return_value={'ready': True}), redirect_stdout(StringIO()):
+                gap.main(args)
+                gap.main(args + ['--mode', 'verify'])
+            retained = cash.retained_current_market_cashflow(market, catalog, major, state)
+            for path in (output, issuer):
+                self.assertEqual(json.loads(path.read_text())['source_cashflow_sha256'],
+                                 cash.fingerprint(retained))
+
     def _fixture(self):
         market, catalog, major = live_inputs()
         asof, members = cash.asof_members(market, catalog, major)
