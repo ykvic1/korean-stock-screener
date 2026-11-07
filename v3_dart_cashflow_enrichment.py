@@ -191,6 +191,19 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
                     # Revised/withdrawn or no longer date-valid annual source.
                     # The old numeric FCF must never be rebased onto it.
                     continue
+            # This year's CFO remains receipt-matched, but an independently
+            # sourced later-filing CAPEX comparative must be revoked if that
+            # later FY2025 receipt is corrected or withdrawn. Preserve the
+            # original year's other independently verified observations.
+            if observation.get('later_original_comparative_proof') is not None:
+                from v3_dart_fcf_comparative_promotion import restore_if_later_receipt_changed
+                later=major_years.get('2025',{}).get(scope,{})
+                later_receipt=later.get('receipt_id') if type(later) is dict else None
+                if observation['later_original_comparative_proof']['later_receipt']!=later_receipt:
+                    if archive_unchanged:
+                        raise CashflowError('comparative_source_changed_without_bulk_revision')
+                    observation=restore_if_later_receipt_changed(
+                        observation,actual_later_receipt=later_receipt)
             unchanged[year]=observation
         if unchanged:
             current_records[code]={"scope":scope,"years":unchanged}
@@ -402,6 +415,7 @@ def summary(asof,members,records,major_source_hash):
     name_probe_enriched_years=0
     name_fallback_years=0
     name_fallback_components=0
+    later_original_comparative_years=0
     for code,r in records.items():
         if code not in members or type(r) is not dict or r.get("scope") not in ("CFS","OFS"):
             raise CashflowError("invalid_cashflow_checkpoint_issuer")
@@ -458,6 +472,14 @@ def summary(asof,members,records,major_source_hash):
                 if not _valid_receipt(z.get("annual_receipt_id"),int(y),_day(asof)):
                     raise CashflowError("invalid_original_xbrl_receipt")
                 original_recovered+=int(verify_recovery(z));original_reviews+=1
+            if z.get('later_original_comparative_proof') is not None:
+                from v3_dart_fcf_comparative_promotion import (
+                    verify_promoted_year,ComparativePromotionError)
+                try:
+                    verify_promoted_year(z,years,code,y)
+                except (ComparativePromotionError,KeyError,ValueError,TypeError):
+                    raise CashflowError('untrusted_cross_receipt_capex_proof') from None
+                later_original_comparative_years+=1
             marker=z.get("account_name_recheck")
             if marker is not None:
                 if (type(marker) is not dict or set(marker)!={
@@ -506,6 +528,9 @@ def summary(asof,members,records,major_source_hash):
     source=("OpenDART API plus receipt/entity/scope/CFO-anchored original IFRS XBRL" if original_recovered else SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS)
     if reported_total_years:source+=' plus receipt-matched reported PPE+intangible purchase totals'
     if full_intangible_years:source+=' plus verified FSS whole IAS38 intangible purchase totals'
+    if later_original_comparative_years:
+        source+=' plus CFO-matched later-original annual CAPEX comparatives'
+        count['later_original_comparative_years']=later_original_comparative_years
     return {"schema":SCHEMA,"asof":asof,"listed_total":len(members),
             "source_major_history_sha256":major_source_hash,
             "source_fiscal_years":list(YEARS),
