@@ -11,6 +11,9 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import re
+import time
+
+from v3_krx_private_github_backfill import PrivateHistoryError, storage_diagnostic
 
 from v3_dart_historical_event_receipts import (
     CATEGORIES, MAX_FILE_BYTES, MONTHS, _check_cursor, _decode, _path,
@@ -31,6 +34,37 @@ FALSE_FIELDS = (
 
 class ReceiptArchiveAuditError(ValueError):
     """Fixed diagnostics only; never include paths, receipts or source text."""
+
+
+class SnapshotReadCooldown:
+    """One server-directed cooldown shared by the snapshot's read-only calls."""
+
+    def __init__(self, *, sleep=time.sleep, emit=None):
+        self.sleep = sleep
+        self.emit = emit or (lambda value: None)
+        self.used = False
+
+    def read(self, operation):
+        try:
+            return operation()
+        except PrivateHistoryError as error:
+            diagnostic = storage_diagnostic(error)
+            delay = diagnostic.get('storage_retry_after_seconds')
+            if (self.used or diagnostic.get('storage_status') not in ('http_403_rate_limited', 'http_429')
+                or diagnostic.get('storage_operation') not in ('read_repository_metadata', 'read_private_content')
+                or type(delay) is not int or not 5 <= delay <= 1200):
+                raise
+            self.used = True
+            self.emit({'status': 'waiting_private_snapshot_read_limit',
+                       'retry_after_seconds': delay})
+            # No further request during the server-directed interval.
+            # Short waits also support responsive runner termination.
+            remaining = delay
+            while remaining:
+                chunk = min(45, remaining)
+                self.sleep(chunk)
+                remaining -= chunk
+            return operation()
 
 
 def completed_cursor(raw):
