@@ -1,0 +1,76 @@
+name: V3 Verified FCF Cross-Receipt Comparative Promotion
+on:
+  pull_request:
+    paths:
+      - v3_dart_fcf_comparative_promotion.py
+      - v3_dart_cashflow_enrichment.py
+      - tests/test_v3_dart_fcf_comparative_promotion.py
+      - .github/workflows/v3-fcf-cross-receipt-promotion.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_fcf_comparative_promotion.py
+      - v3_dart_cashflow_enrichment.py
+      - .github/workflows/v3-fcf-cross-receipt-promotion.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_fcf_comparative_promotion.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_enrichment.py' -v
+          python v3_dart_fcf_comparative_promotion.py --mode dry-run
+  promote:
+    needs: offline
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: v3-dart-cashflow-writer
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Promote only independently anchored FY2025 original comparatives
+        run: |
+          python v3_dart_fcf_comparative_promotion.py --mode promote
+          python v3_dart_cashflow_enrichment.py --mode verify
+      - name: Publish provenance-checked FCF source observations
+        id: persist
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-dart-cashflow-reference.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Promote CFO-matched original comparative CAPEX into FCF observations'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_dart_cashflow_enrichment.py --mode verify
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo '::error::verified_comparative_promotion_push_retries_exhausted'
+          exit 1
+      - name: Replay 100-point operational observations using saved sources
+        if: steps.persist.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-current-observed-scorecard.yml/dispatches" -f ref=main -f 'inputs[mode]=write' --silent
