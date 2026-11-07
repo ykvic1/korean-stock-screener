@@ -165,7 +165,8 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
         return None
     if owner_profit_source is not None:
         # This is an independent SAME-company, SAME-year/scope/receipt
-        # check against official fnlttSinglAcntAll. Neither zero nor a
+        # check against official accounts or independently anchored original
+        # filing facts. Neither zero nor a
         # missing reported owner-profit account may be synthesized.
         if parts!=expected or type(owner_profit_priority) is not dict:
             raise LivePartialScorecardError(
