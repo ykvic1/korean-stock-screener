@@ -1,0 +1,104 @@
+"""Offline checks for strict, receipt-bound parent-equity research."""
+import copy
+import json
+from pathlib import Path
+import subprocess
+import unittest
+
+import v3_dart_parent_equity_pilot as mod
+
+CORP = '00126380'
+CODE = '005930'
+RECEIPT = '20260312001140'
+TOTAL = 1000000000
+
+
+def row(account, amount, **kw):
+    return {'corp_code': CORP, 'stock_code': CODE, 'bsns_year': '2025',
+            'reprt_code': '11011', 'fs_div': 'CFS', 'rcept_no': RECEIPT,
+            'sj_div': 'BS', 'account_detail': '-', 'currency': 'KRW',
+            'account_id': account, 'thstrm_amount': str(amount), **kw}
+
+
+def payload(*other):
+    return {'status': '000', 'list': [row('ifrs-full_Equity', TOTAL), *other]}
+
+
+def parse(source):
+    return mod.parse(source, corp=CORP, code=CODE, receipt=RECEIPT,
+                     year=2025, scope='CFS', expected_equity=TOTAL)
+
+
+class ParentEquityPilotTests(unittest.TestCase):
+    def test_never_substitute_undifferentiated_total_equity(self):
+        self.assertEqual(parse(payload()), (None, 'neither_owner_nor_explicit_nci'))
+
+    def test_direct_standard_owner_equity_is_reported_not_calculated(self):
+        got = parse(payload(row('ifrs-full_EquityAttributableToOwnersOfParent', 800000000)))
+        self.assertEqual(got, (800000000, 'same_receipt_direct_parent_equity'))
+
+    def test_only_explicit_nci_permits_identity_and_explicit_zero(self):
+        self.assertEqual(parse(payload(row('ifrs-full_NoncontrollingInterests', 200000000))),
+                         (800000000, 'same_receipt_total_minus_explicit_nci'))
+        self.assertEqual(parse(payload(row('ifrs-full_NoncontrollingInterests', 0))),
+                         (TOTAL, 'same_receipt_total_minus_explicit_nci'))
+
+    def test_owners_plus_nci_must_reconcile(self):
+        source = payload(row('ifrs-full_NoncontrollingInterests', 10),
+                         row('ifrs-full_EquityAttributableToOwnersOfParent', TOTAL-20))
+        with self.assertRaisesRegex(mod.ParentEquityError, 'identity'):
+            parse(source)
+
+    def test_reject_unmatched_receipt_scope_currency_and_ambiguous_facts(self):
+        for field, value, reason in (('rcept_no','20260312001141','identity'),
+                                     ('fs_div','OFS','identity'),
+                                     ('currency','USD','currency')):
+            source = payload(row('ifrs-full_NoncontrollingInterests', 3))
+            source['list'][1][field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(mod.ParentEquityError, reason):
+                parse(source)
+        source = payload(row('ifrs-full_NoncontrollingInterests', 3),
+                         row('ifrs_NoncontrollingInterests', 5))
+        with self.assertRaisesRegex(mod.ParentEquityError, 'conflicting'):
+            parse(source)
+
+    def test_wrong_total_equity_is_not_used_as_formula_anchor(self):
+        source = payload(row('ifrs-full_NoncontrollingInterests', 7))
+        source['list'][0]['thstrm_amount'] = str(TOTAL-5)
+        self.assertEqual(parse(source), (None, 'total_equity_anchor_missing_or_conflicting'))
+
+    def test_no_nonstandard_label_dimensions_or_missing_zero_is_inferred(self):
+        source = payload(row('-표준계정코드 미사용-', 1000),
+                         row('ifrs-full_NoncontrollingInterests', 3))
+        source['list'][-1]['account_detail'] = '연결재무제표 [member]'
+        self.assertEqual(parse(source), (None, 'neither_owner_nor_explicit_nci'))
+        self.assertEqual(parse({'status':'013'}), (None, 'no_annual_statement'))
+
+    def test_non_won_numeric_bad_rows_and_bad_scope_are_rejected(self):
+        source = payload(row('ifrs-full_NoncontrollingInterests', 'not_an_amount'))
+        with self.assertRaisesRegex(mod.ParentEquityError, 'amount'):
+            parse(source)
+        with self.assertRaisesRegex(mod.ParentEquityError, 'anchor'):
+            mod.parse(payload(), corp=CORP, code=CODE, receipt=RECEIPT,
+                      year=2025, scope='OFS', expected_equity=TOTAL)
+
+    def test_research_is_a_read_only_bounded_pilot(self):
+        code = Path(mod.__file__).read_text()
+        self.assertNotIn('write_json(', code)
+        self.assertNotIn('git push', code)
+        self.assertLessEqual(mod.MAX_CALLS, 12)
+
+    def test_current_public_snapshot_pbr_only_candidates_are_bounded(self):
+        folder = Path(__file__).resolve().parent.parent / 'docs'
+        files = ('v3-operational-research-scores.json','v3-operational-research-comparison.json',
+                 'v22-market-catalog.json','v3-dart-book-reference.json','v3-dart-cashflow-reference.json')
+        report,comp,catalog,book,cash = [json.loads((folder/f).read_text()) for f in files]
+        selected,n = mod.targets(report,comp,catalog,book,cash,limit=7)
+        self.assertGreater(n, 0)
+        self.assertLessEqual(len(selected), 7)
+        self.assertTrue(all(row['fs_div']=='CFS' and row['values']['owners_equity'] is None
+                            for _,row in selected))
+
+
+if __name__ == '__main__':
+    unittest.main()
