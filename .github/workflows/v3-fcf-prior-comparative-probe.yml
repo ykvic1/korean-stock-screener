@@ -81,6 +81,12 @@ jobs:
           done
           echo '::error::fcf_comparative_push_retries_exhausted'
           exit 1
+      - name: Replay every newly saved verified source checkpoint explicitly
+        if: steps.persist.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-fcf-cross-receipt-promotion.yml/dispatches" -f ref=main --silent
       - name: Check remaining unreviewed receipts offline
         id: remaining
         if: steps.collect.outputs.interrupted == '0' && steps.persist.outputs.changed == 'true'
