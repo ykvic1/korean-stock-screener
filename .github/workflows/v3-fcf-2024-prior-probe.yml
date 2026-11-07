@@ -11,9 +11,14 @@ on:
       - v3_dart_fcf_2024_prior_probe.py
       - .github/workflows/v3-fcf-2024-prior-probe.yml
   workflow_dispatch:
+  workflow_run:
+    workflows: [V3 Actual DART 3Y Cashflow and CAPEX (strict source-only pilot)]
+    types: [completed]
+    branches: [main]
   schedule:
-    # Resume saved finite checkpoints after a provider reset/outage.
-    - cron: '37 21 * * *'
+    # The full-market close owner remains 18:30 KST. This is a weekday
+    # post-close backup; a completed same-day CF source also resumes it.
+    - cron: '40 9 * * 1-5'
 permissions:
   contents: read
 jobs:
@@ -27,10 +32,15 @@ jobs:
       - run: |
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_2024_prior_probe.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_cashflow_recovery.py' -v
-          python v3_dart_fcf_2024_prior_probe.py --mode dry-run --limit 8
+          python v3_dart_fcf_2024_prior_probe.py --mode dry-run --limit 16 --workers 4 --batches 6 --defer-source-lag
   research:
     needs: offline
-    if: github.event_name != 'pull_request'
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -58,7 +68,7 @@ jobs:
         run: |
           interrupted=1
           for attempt in 1 2; do
-            if python v3_dart_fcf_2024_prior_probe.py --mode live --limit 8; then
+            if python v3_dart_fcf_2024_prior_probe.py --mode live --limit 16 --workers 4 --batches 6 --defer-source-lag; then
               interrupted=0
               break
             fi
@@ -89,7 +99,7 @@ jobs:
         if: steps.collect.outputs.interrupted == '0' && steps.persist.outputs.changed == 'true'
         run: |
           set -euo pipefail
-          count=$(python v3_dart_fcf_2024_prior_probe.py --mode dry-run --limit 1 | python -c 'import json,sys; print(json.load(sys.stdin)["selected"])')
+          count=$(python v3_dart_fcf_2024_prior_probe.py --mode dry-run --limit 1 --defer-source-lag | python -c 'import json,sys; print(json.load(sys.stdin)["selected"])')
           if [ "$count" = 1 ]; then echo 'ready=true' >> "$GITHUB_OUTPUT"; fi
       - name: Continue bounded official source research after saved progress
         if: steps.remaining.outputs.ready == 'true'
