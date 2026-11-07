@@ -396,6 +396,8 @@ def summary(asof,members,records,major_source_hash):
     original_recovered=0
     reported_total_reviews=0
     reported_total_years=0
+    full_intangible_reviews=0
+    full_intangible_years=0
     name_probe_years=0
     name_probe_enriched_years=0
     name_fallback_years=0
@@ -423,6 +425,14 @@ def summary(asof,members,records,major_source_hash):
             intangible=z.get("intangible_capex_krw")
             capex=z.get("total_capex_krw")
             fcf=z.get("free_cashflow_krw")
+            if z.get('full_intangible_review') is not None or z.get('full_intangible_total') is not None:
+                from v3_dart_full_intangible_total import verify as verify_full_intangible,IntangibleTotalError
+                try:full_intangible_years+=int(verify_full_intangible(z))
+                except (IntangibleTotalError,ValueError,KeyError,TypeError):
+                    raise CashflowError('untrusted_official_full_intangible_total') from None
+                if not _valid_receipt(z.get('annual_receipt_id'),int(y),_day(asof)):
+                    raise CashflowError('invalid_full_intangible_receipt')
+                full_intangible_reviews+=1
             reported_total=None
             if z.get('reported_total_review') is not None or z.get('reported_capex_total') is not None:
                 from v3_dart_reported_capex_total import verify,ReportedTotalError
@@ -485,6 +495,9 @@ def summary(asof,members,records,major_source_hash):
     if reported_total_reviews:
         count.update(reported_capex_total_reviewed_years=reported_total_reviews,
                      reported_combined_capex_company_years=reported_total_years)
+    if full_intangible_reviews:
+        count.update(full_intangible_reviewed_years=full_intangible_reviews,
+                     official_full_intangible_total_company_years=full_intangible_years)
     if name_probe_years or name_fallback_years:
         count.update(name_recheck_company_years=name_probe_years,
             name_recheck_enriched_company_years=name_probe_enriched_years,
@@ -492,6 +505,7 @@ def summary(asof,members,records,major_source_hash):
             nonstandard_capex_name_components=name_fallback_components)
     source=("OpenDART API plus receipt/entity/scope/CFO-anchored original IFRS XBRL" if original_recovered else SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS)
     if reported_total_years:source+=' plus receipt-matched reported PPE+intangible purchase totals'
+    if full_intangible_years:source+=' plus verified FSS whole IAS38 intangible purchase totals'
     return {"schema":SCHEMA,"asof":asof,"listed_total":len(members),
             "source_major_history_sha256":major_source_hash,
             "source_fiscal_years":list(YEARS),

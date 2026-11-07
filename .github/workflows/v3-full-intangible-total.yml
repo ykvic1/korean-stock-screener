@@ -1,0 +1,98 @@
+name: V3 FSS Whole IAS38 Intangible Purchase Total Recovery
+on:
+  pull_request:
+    paths:
+      - v3_dart_full_intangible_total.py
+      - tests/test_v3_dart_full_intangible_total.py
+      - .github/workflows/v3-full-intangible-total.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_full_intangible_total.py
+      - .github/workflows/v3-full-intangible-total.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_full_intangible_total.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_gap_audit.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow*py' -v
+          python v3_dart_full_intangible_total.py --mode dry-run --limit 8
+  recover:
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      # Share the existing CF writer lock; no concurrent ledger overwrite.
+      group: korea-stock-screener-dart-cashflow
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Validate official whole IAS38 concept then recover its reported amount
+        id: collect
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          interrupted=0
+          if ! python v3_dart_full_intangible_total.py --mode live --limit 8; then interrupted=1; fi
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+      - name: Verify and publish derived observations before reporting any interruption
+        id: publish
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config --local http.version HTTP/1.1
+          python v3_dart_cashflow_enrichment.py --mode rebind
+          python v3_dart_cashflow_factor_preview.py --mode write
+          python v3_dart_cashflow_gap_audit.py --mode write --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+          for attempt in 1 2 3; do
+            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Recover official full IAS38 intangible purchase totals with taxonomy proofs'
+            git pull --rebase origin main
+            python v3_dart_cashflow_enrichment.py --mode rebind
+            python v3_dart_cashflow_factor_preview.py --mode write
+            python v3_dart_cashflow_gap_audit.py --mode write --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
+            python v3_dart_cashflow_enrichment.py --mode verify
+            python v3_dart_cashflow_factor_preview.py --mode verify
+            if git push origin HEAD:main; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          exit 1
+      - name: Replay validated current observations even after a partial collection
+        if: steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-current-observed-scorecard.yml/dispatches" -f ref=main -f 'inputs[mode]=write' --silent
+      - name: Surface source interruption after preserving validated observations
+        if: steps.collect.outputs.interrupted == '1'
+        run: exit 1
