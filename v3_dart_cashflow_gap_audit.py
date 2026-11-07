@@ -48,8 +48,11 @@ def _classify(observation):
     cfo = observation["operating_cashflow_krw"]
     ppe = observation["ppe_capex_krw"]
     intangible = observation["intangible_capex_krw"]
+    if observation.get('free_cashflow_krw') is not None:
+        return ('fcf_observed_receipt_matched' if observation['major_annual_receipt_matched'] is True
+                else 'fcf_observed_receipt_unmatched')
     if cfo is None:
-        return ("missing_cfo_and_capex" if ppe is None or intangible is None
+        return ("missing_cfo_and_capex" if observation.get('total_capex_krw') is None and (ppe is None or intangible is None)
                 else "missing_cfo_only")
     if ppe is None and intangible is None:
         return "missing_both_capex"
