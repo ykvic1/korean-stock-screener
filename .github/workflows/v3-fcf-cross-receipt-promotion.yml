@@ -29,7 +29,9 @@ jobs:
           python v3_dart_fcf_comparative_promotion.py --mode dry-run
   promote:
     needs: offline
-    if: github.event_name == 'workflow_dispatch'
+    # Source research has finished its finite verified receipt queue. Promote
+    # on the reviewed main merge as well as explicit later manual reruns.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
