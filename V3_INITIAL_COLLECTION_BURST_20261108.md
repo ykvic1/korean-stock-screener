@@ -34,3 +34,15 @@ No source facts, observed weights or investment-grade certification are
 manufactured. Regressions prove actual simultaneous readers with a barrier,
 one checkpoint writer, request ceilings, disjoint resumed targets, preservation
 of valid in-flight responses on failure, and no calls during source-day lag.
+
+The first three live bursts reviewed 96, 96 and 78 issuers with 192, 192 and
+156 provider calls respectively. The final run reported zero remaining eligible
+unreviewed identities for this FY2024 route. These are source-acquisition
+results, not claims that all 2,501 issuers now have complete score inputs.
+
+Final-source replay is explicitly dispatched immediately after every changed
+research checkpoint is published, before checking whether any further research
+remains. Both FY2024 and FY2025 source workflows do this. Existing completion
+notifications remain as a compatible fallback; the final changed batch no longer
+depends solely on a completion notification to start its promotion. Promotion
+is idempotent, provider-free and serialized with the cashflow source writer.
