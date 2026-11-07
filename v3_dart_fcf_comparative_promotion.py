@@ -1,6 +1,6 @@
 """Safely promote independently CFO-anchored original CAPEX comparatives.
 
-Only same-issuer/scope annual FY2025 original XBRL facts whose FY2023/FY2024
+Only same-issuer/scope annual FY2024/FY2025 original XBRL facts whose prior-year
 CFO equals the independently receipt-matched original-year CFO can supplement
 missing older CAPEX. Every numeric component comes from an explicit standard
 IFRS fact, never a missing-as-zero inference. This updates CURRENT observations
@@ -18,6 +18,7 @@ import v3_dart_fcf_prior_comparative_probe as research
 from v3_dart_bulk_history import write_json
 
 CONTRACT = 'two_annual_receipts_same_scope_cfo_correlated_original_capex_v1'
+FY2024_CONTRACT = 'two_annual_receipts_both_cfo_anchors_fy2024_capex_v1'
 PROOF = 'later_original_comparative_proof'
 PARTS = ('ppe_capex_krw', 'intangible_capex_krw')
 
@@ -28,20 +29,34 @@ class ComparativePromotionError(ValueError):
 
 def verify_promoted_year(year_row, issuer_years, code, year):
     proof = year_row.get(PROOF)
-    if type(proof) is not dict or set(proof) != {
+    if type(proof) is not dict:
+        raise ComparativePromotionError('invalid_cross_receipt_capex_proof')
+    source_year = proof.get('source_fiscal_year', 2025)
+    keys = {
         'contract', 'code', 'year', 'scope', 'prior_receipt', 'later_receipt',
         'cfo_anchor', 'archive_sha256', 'profile_sha256', 'source_record_digest',
-        'existing_parts', 'added_parts', 'digest'}:
+        'existing_parts', 'added_parts', 'digest'}
+    if proof.get('contract') == FY2024_CONTRACT:
+        keys |= {'source_fiscal_year', 'source_cfo_anchor'}
+        if type(source_year) is not int or source_year != 2024 or int(year) != 2023:
+            raise ComparativePromotionError('invalid_fy2024_comparative_source')
+    elif proof.get('contract') != CONTRACT or source_year != 2025:
+        raise ComparativePromotionError('invalid_cross_receipt_capex_contract')
+    if set(proof) != keys:
         raise ComparativePromotionError('invalid_cross_receipt_capex_proof')
-    later = issuer_years.get('2025', {})
-    if (proof['contract'] != CONTRACT or proof['code'] != code or proof['year'] != int(year)
+    later = issuer_years.get(str(source_year), {})
+    if (proof.get('contract') == FY2024_CONTRACT and
+        (type(proof['source_cfo_anchor']) is not int or
+         proof['source_cfo_anchor'] != later.get('operating_cashflow_krw'))):
+        raise ComparativePromotionError('unverified_fy2024_source_cfo')
+    if (proof['code'] != code or proof['year'] != int(year)
         or proof['scope'] != year_row.get('scope') or proof['scope'] != later.get('scope')
         or year_row.get('major_annual_receipt_matched') is not True
         or later.get('major_annual_receipt_matched') is not True
-        or later.get('year') != 2025
+        or later.get('year') != source_year
         or proof['prior_receipt'] != year_row.get('annual_receipt_id')
         or proof['later_receipt'] != later.get('annual_receipt_id')
-        or not re.fullmatch('2026[0-9]{10}', str(proof['later_receipt']))
+        or not re.fullmatch(f'{source_year+1}[0-9]{{10}}', str(proof['later_receipt']))
         or proof['cfo_anchor'] != year_row.get('operating_cashflow_krw')
         or type(proof['cfo_anchor']) is not int
         or type(proof['existing_parts']) is not dict or set(proof['existing_parts']) != set(PARTS)
@@ -77,7 +92,11 @@ def restore_if_later_receipt_changed(year_row, *, actual_later_receipt):
     return out
 
 
-def promote_year(code, year, anchor, later, source_record, source_year):
+def promote_year(code, year, anchor, later, source_record, source_year, *, source_fiscal_year=2025):
+    if (type(source_fiscal_year) is not int or source_fiscal_year not in (2024, 2025)
+        or (source_fiscal_year == 2024 and (str(year) != '2023' or
+            source_record.get('source_cfo_2024_krw') != later.get('operating_cashflow_krw')))):
+        raise ComparativePromotionError('invalid_original_comparative_source_year')
     if anchor.get(PROOF) is not None:
         raise ComparativePromotionError('already_promoted_comparative_year')
     if (anchor.get('free_cashflow_krw') is not None
@@ -85,7 +104,7 @@ def promote_year(code, year, anchor, later, source_record, source_year):
         or anchor.get('scope') != later.get('scope')
         or anchor.get('scope') != source_record.get('scope')
         or anchor.get('annual_receipt_id') != source_year.get('original_receipt')
-        or later.get('annual_receipt_id') != source_record.get('fy2025_receipt')
+        or later.get('annual_receipt_id') != source_record.get(f'fy{source_fiscal_year}_receipt')
         or anchor.get('operating_cashflow_krw') != source_year.get('anchor_cfo_krw')
         or type(anchor.get('operating_cashflow_krw')) is not int
         or source_year.get('reason') != 'complete_comparative_candidate'):
@@ -110,9 +129,12 @@ def promote_year(code, year, anchor, later, source_record, source_year):
              'profile_sha256': source_record['profile_sha256'],
              'source_record_digest': source_record['digest'],
              'existing_parts': existing, 'added_parts': dict(added)}
+    if source_fiscal_year == 2024:
+        proof.update(contract=FY2024_CONTRACT, source_fiscal_year=2024,
+                     source_cfo_anchor=source_record['source_cfo_2024_krw'])
     proof['digest'] = cf.fingerprint(proof)
     out[PROOF] = proof
-    verify_promoted_year(out, {year: out, '2025': later}, code, year)
+    verify_promoted_year(out, {str(year): out, str(source_fiscal_year): later}, code, year)
     return out
 
 
@@ -168,11 +190,15 @@ def main():
         'v3-dart-cashflow-reference.json', 'v3-fcf-prior-comparative-research.json')]
     cash = cf.retained_current_market_cashflow(market, catalog, bulk, saved)
     proposed, codes = apply(cash, source)
+    from v3_dart_fcf_2024_prior_probe import OUTPUT as FY2024_OUTPUT, apply as apply_fy2024
+    if (root / FY2024_OUTPUT).is_file():
+        proposed, additional = apply_fy2024(proposed, read(FY2024_OUTPUT))
+        codes = sorted(set(codes) | set(additional))
     result = {'eligible_prior_year_issuer_repairs': len(codes),
               'new_three_year_fcf_issuer_completions': sum(
-                  all(proposed['records'][code]['years'][year].get('free_cashflow_krw') is not None
+                  all(proposed['records'][code]['years'].get(year, {}).get('free_cashflow_krw') is not None
                       for year in ('2023', '2024', '2025'))
-                  and not all(cash['records'][code]['years'][year].get('free_cashflow_krw') is not None
+                  and not all(cash['records'][code]['years'].get(year, {}).get('free_cashflow_krw') is not None
                               for year in ('2023', '2024', '2025')) for code in codes),
               'added_years': sum(
                   old.get(PROOF) is None and proposed['records'][code]['years'][year].get(PROOF) is not None

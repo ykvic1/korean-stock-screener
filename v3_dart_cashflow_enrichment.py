@@ -197,7 +197,8 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
             # original year's other independently verified observations.
             if observation.get('later_original_comparative_proof') is not None:
                 from v3_dart_fcf_comparative_promotion import restore_if_later_receipt_changed
-                later=major_years.get('2025',{}).get(scope,{})
+                source_year=observation['later_original_comparative_proof'].get('source_fiscal_year',2025)
+                later=major_years.get(str(source_year),{}).get(scope,{})
                 later_receipt=later.get('receipt_id') if type(later) is dict else None
                 if observation['later_original_comparative_proof']['later_receipt']!=later_receipt:
                     if archive_unchanged:
