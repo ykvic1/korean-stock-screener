@@ -38,7 +38,9 @@ jobs:
       contents: write
       actions: write
     concurrency:
-      group: v3-dart-cashflow-writer
+      # Serialize with both the official same-year CF collector and original
+      # XBRL CF recovery; all three modify the same cashflow reference file.
+      group: korea-stock-screener-dart-cashflow
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
