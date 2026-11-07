@@ -254,6 +254,7 @@ def plan(market,catalog,bulk,prior=None,limit=MAX_ISSUERS,
             for year in source_receipt_years(record,scope,asof=asof):
                 observed=priorrow["years"].get(str(year))
                 if (observed and observed.get("major_annual_receipt_matched") is True
+                    and observed.get('free_cashflow_krw') is None
                     and any(observed.get(k) is None for k in
                             ("operating_cashflow_krw","ppe_capex_krw",
                              "intangible_capex_krw"))
@@ -393,6 +394,8 @@ def summary(asof,members,records,major_source_hash):
            "most_recent_year_receipt_matched_fcf_issuers":0}
     original_reviews=0
     original_recovered=0
+    reported_total_reviews=0
+    reported_total_years=0
     name_probe_years=0
     name_probe_enriched_years=0
     name_fallback_years=0
@@ -420,6 +423,15 @@ def summary(asof,members,records,major_source_hash):
             intangible=z.get("intangible_capex_krw")
             capex=z.get("total_capex_krw")
             fcf=z.get("free_cashflow_krw")
+            reported_total=None
+            if z.get('reported_total_review') is not None or z.get('reported_capex_total') is not None:
+                from v3_dart_reported_capex_total import verify,ReportedTotalError
+                try:reported_total=verify(z)
+                except (ReportedTotalError,KeyError,TypeError,ValueError):
+                    raise CashflowError('untrusted_reported_capex_total') from None
+                if not _valid_receipt(z.get('annual_receipt_id'),int(y),_day(asof)):
+                    raise CashflowError('invalid_reported_capex_total_receipt')
+                reported_total_reviews+=1;reported_total_years+=int(reported_total is not None)
             names=z.get("source_account_name_fallback")
             if names is not None:
                 if (type(names) is not list or not names
@@ -449,7 +461,8 @@ def summary(asof,members,records,major_source_hash):
                     raise CashflowError("untrusted_cashflow_name_recheck")
                 name_probe_years+=1
                 name_probe_enriched_years+=int(marker["result"]=="enriched")
-            if capex!=(ppe+intangible if ppe is not None and intangible is not None else None):
+            expected_capex=reported_total if reported_total is not None else ppe+intangible if ppe is not None and intangible is not None else None
+            if capex!=expected_capex:
                 raise CashflowError("untrusted_cashflow_capex_sum")
             if fcf!=(cfo-capex if cfo is not None and capex is not None else None):
                 raise CashflowError("untrusted_cashflow_fcf_formula")
@@ -458,7 +471,7 @@ def summary(asof,members,records,major_source_hash):
                 raise CashflowError("cashflow_missing_receipt")
             count["attempted_company_years"]+=1
             count["valid_cashflow_company_years"]+=int(cfo is not None)
-            count["complete_capex_pair_company_years"]+=int(capex is not None)
+            count["complete_capex_pair_company_years"]+=int(ppe is not None and intangible is not None)
             count["fcf_company_years"]+=int(fcf is not None)
             matched=fcf is not None and z.get("major_annual_receipt_matched") is True
             count["receipt_matched_fcf_company_years"]+=int(matched)
@@ -469,15 +482,20 @@ def summary(asof,members,records,major_source_hash):
             count["three_year_fcf_receipt_matched_issuers"]+=1
     if original_reviews:
         count.update(original_xbrl_reviewed_years=original_reviews,original_xbrl_recovered_years=original_recovered)
+    if reported_total_reviews:
+        count.update(reported_capex_total_reviewed_years=reported_total_reviews,
+                     reported_combined_capex_company_years=reported_total_years)
     if name_probe_years or name_fallback_years:
         count.update(name_recheck_company_years=name_probe_years,
             name_recheck_enriched_company_years=name_probe_enriched_years,
             nonstandard_capex_name_company_years=name_fallback_years,
             nonstandard_capex_name_components=name_fallback_components)
+    source=("OpenDART API plus receipt/entity/scope/CFO-anchored original IFRS XBRL" if original_recovered else SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS)
+    if reported_total_years:source+=' plus receipt-matched reported PPE+intangible purchase totals'
     return {"schema":SCHEMA,"asof":asof,"listed_total":len(members),
             "source_major_history_sha256":major_source_hash,
             "source_fiscal_years":list(YEARS),
-            "source":("OpenDART API plus receipt/entity/scope/CFO-anchored original IFRS XBRL" if original_recovered else SOURCE_WITH_NAMES if name_fallback_years else SOURCE_IFRS),
+            "source":source,
             "cashflow_accounting_consolidated_with_major_source":False,
             "three_year_fcf_financial15_certified":False,
             "current_year_fcf_valuation15_certified":False,
@@ -561,6 +579,10 @@ def merge_account_name_recheck(prior,observed):
     ppe=updated["ppe_capex_krw"]
     intangible=updated["intangible_capex_krw"]
     capex=ppe+intangible if ppe is not None and intangible is not None else None
+    if prior.get('reported_capex_total') is not None:
+        from v3_dart_reported_capex_total import verify,ReportedTotalError
+        try:capex=verify(prior)
+        except ReportedTotalError:raise CashflowError('untrusted_reported_capex_total') from None
     updated["total_capex_krw"]=capex
     cfo=updated["operating_cashflow_krw"]
     updated["free_cashflow_krw"]=cfo-capex if cfo is not None and capex is not None else None
@@ -568,6 +590,9 @@ def merge_account_name_recheck(prior,observed):
         "version":NAME_RECHECK_VERSION,
         "receipt_id":prior["annual_receipt_id"],
         "result":"enriched" if added else "checked_unavailable"}
+    if updated.get('reported_capex_total') is not None:
+        try:verify(updated)
+        except ReportedTotalError:raise CashflowError('reported_total_recheck_conflict') from None
     return updated
 
 
