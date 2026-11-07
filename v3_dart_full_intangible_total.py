@@ -13,7 +13,9 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import time
+from contextlib import contextmanager
 
 import v3_dart_cashflow_enrichment as cf
 import v3_dart_xbrl_capex_pilot as xp
@@ -31,6 +33,52 @@ LABELS=frozenset((
 ))
 
 class IntangibleTotalError(ValueError):pass
+
+
+@contextmanager
+def request_wall_deadline(seconds):
+    """Bound total elapsed transfer time, including continuously trickled bodies.
+
+    Live collection runs on the Linux Actions main thread. Refuse unsupported
+    signal environments or an existing timer instead of silently losing a cap.
+    """
+    if (type(seconds) not in (int, float) or not 0 < seconds <= 75
+        or not all(hasattr(signal, name) for name in ('SIGALRM','ITIMER_REAL','setitimer','getitimer'))):
+        raise IntangibleTotalError('full_intangible_wall_deadline_unavailable')
+    if signal.getitimer(signal.ITIMER_REAL) != (0.0, 0.0):
+        raise IntangibleTotalError('full_intangible_wall_deadline_unavailable')
+    previous = signal.getsignal(signal.SIGALRM)
+    def expired(signum, frame):
+        raise IntangibleTotalError('full_intangible_provider_deadline')
+    signal.signal(signal.SIGALRM, expired)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, seconds)
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def bounded_provider_response(client, endpoint, params, *, remaining):
+    if type(remaining) not in (int,float) or remaining < 12:
+        raise IntangibleTotalError('full_intangible_provider_deadline')
+    response = None
+    try:
+        with request_wall_deadline(min(75, remaining)):
+            response = client.get('https://opendart.fss.or.kr/api/'+endpoint,
+                                  params=params, timeout=(15,15))
+            response.raise_for_status()
+            if len(response.content) > 25_000_000:
+                raise IntangibleTotalError('full_intangible_provider_unavailable')
+        return response
+    except IntangibleTotalError:
+        raise
+    except Exception:
+        raise IntangibleTotalError('full_intangible_provider_unavailable') from None
+    finally:
+        if response is not None:
+            try:response.close()
+            except Exception:pass
 
 
 def label(value):
@@ -163,17 +211,17 @@ def main():
     import requests
     key=os.getenv('DART_API_KEY','')
     if not re.fullmatch('[A-Za-z0-9]{40}',key):raise IntangibleTotalError('full_intangible_key_missing')
-    client=requests.Session()
+    client=requests.Session();deadline=time.monotonic()+300
     def get(endpoint,params):
-        try:
-            reply=client.get('https://opendart.fss.or.kr/api/'+endpoint,params={'crtfc_key':key,**params},timeout=(20,90));output['provider_calls']+=1;reply.raise_for_status();return reply
-        except Exception:raise IntangibleTotalError('full_intangible_provider_unavailable') from None
+        if deadline-time.monotonic()<12:raise IntangibleTotalError('full_intangible_provider_deadline')
+        output['provider_calls']+=1
+        return bounded_provider_response(client,endpoint,{'crtfc_key':key,**params},remaining=deadline-time.monotonic())
     tax=certificate({section:get('xbrlTaxonomy.json',{'sj_div':section}).json() for section in ('CF1','CF2','CF3','CF4')})
     output['taxonomy_sections_verified']=len(tax['sections'])
     for _,old_year,old in selected:verify_certificate(tax,old['scope'])
     members={r['code']:r for r in catalog['rows']};cache=Path('.cache/v3-dart-company-codes.json');mapping=verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None,catalog['date'],members)
     if mapping is None:mapping=_mapping(get('corpCode.xml',{}).content,set(members))
-    reasons=Counter();deadline=time.monotonic()+300
+    reasons=Counter()
     for code,year,old in selected:
         if time.monotonic()+95>=deadline:break
         if code not in mapping:continue
@@ -193,6 +241,7 @@ if __name__=='__main__':
     except Exception as error:
         safe={'incomplete_fss_taxonomy_sections','official_taxonomy_unavailable','invalid_official_taxonomy_row',
               'unverified_full_intangible_definition','conflicting_full_intangible_definitions',
-              'invalid_full_intangible_certificate','full_intangible_provider_unavailable','full_intangible_key_missing'}
+              'invalid_full_intangible_certificate','full_intangible_provider_unavailable','full_intangible_key_missing',
+              'full_intangible_wall_deadline_unavailable','full_intangible_provider_deadline'}
         reason=str(error) if type(error) is IntangibleTotalError and str(error) in safe else 'full_intangible_total_not_verified'
         print(json.dumps({'status':'blocked_full_intangible_total','reason':reason}));raise SystemExit(1)
