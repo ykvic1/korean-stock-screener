@@ -82,34 +82,43 @@ jobs:
           from pathlib import Path
           from v3_dart_historical_event_receipts import CHECKPOINT, PRIVATE_REPO, public_progress_complete
           from v3_dart_receipt_archive_audit import audit_matches_checkpoint, completed_cursor
-          from v3_krx_private_github_backfill import PrivateGitStorage
+          from v3_krx_private_github_backfill import PrivateGitStorage, storage_diagnostic
           def output(values):
               with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as handle:
                   for key, value in values.items():
                       handle.write(key + '=' + value + '\n')
+          phase = 'public_progress'
           try:
               progress = json.loads(Path('docs/v3-dart-historical-receipt-progress.json').read_text())
               if not public_progress_complete(progress):
                   output({'ready': 'false', 'cached': 'false'})
                   print('waiting_for_source_verified_120_months')
                   raise SystemExit(0)
+              phase = 'archive_credentials'
               repo, token = os.environ.get('V3_PRIVATE_ARCHIVE_REPO'), os.environ.get('V3_PRIVATE_ARCHIVE_TOKEN', '')
               if repo != PRIVATE_REPO or len(token) < 20:
                   raise ValueError()
               store = PrivateGitStorage(repo, token)
+              phase = 'private_repository'
               store.verify_private()
+              phase = 'completed_checkpoint_read'
               raw, _ = store.get_content(CHECKPOINT)
+              phase = 'completed_checkpoint_validation'
               completed_cursor(raw)
+              phase = 'published_audit_cache'
               published = Path('docs/v3-dart-receipt-archive-audit.json')
               cached = (published.is_file() and audit_matches_checkpoint(json.loads(published.read_text()), raw)
                         and os.environ.get('FORCE_REAUDIT') != 'true')
+              phase = 'snapshot_commit_pin'
               ref = store.transport('GET', 'git/ref/heads/main')
               commit = ref['object']['sha']
               if ref.get('ref') != 'refs/heads/main' or ref['object'].get('type') != 'commit' or not re.fullmatch(r'[a-f0-9]{40}', commit):
                   raise ValueError()
               output({'ready': 'true', 'cached': 'true' if cached else 'false', 'commit': commit})
               print('private_complete_snapshot_gate_verified')
-          except Exception:
+          except Exception as error:
+              print(json.dumps({'status': 'blocked_private_completed_snapshot', 'phase': phase,
+                                **storage_diagnostic(error)}, sort_keys=True))
               raise SystemExit('blocked: private_completed_receipt_snapshot_not_verified') from None
           PY
       - uses: actions/checkout@v4
