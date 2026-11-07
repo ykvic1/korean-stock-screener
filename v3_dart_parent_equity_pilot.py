@@ -45,13 +45,18 @@ def parse(payload, *, corp, code, receipt, year, scope, expected_equity):
         raise ParentEquityError('parent_equity_provider_unavailable')
     facts = {kind: set() for kind in ('total', 'owner', 'nci')}
     for row in rows:
-        if (type(row) is not dict or row.get('corp_code') != corp
-            or str(row.get('bsns_year')) != str(year)
-            or row.get('reprt_code') != '11011'
-            or row.get('fs_div') != scope
-            or row.get('rcept_no') != receipt
-            or ('stock_code' in row and row['stock_code'] != code)):
-            raise ParentEquityError('parent_equity_receipt_identity_mismatch')
+        if type(row) is not dict:
+            raise ParentEquityError('parent_equity_invalid_statement_row')
+        # Field-specific fixed labels expose no raw provider identifiers and
+        # make a genuine version/scope discrepancy actionable on the next run.
+        for name, actual, expected in (
+                ('corporation',row.get('corp_code'),corp),
+                ('fiscal_year',str(row.get('bsns_year')),str(year)),
+                ('report_kind',row.get('reprt_code'),'11011'),
+                ('scope',row.get('fs_div',scope),scope),
+                ('stock',row.get('stock_code',code),code)):
+            if actual != expected:
+                raise ParentEquityError('parent_equity_'+name+'_mismatch')
         if row.get('sj_div') != 'BS' or row.get('account_detail', '-') not in ('', '-'):
             continue
         aid = row.get('account_id')
@@ -59,6 +64,11 @@ def parse(payload, *, corp, code, receipt, year, scope, expected_equity):
                 else 'nci' if aid in NCI_IDS else None)
         if kind is None:
             continue
+        # OpenDART returns many statement sections in one response. Match
+        # the receipt of the *balance-sheet facts actually used*, just as the
+        # established cashflow normalizer matches its selected CF facts.
+        if row.get('rcept_no') != receipt:
+            raise ParentEquityError('parent_equity_fact_receipt_mismatch')
         if row.get('currency') != 'KRW':
             raise ParentEquityError('unverified_parent_equity_currency')
         raw = row.get('thstrm_amount')

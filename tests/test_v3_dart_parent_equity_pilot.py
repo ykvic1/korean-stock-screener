@@ -50,8 +50,8 @@ class ParentEquityPilotTests(unittest.TestCase):
             parse(source)
 
     def test_reject_unmatched_receipt_scope_currency_and_ambiguous_facts(self):
-        for field, value, reason in (('rcept_no','20260312001141','identity'),
-                                     ('fs_div','OFS','identity'),
+        for field, value, reason in (('rcept_no','20260312001141','receipt'),
+                                     ('fs_div','OFS','scope'),
                                      ('currency','USD','currency')):
             source = payload(row('ifrs-full_NoncontrollingInterests', 3))
             source['list'][1][field] = value
@@ -61,6 +61,14 @@ class ParentEquityPilotTests(unittest.TestCase):
                          row('ifrs_NoncontrollingInterests', 5))
         with self.assertRaisesRegex(mod.ParentEquityError, 'conflicting'):
             parse(source)
+
+    def test_unrelated_non_balance_sheet_receipt_does_not_poison_verified_fact(self):
+        source = payload(row('ifrs-full_NoncontrollingInterests', 3))
+        other = row('ifrs-full_Revenue', 8000)
+        other['sj_div'] = 'IS'
+        other['rcept_no'] = '20260318009999'
+        source['list'].append(other)
+        self.assertEqual(parse(source), (TOTAL-3, 'same_receipt_total_minus_explicit_nci'))
 
     def test_wrong_total_equity_is_not_used_as_formula_anchor(self):
         source = payload(row('ifrs-full_NoncontrollingInterests', 7))
