@@ -120,16 +120,24 @@ def merge(old,normalized,proof,reason='no_reported_total'):
     verify(out);return out
 
 
-def targets(state,priority,limit):
+def targets(state,priority,limit,completion_priority=()):
     if type(limit) is not int or not 1<=limit<=40:raise ReportedTotalError('invalid_reported_total_budget')
+    completion_priority=set(completion_priority)
     issuers=[]
     for code,issuer in state['records'].items():
+        missing=[(y,r) for y,r in issuer['years'].items() if r.get('free_cashflow_krw') is None]
         rows=[(y,r) for y,r in issuer['years'].items() if r.get('free_cashflow_krw') is None
               and type(r.get('operating_cashflow_krw')) is int and r.get('major_annual_receipt_matched') is True and r.get('reported_total_review') is None]
         if not rows:continue
         started=any(r.get('reported_capex_total') is not None for r in issuer['years'].values())
         both=any(r.get('ppe_capex_krw') is None and r.get('intangible_capex_krw') is None for _,r in rows)
-        issuers.append((code not in priority,not started,not both,len(rows),code,rows))
+        # A reported TOTAL can fill missing PPE, intangible, or both. Spend
+        # scarce calls first on the issuer's final missing financial factor,
+        # then on whole three-year FCF completion, rather than on the number
+        # of separate CAPEX components absent in one year.
+        whole=(len(missing)==len(rows))
+        issuers.append((code not in completion_priority,not whole,len(rows),
+                        code not in priority,not started,not both,code,rows))
     return [(code,y,row) for *_,code,rows in sorted(issuers) for y,row in sorted(rows)][:limit]
 
 
@@ -140,7 +148,17 @@ def main():
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json',target.name)]
     state=cf.retained_current_market_cashflow(market,catalog,bulk,state);cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True)
     priority=xp.operational_gap_priority(read('v3-operational-research-scores.json'),read('v3-operational-research-comparison.json'),catalog,bulk)
-    selected=targets(state,priority,a.limit)
+    from v3_v30b_release_gate import R1D_PART_LIMITS
+    operational=read('v3-operational-research-scores.json')
+    completion_only=set()
+    if operational.get('asof')==catalog['date']:
+        for code,row in operational['rows'].items():
+            gaps={(area,key) for area,parts in R1D_PART_LIMITS.items()
+                  for key,maximum in parts.items()
+                  if maximum-row['parts'][area].get(key,[0,0])[1]>.00001}
+            if gaps=={('financial','cashflow_fcf_persistence')}:
+                completion_only.add(code)
+    selected=targets(state,priority,a.limit,completion_only)
     output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),'completed':0,'recovered_years':0,'provider_calls':0,'reasons':{},'candidate_account_id_counts':{},'investment_score_certified':False}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
