@@ -156,6 +156,53 @@ class ReceiptArchiveAuditTests(unittest.TestCase):
         self.assertFalse(audit.audit_matches_checkpoint(report, b"invalid"))
 
 
+class SnapshotReadCooldownTests(unittest.TestCase):
+    def failure(self, status='http_403_rate_limited', operation='read_repository_metadata', delay=905):
+        error = audit.PrivateHistoryError('private_storage_api_failed')
+        error.safe_http_status = status
+        error.safe_http_operation = operation
+        error.safe_retry_after_seconds = delay
+        return error
+
+    def test_server_delay_is_respected_once_without_requests_during_wait(self):
+        waits, events, calls = [], [], []
+        cooldown = audit.SnapshotReadCooldown(sleep=waits.append, emit=events.append)
+        def read():
+            calls.append(len(waits))
+            if len(calls) == 1: raise self.failure()
+            return b'unchanged snapshot'
+        self.assertEqual(cooldown.read(read), b'unchanged snapshot')
+        self.assertEqual(sum(waits), 905)
+        self.assertLessEqual(max(waits), 45)
+        self.assertEqual(calls, [0, len(waits)])
+        self.assertEqual(events, [{'status':'waiting_private_snapshot_read_limit','retry_after_seconds':905}])
+
+    def test_auth_generic_forbidden_writes_and_invalid_delays_never_wait(self):
+        for error in (self.failure(status='http_401'), self.failure(status='http_403'),
+                      self.failure(operation='write_private_content'), self.failure(delay=1201),
+                      self.failure(delay=True), self.failure(delay=None)):
+            waits = []
+            cooldown = audit.SnapshotReadCooldown(sleep=waits.append)
+            def read(): raise error
+            with self.assertRaises(audit.PrivateHistoryError): cooldown.read(read)
+            self.assertEqual(waits, [])
+
+    def test_second_failure_and_later_reads_cannot_extend_wait_budget(self):
+        waits = []
+        cooldown = audit.SnapshotReadCooldown(sleep=waits.append)
+        def read(): raise self.failure(status='http_429', delay=5)
+        with self.assertRaises(audit.PrivateHistoryError): cooldown.read(read)
+        with self.assertRaises(audit.PrivateHistoryError): cooldown.read(read)
+        self.assertEqual(waits, [5])
+
+    def test_non_storage_errors_never_retry_or_disclose_source(self):
+        waits, events = [], []
+        cooldown = audit.SnapshotReadCooldown(sleep=waits.append, emit=events.append)
+        def read(): raise ValueError('private source and credentials')
+        with self.assertRaises(ValueError): cooldown.read(read)
+        self.assertEqual((waits, events), ([], []))
+
+
 class ArchiveAuditWorkflowTests(unittest.TestCase):
     def test_snapshot_job_is_separate_pinned_and_does_not_publish_private_files(self):
         workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/v3-dart-receipt-archive-audit.yml").read_text()

@@ -81,13 +81,14 @@ jobs:
           import json, os, re
           from pathlib import Path
           from v3_dart_historical_event_receipts import CHECKPOINT, PRIVATE_REPO, public_progress_complete
-          from v3_dart_receipt_archive_audit import audit_matches_checkpoint, completed_cursor
+          from v3_dart_receipt_archive_audit import audit_matches_checkpoint, completed_cursor, SnapshotReadCooldown
           from v3_krx_private_github_backfill import PrivateGitStorage, storage_diagnostic
           def output(values):
               with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as handle:
                   for key, value in values.items():
                       handle.write(key + '=' + value + '\n')
           phase = 'public_progress'
+          cooldown = SnapshotReadCooldown(emit=lambda value: print(json.dumps(value, sort_keys=True), flush=True))
           try:
               progress = json.loads(Path('docs/v3-dart-historical-receipt-progress.json').read_text())
               if not public_progress_complete(progress):
@@ -100,9 +101,9 @@ jobs:
                   raise ValueError()
               store = PrivateGitStorage(repo, token)
               phase = 'private_repository'
-              store.verify_private()
+              cooldown.read(store.verify_private)
               phase = 'completed_checkpoint_read'
-              raw, _ = store.get_content(CHECKPOINT)
+              raw, _ = cooldown.read(lambda: store.get_content(CHECKPOINT))
               phase = 'completed_checkpoint_validation'
               completed_cursor(raw)
               phase = 'published_audit_cache'
@@ -110,7 +111,7 @@ jobs:
               cached = (published.is_file() and audit_matches_checkpoint(json.loads(published.read_text()), raw)
                         and os.environ.get('FORCE_REAUDIT') != 'true')
               phase = 'snapshot_commit_pin'
-              ref = store.transport('GET', 'git/ref/heads/main')
+              ref = cooldown.read(lambda: store.transport('GET', 'git/ref/heads/main'))
               commit = ref['object']['sha']
               if ref.get('ref') != 'refs/heads/main' or ref['object'].get('type') != 'commit' or not re.fullmatch(r'[a-f0-9]{40}', commit):
                   raise ValueError()
