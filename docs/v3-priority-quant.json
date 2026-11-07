@@ -1,9 +1,9 @@
 {
   "schema": "v3-targeted-live-shortlist-quant-v1",
-  "asof": "2026-11-05",
+  "asof": "2026-11-06",
   "status": "exploratory",
   "peer_cohort_requested": 120,
-  "peer_cohort_valid": 70,
+  "peer_cohort_valid": 73,
   "candidate_count": 4,
   "historical_statistics_exploratory_only": true,
   "survivorship_bias_unresolved": true,
@@ -14,18 +14,18 @@
       "code": "066670",
       "name": "디티씨",
       "status": "exploratory",
-      "reference_price_date": "2026-11-05",
+      "reference_price_date": "2026-11-06",
       "periods": {
         "초단기 1주": {
           "status": "exploratory",
           "sample_n": 500,
-          "symbol_n": 37,
+          "symbol_n": 35,
           "quarter_n": 27,
-          "mean_net_return_pct": -0.35,
-          "stop_first_pct": 31.0,
-          "max_adverse_p75_pct": 4.91,
-          "target_first_pct": 22.6,
-          "up_pct": 46.0,
+          "mean_net_return_pct": -0.44,
+          "stop_first_pct": 31.4,
+          "max_adverse_p75_pct": 4.77,
+          "target_first_pct": 22.0,
+          "up_pct": 44.8,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
@@ -33,41 +33,41 @@
         "단기 2주": {
           "status": "exploratory",
           "sample_n": 500,
-          "symbol_n": 37,
+          "symbol_n": 35,
           "quarter_n": 27,
-          "mean_net_return_pct": -0.41,
+          "mean_net_return_pct": -0.51,
           "stop_first_pct": 32.4,
-          "max_adverse_p75_pct": 6.51,
-          "target_first_pct": 24.8,
-          "up_pct": 44.4,
+          "max_adverse_p75_pct": 6.77,
+          "target_first_pct": 24.0,
+          "up_pct": 41.8,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "스윙 1개월": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 35,
+          "quarter_n": 27,
+          "mean_net_return_pct": 0.13,
+          "stop_first_pct": 35.0,
+          "max_adverse_p75_pct": 9.38,
+          "target_first_pct": 26.6,
+          "up_pct": 48.0,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "스윙 2개월": {
           "status": "exploratory",
           "sample_n": 500,
           "symbol_n": 37,
-          "quarter_n": 27,
-          "mean_net_return_pct": 0.59,
-          "stop_first_pct": 33.4,
-          "max_adverse_p75_pct": 8.92,
-          "target_first_pct": 28.6,
-          "up_pct": 49.0,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "스윙 2개월": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 38,
           "quarter_n": 26,
-          "mean_net_return_pct": 1.11,
-          "stop_first_pct": 35.8,
-          "max_adverse_p75_pct": 12.34,
-          "target_first_pct": 32.8,
-          "up_pct": 50.0,
+          "mean_net_return_pct": 1.15,
+          "stop_first_pct": 36.8,
+          "max_adverse_p75_pct": 12.83,
+          "target_first_pct": 33.6,
+          "up_pct": 48.2,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
@@ -77,222 +77,105 @@
           "sample_n": 500,
           "symbol_n": 39,
           "quarter_n": 26,
-          "mean_net_return_pct": 2.15,
-          "stop_first_pct": 32.6,
-          "max_adverse_p75_pct": 15.3,
-          "target_first_pct": 34.2,
-          "up_pct": 46.8,
+          "mean_net_return_pct": 1.95,
+          "stop_first_pct": 35.0,
+          "max_adverse_p75_pct": 16.35,
+          "target_first_pct": 34.6,
+          "up_pct": 46.4,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "중기 6개월": {
           "status": "exploratory",
-          "sample_n": 340,
-          "symbol_n": 40,
-          "quarter_n": 17,
-          "mean_net_return_pct": 3.51,
-          "stop_first_pct": 37.6,
-          "max_adverse_p75_pct": 21.87,
+          "sample_n": 309,
+          "symbol_n": 39,
+          "quarter_n": 18,
+          "mean_net_return_pct": 3.07,
+          "stop_first_pct": 39.5,
+          "max_adverse_p75_pct": 22.14,
           "target_first_pct": 35.3,
-          "up_pct": 49.4,
+          "up_pct": 48.5,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "장기 1년": {
           "status": "exploratory",
-          "sample_n": 151,
-          "symbol_n": 39,
+          "sample_n": 136,
+          "symbol_n": 35,
           "quarter_n": 12,
-          "mean_net_return_pct": 4.14,
-          "stop_first_pct": 43.7,
-          "max_adverse_p75_pct": 28.78,
-          "target_first_pct": 31.8,
-          "up_pct": 39.7,
+          "mean_net_return_pct": 3.45,
+          "stop_first_pct": 44.1,
+          "max_adverse_p75_pct": 29.0,
+          "target_first_pct": 30.1,
+          "up_pct": 40.4,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         }
       },
       "peer_cohort_requested": 120,
-      "peer_cohort_valid": 70
+      "peer_cohort_valid": 73
     },
     {
-      "code": "006280",
-      "name": "녹십자",
+      "code": "134380",
+      "name": "미원화학",
       "status": "exploratory",
-      "reference_price_date": "2026-11-05",
+      "reference_price_date": "2026-11-06",
       "periods": {
         "초단기 1주": {
           "status": "exploratory",
           "sample_n": 500,
-          "symbol_n": 25,
+          "symbol_n": 29,
           "quarter_n": 27,
-          "mean_net_return_pct": -0.35,
-          "stop_first_pct": 22.2,
-          "max_adverse_p75_pct": 3.81,
-          "target_first_pct": 17.4,
-          "up_pct": 39.8,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "단기 2주": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 27,
-          "mean_net_return_pct": -0.23,
-          "stop_first_pct": 21.8,
-          "max_adverse_p75_pct": 5.26,
-          "target_first_pct": 18.8,
-          "up_pct": 43.8,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "스윙 1개월": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 27,
-          "mean_net_return_pct": 0.27,
-          "stop_first_pct": 23.0,
-          "max_adverse_p75_pct": 6.84,
-          "target_first_pct": 21.4,
-          "up_pct": 45.4,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "스윙 2개월": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 26,
-          "mean_net_return_pct": 0.99,
-          "stop_first_pct": 25.6,
-          "max_adverse_p75_pct": 9.33,
-          "target_first_pct": 26.2,
-          "up_pct": 47.8,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "중기 3개월": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 26,
-          "mean_net_return_pct": 1.52,
-          "stop_first_pct": 26.2,
-          "max_adverse_p75_pct": 11.51,
-          "target_first_pct": 26.0,
-          "up_pct": 50.0,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "중기 6개월": {
-          "status": "exploratory",
-          "sample_n": 270,
-          "symbol_n": 25,
-          "quarter_n": 15,
-          "mean_net_return_pct": 3.3,
-          "stop_first_pct": 27.0,
-          "max_adverse_p75_pct": 16.41,
-          "target_first_pct": 27.8,
-          "up_pct": 50.4,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "장기 1년": {
-          "status": "insufficient",
-          "sample_n": 123,
-          "symbol_n": 24,
-          "quarter_n": 11,
-          "mean_net_return_pct": null,
-          "stop_first_pct": null,
-          "max_adverse_p75_pct": null,
-          "target_first_pct": null,
-          "up_pct": null,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        }
-      },
-      "peer_cohort_requested": 120,
-      "peer_cohort_valid": 70
-    },
-    {
-      "code": "012030",
-      "name": "DB",
-      "status": "insufficient",
-      "reference_price_date": "2026-11-05",
-      "periods": {},
-      "peer_cohort_requested": 120,
-      "peer_cohort_valid": 70
-    },
-    {
-      "code": "005500",
-      "name": "삼진제약",
-      "status": "exploratory",
-      "reference_price_date": "2026-11-05",
-      "periods": {
-        "초단기 1주": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 27,
-          "mean_net_return_pct": -0.32,
-          "stop_first_pct": 21.6,
-          "max_adverse_p75_pct": 3.75,
-          "target_first_pct": 17.8,
-          "up_pct": 40.0,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "단기 2주": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 27,
-          "mean_net_return_pct": -0.08,
-          "stop_first_pct": 22.0,
-          "max_adverse_p75_pct": 5.2,
-          "target_first_pct": 20.2,
-          "up_pct": 45.0,
-          "chronological_holdout": {
-            "test_mean_net_return_pct": null
-          }
-        },
-        "스윙 1개월": {
-          "status": "exploratory",
-          "sample_n": 500,
-          "symbol_n": 25,
-          "quarter_n": 27,
-          "mean_net_return_pct": 0.24,
-          "stop_first_pct": 24.2,
-          "max_adverse_p75_pct": 7.0,
-          "target_first_pct": 20.8,
+          "mean_net_return_pct": -0.21,
+          "stop_first_pct": 27.2,
+          "max_adverse_p75_pct": 4.28,
+          "target_first_pct": 24.8,
           "up_pct": 45.6,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
+        "단기 2주": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 27,
+          "mean_net_return_pct": 0.09,
+          "stop_first_pct": 28.6,
+          "max_adverse_p75_pct": 6.1,
+          "target_first_pct": 27.4,
+          "up_pct": 50.4,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "스윙 1개월": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 27,
+          "mean_net_return_pct": 0.4,
+          "stop_first_pct": 31.8,
+          "max_adverse_p75_pct": 8.72,
+          "target_first_pct": 27.8,
+          "up_pct": 46.0,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
         "스윙 2개월": {
           "status": "exploratory",
           "sample_n": 500,
-          "symbol_n": 25,
+          "symbol_n": 29,
           "quarter_n": 26,
-          "mean_net_return_pct": 1.04,
-          "stop_first_pct": 25.2,
-          "max_adverse_p75_pct": 9.24,
-          "target_first_pct": 25.4,
-          "up_pct": 49.2,
+          "mean_net_return_pct": 0.66,
+          "stop_first_pct": 33.2,
+          "max_adverse_p75_pct": 10.77,
+          "target_first_pct": 28.8,
+          "up_pct": 48.2,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
@@ -300,35 +183,35 @@
         "중기 3개월": {
           "status": "exploratory",
           "sample_n": 500,
-          "symbol_n": 25,
+          "symbol_n": 29,
           "quarter_n": 26,
-          "mean_net_return_pct": 1.48,
-          "stop_first_pct": 28.2,
-          "max_adverse_p75_pct": 12.21,
-          "target_first_pct": 26.6,
-          "up_pct": 51.2,
+          "mean_net_return_pct": 2.04,
+          "stop_first_pct": 28.0,
+          "max_adverse_p75_pct": 12.18,
+          "target_first_pct": 30.8,
+          "up_pct": 51.4,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "중기 6개월": {
           "status": "exploratory",
-          "sample_n": 271,
-          "symbol_n": 25,
-          "quarter_n": 15,
-          "mean_net_return_pct": 3.97,
-          "stop_first_pct": 28.0,
-          "max_adverse_p75_pct": 16.66,
-          "target_first_pct": 30.3,
-          "up_pct": 52.0,
+          "sample_n": 285,
+          "symbol_n": 29,
+          "quarter_n": 14,
+          "mean_net_return_pct": 2.74,
+          "stop_first_pct": 30.2,
+          "max_adverse_p75_pct": 18.13,
+          "target_first_pct": 27.0,
+          "up_pct": 53.0,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
         },
         "장기 1년": {
           "status": "insufficient",
-          "sample_n": 127,
-          "symbol_n": 24,
+          "sample_n": 129,
+          "symbol_n": 28,
           "quarter_n": 11,
           "mean_net_return_pct": null,
           "stop_first_pct": null,
@@ -341,7 +224,124 @@
         }
       },
       "peer_cohort_requested": 120,
-      "peer_cohort_valid": 70
+      "peer_cohort_valid": 73
+    },
+    {
+      "code": "004100",
+      "name": "태양금속",
+      "status": "exploratory",
+      "reference_price_date": "2026-11-06",
+      "periods": {
+        "초단기 1주": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 27,
+          "mean_net_return_pct": -0.2,
+          "stop_first_pct": 21.0,
+          "max_adverse_p75_pct": 3.85,
+          "target_first_pct": 19.6,
+          "up_pct": 43.8,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "단기 2주": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 27,
+          "mean_net_return_pct": -0.12,
+          "stop_first_pct": 25.8,
+          "max_adverse_p75_pct": 5.61,
+          "target_first_pct": 20.6,
+          "up_pct": 47.2,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "스윙 1개월": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 27,
+          "mean_net_return_pct": 0.46,
+          "stop_first_pct": 26.0,
+          "max_adverse_p75_pct": 7.3,
+          "target_first_pct": 22.0,
+          "up_pct": 48.2,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "스윙 2개월": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 26,
+          "mean_net_return_pct": 0.92,
+          "stop_first_pct": 27.8,
+          "max_adverse_p75_pct": 9.52,
+          "target_first_pct": 26.8,
+          "up_pct": 48.8,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "중기 3개월": {
+          "status": "exploratory",
+          "sample_n": 500,
+          "symbol_n": 29,
+          "quarter_n": 26,
+          "mean_net_return_pct": 1.92,
+          "stop_first_pct": 26.6,
+          "max_adverse_p75_pct": 11.74,
+          "target_first_pct": 29.0,
+          "up_pct": 51.8,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "중기 6개월": {
+          "status": "exploratory",
+          "sample_n": 302,
+          "symbol_n": 29,
+          "quarter_n": 15,
+          "mean_net_return_pct": 3.26,
+          "stop_first_pct": 28.5,
+          "max_adverse_p75_pct": 16.72,
+          "target_first_pct": 28.5,
+          "up_pct": 53.0,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        },
+        "장기 1년": {
+          "status": "exploratory",
+          "sample_n": 142,
+          "symbol_n": 28,
+          "quarter_n": 12,
+          "mean_net_return_pct": 6.61,
+          "stop_first_pct": 32.4,
+          "max_adverse_p75_pct": 24.09,
+          "target_first_pct": 31.0,
+          "up_pct": 52.8,
+          "chronological_holdout": {
+            "test_mean_net_return_pct": null
+          }
+        }
+      },
+      "peer_cohort_requested": 120,
+      "peer_cohort_valid": 73
+    },
+    {
+      "code": "101330",
+      "name": "모베이스",
+      "status": "insufficient",
+      "reference_price_date": "2026-11-06",
+      "periods": {},
+      "peer_cohort_requested": 120,
+      "peer_cohort_valid": 73
     }
   ]
 }

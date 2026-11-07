@@ -1,9 +1,9 @@
 {
   "schema": "v3-ranked-quant-coverage-v1",
-  "asof": "2026-11-05",
+  "asof": "2026-11-06",
   "candidate_count": 4,
   "candidates_in_next_120_stock_study": 4,
-  "study_source_asof": "2026-11-05",
+  "study_source_asof": "2026-11-06",
   "quant_study_same_date": true,
   "candidates_with_usable_historical_periods": 3,
   "candidate_status_counts": {
@@ -19,10 +19,10 @@
     {
       "code": "066670",
       "name": "디티씨",
-      "v2_observed_score": 82.8,
+      "v2_observed_score": 75.7,
       "priority_in_next_study": true,
       "state": "research_available",
-      "source_data_date": "2026-11-05",
+      "source_data_date": "2026-11-06",
       "available_historical_periods": [
         "초단기 1주",
         "단기 2주",
@@ -37,12 +37,12 @@
       "buy_certified": false
     },
     {
-      "code": "006280",
-      "name": "녹십자",
-      "v2_observed_score": 81.4,
+      "code": "134380",
+      "name": "미원화학",
+      "v2_observed_score": 74.2,
       "priority_in_next_study": true,
       "state": "research_available",
-      "source_data_date": "2026-11-05",
+      "source_data_date": "2026-11-06",
       "available_historical_periods": [
         "초단기 1주",
         "단기 2주",
@@ -56,33 +56,34 @@
       "buy_certified": false
     },
     {
-      "code": "012030",
-      "name": "DB",
-      "v2_observed_score": 74.2,
-      "priority_in_next_study": true,
-      "state": "history_insufficient",
-      "source_data_date": "2026-11-05",
-      "available_historical_periods": [],
-      "historical_period_count": 0,
-      "out_of_sample_prediction_validated": false,
-      "buy_certified": false
-    },
-    {
-      "code": "005500",
-      "name": "삼진제약",
+      "code": "004100",
+      "name": "태양금속",
       "v2_observed_score": 70.0,
       "priority_in_next_study": true,
       "state": "research_available",
-      "source_data_date": "2026-11-05",
+      "source_data_date": "2026-11-06",
       "available_historical_periods": [
         "초단기 1주",
         "단기 2주",
         "스윙 1개월",
         "스윙 2개월",
         "중기 3개월",
-        "중기 6개월"
+        "중기 6개월",
+        "장기 1년"
       ],
-      "historical_period_count": 6,
+      "historical_period_count": 7,
+      "out_of_sample_prediction_validated": false,
+      "buy_certified": false
+    },
+    {
+      "code": "101330",
+      "name": "모베이스",
+      "v2_observed_score": 70.0,
+      "priority_in_next_study": true,
+      "state": "history_insufficient",
+      "source_data_date": "2026-11-06",
+      "available_historical_periods": [],
+      "historical_period_count": 0,
       "out_of_sample_prediction_validated": false,
       "buy_certified": false
     }

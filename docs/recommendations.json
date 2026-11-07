@@ -16,23 +16,19 @@
   "selection_basis": "all_actual_valid_symbols_before_display_limit",
   "verified_expected_rr_primary": true,
   "missing_validation_must_not_invent_expected_return": true,
-  "research_source_date": "2026-11-05",
-  "research_source_matched": false,
+  "research_source_date": "2026-11-06",
+  "research_source_matched": true,
   "daily_changes": {
-    "entered": [
+    "entered": [],
+    "updated": [
+      "066670",
       "134380",
-      "004100",
+      "004100"
+    ],
+    "unchanged": [
       "101330"
     ],
-    "updated": [
-      "066670"
-    ],
-    "unchanged": [],
-    "exited": [
-      "006280",
-      "012030",
-      "005500"
-    ]
+    "exited": []
   },
   "dossiers": [
     {
@@ -120,35 +116,35 @@
       },
       "historical_quant": {
         "1m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 0.13,
+          "historical_stop_first_pct": 35.0,
+          "historical_adverse_p75_pct": 9.38,
+          "historical_sample_n": 500,
           "forward_validated": false
         },
         "3m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 1.95,
+          "historical_stop_first_pct": 35.0,
+          "historical_adverse_p75_pct": 16.35,
+          "historical_sample_n": 500,
           "forward_validated": false
         },
         "6m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 3.07,
+          "historical_stop_first_pct": 39.5,
+          "historical_adverse_p75_pct": 22.14,
+          "historical_sample_n": 309,
           "forward_validated": false
         },
         "12m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 3.45,
+          "historical_stop_first_pct": 44.1,
+          "historical_adverse_p75_pct": 29.0,
+          "historical_sample_n": 136,
           "forward_validated": false
         }
       },
@@ -187,7 +183,7 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "583e4457f86a236e",
+      "evidence_fingerprint": "8864f66346124b44",
       "rank": 1,
       "daily_change": "updated"
     },
@@ -276,27 +272,27 @@
       },
       "historical_quant": {
         "1m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 0.4,
+          "historical_stop_first_pct": 31.8,
+          "historical_adverse_p75_pct": 8.72,
+          "historical_sample_n": 500,
           "forward_validated": false
         },
         "3m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 2.04,
+          "historical_stop_first_pct": 28.0,
+          "historical_adverse_p75_pct": 12.18,
+          "historical_sample_n": 500,
           "forward_validated": false
         },
         "6m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 2.74,
+          "historical_stop_first_pct": 30.2,
+          "historical_adverse_p75_pct": 18.13,
+          "historical_sample_n": 285,
           "forward_validated": false
         },
         "12m": {
@@ -343,9 +339,9 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "6ef719406522bf20",
+      "evidence_fingerprint": "90d9240c03aec61c",
       "rank": 2,
-      "daily_change": "entered"
+      "daily_change": "updated"
     },
     {
       "code": "004100",
@@ -423,35 +419,35 @@
       },
       "historical_quant": {
         "1m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 0.46,
+          "historical_stop_first_pct": 26.0,
+          "historical_adverse_p75_pct": 7.3,
+          "historical_sample_n": 500,
           "forward_validated": false
         },
         "3m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 1.92,
+          "historical_stop_first_pct": 26.6,
+          "historical_adverse_p75_pct": 11.74,
+          "historical_sample_n": 500,
           "forward_validated": false
         },
         "6m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 3.26,
+          "historical_stop_first_pct": 28.5,
+          "historical_adverse_p75_pct": 16.72,
+          "historical_sample_n": 302,
           "forward_validated": false
         },
         "12m": {
-          "evidence": "missing_or_insufficient",
-          "mean_historical_net_pct": null,
-          "historical_stop_first_pct": null,
-          "historical_adverse_p75_pct": null,
-          "historical_sample_n": null,
+          "evidence": "historical_exploratory",
+          "mean_historical_net_pct": 6.61,
+          "historical_stop_first_pct": 32.4,
+          "historical_adverse_p75_pct": 24.09,
+          "historical_sample_n": 142,
           "forward_validated": false
         }
       },
@@ -490,9 +486,9 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "943892bb47494d33",
+      "evidence_fingerprint": "2afd5ccd98410c00",
       "rank": 3,
-      "daily_change": "entered"
+      "daily_change": "updated"
     },
     {
       "code": "101330",
@@ -642,7 +638,7 @@
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
       "evidence_fingerprint": "d5653ad3160c33ed",
       "rank": 4,
-      "daily_change": "entered"
+      "daily_change": "unchanged"
     }
   ]
 }
