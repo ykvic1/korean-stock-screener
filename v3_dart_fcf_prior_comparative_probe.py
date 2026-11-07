@@ -38,11 +38,30 @@ def targets(priority, cash, previous=None):
         raise ComparativeError('untrusted_fcf_comparative_queue')
     previous = previous or {}
     selected = []
+    # Full-observation candidates go first, but multiple missing components
+    # must not prevent acquiring independently verifiable FCF evidence.
+    codes = []
     for item in priority['single_component_queue']:
         if (len(item.get('gaps', [])) != 1
             or item['gaps'][0].get('component') != 'cashflow_fcf_persistence'):
             continue
-        code = item['code']
+        codes.append(item['code'])
+    multiple = priority.get('multiple_missing_index', [])
+    shapes = priority.get('shape_names', [])
+    if type(multiple) is not list or type(shapes) is not list:
+        raise ComparativeError('untrusted_fcf_comparative_multiple_queue')
+    for item in multiple:
+        if (type(item) is not list or len(item) != 5
+            or type(item[3]) is not int or not 0 <= item[3] < len(shapes)
+            or type(shapes[item[3]]) is not str):
+            raise ComparativeError('invalid_fcf_comparative_gap_shape')
+        if 'financial:cashflow_fcf_persistence' in shapes[item[3]].split('+'):
+            codes.append(item[0])
+    seen = set()
+    for code in codes:
+        if code in seen:
+            continue
+        seen.add(code)
         years = cash.get('records', {}).get(code, {}).get('years', {})
         latest = years.get('2025', {})
         if (latest.get('year') != 2025 or latest.get('major_annual_receipt_matched') is not True
