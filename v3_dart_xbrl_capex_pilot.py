@@ -1447,8 +1447,10 @@ def _extension_label_evidence(archive, entries, *, year=None):
     }
 
 
-def inspect_binary_archive(content, *, year=None):
+def inspect_binary_archive(content, *, year=None, include_extension_evidence=True):
     """No extraction to filesystem; hard limits before decompression."""
+    if type(include_extension_evidence) is not bool:
+        raise XbrlPilotError('invalid_extension_evidence_selector')
     if type(content) is not bytes or not content or len(content) > MAX_RESPONSE_BYTES:
         raise XbrlPilotError("xbrl_binary_response_out_of_bounds")
     if not zipfile.is_zipfile(io.BytesIO(content)):
@@ -1509,7 +1511,8 @@ def inspect_binary_archive(content, *, year=None):
                             observed[kind]["context_shapes"])
             # ZIP-bundled labels and schema IDs are checked locally, without
             # following external taxonomy references or interpreting amounts.
-            extension = _extension_label_evidence(archive, entries, year=year)
+            extension = (_extension_label_evidence(archive, entries, year=year)
+                         if include_extension_evidence else None)
             reasons = _annual_krw_reasons(annual) if year is not None else {}
             candidates = {kind for kind, reason in reasons.items()
                           if reason == "candidate_scope_unverified"}

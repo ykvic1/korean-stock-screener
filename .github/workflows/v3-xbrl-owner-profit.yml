@@ -31,7 +31,7 @@ jobs:
     needs: offline
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     permissions:
       contents: write
       actions: write
@@ -58,7 +58,18 @@ jobs:
         run: |
           set -euo pipefail
           interrupted=0
-          if ! python v3_dart_xbrl_owner_profit.py --mode live --limit 8; then interrupted=1; fi
+          # Four finite checkpointed batches; stop immediately at a source
+          # interruption or an exhausted queue. No repeated failing receipt.
+          for segment in 1 2 3 4; do
+            if ! result="$(python v3_dart_xbrl_owner_profit.py --mode live --limit 8)"; then
+              echo "$result"
+              interrupted=1
+              break
+            fi
+            echo "$result"
+            completed="$(printf '%s' "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["completed"])')"
+            if [[ "$completed" == '0' ]]; then break; fi
+          done
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish

@@ -1,5 +1,8 @@
 import copy
 import unittest
+from unittest.mock import patch
+import io
+import zipfile
 from collections import Counter
 import v3_dart_xbrl_owner_profit as r
 import v3_dart_2025_owner_profit_probe as p
@@ -81,3 +84,45 @@ class OriginalOwnerProfitTests(unittest.TestCase):
         _,_,plain=verified_contexts(xml(),year=2025,scope='CFS',identifiers={'00123456'})
         _,_,parent=verified_contexts(xml(),year=2025,scope='CFS',identifiers={'00123456'},equity_owner=True)
         self.assertTrue(plain['C']);self.assertFalse(plain['P']);self.assertTrue(parent['P']);self.assertFalse(parent['C'])
+
+    def test_independent_scope_cfo_api_anchor_never_borrows_other_scope_or_receipt(self):
+        base=missing()
+        row={'corp_code':'00123456','stock_code':base['code'],'bsns_year':'2025','reprt_code':'11011',
+             'fs_div':'CFS','sj_div':'CF','account_detail':'-','currency':'KRW',
+             'rcept_no':base['annual_receipt_id'],'account_id':'ifrs-full_CashFlowsFromUsedInOperatingActivities','thstrm_amount':'100'}
+        kwargs=dict(code=base['code'],corp='00123456',scope='CFS',receipt=base['annual_receipt_id'],day=base['observed_on'])
+        value,digest=r.official_cfo_anchor({'status':'000','list':[row]},**kwargs)
+        self.assertEqual(value,100);self.assertEqual(len(digest),64)
+        adopted=r.merge(base,80,['parent_equity_profit_loss'],reason='no_verified_owner_profit',cfo_anchor=value,archive_hash='a'*64,profile_hash='b'*64,cfo_response_hash=digest)
+        self.assertTrue(r.verify_review(adopted));self.assertEqual(adopted['original_xbrl_proof']['cfo_response_sha256'],digest)
+        for key,value in [('fs_div','OFS'),('currency','USD'),('corp_code','00999999')]:
+            with self.assertRaises(Exception):r.official_cfo_anchor({'status':'000','list':[{**row,key:value}]},**kwargs)
+        self.assertEqual(r.official_cfo_anchor({'status':'000','list':[{**row,'rcept_no':'20260321000001'}]},**kwargs),(None,None))
+        self.assertEqual(r.official_cfo_anchor({'status':'013'},**kwargs),(None,None))
+        with self.assertRaises(r.OriginalProfitError):r.official_cfo_anchor({'status':'020'},**kwargs)
+
+    def test_missing_independent_cfo_is_only_an_unavailable_review(self):
+        row=r.merge(missing(),None,[],reason='no_verified_cfo_scope',cfo_anchor=None,archive_hash=None,profile_hash=None)
+        self.assertIsNone(row['owners_profit_krw']);self.assertNotIn('original_xbrl_proof',row)
+        self.assertFalse(r.verify_review(row));p._validated_record(row,row['observed_on'])
+
+    def test_unrelated_extension_research_never_blocks_standard_profit_facts(self):
+        raw=archive(xml())
+        with patch.object(r.xp,'_extension_label_evidence',side_effect=r.xp.XbrlPilotError('ambiguous_local_presentation_locator')):
+            self.assertEqual(extract(raw)[0],80)
+            with self.assertRaises(r.xp.XbrlPilotError):r.xp.inspect_binary_archive(raw,year=2025)
+        with self.assertRaises(r.xp.XbrlPilotError):r.xp.inspect_binary_archive(raw,year=2025,include_extension_evidence=1)
+
+    def test_archive_safety_bounds_remain_mandatory_without_extension_research(self):
+        stream=io.BytesIO()
+        with zipfile.ZipFile(stream,'w') as z:z.writestr('../unsafe.xml',xml())
+        with self.assertRaises(r.xp.XbrlPilotError):extract(stream.getvalue())
+        dangerous=xml().replace(b'<xbrl',b'<!DOCTYPE x [<!ENTITY e SYSTEM "file:///secret">]><xbrl',1)
+        with self.assertRaises(r.xp.XbrlPilotError):extract(archive(dangerous))
+
+    def test_prior_observation_and_newer_recheck_keep_their_actual_dates(self):
+        row=missing();row['observed_on']='2026-10-28'
+        row['profit_recheck_contract']=p.profit_allocation.CONTRACT;row['profit_recheck_on']='2026-11-02'
+        out=r.merge(row,80,['parent_equity_profit_loss'],reason='no_verified_owner_profit',cfo_anchor=100,archive_hash='a'*64,profile_hash='b'*64,asof='2026-11-02')
+        self.assertEqual(out['observed_on'],'2026-10-28');self.assertEqual(out['profit_recheck_on'],'2026-11-02')
+        p._validated_record(out,'2026-11-02')
