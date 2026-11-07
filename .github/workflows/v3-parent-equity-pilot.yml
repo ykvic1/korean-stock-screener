@@ -28,7 +28,9 @@ jobs:
           python v3_dart_parent_equity_pilot.py --mode dry-run --limit 7
   live_research:
     needs: offline
-    if: github.event_name == 'workflow_dispatch'
+    # A protected main push runs the bounded pilot once after CI has passed.
+    # Pull requests never receive the credential or make provider calls.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 7
     permissions:
