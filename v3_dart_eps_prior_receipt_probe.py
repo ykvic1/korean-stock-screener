@@ -272,7 +272,10 @@ def main():
             verify_record(saved)
         write_json(target, snapshot)
         output['reviewed'] += 1
-        output['candidate_2023_verified'] += int(reason == 'candidate_2023_verified')
+        # Report only post-reconciliation, overlap-verified candidates.
+        # The raw archive may contain FY2023 EPS without the FY2024 overlap;
+        # counting its pre-reconciliation reason would overstate recovery.
+        output['candidate_2023_verified'] += int(record['reason'] == 'candidate_2023_verified')
         reasons[record['reason']] += 1
     output['reasons'] = dict(reasons)
     print(json.dumps(output, sort_keys=True))
