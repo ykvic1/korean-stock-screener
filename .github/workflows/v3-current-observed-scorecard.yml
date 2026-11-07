@@ -14,6 +14,8 @@ on:
       - tests/test_v3_personal_score_adjustments.py
       - tests/test_v3_stop_loss_severity.py
       - v3_dart_2025_owner_profit_probe.py
+      - v3_dart_parent_equity_recovery.py
+      - docs/v3-dart-parent-equity-supplement.json
       - tests/test_v3_owner_profit_score_replay.py
       - docs/v3-dart-owner-profit-supplement.json
       - v3_near_100_observed_gap.py

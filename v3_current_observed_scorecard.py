@@ -49,6 +49,9 @@ from v3_eps_valuation import build as build_eps_valuation
 from v3_dart_2025_owner_profit_probe import (
     verify as verify_2025_owner_profit_source, ProfitProbeError,
 )
+from v3_dart_parent_equity_recovery import (
+    overlay as overlay_reported_parent_equity, ParentEquityRecoveryError,
+)
 
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
@@ -82,7 +85,8 @@ class LivePartialScorecardError(ValueError):
 
 
 def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
-                   owner_profit_source=None,owner_profit_priority=None):
+                   owner_profit_source=None,owner_profit_priority=None,
+                   parent_equity_source=None,parent_equity_cash=None):
     """Use ONLY the already-public audited DART files from this market close.
 
     A lagged seven-day technical rotation must not hide independently current
@@ -163,6 +167,18 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
         area.get("valuation")!=actual_val or
         audit.get("listed_total")!=catalog["listed_total"]):
         return None
+    supplemented=deepcopy(annual) if parent_equity_source is not None else annual
+    equity_changed=set()
+    if parent_equity_source is not None:
+        if parts!=expected or type(parent_equity_cash) is not dict:
+            raise LivePartialScorecardError('not_full_source_contract_for_parent_equity')
+        try:
+            supplemented=overlay_reported_parent_equity(
+                annual,catalog,parent_equity_source,parent_equity_cash)
+        except (ParentEquityRecoveryError,KeyError,TypeError,ValueError):
+            raise LivePartialScorecardError('untrusted_official_parent_equity_supplement') from None
+        equity_changed=set(parent_equity_source['records'])
+    profit_changed=set()
     if owner_profit_source is not None:
         # This is an independent SAME-company, SAME-year/scope/receipt
         # check against official accounts or independently anchored original
@@ -177,9 +193,8 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
         except (ProfitProbeError,ValueError,KeyError,TypeError):
             raise LivePartialScorecardError(
                 "untrusted_official_owner_profit_supplement") from None
-        audited = deepcopy(annual)
+        audited = deepcopy(supplemented)
         book_rows={r["code"]:r for r in audited["records"]}
-        changed=set()
         for code,record in owner_profit_source["records"].items():
             if record["status"]!="observed_owner_profit":
                 continue
@@ -195,18 +210,20 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
                 raise LivePartialScorecardError(
                     "duplicate_or_unmatched_profit_valuation_source")
             existing["values"]["owners_profit"]=record["owners_profit_krw"]
-            changed.add(code)
-        if changed:
+            profit_changed.add(code)
+        supplemented=audited
+    if profit_changed or equity_changed:
             # Reuse the existing market-wide percentile engine so new
             # profit peers and old peers are normalized consistently.
             # The new book lives in memory only and has a separately
             # audited official 2025 supplemental receipt provenance.
-            replayed=research_parts(history,catalog,audited,include_independent_earnings=True)
+            replayed=research_parts(history,catalog,supplemented,
+                                    include_independent_earnings=owner_profit_source is not None)
             refreshed={r["code"]:r for r in replayed["rows"]}
             if len(refreshed)!=len(replayed["rows"]):
                 raise LivePartialScorecardError(
                     "duplicate_profit_replayed_issuer")
-            for code in changed:
+            for code in profit_changed:
                 updated=refreshed.get(code)
                 income=((updated or {}).get("unverified_components") or {}).get(
                     "earnings_yield_pct",{})
@@ -215,8 +232,13 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
                         "candidate_points") is None:
                     raise LivePartialScorecardError(
                         "profit_source_did_not_replay_into_earnings_yield")
+            for code in equity_changed:
+                pbr=((refreshed.get(code) or {}).get('unverified_components') or {}).get('pbr',{})
+                if not isinstance(pbr,dict) or pbr.get('max_points')!=5 or pbr.get('candidate_points') is None:
+                    raise LivePartialScorecardError('parent_equity_did_not_replay_into_pbr')
             for code,row in refreshed.items():
-                row["owner_profit_2025_source_replayed"]=code in changed
+                row["owner_profit_2025_source_replayed"]=code in profit_changed
+                row["parent_equity_2025_source_replayed"]=code in equity_changed
             return refreshed
     return rows
 
@@ -668,6 +690,15 @@ def main(argv=None):
             if observed_day==catalog["date"]:
                 profit_source=candidate
                 profit_priority=read("v3-near-100-evidence-priority.json")
+        parent_equity_source=None
+        parent_equity_cash=None
+        parent_file=root/'v3-dart-parent-equity-supplement.json'
+        if parent_file.is_file():
+            candidate=read(parent_file.name)
+            if not isinstance(candidate.get('observed_on'),str) or candidate['observed_on']>catalog['date']:
+                raise LivePartialScorecardError('future_parent_equity_supplement')
+            parent_equity_source=candidate
+            parent_equity_cash=read('v3-dart-cashflow-reference.json')
         financial=finance_source(
             catalog,read("v3-dart-bulk-history.json"),
             read("v3-dart-bulk-provisional.json"),
@@ -675,7 +706,9 @@ def main(argv=None):
             weekly=(read("v3-weekly-rotation.json")
                     if audit.get("market_asof")!=catalog["date"] else None),
             owner_profit_source=profit_source,
-            owner_profit_priority=profit_priority)
+            owner_profit_priority=profit_priority,
+            parent_equity_source=parent_equity_source,
+            parent_equity_cash=parent_equity_cash)
     except (OSError,ValueError,KeyError) as error:
         if isinstance(error,LivePartialScorecardError):
             raise
