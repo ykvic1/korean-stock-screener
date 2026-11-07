@@ -67,7 +67,7 @@ def _safe_label(name):
 def examine(payload,*,code,corp,record,day):
     if type(payload) is not dict or payload.get('status') not in ('000','013'):
         raise LabelDiscoveryError('provider_label_response_unavailable')
-    if payload['status']=='013':return [],'no_statement'
+    if payload['status']=='013':return [],'no_statement',False
     rows=payload.get('list')
     if type(rows) is not list or not 1<=len(rows)<=18000:
         raise LabelDiscoveryError('provider_label_response_unavailable')
@@ -76,7 +76,13 @@ def examine(payload,*,code,corp,record,day):
               scope=record['scope'],asof=day,major_receipt=record['annual_receipt_id'])
     if (normalized.get('major_annual_receipt_matched') is not True
         or normalized.get('operating_cashflow_krw')!=record['operating_cashflow_krw']):
-        return [],'cfo_anchor_not_matched'
+        return [],'cfo_anchor_not_matched',False
+    # Only a real, independently parsed standard PPE purchase can complete
+    # the saved FCF observation. Never use label text as a numerical proxy.
+    standard_ppe_usable=(type(normalized.get('ppe_capex_krw')) is int
+        and normalized['ppe_capex_krw']>=0
+        and (normalized.get('intangible_capex_krw') is None
+             or normalized['intangible_capex_krw']==record['intangible_capex_krw']))
     found=[]
     for row in rows:
         if row.get('sj_div')!='CF' or row.get('account_detail','-') not in ('','-'):
@@ -99,7 +105,7 @@ def examine(payload,*,code,corp,record,day):
                   'other_standard' if type(aid) is str and aid.startswith(('dart_','ifrs_','ifrs-full_')) else
                   'unclassified')
         found.append((name,category))
-    return sorted(set(found)),'reviewed'
+    return sorted(set(found)),'reviewed',standard_ppe_usable
 
 
 def main():
@@ -113,6 +119,7 @@ def main():
     chosen,total=targets(report,comp,catalog,bulk,cash,a.limit)
     output={'selected':len(chosen),'eligible_ppe_only_years':total,'provider_calls':0,
             'reviewed':0,'candidate_label_counts':{},'reasons':{},'writes':0,
+            'standard_ppe_recovery_candidates':0,
             'investment_score_certified':False}
     if a.mode=='dry-run' or not chosen:
         print(json.dumps(output,sort_keys=True,ensure_ascii=False));return
@@ -135,9 +142,10 @@ def main():
         if code not in mapping:reasons['company_mapping_unavailable']+=1;continue
         payload=request('fnlttSinglAcntAll.json',{'corp_code':mapping[code],
                         'bsns_year':year,'reprt_code':'11011','fs_div':record['scope']}).json()
-        try:labels,reason=examine(payload,code=code,corp=mapping[code],record=record,day=catalog['date'])
-        except (LabelDiscoveryError,cf.CashflowError):labels,reason=[],'unusable_statement'
+        try:labels,reason,usable=examine(payload,code=code,corp=mapping[code],record=record,day=catalog['date'])
+        except (LabelDiscoveryError,cf.CashflowError):labels,reason,usable=[],'unusable_statement',False
         output['reviewed']+=1;reasons[reason]+=1;names.update(labels)
+        output['standard_ppe_recovery_candidates']+=int(usable)
     output['candidate_label_counts']={name+' ['+kind+']':count for (name,kind),count in sorted(names.items())}
     output['reasons']=dict(reasons)
     print(json.dumps(output,sort_keys=True,ensure_ascii=False))
