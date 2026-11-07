@@ -86,7 +86,7 @@ def targets(priority, cash, previous=None):
         if old is not None:
             verify_record(old)
             if (old['fy2025_receipt'] == receipt and old['scope'] == latest['scope']
-                and old['prior_anchor_digest'] == anchors_digest(missing)):
+                and anchors_unchanged(old, years)):
                 continue
         selected.append((code, latest, missing))
     return selected
@@ -98,6 +98,32 @@ def anchors_digest(missing):
                             'ppe': data.get('ppe_capex_krw'),
                             'intangible': data.get('intangible_capex_krw')}
                            for year, data in missing])
+
+
+def anchors_unchanged(record, years):
+    """Compare original anchors even after a verified individual-year repair.
+
+    Only this exact research record's verified additions may be removed for
+    comparison. A new missing year or changed receipt/CFO/component forces a
+    new review rather than silently reusing a stale source marker.
+    """
+    from v3_dart_fcf_comparative_promotion import PROOF, verify_promoted_year
+    missing = {year for year in ('2023', '2024')
+               if year in years and years[year].get('free_cashflow_krw') is None}
+    if not missing <= set(record['years']):
+        return False
+    original_anchors = []
+    for year in sorted(record['years']):
+        row = years.get(year)
+        if type(row) is not dict:
+            return False
+        if row.get(PROOF) is not None:
+            verify_promoted_year(row, years, record['code'], year)
+            if row[PROOF]['source_record_digest'] != record['digest']:
+                return False
+            row = {**row, **row[PROOF]['existing_parts']}
+        original_anchors.append((year, row))
+    return record['prior_anchor_digest'] == anchors_digest(original_anchors)
 
 
 def reconcile_prior(anchor, observed, source_reason):

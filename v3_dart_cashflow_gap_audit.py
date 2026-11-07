@@ -246,6 +246,8 @@ def main(argv=None):
     parser.add_argument("--issuer-out", default=None,
                         help="Optional tiny per-listed-ticker classifications, no raw amount")
     parser.add_argument("--mode", choices=("write", "verify"), default="write")
+    parser.add_argument("--defer-source-lag", action="store_true",
+                        help="Preserve dated evidence during major-source lag; otherwise replay current receipts")
     args = parser.parse_args(argv)
 
     def read(path):
@@ -255,6 +257,16 @@ def main(argv=None):
     market = read(args.market)
     catalog = read(args.catalog)
     major = read(args.major)
+    if args.defer_source_lag:
+        from v3_dart_source_day_preflight import check
+        gate = check(market, catalog, major, kind="major")
+        if not gate['ready']:
+            print(json.dumps({"status": "waiting_same_day_major_source",
+                              "previous_cashflow_gap_preserved": True,
+                              "provider_api_calls": 0}))
+            return
+        from v3_dart_cashflow_enrichment import retained_current_market_cashflow
+        cashflow = retained_current_market_cashflow(market, catalog, major, cashflow)
     report = audit_cashflow_gaps(cashflow, market, catalog, major)
     issuer = issuer_gap_view(
         cashflow, market, catalog, major, aggregate=report

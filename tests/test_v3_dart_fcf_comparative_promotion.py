@@ -112,6 +112,46 @@ class PromotionTests(unittest.TestCase):
         # Single 2024 research record cannot silently certify a missing 2023.
         self.assertEqual(promo.apply(cash, state)[1], [])
 
+    def test_verified_year_saved_without_inventing_other_year_or_requerying(self):
+        cash, _ = inputs()
+        years = cash['records'][CODE]['years']
+        prior = copy.deepcopy(PRIOR)
+        prior.update(year=2023, annual_receipt_id='20240318000001', ppe_capex_krw=None)
+        years['2023'] = prior
+        source = research.make_record(CODE, years['2025'],
+            [('2023', prior), ('2024', years['2024'])], research={
+                '2023': {'reason': 'partial_comparative_candidate',
+                         'candidate_parts': {'ppe_capex_krw': 10}},
+                '2024': {'reason': 'complete_comparative_candidate',
+                         'candidate_parts': {'intangible_capex_krw': 0}}},
+            archive_hash='a' * 64, profile_hash='b' * 64, day='2026-11-06')
+        state = {'schema': research.SCHEMA, 'scores_unchanged': True,
+                 'records': {CODE: source}}
+        updated, codes = promo.apply(cash, state)
+        self.assertEqual(codes, [CODE])
+        self.assertEqual(updated['records'][CODE]['years']['2024']['free_cashflow_krw'], 80)
+        self.assertEqual(updated['records'][CODE]['years']['2023'], prior)
+        snapshot = cf.summary('2026-11-06', {CODE: ('태양', 'KOSDAQ')},
+                              updated['records'], 'a' * 64)
+        self.assertEqual(snapshot['metrics']['three_year_fcf_receipt_matched_issuers'], 0)
+        self.assertEqual(snapshot['metrics']['later_original_comparative_years'], 1)
+        repeated, chosen = promo.apply(updated, state)
+        self.assertEqual(chosen, [])
+        self.assertEqual(repeated, updated)
+        queue = {'single_component_queue': [
+            {'code': CODE, 'gaps': [{'component': 'cashflow_fcf_persistence'}]}]}
+        self.assertEqual(research.targets(queue, updated, state['records']), [])
+        # A genuine anchor change must reopen research, rather than retaining
+        # the old review marker or filling the newly changed amount.
+        changed = copy.deepcopy(updated)
+        changed['records'][CODE]['years']['2023']['operating_cashflow_krw'] += 1
+        self.assertEqual(len(research.targets(queue, changed, state['records'])), 1)
+        self.assertEqual(promo.apply(changed, state)[1], [])
+        tampered = copy.deepcopy(updated)
+        tampered['records'][CODE]['years']['2024']['intangible_capex_krw'] = 1
+        with self.assertRaises(promo.ComparativePromotionError):
+            research.targets(queue, tampered, state['records'])
+
     def test_revised_later_receipt_rolls_back_comparative_only(self):
         market, catalog, bulk = live_inputs()
         cash, _ = inputs()
