@@ -129,6 +129,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local http.version HTTP/1.1
           git add docs/v3-dart-fcf-research-preview.json
           git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json
           git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json
