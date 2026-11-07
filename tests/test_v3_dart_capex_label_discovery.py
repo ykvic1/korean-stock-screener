@@ -58,11 +58,24 @@ class LabelDiscoveryTests(unittest.TestCase):
                 d.targets(report, {}, catalog, bulk, cash)
 
     def test_nonstandard_research_label_is_not_an_amount_or_score(self):
-        result, reason = d.examine(source(), code=CODE, corp=CORP,
-                                   record=missing_ppe(), day=DAY)
+        result, reason, usable = d.examine(source(), code=CODE, corp=CORP,
+                                           record=missing_ppe(), day=DAY)
         self.assertEqual(result, [('유형자산취득', 'nonstandard')])
         self.assertEqual(reason, 'reviewed')
+        self.assertFalse(usable)
         self.assertNotIn('123456789', str(result))
+
+    def test_standard_ifrs_only_valid_numeric_ppe_can_be_completion_candidate(self):
+        record=missing_ppe()
+        standard=source(label='유형자산의 취득',
+                        account_id='ifrs-full_PurchaseOfPropertyPlantAndEquipment')
+        labels,reason,usable=d.examine(standard,code=CODE,corp=CORP,record=record,day=DAY)
+        self.assertTrue(usable)
+        self.assertEqual(labels,[('유형자산의취득','standard_ifrs')])
+        standard['list'][1]['thstrm_amount']=''
+        self.assertFalse(d.examine(standard,code=CODE,corp=CORP,record=record,day=DAY)[2])
+        standard['list'][1]['thstrm_amount']='-1'
+        self.assertFalse(d.examine(standard,code=CODE,corp=CORP,record=record,day=DAY)[2])
 
     def test_mismatched_candidate_row_is_not_misclassified_as_same_filing(self):
         record = missing_ppe()
@@ -75,22 +88,22 @@ class LabelDiscoveryTests(unittest.TestCase):
         for change in ({'rcept_no': '20240321000001'},
                        {'currency': 'USD'}, {'sj_div': 'BS'},
                        {'account_detail': '사업부별'}):
-            result, reason = d.examine(source(**change), code=CODE,
-                                       corp=CORP, record=record, day=DAY)
-            self.assertEqual((result, reason), ([], 'reviewed'), change)
+            result, reason, usable = d.examine(source(**change), code=CODE,
+                                               corp=CORP, record=record, day=DAY)
+            self.assertEqual((result, reason, usable), ([], 'reviewed',False), change)
 
     def test_wrong_cfo_anchor_and_unusable_payload_are_quarantined(self):
         body = source()
         body['list'][0]['thstrm_amount'] = '1200000001'
         self.assertEqual(d.examine(body, code=CODE, corp=CORP,
                                    record=missing_ppe(), day=DAY),
-                         ([], 'cfo_anchor_not_matched'))
+                         ([], 'cfo_anchor_not_matched',False))
         with self.assertRaises(d.LabelDiscoveryError):
             d.examine({'status': '020'}, code=CODE, corp=CORP,
                       record=missing_ppe(), day=DAY)
         self.assertEqual(d.examine({'status': '013'}, code=CODE, corp=CORP,
                                    record=missing_ppe(), day=DAY),
-                         ([], 'no_statement'))
+                         ([], 'no_statement',False))
 
     def test_mixed_assets_net_and_untrusted_strings_are_excluded(self):
         for label in ('유무형자산의취득', '유형자산의 취득 및 처분',
