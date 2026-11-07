@@ -250,8 +250,12 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertGreaterEqual(len(add),2)
         self.assertEqual({line.strip() for line in add}, {
             "git add docs/v3-dart-fcf-research-preview.json",
+            "git add docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json",
             "git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json",
             "git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json"})
+        for mode in ("write", "verify"):
+            self.assertIn("v3_dart_cashflow_gap_audit.py --mode " + mode +
+                          " --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json", flow)
         for html in ("index.html","workspace.html"):
             text=(base/"docs"/html).read_text(encoding="utf8")
             self.assertIn('href="v3-personal-adjusted-scores.csv"',text)
