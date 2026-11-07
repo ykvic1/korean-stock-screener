@@ -100,6 +100,12 @@ class ReportedTotalTests(unittest.TestCase):
         self.assertEqual(t.targets(state,{'000001','000002'},1)[0][0],'000002')
         self.assertEqual(t.targets(state,{'000001'},1)[0][0],'000001')
 
+    def test_one_component_to_full_score_precedes_generic_both_missing_priorities(self):
+        state={'records':{
+            '000001':{'years':{'2023':prior(2023),'2024':prior(2024)}},
+            '000002':{'years':{'2023':prior(2023,ppe=1)}}}}
+        self.assertEqual(t.targets(state,{'000001'},1,{'000002'})[0][0],'000002')
+
     def test_three_year_actual_total_receipts_replay_into_both_fcf_factors(self):
         market,catalog,bulk=live_inputs();records={}
         for y in (2023,2024,2025):records[str(y)]=recover(prior(y))
