@@ -159,8 +159,14 @@ def _validated_record(record, cutoff):
         raise ProfitProbeError('invalid_profit_source_quarantine_reason')
     value = record.get("owners_profit_krw")
     account = record.get("source_account_id")
+    original_verified=False
+    if record.get('original_xbrl_review') is not None or record.get('original_xbrl_proof') is not None:
+        from v3_dart_xbrl_owner_profit import verify_review
+        original_verified=verify_review(record)
     if record["status"] == "observed_owner_profit":
-        if account==profit_allocation.DERIVED_ID:
+        if original_verified:
+            pass  # The original filing proof validates value, scope and basis.
+        elif account==profit_allocation.DERIVED_ID:
             try:
                 if record['fs_div']!='CFS':raise ValueError()
                 profit_allocation.verify(record.get('profit_reconciliation'),value)
@@ -268,6 +274,11 @@ def snapshot(day, catalog, book, priority, records):
             r.get('profit_recheck_contract')==profit_allocation.CONTRACT for r in records.values())
         report['reconciliation_derived_issuers']=sum(
             r.get('source_account_id')==profit_allocation.DERIVED_ID for r in records.values())
+    reviewed=[r for r in records.values() if r.get('original_xbrl_review') is not None]
+    if reviewed:
+        from v3_dart_xbrl_owner_profit import verify_review
+        report['original_xbrl_reviewed_issuers']=len(reviewed)
+        report['original_xbrl_recovered_issuers']=sum(verify_review(r) for r in reviewed)
     return report
 
 

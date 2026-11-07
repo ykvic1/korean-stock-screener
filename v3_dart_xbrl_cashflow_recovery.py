@@ -55,7 +55,8 @@ def _number(node):
     return int(value) if value==value.to_integral_value() and abs(value)<=10**18 else None
 
 
-def verified_contexts(data,*,year,scope,identifiers,diagnostic=None):
+def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner=False):
+    if type(equity_owner) is not bool:raise RecoveryError('invalid_original_equity_context_selector')
     diagnostic=diagnostic if diagnostic is not None else Counter()
     root=xp._safe_xbrl_xml(data)
     if root.tag!=X+'xbrl':return root,{},{}
@@ -82,6 +83,22 @@ def verified_contexts(data,*,year,scope,identifiers,diagnostic=None):
         parts=[p for p in (entity.find(X+'segment'),ctx.find(X+'segment'),ctx.find(X+'scenario')) if p is not None]
         dims=[v for p in parts for v in p]
         if not dims:diagnostic['non_dimensional_annual_contexts']+=1
+        if equity_owner:
+            # Only the TOTAL parent equity column. Never retained earnings,
+            # NCI, an individual reserve, or a restatement/other dimension.
+            if len(dims)==1 and dims[0].tag==D+'explicitMember':
+                a=xp._safe_qname(dims[0].get('dimension'),bindings);m=xp._safe_qname(dims[0].text,bindings)
+                if a is not None and m is not None and xp._ifrs_full_namespace(a[0]) and a[1]=='ComponentsOfEquityAxis' and m==(a[0],'EquityAttributableToOwnersOfParentMember'):
+                    diagnostic['parent_equity_member_without_explicit_scope']+=1
+            if len(dims)!=2 or any(v.tag!=D+'explicitMember' for v in dims):continue
+            pairs=[(xp._safe_qname(v.get('dimension'),bindings),xp._safe_qname(v.text,bindings)) for v in dims]
+            if any(a is None or m is None or not xp._ifrs_full_namespace(a[0]) or m[0]!=a[0] for a,m in pairs):continue
+            namespaces={a[0] for a,_ in pairs}
+            expected={('ConsolidatedAndSeparateFinancialStatementsAxis','ConsolidatedMember' if scope=='CFS' else 'SeparateMember'),
+                      ('ComponentsOfEquityAxis','EquityAttributableToOwnersOfParentMember')}
+            if len(namespaces)==1 and {(a[1],m[1]) for a,m in pairs}==expected:
+                contexts[key]=True;diagnostic['explicit_owner_equity_contexts']+=1
+            continue
         if len(dims)!=1 or dims[0].tag!=D+'explicitMember':continue
         axis=xp._safe_qname(dims[0].get('dimension'),bindings)
         member=xp._safe_qname(dims[0].text,bindings)
