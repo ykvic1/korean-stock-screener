@@ -67,10 +67,10 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           python v3_dart_reported_eps.py --mode refresh
           python v3_dart_reported_eps.py --mode verify
+          git add docs/v3-dart-reported-eps.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Recover independently anchored original reported basic EPS'
           for attempt in 1 2 3; do
-            git add docs/v3-dart-reported-eps.json
-            if git diff --cached --quiet; then exit 0; fi
-            git commit -m 'Recover independently anchored original reported basic EPS'
             git pull --rebase origin main
             python v3_dart_reported_eps.py --mode refresh
             git add docs/v3-dart-reported-eps.json
@@ -81,6 +81,7 @@ jobs:
               exit 0
             fi
           done
+          echo '::error::verified_eps_push_retries_exhausted'
           exit 1
       - name: Replay validated current observations even after a partial collection
         if: steps.publish.outputs.changed == 'true'
