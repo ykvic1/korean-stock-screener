@@ -1,4 +1,9 @@
 import copy
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
 import unittest
 import signal
 import v3_dart_full_intangible_total as t
@@ -165,3 +170,66 @@ class FullIntangibleTests(unittest.TestCase):
         self.assertEqual(t.targets(state,{'000001','000002'},1)[0][0],'000002')
         state['records']['000002']['years']['2025']=checked
         self.assertTrue(all(code!='000002' for code,_,_ in t.targets(state,{'000001','000002'},8)))
+
+
+class FullIntangiblePublicationRaceTests(unittest.TestCase):
+    """Exercise the actual Actions shell step with a rejected first push."""
+
+    @staticmethod
+    def publish_script():
+        source=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-full-intangible-total.yml').read_text()
+        step=source.split('      - name: Verify and publish derived observations before reporting any interruption\n',1)[1]
+        block=step.split('        run: |\n',1)[1].split('      - name: Replay validated current observations',1)[0]
+        return '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines())
+
+    def replay(self, failed_pushes):
+        git=shutil.which('git')
+        if git is None:self.skipTest('git executable unavailable')
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);remote=root/'remote.git';work=root/'work';fake=root/'fake'
+            subprocess.run([git,'init','-q','--bare','--initial-branch=main',str(remote)],check=True)
+            subprocess.run([git,'clone','-q',str(remote),str(work)],check=True)
+            paths=('docs/v3-dart-cashflow-reference.json','docs/v3-dart-fcf-research-preview.json',
+                   'docs/v3-dart-cashflow-gap-summary.json','docs/v3-dart-cashflow-issuer-evidence.json')
+            for name in paths:
+                path=work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}\n')
+            subprocess.run([git,'-C',str(work),'add','.'],check=True)
+            subprocess.run([git,'-C',str(work),'config','user.email','runner@example.test'],check=True)
+            subprocess.run([git,'-C',str(work),'config','user.name','Test Runner'],check=True)
+            subprocess.run([git,'-C',str(work),'commit','-qm','baseline'],check=True)
+            subprocess.run([git,'-C',str(work),'push','-q','origin','HEAD:main'],check=True)
+            (work/paths[0]).write_text('{"verified_source": true}\n')
+            fake.mkdir();counter=root/'push-count';output=root/'actions-output'
+            wrapper=f'''#!/bin/sh
+if [ "$1" = push ]; then
+  n=$(cat "$MOCK_PUSH_COUNT" 2>/dev/null || printf 0)
+  n=$((n + 1))
+  printf '%s' "$n" > "$MOCK_PUSH_COUNT"
+  if [ "$n" -le "$MOCK_FAIL_PUSHES" ]; then exit 1; fi
+fi
+exec "{git}" "$@"
+'''
+            (fake/'git').write_text(wrapper);(fake/'git').chmod(0o755)
+            (fake/'python').write_text('#!/bin/sh\nexit 0\n');(fake/'python').chmod(0o755)
+            env={**os.environ,'PATH':str(fake)+os.pathsep+os.environ['PATH'],
+                 'MOCK_PUSH_COUNT':str(counter),'MOCK_FAIL_PUSHES':str(failed_pushes),
+                 'GITHUB_OUTPUT':str(output)}
+            result=subprocess.run(['bash','-c',self.publish_script()],cwd=work,env=env,
+                                  text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            published=subprocess.run([git,'--git-dir',str(remote),'show','main:'+paths[0]],
+                                     check=True,capture_output=True,text=True).stdout
+            return result.returncode,counter.read_text(),output.read_text() if output.exists() else '',published,result.stdout
+
+    def test_one_push_race_retries_same_committed_source_then_reports_changed(self):
+        status,tries,output,published,log=self.replay(1)
+        self.assertEqual(status,0,log)
+        self.assertEqual(tries,'2')
+        self.assertIn('changed=true',output)
+        self.assertEqual(published,'{"verified_source": true}\n')
+
+    def test_three_rejected_pushes_fail_closed_without_false_success(self):
+        status,tries,output,published,log=self.replay(3)
+        self.assertNotEqual(status,0,log)
+        self.assertEqual(tries,'3')
+        self.assertNotIn('changed=true',output)
+        self.assertEqual(published,'{}\n')
