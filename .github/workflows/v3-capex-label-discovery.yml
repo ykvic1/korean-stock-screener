@@ -1,0 +1,45 @@
+name: V3 Read-only CAPEX Label Discovery
+on:
+  pull_request:
+    paths:
+      - v3_dart_capex_label_discovery.py
+      - tests/test_v3_dart_capex_label_discovery.py
+      - .github/workflows/v3-capex-label-discovery.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_capex_label_discovery.py
+      - tests/test_v3_dart_capex_label_discovery.py
+      - .github/workflows/v3-capex-label-discovery.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify literal candidate identity and refusal rules
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_capex_label_discovery.py' -v
+          python v3_dart_capex_label_discovery.py --mode dry-run --limit 7
+  research:
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Check up to seven source-matched fiscal 2023-24 CF labels
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python v3_dart_capex_label_discovery.py --mode live --limit 7
