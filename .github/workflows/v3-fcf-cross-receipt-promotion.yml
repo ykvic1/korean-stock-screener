@@ -13,6 +13,10 @@ on:
       - v3_dart_cashflow_enrichment.py
       - .github/workflows/v3-fcf-cross-receipt-promotion.yml
   workflow_dispatch:
+  workflow_run:
+    workflows: [V3 Original Prior-Year FCF Comparative Research]
+    types: [completed]
+    branches: [main]
 permissions:
   contents: read
 jobs:
@@ -29,9 +33,14 @@ jobs:
           python v3_dart_fcf_comparative_promotion.py --mode dry-run
   promote:
     needs: offline
-    # Source research has finished its finite verified receipt queue. Promote
-    # on the reviewed main merge as well as explicit later manual reruns.
-    if: github.event_name != 'pull_request'
+    # Every successful bounded source batch may provide new verified facts.
+    # Always load main; never execute source-run artifacts or PR code.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.event != 'pull_request'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

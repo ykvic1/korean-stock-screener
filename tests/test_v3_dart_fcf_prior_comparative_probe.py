@@ -70,6 +70,43 @@ class OriginalFcfComparativeTests(unittest.TestCase):
         with self.assertRaises(probe.ComparativeError):
             probe.verify_record(altered)
 
+    def test_multiple_gaps_admitted_after_single_gaps_without_duplicate_calls(self):
+        priority = {'single_component_queue': [
+            {'code': '053620', 'gaps': [{'component': 'cashflow_fcf_persistence'}]}],
+            'shape_names': [
+                'financial:cashflow_fcf_persistence+valuation:per_eps_quality_growth',
+                'financial:revenue_growth+valuation:fcf_yield'],
+            'multiple_missing_index': [
+                ['005930', 90, 10, 0, 'available'],
+                ['053620', 90, 10, 0, 'available'],
+                ['000660', 90, 10, 1, 'available']]}
+        cash = {'records': {code: {'years': {'2024': copy.deepcopy(PRIOR),
+                                           '2025': copy.deepcopy(LATEST)}}
+                            for code in ('053620', '005930', '000660')}}
+        before = copy.deepcopy(cash)
+        self.assertEqual([x[0] for x in probe.targets(priority, cash)],
+                         ['053620', '005930'])
+        record = probe.make_record('005930', LATEST, [('2024', PRIOR)],
+            research={'2024': {'reason': 'no_verified_prior_cfo_scope',
+                               'candidate_parts': {}}},
+            archive_hash='a' * 64, profile_hash='b' * 64, day='2026-11-06')
+        self.assertEqual([x[0] for x in probe.targets(priority, cash, {'005930': record})],
+                         ['053620'])
+        # Changed source identity is independently reviewed again.
+        cash['records']['005930']['years']['2025']['annual_receipt_id'] = '20260318000002'
+        self.assertEqual(len(probe.targets(priority, cash, {'005930': record})), 2)
+        cash['records']['005930']['years']['2025']['annual_receipt_id'] = LATEST['annual_receipt_id']
+        self.assertEqual(cash, before)
+        cash['records']['005930']['years']['2024']['scope'] = 'OFS'
+        self.assertEqual([x[0] for x in probe.targets(priority, cash)], ['053620'])
+
+    def test_malformed_multi_gap_indexes_fail_closed(self):
+        base = {'single_component_queue': [], 'shape_names': ['financial:cashflow_fcf_persistence']}
+        for index in (-1, True, 1, '0'):
+            with self.subTest(index=index), self.assertRaises(probe.ComparativeError):
+                probe.targets({**base, 'multiple_missing_index': [
+                    ['005930', 90, 10, index, 'available']]}, {'records': {}})
+
 
 if __name__ == '__main__':
     unittest.main()
