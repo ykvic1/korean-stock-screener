@@ -112,19 +112,27 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python v3_volume_participation.py --mode write
+          python v3_current_observed_scorecard.py --mode write --refresh-derived
+          python v3_operational_research_score.py
+          python v3_operational_evidence_priority.py
+          python v3_operational_model_diagnostics.py
+          git add docs/v3-actual-money-participation.json docs/v3-actual-money-coverage-summary.json docs/v3-volume-obv-observed.json docs/v3-volume-obv-observed.csv docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/score-history/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Replay saved-date actual-money correction structure without new KRX calls'
           for attempt in 1 2 3; do
+            git pull --rebase origin main
             python v3_volume_participation.py --mode write
             python v3_current_observed_scorecard.py --mode write --refresh-derived
             python v3_operational_research_score.py
             python v3_operational_evidence_priority.py
             python v3_operational_model_diagnostics.py
             git add docs/v3-actual-money-participation.json docs/v3-actual-money-coverage-summary.json docs/v3-volume-obv-observed.json docs/v3-volume-obv-observed.csv docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/score-history/
-            if git diff --cached --quiet; then exit 0; fi
-            git commit -m 'Replay saved-date actual-money correction structure without new KRX calls'
+            if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             if git push origin HEAD:main; then
               gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
               exit 0
             fi
-            git pull --rebase origin main
           done
+          echo '::error::saved_money_score_push_retries_exhausted'
           exit 1
