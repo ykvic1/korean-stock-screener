@@ -194,9 +194,15 @@ def targets(state,priority,limit):
                   and r.get('major_annual_receipt_matched') is True and r.get('full_intangible_review') is None]
         if eligible:
             whole_completion=(len(missing)==len(eligible) and all(r.get('ppe_capex_krw') is not None for _,r in eligible))
+            # An intangible total alone cannot produce a free-cashflow value
+            # when PPE is also missing. Prefer an immediately computable FCF
+            # company-year before exhausting the much larger PPE-missing queue.
+            any_fcf_ready=any(r.get('ppe_capex_krw') is not None for _,r in eligible)
             started=any(r.get('full_intangible_total') is not None for r in issuer['years'].values())
-            groups.append((code not in priority,not whole_completion,not started,len(eligible),code,eligible))
-    return [(code,y,r) for *_,code,eligible in sorted(groups) for y,r in sorted(eligible)][:limit]
+            groups.append((not whole_completion,not any_fcf_ready,code not in priority,
+                           not started,len(eligible),code,eligible))
+    return [(code,y,r) for *_,code,eligible in sorted(groups)
+            for y,r in sorted(eligible,key=lambda item:(item[1].get('ppe_capex_krw') is None,item[0]))][:limit]
 
 
 def main():
