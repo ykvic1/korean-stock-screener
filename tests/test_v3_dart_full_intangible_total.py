@@ -171,6 +171,19 @@ class FullIntangibleTests(unittest.TestCase):
         state['records']['000002']['years']['2025']=checked
         self.assertTrue(all(code!='000002' for code,_,_ in t.targets(state,{'000001','000002'},8)))
 
+    def test_ppe_complete_years_go_before_priority_names_that_cannot_yet_form_fcf(self):
+        # Neither issuer can become three-year complete from this source alone.
+        # Yet 000002/2025 can immediately produce one real observed FCF year.
+        state={'records':{
+            '000001':{'years':{'2023':prior(2023),'2024':prior(2024)}},
+            '000002':{'years':{'2023':prior(2023),
+                               '2025':prior(2025,ppe=300000000)}}}}
+        selected=t.targets(state,{'000001'},1)
+        self.assertEqual([(code,y) for code,y,_ in selected],[('000002','2025')])
+        # Within the same issuer the PPE-ready year is chosen first as well.
+        only={'records':{'000002':state['records']['000002']}}
+        self.assertEqual(t.targets(only,{},1)[0][1],'2025')
+
 
 class FullIntangiblePublicationRaceTests(unittest.TestCase):
     """Exercise the actual Actions shell step with a rejected first push."""
