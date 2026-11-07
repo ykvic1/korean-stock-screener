@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - v3_dart_fcf_comparative_promotion.py
+      - v3_dart_fcf_2024_prior_probe.py
       - v3_dart_cashflow_enrichment.py
       - tests/test_v3_dart_fcf_comparative_promotion.py
       - .github/workflows/v3-fcf-cross-receipt-promotion.yml
@@ -10,11 +11,12 @@ on:
     branches: [main]
     paths:
       - v3_dart_fcf_comparative_promotion.py
+      - v3_dart_fcf_2024_prior_probe.py
       - v3_dart_cashflow_enrichment.py
       - .github/workflows/v3-fcf-cross-receipt-promotion.yml
   workflow_dispatch:
   workflow_run:
-    workflows: [V3 Original Prior-Year FCF Comparative Research]
+    workflows: [V3 Original Prior-Year FCF Comparative Research, V3 FY2024 Original Prior-Year FCF Recovery]
     types: [completed]
     branches: [main]
 permissions:
@@ -30,6 +32,7 @@ jobs:
       - run: |
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_comparative_promotion.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_cashflow_enrichment.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_fcf_2024_prior_probe.py' -v
           python v3_dart_fcf_comparative_promotion.py --mode dry-run
   promote:
     needs: offline
