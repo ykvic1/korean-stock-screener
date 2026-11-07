@@ -10,6 +10,7 @@ import unittest
 
 
 PUBLISHERS = {
+    'v3-reported-capex-total.yml': 'Verify and publish derived observations before reporting any interruption',
     'v3-xbrl-owner-profit.yml': 'Verify and publish derived observations before reporting any interruption',
     'v3-xbrl-eps-recovery.yml': 'Verify and publish derived observations before reporting any interruption',
     'v3-xbrl-cashflow-recovery.yml': 'Verify and publish derived observations before reporting any interruption',
