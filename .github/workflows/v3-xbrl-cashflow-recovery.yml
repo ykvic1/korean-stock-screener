@@ -73,10 +73,10 @@ jobs:
           python v3_dart_cashflow_enrichment.py --mode rebind
           python v3_dart_cashflow_factor_preview.py --mode write
           python v3_dart_cashflow_gap_audit.py --mode write --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+          git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Recover independently anchored original annual XBRL cashflow facts'
           for attempt in 1 2 3; do
-            git add docs/v3-dart-cashflow-reference.json docs/v3-dart-fcf-research-preview.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
-            if git diff --cached --quiet; then exit 0; fi
-            git commit -m 'Recover independently anchored original annual XBRL cashflow facts'
             git pull --rebase origin main
             python v3_dart_cashflow_enrichment.py --mode rebind
             python v3_dart_cashflow_factor_preview.py --mode write
@@ -90,6 +90,7 @@ jobs:
               exit 0
             fi
           done
+          echo '::error::verified_xbrl_cashflow_push_retries_exhausted'
           exit 1
       - name: Replay validated current observations even after a partial collection
         if: steps.publish.outputs.changed == 'true'
