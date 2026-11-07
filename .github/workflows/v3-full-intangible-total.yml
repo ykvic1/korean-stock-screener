@@ -99,6 +99,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-current-observed-scorecard.yml/dispatches" -f ref=main -f 'inputs[mode]=write' --silent
+      - name: Check remaining finite queue after successfully persisted progress
+        id: remaining
+        if: steps.collect.outputs.interrupted == '0' && steps.publish.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          python v3_dart_full_intangible_total.py --mode dry-run --limit 1 > "$RUNNER_TEMP/v3-full-intangible-remaining.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          plan = json.loads((Path(os.environ['RUNNER_TEMP']) / 'v3-full-intangible-remaining.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('ready=' + ('true' if plan['selected_issuer_years'] > 0 else 'false') + '\n')
+          print(json.dumps({'remaining_work': plan['selected_issuer_years'] > 0, 'provider_calls': 0}))
+          PY
+      - name: Continue the next serialized batch only after verified source progress
+        if: steps.remaining.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-full-intangible-total.yml/dispatches" -f ref=main --silent
       - name: Surface source interruption after preserving validated observations
         if: steps.collect.outputs.interrupted == '1'
         run: exit 1

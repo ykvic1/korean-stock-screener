@@ -1,10 +1,68 @@
 import copy
 import unittest
+import signal
 import v3_dart_full_intangible_total as t
 import v3_dart_cashflow_enrichment as cf
 import v3_dart_cashflow_factor_preview as factor
 from test_v3_dart_reported_capex_total import prior,DAY,CODE,CORP
 from test_v3_dart_cashflow_enrichment import rows,live_inputs
+
+
+@unittest.skipUnless(hasattr(signal, 'SIGALRM'), 'Linux live collector deadline')
+class ProviderWallDeadlineTests(unittest.TestCase):
+    def test_total_deadline_interrupts_an_active_response_and_restores_timer(self):
+        previous = signal.getsignal(signal.SIGALRM)
+        class Client:
+            calls = 0
+            def get(self, *args, **kwargs):
+                self.calls += 1
+                signal.raise_signal(signal.SIGALRM)
+        client = Client()
+        with self.assertRaisesRegex(t.IntangibleTotalError, '^full_intangible_provider_deadline$'):
+            t.bounded_provider_response(client,'fnlttSinglAcntAll.json',{'crtfc_key':'secret'},remaining=75)
+        self.assertEqual(client.calls, 1)
+        self.assertEqual(signal.getsignal(signal.SIGALRM), previous)
+        self.assertEqual(signal.getitimer(signal.ITIMER_REAL), (0.0,0.0))
+
+    def test_existing_timer_is_not_overwritten(self):
+        signal.setitimer(signal.ITIMER_REAL, 30)
+        try:
+            with self.assertRaisesRegex(t.IntangibleTotalError, 'wall_deadline_unavailable'):
+                with t.request_wall_deadline(75): self.fail('must not enter')
+            self.assertGreater(signal.getitimer(signal.ITIMER_REAL)[0], 25)
+        finally:signal.setitimer(signal.ITIMER_REAL, 0)
+
+    def test_exhausted_batch_budget_does_not_make_a_request(self):
+        class Client:
+            def get(self, *args, **kwargs): raise AssertionError('no request authorized')
+        with self.assertRaisesRegex(t.IntangibleTotalError, '^full_intangible_provider_deadline$'):
+            t.bounded_provider_response(Client(),'x',{},remaining=11)
+
+    def test_transport_errors_never_expose_request_credentials(self):
+        class Client:
+            def get(self, *args, **kwargs): raise ValueError('secret URL and crtfc_key')
+        with self.assertRaisesRegex(t.IntangibleTotalError, '^full_intangible_provider_unavailable$'):
+            t.bounded_provider_response(Client(),'x',{},remaining=75)
+        self.assertEqual(signal.getitimer(signal.ITIMER_REAL), (0.0,0.0))
+
+    def test_loaded_response_is_closed_and_oversized_bodies_rejected(self):
+        class Large:
+            def __len__(self):return 25_000_001
+        class Response:
+            closed = False
+            content = b'{}'
+            def raise_for_status(self):pass
+            def close(self):self.closed=True
+        class Client:
+            def __init__(self,response):self.response=response
+            def get(self,*args,**kwargs):return self.response
+        response=Response()
+        self.assertIs(t.bounded_provider_response(Client(response),'x',{},remaining=75),response)
+        self.assertTrue(response.closed)
+        response=Response();response.content=Large()
+        with self.assertRaises(t.IntangibleTotalError):
+            t.bounded_provider_response(Client(response),'x',{},remaining=75)
+        self.assertTrue(response.closed)
 
 
 def tax_payloads():
