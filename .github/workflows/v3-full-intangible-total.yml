@@ -30,7 +30,7 @@ jobs:
     needs: offline
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     permissions:
       contents: write
       actions: write
@@ -57,7 +57,13 @@ jobs:
         run: |
           set -euo pipefail
           interrupted=0
-          if ! python v3_dart_full_intangible_total.py --mode live --limit 8; then interrupted=1; fi
+          for batch in 1 2 3 4; do
+            if ! python v3_dart_full_intangible_total.py --mode live --limit 40 | tee /tmp/v3-full-intangible-batch.json; then
+              interrupted=1
+              break
+            fi
+            if python -c 'import json; import sys; d=json.load(open("/tmp/v3-full-intangible-batch.json")); sys.exit(0 if d["completed"] == 0 else 1)'; then break; fi
+          done
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish
