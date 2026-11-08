@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 import time
+import threading
 import zipfile
 
 import v3_dart_reported_eps as eps
@@ -27,6 +28,7 @@ from v3_dart_bulk_history import _mapping, verified_company_mapping_cache, write
 
 SCHEMA = 'v3-eps-prior-original-receipt-research-v1'
 CONTRACT = 'fy2024_original_eps_fy2024_overlap_cfo_v1'
+READER_VERSION = 'explicit_ordinary_share_research_v2'
 REASONS = frozenset(('candidate_2023_verified', 'original_file_absent',
                      'no_verified_cfo_scope', 'missing_2023_basic_eps',
                      'missing_2024_overlap', '2024_overlap_conflict',
@@ -63,7 +65,8 @@ def candidates(reported, cash, already=None):
         if prior is not None:
             verify_record(prior)
             if (prior['receipt_2024'], prior['receipt_2025'], prior['scope'],
-                prior['cfo_2024_krw'], prior['saved_eps_2024']) == identity:
+                prior['cfo_2024_krw'], prior['saved_eps_2024']) == identity and (
+                prior['reason']=='candidate_2023_verified' or prior.get('source_reader_version')==READER_VERSION):
                 continue
         choices.append((code, row, anchor))
     return choices
@@ -91,7 +94,7 @@ def extract_instance(raw, *, scope, identifiers, cfo_anchor, diagnostic=None):
     out = {}
     for year in (2023, 2024):
         _, _, contexts = original.verified_contexts(
-            raw, year=year, scope=scope, identifiers=identifiers)
+            raw, year=year, scope=scope, identifiers=identifiers,ordinary_share=True)
         values = []
         for fact in root:
             uri, local = xp._qualified_name(fact.tag)
@@ -114,7 +117,7 @@ def extract_instance(raw, *, scope, identifiers, cfo_anchor, diagnostic=None):
 
 
 def extract_archive(raw, *, scope, identifiers, cfo_anchor, diagnostic=None):
-    checked = xp.inspect_binary_archive(raw, year=2024)
+    checked = xp.inspect_binary_archive(raw, year=2024,include_extension_evidence=False)
     if checked['file_absent']:
         return {}, 'original_file_absent'
     found = {}
@@ -134,7 +137,7 @@ def extract_archive(raw, *, scope, identifiers, cfo_anchor, diagnostic=None):
     return found, 'candidate_2023_verified' if anchored else 'no_verified_cfo_scope'
 
 
-def make_record(code, row, anchor, *, values, reason, archive_sha256, profile_sha256, asof):
+def make_record(code, row, anchor, *, values, reason, archive_sha256, profile_sha256, asof,previous=None):
     if reason not in REASONS or type(values) is not dict or not set(values) <= {'2023', '2024'}:
         raise PriorEPSError('invalid_prior_eps_result')
     overlap = row['reported_basic_eps_2023_2025'][1]
@@ -156,7 +159,11 @@ def make_record(code, row, anchor, *, values, reason, archive_sha256, profile_sh
         'reason': reason, 'archive_sha256': archive_sha256,
         'profile_sha256': profile_sha256, 'observed_on': asof,
         'scored_eps_unchanged': True,
+        'source_reader_version': READER_VERSION,
     }
+    if previous is not None and previous.get('reason')!='candidate_2023_verified' and previous.get('source_reader_version')!=READER_VERSION:
+        verify_record(previous)
+        record['previous_review_digest']=previous['digest']
     record['digest'] = cf.fingerprint(record)
     verify_record(record)
     return record
@@ -167,7 +174,11 @@ def verify_record(record):
             'cfo_2024_krw', 'saved_eps_2024', 'original_eps_2024',
             'candidate_eps_2023', 'reason', 'archive_sha256',
             'profile_sha256', 'observed_on', 'scored_eps_unchanged', 'digest'}
-    if (type(record) is not dict or set(record) != keys
+    if (type(record) is not dict or not keys<=set(record)
+        or not set(record)<=keys|{'source_reader_version','previous_review_digest'}
+        or ('source_reader_version' in record and record['source_reader_version']!=READER_VERSION)
+        or ('previous_review_digest' in record and (record.get('source_reader_version')!=READER_VERSION
+            or type(record['previous_review_digest']) is not str or not re.fullmatch('[a-f0-9]{64}',record['previous_review_digest'])))
         or record['contract'] != CONTRACT or record['reason'] not in REASONS
         or record['scope'] not in ('CFS', 'OFS')
         or not re.fullmatch('[0-9A-Z]{6}', str(record['code']))
@@ -185,6 +196,11 @@ def verify_record(record):
             and record['original_eps_2024'] != record['saved_eps_2024'])
         or record['digest'] != cf.fingerprint({k: v for k, v in record.items() if k != 'digest'})):
         raise PriorEPSError('invalid_prior_eps_record')
+
+
+def require_archive_or_explicit_absence(raw):
+    if not raw.startswith(b'PK'):
+        xp.inspect_binary_archive(raw,year=2024,include_extension_evidence=False)
 
 
 def main():
@@ -211,7 +227,8 @@ def main():
         raise PriorEPSError('invalid_prior_eps_snapshot')
     records = before.get('records', {})
     choices = candidates(state, cash, records)
-    output = {'eligible_total': len(choices) + len(records),
+    output = {'eligible_total':len(set(records)|{code for code,_,_ in choices}),
+              'remaining_source_reviews':len(choices),'reviewed_before':len(records),'source_readers':4,
               'selected': min(args.limit, len(choices)),
               'reviewed': 0, 'candidate_2023_verified': 0, 'provider_calls': 0,
               'reasons': {}, 'scored_eps_unchanged': True}
@@ -223,16 +240,19 @@ def main():
     if not re.fullmatch('[A-Za-z0-9]{40}', key):
         raise PriorEPSError('missing_prior_eps_key')
     day, members, *_ = eps.plan(catalog, book, state)
-    session = requests.Session()
+    local=threading.local();clients=[];api_lock=threading.Lock()
     cache = Path('.cache/v3-dart-company-codes.json')
     mapping = verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None, day, members)
 
     def get(endpoint, params, stream=False):
         try:
-            response = session.get('https://opendart.fss.or.kr/api/' + endpoint,
+            if not hasattr(local,'session'):
+                local.session=requests.Session()
+                with api_lock:clients.append(local.session)
+            response = local.session.get('https://opendart.fss.or.kr/api/' + endpoint,
                                    params={'crtfc_key': key, **params},
                                    timeout=(20, 90), stream=stream)
-            output['provider_calls'] += 1
+            with api_lock:output['provider_calls'] += 1
             response.raise_for_status()
             return response
         except Exception:
@@ -242,18 +262,20 @@ def main():
         mapping = _mapping(get('corpCode.xml', {}).content, set(members))
     reasons = Counter()
     deadline = time.monotonic() + 360
-    for code, row, anchor in choices[:args.limit]:
-        if time.monotonic() + 120 >= deadline:
-            break
-        if code not in mapping:
-            continue
+    def fetch(choice):
+        code,row,anchor,previous=choice
+        if code not in mapping:return None
         try:
             profile = get('company.json', {'corp_code': mapping[code]}).json()
             identifiers = original.company_ids(profile, mapping[code], code)
         except (ValueError, TypeError):
             raise PriorEPSError('prior_eps_identity_unavailable') from None
-        raw = xp._read_response_limited(get('fnlttXbrl.xml', {
-            'rcept_no': anchor['annual_receipt_id'], 'reprt_code': '11011'}, True))
+        response=get('fnlttXbrl.xml', {'rcept_no': anchor['annual_receipt_id'], 'reprt_code': '11011'}, True)
+        try:raw=xp._read_response_limited(response)
+        finally:response.close()
+        # Auth/quota/service XML is not evidence of a missing source fact.
+        # Only the inspector's explicit file-absence response is a negative.
+        require_archive_or_explicit_absence(raw)
         try:
             values, reason = extract_archive(raw, scope=row['fs_div'],
                 identifiers=identifiers, cfo_anchor=anchor['operating_cashflow_krw'])
@@ -261,7 +283,10 @@ def main():
             values, reason = {}, 'unusable_original_archive'
         record = make_record(code, row, anchor, values=values, reason=reason,
             archive_sha256=hashlib.sha256(raw).hexdigest(),
-            profile_sha256=cf.fingerprint(profile), asof=day)
+            profile_sha256=cf.fingerprint(profile), asof=day,previous=previous)
+        return record
+    def checkpoint(record):
+        code=record['code']
         records[code] = record
         snapshot = {'schema': SCHEMA, 'asof': day,
                     'listed_total': catalog['listed_total'], 'scores_unchanged': True,
@@ -277,6 +302,11 @@ def main():
         # counting its pre-reconciliation reason would overstate recovery.
         output['candidate_2023_verified'] += int(record['reason'] == 'candidate_2023_verified')
         reasons[record['reason']] += 1
+    from v3_eps_parallel_collection import collect
+    selected=[(code,row,anchor,records.get(code)) for code,row,anchor in choices[:args.limit]]
+    try:collect(selected,fetch,checkpoint,workers=4,deadline=deadline)
+    finally:
+        for session in clients:session.close()
     output['reasons'] = dict(reasons)
     print(json.dumps(output, sort_keys=True))
 
