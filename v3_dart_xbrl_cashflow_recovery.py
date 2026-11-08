@@ -55,8 +55,9 @@ def _number(node):
     return int(value) if value==value.to_integral_value() and abs(value)<=10**18 else None
 
 
-def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner=False):
+def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner=False,ordinary_share=False):
     if type(equity_owner) is not bool:raise RecoveryError('invalid_original_equity_context_selector')
+    if type(ordinary_share) is not bool or (ordinary_share and equity_owner):raise RecoveryError('invalid_original_ordinary_context_selector')
     diagnostic=diagnostic if diagnostic is not None else Counter()
     root=xp._safe_xbrl_xml(data)
     if root.tag!=X+'xbrl':return root,{},{}
@@ -83,6 +84,17 @@ def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner
         parts=[p for p in (entity.find(X+'segment'),ctx.find(X+'segment'),ctx.find(X+'scenario')) if p is not None]
         dims=[v for p in parts for v in p]
         if not dims:diagnostic['non_dimensional_annual_contexts']+=1
+        if ordinary_share and len(dims)==2:
+            # EPS only: the explicit TOTAL ordinary-share member, with no
+            # entity-defined subclass, preference share or other dimension.
+            if any(v.tag!=D+'explicitMember' for v in dims):continue
+            pairs=[(xp._safe_qname(v.get('dimension'),bindings),xp._safe_qname(v.text,bindings)) for v in dims]
+            if any(a is None or m is None or not xp._ifrs_full_namespace(a[0]) or m[0]!=a[0] for a,m in pairs):continue
+            expected={('ConsolidatedAndSeparateFinancialStatementsAxis','ConsolidatedMember' if scope=='CFS' else 'SeparateMember'),
+                      ('ClassesOfShareCapitalAxis','OrdinarySharesMember')}
+            if len({a[0] for a,_ in pairs})==1 and {(a[1],m[1]) for a,m in pairs}==expected:
+                contexts[key]=True;diagnostic['explicit_ordinary_share_contexts']+=1
+            continue
         if equity_owner:
             # Only the TOTAL parent equity column. Never retained earnings,
             # NCI, an individual reserve, or a restatement/other dimension.

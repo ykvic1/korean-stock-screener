@@ -21,6 +21,7 @@ from v3_dart_2025_owner_profit_probe import _read_company_cache_from_root
 
 SCHEMA = 'v3-reported-annual-basic-eps-comparatives-v1'
 EPS_IDS = {'ifrs-full_BasicEarningsLossPerShare', 'ifrs_BasicEarningsLossPerShare'}
+ORIGINAL_REPORTED_BASIC_EPS_ID = 'original-xbrl:explicit-reported-basic-eps-v2'
 NONSTANDARD_ID = '-표준계정코드 미사용-'
 # Only literal Korean statement labels disclosed by the issuer. Never infer
 # an EPS amount from profit, share count, synonyms or punctuation changes.
@@ -236,13 +237,13 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
             if (observed_day > cutoff or row.get('comparative_basis') != (
                     'statement_not_usable' if quarantined else 'one_annual_filing_same_scope')
                 or row.get('status') not in ('reported_basic_eps', 'standard_eps_not_observed', 'statement_not_usable')
-                or row.get('source_account_id') not in EPS_IDS | {NONSTANDARD_ID, None}
+                or row.get('source_account_id') not in EPS_IDS | {NONSTANDARD_ID, ORIGINAL_REPORTED_BASIC_EPS_ID, None}
                 or row.get('metrics') != metrics(row.get('reported_basic_eps_2023_2025'))
                 or (row['status'] in ('standard_eps_not_observed', 'statement_not_usable') and
                     (row['source_account_id'] is not None or row['reported_basic_eps_2023_2025'] != [None]*3))
                 or (quarantined and row.get('source_reason') not in UNUSABLE_REASONS)
                 or (row['status'] == 'reported_basic_eps'
-                    and row['source_account_id'] not in EPS_IDS | {NONSTANDARD_ID})):
+                    and row['source_account_id'] not in EPS_IDS | {NONSTANDARD_ID, ORIGINAL_REPORTED_BASIC_EPS_ID})):
                 raise EPSError('invalid_saved_eps_source')
             label=row.get('source_account_name_fallback')
             marker=row.get('source_name_recheck')
@@ -250,6 +251,9 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
             if row.get('original_xbrl_review') is not None or row.get('original_xbrl_proof') is not None:
                 from v3_dart_xbrl_eps_recovery import verify_review
                 original_recovered=verify_review(row)
+            if row.get('source_account_id')==ORIGINAL_REPORTED_BASIC_EPS_ID and not (
+                original_recovered and row.get('original_xbrl_context_recheck') is not None):
+                raise EPSError('invalid_saved_eps_source')
             if (bool(label) != (row['source_account_id']==NONSTANDARD_ID)
                 or (label is not None and label not in ALLOWED_BASIC_EPS_NAMES)
                 or (marker is None and label is not None)):
