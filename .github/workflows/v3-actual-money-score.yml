@@ -8,6 +8,7 @@ on:
       - v3_actual_money_structure.py
       - tests/test_v3_actual_money_participation.py
       - tests/test_v3_actual_money_structure.py
+      - tests/test_v3_money_component_observations.py
       - .github/workflows/v3-actual-money-score.yml
   push:
     branches: [main]
@@ -43,6 +44,7 @@ jobs:
       - run: python -m pip install 'requests>=2.31,<3'
       - run: python -m unittest discover -s tests -p 'test_v3_actual_money_participation.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_actual_money_structure.py' -v
+      - run: python -m unittest discover -s tests -p 'test_v3_money_component_observations.py' -v
   publish:
     needs: offline
     if: >-
@@ -79,7 +81,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt 'exchange-calendars==4.13.1'
-      - name: Derive only bounded six-point money evidence from pinned private snapshot
+      - name: Derive bounded money components independently from the pinned private snapshot
         id: projection
         env:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}

@@ -135,3 +135,92 @@ def valid(source):
                 and math.isfinite(source['components'][k])
                 and 0<=source['components'][k]<=maximum)
                for k,maximum in COMPONENT_MAX.items())
+
+
+COMPONENT_SCHEMA = 'v3-actual-money-independent-component-observations-v1'
+
+
+def derive_components(daily, weekly, cohorts):
+    """Observe each formula only from its own required source windows.
+
+    Missing persistence windows retain their fixed missing weight. Never
+    renormalize a short history into the full five-point observation.
+    """
+    if any(type(x) is not list for x in (daily, weekly, cohorts)):
+        return None
+    d = [_score_window(daily, n) for n in DAILY_WINDOWS]
+    w = [_score_window(weekly, n) for n in WEEKLY_WINDOWS]
+    present = [(x, 2.5 / len(d)) for x in d if x is not None]
+    present += [(x, 2.5 / len(w)) for x in w if x is not None]
+    persistence = ([sum(x['sustained'] * weight for x, weight in present),
+                    sum(weight for _, weight in present)] if present else None)
+    short = [x for x in (d[0], w[0]) if x is not None]
+    concentration = [sum(x['quality'] for x in short), len(short)] if short else None
+    pressure = [row.get('money_pressure_intrabucket_bp') if type(row) is dict else None
+                for row in cohorts[:12]]
+    asymmetry = ([2 * _clip(sum(pressure) / 12 / 5000), 2]
+                 if len(pressure) == 12 and all(type(x) is int and -10000 <= x <= 10000
+                                               for x in pressure) else None)
+    correction, size = correction_observation(cohorts)
+    increment = ([2 * _clip(w[-1]['ratio'] - max(1., d[0]['ratio'])), 2]
+                 if w[-1] is not None and d[0] is not None else None)
+    components = {'persistence': persistence, 'concentration_quality': concentration,
+                  'up_down_asymmetry': asymmetry,
+                  'correction_contraction': [correction, 1] if correction is not None else None,
+                  'weekly_structure_increment': increment}
+    if not any(x is not None for x in components.values()):
+        return None
+    growth = (3 * sum(x['growth'] for x in d) / len(d) +
+              3 * sum(x['growth'] for x in w) / len(w)
+              if all(x is not None for x in d + w) else None)
+    result = {'schema': COMPONENT_SCHEMA,
+              'growth6': round(growth, 6) if growth is not None else None,
+              'components': {k: [round(x[0], 6), round(x[1], 6)] if x is not None else None
+                             for k, x in components.items()},
+              'correction_window_cohorts': size,
+              'missing_weight_not_renormalized': True,
+              'derived_from_private_reported_acc_trdval': True,
+              'original_amounts_or_paths_exported': False,
+              'intrabucket_boundary_price_sign_known': False,
+              'independent_regular_session_verified': False,
+              'investment_score_certified': False}
+    return result if valid_components(result) else None
+
+
+def valid_components(source):
+    if (type(source) is not dict or set(source) != {
+        'schema', 'growth6', 'components', 'correction_window_cohorts',
+        'missing_weight_not_renormalized', 'derived_from_private_reported_acc_trdval',
+        'original_amounts_or_paths_exported', 'intrabucket_boundary_price_sign_known',
+        'independent_regular_session_verified', 'investment_score_certified'}
+        or source['schema'] != COMPONENT_SCHEMA
+        or source['missing_weight_not_renormalized'] is not True
+        or source['derived_from_private_reported_acc_trdval'] is not True
+        or any(source[k] is not False for k in ('original_amounts_or_paths_exported',
+            'intrabucket_boundary_price_sign_known', 'independent_regular_session_verified',
+            'investment_score_certified'))
+        or type(source['components']) is not dict or set(source['components']) != set(COMPONENT_MAX)):
+        return False
+    if source['growth6'] is not None and (type(source['growth6']) not in (float, int)
+        or not math.isfinite(source['growth6']) or not 0 <= source['growth6'] <= 6):
+        return False
+    for key, maximum in COMPONENT_MAX.items():
+        part = source['components'][key]
+        if part is not None and (type(part) is not list or len(part) != 2
+            or any(type(x) not in (float, int) or not math.isfinite(x) for x in part)
+            or not 0 <= part[0] <= part[1] <= maximum or part[1] <= 0):
+            return False
+        if part is not None:
+            allowed = ({round(a * .625 + b * .5, 6) for a in range(5) for b in range(6)
+                        if a or b} if key == 'persistence' else
+                       {1, 2} if key == 'concentration_quality' else {maximum})
+            if part[1] not in allowed:
+                return False
+    correction = source['components']['correction_contraction']
+    size = source['correction_window_cohorts']
+    if correction is None:
+        if size is not None:
+            return False
+    elif type(size) is not int or size not in CORRECTION_COHORT_WINDOWS:
+        return False
+    return any(x is not None for x in source['components'].values())

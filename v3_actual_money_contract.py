@@ -22,11 +22,11 @@ def closed_week_end(asof):
             else d-timedelta(days=d.weekday()+1)).isoformat()
 
 
-def usable_records(report, catalog):
+def _validated_records(report, catalog):
     """Old/missing evidence is optional; reject an entire malformed new receipt."""
     if (not isinstance(report,dict) or type(report.get('asof')) is not str
         or report['asof']>catalog['date']):
-        return {}
+        return None
     try:
         if (report['schema']!=SCHEMA or report['model']!=MODEL or report['points_budget']!=6
             or len(report['source_catalog_sha256'])!=64
@@ -45,11 +45,11 @@ def usable_records(report, catalog):
             or any(report[k] is not False for k in ('original_amounts_or_bars_published',
                 'independent_regular_session_verified','corporate_actions_and_pit_verified','investment_score_certified'))
             or report['provisional_personal_use_only'] is not True):
-            return {}
+            return None
         members={r['code']:r for r in catalog['rows']}
         records=report['records']
         if type(records) is not dict or report['eligible_issuers']!=len(records):
-            return {}
+            return None
         diagnostic=report.get('coverage_gap_diagnostic')
         if diagnostic is not None:
             statuses={'complete','incomplete_periods','zero_baseline'}
@@ -73,7 +73,7 @@ def usable_records(report, catalog):
                 or any(k not in pairs or type(v) is not int or v<=0
                        for k,v in diagnostic['reason_pair_counts'].items())
                 or sum(diagnostic['reason_pair_counts'].values())!=diagnostic['fresh_unscored_issuers']):
-                return {}
+                return None
         windows=report.get('comparison_window_coverage')
         if windows is not None:
             if (type(windows) is not dict or set(windows)!={
@@ -82,7 +82,7 @@ def usable_records(report, catalog):
                 'issuer_window_flags_or_amounts_published'}
                 or windows['complete_window_is_not_full_six_point_eligibility'] is not True
                 or windows['issuer_window_flags_or_amounts_published'] is not False):
-                return {}
+                return None
             fresh=diagnostic['full_fresh_evidence_issuers'] if diagnostic else 0
             for field,periods in [('daily_comparison_eligible_issuers',DAILY),
                                   ('weekly_comparison_eligible_issuers',WEEKLY_WINDOWS)]:
@@ -90,7 +90,7 @@ def usable_records(report, catalog):
                 if (type(counts) is not dict or set(counts)!={str(n) for n in periods}
                     or any(type(v) is not int or not fresh<=v<=report['listed_total']
                            for v in counts.values())):
-                    return {}
+                    return None
         for code,r in records.items():
             if (type(r) is not dict or type(r.get('asof')) is not str
                 or r['asof']>report['asof'] or date.fromisoformat(r['asof']).isoformat()!=r['asof']
@@ -100,10 +100,10 @@ def usable_records(report, catalog):
                 or r['weekly_session_end']>report['asof']
                 or type(r.get('points')) not in (int,float) or not math.isfinite(r['points'])
                 or not 0<=r['points']<=6):
-                return {}
+                return None
             if ('r1c_structure' in r and
                 not valid_r1c_structure(r['r1c_structure'])):
-                return {}
+                return None
             if 'daily_asof' in r or 'computed_asof' in r:
                 daily=r.get('daily_asof');computed=r.get('computed_asof')
                 if (type(daily) is not str or type(computed) is not str
@@ -112,10 +112,50 @@ def usable_records(report, catalog):
                     or max(daily,r['weekly_session_end'])>computed
                     or computed>report['asof']
                     or r['asof']!=min(daily,r['weekly_session_end'])):
-                    return {}
+                    return None
         return {code:r for code,r in records.items() if code in members
                 and members[code]['market']==r['market']
                 and members[code]['name']==r['issuer_name']}
     except (KeyError,TypeError,ValueError,AttributeError):
-        return {}
+        return None
 
+
+
+def usable_records(report, catalog):
+    return _validated_records(report, catalog) or {}
+
+
+def usable_component_records(report, catalog):
+    from v3_actual_money_structure import COMPONENT_SCHEMA, valid_components
+    if _validated_records(report, catalog) is None:
+        return {}
+    try:
+        records = report['component_records']
+        if (report['component_contract'] != COMPONENT_SCHEMA or type(records) is not dict
+            or type(report['component_eligible_issuers']) is not int
+            or report['component_eligible_issuers'] != len(records)
+            or len(records) > report['listed_total']):
+            return {}
+        members = {row['code']: row for row in catalog['rows']}
+        selected = {}
+        keys = {'market', 'issuer_name', 'asof', 'daily_asof', 'computed_asof',
+                'weekly_session_end', 'model', 'component_observations'}
+        for code, row in records.items():
+            if (type(row) is not dict or set(row) != keys or row['model'] != MODEL
+                or not valid_components(row['component_observations'])
+                or any(type(row[k]) is not str or date.fromisoformat(row[k]).isoformat() != row[k]
+                       for k in ('asof', 'daily_asof', 'computed_asof', 'weekly_session_end'))
+                or max(row['daily_asof'], row['weekly_session_end']) > row['computed_asof']
+                or row['computed_asof'] > report['asof']
+                or row['daily_asof'] != report['daily_asof']
+                or row['weekly_session_end'] != report['weekly_session_end']
+                or row['computed_asof'] != report['asof']
+                or row['weekly_session_end'] > report['weekly_session_end']
+                or row['asof'] != min(row['daily_asof'], row['weekly_session_end'])):
+                return {}
+            member = members.get(code)
+            if member and member['name'] == row['issuer_name'] and member['market'] == row['market']:
+                selected[code] = row
+        return selected
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return {}

@@ -27,6 +27,8 @@ from v3_dart_bulk_history import _stable_digest
 from v3_actual_money_contract import (
     SCHEMA, MODEL, OUTPUT, DAILY, WEEKLY_WINDOWS, usable_records, closed_week_end)
 from v3_actual_money_structure import derive as derive_r1c_structure
+from v3_actual_money_structure import derive_components, COMPONENT_SCHEMA, COMPONENT_MAX
+from v3_actual_money_contract import usable_component_records
 PRIVATE_REPO='ykvic1/korean-stock-private-data'
 COVERAGE_SUMMARY='v3-actual-money-coverage-summary.json'
 COVERAGE_SUMMARY_SCHEMA='v3-personal-actual-money-coverage-summary-0.1'
@@ -135,7 +137,24 @@ def coverage_summary(report):
         'original_amounts_or_bars_published':False,
         'coverage_gap_diagnostic':report['coverage_gap_diagnostic'],
         'comparison_window_coverage':report['comparison_window_coverage'],
+        **({'component_observation_coverage': report['component_observation_coverage']}
+           if 'component_observation_coverage' in report else {}),
+        **({'history_shape_diagnostic': report['history_shape_diagnostic']}
+           if 'history_shape_diagnostic' in report else {}),
     }
+
+
+def history_shape(values):
+    """Coverage pattern only: never infer listing dates or source amounts."""
+    missing = [value is None for value in values]
+    if not any(missing):
+        return 'complete'
+    if all(missing):
+        return 'no_observed_history'
+    if missing[0]:
+        return 'recent_missing'
+    first = missing.index(True)
+    return 'tail_only_missing' if all(missing[first:]) else 'internal_missing'
 
 
 def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
@@ -193,6 +212,8 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         raw,_=store.get_content(week_path(week))
         weekly.append(validate_week(raw,week,expected))
     records={}
+    component_records={}
+    history_shapes={}
     gap_counts={}
     daily_window_counts={str(n):0 for n in DAILY}
     weekly_window_counts={str(n):0 for n in WEEKLY_WINDOWS}
@@ -208,12 +229,22 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         w=[r['issuer_week_factors'].get(key) for r in weekly]
         dv=[r['total_actual_amount_100k_krw']/5 if r is not None else None for r in d]
         wv=[r['amount_100k_krw']/r['observed_sessions'] if r is not None else None for r in w]
+        shape=history_shape(dv)+'__'+history_shape(wv)
+        history_shapes[shape]=history_shapes.get(shape,0)+1
         for n in DAILY:
             if family_coverage_reason(dv,(n//5,))=='complete':
                 daily_window_counts[str(n)]+=1
         for n in WEEKLY_WINDOWS:
             if family_coverage_reason(wv,(n,))=='complete':
                 weekly_window_counts[str(n)]+=1
+        component = derive_components(dv, wv, d)
+        if component is not None:
+            component_records[code] = {
+                'market': market, 'issuer_name': item['name'], 'model': MODEL,
+                'asof': min(windows[0][-1], weekly[0]['session_end']),
+                'daily_asof': windows[0][-1], 'computed_asof': asof,
+                'weekly_session_end': weekly[0]['session_end'],
+                'component_observations': component}
         points=provisional_points(dv,wv)
         if points is not None:
             records[code]={'market':market,'asof':min(windows[0][-1],weekly[0]['session_end']),'points':points,
@@ -246,6 +277,21 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         'calendar_week_end':end.isoformat(),'weekly_session_end':weekly[0]['session_end'],
         'daily_cohorts_inspected':96,'calendar_weeks_inspected':HISTORY_WEEKS,
         'listed_total':len(members),'eligible_issuers':len(records),'records':records,
+        'component_contract': COMPONENT_SCHEMA,
+        'component_records': component_records,
+        'component_eligible_issuers': len(component_records),
+        'component_observation_coverage': {
+            'observed_issuers': {key: sum(r['component_observations']['components'][key] is not None
+                                         for r in component_records.values()) for key in COMPONENT_MAX},
+            'full_weight_issuers': {key: sum(r['component_observations']['components'][key] is not None
+                and r['component_observations']['components'][key][1] == maximum
+                for r in component_records.values()) for key, maximum in COMPONENT_MAX.items()},
+            'structure_only_issuers': len(set(component_records) - set(records)),
+            'partial_weight_not_renormalized': True,
+            'complete_structure_not_full_100_observation': True},
+        'history_shape_diagnostic': {'pair_counts': history_shapes,
+            'does_not_identify_listing_or_gap_cause': True,
+            'issuer_dates_or_source_series_published': False},
         'coverage_gap_diagnostic':{
             'full_fresh_evidence_issuers':len(records),
             'fresh_unscored_issuers':len(members)-len(records),
@@ -315,6 +361,8 @@ def main(argv=None):
 
     if len(usable_records(report,catalog))!=report['eligible_issuers']:
         raise ActualMoneyError('money_public_score_self_validation_failed')
+    if len(usable_component_records(report,catalog)) != report['component_eligible_issuers']:
+        raise ActualMoneyError('money_public_score_self_validation_failed')
     prior_path=root/OUTPUT
     if prior_path.is_file():
         prior=usable_records(json.loads(prior_path.read_text()),catalog)
@@ -328,7 +376,11 @@ def main(argv=None):
     if os.getenv('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'],'a') as handle: handle.write('ready=true\n')
     print(json.dumps({'actual_money_six_point_issuers':report['eligible_issuers'],
-                      'asof':report['asof'],'raw_amounts_published':False}))
+                      'independent_component_issuers':report['component_eligible_issuers'],
+                      'component_observation_coverage':report['component_observation_coverage'],
+                      'history_shape_diagnostic':report['history_shape_diagnostic'],
+                      'asof':report['asof'],'raw_amounts_published':False,
+                      'krx_provider_calls':0}))
 
 if __name__=='__main__':
     try:
