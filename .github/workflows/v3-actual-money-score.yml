@@ -11,6 +11,7 @@ on:
       - tests/test_v3_actual_money_participation.py
       - tests/test_v3_actual_money_structure.py
       - tests/test_v3_money_component_observations.py
+      - tests/test_v3_money_operational_dispatch.py
       - .github/workflows/v3-actual-money-score.yml
   push:
     branches: [main]
@@ -37,6 +38,8 @@ permissions:
 
 jobs:
   offline:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -50,8 +53,12 @@ jobs:
       - run: python -m unittest discover -s tests -p 'test_v3_actual_money_participation.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_actual_money_structure.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_money_component_observations.py' -v
+      - run: python -m unittest discover -s tests -p 'test_v3_money_operational_dispatch.py' -v
   publish:
     needs: offline
+    permissions:
+      contents: write
+      actions: write
     if: >-
       ${{ github.event_name != 'pull_request' &&
           (github.event_name != 'workflow_run' ||
@@ -64,6 +71,7 @@ jobs:
     timeout-minutes: 20
     concurrency:
       group: korea-stock-screener-current-observed-publisher
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +112,7 @@ jobs:
         if: always()
         run: rm -rf -- .money-private
       - name: Replay public point receipt into UI, issuer ledger and personal ranking
+        id: publication
         if: steps.projection.outputs.ready == 'true'
         run: |
           set -euo pipefail
@@ -127,3 +136,11 @@ jobs:
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
+      - name: Refresh operational scores explicitly after verified saved-source publication
+        if: steps.projection.outputs.ready == 'true' && steps.publication.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method POST
+          "repos/$GITHUB_REPOSITORY/actions/workflows/v3-operational-research-score.yml/dispatches"
+          -f ref=main
