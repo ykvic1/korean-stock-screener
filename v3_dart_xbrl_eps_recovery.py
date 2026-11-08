@@ -20,9 +20,12 @@ import v3_dart_reported_eps as eps
 import v3_dart_cashflow_enrichment as cf
 import v3_dart_xbrl_capex_pilot as xp
 import v3_dart_xbrl_cashflow_recovery as original
+from v3_eps_explicit_labels import EPSLabelError
 from v3_dart_bulk_history import _mapping, verified_company_mapping_cache, write_json
 
 CONTRACT='one_original_2025_filing_scope_cfo_reported_basic_eps_v1'
+CONTEXT_CONTRACT='one_original_2025_explicit_ordinary_and_literal_basic_eps_v2'
+CONTEXT_REVIEW='original_xbrl_context_recheck'
 REASONS={'recovered','original_file_absent','no_verified_cfo_scope','no_additional_reported_basic_eps','unusable_original_eps'}
 X=original.X
 
@@ -48,7 +51,7 @@ def units(root,bindings):
     return won,per_share
 
 
-def extract_instance(data,*,scope,identifiers,cfo_anchor,diagnostic=None):
+def extract_instance(data,*,scope,identifiers,cfo_anchor,diagnostic=None,ordinary_shares=False,extension_tags=()):
     diagnostic=diagnostic if diagnostic is not None else Counter()
     root,bindings,contexts=original.verified_contexts(data,year=2025,scope=scope,identifiers=identifiers,diagnostic=diagnostic)
     if root.tag!=X+'xbrl':return {}
@@ -64,13 +67,14 @@ def extract_instance(data,*,scope,identifiers,cfo_anchor,diagnostic=None):
     diagnostic['cfo_anchored_instances']+=1
     output={}
     for year in (2023,2024,2025):
-        _,_,ctx=original.verified_contexts(data,year=year,scope=scope,identifiers=identifiers)
+        _,_,ctx=original.verified_contexts(data,year=year,scope=scope,identifiers=identifiers,ordinary_share=ordinary_shares,diagnostic=diagnostic)
         values=[]
         for fact in root:
             uri,local=xp._qualified_name(fact.tag)
-            if (not ctx.get(fact.get('contextRef')) or not xp._ifrs_full_namespace(uri)
-                or local!='BasicEarningsLossPerShare'):continue
-            diagnostic['scoped_standard_basic_eps_facts']+=1
+            standard=xp._ifrs_full_namespace(uri) and local=='BasicEarningsLossPerShare'
+            if not ctx.get(fact.get('contextRef')) or not (standard or fact.tag in extension_tags):continue
+            diagnostic['scoped_reported_basic_eps_facts']+=1
+            diagnostic['scoped_standard_basic_eps_facts' if standard else 'literal_extension_basic_eps_facts']+=1
             if fact.get('unitRef') not in per_share:
                 diagnostic['eps_unit_unverified']+=1;continue
             if fact.get('{http://www.w3.org/2001/XMLSchema-instance}nil') in ('true','1'):
@@ -84,7 +88,7 @@ def extract_instance(data,*,scope,identifiers,cfo_anchor,diagnostic=None):
     return output
 
 
-def extract_archive(raw,**kwargs):
+def extract_archive(raw,*,extended=False,binding_result=None,**kwargs):
     # EPS uses standard IFRS facts only; unrelated extension-label research
     # must not reject them. Mandatory archive/XML safety checks still run.
     checked=xp.inspect_binary_archive(raw,year=2025,include_extension_evidence=False)
@@ -92,6 +96,11 @@ def extract_archive(raw,**kwargs):
     found={};anchored=0
     diagnostic=kwargs.setdefault('diagnostic',Counter())
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        if extended:
+            from v3_eps_explicit_labels import bind_archive
+            tags,digest=bind_archive(archive,archive.infolist())
+            kwargs.update(ordinary_shares=True,extension_tags=tags)
+            if binding_result is not None:binding_result['sha256']=digest
         for entry in archive.infolist():
             if entry.is_dir() or not entry.filename.lower().endswith(('.xml','.xbrl')):continue
             before=diagnostic['cfo_anchored_instances']
@@ -105,6 +114,16 @@ def extract_archive(raw,**kwargs):
 
 def verify_review(row):
     marker=row.get('original_xbrl_review');proof=row.get('original_xbrl_proof')
+    recheck=row.get(CONTEXT_REVIEW)
+    if recheck is not None:
+        if (type(recheck) is not dict or set(recheck)!={'contract','receipt_id','previous_review'}
+            or recheck['contract']!=CONTEXT_CONTRACT or recheck['receipt_id']!=row.get('annual_receipt_id')
+            or marker is None):raise OriginalEPSError('invalid_eps_context_recheck')
+        prior=recheck['previous_review']
+        if prior is not None and (type(prior) is not dict or set(prior)!={'contract','receipt_id','reason'}
+            or prior['contract']!=CONTRACT or prior['receipt_id']!=row.get('annual_receipt_id')
+            or prior['reason']!='no_additional_reported_basic_eps'):
+            raise OriginalEPSError('invalid_eps_previous_context_review')
     if marker is None:
         if proof is not None:raise OriginalEPSError('missing_eps_original_review')
         return False
@@ -115,9 +134,12 @@ def verify_review(row):
         if proof is not None:raise OriginalEPSError('unexpected_eps_original_proof')
         return False
     keys={'contract','receipt_id','scope','cfo_anchor','archive_sha256','profile_sha256','values','digest'}
+    if recheck is not None:keys|={'context_contract','label_binding_sha256'}
     if (type(proof) is not dict or set(proof) not in (keys,keys|{'cfo_response_sha256'}) or proof['contract']!=CONTRACT
         or proof['receipt_id']!=row.get('annual_receipt_id') or proof['scope']!=row.get('fs_div')
         or type(proof['cfo_anchor']) is not int or abs(proof['cfo_anchor'])>10**18
+        or (recheck is not None and (proof['context_contract']!=CONTEXT_CONTRACT
+            or type(proof['label_binding_sha256']) is not str or not re.fullmatch('[a-f0-9]{64}',proof['label_binding_sha256'])))
         or type(proof['values']) is not dict or not proof['values'] or not set(proof['values'])<={'2023','2024','2025'}
         or any(type(v) not in (int,float) or v!=row['reported_basic_eps_2023_2025'][int(y)-2023] for y,v in proof['values'].items())
         or any(type(proof[k]) is not str or not re.fullmatch('[a-f0-9]{64}',proof[k]) for k in ('archive_sha256','profile_sha256','cfo_response_sha256') if k in proof)
@@ -128,7 +150,7 @@ def verify_review(row):
     return True
 
 
-def merge(row,values,*,reason,cfo_anchor,archive_hash,profile_hash,cfo_response_hash=None):
+def merge(row,values,*,reason,cfo_anchor,archive_hash,profile_hash,cfo_response_hash=None,binding_hash=None):
     if row.get('original_xbrl_review') is not None:raise OriginalEPSError('eps_original_already_reviewed')
     if type(values) is not dict or not set(values)<={'2023','2024','2025'}:raise OriginalEPSError('invalid_eps_original_values')
     out=deepcopy(row);series=out['reported_basic_eps_2023_2025'];added={}
@@ -140,12 +162,26 @@ def merge(row,values,*,reason,cfo_anchor,archive_hash,profile_hash,cfo_response_
         proof={'contract':CONTRACT,'receipt_id':row['annual_receipt_id'],'scope':row['fs_div'],
                'cfo_anchor':cfo_anchor,'archive_sha256':archive_hash,'profile_sha256':profile_hash,'values':added}
         if cfo_response_hash is not None:proof['cfo_response_sha256']=cfo_response_hash
+        if row.get(CONTEXT_REVIEW) is not None:
+            proof.update(context_contract=CONTEXT_CONTRACT,label_binding_sha256=binding_hash)
         proof['digest']=cf.fingerprint(proof);out['original_xbrl_proof']=proof;reason='recovered'
-        out['status']='reported_basic_eps';out['source_account_id']=out.get('source_account_id') or 'ifrs-full_BasicEarningsLossPerShare'
+        out['status']='reported_basic_eps';out['source_account_id']=out.get('source_account_id') or (
+            eps.ORIGINAL_REPORTED_BASIC_EPS_ID if row.get(CONTEXT_REVIEW) is not None else 'ifrs-full_BasicEarningsLossPerShare')
         out.pop('source_reason',None);out['comparative_basis']='one_annual_filing_same_scope'
     out['metrics']=eps.metrics(series)
     out['original_xbrl_review']={'contract':CONTRACT,'receipt_id':row['annual_receipt_id'],'reason':reason}
     verify_review(out);return out
+
+
+def prepare_context_recheck(row):
+    verify_review(row)
+    previous=row.get('original_xbrl_review')
+    if (row.get(CONTEXT_REVIEW) is not None or row.get('original_xbrl_proof') is not None
+        or (previous is not None and previous['reason']!='no_additional_reported_basic_eps')):
+        raise OriginalEPSError('eps_context_recheck_would_overwrite')
+    out=deepcopy(row);out.pop('original_xbrl_review',None)
+    out[CONTEXT_REVIEW]={'contract':CONTEXT_CONTRACT,'receipt_id':row['annual_receipt_id'],'previous_review':deepcopy(previous)}
+    return out
 
 
 def recovery_candidates(retained,cash,bulk,priority=()):
@@ -154,7 +190,10 @@ def recovery_candidates(retained,cash,bulk,priority=()):
     for code,row in sorted(retained.items(),key=lambda item:(item[0] not in priority,
             -sum(v is not None for v in item[1]['reported_basic_eps_2023_2025']),item[0])):
         if (row.get('code')!=code or row.get('fs_div') not in ('CFS','OFS')
-            or row['metrics']['complete_three_years'] or row.get('original_xbrl_review') is not None):
+            or row['metrics']['complete_three_years'] or row.get(CONTEXT_REVIEW) is not None
+            or (row.get('original_xbrl_review') is not None and
+                (row['original_xbrl_review']['reason']!='no_additional_reported_basic_eps'
+                 or row.get('original_xbrl_proof') is not None))):
             continue
         anchor=cash.get('records',{}).get(code,{}).get('years',{}).get('2025',{})
         if (anchor.get('major_annual_receipt_matched') is True and anchor.get('scope')==row['fs_div']
@@ -213,12 +252,13 @@ def main():
     for code,row,cfo in selected:
         if time.monotonic()+120>=deadline:break
         if code not in mapping:continue
+        base=prepare_context_recheck(row)
         cfo_response_hash=None
         if cfo is None:
             payload=get('fnlttSinglAcntAll.json',{'corp_code':mapping[code],'bsns_year':'2025','reprt_code':'11011','fs_div':row['fs_div']}).json()
             cfo,cfo_response_hash=official_cfo_anchor(payload,code=code,corp=mapping[code],scope=row['fs_div'],receipt=row['annual_receipt_id'],day=day)
         if cfo is None:
-            new=merge(row,{},reason='no_verified_cfo_scope',cfo_anchor=None,archive_hash=None,profile_hash=None)
+            new=merge(base,{},reason='no_verified_cfo_scope',cfo_anchor=None,archive_hash=None,profile_hash=None)
             retained[code]=new;saved=eps.snapshot(day,catalog,book,expected,retained)
             eps.plan(catalog,book,saved);write_json(root/'v3-dart-reported-eps.json',saved)
             output['completed']+=1;reasons['no_verified_cfo_scope']+=1
@@ -226,11 +266,14 @@ def main():
         try:profile=get('company.json',{'corp_code':mapping[code]}).json()
         except Exception:raise OriginalEPSError('original_eps_profile_unavailable') from None
         identifiers=original.company_ids(profile,mapping[code],code)
-        raw=xp._read_response_limited(get('fnlttXbrl.xml',{'rcept_no':row['annual_receipt_id'],'reprt_code':'11011'},True))
-        try:values,reason=extract_archive(raw,scope=row['fs_div'],identifiers=identifiers,cfo_anchor=cfo,diagnostic=diagnostic)
-        except (OriginalEPSError,eps.EPSError):values,reason={},'unusable_original_eps'
-        try:new=merge(row,values,reason=reason,cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile),cfo_response_hash=cfo_response_hash)
-        except OriginalEPSError:new=merge(row,{},reason='unusable_original_eps',cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile))
+        response=get('fnlttXbrl.xml',{'rcept_no':row['annual_receipt_id'],'reprt_code':'11011'},True)
+        try:raw=xp._read_response_limited(response)
+        finally:response.close()
+        bindings={}
+        try:values,reason=extract_archive(raw,scope=row['fs_div'],identifiers=identifiers,cfo_anchor=cfo,diagnostic=diagnostic,extended=True,binding_result=bindings)
+        except (OriginalEPSError,eps.EPSError,EPSLabelError):values,reason={},'unusable_original_eps'
+        try:new=merge(base,values,reason=reason,cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile),cfo_response_hash=cfo_response_hash,binding_hash=bindings.get('sha256'))
+        except OriginalEPSError:new=merge(base,{},reason='unusable_original_eps',cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile))
         retained[code]=new;saved=eps.snapshot(day,catalog,book,expected,retained)
         eps.plan(catalog,book,saved);write_json(root/'v3-dart-reported-eps.json',saved)
         output['completed']+=1;output['recovered_issuers']+=int(verify_review(new));output['new_complete_issuers']+=int(new['metrics']['complete_three_years'] and not row['metrics']['complete_three_years']);reasons[new['original_xbrl_review']['reason']]+=1
