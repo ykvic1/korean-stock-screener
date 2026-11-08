@@ -196,6 +196,19 @@ class RepairTests(unittest.TestCase):
         self.assertEqual(singles[order[0]], 1)
         self.assertEqual(count, 2)
         self.assertFalse(any('KOSPI:000002' in t for t in targets.values()))
+        focused, _, _, _ = repair.select(history, catalog, {}, {'000003'})
+        self.assertIn(focused[0], ('2026-10-11', '2026-10-25'))
+
+    def test_focus_uses_missing_component_evidence_and_never_changes_scoring(self):
+        catalog = {'date': '2026-11-06', 'rows': [{'code': '000001'}, {'code': '000002'}]}
+        priority = {'asof': catalog['date'], 'shape_names': [
+            'volume:persistence+volume:weekly_structure_increment',
+            'financial:cashflow_fcf_persistence+volume:persistence'],
+            'multiple_missing_index': [['000001', 97.5, 2.5, 0, 'priced'],
+                                       ['000002', 90, 10, 1, 'priced']]}
+        self.assertEqual(repair.completion_focus(priority, catalog), {'000001'})
+        priority['asof'] = '2026-11-05'
+        self.assertEqual(repair.completion_focus(priority, catalog), set())
 
     def test_workflow_runs_no_secret_on_pr_and_no_raw_artifact_upload(self):
         text = (Path(__file__).resolve().parents[1] / '.github/workflows/v3-krx-money-week-repair.yml').read_text()

@@ -66,3 +66,11 @@ fails. The saved-source projection therefore accepts failure completion only
 for this exact trusted main-branch repair workflow, retaining repository/head
 checks and all private receipt validation. Other failing workflows do not gain
 publication authorization.
+
+Collection ordering also uses the same-date operational missing-component
+index to favor issuers missing only persistence / weekly increment. This keeps
+recent OHLC-quarantine gaps that still lack daily history from crowding out
+weeks that can actually close full-100 coverage. Single remaining focused
+weeks rank first, then the shared contribution toward multi-week focused
+closures, then the original general coverage priority. It is only a scheduling
+hint and never changes source validation or scoring. Stale hints are ignored.

@@ -214,7 +214,27 @@ def load_history(store, catalog, *, day_loader=week_days):
     return history, idx_raw, idx_sha, idx
 
 
-def select(history, catalog, examined):
+def completion_focus(priority, catalog):
+    """Scheduling only: favor issuers missing just these two money components."""
+    if priority.get('asof') != catalog.get('date'):
+        return set()
+    shapes = priority.get('shape_names', [])
+    focus = set()
+    if type(shapes) is not list:
+        return focus
+    members = {item.get('code') for item in catalog['rows']}
+    for row in priority.get('multiple_missing_index', []):
+        if (type(row) is not list or len(row) != 5 or row[0] not in members
+            or type(row[3]) is not int or not 0 <= row[3] < len(shapes)
+            or type(shapes[row[3]]) is not str):
+            continue
+        missing = set(shapes[row[3]].split('+'))
+        if missing and missing <= {'volume:persistence', 'volume:weekly_structure_increment'}:
+            focus.add(row[0])
+    return focus
+
+
+def select(history, catalog, examined, focus_codes=None):
     members = set()
     for item in catalog['rows']:
         code, market = item.get('code'), item.get('market')
@@ -224,7 +244,7 @@ def select(history, catalog, examined):
         members.add(code)
     if len(members) != catalog['listed_total']:
         raise MoneyRepairError('incomplete_money_repair_catalog')
-    targets, single = {}, {}
+    targets, single, focused_single, focused_share = {}, {}, {}, {}
     internal_issuers = 0
     for item in catalog['rows']:
         key = item['market'] + ':' + item['code']
@@ -244,7 +264,12 @@ def select(history, catalog, examined):
             # including at the latest or oldest edge of the inspected chain.
             if sum(not yes for yes in present) == 1:
                 single[week] = single.get(week, 0) + 1
-    order = sorted(targets, key=lambda w: (-single.get(w, 0), -len(targets[w]), w))
+            if item['code'] in (focus_codes or set()):
+                focused_share[week] = focused_share.get(week, 0) + 1 / sum(not yes for yes in present)
+                if sum(not yes for yes in present) == 1:
+                    focused_single[week] = focused_single.get(week, 0) + 1
+    order = sorted(targets, key=lambda w: (-focused_single.get(w, 0),
+        -focused_share.get(w, 0), -single.get(w, 0), -len(targets[w]), w))
     return order, targets, single, internal_issuers
 
 
@@ -285,7 +310,8 @@ def save_index(writer, encoded, raw, oldsha):
             time.sleep(.5 * (attempt + 1))
 
 
-def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader=week_days):
+def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS,
+           day_loader=week_days, focus_codes=None):
     if type(max_weeks) is not int or not 1 <= max_weeks <= MAX_WEEKS:
         raise MoneyRepairError('invalid_money_repair_week_budget')
     history, raw, oldsha, state = load_history(snapshot, catalog, day_loader=day_loader)
@@ -296,7 +322,7 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader
     # Snapshot hashes are SHA256 integrity digests. GitHub CAS requires the
     # remote Git blob SHA; never substitute the local snapshot digest.
     oldsha = writer_sha
-    order, targets, single, internal = select(history, catalog, state['weeks'])
+    order, targets, single, internal = select(history, catalog, state['weeks'], focus_codes)
     lookup = {h[1]['week_end']: h[:2] for h in history}
     budget = {'requests': 0}
     summaries = []
@@ -337,12 +363,14 @@ def main():
     args = p.parse_args()
     from v3_actual_money_participation import LocalPrivateSnapshot
     catalog = json.loads(Path('docs/v22-market-catalog.json').read_text())
+    priority = json.loads(Path('docs/v3-operational-evidence-priority.json').read_text())
     token = os.environ['V3_PRIVATE_ARCHIVE_TOKEN']
     if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
         raise MoneyRepairError('invalid_money_repair_repository')
     result = repair(LocalPrivateSnapshot(args.private_snapshot, token),
                     PrivateGitStorage(PRIVATE_REPO, token),
-                    KRXClient(os.environ['KRX_API_KEY']), catalog, max_weeks=args.max_weeks)
+                    KRXClient(os.environ['KRX_API_KEY']), catalog, max_weeks=args.max_weeks,
+                    focus_codes=completion_focus(priority, catalog))
     print(json.dumps(result, sort_keys=True))
 
 
