@@ -34,6 +34,9 @@ jobs:
   repair:
     needs: offline
     if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      actions: write
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
@@ -63,6 +66,7 @@ jobs:
           python-version: '3.11'
       - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
       - name: Recover up to twenty-four priority weeks with per-week checkpoints
+        id: recovery
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
@@ -71,3 +75,11 @@ jobs:
       - name: Remove private snapshot
         if: always()
         run: rm -rf -- .money-private
+      - name: Continue initial catch-up immediately while unexamined weeks remain
+        if: steps.recovery.outputs.continue_catchup == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method POST
+          "repos/$GITHUB_REPOSITORY/actions/workflows/v3-krx-money-week-repair.yml/dispatches"
+          -f ref=main
