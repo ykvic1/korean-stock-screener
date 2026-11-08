@@ -4,6 +4,7 @@ on:
     paths:
       - v3_dart_xbrl_owner_profit.py
       - tests/test_v3_dart_xbrl_owner_profit.py
+      - tests/test_v3_original_profit_acquisition_queue.py
       - .github/workflows/v3-xbrl-owner-profit.yml
   push:
     branches: [main]
@@ -11,6 +12,8 @@ on:
       - v3_dart_xbrl_owner_profit.py
       - .github/workflows/v3-xbrl-owner-profit.yml
   workflow_dispatch:
+  schedule:
+    - cron: '03 11 * * 1-5'
 permissions:
   contents: read
 jobs:
@@ -23,6 +26,7 @@ jobs:
           python-version: '3.11'
       - run: |
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_owner_profit.py' -v
+          python -m unittest discover -s tests -p 'test_v3_original_profit_acquisition_queue.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_2025_owner_profit_probe.py' -v
           python -m unittest discover -s tests -p 'test_v3_owner_profit_reconciliation.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_cashflow_recovery.py' -v
@@ -38,6 +42,7 @@ jobs:
     concurrency:
       # Share the existing owner-profit writer lock; no concurrent ledger overwrite.
       group: korea-stock-screener-v3-2025-owner-profit-gap-recovery
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           interrupted=0
+          completed_total=0
           # Four finite checkpointed batches; stop immediately at a source
           # interruption or an exhausted queue. No repeated failing receipt.
           for segment in 1 2 3 4; do
@@ -68,9 +74,11 @@ jobs:
             fi
             echo "$result"
             completed="$(printf '%s' "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["completed"])')"
+            completed_total=$((completed_total + completed))
             if [[ "$completed" == '0' ]]; then break; fi
           done
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+          echo "completed_total=$completed_total" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish
         run: |
@@ -104,3 +112,27 @@ jobs:
       - name: Surface source interruption after preserving validated observations
         if: steps.collect.outputs.interrupted == '1'
         run: exit 1
+      - name: Check remaining anchored originals after publishing the completed batch
+        id: remaining
+        if: steps.collect.outputs.interrupted == '0' && steps.collect.outputs.completed_total != '0'
+        run: |
+          set -euo pipefail
+          python v3_dart_xbrl_owner_profit.py --mode dry-run --limit 1 > "$RUNNER_TEMP/original-profit-remaining.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          data=json.loads((Path(os.environ['RUNNER_TEMP'])/'original-profit-remaining.json').read_text())
+          pending=data['eligible_missing_profit_issuers']
+          if type(pending) is not int or pending<0:raise SystemExit('invalid_remaining_profit_count')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('continue=' + str(pending>0).lower() + '\n')
+          print(json.dumps({'remaining_anchored_original_profit_issuers':pending}))
+          PY
+      - name: Continue finite original-profit acquisition immediately
+        if: steps.remaining.outputs.continue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method POST
+          "repos/$GITHUB_REPOSITORY/actions/workflows/v3-xbrl-owner-profit.yml/dispatches"
+          -f ref=main
