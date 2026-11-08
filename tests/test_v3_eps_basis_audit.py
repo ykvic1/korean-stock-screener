@@ -14,7 +14,7 @@ def xml(year,*,direct=False,shares='100.25',share_unit='x:shares',identity='0012
     contexts=''.join(f'<context id="C{y}"><entity><identifier scheme="http://dart.fss.or.kr">{identity}</identifier></entity><period><startDate>{y}-01-01</startDate><endDate>{y}-12-31</endDate></period><scenario><d:explicitMember dimension="i:ConsolidatedAndSeparateFinancialStatementsAxis">i:ConsolidatedMember</d:explicitMember></scenario></context>' for y in years)
     facts=''.join(f'<i:CashFlowsFromUsedInOperatingActivities contextRef="C{y}" unitRef="W">{CFO[str(y)]}</i:CashFlowsFromUsedInOperatingActivities>' for y in years)
     facts+=''.join(f'<i:BasicEarningsLossPerShare contextRef="C{y}" unitRef="E">{EPS[str(y)]}</i:BasicEarningsLossPerShare>' for y in years if direct or year!=2025 or y!=2023)
-    if year>=2024 and shares is not None:facts+=f'<i:WeightedAverageNumberOfOrdinarySharesOutstanding contextRef="C2024" unitRef="S" decimals="INF">{shares}</i:WeightedAverageNumberOfOrdinarySharesOutstanding>'
+    if year>=2024 and shares is not None:facts+=f'<i:WeightedAverageShares contextRef="C2024" unitRef="S" decimals="INF">{shares}</i:WeightedAverageShares>'
     return f'<xbrl xmlns="http://www.xbrl.org/2003/instance" xmlns:x="http://www.xbrl.org/2003/instance" xmlns:i="{NS}" xmlns:d="http://xbrl.org/2006/xbrldi" xmlns:iso="http://www.xbrl.org/2003/iso4217">{contexts}<unit id="W"><measure>iso:KRW</measure></unit><unit id="E"><divide><unitNumerator><measure>iso:KRW</measure></unitNumerator><unitDenominator><measure>x:shares</measure></unitDenominator></divide></unit><unit id="S"><measure>{share_unit}</measure></unit>{facts}</xbrl>'.encode()
 
 
@@ -73,7 +73,7 @@ class EPSBasisAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(a.Blocked,'weighted_ordinary_shares_missing'):assess(p)
 
     def test_spot_shares_diluted_counts_wrong_units_and_zero_are_not_basic_weighted_shares(self):
-        for raw in (xml(2024,share_unit='iso:KRW'),xml(2024).replace(b'WeightedAverageNumberOfOrdinarySharesOutstanding',b'NumberOfOrdinarySharesOutstanding'),xml(2024).replace(b'WeightedAverageNumberOfOrdinarySharesOutstanding',b'WeightedAverageNumberOfDilutedSharesOutstanding')):
+        for raw in (xml(2024,share_unit='iso:KRW'),xml(2024).replace(b'WeightedAverageShares',b'NumberOfOrdinarySharesOutstanding'),xml(2024).replace(b'WeightedAverageShares',b'AdjustedWeightedAverageShares'),xml(2024).replace(b'WeightedAverageShares',b'WeightedAverageNumberOfOrdinarySharesOutstanding'),xml(2024).replace(b'WeightedAverageShares',b'WeightedAverageNumberOfDilutedSharesOutstanding')):
             p=Provider();p.files['2024']=archive(raw)
             with self.assertRaisesRegex(a.Blocked,'weighted_ordinary_shares_missing'):assess(p)
         for value in ('0','-1','NaN'):

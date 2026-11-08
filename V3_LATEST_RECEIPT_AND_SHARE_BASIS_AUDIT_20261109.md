@@ -36,3 +36,19 @@ false. The next stage depends on measured real source results, not forecasts.
 Primary accounting references:
 - https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2024/issued/part-a/ias-33-earnings-per-share.pdf
 - https://www.ifrs.org/content/dam/ifrs/standards/taxonomy/general-resources/formula-documentation.pdf
+
+## Correct standard denominator concept
+
+The first 13-issuer live pass found 12 missing weighted-share matches and one
+comparative cashflow conflict. Its denominator reader mistakenly used the
+human-readable description as an IFRS concept name. The actual IFRS concept is
+`ifrs-full:WeightedAverageShares` (duration, sharesItemType).
+`AdjustedWeightedAverageShares` is the diluted denominator and remains excluded,
+as do invented description-based identifiers. Tests now use the documented
+standard identifier and explicitly reject the former invented name.
+
+Primary filed-taxonomy evidence:
+https://www.sec.gov/Archives/edgar/data/835403/000083540323000004/R2.htm
+
+The reader fingerprint changes automatically and reopens all 13 source checks;
+no old missing-fact conclusion is treated as a score or silently discarded.

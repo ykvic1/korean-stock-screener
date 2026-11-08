@@ -109,7 +109,7 @@ def read_filing(raw,*,filing_year,scope,identifiers,cfo_anchor):
                         value=eps.amount((fact.text or '').strip())
                         if value is None:raise Blocked('original_not_usable')
                         facts['eps'][year].append(value)
-                    if year=='2024' and standard and local=='WeightedAverageNumberOfOrdinarySharesOutstanding':
+                    if year=='2024' and standard and local=='WeightedAverageShares':
                         counts['standard_weighted_share_facts_seen']+=1
                         if ordinary.get(ref):
                             counts['weighted_share_contexts_matched']+=1
