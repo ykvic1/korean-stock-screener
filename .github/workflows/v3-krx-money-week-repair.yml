@@ -1,0 +1,73 @@
+name: V3 Targeted Reported Money Week Repair
+
+on:
+  pull_request:
+    paths:
+      - v3_krx_money_week_repair.py
+      - tests/test_v3_krx_money_week_repair.py
+      - .github/workflows/v3-krx-money-week-repair.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_money_week_repair.py
+      - .github/workflows/v3-krx-money-week-repair.yml
+  schedule:
+    - cron: '10 10 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - run: python -m unittest discover -s tests -p 'test_v3_krx_money_week_repair.py' -v
+  repair:
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: v3-krx-actual-money-private-derived-backfill
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ykvic1/korean-stock-private-data
+          ref: main
+          token: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          path: .money-private
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /derived/money-calendar-weeks/
+            /derived/money-calendar-week-checkpoint.json
+            /derived/money-calendar-week-repairs/
+            /derived/money-calendar-week-repair-checkpoint.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Repair at most three priority weeks with thirty official reads
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_money_week_repair.py --private-snapshot .money-private
+      - name: Remove private snapshot
+        if: always()
+        run: rm -rf -- .money-private

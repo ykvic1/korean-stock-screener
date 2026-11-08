@@ -29,6 +29,8 @@ from v3_actual_money_contract import (
 from v3_actual_money_structure import derive as derive_r1c_structure
 from v3_actual_money_structure import derive_components, COMPONENT_SCHEMA, COMPONENT_MAX
 from v3_actual_money_contract import usable_component_records
+from v3_krx_money_week_repair import (CHECKPOINT as WEEK_REPAIR,
+    PREFIX as WEEK_REPAIR_PREFIX, index as repair_index, overlay as repair_overlay)
 PRIVATE_REPO='ykvic1/korean-stock-private-data'
 COVERAGE_SUMMARY='v3-actual-money-coverage-summary.json'
 COVERAGE_SUMMARY_SCHEMA='v3-personal-actual-money-coverage-summary-0.1'
@@ -141,6 +143,8 @@ def coverage_summary(report):
            if 'component_observation_coverage' in report else {}),
         **({'history_shape_diagnostic': report['history_shape_diagnostic']}
            if 'history_shape_diagnostic' in report else {}),
+        **({'weekly_repair_observation': report['weekly_repair_observation']}
+           if 'weekly_repair_observation' in report else {}),
     }
 
 
@@ -170,6 +174,8 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         forward_days=forward_candidates(asof)
     paths=(CHECKPOINT,FORWARD,WEEKLY)
     before={p:store.get_content(p) for p in paths}
+    repair_before=store.get_content(WEEK_REPAIR)
+    repairs=repair_index(repair_before[0])
     progress=history_progress(store,days,digest)
     fstate=_manifest(before[FORWARD][0],forward_days)
     _verify_tail(store,fstate,forward_days)
@@ -206,11 +212,15 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     if tail is None or sha256(tail).hexdigest()!=wstate['tail_sha256']:
         raise ActualMoneyError('money_calendar_week_checkpoint_tail_changed')
     weekly=[]
+    repaired_pairs=0
     for i in range(HISTORY_WEEKS):
         week=(end-timedelta(weeks=i)).isoformat()
         expected=week_loader(week)
         raw,_=store.get_content(week_path(week))
-        weekly.append(validate_week(raw,week,expected))
+        observed=validate_week(raw,week,expected)
+        observed, added=repair_overlay(store,raw,observed,repairs)
+        weekly.append(observed)
+        repaired_pairs+=added
     records={}
     component_records={}
     history_shapes={}
@@ -265,13 +275,18 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
             gap_counts[key]=gap_counts.get(key,0)+1
     if catalog.get('listed_total')!=len(members):
         raise ActualMoneyError('incomplete_money_current_issuer_catalog')
-    if any(store.get_content(p)!=before[p] for p in paths):
+    if (any(store.get_content(p)!=before[p] for p in paths)
+        or store.get_content(WEEK_REPAIR)!=repair_before):
         raise ActualMoneyError('private_money_checkpoint_changed_during_score_read')
     return {'schema':SCHEMA,'model':MODEL,'asof':asof,'points_budget':6,
         'daily_asof':windows[0][-1],
         'source_dates_are_independent_completed_periods':True,
         'source_catalog_sha256':_stable_digest(catalog),
         'source_private_revision':source_revision,
+        'source_weekly_repair_index_sha256':sha256(repair_before[0] or b'').hexdigest(),
+        'weekly_repair_observation':{'added_issuer_weeks':repaired_pairs,
+            'examined_weeks':len(repairs['weeks']),
+            'original_archives_preserved':True,'prices_or_directions_repaired':False},
         'source_checkpoint_sha256':{str(i):sha256(before[p][0]).hexdigest() for i,p in enumerate(paths)},
         'daily_windows':list(DAILY),'calendar_week_windows':list(WEEKLY_WINDOWS),
         'calendar_week_end':end.isoformat(),'weekly_session_end':weekly[0]['session_end'],
@@ -321,8 +336,8 @@ class LocalPrivateSnapshot:
     def verify_private(self):
         self.remote.verify_private()
     def get_content(self, path):
-        if not (path in (CHECKPOINT,FORWARD,WEEKLY) or path.startswith(
-            ('derived/money-five-session/','derived/money-calendar-weeks/'))):
+        if not (path in (CHECKPOINT,FORWARD,WEEKLY,WEEK_REPAIR) or path.startswith(
+            ('derived/money-five-session/','derived/money-calendar-weeks/',WEEK_REPAIR_PREFIX))):
             raise ActualMoneyError('money_snapshot_path_not_allowed')
         target=(self.root/path).resolve()
         if self.root not in target.parents or (self.root/path).is_symlink():
