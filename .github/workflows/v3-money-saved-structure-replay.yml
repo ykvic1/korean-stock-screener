@@ -79,6 +79,8 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /derived/money-five-session/
+            /derived/money-five-session-repairs/
+            /derived/money-five-session-repair-checkpoint.json
             /derived/money-calendar-weeks/
             /derived/money-calendar-week-repairs/
             /derived/money-calendar-week-repair-checkpoint.json

@@ -207,6 +207,9 @@ class RepairTests(unittest.TestCase):
             'multiple_missing_index': [['000001', 97.5, 2.5, 0, 'priced'],
                                        ['000002', 90, 10, 1, 'priced']]}
         self.assertEqual(repair.completion_focus(priority, catalog), {'000001'})
+        priority['single_component_queue']=[{'code':'000002','gaps':[
+            {'area':'volume','component':'persistence'}]}]
+        self.assertEqual(repair.completion_focus(priority, catalog), {'000001','000002'})
         priority['asof'] = '2026-11-05'
         self.assertEqual(repair.completion_focus(priority, catalog), set())
 
@@ -218,7 +221,8 @@ class RepairTests(unittest.TestCase):
         self.assertIn('v3-krx-actual-money-private-derived-backfill', live)
         self.assertNotIn('upload-artifact', text)
         self.assertNotIn('git add', text)
-        self.assertIn("if: steps.recovery.outputs.continue_catchup == 'true'", live)
+        self.assertIn("steps.recovery.outputs.continue_catchup == 'true'", live)
+        self.assertIn("steps.daily_recovery.outputs.continue_daily_catchup == 'true'", live)
         self.assertIn('actions: write', live)
         self.assertIn('-f ref=main', live)
         self.assertNotIn('actions: write', offline)

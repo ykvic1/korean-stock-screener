@@ -4,12 +4,15 @@ on:
   pull_request:
     paths:
       - v3_krx_money_week_repair.py
+      - v3_krx_money_daily_repair.py
+      - tests/test_v3_krx_money_daily_repair.py
       - tests/test_v3_krx_money_week_repair.py
       - .github/workflows/v3-krx-money-week-repair.yml
   push:
     branches: [main]
     paths:
       - v3_krx_money_week_repair.py
+      - v3_krx_money_daily_repair.py
       - .github/workflows/v3-krx-money-week-repair.yml
   schedule:
     - cron: '10 10 * * 1-5'
@@ -31,6 +34,7 @@ jobs:
           python-version: '3.11'
       - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
       - run: python -m unittest discover -s tests -p 'test_v3_krx_money_week_repair.py' -v
+      - run: python -m unittest discover -s tests -p 'test_v3_krx_money_daily_repair.py' -v
   repair:
     needs: offline
     if: github.event_name != 'pull_request'
@@ -41,6 +45,7 @@ jobs:
     timeout-minutes: 20
     concurrency:
       group: v3-krx-actual-money-private-derived-backfill
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +63,11 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /derived/money-calendar-weeks/
+            /derived/money-five-session/
+            /derived/money-five-session-repairs/
+            /derived/money-five-session-repair-checkpoint.json
+            /derived/money-historical-checkpoint.json
+            /derived/money-forward-checkpoint.json
             /derived/money-calendar-week-checkpoint.json
             /derived/money-calendar-week-repairs/
             /derived/money-calendar-week-repair-checkpoint.json
@@ -72,11 +82,31 @@ jobs:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: python v3_krx_money_week_repair.py --private-snapshot .money-private --max-weeks 24
+      - name: Recover missing five-session reported money independently of price direction
+        id: daily_recovery
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_krx_money_daily_repair.py --private-snapshot .money-private --max-windows 12
       - name: Remove private snapshot
         if: always()
         run: rm -rf -- .money-private
+      - name: Project saved checkpoints explicitly without relying on completion-chain depth
+        if: >-
+          always() &&
+          (steps.recovery.outputs.weekly_money_changed == 'true' ||
+           steps.daily_recovery.outputs.daily_money_changed == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method POST
+          "repos/$GITHUB_REPOSITORY/actions/workflows/v3-actual-money-score.yml/dispatches"
+          -f ref=main
       - name: Continue initial catch-up immediately while unexamined weeks remain
-        if: steps.recovery.outputs.continue_catchup == 'true'
+        if: >-
+          steps.recovery.outputs.continue_catchup == 'true' ||
+          steps.daily_recovery.outputs.continue_daily_catchup == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-

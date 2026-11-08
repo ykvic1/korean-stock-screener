@@ -231,10 +231,19 @@ def completion_focus(priority, catalog):
         missing = set(shapes[row[3]].split('+'))
         if missing and missing <= {'volume:persistence', 'volume:weekly_structure_increment'}:
             focus.add(row[0])
+    for row in priority.get('single_component_queue', []):
+        if type(row) is not dict or row.get('code') not in members:
+            continue
+        gaps = row.get('gaps')
+        if (type(gaps) is list and gaps and all(type(g) is dict and
+                g.get('area') == 'volume' and g.get('component') in
+                ('persistence', 'weekly_structure_increment') for g in gaps)):
+            focus.add(row['code'])
     return focus
 
 
-def select(history, catalog, examined, focus_codes=None):
+def select(history, catalog, examined, focus_codes=None, *,
+           period_field='week_end', factors_field='issuer_week_factors'):
     members = set()
     for item in catalog['rows']:
         code, market = item.get('code'), item.get('market')
@@ -248,7 +257,7 @@ def select(history, catalog, examined, focus_codes=None):
     internal_issuers = 0
     for item in catalog['rows']:
         key = item['market'] + ':' + item['code']
-        present = [key in h[2]['issuer_week_factors'] for h in history]
+        present = [key in h[2][factors_field] for h in history]
         positions = [i for i, yes in enumerate(present) if yes]
         if not positions:
             continue
@@ -256,7 +265,7 @@ def select(history, catalog, examined, focus_codes=None):
         if gaps:
             internal_issuers += 1
         for i in gaps:
-            week = history[i][1]['week_end']
+            week = history[i][1][period_field]
             if week in examined:
                 continue
             targets.setdefault(week, set()).add(key)
@@ -293,14 +302,14 @@ def save_immutable_receipt(writer, name, blob):
     _private_new_blob_readback(writer, name, blob)
 
 
-def save_index(writer, encoded, raw, oldsha):
+def save_index(writer, encoded, raw, oldsha, *, checkpoint=CHECKPOINT):
     for attempt in range(3):
         try:
-            return _save_cursor(writer, encoded, raw, oldsha, checkpoint=CHECKPOINT)
+            return _save_cursor(writer, encoded, raw, oldsha, checkpoint=checkpoint)
         except PrivateHistoryError as error:
             if getattr(error, 'safe_http_status', None) != 'http_409':
                 raise
-            observed, observed_sha = writer.get_content(CHECKPOINT)
+            observed, observed_sha = writer.get_content(checkpoint)
             if observed == encoded:
                 return observed_sha
             if observed != raw or observed_sha != oldsha:
@@ -348,6 +357,9 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS,
         summary = {'week_end': week, **data['diagnostic'],
                    'single_week_gap_candidates': single.get(week, 0)}
         summaries.append(summary)
+        if os.getenv('GITHUB_OUTPUT'):
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as handle:
+                handle.write('weekly_money_changed=true\n')
         print(json.dumps({'checkpointed_week_repair': summary}), flush=True)
     return {'internal_gap_issuers_before': internal, 'weeks_examined': len(summaries),
             'remaining_unexamined_gap_weeks': max(0, len(order) - len(summaries)),
