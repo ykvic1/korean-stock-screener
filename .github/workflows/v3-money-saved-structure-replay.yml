@@ -80,6 +80,8 @@ jobs:
           sparse-checkout: |
             /derived/money-five-session/
             /derived/money-calendar-weeks/
+            /derived/money-calendar-week-repairs/
+            /derived/money-calendar-week-repair-checkpoint.json
             /derived/money-historical-checkpoint.json
             /derived/money-forward-checkpoint.json
             /derived/money-calendar-week-checkpoint.json

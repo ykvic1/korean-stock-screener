@@ -244,8 +244,12 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader
         raise MoneyRepairError('invalid_money_repair_week_budget')
     history, raw, oldsha, state = load_history(snapshot, catalog, day_loader=day_loader)
     writer.verify_private()
-    if writer.repository != PRIVATE_REPO or writer.get_content(CHECKPOINT)[0] != raw:
+    writer_raw, writer_sha = writer.get_content(CHECKPOINT)
+    if writer.repository != PRIVATE_REPO or writer_raw != raw:
         raise MoneyRepairError('money_repair_writer_snapshot_mismatch')
+    # Snapshot hashes are SHA256 integrity digests. GitHub CAS requires the
+    # remote Git blob SHA; never substitute the local snapshot digest.
+    oldsha = writer_sha
     order, targets, single, internal = select(history, catalog, state['weeks'])
     lookup = {h[1]['week_end']: h[:2] for h in history}
     budget = {'requests': 0}

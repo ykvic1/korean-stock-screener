@@ -165,6 +165,20 @@ class RepairTests(unittest.TestCase):
             self.assertEqual(result['source_requests'], 0)
             self.assertEqual(result['restored_issuer_weeks'], 1)
 
+    def test_cursor_cas_uses_remote_git_blob_sha_not_snapshot_integrity_digest(self):
+        store, catalog = setup_store()
+        store.files[repair.CHECKPOINT] = canonical({'schema': repair.INDEX_SCHEMA,
+            'weeks': {'2020-01-05': 'a' * 64}})
+        class Writer(FakePrivateStore):
+            def get_content(self, name):
+                raw, sha = super().get_content(name)
+                return raw, 'remote-git-blob-sha' if name == repair.CHECKPOINT else sha
+        writer = Writer(); writer.files = store.files
+        with patch.object(repair, 'HISTORY_WEEKS', 3), patch.object(
+                repair, '_save_cursor', return_value='next-remote-sha') as save:
+            repair.repair(store, writer, Client(), catalog, max_weeks=1, day_loader=weeks.days)
+        self.assertEqual(save.call_args.args[3], 'remote-git-blob-sha')
+
     def test_prioritizes_single_gap_without_calling_tail_missing_a_listing(self):
         history = []
         for i in range(5):
