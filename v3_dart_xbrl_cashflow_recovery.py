@@ -62,6 +62,16 @@ def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner
     root=xp._safe_xbrl_xml(data)
     if root.tag!=X+'xbrl':return root,{},{}
     bindings=xp._unambiguous_namespace_bindings(data)
+    return root,bindings,contexts_from_instance(root,bindings,year=year,scope=scope,identifiers=identifiers,
+        diagnostic=diagnostic,equity_owner=equity_owner,ordinary_share=ordinary_share)
+
+
+def contexts_from_instance(root,bindings,*,year,scope,identifiers,diagnostic=None,equity_owner=False,ordinary_share=False):
+    """Select periods/scope from an already safely parsed instance, without reparsing XML."""
+    if type(equity_owner) is not bool:raise RecoveryError('invalid_original_equity_context_selector')
+    if type(ordinary_share) is not bool or (ordinary_share and equity_owner):raise RecoveryError('invalid_original_ordinary_context_selector')
+    diagnostic=diagnostic if diagnostic is not None else Counter()
+    if root.tag!=X+'xbrl':return {}
     contexts={};units=set()
     for ctx in root.findall(X+'context'):
         key=ctx.get('id')
@@ -119,7 +129,7 @@ def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner
             and axis[1]=='ConsolidatedAndSeparateFinancialStatementsAxis'
             and member==(axis[0],'ConsolidatedMember' if scope=='CFS' else 'SeparateMember')):
             contexts[key]=True;diagnostic['explicit_scope_contexts']+=1
-    return root,bindings,contexts
+    return contexts
 
 
 def instance_values(data,*,year,scope,identifiers,expected_cfo,diagnostic=None):

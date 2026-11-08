@@ -24,6 +24,19 @@ class OperationalScoreTests(unittest.TestCase):
         cls.inputs=[json.loads((ROOT/'docs'/n).read_text()) for n in names]
         cls.report=ops.build(*cls.inputs)
 
+    def test_same_day_partial_eps_refresh_retains_previous_complete_factor(self):
+        previous=json.loads((ROOT/'docs'/ops.OUTPUT).read_text())
+        # These complete factors were admitted from audited original EPS.
+        # A temporary absence while the reader refreshes must keep their date.
+        with patch.object(ops,'verified_reported_eps',return_value={}):
+            report=ops.build(*self.inputs,previous=previous)
+        for code in ('011210','039030'):
+            old=previous['rows'][code]['parts']['valuation']['per_eps_quality_growth']
+            expected=old if isinstance(old,list) else [old['points'],old['available'],old['asof']]
+            result=report['rows'][code]['parts']['valuation']['per_eps_quality_growth']
+            self.assertEqual(result['available'],expected[1])
+            self.assertEqual(result['asof'],expected[2])
+
     def test_weights_missing_new_signals_and_no_cross_double_count(self):
         self.assertEqual(sum(ops.BUDGET.values()),100)
         self.assertEqual(len(self.report['rows']),self.inputs[1]['listed_total'])

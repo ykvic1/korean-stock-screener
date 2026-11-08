@@ -41,16 +41,17 @@ class V3RankedQuantWorkflowTests(unittest.TestCase):
         self.assertIn("Korean Stock Quant Study v2.1",nightly)
         self.assertIn("docs/v3-quant-coverage.json",nightly)
 
-    def test_production_quant_installs_same_pinned_calendar_before_full_tests(self):
+    def test_data_only_quant_checks_saved_input_without_repeating_full_code_tests(self):
         nightly=(ROOT/PATHS[0]).read_text(encoding="utf-8")
         check=(ROOT/".github/workflows/quant-checks.yml").read_text(encoding="utf-8")
-        dependency="exchange-calendars==4.13.1"
-        self.assertIn(dependency,nightly)
-        self.assertIn(dependency,check)
-        install=nightly.index(dependency)
-        suite=nightly.index("python -m unittest discover -s tests -v")
-        self.assertLess(install,suite,
-                        "Never let production quant full tests fail from omitted calendar dependency")
+        command="python v3_quant_input_check.py --market docs/data.json"
+        self.assertIn(command,nightly)
+        self.assertLess(nightly.index(command),nightly.index("python quant_fetch_history.py"))
+        self.assertNotIn("python -m unittest discover -s tests",nightly)
+        self.assertNotIn("exchange-calendars==",nightly)
+        self.assertEqual(check.count("python -m unittest discover -s tests -v"),1)
+        self.assertNotIn("python -m unittest discover -s tests -p",check)
+        self.assertIn("exchange-calendars==4.13.1",check)
 
     def test_no_public_raw_ohlcv_or_fake_validation_in_publishing_steps(self):
         for path in PATHS:

@@ -26,7 +26,8 @@ jobs:
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
           python v3_operational_model_diagnostics.py
-      - run: python -m unittest discover -s tests -v
+      - name: Full Python regression once before integration
+        run: python -m unittest discover -s tests -v
       - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py recommendation_engine.py
       - name: Kiwoom Windows PowerShell offline mock (no credentials or network)
         shell: pwsh
@@ -39,15 +40,12 @@ jobs:
       - name: v2.2 complete listed universe PBR and flow references (offline)
         run: |
           python -m py_compile v22_active_market_catalog.py
-          python -m unittest discover -s tests -p 'test_v22_active_market_catalog.py' -v
       - name: v2.2 106-price-error reason triage, exact 100-share batch accounting, and bounded retry sample (offline)
         run: |
           python -m py_compile v22_price_error_triage.py v22_price_reason_recheck_once.py
-          python -m unittest discover -s tests -p 'test_v22_price_error_triage.py' -v
       - name: v2.2 recent-listing limited 60-159-day MA and OBV with NO unearned stock score (offline)
         run: |
           python -m py_compile v22_short_history_validation.py v22_short_history_observations.py
-          python -m unittest discover -s tests -p 'test_v22_short_history_observations.py' -v
       - name: V3 manual research page short-history previews, source-date and no-order safety (offline)
         run: |
           node --check docs/v3-beta.js
@@ -55,23 +53,16 @@ jobs:
       - name: v2.2 full-market stock-by-stock accounting and quality safeguards (offline)
         run: |
           python -m py_compile v22_full_universe_audit.py
-          python -m unittest discover -s tests -p 'test_v22_full_universe_audit.py' -v
           python v22_full_universe_audit.py --daily docs/data.json
       - name: V3 separately published real candidate quant, 40-peer cohort and no false prediction (offline)
         run: |
           python -m py_compile v3_priority_quant_feed.py
-          python -m unittest discover -s tests -p 'test_v3_priority_quant_feed.py' -v
-      - name: V3 actual shortlisted daily and Saturday quant workflow source-date publication guards
-        run: |
-          python -m unittest discover -s tests -p 'test_v3_priority_workflow_integration.py' -v
       - name: V3 bounded 20-stock annual financial reference from DART (offline mock, no secrets)
         run: |
           python -m py_compile official_data.py
-          python -m unittest discover -s tests -p 'test_v3_bounded_financial_reference.py' -v
       - name: V3 ranked candidate historical study coverage and live published-snapshot audit (offline)
         run: |
           python -m py_compile v3_ranked_quant_coverage.py
-          python -m unittest discover -s tests -p 'test_v3_ranked_quant_coverage.py' -v
           python v3_ranked_quant_coverage.py --output /tmp/v3-quant-readiness-ci.json
       - name: V3 score-first research candidates and actual same-date quant decision UI (offline)
         run: |
@@ -90,117 +81,85 @@ jobs:
       - name: v3 first bounded KRX real-provider to partial technical pipeline (synthetic CI only)
         run: |
           python -m py_compile v3_krx_first_real_pipeline.py
-          python -m unittest discover -s tests -p 'test_v3_krx_first_real_pipeline.py' -v
       - name: v3 decade-plus append-only history planning and source chain capacity (offline)
         run: |
           python -m py_compile v3_evidence_chain.py v3_local_private_store.py v3_krx_private_backfill_plan.py v3_price_feature_adapter.py
-          python -m unittest discover -s tests -p 'test_v3_decade_history_archive.py' -v
       - name: v3 private daily candlestick chart with optional MA120 and MA240 (offline)
         run: |
           python -m py_compile v3_private_daily_chart.py v3_optional_technical_research.py
-          python -m unittest discover -s tests -p 'test_v3_private_daily_chart.py' -v
       - name: v3 unscaled technical subfactor research when weekly MA120 is missing
         run: |
           python -m py_compile v3_research_factor_engine.py
-          python -m unittest discover -s tests -p 'test_v3_optional_technical_factor.py' -v
       - name: v3 optional partial daily and weekly technical research (no mandatory MA120)
         run: |
           python -m py_compile v3_optional_technical_research.py
-          python -m unittest discover -s tests -p 'test_v3_optional_technical_research.py' -v
       - name: v3 KRX private 100-ticker price panel bridge (offline, no score promotion)
         run: |
           python -m py_compile v3_krx_private_price_bridge.py
-          python -m unittest discover -s tests -p 'test_v3_krx_private_price_bridge.py' -v
       - name: v3 offline private archive semantic replay and no-network resume guard
         run: |
           python -m py_compile v3_krx_archive_reaudit.py v3_krx_local_resume_batch.py
-          python -m unittest discover -s tests -p 'test_v3_krx_archive_reaudit.py' -v
       - name: Bounded KRX versus XKRX observed-day challenge (all synthetic, no credential)
         run: |
           python -m py_compile v3_krx_session_challenge.py
-          python -m unittest discover -s tests -p 'test_v3_krx_session_challenge.py' -v
       - name: Research-only XKRX holiday candidate calendar and 250-session resumable archive
         run: |
           python -m py_compile v3_krx_session_candidates.py
-          python -m unittest discover -s tests -p 'test_v3_krx_xkrx_candidates.py' -v
       - name: KRX raw-zero OHLC fields vs aggregate volume and safe local live-resume integration
         run: |
           python -m py_compile v3_krx_zero_price_detail.py v3_krx_local_resume_batch.py
-          python -m unittest discover -s tests -p 'test_v3_krx_zero_resume.py' -v
       - name: KRX daily unpriced row reasons, official-master offline identity and resumable private backfill
         run: |
           python -m py_compile v3_krx_daily_anomaly_triage.py v3_krx_private_backfill_plan.py v3_krx_issuer_master_audit.py
-          python -m unittest discover -s tests -p 'test_v3_krx_anomaly_backfill.py' -v
-          python -m unittest discover -s tests -p 'test_v3_krx_issuer_master_audit.py' -v
       - name: KRX real daily two-market history bounded offline contracts only
         run: |
           python -m py_compile v3_krx_history_collection.py
-          python -m unittest discover -s tests -p 'test_v3_krx_history_collection.py' -v
-      - name: KRX website investor flow offline contract (no network or keys)
-        run: python -m unittest discover -s tests -p 'test_v3_krx_website_flow_pilot.py' -v
-      - name: KRX official two-market private staging offline contract (no keys or network)
-        run: python -m unittest discover -s tests -p 'test_v3_krx_private_daily.py' -v
       - name: v3 full-market 2200 synthetic issuer global normalization and safe 100-name partitions
         run: |
           python -m py_compile v3_fullmarket_stress.py
-          python -m unittest discover -s tests -p 'test_v3_fullmarket_stress.py' -v
       - name: v3 no-partial KOSPI KOSDAQ staged pagination and fault-injected bounded retries
         run: |
           python -m py_compile v3_atomic_ingestion.py
-          python -m unittest discover -s tests -p 'test_v3_atomic_ingestion.py' -v
       - name: v3 freeze-time scoring to quality-gated 1 2 3 6 12 month research backtest
         run: |
           python -m py_compile v3_frozen_score_backtest.py
-          python -m unittest discover -s tests -p 'test_v3_frozen_score_backtest.py' -v
       - name: v3 daily and weekly causal structural pivot support and resistance offline
         run: |
           python -m py_compile v3_structural_levels.py
-          python -m unittest discover -s tests -p 'test_v3_structural_levels.py' -v
       - name: v3 mandatory PIT and event quality screen always blocks unverified evidence
         run: |
           python -m py_compile v3_mandatory_quality_gate.py
-          python -m unittest discover -s tests -p 'test_v3_mandatory_quality_gate.py' -v
       - name: v3 downside-first screen blocks high scoring broken support and equity loss (synthetic only)
         run: |
           python -m py_compile v3_loss_first_screen.py
-          python -m unittest discover -s tests -p 'test_v3_loss_first_screen.py' -v
       - name: v3 private offline responsive mobile six-pillar preview and XSS/no-publish regression
         run: |
           python -m py_compile v3_mobile_report.py
-          python -m unittest discover -s tests -p 'test_v3_mobile_report.py' -v
       - name: v3 market-scoped IAS/momentum/FCF overlap and rank-correlation diagnostics (synthetic only)
         run: |
           python -m py_compile v3_factor_overlap_audit.py
-          python -m unittest discover -s tests -p 'test_v3_factor_overlap_audit.py' -v
       - name: v3 industry membership complete-cohort cycle and MA60 breadth (synthetic only)
         run: |
           python -m py_compile v3_industry_feature_adapter.py
-          python -m unittest discover -s tests -p 'test_v3_industry_feature_adapter.py' -v
       - name: v3 current listed OpenDART rolling annual book references without fake official PBR (offline)
         run: |
           python -m py_compile v3_dart_rolling_book_reference.py
-          python -m unittest discover -s tests -p 'test_v3_dart_rolling_book_reference.py' -v
       - name: v3 4-year reported KRW financial cashflow growth and valuation raw feature calculations
         run: |
           python -m py_compile v3_financial_feature_adapter.py
-          python -m unittest discover -s tests -p 'test_v3_financial_feature_adapter.py' -v
       - name: v3 runnable 64-stock synthetic six-pillar IAS + technical + portfolio risk workbench
         run: |
           python -m py_compile v3_offline_workbench.py
-          python -m unittest discover -s tests -p 'test_v3_offline_workbench.py' -v
           python -m v3_offline_workbench --demo > /dev/null
       - name: v3 causal daily-weekly OHLCV to technical, OBV and momentum research features
         run: |
           python -m py_compile v3_price_feature_adapter.py
-          python -m unittest discover -s tests -p 'test_v3_price_feature_adapter.py' -v
       - name: v3 executable 6-pillar raw features and IAS cohort normalization (synthetic only)
         run: |
           python -m py_compile v3_research_factor_engine.py
-          python -m unittest discover -s tests -p 'test_v3_research_factor_engine.py' -v
       - name: V3 seven-calendar-day rotating all-listed research recalculation and coverage audit
         run: |
           python -m py_compile v3_weekly_rotation.py
-          python -m unittest discover -s tests -p 'test_v3_weekly_rotation.py' -v
       - name: V3 real published all-listed sources read-only rotating rehearsal
         run: |
           python - <<'PY'
@@ -262,87 +221,59 @@ jobs:
                     report['processed_today'], 'today,',
                     report['unprocessed_this_cycle'], 'remaining')
           PY
-      - name: v3 complete six-factor and IAS scoring contract offline checks
-        run: python -m unittest discover -s tests -p 'test_v3_score_contract.py' -v
       - name: v3 walk-forward historical loss/target research and lookahead guard (synthetic only)
         run: |
           python -m py_compile v3_walkforward_research.py
-          python -m unittest discover -s tests -p 'test_v3_walkforward_research.py' -v
-          python -m unittest discover -s tests -p 'test_v3_stop_risk_validation.py' -v
       - name: v3 private local KRX two-market SQLite immutable archive and tamper check (mock only)
         run: |
           python -m py_compile v3_local_private_store.py
-          python -m unittest discover -s tests -p 'test_v3_local_private_store.py' -v
       - name: v3 PIT/corporate-event quality-gated five-horizon walk-forward (synthetic only)
         run: |
           python -m py_compile v3_walkforward_quality_gate.py
-          python -m unittest discover -s tests -p 'test_v3_walkforward_quality_gate.py' -v
       - name: v3 PIT aligned issuer, flow, filing and industry join contract (synthetic only)
         run: |
           python -m py_compile v3_pit_join.py
-          python -m unittest discover -s tests -p 'test_v3_pit_join.py' -v
       - name: v3 two-market private evidence chain integrity and tamper/fork guard (synthetic only)
         run: |
           python -m py_compile v3_evidence_chain.py
-          python -m unittest discover -s tests -p 'test_v3_evidence_chain.py' -v
       - name: KRX actual private derived action-risk screen, zero vendor call and no certified split claims
         run: |
           python -m py_compile v3_krx_derived_corporate_action_risk.py v3_krx_corporate_risk_incremental.py
-          python -m unittest discover -s tests -p 'test_v3_krx_derived_corporate_action_risk.py' -v
-          python -m unittest discover -s tests -p 'test_v3_krx_corporate_risk_incremental.py' -v
       - name: KRX final four-session candidate tail kept as verified private partial evidence
         run: |
           python -m py_compile v3_krx_derived_four_session_tail.py
-          python -m unittest discover -s tests -p 'test_v3_krx_derived_four_session_tail.py' -v
       - name: DART four-year cohort audit never promotes stale market and annual census
         run: |
           python -m py_compile v3_dart_offline_lag_plan.py
-          python -m unittest discover -s tests -p 'test_v3_dart_offline_lag_plan.py' -v
       - name: KRX private 20-60-120-250 research approximate returns without official source calls
         run: |
           python -m py_compile v3_krx_derived_rolling_returns.py
-          python -m unittest discover -s tests -p 'test_v3_krx_derived_rolling_returns.py' -v
       - name: KRX adjacent historical derived cohorts gap closure (private logreturn only)
         run: |
           python -m py_compile v3_krx_derived_bridges.py
-          python -m unittest discover -s tests -p 'test_v3_krx_derived_bridges.py' -v
       - name: KRX genuine source five-session private derived research factor and idempotence tests
         run: |
           python -m py_compile v3_krx_derived_5day.py v3_krx_derived_backfill.py
-          python -m unittest discover -s tests -p 'test_v3_krx_derived_5day.py' -v
-          python -m unittest discover -s tests -p 'test_v3_krx_derived_backfill.py' -v
       - name: KRX official written consent and cloud retention fail-closed unit tests
         run: |
           python -m py_compile v3_krx_permission_gate.py
-          python -m unittest discover -s tests -p 'test_v3_krx_permission_gate.py' -v
       - name: Source-safe private 10-year KRX historical archive and outage-resume regression
         run: |
           python -m py_compile v3_krx_private_github_backfill.py
-          python -m unittest discover -s tests -p 'test_v3_krx_private_github_backfill.py' -v
       - name: v3 IAS 20/60/120/250-flow ledger no-double-count safeguards (synthetic only)
         run: |
           python -m py_compile v3_ias_flow_ledger.py
-          python -m unittest discover -s tests -p 'test_v3_ias_flow_ledger.py' -v
       - name: V3 IAS rolling private 20/60/120/250 session join, overlap conflicts and no-leak tests
         run: |
           python -m py_compile v3_ias_private_rolling.py
-          python -m unittest discover -s tests -p 'test_v3_ias_private_rolling.py' -v
       - name: v3 PIT historical universe and corporate-action quarantine (synthetic only)
         run: |
           python -m py_compile v3_historical_integrity.py
-          python -m unittest discover -s tests -p 'test_v3_historical_integrity.py' -v
       - name: v3 portfolio downside budget, concentration and gap stress (synthetic only)
         run: |
           python -m py_compile v3_portfolio_risk.py
-          python -m unittest discover -s tests -p 'test_v3_portfolio_risk.py' -v
       - name: Small technical watchlist offline safety checks (no APIs)
         run: node tests/test_v22_practical_watchlist.js
-      - name: Full KOSPI-KOSDAQ universe without size count or turnover caps (offline)
-        run: python -m unittest discover -s tests -p 'test_universe_rotation.py' -v
-      - name: Complete-market 100-stock job slices and fail-closed aggregate (no network)
-        run: python -m unittest discover -s tests -p 'test_full_market_batch.py' -v
-      - name: Full-market evidence-led research selection, no forced20, daily entry/exit tracking
-        run: python -m unittest discover -s tests -p 'test_recommendation_engine.py' -v
       - name: Top20 per-stock deep analysis published UI and stale fail-closed rendering
         run: node tests/test_recommendation_site.js
       - name: Client score normalization of obtained weight only, 70/85=82.3
