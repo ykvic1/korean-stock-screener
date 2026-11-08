@@ -17,6 +17,25 @@
       "60": 1813
     }
   },
+  "component_observation_coverage": {
+    "complete_structure_not_full_100_observation": true,
+    "full_weight_issuers": {
+      "concentration_quality": 2300,
+      "correction_contraction": 2242,
+      "persistence": 1519,
+      "up_down_asymmetry": 2248,
+      "weekly_structure_increment": 1519
+    },
+    "observed_issuers": {
+      "concentration_quality": 2310,
+      "correction_contraction": 2242,
+      "persistence": 2310,
+      "up_down_asymmetry": 2248,
+      "weekly_structure_increment": 1519
+    },
+    "partial_weight_not_renormalized": true,
+    "structure_only_issuers": 791
+  },
   "coverage_gap_diagnostic": {
     "fresh_unscored_issuers": 982,
     "full_fresh_evidence_issuers": 1519,
@@ -29,6 +48,25 @@
     "zero_baseline_is_unavailable_not_zero_points": true
   },
   "eligible_issuers": 1519,
+  "history_shape_diagnostic": {
+    "does_not_identify_listing_or_gap_cause": true,
+    "issuer_dates_or_source_series_published": false,
+    "pair_counts": {
+      "complete__complete": 1519,
+      "complete__internal_missing": 111,
+      "complete__recent_missing": 1,
+      "complete__tail_only_missing": 235,
+      "internal_missing__internal_missing": 385,
+      "internal_missing__recent_missing": 1,
+      "no_observed_history__no_observed_history": 1,
+      "no_observed_history__recent_missing": 15,
+      "no_observed_history__tail_only_missing": 3,
+      "recent_missing__internal_missing": 4,
+      "recent_missing__recent_missing": 93,
+      "tail_only_missing__internal_missing": 8,
+      "tail_only_missing__tail_only_missing": 125
+    }
+  },
   "investment_score_certified": false,
   "listed_total": 2501,
   "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
