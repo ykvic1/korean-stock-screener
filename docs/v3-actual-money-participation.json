@@ -20,10 +20,10 @@
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
       "10": 2201,
-      "120": 1541,
-      "20": 2042,
+      "120": 1585,
+      "20": 2112,
       "5": 2300,
-      "60": 1830
+      "60": 1885
     }
   },
   "component_contract": "v3-actual-money-independent-component-observations-v1",
@@ -35,14 +35,14 @@
       "correction_contraction": 2242,
       "persistence": 1525,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1541
+      "weekly_structure_increment": 1585
     },
     "observed_issuers": {
       "concentration_quality": 2310,
       "correction_contraction": 2242,
       "persistence": 2310,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1541
+      "weekly_structure_increment": 1585
     },
     "partial_weight_not_renormalized": true,
     "structure_only_issuers": 785
@@ -2125,14 +2125,17 @@
             1
           ],
           "persistence": [
-            0.45625,
-            1.625
+            0.85625,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -3016,14 +3019,17 @@
             1
           ],
           "persistence": [
-            1.175,
-            1.625
+            1.5625,
+            3.125
           ],
           "up_down_asymmetry": [
             0.5041,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -5251,8 +5257,8 @@
             1
           ],
           "persistence": [
-            0.254167,
-            2.25
+            0.3625,
+            3.25
           ],
           "up_down_asymmetry": [
             0.0,
@@ -6871,14 +6877,17 @@
             1
           ],
           "persistence": [
-            1.227083,
-            2.25
+            1.53125,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.654926,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -7201,11 +7210,14 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.7125,
-            1.625
+            1.0,
+            3.125
           ],
           "up_down_asymmetry": null,
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": null,
         "derived_from_private_reported_acc_trdval": true,
@@ -11149,14 +11161,17 @@
             1
           ],
           "persistence": [
-            0.308333,
-            2.25
+            0.479167,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -11392,8 +11407,8 @@
             1
           ],
           "persistence": [
-            0.202083,
-            2.25
+            0.277083,
+            3.25
           ],
           "up_down_asymmetry": [
             0.0,
@@ -13297,14 +13312,17 @@
             1
           ],
           "persistence": [
-            0.25625,
-            1.625
+            0.40625,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -14122,14 +14140,17 @@
             1
           ],
           "persistence": [
-            0.354167,
-            2.25
+            0.595833,
+            3.75
           ],
           "up_down_asymmetry": [
             0.3291,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -14704,8 +14725,8 @@
             1
           ],
           "persistence": [
-            1.533333,
-            2.25
+            1.733333,
+            3.25
           ],
           "up_down_asymmetry": [
             0.164433,
@@ -15025,8 +15046,8 @@
             1
           ],
           "persistence": [
-            0.76875,
-            2.25
+            0.94375,
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -15553,14 +15574,17 @@
             1
           ],
           "persistence": [
-            0.55625,
-            1.625
+            0.960417,
+            3.125
           ],
           "up_down_asymmetry": [
             0.676267,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.958536,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -19711,14 +19735,17 @@
             1
           ],
           "persistence": [
-            0.825,
-            1.625
+            0.933333,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -21928,14 +21955,17 @@
             1
           ],
           "persistence": [
-            0.710417,
-            2.25
+            1.177083,
+            3.75
           ],
           "up_down_asymmetry": [
             1.239633,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -23398,14 +23428,17 @@
             1
           ],
           "persistence": [
-            0.0,
-            1.625
+            0.104167,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -24412,14 +24445,17 @@
             1
           ],
           "persistence": [
-            0.6625,
-            2.25
+            0.916667,
+            3.75
           ],
           "up_down_asymmetry": [
             0.121967,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -24952,8 +24988,8 @@
             1
           ],
           "persistence": [
-            0.0,
-            2.25
+            0.025,
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -28510,14 +28546,17 @@
             1
           ],
           "persistence": [
-            1.333333,
-            2.25
+            1.4,
+            3.75
           ],
           "up_down_asymmetry": [
             0.358967,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -28843,14 +28882,17 @@
             1
           ],
           "persistence": [
-            0.5125,
-            2.25
+            0.608333,
+            3.75
           ],
           "up_down_asymmetry": [
             0.852033,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -29845,14 +29887,17 @@
             1
           ],
           "persistence": [
-            0.972917,
-            2.25
+            1.28125,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -29965,8 +30010,8 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.05,
-            1.625
+            0.125,
+            2.125
           ],
           "up_down_asymmetry": [
             0.0,
@@ -31363,14 +31408,17 @@
             1
           ],
           "persistence": [
-            0.25625,
-            2.25
+            0.397917,
+            3.75
           ],
           "up_down_asymmetry": [
             0.591467,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -33223,14 +33271,17 @@
             1
           ],
           "persistence": [
-            0.052083,
-            2.25
+            0.452083,
+            3.75
           ],
           "up_down_asymmetry": [
             0.850467,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.770949,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -33304,8 +33355,8 @@
             1
           ],
           "persistence": [
-            0.05,
-            1.625
+            0.125,
+            2.125
           ],
           "up_down_asymmetry": [
             0.075467,
@@ -33469,14 +33520,17 @@
             1
           ],
           "persistence": [
-            0.104167,
-            2.25
+            0.933333,
+            3.75
           ],
           "up_down_asymmetry": [
             0.013067,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -34304,7 +34358,7 @@
           ],
           "persistence": [
             0.50625,
-            2.25
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -35758,8 +35812,8 @@
             1
           ],
           "persistence": [
-            0.510417,
-            2.25
+            0.71875,
+            3.25
           ],
           "up_down_asymmetry": [
             0.456133,
@@ -36007,8 +36061,8 @@
             1
           ],
           "persistence": [
-            0.2,
-            1.625
+            0.366667,
+            2.625
           ],
           "up_down_asymmetry": [
             0.543,
@@ -36046,14 +36100,17 @@
             1
           ],
           "persistence": [
-            0.614583,
-            2.25
+            0.910417,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -36748,8 +36805,8 @@
             1
           ],
           "persistence": [
-            1.21875,
-            1.625
+            1.327083,
+            2.625
           ],
           "up_down_asymmetry": [
             0.0,
@@ -36829,14 +36886,17 @@
             1
           ],
           "persistence": [
-            0.410417,
-            2.25
+            0.54375,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -37909,8 +37969,8 @@
             1
           ],
           "persistence": [
-            0.614583,
-            2.25
+            0.664583,
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -38107,8 +38167,8 @@
             1
           ],
           "persistence": [
-            1.275,
-            2.25
+            1.3,
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -38266,14 +38326,17 @@
             1
           ],
           "persistence": [
-            0.408333,
-            2.25
+            0.475,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -39164,7 +39227,7 @@
           ],
           "persistence": [
             0.6125,
-            2.25
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -41710,14 +41773,17 @@
             1
           ],
           "persistence": [
-            0.05,
-            1.625
+            0.216667,
+            3.125
           ],
           "up_down_asymmetry": [
             0.780467,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            1.360454,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -41791,8 +41857,8 @@
             1
           ],
           "persistence": [
-            0.86875,
-            2.25
+            1.16875,
+            2.75
           ],
           "up_down_asymmetry": [
             1.654567,
@@ -43870,8 +43936,8 @@
             1
           ],
           "persistence": [
-            0.252083,
-            2.25
+            0.302083,
+            2.75
           ],
           "up_down_asymmetry": [
             0.049333,
@@ -44821,14 +44887,17 @@
             1
           ],
           "persistence": [
-            0.40625,
-            1.625
+            0.464583,
+            3.125
           ],
           "up_down_asymmetry": [
             0.402533,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -46222,14 +46291,17 @@
             1
           ],
           "persistence": [
-            0.20625,
-            2.25
+            0.26875,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -46723,8 +46795,8 @@
             1
           ],
           "persistence": [
-            0.302083,
-            2.25
+            0.46875,
+            3.25
           ],
           "up_down_asymmetry": [
             0.271933,
@@ -49051,14 +49123,17 @@
             1
           ],
           "persistence": [
-            0.3,
-            1.625
+            0.7375,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -50338,14 +50413,17 @@
             1
           ],
           "persistence": [
-            0.1,
-            1.625
+            0.145833,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0751,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -50497,14 +50575,17 @@
             1
           ],
           "persistence": [
-            0.76875,
-            2.25
+            0.860417,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 24,
         "derived_from_private_reported_acc_trdval": true,
@@ -50785,14 +50866,17 @@
             1
           ],
           "persistence": [
-            0.45,
-            1.625
+            0.7125,
+            3.125
           ],
           "up_down_asymmetry": [
             0.533433,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -52075,14 +52159,17 @@
             1
           ],
           "persistence": [
-            0.15,
-            1.625
+            0.491667,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.509932,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -52234,14 +52321,17 @@
             1
           ],
           "persistence": [
-            1.58125,
-            2.25
+            1.997917,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -52729,14 +52819,17 @@
             1
           ],
           "persistence": [
-            0.7125,
-            1.625
+            0.9,
+            3.125
           ],
           "up_down_asymmetry": [
             0.581033,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -54364,8 +54457,8 @@
             1
           ],
           "persistence": [
-            0.558333,
-            2.25
+            0.658333,
+            3.25
           ],
           "up_down_asymmetry": [
             0.498933,
@@ -54607,14 +54700,17 @@
             1
           ],
           "persistence": [
-            1.027083,
-            2.25
+            1.360417,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -54727,14 +54823,17 @@
             1
           ],
           "persistence": [
-            0.55625,
-            2.25
+            0.635417,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -54805,14 +54904,17 @@
             1
           ],
           "persistence": [
-            0.25625,
-            2.25
+            0.360417,
+            3.75
           ],
           "up_down_asymmetry": [
             0.2831,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.039658,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -55090,14 +55192,17 @@
             1
           ],
           "persistence": [
-            0.50625,
-            2.25
+            0.702083,
+            3.75
           ],
           "up_down_asymmetry": [
             0.057633,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -56371,8 +56476,8 @@
             1
           ],
           "persistence": [
-            0.102083,
-            2.25
+            0.152083,
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -57718,14 +57823,17 @@
             1
           ],
           "persistence": [
-            0.1,
-            1.625
+            0.233333,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -65134,14 +65242,17 @@
             1
           ],
           "persistence": [
-            0.716667,
-            2.25
+            0.8,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -67738,8 +67849,8 @@
             1
           ],
           "persistence": [
-            0.1,
-            1.625
+            0.15,
+            2.125
           ],
           "up_down_asymmetry": [
             0.0,
@@ -70903,14 +71014,17 @@
             1
           ],
           "persistence": [
-            0.7625,
-            1.625
+            0.941667,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -71560,14 +71674,17 @@
             1
           ],
           "persistence": [
-            0.658333,
-            2.25
+            0.695833,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -72730,14 +72847,17 @@
             1
           ],
           "persistence": [
-            0.308333,
-            2.25
+            0.470833,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 24,
         "derived_from_private_reported_acc_trdval": true,
@@ -73627,8 +73747,8 @@
             1
           ],
           "persistence": [
-            1.525,
-            1.625
+            1.933333,
+            2.625
           ],
           "up_down_asymmetry": [
             0.496033,
@@ -76207,14 +76327,17 @@
             1
           ],
           "persistence": [
-            0.052083,
-            2.25
+            0.172917,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -77518,8 +77641,8 @@
             1
           ],
           "persistence": [
-            1.43125,
-            2.25
+            1.50625,
+            2.75
           ],
           "up_down_asymmetry": [
             0.0,
@@ -78253,14 +78376,17 @@
             1
           ],
           "persistence": [
-            0.0,
-            2.25
+            0.570833,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -78334,8 +78460,8 @@
             1
           ],
           "persistence": [
-            0.408333,
-            2.25
+            0.458333,
+            2.75
           ],
           "up_down_asymmetry": [
             0.6849,
@@ -78946,8 +79072,8 @@
             1
           ],
           "persistence": [
-            0.4625,
-            1.625
+            0.520833,
+            2.625
           ],
           "up_down_asymmetry": [
             0.0,
@@ -79237,8 +79363,8 @@
             1
           ],
           "persistence": [
-            0.922917,
-            2.25
+            0.947917,
+            3.25
           ],
           "up_down_asymmetry": [
             0.0694,
@@ -81358,14 +81484,17 @@
             1
           ],
           "persistence": [
-            1.070833,
-            2.25
+            1.141667,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -83821,14 +83950,17 @@
             1
           ],
           "persistence": [
-            0.408333,
-            2.25
+            0.475,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -85373,7 +85505,7 @@
           ],
           "persistence": [
             0.05,
-            1.625
+            2.125
           ],
           "up_down_asymmetry": [
             0.683933,
@@ -94380,8 +94512,8 @@
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
       "complete__incomplete_periods": 341,
-      "incomplete_periods__complete": 16,
-      "incomplete_periods__incomplete_periods": 619
+      "incomplete_periods__complete": 60,
+      "incomplete_periods__incomplete_periods": 575
     },
     "zero_baseline_is_unavailable_not_zero_points": true
   },
@@ -94402,9 +94534,10 @@
       "complete__internal_missing": 105,
       "complete__recent_missing": 1,
       "complete__tail_only_missing": 235,
-      "internal_missing__complete": 16,
-      "internal_missing__internal_missing": 369,
+      "internal_missing__complete": 60,
+      "internal_missing__internal_missing": 320,
       "internal_missing__recent_missing": 1,
+      "internal_missing__tail_only_missing": 5,
       "no_observed_history__no_observed_history": 1,
       "no_observed_history__recent_missing": 15,
       "no_observed_history__tail_only_missing": 3,
@@ -135609,11 +135742,11 @@
     "2": "f4527db9dfdc99948b721f443e88a5a8ad474632c15bf9453bce7dff86acb32a"
   },
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "4d24f5650a1d7576340ec3e030f71bb33bfd7ba4",
-  "source_weekly_repair_index_sha256": "63d81477ff0a9e924d4c52a629c1d8168b24ca75631d7766a38f3f8c60aba695",
+  "source_private_revision": "6568a9f9a51b26d1c2417569f583500330c9cbbe",
+  "source_weekly_repair_index_sha256": "3dc3a1934ce2255651e3bdf5ec35abc1aac55ff7869af3d41c9a2632562b20fc",
   "weekly_repair_observation": {
-    "added_issuer_weeks": 598,
-    "examined_weeks": 9,
+    "added_issuer_weeks": 739,
+    "examined_weeks": 10,
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },
