@@ -36,6 +36,7 @@ permissions:
 
 concurrency:
   group: v3-krx-actual-money-private-derived-backfill
+  queue: max
   cancel-in-progress: false
 
 jobs:

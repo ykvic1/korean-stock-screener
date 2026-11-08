@@ -52,6 +52,7 @@ jobs:
     timeout-minutes: 120
     concurrency:
       group: v3-krx-actual-money-private-derived-backfill
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4

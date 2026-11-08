@@ -25,6 +25,7 @@ permissions:
 # The historical and forward jobs share the SAME private writer lock.
 concurrency:
   group: v3-krx-actual-money-private-derived-backfill
+  queue: max
   cancel-in-progress: false
 
 jobs:

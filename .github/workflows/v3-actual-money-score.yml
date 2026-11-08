@@ -7,6 +7,7 @@ on:
       - v3_actual_money_contract.py
       - v3_actual_money_structure.py
       - v3_krx_money_week_repair.py
+      - v3_krx_money_daily_repair.py
       - tests/test_v3_actual_money_participation.py
       - tests/test_v3_actual_money_structure.py
       - tests/test_v3_money_component_observations.py
@@ -18,6 +19,7 @@ on:
       - v3_actual_money_contract.py
       - v3_actual_money_structure.py
       - v3_krx_money_week_repair.py
+      - v3_krx_money_daily_repair.py
       - .github/workflows/v3-actual-money-score.yml
   workflow_run:
     workflows:
@@ -78,6 +80,8 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /derived/money-five-session/
+            /derived/money-five-session-repairs/
+            /derived/money-five-session-repair-checkpoint.json
             /derived/money-calendar-weeks/
             /derived/money-calendar-week-repairs/
             /derived/money-calendar-week-repair-checkpoint.json

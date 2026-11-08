@@ -31,6 +31,8 @@ from v3_actual_money_structure import derive_components, COMPONENT_SCHEMA, COMPO
 from v3_actual_money_contract import usable_component_records
 from v3_krx_money_week_repair import (CHECKPOINT as WEEK_REPAIR,
     PREFIX as WEEK_REPAIR_PREFIX, index as repair_index, overlay as repair_overlay)
+from v3_krx_money_daily_repair import (CHECKPOINT as DAILY_REPAIR,
+    PREFIX as DAILY_REPAIR_PREFIX, index as daily_repair_index, overlay as daily_repair_overlay)
 PRIVATE_REPO='ykvic1/korean-stock-private-data'
 COVERAGE_SUMMARY='v3-actual-money-coverage-summary.json'
 COVERAGE_SUMMARY_SCHEMA='v3-personal-actual-money-coverage-summary-0.1'
@@ -145,6 +147,8 @@ def coverage_summary(report):
            if 'history_shape_diagnostic' in report else {}),
         **({'weekly_repair_observation': report['weekly_repair_observation']}
            if 'weekly_repair_observation' in report else {}),
+        **({'daily_repair_observation': report['daily_repair_observation']}
+           if 'daily_repair_observation' in report else {}),
     }
 
 
@@ -161,21 +165,12 @@ def history_shape(values):
     return 'tail_only_missing' if all(missing[first:]) else 'internal_missing'
 
 
-def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
-            forward_days=None, week_loader=week_days):
-    if (store.repository!=PRIVATE_REPO or type(source_revision) is not str
-        or len(source_revision)!=40 or any(c not in '0123456789abcdef' for c in source_revision)
-        or catalog.get('date')!=asof or type(catalog.get('rows')) is not list):
-        raise ActualMoneyError('invalid_money_score_source_identity')
-    store.verify_private()
+def read_daily_history(store, *, asof, before, days=None, digest=None, forward_days=None):
+    """One shared validation path for scoring and additive money recovery."""
     if days is None:
         days,digest=history_candidates()
     if forward_days is None:
         forward_days=forward_candidates(asof)
-    paths=(CHECKPOINT,FORWARD,WEEKLY)
-    before={p:store.get_content(p) for p in paths}
-    repair_before=store.get_content(WEEK_REPAIR)
-    repairs=repair_index(repair_before[0])
     progress=history_progress(store,days,digest)
     fstate=_manifest(before[FORWARD][0],forward_days)
     _verify_tail(store,fstate,forward_days)
@@ -188,18 +183,42 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     if len(windows)!=96 or windows[0][-1]>asof:
         raise ActualMoneyError('money_daily_source_not_current_complete_480_sessions')
     daily=[]
+    blobs=[]
     for window in windows:
         raw,_=store.get_content(_path(window))
         value=validate_money_blob(raw,window[0],window[-1])
         if value.get('amount_bucket_krw')!=100_000:
             raise ActualMoneyError('money_daily_amount_unit_mismatch')
         daily.append(value)
+        blobs.append(raw)
     # Verify the whole expected candidate prefix: no silent holes/overlap or
     # a forged calendar gap between two individually plausible files.
     flattened=[d for w in reversed(windows) for d in w]
     combined=days[:5*(len(days)//5)]+forward_days[:5*fcount]
     if flattened!=combined[-480:]:
         raise ActualMoneyError('money_daily_calendar_chain_gap')
+    return windows,daily,blobs
+
+
+def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
+            forward_days=None, week_loader=week_days):
+    if (store.repository!=PRIVATE_REPO or type(source_revision) is not str
+        or len(source_revision)!=40 or any(c not in '0123456789abcdef' for c in source_revision)
+        or catalog.get('date')!=asof or type(catalog.get('rows')) is not list):
+        raise ActualMoneyError('invalid_money_score_source_identity')
+    store.verify_private()
+    paths=(CHECKPOINT,FORWARD,WEEKLY)
+    before={p:store.get_content(p) for p in paths}
+    repair_before=store.get_content(WEEK_REPAIR)
+    repairs=repair_index(repair_before[0])
+    windows,daily,daily_blobs=read_daily_history(store,asof=asof,before=before,
+        days=days,digest=digest,forward_days=forward_days)
+    daily_repair_before=store.get_content(DAILY_REPAIR)
+    daily_repairs=daily_repair_index(daily_repair_before[0])
+    daily_added=0
+    for i,(window,blob,original) in enumerate(zip(windows,daily_blobs,daily)):
+        daily[i],added=daily_repair_overlay(store,blob,original,window,daily_repairs)
+        daily_added+=added
     if before[WEEKLY][0] is None:
         raise ActualMoneyError('money_calendar_week_history_unavailable')
     wstate=manifest(before[WEEKLY][0],asof)
@@ -276,7 +295,8 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     if catalog.get('listed_total')!=len(members):
         raise ActualMoneyError('incomplete_money_current_issuer_catalog')
     if (any(store.get_content(p)!=before[p] for p in paths)
-        or store.get_content(WEEK_REPAIR)!=repair_before):
+        or store.get_content(WEEK_REPAIR)!=repair_before
+        or store.get_content(DAILY_REPAIR)!=daily_repair_before):
         raise ActualMoneyError('private_money_checkpoint_changed_during_score_read')
     return {'schema':SCHEMA,'model':MODEL,'asof':asof,'points_budget':6,
         'daily_asof':windows[0][-1],
@@ -284,6 +304,10 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         'source_catalog_sha256':_stable_digest(catalog),
         'source_private_revision':source_revision,
         'source_weekly_repair_index_sha256':sha256(repair_before[0] or b'').hexdigest(),
+        'source_daily_repair_index_sha256':sha256(daily_repair_before[0] or b'').hexdigest(),
+        'daily_repair_observation':{'added_issuer_cohorts':daily_added,
+            'examined_windows':len(daily_repairs['windows']),
+            'original_archives_preserved':True,'prices_or_directions_repaired':False},
         'weekly_repair_observation':{'added_issuer_weeks':repaired_pairs,
             'examined_weeks':len(repairs['weeks']),
             'original_archives_preserved':True,'prices_or_directions_repaired':False},
@@ -336,8 +360,8 @@ class LocalPrivateSnapshot:
     def verify_private(self):
         self.remote.verify_private()
     def get_content(self, path):
-        if not (path in (CHECKPOINT,FORWARD,WEEKLY,WEEK_REPAIR) or path.startswith(
-            ('derived/money-five-session/','derived/money-calendar-weeks/',WEEK_REPAIR_PREFIX))):
+        if not (path in (CHECKPOINT,FORWARD,WEEKLY,WEEK_REPAIR,DAILY_REPAIR) or path.startswith(
+            ('derived/money-five-session/','derived/money-calendar-weeks/',WEEK_REPAIR_PREFIX,DAILY_REPAIR_PREFIX))):
             raise ActualMoneyError('money_snapshot_path_not_allowed')
         target=(self.root/path).resolve()
         if self.root not in target.parents or (self.root/path).is_symlink():
