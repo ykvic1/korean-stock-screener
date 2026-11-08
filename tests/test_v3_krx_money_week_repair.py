@@ -196,6 +196,19 @@ class RepairTests(unittest.TestCase):
         self.assertEqual(singles[order[0]], 1)
         self.assertEqual(count, 2)
         self.assertFalse(any('KOSPI:000002' in t for t in targets.values()))
+        focused, _, _, _ = repair.select(history, catalog, {}, {'000003'})
+        self.assertIn(focused[0], ('2026-10-11', '2026-10-25'))
+
+    def test_focus_uses_missing_component_evidence_and_never_changes_scoring(self):
+        catalog = {'date': '2026-11-06', 'rows': [{'code': '000001'}, {'code': '000002'}]}
+        priority = {'asof': catalog['date'], 'shape_names': [
+            'volume:persistence+volume:weekly_structure_increment',
+            'financial:cashflow_fcf_persistence+volume:persistence'],
+            'multiple_missing_index': [['000001', 97.5, 2.5, 0, 'priced'],
+                                       ['000002', 90, 10, 1, 'priced']]}
+        self.assertEqual(repair.completion_focus(priority, catalog), {'000001'})
+        priority['asof'] = '2026-11-05'
+        self.assertEqual(repair.completion_focus(priority, catalog), set())
 
     def test_workflow_runs_no_secret_on_pr_and_no_raw_artifact_upload(self):
         text = (Path(__file__).resolve().parents[1] / '.github/workflows/v3-krx-money-week-repair.yml').read_text()
@@ -274,6 +287,46 @@ class RepairTests(unittest.TestCase):
         self.assertEqual(call.call_count, 3)
         self.assertEqual(repair.failure_diagnostic(caught.exception), {
             'kind': 'official_krx_source', 'reason': 'empty_market_rows', 'http_status': 200})
+
+    def test_repository_branch_contention_retries_saved_bytes_without_refetching_krx(self):
+        from test_v3_krx_money_backfill import private_409
+        class ContendedStore(FakePrivateStore):
+            receipt_attempts = 0
+            index_attempts = 0
+            def put_new(self, name, payload, message):
+                if name.startswith(repair.PREFIX):
+                    self.receipt_attempts += 1
+                    if self.receipt_attempts <= 2:
+                        raise private_409()
+                if name == repair.CHECKPOINT:
+                    self.index_attempts += 1
+                    if self.index_attempts <= 3:
+                        raise private_409()
+                return super().put_new(name, payload, message)
+        base, catalog = setup_store()
+        store = ContendedStore(); store.files = base.files
+        client = Client()
+        with patch.object(repair, 'HISTORY_WEEKS', 3), patch.object(repair.time, 'sleep'):
+            result = repair.repair(store, store, client, catalog, day_loader=weeks.days)
+        self.assertEqual(result['restored_issuer_weeks'], 1)
+        self.assertEqual(len(client.calls), 10)
+        self.assertEqual(store.receipt_attempts, 3)
+        self.assertEqual(store.index_attempts, 4)
+
+    def test_conflicting_receipt_is_never_overwritten_and_partial_failure_is_replayed(self):
+        from test_v3_krx_money_backfill import private_409
+        store = FakePrivateStore()
+        name = repair.repair_path('2026-11-01')
+        store.files[name] = b'existing-immutable-data'
+        with patch.object(store, 'put_new', side_effect=private_409()), patch.object(repair.time, 'sleep'):
+            with self.assertRaisesRegex(repair.MoneyRepairError, 'immutable_receipt_conflict'):
+                repair.save_immutable_receipt(store, name, b'different-data')
+        self.assertEqual(store.files[name], b'existing-immutable-data')
+        text = (Path(__file__).resolve().parents[1] / '.github/workflows/v3-actual-money-score.yml').read_text()
+        self.assertIn("github.event.workflow_run.name == 'V3 Targeted Reported Money Week Repair'", text)
+        self.assertIn("github.event.workflow_run.conclusion == 'failure'", text)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", text)
+        self.assertIn('github.event.workflow_run.head_repository.full_name == github.repository', text)
 
 
 if __name__ == '__main__':

@@ -51,3 +51,26 @@ and weekly forward collectors now keep independently observed reported money
 even when OHLC is quarantined. Five-session directional pressure and price
 change remain unavailable for any cohort with unobserved validated prices.
 This prevents the same artificial amount gaps in subsequent daily updates.
+
+## Repository contention observed in live recovery
+
+After 598 issuer-weeks were saved, a later run recovered another 141 and then
+received HTTP 409 on an immutable receipt write while other private-data jobs
+were updating the repository branch. This is independent of KRX availability.
+Retry the **same in-memory bytes** after checking that the destination is still
+absent (or already exactly identical). Never replace a conflicting receipt or
+adopt another writer's index CAS. Source calls do not repeat for these retries.
+
+Successful earlier checkpoints must also reach scoring when a subsequent week
+fails. The saved-source projection therefore accepts failure completion only
+for this exact trusted main-branch repair workflow, retaining repository/head
+checks and all private receipt validation. Other failing workflows do not gain
+publication authorization.
+
+Collection ordering also uses the same-date operational missing-component
+index to favor issuers missing only persistence / weekly increment. This keeps
+recent OHLC-quarantine gaps that still lack daily history from crowding out
+weeks that can actually close full-100 coverage. Single remaining focused
+weeks rank first, then the shared contribution toward multi-week focused
+closures, then the original general coverage priority. It is only a scheduling
+hint and never changes source validation or scoring. Stale hints are ignored.
