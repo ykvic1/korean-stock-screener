@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - v3_krx_calendar_week_money.py
+      - v3_krx_money_5day.py
       - tests/test_v3_krx_calendar_week_money.py
       - .github/workflows/v3-krx-calendar-week-money.yml
   push:
     branches: [main]
     paths:
       - v3_krx_calendar_week_money.py
+      - v3_krx_money_5day.py
       - v3_actual_money_structure.py
       - .github/workflows/v3-krx-calendar-week-money.yml
   schedule:

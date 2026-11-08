@@ -35,3 +35,19 @@ Validation covers explicit-zero versus missing, invalid OHLC isolation,
 source-revision rejection, cross-date rejection, request budgets, immutable
 archives, digest/flag tampering, orphan resume, idempotency, single-hole priority,
 and end-to-end saved-source replay into full long-window observations.
+
+## Live confirmation and catch-up expansion
+
+The first real run examined 3 priority weeks with 26 official market-day reads
+and recovered 236 issuer-week observations. All 236 had explicit reported zero
+amounts and quarantined OHLC; none required an inferred zero or overwritten
+original. The full daily-plus-weekly money source count rose from 1519 to 1523
+in the first published source replay. This does not assert a full-100 gain.
+
+After that confirmation, a catch-up run can inspect 24 weeks with at most 240
+official reads and per-week checkpoints. The CLI defaults to the original
+three-week pilot; the catch-up workflow explicitly opts into 24. Five-session
+and weekly forward collectors now keep independently observed reported money
+even when OHLC is quarantined. Five-session directional pressure and price
+change remain unavailable for any cohort with unobserved validated prices.
+This prevents the same artificial amount gaps in subsequent daily updates.

@@ -104,7 +104,7 @@ class RepairTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             repair.source_additions(wrong, blob, data, {'KOSPI:000002'}, {'requests': 0})
         with self.assertRaisesRegex(repair.MoneyRepairError, 'budget_reached'):
-            repair.source_additions(Client(), blob, data, {'KOSPI:000002'}, {'requests': 30})
+            repair.source_additions(Client(), blob, data, {'KOSPI:000002'}, {'requests': repair.MAX_CALLS})
 
     def test_additive_receipt_is_digest_pinned_and_cannot_replace_original(self):
         blob, data = original()
@@ -235,6 +235,21 @@ class RepairTests(unittest.TestCase):
         self.assertEqual(store.files[name], original_blob)
         for field in ('amount_100k_krw', 'ACC_TRDVAL', 'TDD_CLSPRC', '123456789'):
             self.assertNotIn(field, json.dumps(after))
+
+    def test_future_week_and_five_session_collectors_keep_money_without_price_sign(self):
+        from v3_krx_money_5day import derive as derive_five
+        week = '2026-11-01'
+        client = Client()
+        observed, _ = derive(client, week, weeks.days(week), {'requests': 0})
+        self.assertEqual(observed['issuer_week_factors']['KOSPI:000002'], {
+            'amount_100k_krw': 0, 'observed_sessions': 5})
+        data, _, _ = derive_five(Client(amount='100000'), weeks.days(week))
+        factor = data['derived_issuer_money_factors']['KOSPI:000002']
+        self.assertEqual(factor['total_actual_amount_100k_krw'], 5)
+        self.assertIsNone(factor['money_pressure_intrabucket_bp'])
+        self.assertIsNone(factor['intrabucket_price_change_bp'])
+        missing, _, _ = derive_five(Client(amount=None), weeks.days(week))
+        self.assertNotIn('KOSPI:000002', missing['derived_issuer_money_factors'])
 
 
 if __name__ == '__main__':

@@ -34,8 +34,8 @@ CHECKPOINT = 'derived/money-calendar-week-repair-checkpoint.json'
 PREFIX = 'derived/money-calendar-week-repairs/'
 SCHEMA = 'v3-private-reported-money-week-additions-v1'
 INDEX_SCHEMA = 'v3-private-reported-money-week-repair-index-v1'
-MAX_WEEKS = 3
-MAX_CALLS = 30
+MAX_WEEKS = 24
+MAX_CALLS = 10 * MAX_WEEKS
 MAX_BYTES = 600_000
 
 
@@ -285,6 +285,7 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--private-snapshot', required=True)
+    p.add_argument('--max-weeks', type=int, default=3, choices=range(1, MAX_WEEKS + 1))
     args = p.parse_args()
     from v3_actual_money_participation import LocalPrivateSnapshot
     catalog = json.loads(Path('docs/v22-market-catalog.json').read_text())
@@ -293,7 +294,7 @@ def main():
         raise MoneyRepairError('invalid_money_repair_repository')
     result = repair(LocalPrivateSnapshot(args.private_snapshot, token),
                     PrivateGitStorage(PRIVATE_REPO, token),
-                    KRXClient(os.environ['KRX_API_KEY']), catalog)
+                    KRXClient(os.environ['KRX_API_KEY']), catalog, max_weeks=args.max_weeks)
     print(json.dumps(result, sort_keys=True))
 
 
