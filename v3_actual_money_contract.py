@@ -133,7 +133,8 @@ def usable_component_records(report, catalog):
         records = report['component_records']
         if (report['component_contract'] != COMPONENT_SCHEMA or type(records) is not dict
             or type(report['component_eligible_issuers']) is not int
-            or report['component_eligible_issuers'] != len(records)):
+            or report['component_eligible_issuers'] != len(records)
+            or len(records) > report['listed_total']):
             return {}
         members = {row['code']: row for row in catalog['rows']}
         selected = {}
@@ -146,6 +147,9 @@ def usable_component_records(report, catalog):
                        for k in ('asof', 'daily_asof', 'computed_asof', 'weekly_session_end'))
                 or max(row['daily_asof'], row['weekly_session_end']) > row['computed_asof']
                 or row['computed_asof'] > report['asof']
+                or row['daily_asof'] != report['daily_asof']
+                or row['weekly_session_end'] != report['weekly_session_end']
+                or row['computed_asof'] != report['asof']
                 or row['weekly_session_end'] > report['weekly_session_end']
                 or row['asof'] != min(row['daily_asof'], row['weekly_session_end'])):
                 return {}
