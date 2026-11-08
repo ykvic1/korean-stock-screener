@@ -251,6 +251,30 @@ class RepairTests(unittest.TestCase):
         missing, _, _ = derive_five(Client(amount=None), weeks.days(week))
         self.assertNotIn('KOSPI:000002', missing['derived_issuer_money_factors'])
 
+    def test_transient_source_retry_is_bounded_and_diagnostic_contains_no_payload(self):
+        from official_probe.clients import KRXProbeError
+        blob, data = original()
+        client = Client()
+        original_call = client.daily_market
+        count = [0]
+        def flaky(market, day):
+            count[0] += 1
+            if count[0] == 1:
+                raise KRXProbeError(market, 'empty_market_rows', 200)
+            return original_call(market, day)
+        budget = {'requests': 0}
+        with patch.object(client, 'daily_market', side_effect=flaky), patch.object(repair.time, 'sleep'):
+            result, _ = repair.source_additions(client, blob, data, {'KOSPI:000002'}, budget)
+        self.assertEqual(budget['requests'], 11)
+        self.assertEqual(result['diagnostic']['restored_pairs'], 1)
+        with patch.object(client, 'daily_market', side_effect=KRXProbeError(
+                'KOSPI', 'empty_market_rows', 200)) as call, patch.object(repair.time, 'sleep'):
+            with self.assertRaises(KRXProbeError) as caught:
+                repair.source_additions(client, blob, data, {'KOSPI:000002'}, {'requests': 0})
+        self.assertEqual(call.call_count, 3)
+        self.assertEqual(repair.failure_diagnostic(caught.exception), {
+            'kind': 'official_krx_source', 'reason': 'empty_market_rows', 'http_status': 200})
+
 
 if __name__ == '__main__':
     unittest.main()
