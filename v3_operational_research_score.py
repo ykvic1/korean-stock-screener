@@ -12,7 +12,8 @@ import json
 import math
 from pathlib import Path
 
-from v3_actual_money_contract import usable_records
+from v3_actual_money_contract import usable_records, usable_component_records
+from v3_actual_money_structure import COMPONENT_MAX, valid_components
 from v3_volume_participation import observed as volume_observed
 from v3_pattern_composite_score import _observed as pattern_observed, _weekly_trend
 from v3_path_provisional_factors import preview as path_preview
@@ -91,7 +92,7 @@ def risk_assessment(record, financial_sector=False):
 
 
 def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
-                 annual=None, financial_sector=None):
+                 annual=None, financial_sector=None, money_components=None):
     parts={a:{k:None for k in ks} for a,ks in SPECS.items()}
     def put(area,key,points,available,asof):
         if (finite(points) and finite(available) and 0<available<=SPECS[area][key]+1e-6
@@ -114,6 +115,15 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             put('volume','obv_price_divergence',vp['obv_price_not_reflected'],4,day)
             cross=vp['ma20_ma60_cross_near_ma240']
             if cross is not None:put('technical','ma20_ma60_cross_near_ma240',cross,6,day)
+        if money_components and valid_components(money_components.get('component_observations')):
+            observation = money_components['component_observations']
+            source_day = money_components['asof']
+            if observation['growth6'] is not None:
+                put('volume', 'long_horizon_growth', observation['growth6'], 6, source_day)
+            for key, pair in observation['components'].items():
+                existing = parts['volume'][key]
+                if pair is not None and (existing is None or pair[1] >= existing['available']):
+                    put('volume', key, pair[0], pair[1], source_day)
         p=path_preview(stock,asof=day)
         if p:put('volume','post_spike_absorption',p['research_volume_post_spike_absorption_points']*.75,3,day)
         slope=stock.get('v3_ma_slope_transition')
@@ -211,6 +221,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
     money=usable_records(money_source,catalog)
+    money_components=usable_component_records(money_source,catalog)
     raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source)
     revenue_parts,revenue_summary=revenue_growth_evidence(
         history,catalog,revenue_2022_source,revenue_2023_comparative)
@@ -234,6 +245,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             and isinstance(sector_code,str) and sector_code.isdigit() and len(sector_code)>=2)
         financial_sector=sector_code[:2] in ('64','65','66') if sector_valid else None
         parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),financial_sector=financial_sector,
+            money_components=money_components.get(code),
             eps=personal.get('valuation_overrides',{}).get(code),reported_eps=raw_eps.get(code),
             annual=history.get('records',{}).get(code))
         if code in revenue_parts:
@@ -245,7 +257,9 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                     older=prior.get('parts',{}).get(area,{}).get(key)
                     if (older and finite(older.get('points')) and finite(older.get('available'))
                         and 0<=older['points']<=older['available']<=SPECS[area][key]+1e-6
-                        and older['asof']<=day and (p is None or older['asof']>p['asof'])
+                        and older['asof']<=day and (p is None or older['asof']>p['asof']
+                             or (area=='volume' and key in COMPONENT_MAX
+                                 and older['available']>p['available']+1e-6))
                         # A recent 1/3 earnings-yield receipt must not hide
                         # older but separately verified 2/3 reported EPS.
                         and (p is None or key!='per_eps_quality_growth'
