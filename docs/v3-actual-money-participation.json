@@ -135609,7 +135609,7 @@
     "2": "f4527db9dfdc99948b721f443e88a5a8ad474632c15bf9453bce7dff86acb32a"
   },
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "4f5394d887086f7dacd1c13a0e8cbc539da1d459",
+  "source_private_revision": "4d24f5650a1d7576340ec3e030f71bb33bfd7ba4",
   "source_weekly_repair_index_sha256": "63d81477ff0a9e924d4c52a629c1d8168b24ca75631d7766a38f3f8c60aba695",
   "weekly_repair_observation": {
     "added_issuer_weeks": 598,
