@@ -8,7 +8,7 @@ from test_v3_eps_basis_audit import Provider,assess,record,context
 
 class VerifiedEPSBasisTests(unittest.TestCase):
     def fixture(self,direct=False):
-        ctx=context();ctx['baseline']['observed_on']='2026-11-06';ctx['research']['asof']='2026-11-06'
+        ctx=context();ctx['baseline']['observed_on']='2026-11-06';ctx['research']['observed_on']='2026-11-06'
         proof=record(assess(Provider(direct=direct)),ctx)
         inputs=[{'date':'2026-11-06'},{},{'source_sha256':{'annual_book':v._stable_digest({})}},{},{},{},
             {'schema':v.audit.SCHEMA,'asof':'2026-11-06','scores_unchanged':True,'records':{'000001':proof}}]

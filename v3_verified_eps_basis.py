@@ -30,7 +30,7 @@ def admit(catalog,book,source,bulk,cash,research,evidence):
         entry=deepcopy(context['baseline'])
         entry['reported_basic_eps_2023_2025']=record['evidence']['eps'].copy()
         entry['metrics']=audit.eps.metrics(entry['reported_basic_eps_2023_2025'])
-        entry['observed_on']=min(entry['observed_on'],record['asof'],context['research']['asof'])
+        entry['observed_on']=min(entry['observed_on'],record['asof'],context['research']['observed_on'])
         entry['comparative_basis']=record['contract']
         entry['basis_audit_digest']=record['digest']
         accepted[code]=entry;reasons[record['reason']]+=1
