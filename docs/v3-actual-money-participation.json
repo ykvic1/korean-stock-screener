@@ -19,11 +19,11 @@
     },
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
-      "10": 2194,
-      "120": 1527,
-      "20": 2032,
+      "10": 2201,
+      "120": 1534,
+      "20": 2039,
       "5": 2300,
-      "60": 1818
+      "60": 1825
     }
   },
   "component_contract": "v3-actual-money-independent-component-observations-v1",
@@ -35,14 +35,14 @@
       "correction_contraction": 2242,
       "persistence": 1523,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1527
+      "weekly_structure_increment": 1534
     },
     "observed_issuers": {
       "concentration_quality": 2310,
       "correction_contraction": 2242,
       "persistence": 2310,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1527
+      "weekly_structure_increment": 1534
     },
     "partial_weight_not_renormalized": true,
     "structure_only_issuers": 787
@@ -1018,14 +1018,17 @@
             1
           ],
           "persistence": [
-            0.3,
-            1.625
+            1.195833,
+            3.125
           ],
           "up_down_asymmetry": [
             1.3062,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -2521,11 +2524,14 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.25625,
-            1.125
+            1.085417,
+            3.125
           ],
           "up_down_asymmetry": null,
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": null,
         "derived_from_private_reported_acc_trdval": true,
@@ -4825,11 +4831,14 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.35625,
-            1.125
+            1.39375,
+            3.125
           ],
           "up_down_asymmetry": null,
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": null,
         "derived_from_private_reported_acc_trdval": true,
@@ -7180,8 +7189,8 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.6125,
-            1.125
+            0.7125,
+            1.625
           ],
           "up_down_asymmetry": null,
           "weekly_structure_increment": null
@@ -8704,8 +8713,8 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.76875,
-            1.125
+            1.16875,
+            1.625
           ],
           "up_down_asymmetry": null,
           "weekly_structure_increment": null
@@ -10141,8 +10150,8 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.35625,
-            1.125
+            0.40625,
+            1.625
           ],
           "up_down_asymmetry": null,
           "weekly_structure_increment": null
@@ -13891,14 +13900,17 @@
             1
           ],
           "persistence": [
-            1.025,
-            2.25
+            1.904167,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -17695,14 +17707,17 @@
             1
           ],
           "persistence": [
-            1.177083,
-            2.25
+            1.94375,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -19186,14 +19201,17 @@
             1
           ],
           "persistence": [
-            0.508333,
-            2.25
+            1.0875,
+            3.75
           ],
           "up_down_asymmetry": [
             1.062,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -21977,7 +21995,7 @@
           "correction_contraction": null,
           "persistence": [
             0.5125,
-            1.125
+            1.625
           ],
           "up_down_asymmetry": null,
           "weekly_structure_increment": null
@@ -62506,14 +62524,17 @@
             1
           ],
           "persistence": [
-            0.85625,
-            1.625
+            1.10625,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -68065,8 +68086,8 @@
           ],
           "correction_contraction": null,
           "persistence": [
-            0.25625,
-            1.125
+            0.35625,
+            1.625
           ],
           "up_down_asymmetry": null,
           "weekly_structure_increment": null
@@ -94338,8 +94359,8 @@
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
       "complete__incomplete_periods": 343,
-      "incomplete_periods__complete": 4,
-      "incomplete_periods__incomplete_periods": 631
+      "incomplete_periods__complete": 11,
+      "incomplete_periods__incomplete_periods": 624
     },
     "zero_baseline_is_unavailable_not_zero_points": true
   },
@@ -94360,8 +94381,8 @@
       "complete__internal_missing": 107,
       "complete__recent_missing": 1,
       "complete__tail_only_missing": 235,
-      "internal_missing__complete": 4,
-      "internal_missing__internal_missing": 381,
+      "internal_missing__complete": 11,
+      "internal_missing__internal_missing": 374,
       "internal_missing__recent_missing": 1,
       "no_observed_history__no_observed_history": 1,
       "no_observed_history__recent_missing": 15,
@@ -135513,11 +135534,11 @@
     "2": "f4527db9dfdc99948b721f443e88a5a8ad474632c15bf9453bce7dff86acb32a"
   },
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "9741e59f62350d1a3233bef7628c0c0c0238ee08",
-  "source_weekly_repair_index_sha256": "b3c39270cbcb85467aae2afff944a77598df50fcbaf8f46b850677d49d9c191f",
+  "source_private_revision": "02b6d518907fdc90127433d20af240241bad31a7",
+  "source_weekly_repair_index_sha256": "c0b900452c399d82383902677d041d415c421065ab1c5b0decc3b7fdbbb068f6",
   "weekly_repair_observation": {
-    "added_issuer_weeks": 236,
-    "examined_weeks": 3,
+    "added_issuer_weeks": 457,
+    "examined_weeks": 6,
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },
