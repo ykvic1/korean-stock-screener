@@ -6,6 +6,7 @@ on:
       - v3_actual_money_participation.py
       - v3_actual_money_contract.py
       - v3_actual_money_structure.py
+      - v3_krx_money_week_repair.py
       - tests/test_v3_actual_money_participation.py
       - tests/test_v3_actual_money_structure.py
       - tests/test_v3_money_component_observations.py
@@ -16,10 +17,12 @@ on:
       - v3_actual_money_participation.py
       - v3_actual_money_contract.py
       - v3_actual_money_structure.py
+      - v3_krx_money_week_repair.py
       - .github/workflows/v3-actual-money-score.yml
   workflow_run:
     workflows:
       - V3 Private Calendar Week Actual Money
+      - V3 Targeted Reported Money Week Repair
       - V3 KRX actual-money after-anchor forward private derived cohorts
       - Full-Market 100-Stock Batches
     types: [completed]
@@ -74,6 +77,8 @@ jobs:
           sparse-checkout: |
             /derived/money-five-session/
             /derived/money-calendar-weeks/
+            /derived/money-calendar-week-repairs/
+            /derived/money-calendar-week-repair-checkpoint.json
             /derived/money-historical-checkpoint.json
             /derived/money-forward-checkpoint.json
             /derived/money-calendar-week-checkpoint.json
