@@ -55,6 +55,7 @@ jobs:
       actions: write
     concurrency:
       group: v3-dart-reported-basic-eps
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
