@@ -89,11 +89,15 @@ class ExplicitEPSContextRecoveryTests(unittest.TestCase):
         self.assertTrue(ep.verify_review(adopt(reviewed(),values,binding)))
 
     def test_preference_custom_members_other_axes_and_extra_dimensions_remain_excluded(self):
-        for kw in ({'member':'PreferenceSharesMember'},{'member':'ClassAMember'}, {'axis':'ClassesOfOrdinarySharesAxis'},
+        for kw in ({'member':'PreferenceSharesMember'},{'member':'ClassAMember'}, {'axis':'OtherAxis'},
             {'extra':'<d:explicitMember dimension="i:OtherAxis">i:OtherMember</d:explicitMember>'}):
             self.assertEqual(extract(packed(ordinary_xml(**kw)))[0],{})
         with self.assertRaises(original.RecoveryError):original.verified_contexts(xml(),year=2025,scope='CFS',identifiers={'00123456'},ordinary_share=1)
         with self.assertRaises(original.RecoveryError):original.verified_contexts(xml(),year=2025,scope='CFS',identifiers={'00123456'},ordinary_share=True,equity_owner=True)
+
+    def test_registered_ordinary_share_axis_with_exact_standard_ordinary_member(self):
+        self.assertEqual(len(extract(packed(ordinary_xml(axis='ClassesOfOrdinarySharesAxis')))[0]),3)
+        self.assertEqual(extract(packed(ordinary_xml(axis='ClassesOfOrdinarySharesAxis',member='ClassAMember')))[0],{})
 
     def test_conflicting_original_standard_extension_or_saved_eps_never_overwrite(self):
         raw=xml().replace(b'</xbrl>',b'<bad:EarningsPerShare contextRef="C2025" unitRef="E">151</bad:EarningsPerShare></xbrl>')

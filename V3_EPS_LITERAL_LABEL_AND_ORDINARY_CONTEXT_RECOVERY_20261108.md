@@ -6,7 +6,8 @@ four share-class facts. Exact basic-EPS labels and extension per-share hints
 also exist. These aggregate research hints did not promote any observations.
 
 The new source reader supports only the exact standard ordinary-share total:
-`ClassesOfShareCapitalAxis=OrdinarySharesMember`, alongside explicit same-
+`ClassesOfShareCapitalAxis=OrdinarySharesMember` or
+`ClassesOfOrdinarySharesAxis=OrdinarySharesMember`, alongside explicit same-
 namespace accounting scope and with no third dimension. Preference shares,
 entity-defined classes, missing scope and other axes remain excluded. The
 existing shared context reader defaults are unchanged; the CFO anchor still

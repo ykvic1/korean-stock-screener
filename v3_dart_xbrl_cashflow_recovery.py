@@ -90,9 +90,10 @@ def verified_contexts(data,*,year,scope,identifiers,diagnostic=None,equity_owner
             if any(v.tag!=D+'explicitMember' for v in dims):continue
             pairs=[(xp._safe_qname(v.get('dimension'),bindings),xp._safe_qname(v.text,bindings)) for v in dims]
             if any(a is None or m is None or not xp._ifrs_full_namespace(a[0]) or m[0]!=a[0] for a,m in pairs):continue
-            expected={('ConsolidatedAndSeparateFinancialStatementsAxis','ConsolidatedMember' if scope=='CFS' else 'SeparateMember'),
-                      ('ClassesOfShareCapitalAxis','OrdinarySharesMember')}
-            if len({a[0] for a,_ in pairs})==1 and {(a[1],m[1]) for a,m in pairs}==expected:
+            scope_pair=('ConsolidatedAndSeparateFinancialStatementsAxis','ConsolidatedMember' if scope=='CFS' else 'SeparateMember')
+            shapes=[{scope_pair,(axis,'OrdinarySharesMember')} for axis in
+                    ('ClassesOfShareCapitalAxis','ClassesOfOrdinarySharesAxis')]
+            if len({a[0] for a,_ in pairs})==1 and {(a[1],m[1]) for a,m in pairs} in shapes:
                 contexts[key]=True;diagnostic['explicit_ordinary_share_contexts']+=1
             continue
         if equity_owner:
