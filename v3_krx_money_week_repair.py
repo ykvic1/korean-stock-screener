@@ -372,6 +372,10 @@ def main():
                     KRXClient(os.environ['KRX_API_KEY']), catalog, max_weeks=args.max_weeks,
                     focus_codes=completion_focus(priority, catalog))
     print(json.dumps(result, sort_keys=True))
+    if os.getenv('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as handle:
+            follow = (result['weeks_examined'] > 0 and result['remaining_unexamined_gap_weeks'] > 0)
+            handle.write('continue_catchup=' + str(follow).lower() + '\n')
 
 
 def failure_diagnostic(error):

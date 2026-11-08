@@ -218,6 +218,10 @@ class RepairTests(unittest.TestCase):
         self.assertIn('v3-krx-actual-money-private-derived-backfill', live)
         self.assertNotIn('upload-artifact', text)
         self.assertNotIn('git add', text)
+        self.assertIn("if: steps.recovery.outputs.continue_catchup == 'true'", live)
+        self.assertIn('actions: write', live)
+        self.assertIn('-f ref=main', live)
+        self.assertNotIn('actions: write', offline)
 
     def test_private_repair_replays_into_full_long_window_without_exporting_amounts(self):
         import v3_actual_money_participation as money

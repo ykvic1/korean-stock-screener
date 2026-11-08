@@ -74,3 +74,11 @@ weeks that can actually close full-100 coverage. Single remaining focused
 weeks rank first, then the shared contribution toward multi-week focused
 closures, then the original general coverage priority. It is only a scheduling
 hint and never changes source validation or scoring. Stale hints are ignored.
+
+The initial catch-up continues immediately through finite 24-week runs while
+an unexamined internal-gap week remains. Only a successful run that examined
+at least one week can dispatch the next main-branch run. Each saved receipt
+and unavailable result is checkpointed, so the finite historical queue drains
+instead of waiting for the next daily schedule or looping on the same window.
+A failure stops the chain, preserves and publishes saved progress, and leaves
+the normal weekday backup available for later source availability.
