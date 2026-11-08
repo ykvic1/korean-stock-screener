@@ -3,6 +3,8 @@ name: V3 Operational Research Score R1d (Saved Sources Only)
 on:
   pull_request:
     paths:
+      - v3_verified_eps_basis.py
+      - tests/test_v3_verified_eps_basis.py
       - v3_dart_revenue_2023_comparative.py
       - tests/test_v3_dart_revenue_2023_comparative.py
       - v3_dart_revenue_2022.py
@@ -27,6 +29,8 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_verified_eps_basis.py
+      - tests/test_v3_verified_eps_basis.py
       - v3_dart_revenue_2023_comparative.py
       - tests/test_v3_dart_revenue_2023_comparative.py
       - v3_dart_revenue_2022.py
@@ -47,6 +51,7 @@ on:
       - .github/workflows/v3-operational-research-score.yml
   workflow_run:
     workflows:
+      - V3 Latest Annual EPS Share-Basis Audit
       - V3 DART FY2023 Strict Comparative Revenue Recovery
       - V3 DART 2022 Receipt-Matched Revenue Recovery
       - V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
@@ -76,6 +81,7 @@ jobs:
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
           python v3_operational_model_diagnostics.py
+      - run: python -m unittest discover -s tests -p 'test_v3_verified_eps_basis.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_revenue_growth_evidence.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_model_diagnostics.py' -v
       - run: python -m unittest discover -s tests -p 'test_v3_operational_evidence_priority.py' -v
