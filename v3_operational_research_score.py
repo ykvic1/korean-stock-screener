@@ -215,7 +215,8 @@ def verified_reported_eps(catalog, annual_book, source):
 
 def build(market,catalog,ledger,history,money_source,personal,industry=None,
           annual_book=None,reported_eps_source=None,previous=None,
-          revenue_2022_source=None,revenue_2023_comparative=None):
+          revenue_2022_source=None,revenue_2023_comparative=None,
+          eps_basis_source=None,eps_prior_research=None,cashflow_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -223,6 +224,10 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
     money=usable_records(money_source,catalog)
     money_components=usable_component_records(money_source,catalog)
     raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source)
+    from v3_verified_eps_basis import admit
+    audited_eps,eps_basis_summary=admit(catalog,annual_book,reported_eps_source,history,
+        cashflow_source,eps_prior_research,eps_basis_source)
+    for code,entry in audited_eps.items():raw_eps.setdefault(code,entry)
     revenue_parts,revenue_summary=revenue_growth_evidence(
         history,catalog,revenue_2022_source,revenue_2023_comparative)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
@@ -297,6 +302,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
         'revenue_growth_source_summary':revenue_summary,
+        'eps_basis_source_summary':eps_basis_summary,
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
                    '독립 돌파확인: 가격 경로 부족 종목 미관측',
                    'MA 전환: 가격 이력 부족 종목 미관측',
@@ -367,6 +373,10 @@ def main():
     revenue_2022_source=read(revenue_2022_file) if (root/revenue_2022_file).exists() else None
     comparative_file='v3-dart-revenue-2023-comparative.json'
     comparative_source=read(comparative_file) if (root/comparative_file).exists() else None
+    basis_files={'eps_basis_source':'v3-eps-basis-audit.json',
+        'eps_prior_research':'v3-eps-prior-original-receipt-research.json',
+        'cashflow_source':'v3-dart-cashflow-reference.json'}
+    basis_inputs={key:read(name) if (root/name).exists() else None for key,name in basis_files.items()}
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
         print(json.dumps({'status':'waiting_for_aligned_daily_sources',
@@ -374,16 +384,20 @@ def main():
             'previous_score_asof':previous['asof'],'provider_calls':0}))
         return
     report=build(*inputs,previous=previous,revenue_2022_source=revenue_2022_source,
-                 revenue_2023_comparative=comparative_source)
+                 revenue_2023_comparative=comparative_source,**basis_inputs)
     report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     if revenue_2022_source is not None:
         report['source_hashes'][revenue_2022_file]=sha256((root/revenue_2022_file).read_bytes()).hexdigest()
     if comparative_source is not None:
         report['source_hashes'][comparative_file]=sha256((root/comparative_file).read_bytes()).hexdigest()
+    for key,name in basis_files.items():
+        if basis_inputs[key] is not None:report['source_hashes'][name]=sha256((root/name).read_bytes()).hexdigest()
     report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
     report['implementation_dependency_sha256']={name:sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
         for name in ('v3_revenue_growth_evidence.py','v3_dart_bulk_history.py',
-                     'v3_dart_revenue_2022.py','v3_dart_revenue_2023_comparative.py')}
+                     'v3_dart_revenue_2022.py','v3_dart_revenue_2023_comparative.py',
+                     'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
+                     'v3_dart_eps_prior_receipt_probe.py')}
     digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes'],
         report['implementation_dependency_sha256']],sort_keys=True).encode()).hexdigest()
     report['source_digest']=digest
