@@ -5,7 +5,7 @@
     "daily_comparison_eligible_issuers": {
       "120": 2338,
       "20": 2379,
-      "240": 2224,
+      "240": 2241,
       "60": 2364
     },
     "issuer_window_flags_or_amounts_published": false,
@@ -22,7 +22,7 @@
     "full_weight_issuers": {
       "concentration_quality": 2375,
       "correction_contraction": 2242,
-      "persistence": 1929,
+      "persistence": 1939,
       "up_down_asymmetry": 2248,
       "weekly_structure_increment": 1957
     },
@@ -34,39 +34,38 @@
       "weekly_structure_increment": 1957
     },
     "partial_weight_not_renormalized": true,
-    "structure_only_issuers": 454
+    "structure_only_issuers": 444
   },
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 572,
-    "full_fresh_evidence_issuers": 1929,
+    "fresh_unscored_issuers": 562,
+    "full_fresh_evidence_issuers": 1939,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
-      "complete__incomplete_periods": 293,
+      "complete__incomplete_periods": 297,
       "complete__zero_baseline": 1,
-      "incomplete_periods__complete": 28,
-      "incomplete_periods__incomplete_periods": 247,
-      "incomplete_periods__zero_baseline": 2,
-      "zero_baseline__zero_baseline": 1
+      "incomplete_periods__complete": 16,
+      "incomplete_periods__incomplete_periods": 243,
+      "incomplete_periods__zero_baseline": 1,
+      "zero_baseline__complete": 2,
+      "zero_baseline__zero_baseline": 2
     },
     "zero_baseline_is_unavailable_not_zero_points": true
   },
   "daily_repair_observation": {
-    "added_issuer_cohorts": 2163,
-    "examined_windows": 84,
+    "added_issuer_cohorts": 2230,
+    "examined_windows": 94,
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },
-  "eligible_issuers": 1929,
+  "eligible_issuers": 1939,
   "history_shape_diagnostic": {
     "does_not_identify_listing_or_gap_cause": true,
     "issuer_dates_or_source_series_published": false,
     "pair_counts": {
-      "complete__complete": 1931,
+      "complete__complete": 1944,
       "complete__recent_missing": 2,
-      "complete__tail_only_missing": 291,
-      "internal_missing__complete": 13,
-      "internal_missing__tail_only_missing": 4,
+      "complete__tail_only_missing": 295,
       "no_observed_history__no_observed_history": 1,
       "no_observed_history__recent_missing": 15,
       "no_observed_history__tail_only_missing": 3,
