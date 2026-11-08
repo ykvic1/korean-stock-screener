@@ -1,0 +1,120 @@
+name: V3 Latest Annual EPS Share-Basis Audit
+on:
+  pull_request:
+    paths:
+      - v3_eps_basis_audit.py
+      - tests/test_v3_eps_basis_audit.py
+      - .github/workflows/v3-eps-basis-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_eps_basis_audit.py
+      - .github/workflows/v3-eps-basis-audit.yml
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - V3 Prior Annual Original EPS Overlap Research
+      - V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
+    types: [completed]
+  schedule:
+    - cron: '20 11 * * 1-5'
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m unittest discover -s tests -p 'test_v3_eps_basis_audit.py' -v
+          python -m unittest discover -s tests -p 'test_v3_eps_parallel_collection.py' -v
+          python v3_eps_basis_audit.py --mode dry-run --limit 16
+  audit:
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: v3-eps-basis-audit-single-writer
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Compare latest receipts original EPS and weighted ordinary shares
+        id: collect
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          interrupted=0
+          reviewed=0
+          if result="$(python v3_eps_basis_audit.py --mode live --limit 16)"; then
+            echo "$result"
+            reviewed="$(printf '%s' "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["reviewed"])')"
+          else
+            echo "$result"
+            interrupted=1
+          fi
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+          echo "reviewed=$reviewed" >> "$GITHUB_OUTPUT"
+      - name: Verify and publish valid audit checkpoints only
+        id: publish
+        run: |
+          set -euo pipefail
+          if [[ ! -f docs/v3-eps-basis-audit.json ]]; then exit 0; fi
+          python v3_eps_basis_audit.py --mode verify
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-eps-basis-audit.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Audit actual annual EPS receipt and weighted-share basis'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_eps_basis_audit.py --mode verify
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo '::error::eps_basis_audit_publish_retries_exhausted'
+          exit 1
+      - name: Surface interruption after preserving valid audit results
+        if: steps.collect.outputs.interrupted == '1'
+        run: exit 1
+      - name: Check finite remaining audit queue after publication
+        id: remaining
+        if: steps.collect.outputs.interrupted == '0' && steps.collect.outputs.reviewed != '0' && steps.publish.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          python v3_eps_basis_audit.py --mode dry-run > "$RUNNER_TEMP/eps-basis-remaining.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          data=json.loads((Path(os.environ['RUNNER_TEMP'])/'eps-basis-remaining.json').read_text())
+          pending=data['remaining']
+          if type(pending) is not int or pending<0 or data['provider_calls']!=0:raise SystemExit('invalid_basis_remaining_plan')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('continue='+str(pending>0).lower()+'\n')
+          print(json.dumps({'remaining':pending,'provider_calls':0}))
+          PY
+      - name: Continue finite audit without changing scored EPS
+        if: steps.remaining.outputs.continue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-eps-basis-audit.yml/dispatches" -f ref=main --silent
