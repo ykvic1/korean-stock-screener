@@ -62,12 +62,12 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
-      - name: Repair at most three priority weeks with thirty official reads
+      - name: Recover up to twenty-four priority weeks with per-week checkpoints
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
-        run: python v3_krx_money_week_repair.py --private-snapshot .money-private
+        run: python v3_krx_money_week_repair.py --private-snapshot .money-private --max-weeks 24
       - name: Remove private snapshot
         if: always()
         run: rm -rf -- .money-private

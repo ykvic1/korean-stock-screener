@@ -16,8 +16,9 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 
-from official_probe.clients import KRXClient, ProbeError
+from official_probe.clients import KRXClient, ProbeError, KRXProbeError
 from official_probe.validation import _numeric
 from v3_krx_history_collection import _snapshot_market
 from v3_krx_daily_anomaly_triage import classify_row
@@ -25,7 +26,7 @@ from v3_krx_calendar_week_money import (
     CHECKPOINT as WEEKLY, HISTORY_WEEKS, manifest, path as week_path,
     week_days, validate as validate_week, canonical,
 )
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_krx_derived_5day import _private_new_blob_readback
 from v3_dart_historical_event_receipts import _save_cursor
 
@@ -34,8 +35,8 @@ CHECKPOINT = 'derived/money-calendar-week-repair-checkpoint.json'
 PREFIX = 'derived/money-calendar-week-repairs/'
 SCHEMA = 'v3-private-reported-money-week-additions-v1'
 INDEX_SCHEMA = 'v3-private-reported-money-week-repair-index-v1'
-MAX_WEEKS = 3
-MAX_CALLS = 30
+MAX_WEEKS = 24
+MAX_CALLS = 10 * MAX_WEEKS
 MAX_BYTES = 600_000
 
 
@@ -136,10 +137,18 @@ def source_additions(client, original_blob, original, targets, budget):
     sessions = original['session_dates']
     for day in sessions:
         for market in ('KOSPI', 'KOSDAQ'):
-            if budget['requests'] >= MAX_CALLS:
-                raise MoneyRepairError('money_repair_request_budget_reached')
-            budget['requests'] += 1
-            rows, raw = client.daily_market(market, day)
+            for attempt in range(3):
+                if budget['requests'] >= MAX_CALLS:
+                    raise MoneyRepairError('money_repair_request_budget_reached')
+                budget['requests'] += 1
+                try:
+                    rows, raw = client.daily_market(market, day)
+                    break
+                except KRXProbeError as error:
+                    if attempt == 2 or error.reason not in (
+                            'empty_body', 'empty_market_rows', 'transport_failure', 'http_server_error'):
+                        raise
+                    time.sleep(attempt + 1)
             _snapshot_market(rows, raw, market=market, asof=day)
             for row in rows:
                 key = market + ':' + row['ISU_CD']
@@ -260,6 +269,9 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader
             raise MoneyRepairError('money_repair_writer_original_mismatch')
         blob, _ = writer.get_content(repair_path(week))
         if blob is None:
+            print(json.dumps({'checking_gap_week':week,
+                'missing_pairs':len(targets[week]),
+                'single_week_gap_candidates':single.get(week,0)}),flush=True)
             data, blob = source_additions(client, original_blob, original, targets[week], budget)
             writer.put_new(repair_path(week), blob, 'Save additive reported-money week repair proof')
             _private_new_blob_readback(writer, repair_path(week), blob)
@@ -285,6 +297,7 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--private-snapshot', required=True)
+    p.add_argument('--max-weeks', type=int, default=3, choices=range(1, MAX_WEEKS + 1))
     args = p.parse_args()
     from v3_actual_money_participation import LocalPrivateSnapshot
     catalog = json.loads(Path('docs/v22-market-catalog.json').read_text())
@@ -293,8 +306,20 @@ def main():
         raise MoneyRepairError('invalid_money_repair_repository')
     result = repair(LocalPrivateSnapshot(args.private_snapshot, token),
                     PrivateGitStorage(PRIVATE_REPO, token),
-                    KRXClient(os.environ['KRX_API_KEY']), catalog)
+                    KRXClient(os.environ['KRX_API_KEY']), catalog, max_weeks=args.max_weeks)
     print(json.dumps(result, sort_keys=True))
+
+
+def failure_diagnostic(error):
+    if isinstance(error, KRXProbeError):
+        return {'kind':'official_krx_source',
+                'reason':error.reason if error.reason in KRXProbeError.REASONS else 'other_source_failure',
+                'http_status':error.http_status}
+    if isinstance(error, PrivateHistoryError):
+        return {'kind':'private_storage','details':storage_diagnostic(error)}
+    if isinstance(error, MoneyRepairError):
+        return {'kind':'repair_contract','reason':str(error)}
+    return {'kind':'source_or_snapshot_contract'}
 
 
 if __name__ == '__main__':
@@ -302,7 +327,6 @@ if __name__ == '__main__':
         main()
     except Exception as error:
         # Provider/transport exceptions may contain URLs or source identifiers.
-        reason = str(error) if isinstance(error, MoneyRepairError) else 'money_week_repair_not_verified'
-        print(json.dumps({'status': 'blocked', 'reason': reason,
+        print(json.dumps({'status': 'blocked', 'diagnostic':failure_diagnostic(error),
                           'existing_archives_preserved': True, 'source_payload_logged': False}))
         raise SystemExit(1)

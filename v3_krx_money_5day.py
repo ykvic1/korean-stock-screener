@@ -15,6 +15,7 @@ import re
 import time as retry_clock
 
 from official_probe.validation import _numeric
+from official_probe.clients import ProbeError
 from v3_krx_history_collection import _snapshot_market
 from v3_krx_daily_anomaly_triage import classify_row
 from v3_krx_derived_5day import (
@@ -29,20 +30,22 @@ MARKETS = ("KOSPI", "KOSDAQ")
 
 
 def _row_values(row):
-    """Return source-reported amount and observed close; fail closed."""
-    if classify_row(row)[0] != "valid_numeric_observation":
-        return None
+    """Observe reported amount independently; invalid OHLC has no price sign."""
     try:
         amount = _numeric(row["ACC_TRDVAL"], "ACC_TRDVAL")
-        close = _numeric(row["TDD_CLSPRC"], "TDD_CLSPRC", positive=True)
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, ProbeError):
         return None
     if amount >= 10**17:
         return None
-    return float(close), amount
+    close = None
+    if classify_row(row)[0] == "valid_numeric_observation":
+        close = float(_numeric(row["TDD_CLSPRC"], "TDD_CLSPRC", positive=True))
+    return close, amount
 
 
 def _bounded_money_pressure(amounts, closes):
+    if any(value is None for value in closes):
+        return None
     # One of five days has no preceding close INSIDE this five-day cohort.
     signed = sum((1 if closes[i] > closes[i-1] else
                   -1 if closes[i] < closes[i-1] else 0) * amounts[i]
@@ -117,7 +120,8 @@ def derive(client, days):
             head, tail = sum(amounts[:2]), sum(amounts[-2:])
             # Symmetric bounded relative increase: never a discontinuous step.
             persistence_bp = round(10000 * (tail-head) / (tail+head)) if tail+head else None
-            price_move = (closes[-1] / closes[0] - 1) * 10000
+            price_move = ((closes[-1] / closes[0] - 1) * 10000
+                          if all(close is not None for close in closes) else None)
             factors[f"{market}:{code}"] = {
                 "market": market,
                 "issuer_code": code,
@@ -126,7 +130,7 @@ def derive(client, days):
                 "money_pressure_intrabucket_bp": _bounded_money_pressure(amounts, closes),
                 "late2_vs_early2_money_pressure_bp": persistence_bp,
                 "intrabucket_price_change_bp": round(price_move)
-                if math.isfinite(price_move) and abs(price_move) < 1e7 else None,
+                if price_move is not None and math.isfinite(price_move) and abs(price_move) < 1e7 else None,
                 "positive_amount_days": sum(a > 0 for a in amounts),
                 "money_amount_is_explicit_acc_trdval": True,
                 "five_day_cohort_boundary_price_sign_missing": True,
