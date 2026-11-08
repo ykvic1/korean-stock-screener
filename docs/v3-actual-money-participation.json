@@ -136468,7 +136468,7 @@
     "2": "f4527db9dfdc99948b721f443e88a5a8ad474632c15bf9453bce7dff86acb32a"
   },
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "40cb3e95414e8c098e3ecbcf0897b10529637459",
+  "source_private_revision": "2d9bf2966042a6e5e51f023f526a38f3ed4dda7a",
   "source_weekly_repair_index_sha256": "d6a7bf9b864d86209a9613c7a2af64090f2fc416a7a20f8fc413fb377c120a04",
   "weekly_repair_observation": {
     "added_issuer_weeks": 1142,
