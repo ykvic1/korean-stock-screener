@@ -20,10 +20,10 @@
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
       "10": 2202,
-      "120": 1700,
+      "120": 1722,
       "20": 2149,
       "5": 2300,
-      "60": 1946
+      "60": 1954
     }
   },
   "component_contract": "v3-actual-money-independent-component-observations-v1",
@@ -33,19 +33,19 @@
     "full_weight_issuers": {
       "concentration_quality": 2300,
       "correction_contraction": 2242,
-      "persistence": 1600,
+      "persistence": 1615,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1700
+      "weekly_structure_increment": 1722
     },
     "observed_issuers": {
       "concentration_quality": 2310,
       "correction_contraction": 2242,
       "persistence": 2310,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1700
+      "weekly_structure_increment": 1722
     },
     "partial_weight_not_renormalized": true,
-    "structure_only_issuers": 710
+    "structure_only_issuers": 695
   },
   "component_records": {
     "000020": {
@@ -2422,18 +2422,21 @@
             1
           ],
           "persistence": [
-            1.547396,
-            4.5
+            1.559896,
+            5.0
           ],
           "up_down_asymmetry": [
             0.3902,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 0.816289,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -5287,14 +5290,17 @@
             1
           ],
           "persistence": [
-            0.3625,
-            3.25
+            0.420833,
+            3.75
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 24,
         "derived_from_private_reported_acc_trdval": true,
@@ -8080,18 +8086,21 @@
             1
           ],
           "persistence": [
-            1.477083,
-            4.5
+            1.785417,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 1.430169,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -11359,18 +11368,21 @@
             1
           ],
           "persistence": [
-            1.553125,
-            4.0
+            2.336458,
+            5.0
           ],
           "up_down_asymmetry": [
             0.2887,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            1.964629,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 2.417691,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -13267,18 +13279,21 @@
             1
           ],
           "persistence": [
-            0.347396,
-            4.0
+            0.493229,
+            5.0
           ],
           "up_down_asymmetry": [
             0.188033,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 0.013039,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -16558,18 +16573,21 @@
             1
           ],
           "persistence": [
-            1.017188,
-            4.5
+            1.038021,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 1.010234,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -25729,18 +25747,21 @@
             1
           ],
           "persistence": [
-            1.589062,
-            4.5
+            1.593229,
+            5.0
           ],
           "up_down_asymmetry": [
             0.6185,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 1.576574,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -34765,14 +34786,17 @@
             1
           ],
           "persistence": [
-            0.475,
-            2.125
+            0.6625,
+            3.125
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -35974,14 +35998,17 @@
             1
           ],
           "persistence": [
-            0.71875,
-            3.25
+            0.76875,
+            3.75
           ],
           "up_down_asymmetry": [
             0.456133,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -43501,18 +43528,21 @@
             1
           ],
           "persistence": [
-            1.017708,
-            4.5
+            1.226042,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 1.95,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -47728,18 +47758,21 @@
             1
           ],
           "persistence": [
-            2.403125,
-            4.5
+            2.557292,
+            5.0
           ],
           "up_down_asymmetry": [
             0.280467,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 2.920508,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -50203,18 +50236,21 @@
             1
           ],
           "persistence": [
-            1.45625,
-            4.5
+            1.485417,
+            5.0
           ],
           "up_down_asymmetry": [
             0.783533,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 0.493088,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -50824,14 +50860,17 @@
             1
           ],
           "persistence": [
-            0.45625,
-            2.125
+            0.65625,
+            3.125
           ],
           "up_down_asymmetry": [
             0.7802,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -52117,14 +52156,17 @@
             1
           ],
           "persistence": [
-            0.176042,
-            3.375
+            0.255208,
+            4.375
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -54967,18 +55009,21 @@
             1
           ],
           "persistence": [
-            1.726562,
-            4.5
+            2.068229,
+            5.0
           ],
           "up_down_asymmetry": [
             0.3999,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 1.684297,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -55504,14 +55549,17 @@
             1
           ],
           "persistence": [
-            1.709375,
-            3.375
+            2.192708,
+            4.375
           ],
           "up_down_asymmetry": [
             0.589933,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -57697,18 +57745,21 @@
             1
           ],
           "persistence": [
-            0.522396,
-            4.5
+            0.593229,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.233913,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 0.094407,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -65818,18 +65869,21 @@
             1
           ],
           "persistence": [
-            0.667188,
-            4.5
+            0.679688,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 0.640786,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -66058,18 +66112,21 @@
             1
           ],
           "persistence": [
-            1.030208,
-            4.5
+            1.046875,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 2.026754,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -66595,14 +66652,17 @@
             1
           ],
           "persistence": [
-            0.414583,
-            3.375
+            0.789583,
+            4.375
           ],
           "up_down_asymmetry": [
             0.2213,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
@@ -69694,18 +69754,21 @@
             1
           ],
           "persistence": [
-            0.3125,
-            4.0
+            0.504167,
+            5.0
           ],
           "up_down_asymmetry": [
             0.0,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            0.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 0.034398,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -87226,18 +87289,21 @@
             1
           ],
           "persistence": [
-            1.2875,
-            4.5
+            1.683333,
+            5.0
           ],
           "up_down_asymmetry": [
             0.902933,
             2
           ],
-          "weekly_structure_increment": null
+          "weekly_structure_increment": [
+            2.0,
+            2
+          ]
         },
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
-        "growth6": null,
+        "growth6": 2.329242,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -94851,45 +94917,51 @@
   },
   "corporate_actions_and_pit_verified": false,
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 901,
-    "full_fresh_evidence_issuers": 1600,
+    "fresh_unscored_issuers": 886,
+    "full_fresh_evidence_issuers": 1615,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
-      "complete__incomplete_periods": 266,
-      "incomplete_periods__complete": 100,
-      "incomplete_periods__incomplete_periods": 535
+      "complete__incomplete_periods": 251,
+      "incomplete_periods__complete": 107,
+      "incomplete_periods__incomplete_periods": 528
     },
     "zero_baseline_is_unavailable_not_zero_points": true
   },
   "daily_asof": "2026-11-04",
   "daily_cohorts_inspected": 96,
+  "daily_repair_observation": {
+    "added_issuer_cohorts": 0,
+    "examined_windows": 0,
+    "original_archives_preserved": true,
+    "prices_or_directions_repaired": false
+  },
   "daily_windows": [
     20,
     60,
     120,
     240
   ],
-  "eligible_issuers": 1600,
+  "eligible_issuers": 1615,
   "history_shape_diagnostic": {
     "does_not_identify_listing_or_gap_cause": true,
     "issuer_dates_or_source_series_published": false,
     "pair_counts": {
-      "complete__complete": 1600,
-      "complete__internal_missing": 22,
+      "complete__complete": 1615,
+      "complete__internal_missing": 6,
       "complete__recent_missing": 1,
-      "complete__tail_only_missing": 243,
-      "internal_missing__complete": 99,
-      "internal_missing__internal_missing": 274,
+      "complete__tail_only_missing": 244,
+      "internal_missing__complete": 104,
+      "internal_missing__internal_missing": 268,
       "internal_missing__recent_missing": 1,
-      "internal_missing__tail_only_missing": 12,
+      "internal_missing__tail_only_missing": 13,
       "no_observed_history__no_observed_history": 1,
       "no_observed_history__recent_missing": 15,
       "no_observed_history__tail_only_missing": 3,
       "recent_missing__internal_missing": 4,
       "recent_missing__recent_missing": 93,
-      "tail_only_missing__complete": 1,
-      "tail_only_missing__internal_missing": 7,
+      "tail_only_missing__complete": 3,
+      "tail_only_missing__internal_missing": 5,
       "tail_only_missing__tail_only_missing": 125
     }
   },
@@ -96082,6 +96154,33 @@
         "correction_window_cohorts": 24,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 0.6,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "001340": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "PKC",
+      "market": "KOSPI",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.4329,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 1.357179,
+          "correction_contraction": 0.0,
+          "persistence": 1.559896,
+          "up_down_asymmetry": 0.3902,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 0.816289,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -99195,6 +99294,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "004800": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ud6a8\uc131",
+      "market": "KOSPI",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.0263,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.010114,
+          "persistence": 1.785417,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 2.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 1.430169,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "004830": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -101085,6 +101211,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "007340": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "DN\uc624\ud1a0\ubaa8\ud2f0\ube0c",
+      "market": "KOSPI",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.6385,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.215681,
+          "correction_contraction": 0.0,
+          "persistence": 2.336458,
+          "up_down_asymmetry": 0.2887,
+          "weekly_structure_increment": 1.964629
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 2.417691,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "007370": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -102130,6 +102283,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 1.066228,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "009410": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ud0dc\uc601\uac74\uc124",
+      "market": "KOSPI",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.0026,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.627481,
+          "persistence": 0.493229,
+          "up_down_asymmetry": 0.188033,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 0.013039,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -103750,6 +103930,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 3.368359,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "013310": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\uc544\uc9c4\uc0b0\uc5c5",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.2606,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.040746,
+          "correction_contraction": 0.0,
+          "persistence": 1.038021,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 1.010234,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -108340,6 +108547,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 0.325143,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "033290": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ub85c\uc820",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.26,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 1.351948,
+          "correction_contraction": 0.398351,
+          "persistence": 1.593229,
+          "up_down_asymmetry": 0.6185,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 1.576574,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -117690,6 +117924,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "076610": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ud574\uc131\uc635\ud2f1\uc2a4",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.1154,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 1.0,
+          "persistence": 1.226042,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 2.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 1.95,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "077360": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -119904,6 +120165,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "089230": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "THE E&M",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.9822,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.533072,
+          "correction_contraction": 0.805402,
+          "persistence": 2.557292,
+          "up_down_asymmetry": 0.280467,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 2.920508,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "089470": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -121192,6 +121480,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 0.369815,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "094860": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ub124\uc624\ub9ac\uc9c4",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.2125,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 1.066102,
+          "correction_contraction": 0.736702,
+          "persistence": 1.485417,
+          "up_down_asymmetry": 0.783533,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 0.493088,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -123576,6 +123891,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "114810": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ud55c\uc194\uc544\uc774\uc6d0\uc2a4",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.3625,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.424492,
+          "persistence": 2.068229,
+          "up_down_asymmetry": 0.3999,
+          "weekly_structure_increment": 2.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 1.684297,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "114840": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -124837,6 +125179,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 0.325804,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "129890": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\uc571\ucf54",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.0112,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.893749,
+          "persistence": 0.593229,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 0.233913
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 0.094407,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -128733,6 +129102,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "208350": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\uc9c0\ub780\uc9c0\uad50\uc2dc\ud050\ub9ac\ud2f0",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.2141,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.356271,
+          "persistence": 0.679688,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 0.640786,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "208370": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -128779,6 +129175,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 0.740125,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "210980": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "SK\ub514\uc564\ub514",
+      "market": "KOSPI",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.4859,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.0,
+          "persistence": 1.046875,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 2.026754,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -130615,6 +131038,33 @@
         "correction_window_cohorts": 12,
         "derived_from_private_reported_acc_trdval": true,
         "growth6": 0.129678,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
+    "238200": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\ube44\ud53c\ub3c4",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 0.0126,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 0.0,
+          "persistence": 0.504167,
+          "up_down_asymmetry": 0.0,
+          "weekly_structure_increment": 0.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 0.034398,
         "independent_regular_session_verified": false,
         "intrabucket_boundary_price_sign_known": false,
         "investment_score_certified": false,
@@ -137886,6 +138336,33 @@
       },
       "weekly_session_end": "2026-11-06"
     },
+    "413630": {
+      "asof": "2026-11-04",
+      "computed_asof": "2026-11-06",
+      "daily_asof": "2026-11-04",
+      "issuer_name": "\uc528\ud53c\uc2dc\uc2a4\ud15c",
+      "market": "KOSDAQ",
+      "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
+      "points": 1.3705,
+      "r1c_structure": {
+        "components": {
+          "concentration_quality": 0.0,
+          "correction_contraction": 1.0,
+          "persistence": 1.683333,
+          "up_down_asymmetry": 0.902933,
+          "weekly_structure_increment": 2.0
+        },
+        "correction_window_cohorts": 12,
+        "derived_from_private_reported_acc_trdval": true,
+        "growth6": 2.329242,
+        "independent_regular_session_verified": false,
+        "intrabucket_boundary_price_sign_known": false,
+        "investment_score_certified": false,
+        "original_amounts_or_paths_exported": false,
+        "schema": "v3-actual-money-r1c-independent-structure-0.1"
+      },
+      "weekly_session_end": "2026-11-06"
+    },
     "417310": {
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
@@ -138112,12 +138589,13 @@
     "1": "079dc5ac27c7da0fc93a718ff708ae936ad0d37c233fdcac4ed253314ee647e0",
     "2": "f4527db9dfdc99948b721f443e88a5a8ad474632c15bf9453bce7dff86acb32a"
   },
+  "source_daily_repair_index_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "d24b8a94826fe885a3bf186cf8efcb15f2adbf6f",
-  "source_weekly_repair_index_sha256": "0b9e06be9d0fbba60e0136bfcbb2e8e1549527973864b5b822686dcc4300d452",
+  "source_private_revision": "a388425a95a88540d86aa3e363b0735bdd34c3a8",
+  "source_weekly_repair_index_sha256": "54213a5733fe7e12e9ac1911a0c3b0182a3e1eff97af5ec11993f45398ecd4de",
   "weekly_repair_observation": {
-    "added_issuer_weeks": 2343,
-    "examined_weeks": 134,
+    "added_issuer_weeks": 2634,
+    "examined_weeks": 158,
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },

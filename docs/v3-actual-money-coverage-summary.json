@@ -11,10 +11,10 @@
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
       "10": 2202,
-      "120": 1700,
+      "120": 1722,
       "20": 2149,
       "5": 2300,
-      "60": 1946
+      "60": 1954
     }
   },
   "component_observation_coverage": {
@@ -22,52 +22,58 @@
     "full_weight_issuers": {
       "concentration_quality": 2300,
       "correction_contraction": 2242,
-      "persistence": 1600,
+      "persistence": 1615,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1700
+      "weekly_structure_increment": 1722
     },
     "observed_issuers": {
       "concentration_quality": 2310,
       "correction_contraction": 2242,
       "persistence": 2310,
       "up_down_asymmetry": 2248,
-      "weekly_structure_increment": 1700
+      "weekly_structure_increment": 1722
     },
     "partial_weight_not_renormalized": true,
-    "structure_only_issuers": 710
+    "structure_only_issuers": 695
   },
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 901,
-    "full_fresh_evidence_issuers": 1600,
+    "fresh_unscored_issuers": 886,
+    "full_fresh_evidence_issuers": 1615,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
-      "complete__incomplete_periods": 266,
-      "incomplete_periods__complete": 100,
-      "incomplete_periods__incomplete_periods": 535
+      "complete__incomplete_periods": 251,
+      "incomplete_periods__complete": 107,
+      "incomplete_periods__incomplete_periods": 528
     },
     "zero_baseline_is_unavailable_not_zero_points": true
   },
-  "eligible_issuers": 1600,
+  "daily_repair_observation": {
+    "added_issuer_cohorts": 0,
+    "examined_windows": 0,
+    "original_archives_preserved": true,
+    "prices_or_directions_repaired": false
+  },
+  "eligible_issuers": 1615,
   "history_shape_diagnostic": {
     "does_not_identify_listing_or_gap_cause": true,
     "issuer_dates_or_source_series_published": false,
     "pair_counts": {
-      "complete__complete": 1600,
-      "complete__internal_missing": 22,
+      "complete__complete": 1615,
+      "complete__internal_missing": 6,
       "complete__recent_missing": 1,
-      "complete__tail_only_missing": 243,
-      "internal_missing__complete": 99,
-      "internal_missing__internal_missing": 274,
+      "complete__tail_only_missing": 244,
+      "internal_missing__complete": 104,
+      "internal_missing__internal_missing": 268,
       "internal_missing__recent_missing": 1,
-      "internal_missing__tail_only_missing": 12,
+      "internal_missing__tail_only_missing": 13,
       "no_observed_history__no_observed_history": 1,
       "no_observed_history__recent_missing": 15,
       "no_observed_history__tail_only_missing": 3,
       "recent_missing__internal_missing": 4,
       "recent_missing__recent_missing": 93,
-      "tail_only_missing__complete": 1,
-      "tail_only_missing__internal_missing": 7,
+      "tail_only_missing__complete": 3,
+      "tail_only_missing__internal_missing": 5,
       "tail_only_missing__tail_only_missing": 125
     }
   },
@@ -78,8 +84,8 @@
   "schema": "v3-personal-actual-money-coverage-summary-0.1",
   "source_schema": "v3-personal-actual-money-participation-six-0.1",
   "weekly_repair_observation": {
-    "added_issuer_weeks": 2343,
-    "examined_weeks": 134,
+    "added_issuer_weeks": 2634,
+    "examined_weeks": 158,
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   }
