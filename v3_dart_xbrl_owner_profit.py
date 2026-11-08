@@ -140,6 +140,29 @@ def official_cfo_anchor(payload,*,code,corp,scope,receipt,day):
     return row['operating_cashflow_krw'],cf.fingerprint(payload)
 
 
+def recovery_candidates(retained,cash,bulk,preferred=()):
+    """Acquire all anchored missing profit; completion status sets order only."""
+    preferred=set(preferred)
+    selected=[]
+    for code in sorted(retained,key=lambda c:(c not in preferred,
+            retained[c].get('status')=='quarantined_source_account',c)):
+        row=retained[code]
+        if (row.get('code')!=code or row.get('fs_div') not in ('CFS','OFS')
+            or row.get('owners_profit_krw') is not None
+            or row.get('original_xbrl_review') is not None):
+            continue
+        anchor=cash.get('records',{}).get(code,{}).get('years',{}).get('2025',{})
+        if (anchor.get('major_annual_receipt_matched') is True
+            and anchor.get('scope')==row['fs_div']
+            and anchor.get('annual_receipt_id')==row['annual_receipt_id']
+            and type(anchor.get('operating_cashflow_krw')) is int):
+            selected.append((code,row,anchor['operating_cashflow_krw']))
+        elif (bulk.get('records',{}).get(code,{}).get('years',{}).get('2025',{})
+                .get(row['fs_div'],{}).get('receipt_id')==row['annual_receipt_id']):
+            selected.append((code,row,None))
+    return selected
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');p.add_argument('--limit',type=int,default=8);a=p.parse_args()
     if not 1<=a.limit<=16:raise OriginalProfitError('invalid_original_profit_limit')
@@ -150,16 +173,10 @@ def main():
     from v3_owner_profit_completion import extend
     priority,state,preferred,_=extend(catalog,book,priority,state,report,comparison,eps)
     day,members,expected,retained,_=profit.plan(catalog,book,priority,state)
-    selected=[]
-    for code in sorted(preferred,key=lambda c:(retained.get(c,{}).get('status')=='quarantined_source_account',c)):
-        row=retained.get(code,{});anchor=cash['records'].get(code,{}).get('years',{}).get('2025',{})
-        if not row or row.get('owners_profit_krw') is not None or row.get('original_xbrl_review') is not None:continue
-        if (anchor.get('major_annual_receipt_matched') is True and anchor.get('scope')==row['fs_div']
-            and anchor.get('annual_receipt_id')==row['annual_receipt_id'] and type(anchor.get('operating_cashflow_krw')) is int):
-            selected.append((code,row,anchor['operating_cashflow_krw']))
-        elif bulk['records'].get(code,{}).get('years',{}).get('2025',{}).get(row['fs_div'],{}).get('receipt_id')==row['annual_receipt_id']:
-            selected.append((code,row,None))
-    output={'eligible_completion_issuers':len(selected),'independent_cfo_needed':sum(cfo is None for _,_,cfo in selected),'selected':min(a.limit,len(selected)),'completed':0,'recovered_issuers':0,'provider_calls':0,'context_checks':{},'reasons':{},'investment_score_certified':False}
+    selected=recovery_candidates(retained,cash,bulk,preferred)
+    output={'eligible_completion_issuers':sum(code in preferred for code,_,_ in selected),
+        'eligible_missing_profit_issuers':len(selected),
+        'independent_cfo_needed':sum(cfo is None for _,_,cfo in selected),'selected':min(a.limit,len(selected)),'completed':0,'recovered_issuers':0,'provider_calls':0,'context_checks':{},'reasons':{},'investment_score_certified':False}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
     key=os.getenv('DART_API_KEY','')
