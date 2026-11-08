@@ -248,6 +248,43 @@ def select(history, catalog, examined):
     return order, targets, single, internal_issuers
 
 
+def save_immutable_receipt(writer, name, blob):
+    """Retry branch-head contention using the same bytes, never the provider."""
+    for attempt in range(4):
+        try:
+            writer.put_new(name, blob, 'Save additive reported-money week repair proof')
+            break
+        except PrivateHistoryError as error:
+            if getattr(error, 'safe_http_status', None) != 'http_409':
+                raise
+            observed, _ = writer.get_content(name)
+            if observed is not None:
+                if observed != blob:
+                    raise MoneyRepairError('money_repair_immutable_receipt_conflict') from None
+                break
+            if attempt == 3:
+                raise
+            time.sleep(.5 * (attempt + 1))
+    _private_new_blob_readback(writer, name, blob)
+
+
+def save_index(writer, encoded, raw, oldsha):
+    for attempt in range(3):
+        try:
+            return _save_cursor(writer, encoded, raw, oldsha, checkpoint=CHECKPOINT)
+        except PrivateHistoryError as error:
+            if getattr(error, 'safe_http_status', None) != 'http_409':
+                raise
+            observed, observed_sha = writer.get_content(CHECKPOINT)
+            if observed == encoded:
+                return observed_sha
+            if observed != raw or observed_sha != oldsha:
+                raise MoneyRepairError('money_repair_index_concurrent_change') from None
+            if attempt == 2:
+                raise
+            time.sleep(.5 * (attempt + 1))
+
+
 def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader=week_days):
     if type(max_weeks) is not int or not 1 <= max_weeks <= MAX_WEEKS:
         raise MoneyRepairError('invalid_money_repair_week_budget')
@@ -273,15 +310,14 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS, day_loader
                 'missing_pairs':len(targets[week]),
                 'single_week_gap_candidates':single.get(week,0)}),flush=True)
             data, blob = source_additions(client, original_blob, original, targets[week], budget)
-            writer.put_new(repair_path(week), blob, 'Save additive reported-money week repair proof')
-            _private_new_blob_readback(writer, repair_path(week), blob)
+            save_immutable_receipt(writer, repair_path(week), blob)
         else:
             data = validate(blob, original_blob, original)
         updated = {'schema': INDEX_SCHEMA, 'weeks': {
             **state['weeks'], week: sha256(blob).hexdigest()}}
         encoded = canonical(updated)
         index(encoded)
-        oldsha = _save_cursor(writer, encoded, raw, oldsha, checkpoint=CHECKPOINT)
+        oldsha = save_index(writer, encoded, raw, oldsha)
         raw, state = encoded, updated
         summary = {'week_end': week, **data['diagnostic'],
                    'single_week_gap_candidates': single.get(week, 0)}
