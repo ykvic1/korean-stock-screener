@@ -1,0 +1,57 @@
+name: V3 Anonymous Reviewed EPS Original Structure Research
+on:
+  pull_request:
+    paths:
+      - v3_eps_original_structure_audit.py
+      - tests/test_v3_eps_original_structure_audit.py
+      - .github/workflows/v3-eps-original-structure-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_eps_original_structure_audit.py
+      - .github/workflows/v3-eps-original-structure-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m unittest discover -s tests -p 'test_v3_eps_original_structure_audit.py' -v
+          python v3_eps_original_structure_audit.py --mode dry-run --limit 4
+  research:
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    concurrency:
+      group: v3-anonymous-reviewed-eps-structure-research
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Inspect four reviewed originals without adding any observations
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python v3_eps_original_structure_audit.py --mode live --limit 4 > "$RUNNER_TEMP/eps-structure-counts.json"
+      - name: Show anonymous fixed-category counts only
+        run: cat "$RUNNER_TEMP/eps-structure-counts.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anonymous-eps-structure-counts
+          path: ${{ runner.temp }}/eps-structure-counts.json
+          retention-days: 14
