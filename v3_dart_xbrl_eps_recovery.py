@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import time
+import threading
 import zipfile
 
 import v3_dart_reported_eps as eps
@@ -234,24 +235,31 @@ def main():
             gaps={(area,key) for area,parts in R1D_PART_LIMITS.items() for key,maximum in parts.items() if maximum-row['parts'][area].get(key,[0,0])[1]>.00001}
             if gaps=={('valuation','per_eps_quality_growth')}:priority.add(code)
     selected=recovery_candidates(retained,cash,bulk,priority)
-    output={'eligible_missing_eps_issuers':len(selected),'independent_cfo_needed':sum(cfo is None for _,_,cfo in selected),
+    output={'source_readers':4,'eligible_missing_eps_issuers':len(selected),'independent_cfo_needed':sum(cfo is None for _,_,cfo in selected),
         'selected':min(a.limit,len(selected)),'priority_issuers':len(priority),'completed':0,'recovered_issuers':0,'new_complete_issuers':0,'provider_calls':0,'context_checks':{},'reasons':{},'investment_score_certified':False}
     selected=selected[:a.limit]
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
     key=os.getenv('DART_API_KEY','')
     if not re.fullmatch('[A-Za-z0-9]{40}',key):raise OriginalEPSError('missing_original_eps_key')
-    client=requests.Session();cache=Path('.cache/v3-dart-company-codes.json')
+    local=threading.local();clients=[];api_lock=threading.Lock()
+    cache=Path('.cache/v3-dart-company-codes.json')
     mapping=verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None,day,members)
     def get(endpoint,params,stream=False):
         try:
-            reply=client.get('https://opendart.fss.or.kr/api/'+endpoint,params={'crtfc_key':key,**params},timeout=(20,90),stream=stream);output['provider_calls']+=1;reply.raise_for_status();return reply
+            if not hasattr(local,'client'):
+                local.client=requests.Session()
+                with api_lock:clients.append(local.client)
+            reply=local.client.get('https://opendart.fss.or.kr/api/'+endpoint,params={'crtfc_key':key,**params},timeout=(20,90),stream=stream)
+            with api_lock:output['provider_calls']+=1
+            reply.raise_for_status();return reply
         except Exception:raise OriginalEPSError('original_eps_provider_unavailable') from None
     if mapping is None:mapping=_mapping(get('corpCode.xml',{}).content,set(members))
     diagnostic=Counter();reasons=Counter();deadline=time.monotonic()+360
-    for code,row,cfo in selected:
-        if time.monotonic()+120>=deadline:break
-        if code not in mapping:continue
+    def fetch(choice):
+        code,row,cfo=choice
+        if code not in mapping:return None
+        checks=Counter()
         base=prepare_context_recheck(row)
         cfo_response_hash=None
         if cfo is None:
@@ -259,10 +267,7 @@ def main():
             cfo,cfo_response_hash=official_cfo_anchor(payload,code=code,corp=mapping[code],scope=row['fs_div'],receipt=row['annual_receipt_id'],day=day)
         if cfo is None:
             new=merge(base,{},reason='no_verified_cfo_scope',cfo_anchor=None,archive_hash=None,profile_hash=None)
-            retained[code]=new;saved=eps.snapshot(day,catalog,book,expected,retained)
-            eps.plan(catalog,book,saved);write_json(root/'v3-dart-reported-eps.json',saved)
-            output['completed']+=1;reasons['no_verified_cfo_scope']+=1
-            continue
+            return code,row,new,checks
         try:profile=get('company.json',{'corp_code':mapping[code]}).json()
         except Exception:raise OriginalEPSError('original_eps_profile_unavailable') from None
         identifiers=original.company_ids(profile,mapping[code],code)
@@ -270,13 +275,21 @@ def main():
         try:raw=xp._read_response_limited(response)
         finally:response.close()
         bindings={}
-        try:values,reason=extract_archive(raw,scope=row['fs_div'],identifiers=identifiers,cfo_anchor=cfo,diagnostic=diagnostic,extended=True,binding_result=bindings)
+        try:values,reason=extract_archive(raw,scope=row['fs_div'],identifiers=identifiers,cfo_anchor=cfo,diagnostic=checks,extended=True,binding_result=bindings)
         except (OriginalEPSError,eps.EPSError,EPSLabelError):values,reason={},'unusable_original_eps'
         try:new=merge(base,values,reason=reason,cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile),cfo_response_hash=cfo_response_hash,binding_hash=bindings.get('sha256'))
         except OriginalEPSError:new=merge(base,{},reason='unusable_original_eps',cfo_anchor=cfo,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=cf.fingerprint(profile))
+        return code,row,new,checks
+    def checkpoint(result):
+        code,row,new,checks=result
         retained[code]=new;saved=eps.snapshot(day,catalog,book,expected,retained)
         eps.plan(catalog,book,saved);write_json(root/'v3-dart-reported-eps.json',saved)
+        diagnostic.update(checks)
         output['completed']+=1;output['recovered_issuers']+=int(verify_review(new));output['new_complete_issuers']+=int(new['metrics']['complete_three_years'] and not row['metrics']['complete_three_years']);reasons[new['original_xbrl_review']['reason']]+=1
+    from v3_eps_parallel_collection import collect
+    try:collect(selected,fetch,checkpoint,workers=4,deadline=deadline)
+    finally:
+        for client in clients:client.close()
     output['context_checks']=dict(diagnostic);output['reasons']=dict(reasons);print(json.dumps(output,sort_keys=True))
 
 
