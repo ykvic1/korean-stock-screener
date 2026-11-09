@@ -1,7 +1,7 @@
 """Receipt-bound annual parent-equity supplement, separate from the DART book.
 
-Only exact IFRS consolidated BS equity less EXPLICIT non-controlling interests
-is admitted. This derived annual reference is neither official KRX PBR nor PIT
+Only exact IFRS consolidated BS parent equity or total equity less EXPLICIT
+non-controlling interests is admitted. This derived annual reference is neither official KRX PBR nor PIT
 certification; original OpenDART rows never enter the public repository.
 """
 from __future__ import annotations
@@ -20,7 +20,14 @@ from v3_dart_bulk_history import _mapping, verified_company_mapping_cache, write
 
 SCHEMA='v3-same-receipt-reported-parent-equity-v1'
 CONTRACT='2025_cfs_total_equity_less_explicit_nci_v1'
-MAX_CAPTURE=7
+DIRECT_CONTRACT='2025_cfs_reported_parent_equity_v1'
+MAX_CAPTURE=12
+MAX_RECORDS=6000
+REVIEW_FILE='v3-dart-parent-equity-reviews.json'
+REVIEW_SCHEMA='v3-parent-equity-source-reviews-v1'
+REVIEW_READER='standard_bs_owner_or_explicit_nci_v1'
+REVIEW_REASONS=frozenset(('verified_reported_parent_equity','no_annual_statement',
+    'total_equity_anchor_missing_or_conflicting','neither_owner_nor_explicit_nci','unusable_parent_equity'))
 
 
 class ParentEquityRecoveryError(ValueError):pass
@@ -43,7 +50,7 @@ def verify(saved,catalog,book,cash):
         or saved.get('investment_score_certified') is not False
         or saved.get('historical_PIT_certified') is not False
         or saved.get('raw_provider_rows_published') is not False
-        or type(saved.get('records')) is not dict or len(saved['records'])>MAX_CAPTURE):
+        or type(saved.get('records')) is not dict or len(saved['records'])>MAX_RECORDS):
         raise ParentEquityRecoveryError('untrusted_parent_equity_supplement')
     day=saved.get('observed_on')
     try:
@@ -72,13 +79,14 @@ def verify(saved,catalog,book,cash):
         if (type(annual) is not dict or annual.get('year')!=2025
             or annual.get('fs_div')!='CFS' or annual.get('currency')!='KRW'
             or annual.get('values',{}).get('owners_equity') is not None
-            or proof['contract']!=CONTRACT or proof['year']!=2025
+            or proof['contract'] not in (CONTRACT,DIRECT_CONTRACT) or proof['year']!=2025
             or proof['scope']!='CFS'
             or proof['receipt_id']!=annual.get('receipt_id')
             or type(total) is not int or total!=annual.get('values',{}).get('equity')
-            or type(nci) is not int or abs(nci)>10**18
             or type(owner) is not int or not 0<owner<=10**18
-            or total-nci!=owner
+            or (proof['contract']==CONTRACT and
+                (type(nci) is not int or abs(nci)>10**18 or total-nci!=owner))
+            or (proof['contract']==DIRECT_CONTRACT and nci is not None)
             or anchor.get('major_annual_receipt_matched') is not True
             or anchor.get('annual_receipt_id')!=proof['receipt_id']
             or anchor.get('scope')!='CFS'
@@ -103,12 +111,13 @@ def merge(saved,code,annual,cfo,payload,*,corp,day,catalog,book,cash):
         raise ParentEquityRecoveryError('duplicate_parent_equity_recovery')
     value,basis=pilot.parse(payload,corp=corp,code=code,receipt=annual['receipt_id'],
                             year=2025,scope='CFS',expected_equity=annual['values']['equity'])
-    if value is None or basis!='same_receipt_total_minus_explicit_nci':
+    if value is None:
         return out,basis
     total=int(annual['values']['equity'])
-    proof={'contract':CONTRACT,'receipt_id':annual['receipt_id'],'year':2025,
+    direct=basis=='same_receipt_direct_parent_equity'
+    proof={'contract':DIRECT_CONTRACT if direct else CONTRACT,'receipt_id':annual['receipt_id'],'year':2025,
            'scope':'CFS','equity_anchor_krw':total,
-           'explicit_nci_krw':total-value,'owners_equity_krw':value,
+           'explicit_nci_krw':None if direct else total-value,'owners_equity_krw':value,
            'cfo_anchor_krw':cfo,'provider_sha256':cf.fingerprint(payload),
            'observed_on':day}
     proof['digest']=cf.fingerprint(proof)
@@ -144,63 +153,116 @@ def overlay(book,catalog,saved,cash):
     return patched
 
 
+def input_digest(code,annual,cash):
+    anchor=cash['records'][code]['years']['2025']
+    return cf.fingerprint({'reader':REVIEW_READER,'code':code,
+        'annual':{k:annual.get(k) for k in ('year','fs_div','currency','receipt_id')},
+        'equity':annual['values']['equity'],
+        'cash':{k:anchor.get(k) for k in ('year','scope','annual_receipt_id',
+            'major_annual_receipt_matched','operating_cashflow_krw')}})
+
+
+def verify_reviews(reviews,catalog):
+    if (type(reviews) is not dict or set(reviews)!={'schema','records'} or reviews['schema']!=REVIEW_SCHEMA
+        or type(reviews['records']) is not dict or len(reviews['records'])>MAX_RECORDS):
+        raise ParentEquityRecoveryError('untrusted_parent_equity_reviews')
+    members={r['code'] for r in catalog['rows']}
+    for code,r in reviews['records'].items():
+        if (code not in members or type(r) is not dict or set(r)!={'code','input_digest','reason','provider_sha256','observed_on','digest'}
+            or r['code']!=code or r['reason'] not in REVIEW_REASONS
+            or any(type(r[k]) is not str or not re.fullmatch('[a-f0-9]{64}',r[k]) for k in ('input_digest','provider_sha256'))
+            or r['digest']!=cf.fingerprint({k:v for k,v in r.items() if k!='digest'})):
+            raise ParentEquityRecoveryError('invalid_parent_equity_review')
+        try:
+            if date.fromisoformat(r['observed_on']).isoformat()!=r['observed_on'] or r['observed_on']>catalog['date']:raise ValueError()
+        except (ValueError,TypeError):raise ParentEquityRecoveryError('invalid_parent_equity_review_date') from None
+    return len(reviews['records'])
+
+
+def pending(report,comparison,catalog,book,cash,saved,reviews):
+    verify(saved,catalog,book,cash);verify_reviews(reviews,catalog)
+    eligible,needed=pilot.eligible_targets(report,comparison,catalog,book,cash,include_partial=True)
+    if any(r['reason']=='verified_reported_parent_equity' and code not in saved['records']
+        for code,r in reviews['records'].items()):
+        raise ParentEquityRecoveryError('parent_equity_review_without_proof')
+    queue=[]
+    for code,annual in eligible:
+        if code in saved['records']:continue
+        prior=reviews['records'].get(code)
+        if prior and prior['input_digest']==input_digest(code,annual,cash):continue
+        queue.append((code,annual))
+    return queue,len(eligible),needed
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode',choices=('dry-run','live','verify'),default='dry-run')
-    a=p.parse_args();root=Path('docs');target=root/'v3-dart-parent-equity-supplement.json'
-    if target.is_symlink():raise ParentEquityRecoveryError('unsafe_parent_equity_output')
+    a=p.parse_args();root=Path('docs');target=root/'v3-dart-parent-equity-supplement.json';review_target=root/REVIEW_FILE
+    if target.is_symlink() or review_target.is_symlink():raise ParentEquityRecoveryError('unsafe_parent_equity_output')
     read=lambda name:json.loads((root/name).read_text(encoding='utf8'))
     catalog,book,cash,report,comparison=[read(n) for n in (
         'v22-market-catalog.json','v3-dart-book-reference.json','v3-dart-cashflow-reference.json',
         'v3-operational-research-scores.json','v3-operational-research-comparison.json')]
     saved=read(target.name) if target.is_file() else blank(catalog['date'])
+    reviews=read(REVIEW_FILE) if review_target.is_file() else {'schema':REVIEW_SCHEMA,'records':{}}
     if a.mode=='verify':
-        print(json.dumps({'verified_recoveries':verify(saved,catalog,book,cash),'provider_calls':0}));return
-    selected,priority=pilot.targets(report,comparison,catalog,book,cash,MAX_CAPTURE)
-    selected=[(code,annual) for code,annual in selected if code not in saved['records']]
-    output={'selected':len(selected),'priority_pbr_only_issuers':priority,
-            'verified_recoveries':len(saved['records']),'provider_calls':0,
-            'reasons':{},'investment_score_certified':False}
-    if a.mode=='dry-run' or not selected:
-        print(json.dumps(output,sort_keys=True));return
+        print(json.dumps({'verified_recoveries':verify(saved,catalog,book,cash),
+            'source_reviews':verify_reviews(reviews,catalog),'provider_calls':0}));return
+    queue,eligible,needed=pending(report,comparison,catalog,book,cash,saved,reviews)
+    output={'selected':min(MAX_CAPTURE,len(queue)),'remaining':len(queue),'eligible':eligible,
+        'pbr_missing_issuers':needed,'verified_recoveries':len(saved['records']),
+        'reviewed':0,'new_recoveries':0,'provider_calls':0,'source_readers':4,'reasons':{},'investment_score_certified':False}
+    if a.mode=='dry-run' or not queue:print(json.dumps(output,sort_keys=True));return
     key=os.getenv('DART_API_KEY','')
     if not re.fullmatch('[A-Za-z0-9]{40}',key):raise ParentEquityRecoveryError('missing_parent_equity_key')
-    import requests
-    client=requests.Session();members={r['code']:r for r in catalog['rows']}
-    cache=Path('.cache/v3-dart-company-codes.json')
-    mapping=verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None,
-                                           catalog['date'],members)
+    import requests,threading,time
+    from collections import Counter
+    from v3_eps_parallel_collection import collect
+    local=threading.local();lock=threading.Lock();sessions=[]
+    members={r['code']:r for r in catalog['rows']};cache=Path('.cache/v3-dart-company-codes.json')
+    mapping=verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None,catalog['date'],members)
     def get(endpoint,params):
         try:
-            r=client.get('https://opendart.fss.or.kr/api/'+endpoint,
-                         params={'crtfc_key':key,**params},timeout=(20,60))
-            output['provider_calls']+=1;r.raise_for_status();return r
+            if not hasattr(local,'client'):
+                local.client=requests.Session()
+                with lock:sessions.append(local.client)
+            r=local.client.get('https://opendart.fss.or.kr/api/'+endpoint,
+                params={'crtfc_key':key,**params},timeout=(20,60))
+            with lock:output['provider_calls']+=1
+            r.raise_for_status();return r
         except Exception:raise ParentEquityRecoveryError('parent_equity_provider_unavailable') from None
     if mapping is None:mapping=_mapping(get('corpCode.xml',{}).content,set(members))
-    from collections import Counter
     reasons=Counter()
-    for code,annual in selected:
-        if code not in mapping:
-            reasons['company_mapping_missing']+=1;continue
-        payload=get('fnlttSinglAcntAll.json',{'corp_code':mapping[code],
-                    'bsns_year':'2025','reprt_code':'11011','fs_div':'CFS'}).json()
+    def fetch(choice):
+        code,annual=choice
+        if code not in mapping:raise ParentEquityRecoveryError('parent_equity_mapping_unavailable')
+        payload=get('fnlttSinglAcntAll.json',{'corp_code':mapping[code],'bsns_year':'2025','reprt_code':'11011','fs_div':'CFS'}).json()
         cfo=cash['records'][code]['years']['2025']['operating_cashflow_krw']
-        try:
-            next_saved,reason=merge(saved,code,annual,cfo,payload,corp=mapping[code],
-                                    day=catalog['date'],catalog=catalog,book=book,cash=cash)
-        except pilot.ParentEquityError as error:
-            next_saved,reason=saved,str(error)
-        if next_saved!=saved:
-            write_json(target,next_saved);saved=next_saved
-        reasons[reason]+=1
-    output['verified_recoveries']=len(saved['records'])
-    output['reasons']=dict(reasons)
+        # A provider/auth/identity error interrupts; it is never a missing-fact marker.
+        single,reason=merge(blank(catalog['date']),code,annual,cfo,payload,corp=mapping[code],
+            day=catalog['date'],catalog=catalog,book=book,cash=cash)
+        if reason not in REVIEW_REASONS:raise ParentEquityRecoveryError('untrusted_parent_equity_review_reason')
+        review={'code':code,'input_digest':input_digest(code,annual,cash),'reason':reason,
+            'provider_sha256':cf.fingerprint(payload),'observed_on':catalog['date']}
+        review['digest']=cf.fingerprint(review)
+        return code,single['records'].get(code),review
+    def checkpoint(result):
+        code,proof,review=result
+        if proof is not None:
+            if code in saved['records']:raise ParentEquityRecoveryError('duplicate_parent_equity_recovery')
+            saved['records'][code]=proof;verify(saved,catalog,book,cash)
+            write_json(target,saved);output['new_recoveries']+=1
+        reviews['records'][code]=review;verify_reviews(reviews,catalog);write_json(review_target,reviews)
+        reasons[review['reason']]+=1;output['reviewed']+=1
+    try:collect(queue[:MAX_CAPTURE],fetch,checkpoint,workers=4,deadline=time.monotonic()+360)
+    finally:
+        for client in sessions:client.close()
+    output['verified_recoveries']=len(saved['records']);output['reasons']=dict(reasons)
+    output['remaining']=len(pending(report,comparison,catalog,book,cash,saved,reviews)[0])
     print(json.dumps(output,sort_keys=True))
 
 
 if __name__=='__main__':
     try:main()
     except Exception:
-        print(json.dumps({'status':'blocked_parent_equity_recovery',
-                          'reason':'parent_equity_source_not_verified'}))
-        raise SystemExit(1)
+        print(json.dumps({'status':'blocked_parent_equity_recovery','reason':'parent_equity_source_not_verified'}));raise SystemExit(1)

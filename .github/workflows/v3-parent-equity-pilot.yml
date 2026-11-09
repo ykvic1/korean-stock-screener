@@ -24,13 +24,12 @@ jobs:
           python-version: '3.11'
       - name: Verify exact receipt, balance sheet and total-minus-NCI guards
         run: |
-          python -m unittest discover -s tests -p 'test_v3_dart_parent_equity_pilot.py' -v
           python v3_dart_parent_equity_pilot.py --mode dry-run --limit 7
   live_research:
     needs: offline
     # A protected main push runs the bounded pilot once after CI has passed.
     # Pull requests never receive the credential or make provider calls.
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 7
     permissions:

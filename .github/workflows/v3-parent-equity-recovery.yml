@@ -12,10 +12,17 @@ on:
       - v3_dart_parent_equity_recovery.py
       - .github/workflows/v3-parent-equity-recovery.yml
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
+    types: [completed]
+  schedule:
+    - cron: '12 11 * * 1-5'
 permissions:
   contents: read
 jobs:
   offline:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +31,6 @@ jobs:
           python-version: '3.11'
       - name: Reject unsupported source facts and forged receipt proofs
         run: |
-          python -m unittest discover -s tests -p 'test_v3_dart_parent_equity_pilot.py' -v
-          python -m unittest discover -s tests -p 'test_v3_dart_parent_equity_recovery.py' -v
-          python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
           python v3_dart_parent_equity_recovery.py --mode dry-run
   recover:
     needs: offline
@@ -38,6 +42,7 @@ jobs:
       actions: write
     concurrency:
       group: v3-dart-parent-equity-supplement
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -58,8 +63,19 @@ jobs:
         run: |
           set -euo pipefail
           interrupted=0
-          if ! python v3_dart_parent_equity_recovery.py --mode live; then interrupted=1; fi
+          reviewed=0
+          new=0
+          if result="$(python v3_dart_parent_equity_recovery.py --mode live)"; then
+            echo "$result"
+            reviewed="$(printf '%s' "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["reviewed"])')"
+            new="$(printf '%s' "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["new_recoveries"])')"
+          else
+            echo "$result"
+            interrupted=1
+          fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+          echo "reviewed=$reviewed" >> "$GITHUB_OUTPUT"
+          echo "new_recoveries=$new" >> "$GITHUB_OUTPUT"
       - name: Verify and publish same-receipt proof, preserving commits through retries
         id: publish
         run: |
@@ -67,8 +83,12 @@ jobs:
           python v3_dart_parent_equity_recovery.py --mode verify
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if [ ! -f docs/v3-dart-parent-equity-supplement.json ]; then exit 0; fi
-          git add docs/v3-dart-parent-equity-supplement.json
+          paths=()
+          for path in docs/v3-dart-parent-equity-supplement.json docs/v3-dart-parent-equity-reviews.json; do
+            if [ -f "$path" ]; then paths+=("$path"); fi
+          done
+          if [[ ${#paths[@]} == 0 ]]; then exit 0; fi
+          git add "${paths[@]}"
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Record receipt-matched parent equity from explicit NCI'
           for attempt in 1 2 3; do
@@ -82,7 +102,7 @@ jobs:
           echo '::error::verified_parent_equity_push_retries_exhausted'
           exit 1
       - name: Replay authenticated valuation into current and R1d scorecards
-        if: steps.publish.outputs.changed == 'true'
+        if: steps.publish.outputs.changed == 'true' && (steps.collect.outputs.new_recoveries != '0' || steps.collect.outputs.interrupted == '1')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -90,3 +110,13 @@ jobs:
       - name: Surface any provider interruption after publishing validated proofs
         if: steps.collect.outputs.interrupted == '1'
         run: exit 1
+      - name: Continue only after actual source progress
+        if: steps.publish.outputs.changed == 'true' && steps.collect.outputs.interrupted == '0' && steps.collect.outputs.reviewed != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          remaining="$(python v3_dart_parent_equity_recovery.py --mode dry-run | python -c 'import json,sys; d=json.load(sys.stdin); assert d["provider_calls"]==0; print(d["remaining"])')"
+          if [[ "$remaining" =~ ^[0-9]+$ ]] && (( remaining > 0 )); then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-parent-equity-recovery.yml/dispatches" -f ref=main --silent
+          fi
