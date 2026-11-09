@@ -66,6 +66,8 @@ class GapSamplingTests(unittest.TestCase):
         report=read('v3-operational-research-scores.json')
         comparison=read('v3-operational-research-comparison.json')
         catalog=read('v22-market-catalog.json');major=read('v3-dart-bulk-history.json')
+        if any(x.get('asof') != catalog['date'] for x in (report,major)):
+            self.skipTest('priority comparison requires reconciled market and annual histories')
         got=p.operational_gap_priority(report,comparison,catalog,major)
         queue=read('v3-operational-evidence-priority.json')['single_component_queue']
         expected={r['code'] for r in queue if r['gaps'][0]['component'] in ('cashflow_fcf_persistence','fcf_yield')}

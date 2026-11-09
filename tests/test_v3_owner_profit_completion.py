@@ -217,6 +217,8 @@ class CompletionTests(unittest.TestCase):
         book=copy.deepcopy(self.inputs[1]);book['observations']=[]
         catalog=self.inputs[0]
         history=json.loads((ROOT/'v3-dart-bulk-history.json').read_text())
+        if (history.get('asof') != catalog['date'] or book.get('asof') != catalog['date']):
+            self.skipTest('earnings yield requires aligned four-year and annual sources')
         valid=[r for r in book['records'] if r.get('status')=='observed' and
                (r.get('annual') or {}).get('values',{}).get('owners_profit') is not None][:3]
         self.assertEqual(len(valid),3)

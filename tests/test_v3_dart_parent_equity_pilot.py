@@ -122,6 +122,8 @@ class ParentEquityPilotTests(unittest.TestCase):
         files = ('v3-operational-research-scores.json','v3-operational-research-comparison.json',
                  'v22-market-catalog.json','v3-dart-book-reference.json','v3-dart-cashflow-reference.json')
         report,comp,catalog,book,cash = [json.loads((folder/f).read_text()) for f in files]
+        if any(source.get('asof') != catalog['date'] for source in (report,book,cash)):
+            self.skipTest('published market and DART evidence await same-close reconciliation')
         selected,n = mod.targets(report,comp,catalog,book,cash,limit=7)
         self.assertGreater(n, 0)
         self.assertLessEqual(len(selected), 7)

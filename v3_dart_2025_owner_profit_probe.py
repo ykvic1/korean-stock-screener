@@ -50,6 +50,38 @@ def _day(raw):
     raise ProfitProbeError("untrusted_profit_source_day")
 
 
+def _waiting_for_same_day_sources(catalog, book, priority):
+    """Defer collection when verified upstream sources trail the new close.
+
+    Old receipts remain untouched; never relabel them with the new market
+    date or bypass the strict same-day identity checks in plan().
+    """
+    market_day = _day(catalog.get("date"))
+    book_day = _day(book.get("asof"))
+    priority_day = _day(priority.get("asof"))
+    if (book.get("historical_point_in_time_verified") is not False or
+        priority.get("schema") != "v3-observed-near100-source-gap-priority-0.1" or
+        priority.get("no_points_added") is not True or
+        priority.get("official_trade_score_certified") is not False):
+        raise ProfitProbeError("untrusted_owner_profit_source_lag")
+    for source_day in (book_day, priority_day):
+        lag = (market_day - source_day).days
+        if lag < 0 or lag > 10 or market_day.year != source_day.year:
+            raise ProfitProbeError("invalid_or_expired_owner_profit_source_lag")
+    if book_day == market_day and priority_day == market_day:
+        return False
+    print(json.dumps({
+        "status": "waiting_same_day_owner_profit_source_priority",
+        "market_asof": market_day.isoformat(),
+        "book_asof": book_day.isoformat(),
+        "priority_asof": priority_day.isoformat(),
+        "provider_calls": 0,
+        "previous_evidence_preserved": True,
+        "score_promoted": False,
+    }, sort_keys=True))
+    return True
+
+
 def _read_company_cache_from_root(path):
     """Read Actions-restored cache by its real path, never under --docs."""
     path = Path(path)
@@ -419,6 +451,8 @@ def main(argv=None):
     priority=read("v3-near-100-evidence-priority.json")
     target=root/"v3-dart-owner-profit-supplement.json"
     old=read(target.name) if target.exists() else None
+    if _waiting_for_same_day_sources(catalog,book,priority):
+        return
     if args.mode=='refresh':
         if old is None:return
         day,_,_,retained,_=plan(catalog,book,priority,old,args.limit)
