@@ -24,7 +24,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: |
+      # Source/cross-receipt validation still runs on every live collection.
+      # Changed-code tests stay on PR/push, not recurring live dispatches.
+      - if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        run: |
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_owner_profit.py' -v
           python -m unittest discover -s tests -p 'test_v3_original_profit_acquisition_queue.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_2025_owner_profit_probe.py' -v
