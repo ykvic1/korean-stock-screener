@@ -65,8 +65,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261103-cross-explain'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261103-cross-explain'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261110-volume-contrast'),'homepage uses compact ranking UI assets');
+ assert.ok(html.includes('v30b-20261110-volume-contrast'),'classic research route keeps its pinned assets');
  assert.ok(entry.includes('workspace.js?v=v30b-20261109-volume-detail-reconcile'),
   'homepage must fetch the volume-detail reconciliation');
  assert.ok(html.includes('workspace.js?v=v30b-20261109-volume-detail-reconcile'),
@@ -840,12 +840,16 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261109-volume-detail-reconcile','v30b-20261103-cross-explain'],[entry,'v30b-20261109-volume-detail-reconcile','v30b-20261103-cross-explain']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261109-volume-detail-reconcile','v30b-20261110-volume-contrast'],[entry,'v30b-20261109-volume-detail-reconcile','v30b-20261110-volume-contrast']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }
 assert.ok(css.includes('.u-ma-cross-note'), 'mobile MA crossing evidence needs a separate readable line');
+assert.ok(css.includes('.u-score-row-explain .u-parts>div.u-factor-unverified')&&
+ css.includes('background:#fff5f6;color:#244258')&&
+ css.includes('.u-score-row-explain .u-parts>div.u-factor-unverified>b{color:#1b435a}'),
+ 'expanded volume factor evidence must use legible text on its light card');
 assert.ok(css.includes('#coverageGroup:focus-visible'),
  'coverage selector must remain accessible on mobile and keyboard');
 assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-lag'),
