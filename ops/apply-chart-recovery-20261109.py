@@ -38,6 +38,9 @@ for code, update in saved['updates'].items():
             raise ValueError('unverified_chart_observation')
         row[field] = observation
 compute_candidates(market['stocks'])
+status = market['v3_technical_pattern_status']
+status['technical_observed_25_count'] = sum(r['v3_pattern_integrated']['technical_research_candidate'] is not None for r in market['stocks'])
+status['candidate_full_six_pillar_count'] = sum(r['v3_pattern_integrated']['six_pillar_full_candidate_only'] is not None for r in market['stocks'])
 market['v3_targeted_price_recovery'] = saved['metadata']
 encoded = (json.dumps(market, ensure_ascii=False, indent=2, allow_nan=False)+'\n').encode()
 if sha256(encoded).hexdigest() != saved['target_market_sha256']:

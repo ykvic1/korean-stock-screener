@@ -38,6 +38,15 @@ jobs:
           python v3_unscored_path_coverage.py --verify --daily docs/data.json --output docs/v3-unscored-path-coverage.json
           python v3_current_observed_scorecard.py --mode verify --refresh-derived
           python v3_price_outcome_triage.py --mode verify
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('docs/v3-targeted-price-recovery-20261109.json')
+          receipt=json.loads(path.read_text())
+          report=json.loads(Path('docs/v3-operational-research-scores.json').read_text())
+          receipt['source_score_digest']=report['source_digest']
+          path.write_text(json.dumps(receipt,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n')
+          PY
       - name: Publish reviewed data with normal fast-forward protection
         if: github.event_name != 'pull_request'
         env:
