@@ -46,6 +46,22 @@ class RecentMa240CrossTests(unittest.TestCase):
         volume[-1] = 0
         self.assertIsNone(observe(rows, volume, asof=ASOF, session_days=sessions()))
 
+    def test_no_trade_cannot_create_new_close_or_qualifying_cross(self):
+        closes=[100.0]*260
+        volumes=[1000]*260
+        volumes[220]=0
+        closes[220]=110.0
+        self.assertIsNone(observe(closes,volumes,asof=ASOF,
+                                  session_days=sessions()))
+        self.assertEqual(classify_unavailable(
+            closes,volumes,asof=ASOF,session_days=sessions()),
+            'zero_volume_close_changed_without_trade')
+        # Explicit prior-close carry is a valid zero-volume observed bar;
+        # missing prelisting/provider dates are never synthesized here.
+        closes[220]=closes[219]
+        self.assertIsNotNone(observe(closes,volumes,asof=ASOF,
+                                     session_days=sessions()))
+
     def test_qualifying_cross_is_at_intersection_not_current_close(self):
         # Price ends at 130, far above MA240, yet the actual crossing
         # occurred close to the 240-day line after a 20-day downtrend.
