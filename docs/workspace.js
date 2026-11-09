@@ -220,6 +220,57 @@ function observedVolumeEvidence(r){
       z.obv_price_not_reflected+(cross??0)))>0.000001)return null;
  return {earned:v.observed_points,available:v.observed_available_max,fullyObserved:false};
 }
+// The current-close scorecard already adds the separately observed 121-session
+// post-spike 4pt factor to volume. Read its *same-day* source receipt here too,
+// otherwise the visible components understate the published pillar by 4pts.
+// Keep the Python receipt contract strict; neither a missing nor malformed
+// path can be interpreted as a zero-point observation.
+function volumePathEvidence(r){
+ const p=r?.v3_unscored_path_observations;
+ const fields=['schema','asof','path_window_trading_sessions','up_close_days20',
+  'positive_nonoverlapping_five_interval_blocks60','prior60_close_change_pct',
+  'recent60_close_change_pct','complete_post_spike_events_evaluated',
+  'post_spike_price_hold_with_volume_easing_events','raw_ohlcv_exported',
+  'source_regular_session_verified','corporate_actions_adjusted_verified',
+  'market_index_path_verified','new_v3_available_points',
+  'investment_score_certified','interpretation'];
+ if(!p||typeof p!=='object'||Array.isArray(p)||
+    Object.keys(p).sort().join(',')!==fields.sort().join(',')||
+    !validDate(p.asof)||p.asof!==r.price_date||
+    p.schema!=='v3-unscored-price-path-evidence-0.1'||
+    p.path_window_trading_sessions!==121||
+    p.raw_ohlcv_exported!==false||p.source_regular_session_verified!==false||
+    p.corporate_actions_adjusted_verified!==false||
+    p.market_index_path_verified!==false||
+    p.new_v3_available_points!==0||
+    p.investment_score_certified!==false||
+    p.interpretation!=='unscored_dated_source_observation_only')return null;
+ for(const [key,max] of [['up_close_days20',20],
+  ['positive_nonoverlapping_five_interval_blocks60',12],
+  ['complete_post_spike_events_evaluated',15],
+  ['post_spike_price_hold_with_volume_easing_events',15]]){
+  if(!Number.isInteger(p[key])||p[key]<0||p[key]>max)return null;
+ }
+ if(p.post_spike_price_hold_with_volume_easing_events>
+    p.complete_post_spike_events_evaluated||
+    !finite(p.prior60_close_change_pct)||
+    Math.abs(p.prior60_close_change_pct)>1e6||
+    !finite(p.recent60_close_change_pct)||
+    Math.abs(p.recent60_close_change_pct)>1e6)return null;
+ return {earned:p.post_spike_price_hold_with_volume_easing_events>0?4:0,
+  available:4,asof:p.asof};
+}
+function volumeFactorEvidence(r){
+ const base=observedVolumeEvidence(r);
+ if(!base)return null;
+ const path=volumePathEvidence(r);
+ const money=r.v3_volume_observed.sustained_participation_source;
+ const sourceAsOf=money?.actual_acc_trdval===true?
+  (money.earliest_asof??(money.daily_asof<money.weekly_session_end?
+    money.daily_asof:money.weekly_session_end)):r.price_date;
+ return {earned:Math.round((base.earned+(path?.earned??0))*1000000)/1000000,
+  available:base.available+(path?.available??0),path,asof:sourceAsOf};
+}
 // Saved 60-session OBV rise with price lag [-12,+10]%; research only.
 // Not independently adjusted divergence, institutional flow, or a buy signal.
 function obvLagCandidate(r){
@@ -774,6 +825,7 @@ function applyIssuerFactorLedger(model,ledger){
 function pillarState(r){
  const tech=technicalEvidence(r);
  const momentum=momentumEvidence(r);
+ const volume=volumeFactorEvidence(r);
  const bulk=r?.v3_dart_bulk_provisional;
  const bulkReady=bulk&&bulk.scoring_certified===false&&
   bulk.confirmed_v3_score===null&&bulk.asof===r.price_date&&
@@ -792,8 +844,7 @@ function pillarState(r){
   const maximum=WEIGHTS[key];
   let candidate=null,available=0;
   if(key==='volume'){
-   const v=observedVolumeEvidence(r);
-   if(v){candidate=v.earned;available=v.available;}
+   if(volume){candidate=volume.earned;available=volume.available;}
   }
   else if(key==='technical'&&tech){candidate=tech.earned;available=tech.available;}
   else if(key==='momentum'&&momentum){
@@ -845,7 +896,8 @@ function pillarState(r){
   // missing or temporarily supplies a narrower partial record.
   let carried=!!retained&&lastObserved.available>available;
   if(carried){candidate=lastObserved.points;available=lastObserved.available;}
-  let asof=carried?lastObserved.asof:available>0?r.price_date:null;
+  let asof=carried?lastObserved.asof:available>0?
+   (key==='volume'?volume.asof:r.price_date):null;
   if(key==='valuation'&&r?.v3_personal_valuation){
    const q=r.v3_personal_valuation;
    if(validEPSValuation(q,r)){
@@ -1011,7 +1063,7 @@ function scorePillarExplanation(p,r){
  };
  let detail='';
  if(p.key==='technical'&&r)detail=technicalParts(r);
- if(p.key==='volume'&&r)detail=volumeParts(r);
+ if(p.key==='volume'&&r)detail=volumeParts(r,p);
  if(p.key==='momentum'&&r&&momentumEvidence(r)){
   const z=r.v3_momentum_research.momentum_parts;
   const one=(label,v)=>'<div><span>'+label+'</span><b>'+
@@ -1362,7 +1414,7 @@ function volumeStatus(pillar){
   return '거래량·OBV 기준 확인 불가';
  return pillar.candidate===null
   ?'신규 MA20·60일선 교차점/240일선 근거 또는 거래량 자료가 미확보입니다. 구형 OBV 상승 6점은 중단했으며 결측은 0점이 아닙니다.'
-  :'거래량/OBV 괴리 및 최근20일 골든크로스의 240일선 대비 ±12%를 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 매집 증거 또는 매수 신호가 아닙니다.';
+  :'거래대금·OBV 괴리·MA 교차 및 유효한 121거래일 매물 소화 관측을 연구용으로 평가합니다. 현재 확보 배점 '+pillar.available+'/20, 매집 증거 또는 매수 신호가 아닙니다.';
 }
 function sustainedParticipationNote(r){
  const evidence=observedVolumeEvidence(r);
@@ -1458,10 +1510,18 @@ function maCrossDetail(r,evidence){
  }
  return '';
 }
-function volumeParts(r){
- const v=observedVolumeEvidence(r);
+function volumeParts(r,pillar=null){
+ const v=volumeFactorEvidence(r);
  const parts=v?r.v3_volume_observed.subpoints:{};
- return '<div class="u-parts u-volume-parts" aria-label="거래량·OBV 20점 관측 근거">'+
+ const different=pillar&&pillar.available>0&&v&&
+  (pillar.available!==v.available||Math.abs(pillar.candidate-v.earned)>0.0001||
+   pillar.asof!==v.asof);
+ const number=n=>n.toFixed(1);
+ const warning=different?'<p class="u-source u-volume-date-warning"><b>기준일이 다른 점수는 더하지 않습니다.</b> '+
+  esc(pillar.asof)+' 유지 합계 '+number(pillar.candidate)+'/'+pillar.available+
+  '점과 '+esc(v.asof)+' 기준 세부 관측 '+number(v.earned)+'/'+v.available+
+  '점은 서로 다른 관측입니다. 아래 최신 세부 점수를 유지 합계의 내역으로 해석하지 마세요.</p>':'';
+ return warning+'<div class="u-parts u-volume-parts" aria-label="거래량·OBV 20점 관측 근거">'+
   VOLUME_COMPONENTS.map(([label,max,key])=>{
    const money=v?r?.v3_volume_observed?.sustained_participation_source:null;
    if(key==='sustained_volume'&&money?.model==='actual-money-disjoint-d4-w5-persistence-concentration-v1'){
@@ -1470,12 +1530,18 @@ function volumeParts(r){
    const detail=key==='ma20_ma60_cross_near_ma240'?maCrossDetail(r,v):
     key==='sustained_volume'&&money?.actual_acc_trdval===true
      ?'20·60·120·240일 / 5·10·20·60·120주 · 일 '+money.daily_asof+' · 주 '+money.weekly_session_end:'';
+   const score=key==='post_spike_absorption'?v?.path?.earned:parts[key];
    return '<div class="u-factor-unverified"><span>'+esc(label)+
     (detail?'<small class="u-ma-cross-note">'+esc(detail)+'</small>':'')+
-    '</span><b>'+(v&&finite(parts[key])?parts[key].toFixed(1):'—')+' / '+max+
-    ' <em class="u-factor-mark">'+(v&&finite(parts[key])?'잠정':'미확보')+
+    '</span><b>'+(v&&finite(score)?score.toFixed(1):'—')+' / '+max+
+    ' <em class="u-factor-mark">'+(v&&finite(score)?'잠정':'미확보')+
     '</em></b></div>';
-  }).join('')+'</div>';
+  }).join('')+'</div>'+
+  (v?'<p class="u-source">세부 관측 합계 '+
+   number(v.earned)+'/'+v.available+'점'+
+   ' · 가장 오래된 근거 '+esc(v.asof)+
+   (different?' · 위 유지 합계와 별도 참고':' · 영역 산출값과 일치')+
+   '</p>':'');
 }
 function technicalParts(r){
  const evidence=technicalEvidence(r),source=r?.v3_pattern_integrated?.technical_parts;
@@ -2302,7 +2368,7 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -2482,8 +2548,8 @@ function renderDetails(x){
  '<details class="u-detail-evidence"><summary>점수 세부 근거 · 재무 · 퀀트 펼쳐보기</summary>'+
  '<h3>거래량·OBV /20 · 실제 자료 관측</h3>'+
  '<p class="u-muted">'+esc(volumeStatus(pillars.find(p=>p.key==='volume')))+'</p>'+
- volumeParts(r)+
- '<p class="u-muted">'+esc(sustainedParticipationNote(r))+' · 60일 OBV/주가 괴리 및 MA 교차는 각각 별도 잠정점수입니다. 4점 매물 소화는 미확보이며 기존 기술25의 당일 거래량 점수와 중복하지 않습니다. 정규장 원자료·기업행사는 미검증입니다.</p>'+
+ volumeParts(r,pillars.find(p=>p.key==='volume'))+
+ '<p class="u-muted">'+esc(sustainedParticipationNote(r))+' · 60일 OBV/주가 괴리 및 MA 교차는 각각 별도 잠정점수입니다. 매물 소화 4점은 유효한 121거래일 원천이 있는 종목에만 관측되며 기존 기술25의 당일 거래량 점수와 중복하지 않습니다. 정규장 원자료·기업행사는 미검증입니다.</p>'+
  '<p class="u-muted">기술적 분석 25점 안의 근거별 구성 (일봉/주봉 독립 평가)</p>'+
  technicalParts(r)+
  '<h3>재무 · 밸류 참고</h3>'+
