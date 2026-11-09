@@ -51,23 +51,29 @@ def observe(daily):
         or daily.index.has_duplicates or not daily.index.is_monotonic_increasing
         or len(daily) < 20 or not set(('Open','High','Low','Close','Volume')).issubset(daily.columns)):
         return None
-    def trusted(frame):
+    def trusted(frame, *, require_traded_last):
         a = frame[['Open','High','Low','Close','Volume']].to_numpy(dtype=float)
         if (not np.isfinite(a).all() or np.any(a[:,:4] <= 0)
-            or np.any(a[:,4] < 0) or a[-1, 4] <= 0
+            or np.any(a[:,4] < 0)
+            or (require_traded_last and a[-1, 4] <= 0)
             or np.any(a[:,1] < np.maximum(a[:,0], a[:,3]))
             or np.any(a[:,2] > np.minimum(a[:,0], a[:,3]))):
             return False
+        # Price-only MAs may retain a genuine no-trade session, but a bar
+        # reporting zero transactions cannot independently create a new close.
+        # Never replace an absent/zero close or infer a suspension from it.
         # A split-like jump in the required window can manufacture a turn.
         closes = a[:,3]
-        return not np.any(np.abs(closes[1:] / closes[:-1] - 1) > .5)
+        return (not np.any(np.abs(closes[1:] / closes[:-1] - 1) > .5)
+                and not np.any((a[1:,4] == 0) & (closes[1:] != closes[:-1])))
 
     day = daily.index[-1].date().isoformat()
     daily_tail = daily.iloc[-DAILY_REQUIRED:]
     recent_day = (_series_points(daily_tail['Close'].to_numpy(dtype=float),
                                 prior=60, recent=20, hold=5,
                                 floor=.0001, frame='daily')
-                  if len(daily_tail) == DAILY_REQUIRED and trusted(daily_tail)
+                  if len(daily_tail) == DAILY_REQUIRED and trusted(
+                      daily_tail, require_traded_last=True)
                   else None)
     weeks = daily[['Close']].resample('W-FRI').last().dropna()
     weeks = weeks.loc[weeks.index <= daily.index[-1].normalize()]
@@ -76,7 +82,10 @@ def observe(daily):
         weekly_tail = weeks.iloc[-WEEKLY_REQUIRED:]
         bars_in_weekly_window = daily.loc[
             weekly_tail.index[0] - pd.Timedelta(days=6):weekly_tail.index[-1]]
-        if len(bars_in_weekly_window) and trusted(bars_in_weekly_window):
+        # The last *completed* Friday can be a valid zero-volume suspension
+        # observation even when the most recent daily bar trades on Monday.
+        if len(bars_in_weekly_window) and trusted(
+                bars_in_weekly_window, require_traded_last=False):
             recent_week = _series_points(weekly_tail['Close'].to_numpy(dtype=float),
                                          prior=26, recent=8, hold=3,
                                          floor=.0005, frame='weekly')
