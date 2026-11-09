@@ -1,5 +1,7 @@
 """No-network official FY2025 owner profit probe contracts; no scored fake data."""
 import copy
+from contextlib import redirect_stdout
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -335,6 +337,36 @@ class OwnerProfitSourceTests(unittest.TestCase):
                     "v3-near-100-evidence-priority.json"), inputs()):
                 (root/name).write_text(json.dumps(value),encoding="utf8")
             probe.main(["--docs",str(root),"--mode","dry-run","--limit","5"])
+
+    def test_cli_defers_normal_close_lag_without_provider_or_overwrite(self):
+        catalog,book,priority=inputs()
+        catalog["date"]="2026-11-09"
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name,value in zip(("v22-market-catalog.json",
+                    "v3-dart-book-reference.json",
+                    "v3-near-100-evidence-priority.json"),
+                    (catalog,book,priority)):
+                (root/name).write_text(json.dumps(value),encoding="utf8")
+            saved=root/"v3-dart-owner-profit-supplement.json"
+            saved.write_text('{"original_asof":"2026-11-02"}',encoding="utf8")
+            original=saved.read_bytes()
+            for mode in ("refresh","live"):
+                with self.subTest(mode=mode),patch.object(
+                        probe,"collect",side_effect=AssertionError("no_provider")):
+                    output=io.StringIO()
+                    with redirect_stdout(output):
+                        probe.main(["--docs",str(root),"--mode",mode])
+                    self.assertEqual(saved.read_bytes(),original)
+                    state=json.loads(output.getvalue())
+                    self.assertEqual(state["status"],
+                        "waiting_same_day_owner_profit_source_priority")
+                    self.assertEqual(state["provider_calls"],0)
+                    self.assertTrue(state["previous_evidence_preserved"])
+            priority["asof"]="2026-10-20"  # stale beyond the 10-day gate
+            with self.assertRaisesRegex(probe.ProfitProbeError,
+                    "invalid_or_expired_owner_profit_source_lag"):
+                probe._waiting_for_same_day_sources(catalog,book,priority)
 
 
 if __name__=="__main__":
