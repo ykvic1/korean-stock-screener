@@ -48,7 +48,7 @@ class PriceTriageTests(unittest.TestCase):
             "Volume":[500]*200},index=idx)
         cfg=screener.cfg_read()
         day=datetime.fromisoformat(DAY)
-        with patch.object(screener.fdr,"DataReader",return_value=baseline.copy()):
+        with patch.object(screener,"price_history",return_value=baseline.copy()):
             df,last=screener.last_series(None,"100001",cfg,day)
             self.assertEqual(last.isoformat(),DAY)
             self.assertEqual(df["Volume"].iloc[-1],500)
@@ -58,7 +58,7 @@ class PriceTriageTests(unittest.TestCase):
             bad=baseline.copy()
             bad.loc[bad.index[-1],field]=0
             with self.subTest(field=field),patch.object(
-                    screener.fdr,"DataReader",return_value=bad):
+                    screener,"price_history",return_value=bad):
                 with self.assertRaises(ValueError) as raised:
                     screener.last_series(None,"100001",cfg,day)
                 self.assertEqual(public_reason(raised.exception),expected)

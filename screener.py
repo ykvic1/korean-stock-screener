@@ -189,9 +189,35 @@ def select_universe(rows,cfg,day):
 def ma_last(arr,period):return float(np.mean(arr[-period:])) if len(arr)>=period else None
 
 
+def price_history(code, start, end):
+    """Same NAVER daily source as FDR, bounded before download, with timeout.
+
+    FDR requests 6,000 bars and slices afterwards. One daily record cannot
+    occupy more than one calendar day, so calendar span plus two bounds the
+    required trailing count, including replays of older market dates.
+    Raw bars remain in memory and pass the unchanged last_series gates.
+    """
+    from io import StringIO
+    import pandas as pd
+    today = datetime.now(ZoneInfo('Asia/Seoul')).date()
+    count = min(6000, max(1, (today-datetime.fromisoformat(start).date()).days+2))
+    response = requests.get('https://fchart.stock.naver.com/sise.nhn',
+        params={'timeframe':'day', 'count':count, 'requestType':0, 'symbol':code},
+        timeout=(10, 30))
+    response.raise_for_status()
+    items = re.findall(r'<item data="(.*?)" />', response.text, re.DOTALL)
+    if not items:
+        raise ValueError('가격 이력 없음')
+    df = pd.read_csv(StringIO('\n'.join(items)), delimiter='|', header=None, dtype={0:str})
+    df.columns = ['Date','Open','High','Low','Close','Volume']
+    df['Date'] = pd.to_datetime(df['Date'], format='%Y%m%d')
+    df = df.set_index('Date').sort_index()
+    return df.loc[start:end]
+
+
 def last_series(series, code, cfg,day):
     start=(day-timedelta(days=int(cfg['historical_days']))).strftime('%Y-%m-%d')
-    df=fdr.DataReader(code,start,(day+timedelta(days=1)).strftime('%Y-%m-%d'))
+    df=price_history(code,start,(day+timedelta(days=1)).strftime('%Y-%m-%d'))
     if df is None or df.empty:raise ValueError('가격 이력 없음')
     df=df.loc[df.index<=day.strftime('%Y-%m-%d')].sort_index()
     if len(df)<cfg['min_history_bars']:raise InsufficientHistory(f'유효 일봉 부족: {len(df)}/{cfg["min_history_bars"]}; 지표 계산 불가')

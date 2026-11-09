@@ -97,7 +97,7 @@ jobs:
           set -euo pipefail
           python full_market_batch.py scan \
             --manifest batch-plan/manifest.json \
-            --part "$CHUNK_INDEX" --out batch-parts
+            --part "$CHUNK_INDEX" --out batch-parts --workers 2
       - uses: actions/upload-artifact@v4
         with:
           name: market-part-${{ github.run_id }}-${{ matrix.part }}

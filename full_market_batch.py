@@ -10,6 +10,7 @@ investor flows, financials, or the regular-session KRX API.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from hashlib import sha256
 import json
@@ -19,6 +20,8 @@ import os
 from pathlib import Path
 import re
 import sys
+from threading import Lock
+import time
 from zoneinfo import ZoneInfo
 
 import screener
@@ -184,15 +187,33 @@ def validate_part(manifest: dict, receipt: dict):
 
 
 def scan(*, manifest: dict, part: int, out: Path,
-         analyzer=None, cfg=None, sleep=None):
+         analyzer=None, cfg=None, sleep=None, workers=1):
     asof, _ = validate_manifest(manifest)
     symbols = batch_codes(manifest, part)
     analyzer = screener.analyze_history if analyzer is None else analyzer
     cfg = screener.cfg_read() if cfg is None else cfg
     sleep = screener.time.sleep if sleep is None else sleep
+    if type(workers) is not int or not 1 <= workers <= 2:
+        raise BatchError("invalid_history_workers")
+    interval = float(cfg.get("request_sleep_seconds", 0.18))
+    if not math.isfinite(interval) or interval < 0:
+        raise BatchError("invalid_request_interval")
     day = datetime.fromisoformat(asof)
     rows, errors, excluded = [], [], []
-    for i, code in enumerate(symbols):
+    gate = Lock()
+    next_start = 0.0
+    started = time.monotonic()
+
+    def analyze(code):
+        # Pace starts across BOTH workers. Overlap network waits without
+        # multiplying the configured request-start rate or sharing raw bars.
+        nonlocal next_start
+        with gate:
+            wait = max(0.0, next_start - time.monotonic())
+            if wait:
+                sleep(wait)
+            next_start = time.monotonic() + interval
+        start = time.monotonic()
         try:
             data = analyzer(code, cfg, day)
             if (type(data) is not dict or not isinstance(data.get("price_date"), str)
@@ -219,9 +240,9 @@ def scan(*, manifest: dict, part: int, out: Path,
                 not valid_breakout_followthrough(data["v3_breakout_followthrough"],
                                                  data["price_date"])):
                 raise BatchError("untrusted_breakout_followthrough")
-            rows.append({"code": code, "metrics": data})
+            return "rows", {"code": code, "metrics": data}, time.monotonic()-start
         except screener.InsufficientHistory:
-            excluded.append([code, "insufficient_valid_price_history"])
+            return "excluded", [code, "insufficient_valid_price_history"], time.monotonic()-start
         except Exception as exc:
             # 2026-10-19 operational failures were all logged "ValueError".
             # Preserve stable fixed cause codes without ever publishing the
@@ -229,9 +250,18 @@ def scan(*, manifest: dict, part: int, out: Path,
             label = public_reason(exc) if isinstance(exc, ValueError) else type(exc).__name__
             if not re.fullmatch(r"[A-Za-z_]{1,64}", label):
                 label = "SourceError"
-            errors.append([code, "가격이력", label])
-        if i < len(symbols)-1:
-            sleep(float(cfg.get("request_sleep_seconds", 0.18)))
+            return "errors", [code, "가격이력", label], time.monotonic()-start
+
+    # Ordered map preserves the serial receipt format and deterministic
+    # issuer order, even when requests complete in a different order.
+    durations = []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for kind, value, elapsed in pool.map(analyze, symbols):
+            {"rows": rows, "errors": errors, "excluded": excluded}[kind].append(value)
+            durations.append(elapsed)
+    timing = {"workers": workers, "elapsed_seconds": round(time.monotonic()-started, 3),
+              "analysis_seconds_sum": round(sum(durations), 3),
+              "slowest_issuer_seconds": round(max(durations, default=0), 3)}
     receipt = {"schema": SCHEMA, "asof": asof, "part": part,
                "digest": manifest["digest"], "codes": symbols,
                "attempted": len(symbols), "rows": rows, "errors": errors,
@@ -240,7 +270,8 @@ def scan(*, manifest: dict, part: int, out: Path,
     validate_part(manifest, receipt)
     _write(out/f"part-{part:03d}.json", receipt)
     return {"status": "derived_batch_saved", "part": part, "attempted": len(symbols),
-            "valid": len(rows), "errors": len(errors), "excluded": len(excluded)}
+            "valid": len(rows), "errors": len(errors), "excluded": len(excluded),
+            "timing": timing}
 
 
 def combine_receipts(manifest: dict, receipts: list[dict], *,
@@ -409,6 +440,7 @@ def main(argv=None):
     p = subs.add_parser("scan")
     p.add_argument("--manifest", required=True)
     p.add_argument("--part", required=True, type=int)
+    p.add_argument("--workers", type=int, choices=(1, 2), default=1)
     p.add_argument("--out", required=True)
     p = subs.add_parser("merge")
     p.add_argument("--manifest", required=True)
@@ -421,7 +453,7 @@ def main(argv=None):
             result = plan(asof=asof, out=Path(args.out))
         elif args.cmd == "scan":
             result = scan(manifest=_read(Path(args.manifest)),
-                          part=args.part, out=Path(args.out))
+                          part=args.part, out=Path(args.out), workers=args.workers)
         else:
             manifest = _read(Path(args.manifest))
             if not args.publish:
