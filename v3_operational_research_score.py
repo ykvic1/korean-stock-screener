@@ -263,7 +263,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                     if (older and finite(older.get('points')) and finite(older.get('available'))
                         and 0<=older['points']<=older['available']<=SPECS[area][key]+1e-6
                         and older['asof']<=day and (p is None or older['asof']>p['asof']
-                             or (area=='volume' and key in COMPONENT_MAX
+                             or (((area=='volume' and key in COMPONENT_MAX)
+                                  or (area=='valuation' and key=='per_eps_quality_growth'))
                                  and older['available']>p['available']+1e-6))
                         # A recent 1/3 earnings-yield receipt must not hide
                         # older but separately verified 2/3 reported EPS.

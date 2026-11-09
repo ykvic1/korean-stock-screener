@@ -28,6 +28,18 @@ def prior():
 
 
 class OriginalRecoveryTests(unittest.TestCase):
+    def test_reused_instance_rechecks_year_scope_and_issuer_without_reparsing(self):
+        from unittest.mock import patch
+        import v3_dart_xbrl_cashflow_recovery as c
+        root,bindings,initial=c.verified_contexts(xml(),year=2024,scope='CFS',identifiers={'00123456'})
+        with patch.object(c.xp,'_safe_xbrl_xml',side_effect=AssertionError('unexpected XML reparse')):
+            for year,scope,ids,expected in ((2024,'CFS',{'00123456'},True),
+                    (2023,'CFS',{'00123456'},False),(2024,'OFS',{'00123456'},False),
+                    (2024,'CFS',{'00999999'},False)):
+                selected=c.contexts_from_instance(root,bindings,year=year,scope=scope,identifiers=ids)
+                self.assertEqual(any(selected.values()),expected)
+        self.assertEqual(initial,{'C':True})
+
     def test_explicit_scope_entity_cfo_and_reported_zero_recover_only_actual_fact(self):
         values=extract(xml())
         self.assertEqual(values,{'operating_cashflow_krw':100,'ppe_capex_krw':20,'intangible_capex_krw':0})

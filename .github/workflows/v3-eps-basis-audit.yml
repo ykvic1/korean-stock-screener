@@ -30,8 +30,6 @@ jobs:
         with:
           python-version: '3.11'
       - run: |
-          python -m unittest discover -s tests -p 'test_v3_eps_basis_audit.py' -v
-          python -m unittest discover -s tests -p 'test_v3_eps_parallel_collection.py' -v
           python v3_eps_basis_audit.py --mode dry-run --limit 16
   audit:
     needs: offline

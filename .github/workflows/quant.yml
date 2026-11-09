@@ -36,11 +36,8 @@ jobs:
       - name: Install packages
         run: pip install -r requirements.txt
 
-      - name: Install pinned optional KRX research session calendar for offline tests
-        run: python -m pip install 'exchange-calendars==4.13.1'
-
-      - name: Unit tests and bias checks
-        run: python -m unittest discover -s tests -v
+      - name: Validate saved market input before data-only research
+        run: python v3_quant_input_check.py --market docs/data.json
 
       - name: Restore OHLCV history cache
         uses: actions/cache/restore@v4

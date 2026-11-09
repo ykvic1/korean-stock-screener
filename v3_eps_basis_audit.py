@@ -95,8 +95,10 @@ def read_filing(raw,*,filing_year,scope,identifiers,cfo_anchor):
             shares_units={u.get('id') for u in root.findall(X+'unit') if len(u)==1 and u[0].tag==X+'measure'
                 and xp._safe_qname(u[0].text,bindings)==('http://www.xbrl.org/2003/instance','shares')}
             for year in facts['eps']:
-                _,_,plain=original.verified_contexts(data,year=int(year),scope=scope,identifiers=identifiers)
-                _,_,ordinary=original.verified_contexts(data,year=int(year),scope=scope,identifiers=identifiers,ordinary_share=True)
+                plain=ctx if int(year)==filing_year else original.contexts_from_instance(
+                    root,bindings,year=int(year),scope=scope,identifiers=identifiers)
+                ordinary=original.contexts_from_instance(root,bindings,year=int(year),
+                    scope=scope,identifiers=identifiers,ordinary_share=True)
                 for fact in root:
                     uri,local=xp._qualified_name(fact.tag);standard=xp._ifrs_full_namespace(uri);ref=fact.get('contextRef')
                     if standard and plain.get(ref) and local in {v.split('_',1)[1] for v in cf.CFO_IDS} and fact.get('unitRef') in won:
