@@ -108,6 +108,7 @@ jobs:
           # same-receipt preview together with the dependent scorecard.
           python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
           python v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+          python v3_dart_2025_owner_profit_probe.py --mode refresh
           python v3_current_observed_scorecard.py --mode write --refresh-derived
           # Target independently observed 95/96-point source gaps without
           # claiming that older ledger scores are fresh closing evidence.
@@ -138,6 +139,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local http.version HTTP/1.1
+          if [[ -f docs/v3-dart-owner-profit-supplement.json ]]; then git add docs/v3-dart-owner-profit-supplement.json; fi
           git add docs/v3-dart-fcf-research-preview.json
           git add docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
           git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json
@@ -151,8 +153,10 @@ jobs:
               git pull --rebase origin main
               python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
               python v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+              python v3_dart_2025_owner_profit_probe.py --mode refresh
               python v3_current_observed_scorecard.py --mode write --refresh-derived
               python v3_near_100_observed_gap.py --mode write
+              if [[ -f docs/v3-dart-owner-profit-supplement.json ]]; then git add docs/v3-dart-owner-profit-supplement.json; fi
               git add docs/v3-dart-fcf-research-preview.json
               git add docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json
               git add docs/v3-personal-adjusted-scores.csv docs/v3-personal-adjusted-score-summary.json
