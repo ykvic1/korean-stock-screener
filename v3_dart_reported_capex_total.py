@@ -120,7 +120,7 @@ def merge(old,normalized,proof,reason='no_reported_total'):
     verify(out);return out
 
 
-def targets(state,priority,limit,completion_priority=()):
+def targets(state,priority,limit,completion_priority=(),threshold_priority=()):
     if type(limit) is not int or not 1<=limit<=40:raise ReportedTotalError('invalid_reported_total_budget')
     completion_priority=set(completion_priority)
     issuers=[]
@@ -136,7 +136,7 @@ def targets(state,priority,limit,completion_priority=()):
         # then on whole three-year FCF completion, rather than on the number
         # of separate CAPEX components absent in one year.
         whole=(len(missing)==len(rows))
-        issuers.append((code not in completion_priority,not whole,len(rows),
+        issuers.append((code not in threshold_priority,code not in completion_priority,not whole,len(rows),
                         code not in priority,not started,not both,code,rows))
     return [(code,y,row) for *_,code,rows in sorted(issuers) for y,row in sorted(rows)][:limit]
 
@@ -147,9 +147,10 @@ def main():
     if target.is_symlink():raise ReportedTotalError('unsafe_reported_total_output')
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json',target.name)]
     state=cf.retained_current_market_cashflow(market,catalog,bulk,state);cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True)
-    priority=xp.operational_gap_priority(read('v3-operational-research-scores.json'),read('v3-operational-research-comparison.json'),catalog,bulk)
-    from v3_v30b_release_gate import R1D_PART_LIMITS
     operational=read('v3-operational-research-scores.json')
+    priority=xp.operational_gap_priority(operational,read('v3-operational-research-comparison.json'),catalog,bulk)
+    from v3_v30b_release_gate import R1D_PART_LIMITS
+    threshold_priority={code for code in priority if operational['rows'][code]['available'] < 90}
     completion_only=set()
     if operational.get('asof')==catalog['date']:
         for code,row in operational['rows'].items():
@@ -158,8 +159,8 @@ def main():
                   if maximum-row['parts'][area].get(key,[0,0])[1]>.00001}
             if gaps=={('financial','cashflow_fcf_persistence')}:
                 completion_only.add(code)
-    selected=targets(state,priority,a.limit,completion_only)
-    output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),'completed':0,'recovered_years':0,'provider_calls':0,'reasons':{},'candidate_account_id_counts':{},'investment_score_certified':False}
+    selected=targets(state,priority,a.limit,completion_only,threshold_priority)
+    output={'selected_issuer_years':len(selected),'selected_sub90_issuers':len({code for code,_,_ in selected if code in threshold_priority}),'priority_issuers':len(priority),'completed':0,'recovered_years':0,'provider_calls':0,'reasons':{},'candidate_account_id_counts':{},'investment_score_certified':False}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
     key=os.getenv('DART_API_KEY','')
