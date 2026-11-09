@@ -1,0 +1,87 @@
+name: V3 Missing Price MA Source Completion
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Complete only blocked price-MA receipts on the same published close
+        id: source
+        run: |
+          python - <<'PY'
+          from datetime import datetime
+          import json,math,os,subprocess,tempfile
+          from pathlib import Path
+          import full_market_batch as batch
+          import screener
+          from v3_ma240_cross_research import observe,valid_observation
+          path=Path('docs/data.json')
+          market=json.loads(path.read_text());day=market['date']
+          targets=sorted(s['code'] for s in market['stocks'] if s.get('price_date')==day
+              and s.get('v3_ma240_cross_research') is None
+              and s.get('v3_ma240_cross_unavailable_reason')=='nonpositive_or_invalid_volume')
+          assert len(targets)<=600
+          found={};attempted=errors=excluded=0
+          def analyze(code,cfg,asof):
+              frame,last=screener.last_series(None,code,cfg,asof)
+              receipt=observe(frame['Close'].to_numpy(),frame['Volume'].to_numpy(),
+                  asof=last.isoformat(),session_days=frame.index)
+              return {'price_date':last.isoformat(),'price_latest':float(frame['Close'].iloc[-1]),
+                      'v3_ma240_cross_research':receipt}
+          if targets:
+              manifest={'schema':batch.SCHEMA,'asof':day,'codes':targets,'batch_size':batch.CHUNK,
+                  'batch_count':math.ceil(len(targets)/batch.CHUNK),'digest':batch._digest(day,targets)}
+              with tempfile.TemporaryDirectory() as tmp:
+                  for part in range(manifest['batch_count']):
+                      result=batch.scan(manifest=manifest,part=part,out=Path(tmp),
+                          analyzer=analyze,workers=2)
+                      attempted+=result['attempted'];errors+=result['errors'];excluded+=result['excluded']
+                  for item in batch.load_receipts(manifest,Path(tmp))['rows']:
+                      if item['metrics'].get('v3_ma240_cross_research') is not None:
+                          found[item['code']]=item['metrics']
+          subprocess.run(['git','pull','--ff-only','origin','main'],check=True)
+          latest=json.loads(path.read_text());assert latest['date']==day
+          changed=skipped=0
+          for stock in latest['stocks']:
+              entry=found.get(stock['code'])
+              if entry is None or stock.get('v3_ma240_cross_research') is not None:continue
+              if stock.get('price_date')!=day or entry['price_date']!=day or entry['price_latest']!=stock['price']:
+                  skipped+=1;continue
+              proof=entry['v3_ma240_cross_research'];assert valid_observation(proof,day)
+              stock['v3_ma240_cross_research']=proof
+              stock['v3_ma240_cross_unavailable_reason']=None
+              changed+=1
+          if changed:path.write_text(json.dumps(latest,ensure_ascii=False,indent=2),encoding='utf8')
+          print(json.dumps({'asof':day,'selected':len(targets),'attempted':attempted,'source_errors':errors,
+              'insufficient_history':excluded,'new_ma_receipts':changed,'price_or_date_mismatches':skipped}))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:output.write('changed='+str(bool(changed)).lower()+'\n')
+          PY
+      - name: Validate full census and publish only new observed receipts
+        if: steps.source.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          python v22_full_universe_audit.py --daily docs/data.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/data.json
+          git commit -m 'Complete independently observed price MA receipts on the same published close'
+          git push origin HEAD:main
+      - name: Apply new observations to the score ledger immediately
+        if: steps.source.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write

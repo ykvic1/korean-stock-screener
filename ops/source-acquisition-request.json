@@ -1,6 +1,6 @@
 {
-  "id": "20261109-publish-acquired-observations-02",
+  "id": "20261109-complete-remaining-price-ma-03",
   "asof": "2026-11-06",
-  "workflow": "v3-current-observed-scorecard.yml",
-  "mode": "write"
+  "workflow": "v3-ma240-source-completion.yml",
+  "mode": "recover"
 }
