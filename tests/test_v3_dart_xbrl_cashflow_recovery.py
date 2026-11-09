@@ -101,6 +101,10 @@ class OriginalRecoveryTests(unittest.TestCase):
         focus=cashflow_90_focus(report,{'000001','000002'})
         self.assertEqual(focus,{'000001'})
         self.assertEqual(targets(s,{'000001','000002'},1,near_90=focus)[0][0],'000001')
+        # A seeded structural sample must not displace a sub-90 issuer that
+        # could mathematically reach the 90-point observation band.
+        self.assertEqual(targets(s,{'000001','000002'},1,
+            [('000002',2024)],near_90=focus)[0][0],'000001')
         self.assertIsNone(s['records']['000001']['years']['2024']['free_cashflow_krw'])
         with self.assertRaises(RecoveryError):
             targets(s,{'000002'},1,near_90={'000001'})
