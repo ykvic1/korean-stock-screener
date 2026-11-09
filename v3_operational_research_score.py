@@ -20,6 +20,7 @@ from v3_path_provisional_factors import preview as path_preview
 from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
+from v3_ma240_cross_research import valid_observation as valid_ma_cross
 from v3_actual_money_structure import valid as valid_money_structure
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
 from v3_dart_reported_eps import plan as reported_eps_plan, EPSError
@@ -113,8 +114,14 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             else:
                 put('volume','long_horizon_growth',vp['sustained_volume'],6,vd)
             put('volume','obv_price_divergence',vp['obv_price_not_reflected'],4,day)
-            cross=vp['ma20_ma60_cross_near_ma240']
-            if cross is not None:put('technical','ma20_ma60_cross_near_ma240',cross,6,day)
+        # The 260-session MA20/60 crossing receipt has its own source checks.
+        # A different *volume* adapter can be unavailable (e.g. an extreme
+        # but finite relative-volume ratio) without invalidating an already
+        # validated MA crossing. Keep unavailable volume parts unavailable.
+        cross=stock.get('v3_ma240_cross_research')
+        if cross is not None and valid_ma_cross(cross,day):
+            put('technical','ma20_ma60_cross_near_ma240',
+                6 if cross['qualified'] else 0,6,day)
         if money_components and valid_components(money_components.get('component_observations')):
             observation = money_components['component_observations']
             source_day = money_components['asof']

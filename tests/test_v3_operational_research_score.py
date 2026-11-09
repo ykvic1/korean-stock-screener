@@ -56,6 +56,32 @@ class OperationalScoreTests(unittest.TestCase):
             self.assertLessEqual(r['risk_deduction'],5)
             self.assertNotEqual(r['risk_status'],'safe')
 
+    def test_ma240_receipt_survives_independent_volume_adapter_rejection(self):
+        from v3_ma240_cross_research import observe as ma_observe
+        end=date(2026,11,6)
+        dates=[]
+        day=end
+        while len(dates)<260:
+            if day.weekday()<5:dates.append(day)
+            day-=timedelta(days=1)
+        dates.reverse()
+        cross=ma_observe([100.0]*260,[1000]*260,
+                         asof=end.isoformat(),session_days=dates)
+        self.assertIsNotNone(cross)
+        stock={'market':'KOSPI','price_date':end.isoformat(),
+               'volume_ratio':109.43,'obv_rising':False,
+               'divergence':False,'price60':-62.0,
+               'v3_ma240_cross_research':cross}
+        saved={'code':'250030','name':'hypothetical','market':'KOSPI'}
+        parts,_=ops.score_issuer(stock,saved,day=end.isoformat())
+        self.assertEqual(parts['technical']['ma20_ma60_cross_near_ma240'],{
+            'points':0,'available':6,'asof':end.isoformat()})
+        self.assertIsNone(parts['volume']['obv_price_divergence'])
+        forged={**cross,'certified_investment_points':6}
+        stock['v3_ma240_cross_research']=forged
+        rejected,_=ops.score_issuer(stock,saved,day=end.isoformat())
+        self.assertIsNone(rejected['technical']['ma20_ma60_cross_near_ma240'])
+
     def test_score_first_ranking_and_csv_matches_every_row(self):
         ranked=sorted((r for r in self.report['rows'].values() if r['rank']),key=lambda r:r['rank'])
         self.assertEqual([r['score'] for r in ranked],sorted((r['score'] for r in ranked),reverse=True))

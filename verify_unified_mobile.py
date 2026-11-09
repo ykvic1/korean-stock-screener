@@ -58,12 +58,22 @@ with sync_playwright() as p:
     assert 0 <= independent_lag <= 10, "independent replay must not be future or unbounded stale"
     if independent_lag == 0:
         assert independent["listed_total"] == observed["listed_total"]
-        assert independent["provisional_numeric_issuer_counts"]["financial"] == (
-            observed["observed_issuer_counts"]["financial"]
-        )
-        assert independent["provisional_numeric_issuer_counts"]["valuation"] == (
-            observed["observed_issuer_counts"]["valuation"]
-        )
+        # Price/volume/momentum use the same market-day source receipts; their
+        # counts must match. Financial/valuation are separately updated DART
+        # observations, so a common market date does NOT establish a common
+        # filing-source snapshot. The release gate likewise checks the three
+        # shared price/volume areas, not a false same-day DART equality.
+        assert independent["source_sha256"]["catalog"] == observed["source_sha256"]["catalog"]
+        assert independent["source_sha256"]["same_day_price_replay"] == observed["source_sha256"]["price"]
+        assert independent["source_sha256"]["volume_observed"] == observed["source_sha256"]["volume"]
+        for area in ("technical", "momentum", "volume"):
+            assert independent["provisional_numeric_issuer_counts"][area] == (
+                observed["observed_issuer_counts"][area]
+            ), f"shared source {area} count mismatch"
+        for area in ("financial", "valuation"):
+            for snapshot in (independent["provisional_numeric_issuer_counts"],
+                             observed["observed_issuer_counts"]):
+                assert type(snapshot[area]) is int and 0 <= snapshot[area] <= independent["listed_total"]
     # Neither source can be promoted to independently certified investable scores.
     assert independent["full_six_pillar_certified_count"] == 0
     assert observed["certified_100point_count"] == 0
