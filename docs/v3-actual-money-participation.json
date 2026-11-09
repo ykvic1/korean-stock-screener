@@ -150451,7 +150451,7 @@
   },
   "source_daily_repair_index_sha256": "da21a0000d45859d2db6fe7cb26b40916eb30a114df09cecfa2146da801950df",
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "3c8306738822539ae2ba2757a2929e7563740c4f",
+  "source_private_revision": "dc18812cc39bf83a893bedb30d43be51b1e8bd30",
   "source_weekly_repair_index_sha256": "167c6bb0bc5bd36cb808e3127895df8c65a51056f20dfb5b273af80bbec3dc4f",
   "weekly_repair_observation": {
     "added_issuer_weeks": 4153,
