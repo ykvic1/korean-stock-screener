@@ -1,6 +1,7 @@
 name: V3 DART Annual Book Derived Financial Sync (0 API)
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -9,6 +10,8 @@ on:
   workflow_run:
     workflows:
       - Rolling OpenDART Annual Book Reference - Current Listed
+      - Full-Market 100-Stock Batches
+      - V3 Missing Price MA Source Completion
     types: [completed]
 
 permissions:
