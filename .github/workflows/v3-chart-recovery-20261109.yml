@@ -1,0 +1,105 @@
+name: Apply saved same-close chart recovery 2026-11-09
+on:
+  pull_request:
+    paths: ['ops/apply-chart-recovery-20261109.py', 'ops/chart-recovery-20261109.json', '.github/workflows/v3-chart-recovery-20261109.yml']
+  push:
+    branches: [main]
+    paths: ['ops/apply-chart-recovery-20261109.py', 'ops/chart-recovery-20261109.json', '.github/workflows/v3-chart-recovery-20261109.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  actions: write
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+jobs:
+  apply-reviewed-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verify exact source, identities, dates and reviewed output
+        run: python ops/apply-chart-recovery-20261109.py --verify
+      - name: Apply and reconcile saved evidence without collection or formula changes
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          python ops/apply-chart-recovery-20261109.py
+          python v3_unscored_path_coverage.py --daily docs/data.json --output docs/v3-unscored-path-coverage.json
+          python v3_current_observed_scorecard.py --mode write --refresh-derived
+          python v3_operational_research_score.py
+          python v3_operational_evidence_priority.py
+          python v3_operational_model_diagnostics.py
+          python v3_price_outcome_triage.py --mode write
+          python v3_unscored_path_coverage.py --verify --daily docs/data.json --output docs/v3-unscored-path-coverage.json
+          python v3_current_observed_scorecard.py --mode verify --refresh-derived
+          python v3_price_outcome_triage.py --mode verify
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path('docs/v3-targeted-price-recovery-20261109.json')
+          receipt=json.loads(path.read_text())
+          report=json.loads(Path('docs/v3-operational-research-scores.json').read_text())
+          receipt['source_score_digest']=report['source_digest']
+          path.write_text(json.dumps(receipt,ensure_ascii=False,sort_keys=True,separators=(',',':'))+'\n')
+          PY
+      - name: Publish reviewed data with normal fast-forward protection
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/data.json docs/v3-targeted-price-recovery-20261109.json docs/v3-unscored-path-coverage.json
+          git add docs/v3-current-observed-all-listed* docs/v3-issuer-last-observed-factors.json docs/v3-personal-adjusted-score*
+          git add docs/v3-operational-* docs/v3-price-outcome-triage.json docs/score-history/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish 16 recovered chart observations; 90-point issuers 1815 to 1827'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Resume requested full-market collection once without an active duplicate
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+          from datetime import datetime, timezone
+          base='https://api.github.com/repos/'+os.environ['REPOSITORY']+'/actions/workflows/full-market-batches.yml'
+          headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}
+          def call(path, data=None):
+              body=json.dumps(data).encode() if data is not None else None
+              with urllib.request.urlopen(urllib.request.Request(base+path,data=body,headers=headers),timeout=30) as r:
+                  raw=r.read()
+                  return json.loads(raw) if raw else None
+          runs=call('/runs?branch=main&per_page=100')['workflow_runs']
+          active=[r for r in runs if r['status'] in ('queued','in_progress','waiting','pending','requested')]
+          if active:
+              print(json.dumps({'status':'existing_full_market_run_retained','run_ids':[r['id'] for r in active]}))
+          else:
+              since=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+              call('/dispatches',{'ref':'main','inputs':{'asof':'2026-11-09','mode':'publish'}})
+              for attempt in range(10):
+                  time.sleep(3)
+                  runs=call('/runs?branch=main&per_page=20')['workflow_runs']
+                  new=[r for r in runs if r['event']=='workflow_dispatch' and r['created_at']>=since]
+                  if new:
+                      print(json.dumps({'status':'full_market_dispatch_run_confirmed','run_id':new[0]['id'],'asof':'2026-11-09','mode':'publish'}))
+                      break
+              else:
+                  raise RuntimeError('dispatch_accepted_but_new_run_id_not_yet_confirmed')
+          PY
+      - name: Request Pages refresh after committed source publication
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${{ github.repository }}/pages/builds"
