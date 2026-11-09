@@ -14,8 +14,10 @@ EXPLICIT reported NCI. An absent NCI is never zero; direct-owner proofs carry
 NCI=null with a distinct contract.
 
 Store receipt/anchor-bound source reviews so unchanged unsupported statements
-are not repeatedly fetched. Source/auth/identity failures interrupt instead
-of becoming missing-fact observations. Completed proofs publish before any
+are not repeatedly fetched. Provider/auth failures interrupt instead of becoming missing-fact observations.
+A successful but conflicting issuer response is quarantined with no numeric
+evidence; it does not block other issuers and can be retried on the next market
+day or a changed anchor. Completed proofs publish before any
 interruption is surfaced. Continue only after actual source progress, stop
 at an empty queue, and replay valuation only when evidence was added.
 
