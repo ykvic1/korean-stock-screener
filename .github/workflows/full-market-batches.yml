@@ -6,19 +6,10 @@ on:
   # on weekdays; this replaces the legacy time-limited daily schedule.
   schedule:
     - cron: '30 9 * * 1-5'  # 18:30 Korea standard time
-  # An updated calculation must not wait for tomorrow's scheduled close.
-  # Only code/workflow edits on main trigger this expensive full-market scan;
-  # bot commits to docs/data.json intentionally do not trigger another scan.
-  push:
-    branches: [main]
-    paths:
-      - full_market_batch.py
-      - screener.py
-      - v3_ma240_cross_research.py
-      - v3_ma_slope_transition.py
-      - v3_breakout_followthrough.py
-      - v3_pattern_composite_score.py
-      - .github/workflows/full-market-batches.yml
+  # Run exactly once after the Korean regular-session close. Code pushes must
+  # not start another 2,500-history scrape during intraday trading or duplicate
+  # a close-of-day batch. Use workflow_dispatch with an explicit asof for a
+  # genuine urgent backfill, and keep its default mode read-only (audit).
   workflow_dispatch:
     inputs:
       asof:
@@ -27,7 +18,7 @@ on:
         default: ''
         type: string
       mode:
-        description: 'audit = no Pages updates; publish = successful chunks with explicit incomplete coverage. Schedule and scoring-code changes publish.'
+        description: 'audit = no Pages updates; publish = successful chunks with explicit incomplete coverage. Scheduled after-close runs publish.'
         required: true
         default: audit
         type: choice
@@ -56,10 +47,8 @@ jobs:
           python-version: '3.11'
       - name: Install full market listing dependencies
         run: pip install -r requirements.txt
-      - name: Check MA-slope source calculations before requesting 2,500 stock histories
-        run: python -m unittest discover -s tests -p 'test_v3_ma_slope_transition.py' -v
-      - name: Check independent price-only breakout follow-through before source requests
-        run: python -m unittest discover -s tests -p 'test_v3_breakout_followthrough.py' -v
+      # Source computation tests are checked by code-change CI, not rerun
+      # on every unchanged-data collection schedule.
       - id: plan
         name: Plan all stocks, codes only, chunks of 100
         env:
@@ -142,9 +131,9 @@ jobs:
           pattern: market-part-${{ github.run_id }}-*
           merge-multiple: true
           path: batch-parts
-      - name: Reconcile batch census; code and schedule publish, manual audit stays read-only
+      - name: Reconcile batch census; schedule publishes, manual audit is read-only
         env:
-          MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'publish' || inputs.mode }}
+          MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}
         shell: bash
         run: |
           set -euo pipefail
@@ -157,7 +146,7 @@ jobs:
               --manifest batch-plan/manifest.json --parts batch-parts
           fi
       - name: Reconcile every stock outcome before public v2.2 publication
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         run: |
           set -euo pipefail
           # Generated report is ONLY aggregate coverage and error categories;
@@ -165,13 +154,13 @@ jobs:
           python v22_full_universe_audit.py \
             --daily docs/data.json --output docs/v22-coverage.json
       - name: Audit research-only daily path source availability (no extra investment points)
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         run: |
           set -euo pipefail
           python v3_unscored_path_coverage.py --daily docs/data.json --output docs/v3-unscored-path-coverage.json
           python v3_unscored_path_coverage.py --verify --daily docs/data.json --output docs/v3-unscored-path-coverage.json
       - name: Publish ONE final v2 Pages/Excel snapshot after complete union
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -184,7 +173,7 @@ jobs:
             git push origin HEAD:main
           fi
       - name: Keep only final derived Excel and failure audit after requested publication
-        if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'publish') }}
+        if: ${{ always() && (github.event_name == 'schedule' || inputs.mode == 'publish') }}
         uses: actions/upload-artifact@v4
         with:
           name: full-market-final-report-${{ github.run_id }}

@@ -15,6 +15,15 @@ RECENT_SESSIONS = 20
 MIN_HISTORY_SESSIONS = 260
 MAX_POINTS = 6
 BAND_PCT = 12.0
+UNAVAILABLE_REASONS = frozenset({
+    "insufficient_260_sessions",
+    "missing_or_mismatched_session_index",
+    "irregular_or_stale_session_calendar",
+    "nonpositive_or_invalid_close",
+    "nonpositive_or_invalid_volume",
+    "possible_unadjusted_corporate_action",
+    "other_ma240_validation_failure",
+})
 
 
 def _date(raw):
@@ -47,6 +56,43 @@ def _number(value):
     except (ValueError, TypeError, OverflowError):
         return None
     return result if math.isfinite(result) and result > 0 else None
+
+
+def valid_unavailable_reason(observation, reason):
+    """A missing 240-day observation needs a finite, auditable source reason.
+
+    Reasons are independent of the 0/6 investment event. A null observation
+    must never be promoted to a zero-point observed event.
+    """
+    if observation is not None:
+        return reason is None
+    return type(reason) is str and reason in UNAVAILABLE_REASONS
+
+
+def classify_unavailable(close, volume, *, asof, session_days):
+    """Classify *in-memory* rejected history without further provider calls.
+
+    Only call when ``observe`` returned None. This never changes its strict
+    260-session lookback, cross calculation, or investment availability.
+    """
+    if len(close) < MIN_HISTORY_SESSIONS:
+        return "insufficient_260_sessions"
+    if (session_days is None or len(close) != len(volume) or
+            len(close) != len(session_days) or _iso(asof) is None):
+        return "missing_or_mismatched_session_index"
+    dates = [_date(value) for value in session_days[-MIN_HISTORY_SESSIONS:]]
+    if (any(d is None for d in dates) or dates[-1] != _iso(asof) or
+            any(not 0 < (b-a).days <= 10 for a, b in zip(dates, dates[1:]))):
+        return "irregular_or_stale_session_calendar"
+    closes = [_number(v) for v in close[-MIN_HISTORY_SESSIONS:]]
+    if any(v is None for v in closes):
+        return "nonpositive_or_invalid_close"
+    if any(_number(v) is None for v in volume[-MIN_HISTORY_SESSIONS:]):
+        return "nonpositive_or_invalid_volume"
+    if any(abs(closes[i] / closes[i-1] - 1) > 0.5
+           for i in range(1, len(closes))):
+        return "possible_unadjusted_corporate_action"
+    return "other_ma240_validation_failure"
 
 
 def observe(close, volume, *, asof, session_days):

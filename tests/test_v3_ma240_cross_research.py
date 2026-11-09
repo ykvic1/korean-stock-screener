@@ -3,7 +3,9 @@ from copy import deepcopy
 from datetime import date, timedelta
 import unittest
 
-from v3_ma240_cross_research import observe, valid_observation, SCHEMA
+from v3_ma240_cross_research import (
+    observe, valid_observation, classify_unavailable,
+    valid_unavailable_reason, SCHEMA)
 
 
 ASOF = "2026-11-03"
@@ -80,6 +82,40 @@ class RecentMa240CrossTests(unittest.TestCase):
         ):
             forged={**deepcopy(good),**updates}
             self.assertFalse(valid_observation(forged,ASOF))
+
+    def test_unavailable_reasons_use_real_rejected_inputs_only(self):
+        close = [100.0]*260
+        volume = [1000]*260
+        dates = sessions()
+        cases = (
+            (close[:259], volume[:259], sessions(259),
+             "insufficient_260_sessions"),
+            (close, volume[:259], dates,
+             "missing_or_mismatched_session_index"),
+            (close, volume, list(reversed(dates)),
+             "irregular_or_stale_session_calendar"),
+            (close[:259]+[0], volume, dates,
+             "nonpositive_or_invalid_close"),
+            (close, volume[:259]+[0], dates,
+             "nonpositive_or_invalid_volume"),
+            (close[:259]+[200], volume, dates,
+             "possible_unadjusted_corporate_action"),
+        )
+        for prices, vols, days, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertIsNone(observe(prices, vols, asof=ASOF,
+                                          session_days=days))
+                reason = classify_unavailable(
+                    prices, vols, asof=ASOF, session_days=days)
+                self.assertEqual(reason, expected)
+                self.assertTrue(valid_unavailable_reason(None, reason))
+        valid = sample(close)
+        self.assertIsNotNone(valid)
+        self.assertTrue(valid_unavailable_reason(valid, None))
+        self.assertFalse(valid_unavailable_reason(valid,
+                         "insufficient_260_sessions"))
+        self.assertFalse(valid_unavailable_reason(None,
+                         "untrusted_claim_of_six_points"))
 
 
 if __name__=="__main__":
