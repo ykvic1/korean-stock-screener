@@ -230,15 +230,36 @@ def merge(old,values,*,reason,archive_hash,profile_hash):
     return new
 
 
-def targets(state,priority,limit,seed_years=()):
+def cashflow_90_focus(report,priority):
+    """Order source checks for possible 90-point coverage, never award points.
+
+    The caller first validates the entire R1d report and issuer membership via
+    operational_gap_priority. A completed cashflow source family is only a
+    mathematical upper bound; no original XBRL fact is assumed present here.
+    """
+    from v3_v30b_release_gate import R1D_PART_LIMITS
+    factors=(('financial','cashflow_fcf_persistence'),('valuation','fcf_yield'))
+    selected=set()
+    for code in priority:
+        row=report['rows'][code]
+        available=row['available']
+        if available>=90:continue
+        remaining=sum(R1D_PART_LIMITS[area][part]-
+            row['parts'][area].get(part,[0,0])[1] for area,part in factors)
+        if available+remaining>=90-1e-6:selected.add(code)
+    return selected
+
+
+def targets(state,priority,limit,seed_years=(),*,near_90=()):
     if type(limit) is not int or not 1<=limit<=32:raise RecoveryError('invalid_original_xbrl_budget')
+    if not set(near_90)<=set(priority):raise RecoveryError('unverified_90_priority_issuer')
     queue=[]
     for code,issuer in state['records'].items():
         missing=[(year,row) for year,row in issuer['years'].items() if row.get('free_cashflow_krw') is None
                  and row.get('operating_cashflow_krw') is not None and row.get('major_annual_receipt_matched') is True
                  and row.get('original_xbrl_review') is None]
-        if missing:queue.append((code not in priority,len(missing),code,missing))
-    candidates=[(code,year,row) for _,_,code,missing in sorted(queue) for year,row in sorted(missing)]
+        if missing:queue.append((code not in near_90,code not in priority,len(missing),code,missing))
+    candidates=[(code,year,row) for _,_,_,code,missing in sorted(queue) for year,row in sorted(missing)]
     # Revisit the deterministic structural sample with this stronger verifier.
     # Sample membership never bypasses receipt/entity/scope/CFO validation.
     seeds=set(seed_years)
@@ -254,14 +275,20 @@ def main():
     read=lambda name:json.loads((root/name).read_text())
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json','v3-dart-cashflow-reference.json')]
     state=cf.retained_current_market_cashflow(market,catalog,bulk,state);cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True)
-    priority=xp.operational_gap_priority(read('v3-operational-research-scores.json'),read('v3-operational-research-comparison.json'),catalog,bulk)
+    report=read('v3-operational-research-scores.json')
+    priority=xp.operational_gap_priority(report,read('v3-operational-research-comparison.json'),catalog,bulk)
+    near_90=cashflow_90_focus(report,priority)
     seeds=[]
     if a.structural_cohort_index is not None:
         seeds=[(code,year) for code,year,*_ in xp.select_candidates(
             state,bulk,asof=catalog['date'],limit=xp.MAX_PROBES,
             cohort_index=a.structural_cohort_index,priority_codes=priority)]
-    selected=targets(state,priority,a.limit,seeds)
-    output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),'provider_calls':0,'completed':0,'recovered_fields':0,'reasons':{},'scores_certified':False,'context_checks':{}}
+    selected=targets(state,priority,a.limit,seeds,near_90=near_90)
+    output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),
+        'conditional_90_priority_issuers':len(near_90),
+        'selected_conditional_90_issuer_years':sum(code in near_90 for code,_,_ in selected),
+        'provider_calls':0,'completed':0,'recovered_fields':0,'reasons':{},
+        'scores_certified':False,'context_checks':{}}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
     key=os.getenv('DART_API_KEY','')

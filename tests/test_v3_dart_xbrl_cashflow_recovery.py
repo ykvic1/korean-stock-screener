@@ -1,6 +1,6 @@
 import copy
 import unittest
-from v3_dart_xbrl_cashflow_recovery import instance_values,archive_values,merge,verify_recovery,company_ids,targets,RecoveryError
+from v3_dart_xbrl_cashflow_recovery import instance_values,archive_values,merge,verify_recovery,company_ids,targets,cashflow_90_focus,RecoveryError
 from test_v3_dart_xbrl_capex_pilot import archive
 
 NS='http://xbrl.ifrs.org/taxonomy/2024-03-27/ifrs-full'
@@ -89,6 +89,21 @@ class OriginalRecoveryTests(unittest.TestCase):
         self.assertEqual((seeded[0][0],seeded[0][1]),('000001','2024'))
         s['records']['000002']['years']['2024']['original_xbrl_review']={'contract':'x'}
         self.assertTrue(all(x[0]=='000001' for x in targets(s,{'000001','000002'},2)))
+
+    def test_90point_source_candidates_precede_near_100_without_imputing_facts(self):
+        s={'records':{'000001':{'years':{'2023':{**prior(),'year':2023},'2024':prior()}},
+                      '000002':{'years':{'2024':prior()}}}}
+        report={'rows':{
+            '000001':{'available':87,'parts':{'financial':{'cashflow_fcf_persistence':[0,0]},
+                        'valuation':{'fcf_yield':[0,2.5]}}},
+            '000002':{'available':98,'parts':{'financial':{'cashflow_fcf_persistence':[0,0]},
+                        'valuation':{'fcf_yield':[0,2.5]}}}}}
+        focus=cashflow_90_focus(report,{'000001','000002'})
+        self.assertEqual(focus,{'000001'})
+        self.assertEqual(targets(s,{'000001','000002'},1,near_90=focus)[0][0],'000001')
+        self.assertIsNone(s['records']['000001']['years']['2024']['free_cashflow_krw'])
+        with self.assertRaises(RecoveryError):
+            targets(s,{'000002'},1,near_90={'000001'})
 
     def test_snapshot_verifies_original_provenance_and_formulas(self):
         import v3_dart_cashflow_enrichment as c
