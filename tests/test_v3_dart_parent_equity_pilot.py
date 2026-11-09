@@ -96,6 +96,27 @@ class ParentEquityPilotTests(unittest.TestCase):
         self.assertNotIn('git push', code)
         self.assertLessEqual(mod.MAX_CALLS, 12)
 
+    def test_partial_coverage_issuers_are_included_only_when_requested(self):
+        from unittest.mock import patch
+        from v3_v30b_release_gate import R1D_PART_LIMITS
+        import types
+        day='2026-11-06';rows={};book={'asof':day,'records':[]};cash={'asof':day,'records':{}}
+        for code,multi in (('000001',False),('000002',True)):
+            parts={a:{k:[0,m] for k,m in limits.items()} for a,limits in R1D_PART_LIMITS.items()}
+            del parts['valuation']['pbr_equity_quality']
+            if multi:del parts['financial']['cashflow_fcf_persistence']
+            rows[code]={'parts':parts,'available':94.5 if multi else 97.5}
+            annual={'year':2025,'fs_div':'CFS','currency':'KRW','receipt_id':RECEIPT,'values':{'owners_equity':None,'equity':TOTAL}}
+            book['records'].append({'code':code,'annual':annual})
+            cash['records'][code]={'years':{'2025':{'scope':'CFS','annual_receipt_id':RECEIPT,
+                'major_annual_receipt_matched':True,'operating_cashflow_krw':10}}}
+        report={'asof':day,'rows':rows};catalog={'date':day,'rows':[{'code':c} for c in rows]}
+        with patch.object(mod,'r1d_public_reconciles',return_value={}):
+            single,_=mod.eligible_targets(report,{},catalog,book,cash)
+            broad,_=mod.eligible_targets(report,{},catalog,book,cash,include_partial=True)
+        self.assertEqual([c for c,a in single],['000001'])
+        self.assertEqual([c for c,a in broad],['000001','000002'])
+
     def test_current_public_snapshot_pbr_only_candidates_are_bounded(self):
         folder = Path(__file__).resolve().parent.parent / 'docs'
         files = ('v3-operational-research-scores.json','v3-operational-research-comparison.json',

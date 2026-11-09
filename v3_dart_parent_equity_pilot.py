@@ -99,9 +99,8 @@ def parse(payload, *, corp, code, receipt, year, scope, expected_equity):
     return owner, basis
 
 
-def targets(report, comparison, catalog, book, cash, limit=MAX_CALLS):
-    if type(limit) is not int or not 1 <= limit <= MAX_CALLS:
-        raise ParentEquityError('invalid_parent_equity_pilot_limit')
+def eligible_targets(report, comparison, catalog, book, cash, *, include_partial=False):
+    if type(include_partial) is not bool:raise ParentEquityError('invalid_parent_equity_selection')
     if (r1d_public_reconciles(report, comparison, catalog) is None
         or report.get('asof') != catalog.get('date') or book.get('asof') != catalog.get('date')
         or cash.get('asof') != catalog.get('date')):
@@ -112,7 +111,8 @@ def targets(report, comparison, catalog, book, cash, limit=MAX_CALLS):
         gaps = {(area, key) for area, parts in R1D_PART_LIMITS.items()
                 for key, maximum in parts.items()
                 if maximum - row['parts'][area].get(key, [0, 0])[1] > .00001}
-        if gaps == {('valuation', 'pbr_equity_quality')}:
+        if (('valuation','pbr_equity_quality') in gaps if include_partial else
+                gaps == {('valuation','pbr_equity_quality')}):
             needed.append(code)
     observed = {r['code']: r.get('annual') for r in book.get('records', [])}
     selected = []
@@ -131,7 +131,15 @@ def targets(report, comparison, catalog, book, cash, limit=MAX_CALLS):
             or anchor.get('operating_cashflow_krw') is None):
             continue
         selected.append((code, annual))
-    return selected[:limit], len(needed)
+    selected.sort(key=lambda item:(-report['rows'][item[0]]['available'],item[0]))
+    return selected, len(needed)
+
+
+def targets(report, comparison, catalog, book, cash, limit=MAX_CALLS):
+    if type(limit) is not int or not 1<=limit<=MAX_CALLS:
+        raise ParentEquityError('invalid_parent_equity_pilot_limit')
+    selected,needed=eligible_targets(report,comparison,catalog,book,cash)
+    return selected[:limit],needed
 
 
 def main():
