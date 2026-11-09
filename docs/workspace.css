@@ -516,6 +516,15 @@ html,body{max-width:100%}
 .u-score-row-explain .u-parts>div{min-width:0;overflow-wrap:anywhere;
  display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .u-score-row-explain .u-parts>div b{white-space:nowrap}
+/* Expanded five-area detail is a light panel. Override the legacy dark red
+   provisional-card styling so evidence labels and numbers remain readable. */
+.u-score-row-explain .u-parts>div.u-factor-unverified{
+ background:#fff5f6;color:#244258;border:1.5px solid #cd6c76;
+}
+.u-score-row-explain .u-parts>div.u-factor-unverified>span{color:#29475f}
+.u-score-row-explain .u-parts>div.u-factor-unverified>b{color:#1b435a}
+.u-score-row-explain .u-parts .u-factor-mark{color:#9a3042}
+.u-score-row-explain .u-volume-parts .u-ma-cross-note{color:#526779}
 .u-score-row-explain .u-score-explain-caution{color:#596f88;font-size:10px}
 @media(max-width:480px){
  .u-score-row{display:block}
