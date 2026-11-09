@@ -97,24 +97,6 @@ jobs:
           python-version: '3.11'
       - name: Install existing offline source computation dependencies
         run: pip install -r requirements.txt
-      - name: Reject mismatched source evidence and missing=0 before publication
-        # Code regression runs once in the PR's Quant correctness job.
-        # Scheduled/source-completion replays still validate every saved
-        # source and generated output below, without rerunning code tests.
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: |
-          set -euo pipefail
-          python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_stop_loss_severity.py v3_issuer_factor_ledger.py v3_path_provisional_factors.py v3_unscored_path_coverage.py
-          python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
-          python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
-          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_factor_preview.py' -v
-          python -m unittest discover -s tests -p 'test_v3_stop_loss_severity.py' -v
-          python -m unittest discover -s tests -p 'test_v3_personal_score_adjustments.py' -v
-          python -m unittest discover -s tests -p 'test_v3_eps_valuation.py' -v
-          python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
-          python -m py_compile v3_near_100_observed_gap.py v3_dart_2025_owner_profit_probe.py
-          python -m unittest discover -s tests -p 'test_v3_owner_profit_score_replay.py' -v
-          python -m unittest discover -s tests -p 'test_v3_near_100_observed_gap.py' -v
       - name: Recompute only actually observed current-close evidence
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
         run: |
@@ -130,6 +112,24 @@ jobs:
           # Target independently observed 95/96-point source gaps without
           # claiming that older ledger scores are fresh closing evidence.
           python v3_near_100_observed_gap.py --mode write
+      - name: Reject mismatched source evidence and missing=0 before publication
+        # Code regression runs once in the PR's Quant correctness job.
+        # Data-only replays validate saved sources and generated outputs
+        # without rerunning code tests against an older derived ledger.
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_stop_loss_severity.py v3_issuer_factor_ledger.py v3_path_provisional_factors.py v3_unscored_path_coverage.py
+          python -m unittest discover -s tests -p 'test_v3_path_provisional_factors.py' -v
+          python -m unittest discover -s tests -p 'test_v3_current_observed_scorecard.py' -v
+          python -m unittest discover -s tests -p 'test_v3_dart_cashflow_factor_preview.py' -v
+          python -m unittest discover -s tests -p 'test_v3_stop_loss_severity.py' -v
+          python -m unittest discover -s tests -p 'test_v3_personal_score_adjustments.py' -v
+          python -m unittest discover -s tests -p 'test_v3_eps_valuation.py' -v
+          python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py' -v
+          python -m py_compile v3_near_100_observed_gap.py v3_dart_2025_owner_profit_probe.py
+          python -m unittest discover -s tests -p 'test_v3_owner_profit_score_replay.py' -v
+          python -m unittest discover -s tests -p 'test_v3_near_100_observed_gap.py' -v
       - name: Publish current-day CSV and aggregate evidence counts only
         id: publication
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'write' }}
@@ -241,3 +241,4 @@ jobs:
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
               "\n".join(lines)+"\n",encoding="utf8")
           PY
+
