@@ -67,9 +67,9 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
  assert.ok(entry.includes('v30b-20261103-cross-explain'),'homepage uses compact ranking UI assets');
  assert.ok(html.includes('v30b-20261103-cross-explain'),'classic research route keeps its pinned assets');
- assert.ok(entry.includes('workspace.js?v=v30b-20261105-all-listed-r1d'),
-  'homepage must fetch updated monetary and EPS source explanations');
- assert.ok(html.includes('workspace.js?v=v30b-20261105-all-listed-r1d'),
+ assert.ok(entry.includes('workspace.js?v=v30b-20261109-volume-detail-reconcile'),
+  'homepage must fetch the volume-detail reconciliation');
+ assert.ok(html.includes('workspace.js?v=v30b-20261109-volume-detail-reconcile'),
   'research route must fetch the same updated script');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
@@ -840,7 +840,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261105-all-listed-r1d','v30b-20261103-cross-explain'],[entry,'v30b-20261105-all-listed-r1d','v30b-20261103-cross-explain']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261109-volume-detail-reconcile','v30b-20261103-cross-explain'],[entry,'v30b-20261109-volume-detail-reconcile','v30b-20261103-cross-explain']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion),
   'each deployed route must pin its independently versioned JS and CSS assets');
@@ -965,6 +965,69 @@ assert.deepEqual(unified.observedVolumeEvidence(withVolume),
 assert.match(unified.scorePillarExplanation(
  {key:'volume',max:20,candidate:13,available:16},withVolume),
  /거래량 급증 후 매물 소화/);
+// The scorecard adds a separately verified-to-contract 121-session path4.
+// The old UI hid it, so 8.3/20 incorrectly looked like 0.3+0+4+missing.
+const pathReceipt={
+ schema:'v3-unscored-price-path-evidence-0.1',asof:'2026-10-20',
+ path_window_trading_sessions:121,up_close_days20:10,
+ positive_nonoverlapping_five_interval_blocks60:8,
+ prior60_close_change_pct:-2.44,recent60_close_change_pct:-2.35,
+ complete_post_spike_events_evaluated:1,
+ post_spike_price_hold_with_volume_easing_events:1,
+ raw_ohlcv_exported:false,source_regular_session_verified:false,
+ corporate_actions_adjusted_verified:false,market_index_path_verified:false,
+ new_v3_available_points:0,investment_score_certified:false,
+ interpretation:'unscored_dated_source_observation_only'
+};
+const shownVolume={...row,v3_volume_observed:{...volumeRow,
+ observed_points:4.3,subpoints:{...volumeRow.subpoints,sustained_volume:0.3,
+ ma20_ma60_cross_near_ma240:0}},v3_unscored_path_observations:pathReceipt};
+assert.deepEqual(unified.volumeFactorEvidence(shownVolume),
+ {earned:8.3,available:20,path:{earned:4,available:4,asof:row.price_date},
+  asof:row.price_date});
+const shownPillar=unified.pillarState(shownVolume)[0];
+assert.equal(shownPillar.candidate,8.3);
+assert.equal(shownPillar.available,20);
+assert.match(unified.volumeParts(shownVolume,shownPillar),
+ /거래량 급증 후 매물 소화<\/span><b>4\.0 \/ 4/);
+assert.match(unified.volumeParts(shownVolume,shownPillar),
+ /세부 관측 합계 8\.3\/20점/);
+assert.doesNotMatch(unified.volumeParts(shownVolume,shownPillar),
+ /기준일이 다른 점수는 더하지 않습니다/);
+// A zero-point absorption with valid history is still an observed 4pt budget.
+const noAbsorption={...shownVolume,v3_unscored_path_observations:{...pathReceipt,
+ post_spike_price_hold_with_volume_easing_events:0}};
+assert.equal(unified.volumeFactorEvidence(noAbsorption).earned,4.3);
+assert.equal(unified.volumeFactorEvidence(noAbsorption).available,20);
+assert.match(unified.volumeParts(noAbsorption),/거래량 급증 후 매물 소화<\/span><b>0\.0 \/ 4/);
+for(const bad of [{asof:'2026-10-19'},{source_regular_session_verified:true},
+ {new_v3_available_points:4},{post_spike_price_hold_with_volume_easing_events:2},
+ {path_window_trading_sessions:120},{unknown_field:'unsupported'}]){
+ const malformed={...shownVolume,v3_unscored_path_observations:{...pathReceipt,...bad}};
+ assert.equal(unified.volumePathEvidence(malformed),null);
+ assert.equal(unified.pillarState(malformed)[0].available,16);
+ assert.match(unified.volumeParts(malformed),/거래량 급증 후 매물 소화<\/span><b>— \/ 4/);
+}
+// Broader prior ledger evidence is not overwritten by a narrower new source.
+// Show both dates/denominators explicitly, never invent the omitted points.
+const priorVolume={...shownVolume,v3_unscored_path_observations:null,
+ v3_last_known_factors:{volume:{asof:'2026-10-16',available:20,
+ points:8.3,source:'current_close_replay'}}};
+const priorPillar=unified.pillarState(priorVolume)[0];
+assert.equal(priorPillar.candidate,8.3);
+assert.equal(priorPillar.available,20);
+assert.equal(priorPillar.carried,true);
+assert.match(unified.volumeParts(priorVolume,priorPillar),
+ /기준일이 다른 점수는 더하지 않습니다/);
+assert.match(unified.volumeParts(priorVolume,priorPillar),/세부 관측 합계 4\.3\/16점/);
+const staleMoney={...shownVolume,v3_volume_observed:{...shownVolume.v3_volume_observed,
+ sustained_participation_source:{model:'actual-money-disjoint-d4-w5-persistence-concentration-v1',
+ daily_asof:'2026-10-16',weekly_session_end:'2026-10-19',
+ earliest_asof:'2026-10-16',computed_asof:'2026-10-20',
+ actual_acc_trdval:true,calendar_week_grouping:true,single_day_points:0,
+ retained_prior_source:false,certified:false}}};
+assert.equal(unified.pillarState(staleMoney)[0].asof,'2026-10-16',
+ 'a same-day computed score must keep its earliest actual-money source day');
 
 // Actual money replaces only the sustained six-point factor, with honest source dates.
 {
@@ -1667,9 +1730,11 @@ const exactCoverageRows=unified.rankItems(prepared,legacy,'all','all','','score'
 assert.equal(exactCoverageRows.length,observedGroup.count,
  'saved stock data must yield the same coverage group count as the browser');
 assert.ok(exactCoverageRows.every(x=>x.coverageKey===observedGroup.key));
-assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=16));
+assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=20));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
-  unified.pillarState(x.r)[0].candidate<=16));
+  unified.pillarState(x.r)[0].candidate<=unified.pillarState(x.r)[0].available));
+assert.ok(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===20),
+ 'the saved 121-session path receipt supplies the independent absorption budget');
 const beforeScores=unified.summary(prepared,legacy).provisional;
 assert.ok(beforeScores>=expectedVolumeCount);
 const badCount={...volumeSaved,observed_volume_candidate_issuers:9999};
