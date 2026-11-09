@@ -213,6 +213,27 @@ class RepairTests(unittest.TestCase):
         priority['asof'] = '2026-11-05'
         self.assertEqual(repair.completion_focus(priority, catalog), set())
 
+    def test_90_first_money_focus_only_changes_source_scheduling(self):
+        catalog = {'date': '2026-11-06', 'rows': [
+            {'code': '000001'}, {'code': '000002'}, {'code': '000003'}]}
+        priority = {'asof': catalog['date'], 'listed_total': 3,
+            'shape_names': [], 'coverage_90_first': {
+                'threshold': 90, 'recovery_not_a_score_or_observation': True,
+                'independent_source_recoverability_not_proven': True,
+                'family_conditional_priority_codes': {
+                    'exchange_actual_money_windows': [
+                        '000003', '000001', '000003', '999999', None]}}}
+        self.assertEqual(repair.completion_focus(priority, catalog),
+                         {'000001', '000003'})
+        priority['coverage_90_first']['recovery_not_a_score_or_observation'] = False
+        self.assertEqual(repair.completion_focus(priority, catalog), set())
+        priority['coverage_90_first']['recovery_not_a_score_or_observation'] = True
+        priority['listed_total'] = 4
+        self.assertEqual(repair.completion_focus(priority, catalog), set())
+        priority['listed_total'] = 3
+        priority['asof'] = '2026-11-05'
+        self.assertEqual(repair.completion_focus(priority, catalog), set())
+
     def test_workflow_runs_no_secret_on_pr_and_no_raw_artifact_upload(self):
         text = (Path(__file__).resolve().parents[1] / '.github/workflows/v3-krx-money-week-repair.yml').read_text()
         offline, live = text.split('  repair:', 1)

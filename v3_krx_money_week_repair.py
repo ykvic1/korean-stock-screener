@@ -215,7 +215,7 @@ def load_history(store, catalog, *, day_loader=week_days):
 
 
 def completion_focus(priority, catalog):
-    """Scheduling only: favor issuers missing just these two money components."""
+    """Scheduling only: favor money gaps that can complete 100 or reach 90."""
     if priority.get('asof') != catalog.get('date'):
         return set()
     shapes = priority.get('shape_names', [])
@@ -239,6 +239,19 @@ def completion_focus(priority, catalog):
                 g.get('area') == 'volume' and g.get('component') in
                 ('persistence', 'weekly_structure_increment') for g in gaps)):
             focus.add(row['code'])
+    # These candidates are mathematical upper bounds, not observed points.
+    # They affect only the order of real historical money-window repairs.
+    first = priority.get('coverage_90_first')
+    if (type(first) is dict and first.get('threshold') == 90
+        and first.get('recovery_not_a_score_or_observation') is True
+        and first.get('independent_source_recoverability_not_proven') is True
+        and priority.get('listed_total') == len(members)):
+        families = first.get('family_conditional_priority_codes')
+        candidates = (families.get('exchange_actual_money_windows', [])
+                      if type(families) is dict else [])
+        if type(candidates) is list:
+            focus.update(code for code in candidates
+                         if type(code) is str and code in members)
     return focus
 
 
