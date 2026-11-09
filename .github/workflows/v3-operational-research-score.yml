@@ -18,6 +18,8 @@ on:
       - v3_operational_evidence_priority.py
       - tests/test_v3_operational_evidence_priority.py
       - v3_operational_research_score.py
+      - v3_price_outcome_triage.py
+      - tests/test_v3_price_outcome_triage.py
       - v3_ma_slope_transition.py
       - v3_actual_money_structure.py
       - v3_breakout_followthrough.py
@@ -44,6 +46,8 @@ on:
       - v3_operational_evidence_priority.py
       - tests/test_v3_operational_evidence_priority.py
       - v3_operational_research_score.py
+      - v3_price_outcome_triage.py
+      - tests/test_v3_price_outcome_triage.py
       - v3_ma_slope_transition.py
       - v3_actual_money_structure.py
       - v3_breakout_followthrough.py
@@ -81,6 +85,8 @@ jobs:
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
           python v3_operational_model_diagnostics.py
+          python v3_price_outcome_triage.py --mode write
+          python v3_price_outcome_triage.py --mode verify
       - run: node --check docs/operational-score.js
   publish:
     needs: offline
@@ -112,13 +118,15 @@ jobs:
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
           python v3_operational_model_diagnostics.py
+          python v3_price_outcome_triage.py --mode write
+          python v3_price_outcome_triage.py --mode verify
       - name: Publish parallel model and append versioned observations
         id: publish_scores
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/score-history/
+          git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/v3-price-outcome-triage.json docs/score-history/
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Publish R1d operational research scores and recovery bounds'
           for attempt in 1 2 3; do
@@ -128,7 +136,9 @@ jobs:
             python v3_operational_research_score.py
             python v3_operational_evidence_priority.py
             python v3_operational_model_diagnostics.py
-            git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/score-history/
+            python v3_price_outcome_triage.py --mode write
+            python v3_price_outcome_triage.py --mode verify
+            git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/v3-price-outcome-triage.json docs/score-history/
             if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             if git push origin HEAD:main; then
               echo "changed=true" >> "$GITHUB_OUTPUT"
