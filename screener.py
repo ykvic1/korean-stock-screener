@@ -297,9 +297,15 @@ def analyze_history(code,cfg,day):
         path_unavailable(close,volume,asof=last.isoformat(),
                          session_days=df.index)
         if v3_unscored_path is None else None)
-    from v3_ma240_cross_research import observe as observe_ma240_cross
+    from v3_ma240_cross_research import (
+        observe as observe_ma240_cross,
+        classify_unavailable as classify_ma240_unavailable)
     v3_ma240_cross=observe_ma240_cross(
         close,volume,asof=last.isoformat(),session_days=df.index)
+    v3_ma240_cross_reason=(
+        classify_ma240_unavailable(close,volume,asof=last.isoformat(),
+                                   session_days=df.index)
+        if v3_ma240_cross is None else None)
     from v3_ma_slope_transition import observe as observe_ma_slope
     v3_ma_slope=observe_ma_slope(df)
     from v3_breakout_followthrough import observe as observe_breakout_followthrough
@@ -341,6 +347,7 @@ def analyze_history(code,cfg,day):
       'v3_unscored_path_observations':v3_unscored_path,
       'v3_unscored_path_unavailable_reason':v3_unscored_path_reason,
       'v3_ma240_cross_research':v3_ma240_cross,
+      'v3_ma240_cross_unavailable_reason':v3_ma240_cross_reason,
       'v3_ma_slope_transition':v3_ma_slope,
       'v3_breakout_followthrough':v3_breakout_followthrough,
       'price60':round_or_none(price60),'price120':round_or_none(price120),
@@ -757,6 +764,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'v3_unscored_path_observations':r.get('v3_unscored_path_observations'),
           'v3_unscored_path_unavailable_reason':r.get('v3_unscored_path_unavailable_reason'),
           'v3_ma240_cross_research':r.get('v3_ma240_cross_research'),
+          'v3_ma240_cross_unavailable_reason':r.get('v3_ma240_cross_unavailable_reason'),
           'v3_ma_slope_transition':r.get('v3_ma_slope_transition'),
           'v3_breakout_followthrough':r.get('v3_breakout_followthrough'),
           'flows_confirmed':bool(r.get('flows_confirmed')),

@@ -172,6 +172,36 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             self.assertFalse(invalid["rows"])
             self.assertEqual(len(invalid["errors"]), 100)
 
+    def test_ma240_missing_reason_is_preserved_and_cannot_be_forged(self):
+        def analyzer(code, cfg, day):
+            return {**mock_history(code, cfg, day),
+                    "v3_ma240_cross_research": None,
+                    "v3_ma240_cross_unavailable_reason":
+                    "insufficient_260_sessions"}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, _ = self._plan(tmp, 105)
+            folder, _ = self._scan_all(tmp, manifest, analyzer=analyzer)
+            combined = b.load_receipts(manifest, folder)
+            self.assertEqual(len(combined["rows"]), 105)
+            self.assertEqual(combined["rows"][0]["metrics"][
+                "v3_ma240_cross_unavailable_reason"],
+                "insufficient_260_sessions")
+
+            tampered = json.loads((folder/"part-000.json").read_text(
+                encoding="utf8"))
+            tampered["rows"][0]["metrics"][
+                "v3_ma240_cross_unavailable_reason"] = "fake_usable"
+            with self.assertRaisesRegex(
+                    b.BatchError, "invalid_ma240_cross_unavailable_reason"):
+                b.validate_part(manifest, tampered)
+
+            tampered["rows"][0]["metrics"][
+                "v3_ma240_cross_unavailable_reason"] = None
+            with self.assertRaisesRegex(
+                    b.BatchError, "invalid_ma240_cross_unavailable_reason"):
+                b.validate_part(manifest, tampered)
+
     def test_ma_slope_receipt_is_stored_and_invalid_scoring_claim_is_rejected(self):
         import numpy as np
         import pandas as pd

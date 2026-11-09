@@ -25,7 +25,9 @@ import screener
 from v22_price_error_triage import public_reason
 from v3_unscored_path_observations import (
     valid_observation, valid_unavailable_reason)
-from v3_ma240_cross_research import valid_observation as valid_ma240_cross
+from v3_ma240_cross_research import (
+    valid_observation as valid_ma240_cross,
+    valid_unavailable_reason as valid_ma240_unavailable_reason)
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
 
@@ -157,6 +159,11 @@ def validate_part(manifest: dict, receipt: dict):
         if ma_receipt is not None and not valid_ma240_cross(
                 ma_receipt, row["metrics"].get("price_date")):
             raise BatchError("untrusted_ma240_cross_observation")
+        if ("v3_ma240_cross_unavailable_reason" in row["metrics"] and
+                not valid_ma240_unavailable_reason(
+                    ma_receipt,
+                    row["metrics"]["v3_ma240_cross_unavailable_reason"])):
+            raise BatchError("invalid_ma240_cross_unavailable_reason")
         slope_receipt = row["metrics"].get("v3_ma_slope_transition")
         if slope_receipt is not None and not valid_ma_slope(
                 slope_receipt, row["metrics"].get("price_date")):
@@ -199,6 +206,11 @@ def scan(*, manifest: dict, part: int, out: Path,
                 not valid_ma240_cross(data["v3_ma240_cross_research"],
                                       data["price_date"])):
                 raise BatchError("untrusted_ma240_cross_observation")
+            if ("v3_ma240_cross_unavailable_reason" in data and
+                    not valid_ma240_unavailable_reason(
+                        data.get("v3_ma240_cross_research"),
+                        data["v3_ma240_cross_unavailable_reason"])):
+                raise BatchError("invalid_ma240_cross_unavailable_reason")
             if (data.get("v3_ma_slope_transition") is not None and
                 not valid_ma_slope(data["v3_ma_slope_transition"],
                                    data["price_date"])):
