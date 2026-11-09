@@ -121,7 +121,7 @@
       },
       "computed_asof": "2026-11-06",
       "daily_asof": "2026-11-04",
-      "issuer_name": "KR\ubaa8\ud130\uc2a4",
+      "issuer_name": "\ub2e4\uc774\ub098\ub9e5",
       "market": "KOSPI",
       "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
       "weekly_session_end": "2026-11-06"
@@ -62353,7 +62353,7 @@
       },
       "computed_asof": "2026-11-06",
       "daily_asof": "2026-11-04",
-      "issuer_name": "\uc54c\uc5d4\ud22c\ud14c\ud06c\ub180\ub85c\uc9c0",
+      "issuer_name": "\uc2a4\ud018\uc5b4\ud14d",
       "market": "KOSDAQ",
       "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
       "weekly_session_end": "2026-11-06"
@@ -98117,7 +98117,7 @@
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
       "daily_asof": "2026-11-04",
-      "issuer_name": "KR\ubaa8\ud130\uc2a4",
+      "issuer_name": "\ub2e4\uc774\ub098\ub9e5",
       "market": "KOSPI",
       "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
       "points": 0.6359,
@@ -135944,7 +135944,7 @@
       "asof": "2026-11-04",
       "computed_asof": "2026-11-06",
       "daily_asof": "2026-11-04",
-      "issuer_name": "\uc54c\uc5d4\ud22c\ud14c\ud06c\ub180\ub85c\uc9c0",
+      "issuer_name": "\uc2a4\ud018\uc5b4\ud14d",
       "market": "KOSDAQ",
       "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
       "points": 0.1555,
@@ -150443,7 +150443,7 @@
   "retained_prior_money_issuers": 0,
   "schema": "v3-personal-actual-money-participation-six-0.1",
   "single_day_money_component_points": 0,
-  "source_catalog_sha256": "6e6327ad41e478124788e99d1d96c3d5d3ac66d3c0aa92ac39e082801ea8fe20",
+  "source_catalog_sha256": "d2048a2a23f2647aaba5f744f7a3d1bc9301bc9116498d96a0fe01f7f05fa44f",
   "source_checkpoint_sha256": {
     "0": "3cbca1d9645682c93b7176d0a676a50c3fd64baa2a24832fd63013efadc6152e",
     "1": "079dc5ac27c7da0fc93a718ff708ae936ad0d37c233fdcac4ed253314ee647e0",
@@ -150451,7 +150451,7 @@
   },
   "source_daily_repair_index_sha256": "da21a0000d45859d2db6fe7cb26b40916eb30a114df09cecfa2146da801950df",
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "4d920f246f978bd8f9d51c0fb70d82e52846ea6f",
+  "source_private_revision": "562dd2036a7db6bba0ec9bbb8de56d96480bb9fe",
   "source_weekly_repair_index_sha256": "167c6bb0bc5bd36cb808e3127895df8c65a51056f20dfb5b273af80bbec3dc4f",
   "weekly_repair_observation": {
     "added_issuer_weeks": 4153,
