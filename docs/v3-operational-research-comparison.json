@@ -22,9 +22,9 @@
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "789ff715d4f3d460775d361bcd6ca8614d76fb97548c4e4c0dad5169f40b12b5",
+    "source_digest": "43e029aac87d787ed407f8858d9973bfae2a78016469227ce3265cd43ccc275b",
     "listed_total": 2501,
-    "ranked_count": 2481,
+    "ranked_count": 2493,
     "available_100_count": 1060,
     "available_95_count": 1318,
     "available_90_count": 1815,
