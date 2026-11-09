@@ -150,8 +150,7 @@ def candidates(cash, research_state):
         if any(year not in years for year in ('2023', '2024', '2025')):
             continue
         later = years.get('2025', {})
-        missing = [(year, years[year]) for year in ('2023', '2024')
-                   if year in years and years[year].get('free_cashflow_krw') is None]
+        missing = research.eligible_missing_years(years, source_record['scope'])
         if (not missing or later.get('major_annual_receipt_matched') is not True
             or later.get('scope') != source_record['scope']
             or later.get('annual_receipt_id') != source_record['fy2025_receipt']

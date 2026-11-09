@@ -32,6 +32,20 @@ class ComparativeError(ValueError):
     pass
 
 
+def eligible_missing_years(years, scope):
+    missing = []
+    for year in ('2023', '2024'):
+        y = years.get(year, {})
+        if (y.get('free_cashflow_krw') is None
+            and y.get('year') == int(year)
+            and y.get('scope') == scope
+            and y.get('major_annual_receipt_matched') is True
+            and type(y.get('operating_cashflow_krw')) is int
+            and re.fullmatch(f'{int(year)+1}[0-9]{{10}}', str(y.get('annual_receipt_id')))):
+            missing.append((year, y))
+    return missing
+
+
 def targets(priority, cash, previous=None):
     if (type(priority) is not dict or type(cash) is not dict
         or type(previous or {}) is not dict or not isinstance(priority.get('single_component_queue'), list)):
@@ -69,16 +83,7 @@ def targets(priority, cash, previous=None):
             or type(latest.get('operating_cashflow_krw')) is not int
             or not re.fullmatch('2026[0-9]{10}', str(latest.get('annual_receipt_id')))):
             continue
-        missing = []
-        for year in ('2023', '2024'):
-            y = years.get(year, {})
-            if (y.get('free_cashflow_krw') is None
-                and y.get('year') == int(year)
-                and y.get('scope') == latest['scope']
-                and y.get('major_annual_receipt_matched') is True
-                and type(y.get('operating_cashflow_krw')) is int
-                and re.fullmatch(f'{int(year)+1}[0-9]{{10}}', str(y.get('annual_receipt_id')))):
-                missing.append((year, y))
+        missing = eligible_missing_years(years, latest['scope'])
         if not missing:
             continue
         receipt = latest['annual_receipt_id']
@@ -108,8 +113,7 @@ def anchors_unchanged(record, years):
     new review rather than silently reusing a stale source marker.
     """
     from v3_dart_fcf_comparative_promotion import PROOF, verify_promoted_year
-    missing = {year for year in ('2023', '2024')
-               if year in years and years[year].get('free_cashflow_krw') is None}
+    missing = {year for year, _ in eligible_missing_years(years, record['scope'])}
     if not missing <= set(record['years']):
         return False
     original_anchors = []

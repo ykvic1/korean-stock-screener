@@ -76,6 +76,18 @@ class PromotionTests(unittest.TestCase):
             with self.assertRaises(promo.ComparativePromotionError):
                 promo.verify_promoted_year(changed['years']['2024'], changed['years'], CODE, '2024')
 
+    def test_late_filed_other_year_neither_blocks_nor_receives_recovery(self):
+        cash, state = inputs()
+        years = cash['records'][CODE]['years']
+        years['2023'].update(annual_receipt_id='20260318000002', free_cashflow_krw=None,
+                             intangible_capex_krw=None, total_capex_krw=None)
+        updated, codes = promo.apply(cash, state)
+        self.assertEqual(codes, [CODE])
+        result = updated['records'][CODE]['years']
+        self.assertEqual(result['2023'], years['2023'])
+        self.assertEqual(result['2024']['free_cashflow_krw'], 80)
+        self.assertTrue(research.anchors_unchanged(state['records'][CODE], result))
+
     def test_source_revisions_revoke_only_later_supplied_amount(self):
         cash, state = inputs()
         updated, _ = promo.apply(cash, state)
