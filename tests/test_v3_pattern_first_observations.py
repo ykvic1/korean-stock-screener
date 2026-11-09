@@ -174,6 +174,28 @@ class PatternFirstObservations(unittest.TestCase):
         new_bad.iloc[-1, new_bad.columns.get_loc('High')] = 1
         self.assertEqual(mod.observe(new_bad)['status'], 'insufficient')
 
+    def test_recent_contiguous_daily_bars_survive_older_bad_price(self):
+        source = make_df(np.linspace(100, 112, 130))
+        invalid = source.copy()
+        invalid.iloc[19, invalid.columns.get_loc('Close')] = 0
+        retained = mod.observe(invalid)
+        expected = mod.observe(source.iloc[20:])
+        self.assertEqual(retained['status'], 'heuristic_unverified')
+        self.assertTrue(retained['source_recent_clean_window_only'])
+        self.assertEqual(retained['rsi14'], expected['rsi14'])
+        self.assertEqual(retained['patterns'], expected['patterns'])
+        self.assertEqual(retained['pattern_geometry'], expected['pattern_geometry'])
+        too_recent = source.copy()
+        too_recent.iloc[-89, too_recent.columns.get_loc('Close')] = 0
+        self.assertEqual(mod.observe(too_recent)['status'], 'insufficient')
+
+    def test_zero_volume_is_not_treated_as_bad_price_or_filled(self):
+        source = make_df(np.linspace(100, 112, 130))
+        source.iloc[21, source.columns.get_loc('Volume')] = 0
+        result = mod.observe(source)
+        self.assertEqual(result['status'], 'heuristic_unverified')
+        self.assertFalse(result['source_recent_clean_window_only'])
+
     def test_old_invalid_bar_only_may_use_clean_completed_weekly_tail(self):
         d = make_df(np.linspace(100, 110, 850))
         d.index = pd.bdate_range('2022-01-03', periods=len(d))
@@ -192,6 +214,23 @@ class PatternFirstObservations(unittest.TestCase):
         recent_bad = d.copy()
         recent_bad.iloc[-3, recent_bad.columns.get_loc('Low')] = 999
         self.assertEqual(mod.observe_completed_weekly(recent_bad)['status'], 'insufficient')
+
+    def test_weekly_clean_suffix_must_have_90_completed_real_weeks(self):
+        source = make_df(np.linspace(100, 116, 590))
+        source.index = pd.bdate_range('2024-01-02', periods=len(source))
+        invalid = source.copy()
+        invalid.iloc[18, invalid.columns.get_loc('Close')] = 0
+        retained = mod.observe_completed_weekly(invalid)
+        expected = mod.observe_completed_weekly(source.iloc[19:])
+        self.assertEqual(retained['status'], 'heuristic_unverified')
+        self.assertTrue(retained['completed_week_only'])
+        self.assertTrue(retained['source_recent_clean_window_only'])
+        self.assertEqual(retained['asof'], expected['asof'])
+        self.assertEqual(retained['rsi14'], expected['rsi14'])
+        too_recent = source.copy()
+        too_recent.iloc[-400, too_recent.columns.get_loc('Close')] = 0
+        self.assertEqual(mod.observe_completed_weekly(too_recent)['status'],
+                         'insufficient')
 
 
 if __name__ == "__main__":
