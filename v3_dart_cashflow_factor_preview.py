@@ -24,6 +24,28 @@ class FCFPreviewError(ValueError):
     """Fixed, non-sensitive source-evidence failure labels."""
 
 
+def _receipt_balance_assets(stmt):
+    """Return a dated asset denominator, identifying exact BS reconstruction.
+
+    The accounting identity A=L+E is safe only for two unambiguous amounts
+    from the SAME already receipt-matched BS scope/year. Never infer a missing
+    equity or liability, use a different scope, or overwrite a reported asset.
+    """
+    vals=stmt.get("values",{})
+    if not isinstance(vals,dict):
+        return None,False
+    reported=vals.get("assets")
+    if type(reported) is int and reported>0:
+        return reported,False
+    if reported is not None or stmt.get("ambiguous") != []:
+        return None,False
+    equity,liabilities=vals.get("equity"),vals.get("liabilities")
+    if (type(equity) is not int or type(liabilities) is not int
+        or equity<=0 or liabilities<0 or equity+liabilities>10**18):
+        return None,False
+    return equity+liabilities,True
+
+
 def real_features(catalog,bulk,cash):
     asof=catalog["date"]
     caps={v["code"]:v.get("reference_market_cap_eok")
@@ -34,6 +56,7 @@ def real_features(catalog,bulk,cash):
         scope=item["scope"]
         source_major=major.get("years",{})
         three=[]
+        derived_years=[]
         all_three=True
         for y in YEARS:
             year=str(y)
@@ -48,11 +71,12 @@ def real_features(catalog,bulk,cash):
                 all_three=False
                 continue
             fcf=record.get("free_cashflow_krw")
-            asset=stmt.get("values",{}).get("assets")
+            asset,derived=_receipt_balance_assets(stmt)
             if (type(fcf) is not int or type(asset) is not int or asset<=0):
                 all_three=False
                 continue
             three.append(100*fcf/asset)
+            if derived:derived_years.append(year)
         ratio=round(sum(three)/3,6) if all_three and len(three)==3 else None
         latest=item["years"].get(str(YEARS[-1]),{})
         major_latest=source_major.get(str(YEARS[-1]),{}).get(scope,{})
@@ -72,6 +96,7 @@ def real_features(catalog,bulk,cash):
             out[code]={
                 "financial_fcf_assets_3y_pct":ratio,
                 "valuation_fcf_yield_pct":val,
+                "same_receipt_balance_identity_asset_years":derived_years if ratio is not None else [],
             }
     return out
 
@@ -94,13 +119,14 @@ def score_preview(market,catalog,major,cash,minimum_peers=30):
             for field in ("financial_fcf_assets_3y_pct","valuation_fcf_yield_pct")
         }
     points=[]
-    financial=valuation=raw_fin=raw_val=0
+    financial=valuation=raw_fin=raw_val=identity_reconstructed=0
     for code,metrics in sorted(values.items()):
         m=members[code]["market"]
         fin=metrics["financial_fcf_assets_3y_pct"]
         val=metrics["valuation_fcf_yield_pct"]
         raw_fin+=int(fin is not None)
         raw_val+=int(val is not None)
+        identity_reconstructed+=int(bool(metrics["same_receipt_balance_identity_asset_years"]))
         fin_peers=peaks[m]["financial_fcf_assets_3y_pct"]
         val_peers=peaks[m]["valuation_fcf_yield_pct"]
         fin_pt=round(4*_midrank(fin,fin_peers,1),6) if (
@@ -119,6 +145,8 @@ def score_preview(market,catalog,major,cash,minimum_peers=30):
             "valuation_fcf_yield_available_max":5 if val_pt is not None else 0,
             "financial_fcf_peer_count":len(fin_peers),
             "valuation_fcf_peer_count":len(val_peers),
+            "same_receipt_balance_identity_asset_years":metrics[
+                "same_receipt_balance_identity_asset_years"],
             "strict_receipt_scope_matched":True,
             "historical_PIT_certified":False,
             "scoring_certified":False,
@@ -133,6 +161,7 @@ def score_preview(market,catalog,major,cash,minimum_peers=30):
         "real_latest_fcf_yield_raw_issuer_count":raw_val,
         "financial_fcf4_research_candidate_issuer_count":financial,
         "valuation_fcf5_research_candidate_issuer_count":valuation,
+        "same_receipt_balance_identity_asset_issuers":identity_reconstructed,
         "financial_fcf_weight_available_max":4,
         "valuation_fcf_weight_available_max":5,
         "source_same_filing_scope_receipt_checked":True,
@@ -143,7 +172,11 @@ def score_preview(market,catalog,major,cash,minimum_peers=30):
         "six_pillar_confirmed_100pt":None,
         "joined_to_main_v3_ranking":False,
         "buy_recommendations_authorized":False,
-        "notes":"No historical prices/PIT, full-CF source-only FCF; no CAPEX zeros or issuer substitution",
+        "notes":(
+            "No historical prices/PIT; FCF from receipt-matched CF, "
+            "assets direct BS or explicit same-receipt BS liabilities+equity identity; "
+            "no CAPEX zeros or issuer substitution"
+        ),
         "rows":points,
     }
 
