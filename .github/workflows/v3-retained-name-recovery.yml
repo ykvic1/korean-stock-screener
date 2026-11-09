@@ -24,7 +24,10 @@ jobs:
           ref: 38dc699f09de6cbb45757b1639f668ef72ccb6da
           path: .retained-before-label-change
           persist-credentials: false
-          sparse-checkout: docs/v3-operational-research-scores.json
+          sparse-checkout: |
+            docs/v3-operational-research-scores.json
+            docs/v3-dart-book-reference.json
+            docs/v3-dart-bulk-history.json
           sparse-checkout-cone-mode: false
       - name: Restore only unchanged-issuer prior observations from a published snapshot
         run: |
@@ -40,14 +43,28 @@ jobs:
           hashes={n:sha256((root/n).read_bytes()).hexdigest() for n in
               ('v3-dart-book-reference.json','v3-dart-bulk-history.json')}
           assert current['asof']==old['asof']==catalog['date']=='2026-11-06'
+          saved=Path('.retained-before-label-change/docs')
+          old_book=json.loads((saved/'v3-dart-book-reference.json').read_text())
+          old_history=json.loads((saved/'v3-dart-bulk-history.json').read_text())
+          for filename in hashes:
+              assert sha256((saved/filename).read_bytes()).hexdigest()==old['source_hashes'][filename]
+          old_books={row['code']:row for row in old_book['records']}
+          books={row['code']:row for row in book['records']}
           restored=[]
           for member in catalog['rows']:
               prior=old['rows'].get(member['code'])
               if prior is None or prior['name']==member['name']:continue
-              assert unchanged_fiscal_identity(member['code'],member,prior,catalog['date'],old,hashes,book,history)
+              code=member['code']
+              # Other issuers may update the file: prove THIS issuer's
+              # official receipt and every archived fact stayed identical.
+              assert old_books[code]['annual']==books[code]['annual']
+              assert old_history['records'][code]==history['records'][code]
+              rebound={**old,'source_hashes':{**old['source_hashes'],**hashes}}
+              assert unchanged_fiscal_identity(code,member,prior,catalog['date'],rebound,hashes,book,history)
               current['rows'][member['code']]=prior
               restored.append(member['code'])
           assert set(restored)=={'000040','148250'}
+          current['source_hashes'].update(hashes)
           (root/'v3-operational-research-scores.json').write_text(json.dumps(current,ensure_ascii=False),encoding='utf8')
           print(json.dumps({'verified_same_close_name_continuity':restored,'financial_source_values_changed':False}))
           PY
