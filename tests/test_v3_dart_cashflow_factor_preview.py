@@ -77,6 +77,31 @@ def fifty_source_matched():
 
 
 class FCFPreviewTests(unittest.TestCase):
+    def test_missing_assets_from_same_unambiguous_receipt_balance_identity(self):
+        market,catalog,bulk,cash=five_complete()
+        code=next(iter(cash['records']))
+        scope=cash['records'][code]['scope']
+        stmt=bulk['records'][code]['years']['2024'][scope]
+        stmt['values'].update(assets=None,equity=6_000_000_000,
+                              liabilities=4_000_000_000)
+        stmt['ambiguous']=[]
+        recovered=factor.real_features(catalog,bulk,cash)[code]
+        self.assertIsNotNone(recovered['financial_fcf_assets_3y_pct'])
+        self.assertEqual(recovered['same_receipt_balance_identity_asset_years'],['2024'])
+        # A missing or ambiguous side of the equation is not estimated.
+        stmt['values']['liabilities']=None
+        blocked=factor.real_features(catalog,bulk,cash)[code]
+        self.assertIsNone(blocked['financial_fcf_assets_3y_pct'])
+        stmt['values']['liabilities']=4_000_000_000
+        stmt['ambiguous']=['assets']
+        blocked=factor.real_features(catalog,bulk,cash)[code]
+        self.assertIsNone(blocked['financial_fcf_assets_3y_pct'])
+        # A mismatched annual receipt blocks the FCF/BS join first.
+        stmt['ambiguous']=[]
+        stmt['receipt_id']='20270101000001'
+        blocked=factor.real_features(catalog,bulk,cash)[code]
+        self.assertIsNone(blocked['financial_fcf_assets_3y_pct'])
+
     def test_cli_rollover_defers_only_valid_lag_without_rewriting_sources(self):
         market,catalog,bulk,cash=five_complete()
         with TemporaryDirectory() as folder:
