@@ -1,6 +1,6 @@
 {
-  "id": "20261109-retain-scoped-issuer-proof-05",
+  "id": "20261109-ma240-zero-volume-recovery-06",
   "asof": "2026-11-06",
-  "workflow": "v3-retained-name-recovery.yml",
+  "workflow": "v3-ma240-source-completion.yml",
   "mode": "recover"
 }
