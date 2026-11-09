@@ -8,9 +8,17 @@ on:
       - docs/v22-market-catalog.json
       - v3_current_price_replay.py
       - .github/workflows/v3-current-price-replay.yml
+  # GitHub Actions GITHUB_TOKEN pushes do not fire other push workflows.
+  # Recompute after a real completed publisher and retain ONE daily fallback
+  # for interrupted or missed workflow_run events, not 48 hourly polls.
+  workflow_run:
+    workflows:
+      - Full-Market 100-Stock Batches
+      - Korean Stock Screener v2
+      - V3 Missing Price MA Source Completion
+    types: [completed]
   schedule:
-    # Offline replay of already collected observations; not a new price scan.
-    - cron: '14,44 * * * *'
+    - cron: '14 13 * * 1-5'  # 22:14 Korea, one missed-event catch-up
   workflow_dispatch:
     inputs:
       mode:
@@ -28,6 +36,11 @@ concurrency:
 
 jobs:
   source-only-replay:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -40,6 +53,10 @@ jobs:
       - name: Install offline data analysis dependencies
         run: pip install -r requirements.txt
       - name: Validate exact saved-source and missing-factor safety
+        # Source code is covered by change-triggered Quant CI. Keep the
+        # explicit manual check without rerunning unchanged unit tests after
+        # every ordinary market-data push.
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_v3_current_price_replay.py' -v
