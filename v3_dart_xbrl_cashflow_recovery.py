@@ -261,9 +261,13 @@ def targets(state,priority,limit,seed_years=(),*,near_90=()):
         if missing:queue.append((code not in near_90,code not in priority,len(missing),code,missing))
     candidates=[(code,year,row) for _,_,_,code,missing in sorted(queue) for year,row in sorted(missing)]
     # Revisit the deterministic structural sample with this stronger verifier.
-    # Sample membership never bypasses receipt/entity/scope/CFO validation.
+    # Sample membership never bypasses the 90-point and general priority tiers,
+    # or the receipt/entity/scope/CFO validation. Stable sorting preserves the
+    # original missing-year/issuer order inside each unseeded priority tier.
     seeds=set(seed_years)
-    return sorted(candidates,key=lambda item:(item[0],int(item[1])) not in seeds)[:limit]
+    return sorted(candidates,key=lambda item:(
+        item[0] not in near_90,item[0] not in priority,
+        (item[0],int(item[1])) not in seeds))[:limit]
 
 
 def main():
