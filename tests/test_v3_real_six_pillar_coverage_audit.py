@@ -1,5 +1,6 @@
 """Reconcile actual saved V3 factor coverage, not six certified categories."""
 import copy
+from datetime import date, timedelta
 import json
 from pathlib import Path
 import unittest
@@ -39,7 +40,9 @@ class PublicationAlignmentTests(unittest.TestCase):
 
     def test_yesterdays_weekly_never_blocks_dart_source_only_publication(self):
         base = self.sources()
-        base[3]["market_asof"] = "2026-10-29"
+        base[3]["market_asof"] = (
+            date.fromisoformat(base[0]["date"]) - timedelta(days=1)
+        ).isoformat()
         base[3]["listed_total"] = base[0]["listed_total"] - 2
         self.assertEqual(audit.publication_alignment(*base), "deferred_weekly")
         # The previous combined result stays on its original 29th source day.
@@ -49,7 +52,9 @@ class PublicationAlignmentTests(unittest.TestCase):
 
     def test_weekly_source_can_publish_before_later_annual_replay(self):
         base = self.sources()
-        base[1]["asof"] = base[2]["asof"] = "2026-10-29"
+        base[1]["asof"] = base[2]["asof"] = (
+            date.fromisoformat(base[0]["date"]) - timedelta(days=1)
+        ).isoformat()
         base[1]["listed_total"] = base[2]["listed_total"] = 2497
         self.assertEqual(audit.publication_alignment(*base), "deferred_dart")
 
