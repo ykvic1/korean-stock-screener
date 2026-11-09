@@ -8,9 +8,17 @@ on:
       - docs/v22-market-catalog.json
       - v3_current_price_replay.py
       - .github/workflows/v3-current-price-replay.yml
-  # Source-only replay is deterministic for a fixed saved market/catalog.
-  # A push to either input already refreshes it; polling the same files
-  # twice each hour needlessly repeated dependency installs and tests.
+  # GitHub Actions GITHUB_TOKEN pushes do not fire other push workflows.
+  # Recompute after a real completed publisher and retain ONE daily fallback
+  # for interrupted or missed workflow_run events, not 48 hourly polls.
+  workflow_run:
+    workflows:
+      - Full-Market 100-Stock Batches
+      - Korean Stock Screener v2
+      - V3 Missing Price MA Source Completion
+    types: [completed]
+  schedule:
+    - cron: '14 13 * * 1-5'  # 22:14 Korea, one missed-event catch-up
   workflow_dispatch:
     inputs:
       mode:
@@ -28,6 +36,11 @@ concurrency:
 
 jobs:
   source-only-replay:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
