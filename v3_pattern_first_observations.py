@@ -8,6 +8,21 @@ import pandas as pd
 from technical_v22 import rsi, divergence, pattern_snapshot
 
 SCHEMA = "v3-pattern-first-daily-research-0.1"
+# The oldest OHLCV error must not suppress a current 90-bar pattern when a
+# separate, long-enough recent window is independently clean. Daily RSI has
+# 70 additional warm-up observations; weekly RSI has ~30 extra weeks.
+DAILY_CLEAN_TAIL = 160
+WEEKLY_CLEAN_TAIL_DAYS = 600
+
+
+def _clean_ohlcv(frame):
+    a = frame[["Open", "High", "Low", "Close", "Volume"]].to_numpy(dtype=float)
+    valid = (np.isfinite(a).all() and np.all(a[:, :4] > 0) and
+            np.all(a[:, 4] >= 0) and
+            np.all(a[:, 1] >= np.maximum(a[:, 0], a[:, 3])) and
+            np.all(a[:, 2] <= np.minimum(a[:, 0], a[:, 3])) and
+            np.all(a[:, 2] <= a[:, 1]))
+    return a if valid else None
 
 
 def _pivots_low(a, span=3, start=0):
@@ -98,18 +113,22 @@ def observe(df):
            "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
            "official_regular_session_verified": False, "scoring_allowed": False,
            "buy_signal": False}
-    if df is None or len(df) < 90 or not all(
+    if df is None or len(df) < 90 or not isinstance(df.index, pd.DatetimeIndex) or (
+        df.index.has_duplicates or not df.index.is_monotonic_increasing) or not all(
         key in df.columns for key in ("Open", "High", "Low", "Close", "Volume")
     ):
         return out
-    a = df[["Open", "High", "Low", "Close", "Volume"]].to_numpy(dtype=float)
-    if not np.isfinite(a).all() or np.any(a[:, :4] <= 0) or np.any(a[:, 4] < 0):
-        return out
+    clean_tail_only = False
+    a = _clean_ohlcv(df)
+    if a is None:
+        if len(df) <= DAILY_CLEAN_TAIL:
+            return out
+        df = df.iloc[-DAILY_CLEAN_TAIL:]
+        a = _clean_ohlcv(df)
+        if a is None:
+            return out
+        clean_tail_only = True
     close, high, low, vol = a[:, 3], a[:, 1], a[:, 2], a[:, 4]
-    if np.any(high < np.maximum(a[:, 0], close)) or np.any(
-        low > np.minimum(a[:, 0], close)
-    ) or np.any(low > high):
-        return out
     rs = rsi(close)
     bull, _ = divergence(close, rs, span=3, max_age=40)
     cross_idx = np.where((rs[1:] >= 30) & (rs[:-1] < 30))[0] + 1
@@ -122,6 +141,7 @@ def observe(df):
     out.update(asof=df.index[-1].date().isoformat(),
                status="heuristic_unverified",
                pattern_geometry=pattern_snapshot(df),
+               source_recent_clean_window_only=clean_tail_only,
                rsi14=round(float(rs[-1]), 2) if np.isfinite(rs[-1]) else None,
                rsi30_cross_recent=cross_recent,
                rsi_bullish_divergence_recent=bool(np.any(bull[-12:])),
@@ -153,12 +173,14 @@ def observe_completed_weekly(daily):
     # Validate original daily bars first. A malformed OHLCV day must not be
     # silently aggregated into a plausible-looking weekly bar.
     d = daily[keys]
-    a = d.to_numpy(dtype=float)
-    if (not np.isfinite(a).all() or np.any(a[:, :4] <= 0) or
-        np.any(a[:, 4] < 0) or np.any(a[:, 1] < np.maximum(a[:, 0], a[:, 3])) or
-        np.any(a[:, 2] > np.minimum(a[:, 0], a[:, 3])) or
-        np.any(a[:, 2] > a[:, 1])):
-        return result
+    clean_tail_only = False
+    if _clean_ohlcv(d) is None:
+        if len(d) <= WEEKLY_CLEAN_TAIL_DAYS:
+            return result
+        d = d.iloc[-WEEKLY_CLEAN_TAIL_DAYS:]
+        if _clean_ohlcv(d) is None:
+            return result
+        clean_tail_only = True
     week = d.resample("W-FRI").agg({"Open": "first", "High": "max",
                                     "Low": "min", "Close": "last",
                                     "Volume": "sum"}).dropna()
@@ -172,6 +194,7 @@ def observe_completed_weekly(daily):
     if study["status"] != "heuristic_unverified":
         return result
     study["timeframe"] = "weekly"
+    study["source_recent_clean_window_only"] = clean_tail_only
     # Same-price-source geometry: falling wedge, inverse H&S, triangle and
     # post-rise compression. Each is only a *heuristic candidate*.
     study["pattern_geometry"] = pattern_snapshot(week)
