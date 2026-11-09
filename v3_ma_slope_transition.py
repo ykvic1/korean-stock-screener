@@ -10,6 +10,8 @@ import math
 SCHEMA = 'v3-ma-log-slope-transition-provisional-0.1'
 WEIGHTS = {'daily': {'20': .5, '60': .6, '120': .9},
            'weekly': {'20': .6, '60': .9, '120': 1.5}}
+DAILY_REQUIRED = 120 + 60 + 20
+WEEKLY_REQUIRED = 120 + 26 + 8
 
 
 def _series_points(closes, *, prior, recent, hold, floor, frame):
@@ -36,7 +38,12 @@ def _series_points(closes, *, prior, recent, hold, floor, frame):
 
 
 def observe(daily):
-    """Require ordered genuine completed daily bars; exclude unfinished weeks."""
+    """Validate each MA's necessary history, not unrelated older raw bars.
+
+    A bad older candle can invalidate the 154-week calculation without
+    erasing an independently intact 200-session daily calculation. Neither
+    frame is scored when its own required candles fail OHLCV checks.
+    """
     import numpy as np
     import pandas as pd
     if (not isinstance(daily, pd.DataFrame)
@@ -44,19 +51,35 @@ def observe(daily):
         or daily.index.has_duplicates or not daily.index.is_monotonic_increasing
         or len(daily) < 20 or not set(('Open','High','Low','Close','Volume')).issubset(daily.columns)):
         return None
-    a = daily[['Open','High','Low','Close','Volume']].to_numpy(dtype=float)
-    if (not np.isfinite(a).all() or np.any(a[:,:4] <= 0)
-        or np.any(a[:,4] < 0) or np.any(a[:,1] < np.maximum(a[:,0], a[:,3]))
-        or np.any(a[:,2] > np.minimum(a[:,0], a[:,3]))):
-        return None
+    def trusted(frame):
+        a = frame[['Open','High','Low','Close','Volume']].to_numpy(dtype=float)
+        if (not np.isfinite(a).all() or np.any(a[:,:4] <= 0)
+            or np.any(a[:,4] < 0) or a[-1, 4] <= 0
+            or np.any(a[:,1] < np.maximum(a[:,0], a[:,3]))
+            or np.any(a[:,2] > np.minimum(a[:,0], a[:,3]))):
+            return False
+        # A split-like jump in the required window can manufacture a turn.
+        closes = a[:,3]
+        return not np.any(np.abs(closes[1:] / closes[:-1] - 1) > .5)
+
     day = daily.index[-1].date().isoformat()
-    recent_day = _series_points(a[:,3], prior=60, recent=20, hold=5,
+    daily_tail = daily.iloc[-DAILY_REQUIRED:]
+    recent_day = (_series_points(daily_tail['Close'].to_numpy(dtype=float),
+                                prior=60, recent=20, hold=5,
                                 floor=.0001, frame='daily')
+                  if len(daily_tail) == DAILY_REQUIRED and trusted(daily_tail)
+                  else None)
     weeks = daily[['Close']].resample('W-FRI').last().dropna()
     weeks = weeks.loc[weeks.index <= daily.index[-1].normalize()]
-    recent_week = _series_points(weeks['Close'].to_numpy(dtype=float),
-                                 prior=26, recent=8, hold=3,
-                                 floor=.0005, frame='weekly')
+    recent_week = None
+    if len(weeks) >= WEEKLY_REQUIRED:
+        weekly_tail = weeks.iloc[-WEEKLY_REQUIRED:]
+        bars_in_weekly_window = daily.loc[
+            weekly_tail.index[0] - pd.Timedelta(days=6):weekly_tail.index[-1]]
+        if len(bars_in_weekly_window) and trusted(bars_in_weekly_window):
+            recent_week = _series_points(weekly_tail['Close'].to_numpy(dtype=float),
+                                         prior=26, recent=8, hold=3,
+                                         floor=.0005, frame='weekly')
     if recent_day is None and recent_week is None:
         return None
     return {'schema': SCHEMA, 'asof': day,
