@@ -142,13 +142,18 @@ def operational_gap_priority(report, comparison, catalog, major):
         return set()
     if r1d_public_reconciles(report,comparison,catalog) is None:
         raise XbrlPilotError('unreconciled_operational_gap_priority')
-    selected=set()
-    for code,row in report['rows'].items():
-        gaps=[(area,key) for area,parts in R1D_PART_LIMITS.items()
-              for key,maximum in parts.items()
-              if maximum-row['parts'][area].get(key,[0,0])[1]>.00001]
-        if gaps and set(gaps)<= {
-            ('financial','cashflow_fcf_persistence'),('valuation','fcf_yield')}:
+    cashflow_parts = {('financial', 'cashflow_fcf_persistence'), ('valuation', 'fcf_yield')}
+    selected = set()
+    for code, row in report['rows'].items():
+        missing = {
+            (area, key): maximum - row['parts'][area].get(key, [0, 0])[1]
+            for area, parts in R1D_PART_LIMITS.items()
+            for key, maximum in parts.items()
+            if maximum - row['parts'][area].get(key, [0, 0])[1] > 0.00001
+        }
+        cashflow_gap = sum(missing.get(part, 0) for part in cashflow_parts)
+        if cashflow_gap and (missing.keys() <= cashflow_parts or
+                row['available'] < 90 <= row['available'] + cashflow_gap + 0.00001):
             selected.add(code)
     return selected
 
