@@ -36,6 +36,56 @@ SOURCE_FAMILIES={
         ('momentum','weekly_ma_slope_turn'))),
 }
 
+OBSERVATION_BANDS=(('100',100,101),('95_to_100',95,100),
+    ('90_to_95',90,95),('80_to_90',80,90),('70_to_80',70,80),
+    ('60_to_70',60,70),('below_60',0,60))
+
+
+def coverage_90_first(queue, *, listed_total, full_100_count):
+    """Prioritize real missing inputs, never claim conditional points as found.
+
+    Recovery of *every* absent component in a family may be enough to cross
+    90. This is only a mathematical upper bound: provider availability,
+    accounting scope and source dates must still be independently validated.
+    Family candidate lists are work-order hints, not observations or scores.
+    """
+    bands={name:0 for name,_,_ in OBSERVATION_BANDS}
+    bands['100']=full_100_count
+    by_family={name:[] for name in SOURCE_FAMILIES}
+    below=[];one_family_possible=set()
+    for row in queue:
+        available=row['available']
+        for name,low,high in OBSERVATION_BANDS[1:]:
+            if low-1e-6<=available<high-1e-6:
+                bands[name]+=1
+                break
+        if available>=90-1e-6:continue
+        below.append(row['code'])
+        for family,components in SOURCE_FAMILIES.items():
+            potential=sum(g['missing_weight'] for g in row['gaps']
+                          if (g['area'],g['component']) in components)
+            if available+potential>=90-1e-6:
+                by_family[family].append((row['code'],available,
+                    len(row['gaps']),round(90-available,6)))
+                one_family_possible.add(row['code'])
+    if sum(bands.values())!=listed_total or len(below)!=sum(
+        bands[name] for name in ('80_to_90','70_to_80','60_to_70','below_60')):
+        raise ValueError('operational_90_band_reconciliation_failed')
+    # Existing source family collections intentionally overlap. Never sum
+    # their upper bounds as though they represented unique restored issuers.
+    ordered={family:[code for code,_,_,_ in sorted(entries,
+        key=lambda x:(x[3],x[2],x[0]))] for family,entries in by_family.items()}
+    return {'threshold':90,'available_weight_bands':bands,
+        'already_90_or_more':listed_total-len(below),
+        'below_90_issuers':len(below),
+        'one_source_family_upper_bound_count':len(one_family_possible),
+        'multiple_source_families_needed_at_minimum':len(below)-len(one_family_possible),
+        'family_upper_bound_counts':{key:len(value) for key,value in ordered.items()},
+        'family_conditional_priority_codes':ordered,
+        'independent_source_recoverability_not_proven':True,
+        'recovery_not_a_score_or_observation':True,
+        'missing_data_never_zero_filled':True}
+
 
 def source_family_completion_upper_bounds(queue):
     """Exact missing-factor set containment; never simulate missing points."""
@@ -115,6 +165,8 @@ def build(report,comparison,catalog,legacy_priority=None):
         'reason_component_counts':dict(sorted(reasons.items())),
         'gap_shapes':dict(sorted(shapes.items(),key=lambda x:(-x[1],x[0]))),
         'single_component_queue':[r for r in queue if r['missing_components']==1],
+        'coverage_90_first':coverage_90_first(queue,listed_total=audited['listed_total'],
+                                               full_100_count=audited['available_100_count']),
         'source_family_completion_upper_bounds':source_family_completion_upper_bounds(queue),
         'multiple_missing_index_columns':['code','available','missing_weight','shape_index','catalog_price_status'],
         'multiple_missing_index':multiple,'shape_names':shape_names,
@@ -141,4 +193,11 @@ def write_priority(root):
 
 if __name__=='__main__':
     result=write_priority(Path(__file__).resolve().parent/'docs')
-    print(json.dumps({k:result[k] for k in ('asof','available_100_count','incomplete_count','one_missing_component_count','provider_calls','points_added')}))
+    summary={k:result[k] for k in ('asof','available_100_count','incomplete_count',
+        'one_missing_component_count','provider_calls','points_added')}
+    first=result['coverage_90_first']
+    summary.update({'available_90_count':first['already_90_or_more'],
+        'below_90_count':first['below_90_issuers'],
+        'coverage_bands':first['available_weight_bands'],
+        'conditional_90_family_upper_bounds':first['family_upper_bound_counts']})
+    print(json.dumps(summary,sort_keys=True))
