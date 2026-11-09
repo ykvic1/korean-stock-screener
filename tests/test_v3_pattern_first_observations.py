@@ -156,6 +156,43 @@ class PatternFirstObservations(unittest.TestCase):
         self.assertEqual(mod.observe(invalid)["status"], "insufficient")
         self.assertFalse(mod.observe(invalid)["patterns"])
 
+    def test_old_invalid_bar_only_may_use_independently_clean_daily_tail(self):
+        d = make_df(np.linspace(100, 110, 320))
+        unspoiled = mod.observe(d)
+        self.assertEqual(unspoiled['status'], 'heuristic_unverified')
+        self.assertFalse(unspoiled['source_recent_clean_window_only'])
+        stale_bad = d.copy()
+        stale_bad.iloc[0, stale_bad.columns.get_loc('High')] = 1
+        recent = mod.observe(d.iloc[-mod.DAILY_CLEAN_TAIL:])
+        salvaged = mod.observe(stale_bad)
+        self.assertEqual(salvaged['status'], 'heuristic_unverified')
+        self.assertTrue(salvaged['source_recent_clean_window_only'])
+        self.assertEqual(salvaged['rsi14'], recent['rsi14'])
+        self.assertEqual(salvaged['patterns'], recent['patterns'])
+        self.assertEqual(salvaged['pattern_geometry'], recent['pattern_geometry'])
+        new_bad = d.copy()
+        new_bad.iloc[-1, new_bad.columns.get_loc('High')] = 1
+        self.assertEqual(mod.observe(new_bad)['status'], 'insufficient')
+
+    def test_old_invalid_bar_only_may_use_clean_completed_weekly_tail(self):
+        d = make_df(np.linspace(100, 110, 850))
+        d.index = pd.bdate_range('2022-01-03', periods=len(d))
+        regular = mod.observe_completed_weekly(d)
+        self.assertEqual(regular['status'], 'heuristic_unverified')
+        self.assertFalse(regular['source_recent_clean_window_only'])
+        stale_bad = d.copy()
+        stale_bad.iloc[0, stale_bad.columns.get_loc('High')] = 1
+        cropped = mod.observe_completed_weekly(d.iloc[-mod.WEEKLY_CLEAN_TAIL_DAYS:])
+        salvaged = mod.observe_completed_weekly(stale_bad)
+        self.assertEqual(salvaged['status'], 'heuristic_unverified')
+        self.assertTrue(salvaged['source_recent_clean_window_only'])
+        self.assertEqual(salvaged['asof'], regular['asof'])
+        self.assertEqual(salvaged['pattern_geometry'], cropped['pattern_geometry'])
+        self.assertEqual(salvaged['rsi14'], cropped['rsi14'])
+        recent_bad = d.copy()
+        recent_bad.iloc[-3, recent_bad.columns.get_loc('Low')] = 999
+        self.assertEqual(mod.observe_completed_weekly(recent_bad)['status'], 'insufficient')
+
 
 if __name__ == "__main__":
     unittest.main()
