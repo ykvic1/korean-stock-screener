@@ -1,6 +1,6 @@
 {
-  "id": "20261109-complete-remaining-price-ma-03",
+  "id": "20261109-retain-verified-name-change-04",
   "asof": "2026-11-06",
-  "workflow": "v3-ma240-source-completion.yml",
+  "workflow": "v3-retained-name-recovery.yml",
   "mode": "recover"
 }
