@@ -8,9 +8,9 @@ on:
       - docs/v22-market-catalog.json
       - v3_current_price_replay.py
       - .github/workflows/v3-current-price-replay.yml
-  schedule:
-    # Offline replay of already collected observations; not a new price scan.
-    - cron: '14,44 * * * *'
+  # Source-only replay is deterministic for a fixed saved market/catalog.
+  # A push to either input already refreshes it; polling the same files
+  # twice each hour needlessly repeated dependency installs and tests.
   workflow_dispatch:
     inputs:
       mode:
@@ -40,6 +40,10 @@ jobs:
       - name: Install offline data analysis dependencies
         run: pip install -r requirements.txt
       - name: Validate exact saved-source and missing-factor safety
+        # Source code is covered by change-triggered Quant CI. Keep the
+        # explicit manual check without rerunning unchanged unit tests after
+        # every ordinary market-data push.
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_v3_current_price_replay.py' -v
