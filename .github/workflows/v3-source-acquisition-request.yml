@@ -1,0 +1,38 @@
+name: V3 Explicit Source Acquisition Request
+on:
+  push:
+    branches: [main]
+    paths: [ops/source-acquisition-request.json]
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: v3-explicit-source-acquisition-request
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Execute the recorded same-date collection request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          asof=$(python - <<'PY'
+          import json
+          from datetime import date
+          from pathlib import Path
+          request=json.loads(Path('ops/source-acquisition-request.json').read_text())
+          catalog=json.loads(Path('docs/v22-market-catalog.json').read_text())
+          assert set(request)=={'id','asof','workflow','mode'}
+          assert request['workflow']=='full-market-batches.yml' and request['mode']=='publish'
+          assert date.fromisoformat(request['asof']).isoformat()==request['asof']==catalog['date']
+          assert isinstance(request['id'],str) and len(request['id'])<=80
+          print(request['asof'])
+          PY
+          )
+          gh workflow run full-market-batches.yml --repo "$GITHUB_REPOSITORY" --ref main -f "asof=$asof" -f mode=publish
