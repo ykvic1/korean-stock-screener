@@ -28,7 +28,8 @@ FIELDS={'operating_cashflow_krw':cf.CFO_IDS,'ppe_capex_krw':cf.PPE_IDS,
 CAPEX=set(FIELDS)-{'operating_cashflow_krw'}
 X='{http://www.xbrl.org/2003/instance}'
 D='{http://xbrl.org/2006/xbrldi}'
-REASONS={'recovered','no_original_file','no_verified_scope_anchor','no_missing_supported_fact','unusable_original_facts'}
+REASONS={'recovered','no_original_file','no_verified_scope_anchor','no_missing_supported_fact',
+         'unusable_original_facts','archive_decompression_limit'}
 
 class RecoveryError(ValueError):pass
 
@@ -181,6 +182,19 @@ def archive_values(content,*,year,scope,identifiers,expected_cfo,diagnostic=None
     return {key:values[0] for key,values in found.items() if values},'no_missing_supported_fact'
 
 
+def bounded_archive_values(content,*,year,scope,identifiers,expected_cfo,diagnostic=None):
+    try:
+        return archive_values(content,year=year,scope=scope,identifiers=identifiers,
+                              expected_cfo=expected_cfo,diagnostic=diagnostic)
+    except xp.XbrlPilotError as error:
+        # One legitimate large annual ZIP must not block the remaining issuer
+        # queue. Never relax decompression limits or interpret skipped facts as 0.
+        if str(error)!='xbrl_zip_decompression_bounds_exceeded':raise
+        return {},'archive_decompression_limit'
+    except RecoveryError:
+        return {},'unusable_original_facts'
+
+
 def verify_recovery(record):
     marker=record.get('original_xbrl_review')
     if marker is None:
@@ -261,9 +275,13 @@ def targets(state,priority,limit,seed_years=(),*,near_90=()):
         if missing:queue.append((code not in near_90,code not in priority,len(missing),code,missing))
     candidates=[(code,year,row) for _,_,_,code,missing in sorted(queue) for year,row in sorted(missing)]
     # Revisit the deterministic structural sample with this stronger verifier.
-    # Sample membership never bypasses receipt/entity/scope/CFO validation.
+    # Sample membership never bypasses the 90-point and general priority tiers,
+    # or the receipt/entity/scope/CFO validation. Stable sorting preserves the
+    # original missing-year/issuer order inside each unseeded priority tier.
     seeds=set(seed_years)
-    return sorted(candidates,key=lambda item:(item[0],int(item[1])) not in seeds)[:limit]
+    return sorted(candidates,key=lambda item:(
+        item[0] not in near_90,item[0] not in priority,
+        (item[0],int(item[1])) not in seeds))[:limit]
 
 
 def main():
@@ -311,8 +329,8 @@ def main():
             profiles[code]=(company_ids(profile,mapping[code],code),cf.fingerprint(profile))
         ids,profile_hash=profiles[code]
         raw=xp._read_response_limited(request('fnlttXbrl.xml',{'rcept_no':old['annual_receipt_id'],'reprt_code':'11011'},True))
-        try:values,reason=archive_values(raw,year=int(year),scope=old['scope'],identifiers=ids,expected_cfo=old['operating_cashflow_krw'],diagnostic=diagnostic)
-        except RecoveryError:values,reason={},'unusable_original_facts'
+        values,reason=bounded_archive_values(raw,year=int(year),scope=old['scope'],
+            identifiers=ids,expected_cfo=old['operating_cashflow_krw'],diagnostic=diagnostic)
         new=merge(old,values,reason=reason,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=profile_hash)
         state['records'][code]['years'][year]=new
         state=cf.summary(catalog['date'],members,state['records'],cf.fingerprint(bulk))

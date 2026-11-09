@@ -1,6 +1,6 @@
 import copy
 import unittest
-from v3_dart_xbrl_cashflow_recovery import instance_values,archive_values,merge,verify_recovery,company_ids,targets,cashflow_90_focus,RecoveryError
+from v3_dart_xbrl_cashflow_recovery import instance_values,archive_values,bounded_archive_values,merge,verify_recovery,company_ids,targets,cashflow_90_focus,RecoveryError
 from test_v3_dart_xbrl_capex_pilot import archive
 
 NS='http://xbrl.ifrs.org/taxonomy/2024-03-27/ifrs-full'
@@ -80,6 +80,22 @@ class OriginalRecoveryTests(unittest.TestCase):
         values,reason=archive_values(archive(xml()),year=2024,scope='CFS',identifiers=ids,expected_cfo=100)
         self.assertEqual(values['intangible_capex_krw'],0)
 
+    def test_oversized_original_archive_is_skipped_without_relaxing_safety_limit(self):
+        from unittest.mock import patch
+        import v3_dart_xbrl_cashflow_recovery as recovery
+        from v3_dart_xbrl_capex_pilot import XbrlPilotError
+        args={'year':2024,'scope':'CFS','identifiers':{'00123456'},'expected_cfo':100}
+        with patch.object(recovery,'archive_values',side_effect=XbrlPilotError(
+                'xbrl_zip_decompression_bounds_exceeded')):
+            values,reason=bounded_archive_values(b'compressed',**args)
+        self.assertEqual((values,reason),({},'archive_decompression_limit'))
+        marked=merge(prior(),values,reason=reason,archive_hash='a'*64,profile_hash='b'*64)
+        self.assertTrue(verify_recovery(marked) is False)
+        self.assertIsNone(marked['free_cashflow_krw'])
+        for error in ('unsafe_xbrl_archive_member','xbrl_zip_member_count_exceeded'):
+            with patch.object(recovery,'archive_values',side_effect=XbrlPilotError(error)):
+                with self.assertRaises(XbrlPilotError):bounded_archive_values(b'compressed',**args)
+
     def test_fast_queue_finishes_issuer_chains_and_skips_same_receipt_review(self):
         s={'records':{'000001':{'years':{'2023':{**prior(),'year':2023},'2024':prior()}},
                       '000002':{'years':{'2024':prior()}}}}
@@ -101,6 +117,10 @@ class OriginalRecoveryTests(unittest.TestCase):
         focus=cashflow_90_focus(report,{'000001','000002'})
         self.assertEqual(focus,{'000001'})
         self.assertEqual(targets(s,{'000001','000002'},1,near_90=focus)[0][0],'000001')
+        # A seeded structural sample must not displace a sub-90 issuer that
+        # could mathematically reach the 90-point observation band.
+        self.assertEqual(targets(s,{'000001','000002'},1,
+            [('000002',2024)],near_90=focus)[0][0],'000001')
         self.assertIsNone(s['records']['000001']['years']['2024']['free_cashflow_krw'])
         with self.assertRaises(RecoveryError):
             targets(s,{'000002'},1,near_90={'000001'})
