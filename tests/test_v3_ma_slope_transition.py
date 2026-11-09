@@ -53,6 +53,29 @@ class MaSlopeTransitionTests(unittest.TestCase):
             bad=copy.deepcopy(item);altered(bad)
             self.assertFalse(valid_observation(bad,item['asof']))
 
+    def test_older_bad_weekly_bar_preserves_independent_recent_daily_turn(self):
+        df=bars();baseline=observe(df)
+        bad=df.copy()
+        index=bad.index[-230]
+        bad.loc[index,'High']=bad.loc[index,'Close']*.5
+        partial=observe(bad)
+        self.assertIsNotNone(partial)
+        self.assertEqual(partial['parts']['daily'],baseline['parts']['daily'])
+        self.assertIsNone(partial['parts']['weekly'])
+        self.assertIsNone(partial['weekly_asof'])
+        self.assertTrue(valid_observation(partial,'2026-11-06'))
+
+    def test_malformed_recent_price_window_is_not_promoted_to_points(self):
+        df=bars();bad=df.copy()
+        bad.loc[bad.index[-20],'Low']=bad.loc[bad.index[-20],'Close']*2
+        self.assertIsNone(observe(bad))
+
+    def test_older_unrelated_bar_does_not_erase_valid_recent_windows(self):
+        df=bars();baseline=observe(df)
+        bad=df.copy()
+        bad.loc[bad.index[0],'High']=0
+        self.assertEqual(observe(bad),baseline)
+
     def test_operational_score_consumes_only_verified_derived_contract(self):
         df=bars();day='2026-11-06';item=observe(df)
         stock={'price_date':day,'market':'KOSPI','v3_ma_slope_transition':item}
