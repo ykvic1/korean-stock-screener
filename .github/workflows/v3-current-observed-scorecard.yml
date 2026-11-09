@@ -98,6 +98,10 @@ jobs:
       - name: Install existing offline source computation dependencies
         run: pip install -r requirements.txt
       - name: Reject mismatched source evidence and missing=0 before publication
+        # Code regression runs once in the PR's Quant correctness job.
+        # Scheduled/source-completion replays still validate every saved
+        # source and generated output below, without rerunning code tests.
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           set -euo pipefail
           python -m py_compile v3_observed_momentum.py v3_current_price_replay.py v3_current_observed_scorecard.py v3_stop_loss_severity.py v3_issuer_factor_ledger.py v3_path_provisional_factors.py v3_unscored_path_coverage.py

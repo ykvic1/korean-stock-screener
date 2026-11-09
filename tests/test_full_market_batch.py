@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from threading import Event, Lock
 
 import full_market_batch as b
 import screener
@@ -36,6 +37,72 @@ def mock_history(code, cfg, day):
 
 
 class FullMarketHundredBatchesTests(unittest.TestCase):
+    def test_parallel_scan_overlaps_waits_and_preserves_every_outcome(self):
+        release = Event()
+        lock = Lock()
+        active = peak = 0
+
+        def source(code, cfg, day):
+            if code.endswith("00"):
+                raise screener.InsufficientHistory("private source")
+            if code.endswith("01"):
+                raise TimeoutError("private credential")
+            return mock_history(code, cfg, day)
+
+        def concurrent_source(code, cfg, day):
+            nonlocal active, peak
+            with lock:
+                active += 1
+                peak = max(peak, active)
+                if active == 2:
+                    release.set()
+            try:
+                if not release.wait(5):
+                    raise AssertionError("network waits did not overlap")
+                return source(code, cfg, day)
+            finally:
+                with lock:
+                    active -= 1
+
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, _ = self._plan(tmp, 20)
+            serial = Path(tmp)/"serial"
+            parallel = Path(tmp)/"parallel"
+            b.scan(manifest=manifest, part=0, out=serial, analyzer=source,
+                   cfg={"request_sleep_seconds": 0}, workers=1)
+            result = b.scan(manifest=manifest, part=0, out=parallel,
+                            analyzer=concurrent_source,
+                            cfg={"request_sleep_seconds": 0}, workers=2)
+            self.assertEqual(peak, 2)
+            self.assertEqual((serial/"part-000.json").read_bytes(),
+                             (parallel/"part-000.json").read_bytes())
+            self.assertEqual(result["valid"], 18)
+            self.assertEqual(result["errors"], 1)
+            self.assertEqual(result["excluded"], 1)
+            self.assertEqual(result["timing"]["workers"], 2)
+
+    def test_start_pacing_does_not_add_sleep_after_slow_requests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, _ = self._plan(tmp, 20)
+            for latency in (.05, .4):
+                clock = [10.0]
+                starts = []
+
+                def sleep(delay):
+                    clock[0] += delay
+
+                def source(code, cfg, day):
+                    starts.append(clock[0])
+                    clock[0] += latency
+                    return mock_history(code, cfg, day)
+
+                with patch.object(b.time, "monotonic", side_effect=lambda: clock[0]):
+                    b.scan(manifest=manifest, part=0, out=Path(tmp)/str(latency),
+                           analyzer=source, cfg={"request_sleep_seconds": .2}, sleep=sleep)
+                intervals = [b-a for a,b in zip(starts, starts[1:])]
+                for interval in intervals:
+                    self.assertAlmostEqual(interval, max(.2, latency))
+
     def _plan(self, tmp, n=255):
         listing = universe(n)
         p = Path(tmp) / "plan"
