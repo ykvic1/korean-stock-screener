@@ -1,13 +1,13 @@
 {
   "schema": "v3-ranked-quant-coverage-v1",
-  "asof": "2026-11-06",
-  "candidate_count": 4,
-  "candidates_in_next_120_stock_study": 4,
-  "study_source_asof": "2026-11-06",
+  "asof": "2026-11-09",
+  "candidate_count": 3,
+  "candidates_in_next_120_stock_study": 3,
+  "study_source_asof": "2026-11-09",
   "quant_study_same_date": true,
-  "candidates_with_usable_historical_periods": 3,
+  "candidates_with_usable_historical_periods": 2,
   "candidate_status_counts": {
-    "research_available": 3,
+    "research_available": 2,
     "research_but_periods_insufficient": 0,
     "history_insufficient": 1,
     "awaiting_fresh_study": 0
@@ -17,32 +17,12 @@
   "predicted_profit_or_buy_certified": false,
   "stocks": [
     {
-      "code": "066670",
-      "name": "디티씨",
-      "v2_observed_score": 75.7,
-      "priority_in_next_study": true,
-      "state": "research_available",
-      "source_data_date": "2026-11-06",
-      "available_historical_periods": [
-        "초단기 1주",
-        "단기 2주",
-        "스윙 1개월",
-        "스윙 2개월",
-        "중기 3개월",
-        "중기 6개월",
-        "장기 1년"
-      ],
-      "historical_period_count": 7,
-      "out_of_sample_prediction_validated": false,
-      "buy_certified": false
-    },
-    {
-      "code": "134380",
-      "name": "미원화학",
+      "code": "069510",
+      "name": "에스텍",
       "v2_observed_score": 74.2,
       "priority_in_next_study": true,
       "state": "research_available",
-      "source_data_date": "2026-11-06",
+      "source_data_date": "2026-11-09",
       "available_historical_periods": [
         "초단기 1주",
         "단기 2주",
@@ -56,12 +36,12 @@
       "buy_certified": false
     },
     {
-      "code": "004100",
-      "name": "태양금속",
+      "code": "005500",
+      "name": "삼진제약",
       "v2_observed_score": 70.0,
       "priority_in_next_study": true,
       "state": "research_available",
-      "source_data_date": "2026-11-06",
+      "source_data_date": "2026-11-09",
       "available_historical_periods": [
         "초단기 1주",
         "단기 2주",
@@ -81,7 +61,7 @@
       "v2_observed_score": 70.0,
       "priority_in_next_study": true,
       "state": "history_insufficient",
-      "source_data_date": "2026-11-06",
+      "source_data_date": "2026-11-09",
       "available_historical_periods": [],
       "historical_period_count": 0,
       "out_of_sample_prediction_validated": false,
