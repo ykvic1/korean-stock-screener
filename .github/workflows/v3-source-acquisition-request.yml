@@ -17,22 +17,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Execute the recorded same-date collection request
+      - name: Execute the recorded same-date source operation
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          asof=$(python - <<'PY'
-          import json
+          python - <<'PY'
+          import json,os,subprocess
           from datetime import date
           from pathlib import Path
           request=json.loads(Path('ops/source-acquisition-request.json').read_text())
           catalog=json.loads(Path('docs/v22-market-catalog.json').read_text())
+          allowed={'full-market-batches.yml':'publish','v3-current-observed-scorecard.yml':'write','v3-operational-research-score.yml':'replay'}
           assert set(request)=={'id','asof','workflow','mode'}
-          assert request['workflow']=='full-market-batches.yml' and request['mode']=='publish'
+          assert allowed.get(request['workflow'])==request['mode']
           assert date.fromisoformat(request['asof']).isoformat()==request['asof']==catalog['date']
           assert isinstance(request['id'],str) and len(request['id'])<=80
-          print(request['asof'])
+          command=['gh','workflow','run',request['workflow'],'--repo',os.environ['GITHUB_REPOSITORY'],'--ref','main']
+          if request['mode']!='replay':command+=['-f','mode='+request['mode']]
+          if request['workflow']=='full-market-batches.yml':command+=['-f','asof='+request['asof']]
+          subprocess.run(command,check=True)
+          print(json.dumps({'requested':request['workflow'],'asof':request['asof'],'request_id':request['id']}))
           PY
-          )
-          gh workflow run full-market-batches.yml --repo "$GITHUB_REPOSITORY" --ref main -f "asof=$asof" -f mode=publish
