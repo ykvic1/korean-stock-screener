@@ -57,6 +57,9 @@ jobs:
           path: .cache/v3-dart-company-codes.json
           key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
       - name: Run no-network receipt-matched IFRS and exact-name CAPEX tests
+        # Changed code is covered by push/PR CI; manual dry-run retains tests.
+        # Unchanged scheduled or manual-live refreshes use receipt verification.
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run') }}
         run: |
           set -euo pipefail
           python -m py_compile v3_dart_cashflow_enrichment.py v3_dart_cashflow_factor_preview.py v3_dart_cashflow_gap_audit.py
