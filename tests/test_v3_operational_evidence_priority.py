@@ -69,3 +69,51 @@ class EvidencePriorityTests(unittest.TestCase):
                                     for r in out['single_component_queue']))
         self.assertEqual(out['available_100_count']+out['incomplete_count'],
                          out['listed_total'])
+
+    def test_90_first_bands_and_conditional_queue_reconcile_real_inputs(self):
+        out=p.build(self.report,self.comparison,self.catalog,self.legacy)
+        first=out['coverage_90_first']
+        bands=first['available_weight_bands']
+        self.assertEqual(sum(bands.values()),out['listed_total'])
+        self.assertEqual(bands['100'],out['available_100_count'])
+        self.assertEqual(first['already_90_or_more'],sum(
+            bands[k] for k in ('100','95_to_100','90_to_95')))
+        self.assertEqual(first['below_90_issuers'],sum(
+            bands[k] for k in ('80_to_90','70_to_80','60_to_70','below_60')))
+        self.assertEqual(first['one_source_family_upper_bound_count']+
+                         first['multiple_source_families_needed_at_minimum'],
+                         first['below_90_issuers'])
+        self.assertTrue(first['independent_source_recoverability_not_proven'])
+        self.assertTrue(first['recovery_not_a_score_or_observation'])
+        incomplete={code:r for code,r in self.report['rows'].items()
+                    if r['available']<90}
+        for family,codes in first['family_conditional_priority_codes'].items():
+            self.assertEqual(len(codes),len(set(codes)))
+            self.assertEqual(len(codes),first['family_upper_bound_counts'][family])
+            for code in codes:
+                self.assertIn(code,incomplete)
+                row=incomplete[code]
+                potential=sum(maximum-(row['parts'][area].get(key) or [0,0])[1]
+                              for area,key in p.SOURCE_FAMILIES[family]
+                              for maximum in (p.R1D_PART_LIMITS[area][key],))
+                self.assertGreaterEqual(row['available']+potential,90-1e-5)
+
+    def test_90_first_never_counts_a_partial_family_as_an_observation(self):
+        queue=[
+            {'code':'000001','available':89,'gaps':[
+                {'area':'valuation','component':'fcf_yield','missing_weight':2.5}]},
+            {'code':'000002','available':75,'gaps':[
+                {'area':'valuation','component':'fcf_yield','missing_weight':2.5}]},
+            {'code':'000003','available':95,'gaps':[
+                {'area':'valuation','component':'fcf_yield','missing_weight':2.5}]},
+        ]
+        # This isolated test checks the queue classifier, not a full 100-weight
+        # source report (whose part weights are audited in build()).
+        result=p.coverage_90_first(queue,listed_total=3,full_100_count=0)
+        self.assertEqual(result['available_weight_bands']['95_to_100'],1)
+        self.assertEqual(result['below_90_issuers'],2)
+        self.assertEqual(result['one_source_family_upper_bound_count'],1)
+        self.assertEqual(result['multiple_source_families_needed_at_minimum'],1)
+        self.assertEqual(result['family_conditional_priority_codes']['dart_cashflow_capex'],
+                         ['000001'])
+        self.assertTrue(result['missing_data_never_zero_filled'])
