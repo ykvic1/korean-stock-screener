@@ -28,6 +28,24 @@ def sample(closes):
 
 
 class RecentMa240CrossTests(unittest.TestCase):
+    def test_historical_zero_volume_does_not_hide_observed_price_ma_cross(self):
+        rows = [100.0]*220 + [98.0]*20 + [130.0]*20
+        baseline = sample(rows)
+        volume = [1000]*260
+        for i in (5, 100, 239):
+            volume[i] = 0
+        result = observe(rows, volume, asof=ASOF, session_days=sessions())
+        self.assertEqual(result, baseline)
+        self.assertTrue(result['qualified'])
+        self.assertTrue(valid_observation(result, ASOF))
+        for bad in (-1, float('nan'), float('inf'), True):
+            broken = volume.copy()
+            broken[100] = bad
+            with self.subTest(bad=bad):
+                self.assertIsNone(observe(rows, broken, asof=ASOF, session_days=sessions()))
+        volume[-1] = 0
+        self.assertIsNone(observe(rows, volume, asof=ASOF, session_days=sessions()))
+
     def test_qualifying_cross_is_at_intersection_not_current_close(self):
         # Price ends at 130, far above MA240, yet the actual crossing
         # occurred close to the 240-day line after a 20-day downtrend.

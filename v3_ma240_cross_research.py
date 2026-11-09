@@ -46,7 +46,7 @@ def _iso(value):
         return None
 
 
-def _number(value):
+def _number(value, *, positive=True):
     # NumPy numeric scalars are acceptable, but bools and non-finite values
     # cannot masquerade as daily closes or volumes.
     if isinstance(value, bool):
@@ -55,7 +55,7 @@ def _number(value):
         result = float(value)
     except (ValueError, TypeError, OverflowError):
         return None
-    return result if math.isfinite(result) and result > 0 else None
+    return result if math.isfinite(result) and (result > 0 if positive else result >= 0) else None
 
 
 def valid_unavailable_reason(observation, reason):
@@ -87,7 +87,8 @@ def classify_unavailable(close, volume, *, asof, session_days):
     closes = [_number(v) for v in close[-MIN_HISTORY_SESSIONS:]]
     if any(v is None for v in closes):
         return "nonpositive_or_invalid_close"
-    if any(_number(v) is None for v in volume[-MIN_HISTORY_SESSIONS:]):
+    volumes = [_number(v, positive=False) for v in volume[-MIN_HISTORY_SESSIONS:]]
+    if any(v is None for v in volumes) or volumes[-1] <= 0:
         return "nonpositive_or_invalid_volume"
     if any(abs(closes[i] / closes[i-1] - 1) > 0.5
            for i in range(1, len(closes))):
@@ -108,12 +109,18 @@ def observe(close, volume, *, asof, session_days):
         return None
     dates = [_date(value) for value in session_days[-MIN_HISTORY_SESSIONS:]]
     closes = [_number(v) for v in close[-MIN_HISTORY_SESSIONS:]]
-    volumes = [_number(v) for v in volume[-MIN_HISTORY_SESSIONS:]]
+    volumes = [_number(v, positive=False) for v in volume[-MIN_HISTORY_SESSIONS:]]
     if (any(d is None for d in dates) or dates[-1] != day or
             any(not 0 < (b-a).days <= 10 for a, b in zip(dates, dates[1:])) or
             any(v is None for v in closes) or
-            any(v is None for v in volumes)):
+            any(v is None for v in volumes) or volumes[-1] <= 0):
         return None
+    # Moving-average intersections use reported closes, not trading volume.
+    # A historical zero-volume day does not erase its positive reported
+    # closing price. Do not fill prices, remove sessions or claim trading
+    # during that day. Latest volume must still be positive; negative or
+    # non-finite historical volumes, missing closes and split-like jumps
+    # remain rejected independently.
     # An unadjusted large split could manufacture a false MA cross.
     if any(abs(closes[i] / closes[i-1] - 1) > 0.5
            for i in range(1, len(closes))):
