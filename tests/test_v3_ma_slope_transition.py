@@ -76,6 +76,39 @@ class MaSlopeTransitionTests(unittest.TestCase):
         bad.loc[bad.index[0],'High']=0
         self.assertEqual(observe(bad),baseline)
 
+    def test_historical_no_trade_keeps_last_close_in_ma_without_volume_signal(self):
+        df=bars();baseline=observe(df)
+        flat=df.copy()
+        flat.loc[flat.index[-110],'Volume']=0
+        flat.loc[flat.index[-110],['Open','High','Low','Close']]=flat.loc[
+            flat.index[-111],'Close']
+        result=observe(flat)
+        self.assertTrue(valid_observation(result,'2026-11-06'))
+        self.assertEqual(result['parts']['daily'].keys(),baseline['parts']['daily'].keys())
+        self.assertIsNotNone(result['parts']['weekly'])
+
+    def test_completed_friday_with_no_trade_is_valid_for_monday_weekly_ma(self):
+        df=bars()
+        df.loc[df.index[-1],['Open','High','Low','Close']]=df.loc[
+            df.index[-2],'Close']
+        baseline=observe(df)
+        df.loc[df.index[-1],'Volume']=0
+        monday=df.iloc[-1:].copy()
+        monday.index=pd.DatetimeIndex(['2026-11-09'])
+        monday['Volume']=1000
+        result=observe(pd.concat([df,monday]))
+        self.assertTrue(valid_observation(result,'2026-11-09'))
+        self.assertEqual(result['weekly_asof'],'2026-11-06')
+        self.assertEqual(result['parts']['weekly'],baseline['parts']['weekly'])
+
+    def test_zero_volume_changed_close_is_not_accepted_as_trading_price(self):
+        df=bars()
+        df.loc[df.index[-50],'Volume']=0
+        self.assertIsNone(observe(df))
+        latest=bars()
+        latest.loc[latest.index[-1],'Volume']=0
+        self.assertIsNone(observe(latest))
+
     def test_operational_score_consumes_only_verified_derived_contract(self):
         df=bars();day='2026-11-06';item=observe(df)
         stock={'price_date':day,'market':'KOSPI','v3_ma_slope_transition':item}
