@@ -25,6 +25,29 @@ def _clean_ohlcv(frame):
     return a if valid else None
 
 
+def _recent_contiguous_clean_tail(frame, *, maximum_bars, minimum_bars=90):
+    """Use only actual consecutive valid source rows after the last bad bar.
+
+    An older zero/invalid price is neither a verified trading suspension nor
+    proof of pre-listing. Never fill or carry it forward; discard that prefix
+    only when the remaining *real* bars independently meet the study window.
+    """
+    tail = frame.iloc[-maximum_bars:]
+    if _clean_ohlcv(tail) is not None:
+        return (tail, True) if len(frame) > len(tail) else (frame, False)
+    a = tail[["Open", "High", "Low", "Close", "Volume"]].to_numpy(dtype=float)
+    valid = (np.isfinite(a).all(axis=1) & np.all(a[:, :4] > 0, axis=1)
+             & (a[:, 4] >= 0)
+             & (a[:, 1] >= np.maximum(a[:, 0], a[:, 3]))
+             & (a[:, 2] <= np.minimum(a[:, 0], a[:, 3]))
+             & (a[:, 2] <= a[:, 1]))
+    bad = np.flatnonzero(~valid)
+    suffix = tail.iloc[int(bad[-1]) + 1:]
+    if len(suffix) < minimum_bars or _clean_ohlcv(suffix) is None:
+        return None, False
+    return suffix, True
+
+
 def _pivots_low(a, span=3, start=0):
     # A trough needs span *subsequent* candles to be confirmed.
     result = []
@@ -119,15 +142,12 @@ def observe(df):
     ):
         return out
     clean_tail_only = False
+    if _clean_ohlcv(df) is None:
+        df, clean_tail_only = _recent_contiguous_clean_tail(
+            df, maximum_bars=DAILY_CLEAN_TAIL)
+        if df is None:
+            return out
     a = _clean_ohlcv(df)
-    if a is None:
-        if len(df) <= DAILY_CLEAN_TAIL:
-            return out
-        df = df.iloc[-DAILY_CLEAN_TAIL:]
-        a = _clean_ohlcv(df)
-        if a is None:
-            return out
-        clean_tail_only = True
     close, high, low, vol = a[:, 3], a[:, 1], a[:, 2], a[:, 4]
     rs = rsi(close)
     bull, _ = divergence(close, rs, span=3, max_age=40)
@@ -175,12 +195,10 @@ def observe_completed_weekly(daily):
     d = daily[keys]
     clean_tail_only = False
     if _clean_ohlcv(d) is None:
-        if len(d) <= WEEKLY_CLEAN_TAIL_DAYS:
+        d, clean_tail_only = _recent_contiguous_clean_tail(
+            d, maximum_bars=WEEKLY_CLEAN_TAIL_DAYS)
+        if d is None:
             return result
-        d = d.iloc[-WEEKLY_CLEAN_TAIL_DAYS:]
-        if _clean_ohlcv(d) is None:
-            return result
-        clean_tail_only = True
     week = d.resample("W-FRI").agg({"Open": "first", "High": "max",
                                     "Low": "min", "Close": "last",
                                     "Volume": "sum"}).dropna()
