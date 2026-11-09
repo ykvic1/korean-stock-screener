@@ -21,6 +21,7 @@ UNAVAILABLE_REASONS = frozenset({
     "irregular_or_stale_session_calendar",
     "nonpositive_or_invalid_close",
     "nonpositive_or_invalid_volume",
+    "zero_volume_close_changed_without_trade",
     "possible_unadjusted_corporate_action",
     "other_ma240_validation_failure",
 })
@@ -93,6 +94,9 @@ def classify_unavailable(close, volume, *, asof, session_days):
     if any(abs(closes[i] / closes[i-1] - 1) > 0.5
            for i in range(1, len(closes))):
         return "possible_unadjusted_corporate_action"
+    if any(volumes[i] == 0 and closes[i] != closes[i-1]
+           for i in range(1, len(closes))):
+        return "zero_volume_close_changed_without_trade"
     return "other_ma240_validation_failure"
 
 
@@ -123,6 +127,9 @@ def observe(close, volume, *, asof, session_days):
     # remain rejected independently.
     # An unadjusted large split could manufacture a false MA cross.
     if any(abs(closes[i] / closes[i-1] - 1) > 0.5
+           for i in range(1, len(closes))):
+        return None
+    if any(volumes[i] == 0 and closes[i] != closes[i-1]
            for i in range(1, len(closes))):
         return None
 
