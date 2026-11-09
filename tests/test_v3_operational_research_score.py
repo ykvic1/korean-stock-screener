@@ -16,6 +16,25 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
+    def test_name_change_retention_requires_same_close_and_unchanged_filing_sources(self):
+        day='2026-11-06';code='148250'
+        member={'market':'KOSDAQ','name':'new label'}
+        prior={'market':'KOSDAQ','name':'old label'}
+        hashes={'v3-dart-bulk-history.json':'a'*64,'v3-dart-book-reference.json':'b'*64}
+        previous={'asof':day,'source_hashes':hashes.copy()}
+        annual={'code':code,'status':'observed','annual':{'year':2025,'fs_div':'CFS','receipt_id':'20260323001654'}}
+        book={'records':[annual]}
+        history={'records':{code:{'years':{'2025':{'CFS':{'receipt_id':'20260323001654'}}}}}}
+        def valid(prev=previous,current=hashes,reference=book,archive=history,old=prior):
+            return ops.unchanged_fiscal_identity(code,member,old,day,prev,current,reference,archive)
+        self.assertTrue(valid())
+        self.assertFalse(valid(prev={**previous,'asof':'2026-11-05'}))
+        self.assertFalse(valid(current={**hashes,'v3-dart-bulk-history.json':'c'*64}))
+        self.assertFalse(valid(old={**prior,'market':'KOSPI'}))
+        self.assertFalse(valid(reference={'records':[]}))
+        changed=copy.deepcopy(history);changed['records'][code]['years']['2025']['CFS']['receipt_id']='20260323001655'
+        self.assertFalse(valid(archive=changed))
+
     @classmethod
     def setUpClass(cls):
         names=['data.json','v22-market-catalog.json','v3-issuer-last-observed-factors.json',

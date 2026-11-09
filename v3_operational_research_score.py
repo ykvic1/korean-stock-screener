@@ -220,10 +220,36 @@ def verified_reported_eps(catalog, annual_book, source):
             and entry.get('metrics',{}).get('complete_three_years') is True}
 
 
+def unchanged_fiscal_identity(code, member, prior, day, previous, hashes, book, history):
+    """A label change on the SAME close cannot erase unchanged filing facts.
+
+    Require identical archived source bytes AND the same current annual
+    receipt/scope. Never infer issuer continuity across a new market day,
+    a changed market, a replacement filing or a changed financial archive.
+    """
+    if (previous.get('asof')!=day or prior.get('market')!=member.get('market')
+        or not isinstance(hashes,dict) or not isinstance(book,dict)):
+        return False
+    old=previous.get('source_hashes',{})
+    for name in ('v3-dart-bulk-history.json','v3-dart-book-reference.json'):
+        value=hashes.get(name)
+        if not isinstance(value,str) or len(value)!=64 or old.get(name)!=value:
+            return False
+    record=next((r for r in book.get('records',[]) if r.get('code')==code),{})
+    annual=record.get('annual') or {}
+    year=annual.get('year');scope=annual.get('fs_div');receipt=annual.get('receipt_id')
+    archived=history.get('records',{}).get(code,{}).get('years',{}).get(str(year),{}).get(scope,{})
+    return (record.get('status')=='observed' and year==int(day[:4])-1
+        and scope in ('CFS','OFS') and isinstance(receipt,str)
+        and len(receipt)==14 and receipt.isascii() and receipt.isdecimal()
+        and archived.get('receipt_id')==receipt)
+
+
 def build(market,catalog,ledger,history,money_source,personal,industry=None,
           annual_book=None,reported_eps_source=None,previous=None,
           revenue_2022_source=None,revenue_2023_comparative=None,
-          eps_basis_source=None,eps_prior_research=None,cashflow_source=None):
+          eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
+          current_source_hashes=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -263,7 +289,9 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         if code in revenue_parts:
             parts['financial']['revenue_growth']=revenue_parts[code]
         prior=previous.get('rows',{}).get(code)
-        if prior and prior['name']==member['name'] and prior['market']==member['market']:
+        if (prior and prior['market']==member['market'] and
+            (prior['name']==member['name'] or unchanged_fiscal_identity(
+                code,member,prior,day,previous,current_source_hashes,annual_book,history))):
             for area in parts:
                 for key,p in parts[area].items():
                     older=prior.get('parts',{}).get(area,{}).get(key)
@@ -391,9 +419,11 @@ def main():
             'previous_operational_score_preserved':True,
             'previous_score_asof':previous['asof'],'provider_calls':0}))
         return
+    source_hashes={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     report=build(*inputs,previous=previous,revenue_2022_source=revenue_2022_source,
-                 revenue_2023_comparative=comparative_source,**basis_inputs)
-    report['source_hashes']={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
+                 revenue_2023_comparative=comparative_source,
+                 current_source_hashes=source_hashes,**basis_inputs)
+    report['source_hashes']=source_hashes
     if revenue_2022_source is not None:
         report['source_hashes'][revenue_2022_file]=sha256((root/revenue_2022_file).read_bytes()).hexdigest()
     if comparative_source is not None:
@@ -406,8 +436,11 @@ def main():
                      'v3_dart_revenue_2022.py','v3_dart_revenue_2023_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
                      'v3_dart_eps_prior_receipt_probe.py')}
+    report['factor_state_sha256']=sha256(json.dumps(
+        {code:row['parts'] for code,row in report['rows'].items()},
+        sort_keys=True,separators=(',',':')).encode()).hexdigest()
     digest=sha256(json.dumps([VERSION,report['implementation_sha256'],report['source_hashes'],
-        report['implementation_dependency_sha256']],sort_keys=True).encode()).hexdigest()
+        report['implementation_dependency_sha256'],report['factor_state_sha256']],sort_keys=True).encode()).hexdigest()
     report['source_digest']=digest
     compact=json.loads(json.dumps(report));compact['format']='compact-parts-v1'
     for r in compact['rows'].values():
