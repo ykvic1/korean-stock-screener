@@ -249,6 +249,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         add=[line for line in flow.splitlines() if line.strip().startswith("git add docs/")]
         self.assertGreaterEqual(len(add),2)
         self.assertEqual({line.strip() for line in add}, {
+            "git add docs/v3-unscored-path-coverage.json",
             "git add docs/v3-dart-fcf-research-preview.json",
             "git add docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json",
             "git add docs/v3-current-observed-all-listed.csv docs/v3-current-observed-all-listed-summary.json docs/v3-issuer-last-observed-factors.json",
