@@ -122,15 +122,6 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
         if cross is not None and valid_ma_cross(cross,day):
             put('technical','ma20_ma60_cross_near_ma240',
                 6 if cross['qualified'] else 0,6,day)
-        if money_components and valid_components(money_components.get('component_observations')):
-            observation = money_components['component_observations']
-            source_day = money_components['asof']
-            if observation['growth6'] is not None:
-                put('volume', 'long_horizon_growth', observation['growth6'], 6, source_day)
-            for key, pair in observation['components'].items():
-                existing = parts['volume'][key]
-                if pair is not None and (existing is None or pair[1] >= existing['available']):
-                    put('volume', key, pair[0], pair[1], source_day)
         p=path_preview(stock,asof=day)
         if p:put('volume','post_spike_absorption',p['research_volume_post_spike_absorption_points']*.75,3,day)
         slope=stock.get('v3_ma_slope_transition')
@@ -163,6 +154,15 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             if frame=='weekly':
                 ma=_weekly_trend(evidence)
                 if ma is not None:put('technical','long_ma_position',ma*.6,1.8,evidence['asof'])
+    if money_components and valid_components(money_components.get('component_observations')):
+        observation = money_components['component_observations']
+        source_day = money_components['asof']
+        if observation['growth6'] is not None:
+            put('volume', 'long_horizon_growth', observation['growth6'], 6, source_day)
+        for key, pair in observation['components'].items():
+            existing = parts['volume'][key]
+            if pair is not None and (existing is None or pair[1] >= existing['available']):
+                put('volume', key, pair[0], pair[1], source_day)
     components=saved.get('components',{})
     for new,old,maximum in [('revenue_growth','revenue_cagr_3y_pct',3.5),
             ('operating_growth_margin','operating_margin_3y_pct',3),

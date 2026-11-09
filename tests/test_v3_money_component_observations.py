@@ -103,6 +103,15 @@ class ComponentObservationTests(unittest.TestCase):
         self.assertIsNone(parts['volume']['weekly_structure_increment'])
         self.assertIsNone(parts['volume']['long_horizon_growth'])
 
+    def test_verified_money_without_price_history(self):
+        daily, weekly, cohorts = structure_tests.MoneyStructureTests().inputs()
+        row = {'asof': '2026-11-09', 'component_observations':
+               structure.derive_components(daily, weekly, cohorts)}
+        parts, _ = score_issuer(None, {}, day=row['asof'], money_components=row)
+        self.assertEqual(parts['volume']['persistence']['available'], 5)
+        self.assertIsNone(parts['volume']['obv_price_divergence'])
+        self.assertTrue(all(item is None for item in parts['technical'].values()))
+
     def test_history_shapes_never_infer_listing_dates(self):
         for values, reason in (([1, 2], 'complete'), ([1, None], 'tail_only_missing'),
                                ([1, None, 2], 'internal_missing'), ([None, 1], 'recent_missing'),
