@@ -103,7 +103,7 @@ def validate_manifest(manifest: dict):
     return asof, codes
 
 
-def market_roster_with_retries(*, fetch=None, sleep=time.sleep):
+def market_roster_with_retries(*, fetch=None, sleep=None):
     """Retry transient listing failures without accepting an unverified fallback.
 
     FDR's market-wide roster can fail intermittently even while the same
@@ -111,6 +111,7 @@ def market_roster_with_retries(*, fetch=None, sleep=time.sleep):
     the strict census and same-source identity checks, so never substitute it.
     """
     fetch = screener.market_snapshot if fetch is None else fetch
+    sleep = time.sleep if sleep is None else sleep
     for attempt in range(MARKET_ROSTER_ATTEMPTS):
         try:
             return fetch()
