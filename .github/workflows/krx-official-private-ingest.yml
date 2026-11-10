@@ -50,7 +50,8 @@ jobs:
           # never commit, upload, or publish KRX EOD original records.
           if [[ "$MODE" == "live" ]]; then
             python v3_krx_private_daily.py --asof "$ASOF" \
-              --private-dir "$RUNNER_TEMP_PRIVATE/krx-official-private" --live
+              --private-dir "$RUNNER_TEMP_PRIVATE/krx-official-private" --live \
+              --quarantine-invalid-prices
           else
             python v3_krx_private_daily.py --asof "$ASOF"
           fi
