@@ -6,11 +6,12 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261110-volume-contrast">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261110-trading-status">
 <script src="v3-ranking.js" defer></script>
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
 <script src="operational-score.js?v=r1d-all-listed" defer></script>
-<script src="workspace.js?v=v30b-20261109-volume-detail-reconcile" defer></script>
+<script src="v3-trading-status.js?v=20261110-halt-display" defer></script>
+<script src="workspace.js?v=v30b-20261110-trading-status" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-fcf-gap.js" defer></script>
@@ -94,6 +95,7 @@
   <p class="u-source"><a href="v3-dart-historical-receipt-progress.json">실제 수집 진행률 원천 집계 JSON ↗</a> · 완료 개월 수는 기업행위 효력일·상장폐지 종목·과거 수정주가·정식 100점 투자점수 검증을 뜻하지 않습니다.</p>
  </details>
  <p id="operationalModelNote" class="u-research-note">R1 잠정 운영모델 연결 중</p>
+ <p id="tradeStatusNote" class="u-research-note">거래정지 여부 자료 확인 중</p>
 <p class="u-research-note"><a href="v3-operational-research-scores.csv" download>신규 운영점수 CSV</a> · 기존 점수는 정렬 기준에서 비교할 수 있습니다.</p>
 <section class="u-controls" aria-label="종목 발굴 조건">
   <label class="u-quick-search" for="stockSearch">종목 검색
