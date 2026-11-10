@@ -40,6 +40,7 @@ CODE = re.compile(r"\d{6}\Z")
 MAX_UNIVERSE = 20000
 MAX_BATCHES = 256
 MAX_FILE = 10_000_000
+MARKET_ROSTER_ATTEMPTS = 3
 
 
 class BatchError(ValueError):
@@ -102,9 +103,28 @@ def validate_manifest(manifest: dict):
     return asof, codes
 
 
+def market_roster_with_retries(*, fetch=None, sleep=time.sleep):
+    """Retry transient listing failures without accepting an unverified fallback.
+
+    FDR's market-wide roster can fail intermittently even while the same
+    day's next lookup succeeds. A cached/stale membership list would bypass
+    the strict census and same-source identity checks, so never substitute it.
+    """
+    fetch = screener.market_snapshot if fetch is None else fetch
+    for attempt in range(MARKET_ROSTER_ATTEMPTS):
+        try:
+            return fetch()
+        except Exception:
+            if attempt == MARKET_ROSTER_ATTEMPTS - 1:
+                raise BatchError('market_roster_source_unavailable_after_retries') from None
+            logging.warning('Market roster fetch unavailable; bounded attempt %s/%s',
+                            attempt + 1, MARKET_ROSTER_ATTEMPTS)
+            sleep(1 + attempt * 2)
+
+
 def plan(*, asof: str, out: Path, listing=None) -> dict:
     asof = _date(asof)
-    universe = screener.market_snapshot() if listing is None else listing
+    universe = market_roster_with_retries() if listing is None else listing
     selected, eligible = screener.select_universe(
         universe, screener.cfg_read(), datetime.fromisoformat(asof))
     codes = sorted(r["code"] for r in selected)
@@ -348,7 +368,7 @@ def publish(*, manifest: dict, parts_dir: Path,
     merged = load_receipts(
         manifest, parts_dir, allow_missing_parts=allow_missing_parts)
     cfg = screener.cfg_read() if cfg is None else cfg
-    listing = screener.market_snapshot() if listing is None else listing
+    listing = market_roster_with_retries() if listing is None else listing
     if set(listing) != set(manifest["codes"]):
         raise BatchError("listing_changed_between_jobs")
     day = datetime.fromisoformat(manifest["asof"])

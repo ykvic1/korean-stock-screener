@@ -37,6 +37,33 @@ def mock_history(code, cfg, day):
 
 
 class FullMarketHundredBatchesTests(unittest.TestCase):
+    def test_transient_roster_failures_recover_without_stale_fallback(self):
+        calls = [0]
+        delays = []
+
+        def fetch():
+            calls[0] += 1
+            if calls[0] < 3:
+                raise RuntimeError('temporary_market_listing_failure')
+            return universe(105)
+
+        with patch.object(screener, 'market_snapshot', side_effect=fetch):
+            with patch.object(b.time, 'sleep', side_effect=delays.append):
+                with tempfile.TemporaryDirectory() as tmp:
+                    result = b.plan(asof=DAY, out=Path(tmp))
+        self.assertEqual(result['eligible'], 105)
+        self.assertEqual(calls[0], 3)
+        self.assertEqual(delays, [1, 3])
+
+    def test_persistently_unavailable_roster_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(screener, 'market_snapshot', side_effect=RuntimeError('upstream')) as fetch:
+                with patch.object(b.time, 'sleep'):
+                    with self.assertRaisesRegex(b.BatchError, 'market_roster_source_unavailable_after_retries'):
+                        b.plan(asof=DAY, out=Path(tmp))
+            self.assertEqual(fetch.call_count, 3)
+            self.assertFalse((Path(tmp) / 'manifest.json').exists())
+
     def test_parallel_scan_overlaps_waits_and_preserves_every_outcome(self):
         release = Event()
         lock = Lock()
