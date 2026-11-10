@@ -7,6 +7,7 @@ This does not certify KRX regular-session prices or create trading signals.
 from __future__ import annotations
 
 from collections import Counter
+import argparse
 import json
 import math
 from pathlib import Path
@@ -23,6 +24,13 @@ class RecoveryError(ValueError):
     pass
 
 
+def legacy_stop_needs_recheck(reference):
+    """Old all-history rejection: one bounded recheck, never a retry loop."""
+    return (type(reference) is dict
+            and reference.get('warning') == '가격 원천값 무효 또는 결측'
+            and reference.get('validation_window_bars') is None)
+
+
 def availability(receipt, day):
     """Two independently checkable frame budgets, with unknown != zero."""
     if receipt is None:
@@ -37,7 +45,7 @@ def availability(receipt, day):
     return tuple(result)
 
 
-def select_targets(market, priority, report):
+def select_targets(market, priority, report, *, repair_legacy_stops=False):
     """Take same-close 90-point recovery first, then near-100 recovery."""
     day = market['date']
     if (priority.get('asof') != day or report.get('asof') != day
@@ -50,6 +58,25 @@ def select_targets(market, priority, report):
     stocks = {stock['code']: stock for stock in market['stocks']}
     if len(stocks) != len(market['stocks']):
         raise RecoveryError('duplicate_saved_stock_codes')
+
+    if repair_legacy_stops:
+        first, second = [], []
+        for code, stock in stocks.items():
+            if (code not in report['rows'] or stock.get('price_date') != day
+                or type(stock.get('price')) not in (int, float)
+                or not math.isfinite(stock['price']) or stock['price'] <= 0):
+                continue
+            reference = stock.get('v3_structural_stop_reference')
+            if reference is None:
+                continue
+            if not valid_reference(reference, day, stock['price']):
+                raise RecoveryError('invalid_retained_structural_stop_reference')
+            if legacy_stop_needs_recheck(reference):
+                (first if report['rows'][code]['available'] < 90 else second).append(code)
+        if len(first) + len(second) > 400:
+            raise RecoveryError('unexpectedly_large_legacy_stop_cohort')
+        return (sorted(first), sorted(second)), {
+            'below_90_priority': len(first), 'already_90_priority': len(second)}
 
     def useful(code):
         stock = stocks.get(code)
@@ -137,6 +164,12 @@ def apply(market, collected):
             if existing is None:
                 stock['v3_structural_stop_reference'] = reference
                 result['new_unscored_stop_references'] += 1
+            elif (legacy_stop_needs_recheck(existing)
+                  and reference.get('validation_window_bars') is not None):
+                stock['v3_structural_stop_reference'] = reference
+                result['rechecked_legacy_stop_references'] += 1
+                if reference.get('reference_line') is not None:
+                    result['newly_usable_reference_lines'] += 1
         new = evidence.get('v3_ma_slope_transition')
         if new is None:
             result['still_unavailable'] += 1
@@ -156,14 +189,19 @@ def apply(market, collected):
     return dict(result)
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--repair-legacy-stops', action='store_true',
+                        help='One bounded review of old all-history stop failures')
+    args = parser.parse_args(argv)
     docs = Path('docs')
     def load(name):
         return json.loads((docs/name).read_text(encoding='utf8'))
     market = load('data.json')
     priority = load('v3-operational-evidence-priority.json')
     report = load('v3-operational-research-scores.json')
-    cohorts, cohort = select_targets(market, priority, report)
+    cohorts, cohort = select_targets(market, priority, report,
+                                    repair_legacy_stops=args.repair_legacy_stops)
     print(json.dumps({'stage':'selected','asof':market['date'],
                       'count':sum(map(len,cohorts)),**cohort},sort_keys=True),flush=True)
     # Finish the potential <90 threshold recoveries before spending provider
@@ -188,7 +226,8 @@ def main():
                       'insufficient_history':len(collected['excluded']),**changes},
                      sort_keys=True),flush=True)
     if (changes.get('more_observed_receipts', 0)
-            or changes.get('new_unscored_stop_references', 0)):
+            or changes.get('new_unscored_stop_references', 0)
+            or changes.get('rechecked_legacy_stop_references', 0)):
         out = docs/'data.json'
         out.write_text(json.dumps(latest,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8')
 

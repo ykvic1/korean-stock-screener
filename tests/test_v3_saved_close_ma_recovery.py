@@ -127,5 +127,26 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
         self.assertEqual(cohorts,(['000001'],[]))
         self.assertEqual(counts,{'below_90_priority':1,'already_90_priority':0})
 
+    def test_one_time_legacy_stop_recheck_preserves_score(self):
+        market, priority, report=inputs()
+        old=stop_reference()
+        old.pop('validation_window_bars')
+        old.update(low20=None,low60=None,confirmed_swing_low=None,
+                   reference_line=None,distance_pct=None,basis=[],
+                   confluence_count=0,confidence='unavailable',
+                   warning='가격 원천값 무효 또는 결측')
+        market['stocks'][0]['v3_structural_stop_reference']=old
+        cohorts, counts=select_targets(market,priority,report,repair_legacy_stops=True)
+        self.assertEqual(cohorts,(['000001'],[]))
+        self.assertEqual(counts['below_90_priority'],1)
+        recovered=apply(market,{'rows':[{'code':'000001','metrics':{
+            'price_date':DAY,'price_latest':8990.,
+            'v3_structural_stop_reference':stop_reference()}}]})
+        self.assertEqual(recovered['rechecked_legacy_stop_references'],1)
+        self.assertEqual(recovered['newly_usable_reference_lines'],1)
+        self.assertEqual(recovered.get('more_observed_receipts',0),0)
+        self.assertEqual(select_targets(market,priority,report,
+                        repair_legacy_stops=True)[0],([],[]))
+
 
 if __name__=='__main__':unittest.main()

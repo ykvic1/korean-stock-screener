@@ -76,6 +76,23 @@ class StructuralStopReferenceTests(unittest.TestCase):
         self.assertIsNone(ref['reference_line'])
         self.assertIn('무효', ref['warning'])
 
+    def test_ancient_bad_candle_does_not_erase_recent_120_session_support(self):
+        df = history(200)
+        df.loc[5, 'Low'] = 120  # Invalid, but outside every stop horizon.
+        result = observe(df, asof='2026-11-10')
+        expected = observe(df.iloc[-120:], asof='2026-11-10')
+        self.assertEqual(result, expected)
+        self.assertEqual(result['validation_window_bars'], 120)
+        self.assertIsNotNone(result['reference_line'])
+
+    def test_bad_candle_inside_recent_120_still_fails_closed(self):
+        df = history(200)
+        df.loc[100, 'Low'] = 120
+        result = observe(df, asof='2026-11-10')
+        self.assertEqual(result['validation_window_bars'], 120)
+        self.assertIsNone(result['reference_line'])
+        self.assertIn('무효', result['warning'])
+
     def test_pattern_invalidation_requires_explicit_heuristic_flag(self):
         df = history()
         self.assertIsNone(observe(df, asof='2026-11-10')['pattern_invalidation'])
