@@ -2,6 +2,19 @@ name: V3 Same Close 121 Session Path Recovery (90 First)
 
 on:
   workflow_dispatch:
+    inputs:
+      reconcile_only:
+        description: 'Only reconcile a verified prior recovery whose source receipt lagged (no fetch)'
+        type: boolean
+        default: false
+      expected_new_paths:
+        description: 'Exact number of previously recovered paths missing from source counters'
+        type: number
+        default: 0
+      expected_asof:
+        description: 'Exact saved market session YYYY-MM-DD for receipt reconciliation'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -24,7 +37,14 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - name: Recover observed dated price path from already published close
+        if: ${{ !inputs.reconcile_only }}
         run: python v3_saved_close_path_recovery.py
+      - name: Reconcile only previously published recovery evidence
+        if: ${{ inputs.reconcile_only }}
+        env:
+          EXPECTED_DELTA: ${{ inputs.expected_new_paths }}
+          EXPECTED_ASOF: ${{ inputs.expected_asof }}
+        run: python v3_saved_close_path_recovery.py --reconcile-only --expected-new-paths "$EXPECTED_DELTA" --expected-asof "$EXPECTED_ASOF"
       - name: Validate dated source without publishing scores from missing bars
         id: delta
         run: |

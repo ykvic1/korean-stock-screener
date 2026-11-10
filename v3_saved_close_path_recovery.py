@@ -7,6 +7,7 @@ Research availability is *not* independent KRX regular-session certification.
 from __future__ import annotations
 
 from collections import Counter
+import argparse
 import json
 import math
 from pathlib import Path
@@ -117,11 +118,67 @@ def apply(market, collected):
     return dict(counts)
 
 
-def main():
+def reconcile_source_receipt(market, newly_observed):
+    """Keep the published source counts aligned with the recovered issuer rows.
+
+    The receipt may advance only by the number of newly checked paths in
+    this invocation. Unexpected prior drift is an integrity error, not an
+    invitation to silently rewrite source provenance.
+    """
+    source = market.get('v3_unscored_path_source')
+    stocks = market.get('stocks')
+    candidates = market.get('candidate_count')
+    day = market.get('date')
+    if (type(source) is not dict or type(stocks) is not list or
+            type(candidates) is not int or len(stocks) != candidates or
+            type(newly_observed) is not int or newly_observed < 0):
+        raise RecoveryError('invalid_recovery_source_receipt')
+    actual = 0
+    for stock in stocks:
+        if stock.get('price_date') != day:
+            raise RecoveryError('mixed_recovery_market_session')
+        observation = stock.get('v3_unscored_path_observations')
+        reason = stock.get('v3_unscored_path_unavailable_reason')
+        if (not valid_observation(observation, day) or
+                not valid_unavailable_reason(observation, reason)):
+            raise RecoveryError('invalid_recovery_path_evidence')
+        actual += observation is not None
+    previous = source.get('observed_issuer_count')
+    missing = source.get('unavailable_issuer_count')
+    if (type(previous) is not int or type(missing) is not int or
+            previous + missing != candidates or
+            previous + newly_observed != actual):
+        raise RecoveryError('source_coverage_receipt_mismatch')
+    source['observed_issuer_count'] = actual
+    source['unavailable_issuer_count'] = candidates - actual
+    return actual
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--reconcile-only', action='store_true',
+                        help='Repair a documented recovery commit whose source counters were not advanced')
+    parser.add_argument('--expected-new-paths', type=int, default=0)
+    parser.add_argument('--expected-asof')
+    args = parser.parse_args(argv)
     docs = Path('docs')
     def read(name):
         return json.loads((docs / name).read_text(encoding='utf8'))
     initial = read('data.json')
+    if args.reconcile_only:
+        if (not args.expected_asof or initial['date'] != args.expected_asof or
+                args.expected_new_paths <= 0):
+            raise RecoveryError('explicit_dated_recovery_delta_required')
+        total = reconcile_source_receipt(initial, args.expected_new_paths)
+        (docs / 'data.json').write_text(json.dumps(
+            initial, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf8')
+        print(json.dumps({'stage': 'reconciled_existing_dated_observations',
+                          'asof': initial['date'],
+                          'newly_recovered_paths': args.expected_new_paths,
+                          'observed_paths': total}, sort_keys=True), flush=True)
+        return
+    if args.expected_new_paths or args.expected_asof:
+        raise RecoveryError('reconciliation_arguments_require_reconcile_only')
     report = read('v3-operational-research-scores.json')
     first, second = select_targets(initial, report)
     print(json.dumps({'stage': 'selected', 'asof': initial['date'],
@@ -140,6 +197,7 @@ def main():
     if latest['date'] != initial['date']:
         raise RecoveryError('market_close_changed_while_collecting')
     results = apply(latest, collected)
+    reconcile_source_receipt(latest, results.get('new_observed_paths', 0))
     print(json.dumps({'stage': 'verified', 'asof': latest['date'],
                       **counts, **results}, sort_keys=True), flush=True)
     if results.get('new_observed_paths') or results.get('reclassified_without_points'):
