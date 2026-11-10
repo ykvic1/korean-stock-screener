@@ -141,6 +141,7 @@ function reconciliationMarkup(v,compact=false){
  const s=scoreReconciliation(v);if(!s)return '';
  const n=value=>value.toFixed(1);
  const signed=value=>(value<0?'−':value>0?'+':'')+n(Math.abs(value));
+ const clamped=s.gross-s.netDeduction<0||s.gross-s.netDeduction>100;
  const netLabel=s.netDeduction>0?'순감점 −'+n(s.netDeduction):
   s.netDeduction<0?'순가점 +'+n(-s.netDeduction):'가감점 0.0';
  return '<div class="u-score-reconcile'+(compact?' u-score-reconcile-compact':'')+'" aria-label="운영점수 산출 및 가감점">'+
@@ -149,6 +150,7 @@ function reconciliationMarkup(v,compact=false){
   '<span class="'+(s.stop<0?'u-score-deduction':s.stop>0?'u-score-bonus':'')+'">손절거리 '+signed(s.stop)+'</span>'+
   '<span class="'+(s.risk>0?'u-score-deduction':'')+'">재무위험 '+(s.risk>0?'−':'')+n(s.risk)+'</span>'+
   '<span class="u-score-adjustment">'+netLabel+'</span>'+
+  (clamped?'<span class="u-score-clip">0~100점 범위 적용</span>':'')+
   '<strong>최종 '+n(s.final)+'점</strong></div>';
 }
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?

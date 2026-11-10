@@ -104,6 +104,11 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
   assert.match(view,/순감점 −4\.0/);
   assert.match(view,/최종 18\.7점/);
  }
+ assert.match(operational.reconciliationMarkup({...fixture,base:2,score:0},true),
+  /0~100점 범위 적용/);
+ assert.match(operational.reconciliationMarkup({base:50,score:52,
+  capital_deduction:0,stop_adjustment:2,risk_deduction:0},true),
+  /순가점 \+2\.0/);
  for(const view of [card,detail]){
   assert.ok(view.includes('최종 '+score.final.toFixed(1)+'점'));
   assert.ok(view.includes('영역 합계'));

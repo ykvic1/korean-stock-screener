@@ -829,6 +829,7 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
 .u-score-reconcile .u-score-deduction{color:#a34e39;font-weight:750}
 .u-score-reconcile .u-score-bonus{color:#167451;font-weight:750}
 .u-score-reconcile .u-score-adjustment{color:#785c3f;font-weight:700}
+.u-score-reconcile .u-score-clip{color:#6b7787;font-size:11px}
 .u-score-reconcile-compact{margin:0 0 9px;padding:7px 9px;gap:3px 9px;
   font-size:11px;border-color:#f0ded0;background:#fff9f5}
 .u-score-reconcile-compact strong{font-size:12px}
