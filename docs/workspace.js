@@ -2384,7 +2384,39 @@ function fiveAreaCoverageView(raw,asof,listed,model=null){
   '미확보 항목은 0점 처리하지 않고 미확인으로 유지합니다. 산업은 배점에서 제외됩니다.</p>'+
   completeNote+financialSubfactorCoverageView(raw,asof,listed)+'</div>';
 }
-const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,
+function structuralStopMarkup(r){
+ const s=r?.v3_structural_stop_reference;
+ if(!s||s.schema!==1||s.unscored_reference_only!==true||s.score_impact!==0||
+    !validDate(s.asof)||s.asof!==r.price_date){
+  return '<h3>20·60일 구조적 손절 참고선 · 배점 미반영</h3>'+
+   '<p class="u-muted">신규 구조적 참고선 관측 대기. 아래 기존 손절선은 과거 점수 산식의 20·45일 값이며 새로운 20·60일 근거로 혼동하지 마세요.</p>';
+ }
+ const zone=s.lower_volume_zone;
+ const pattern=s.pattern_invalidation;
+ const accurate=finite(s.reference_line)&&finite(r.price)&&r.price>s.reference_line&&
+  finite(s.distance_pct)&&Math.abs(s.distance_pct-(r.price-s.reference_line)/r.price*100)<.2;
+ const item=(label,value)=>'<div><small>'+label+'</small><strong>'+won(value)+'</strong></div>';
+ const zoneLabel=zone&&finite(zone.lower)&&finite(zone.upper)?
+  won(zone.lower)+' ~ '+won(zone.upper):'근거 부족';
+ const patternLabel=pattern&&finite(pattern.price)?
+  esc(pattern.pattern)+' · '+won(pattern.price):'유효 패턴 미관측';
+ return '<section class="u-stop-reference"><h3>20·60일 구조적 손절 참고선 · 배점 미반영</h3>'+
+  '<div class="u-stop-summary"><div><small>구조적 참고선 (매도 주문가 아님)</small><strong>'+
+  (accurate?won(s.reference_line):'미산출')+'</strong></div><div><small>현 종가 대비 하락 거리</small><strong>'+
+  (accurate?s.distance_pct.toFixed(1)+'%':'미산출')+'</strong></div></div>'+
+  '<div class="u-stop-evidence">'+
+  item('20거래일 저점',s.low20)+item('60거래일 저점',s.low60)+
+  item('3거래일 사후확인 스윙 저점',s.confirmed_swing_low)+
+  '<div><small>하단 매물대 (일봉 대표가격·거래량 추정)</small><strong>'+zoneLabel+'</strong></div>'+
+  '<div><small>패턴 무효화 추정선</small><strong>'+patternLabel+'</strong></div></div>'+
+  '<p class="u-muted">선정 근거: '+(Array.isArray(s.basis)&&s.basis.length?
+   esc(s.basis.join(' · ')):'미확인')+' · '+
+  (s.confidence==='confluence'?'복수 근거 인접':'단일 지지 근거 또는 미산출')+
+  ' · 관측일 '+esc(s.asof)+'</p>'+
+  (typeof s.warning==='string'&&s.warning?'<p class="u-stop-warning">'+esc(s.warning)+'</p>':'')+
+  '<p class="u-muted">일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 기존 점수·손절거리 보정에 영향을 주지 않습니다.</p></section>';
+}
+const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -2541,9 +2573,10 @@ function renderDetails(x){
  '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r,stability)+issuerReadinessMarkup(r)+
  (root.V3StopEvidence?root.V3StopEvidence.markup(r,model?.date):'')+
  '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
+ structuralStopMarkup(r)+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
- '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
- '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
+ '<div><small>기존 점수용 손절선 (20·45일)</small><strong>'+won(r.stop_line)+'</strong></div>'+
+ '<div><small>기존 점수용 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
  '<div class="u-factor-unverified"><small>기존 5영역 감점 전 합계 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
  '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
