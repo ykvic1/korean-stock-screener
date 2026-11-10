@@ -15,6 +15,7 @@ UNAVAILABLE_REASONS = frozenset({
     "missing_or_mismatched_session_index",
     "irregular_or_stale_session_calendar",
     "nonpositive_or_invalid_price_volume",
+    "zero_volume_close_changed_without_trade",
     "possible_unadjusted_corporate_action",
     "implausible_two_window_return",
     "other_path_validation_failure",
@@ -55,9 +56,15 @@ def classify_unavailable(close, volume, *, asof, session_days=None):
     closes = list(close[-121:])
     volumes = list(volume[-121:])
     if (any(not _number(x, positive=True) for x in closes)
-            or any(not _number(x, positive=True) for x in volumes)):
+            or any(not _number(x, positive=False) for x in volumes)
+            or not _number(volumes[0], positive=True)
+            or not _number(volumes[-1], positive=True)):
         return "nonpositive_or_invalid_price_volume"
     closes = [float(x) for x in closes]
+    volumes = [float(x) for x in volumes]
+    if any(volumes[i] == 0 and closes[i] != closes[i-1]
+           for i in range(1, 121)):
+        return "zero_volume_close_changed_without_trade"
     if any(abs(closes[i] / closes[i-1] - 1) > 0.5 for i in range(1, 121)):
         return "possible_unadjusted_corporate_action"
     for p in (100 * (closes[60] / closes[0] - 1),
@@ -79,11 +86,11 @@ def _number(value,*,positive=False):
 
 
 def observe(close,volume,*,asof,session_days=None):
-    """Only completed lookback windows; no forward return or zero-filling.
+    """Only dated completed lookbacks; never synthesize missing bars/trades.
 
-    The input is already day-sorted by the existing full-market OHLCV reader.
-    A zero-volume/suspended session invalidates these path observations; it
-    must not be interpreted as a negative momentum or an absorption score.
+    A *recorded* historical zero-volume bar is usable for the price path
+    only when its close exactly carries forward the prior recorded close.
+    Such a bar cannot qualify as a spike, absorption, or liquidity signal.
     """
     try:
         day=date.fromisoformat(asof)
@@ -107,9 +114,14 @@ def observe(close,volume,*,asof,session_days=None):
         return None
     closes=list(close[-121:]);volumes=list(volume[-121:])
     if (any(not _number(x,positive=True) for x in closes) or
-        any(not _number(v,positive=True) for v in volumes)):
+        any(not _number(v,positive=False) for v in volumes) or
+        not _number(volumes[0],positive=True) or
+        not _number(volumes[-1],positive=True)):
         return None
     closes=[float(x) for x in closes];volumes=[float(v) for v in volumes]
+    if any(volumes[i]==0 and closes[i]!=closes[i-1]
+           for i in range(1,121)):
+        return None
     if any(abs(closes[i]/closes[i-1]-1)>0.5 for i in range(1,121)):
         return None  # Potential unadjusted share-split/missing-session artifact.
     up20=sum(closes[i]>closes[i-1] for i in range(101,121))
@@ -125,6 +137,10 @@ def observe(close,volume,*,asof,session_days=None):
     # reduced volume. This remains a research FLAG, not 4 tradeable points.
     evaluated=0;absorbed=0
     for i in range(101,116):
+        # No-trade sessions cannot create a high-volume event or artificially
+        # lower the pre-spike baseline or five-session post-spike average.
+        if any(v==0 for v in volumes[i-20:i+6]):
+            continue
         base=sum(volumes[i-20:i])/20
         if base<=0 or volumes[i]/base<2.0 or closes[i]<closes[i-1]:
             continue

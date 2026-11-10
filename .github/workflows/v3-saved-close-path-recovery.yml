@@ -1,0 +1,53 @@
+name: V3 Same Close 121 Session Path Recovery (90 First)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: korea-stock-screener-publication
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Recover observed dated price path from already published close
+        run: python v3_saved_close_path_recovery.py
+      - name: Validate dated source without publishing scores from missing bars
+        id: delta
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/data.json; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'No valid additional same-close path evidence found.'
+          else
+            python v22_full_universe_audit.py --daily docs/data.json
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish only saved same-close observations
+        if: steps.delta.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/data.json
+          git commit -m 'Recover valid historical 121-session observations from saved close'
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Recalculate actual dated 90/95/100 coverage from published evidence
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
