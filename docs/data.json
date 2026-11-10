@@ -5693,13 +5693,17 @@
             "20": 0.276524,
             "60": 0.334822
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -8124,13 +8128,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.6,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -12511,13 +12519,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -13249,13 +13261,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -16890,13 +16906,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -18598,13 +18618,17 @@
             "20": 0.0,
             "60": 0.51919
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -20330,13 +20354,17 @@
             "20": 0.5,
             "60": 0.094986
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -40381,13 +40409,17 @@
             "20": 0.0,
             "60": 0.51244
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -44254,13 +44286,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.170337,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -44503,13 +44539,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -45472,13 +45512,17 @@
             "20": 0.0,
             "60": 0.03471
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -49298,13 +49342,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -51241,13 +51289,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -51466,7 +51518,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -56010,13 +56078,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -56501,13 +56573,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.255013,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -66505,13 +66581,17 @@
             "20": 0.5,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -78879,13 +78959,17 @@
             "20": 0.0,
             "60": 0.379827
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -80328,13 +80412,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -80584,13 +80672,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -87547,13 +87639,17 @@
             "20": 0.0,
             "60": 0.528
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -89003,13 +89099,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -114920,7 +115020,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -118312,13 +118428,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.059582,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -120728,13 +120848,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -129790,13 +129914,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -132710,13 +132838,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -133960,13 +134092,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -138743,13 +138879,17 @@
             "20": 0.0,
             "60": 0.444926
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -141658,13 +141798,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.239645,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -142139,13 +142283,17 @@
             "20": 0.0,
             "60": 0.4518
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -149889,13 +150037,17 @@
             "20": 0.0,
             "60": 0.6
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -152560,13 +152712,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -158749,13 +158905,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -164267,7 +164427,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -168785,13 +168961,17 @@
             "20": 0.0,
             "60": 0.480542
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -189549,7 +189729,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -194634,13 +194830,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -194871,13 +195071,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.323853,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -195103,13 +195307,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -195331,13 +195539,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -200070,7 +200282,23 @@
       "v3_unscored_path_unavailable_reason": null,
       "v3_ma240_cross_research": null,
       "v3_ma240_cross_unavailable_reason": "possible_unadjusted_corporate_action",
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -201471,7 +201699,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -209124,13 +209368,17 @@
             "20": 0.0,
             "60": 0.007442
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -209606,13 +209854,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -210080,13 +210332,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -219613,13 +219869,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -220065,13 +220325,17 @@
             "20": 0.0,
             "60": 0.177192
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -220304,13 +220568,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -232720,13 +232988,17 @@
             "20": 0.0,
             "60": 0.528
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -235562,13 +235834,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -238679,13 +238955,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -239884,13 +240164,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -242285,13 +242569,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -250008,13 +250296,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -257646,13 +257938,17 @@
             "20": 0.0,
             "60": 0.410964
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -259218,13 +259514,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -260881,13 +261181,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -261605,13 +261909,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -262806,13 +263114,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -263509,13 +263821,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -264697,13 +265013,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -274110,13 +274430,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -280104,13 +280428,17 @@
             "20": 0.0,
             "60": 0.584718
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -282453,13 +282781,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -286608,13 +286940,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -292628,13 +292964,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -298662,13 +299002,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -300356,13 +300700,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -301044,7 +301392,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.068685,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -305040,13 +305404,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -307213,13 +307581,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -311738,7 +312110,23 @@
       "v3_unscored_path_unavailable_reason": null,
       "v3_ma240_cross_research": null,
       "v3_ma240_cross_unavailable_reason": "possible_unadjusted_corporate_action",
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -314600,13 +314988,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -321319,13 +321711,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -322980,13 +323376,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -323439,7 +323839,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -325520,13 +325936,17 @@
             "20": 0.0,
             "60": 0.598818
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -325734,7 +326154,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -327890,7 +328326,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -328945,13 +329397,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -344052,13 +344508,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -353452,13 +353912,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -354412,13 +354876,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -357089,13 +357557,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -359019,7 +359491,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -360449,13 +360937,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -367414,13 +367906,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -369410,13 +369906,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -371786,7 +372286,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -373918,13 +374434,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -375128,13 +375648,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -380110,13 +380634,17 @@
             "20": 0.0,
             "60": 0.214904
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -385111,13 +385639,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -385591,13 +386123,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -391738,13 +392274,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -392191,13 +392731,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -400637,13 +401181,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -407369,13 +407917,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -408300,13 +408852,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -409747,13 +410303,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -410470,13 +411030,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -411434,13 +411998,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -411843,7 +412411,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -412299,13 +412883,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.299723,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -413013,13 +413601,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -418433,7 +419025,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -418648,13 +419256,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -422782,13 +423394,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -429248,13 +429864,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -432080,13 +432700,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -433282,13 +433906,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -434490,13 +435118,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -441252,13 +441884,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -444853,13 +445489,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -447241,13 +447881,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -449884,13 +450528,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -456051,13 +456699,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -463152,13 +463804,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -463863,13 +464519,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -464827,13 +465487,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -466968,13 +467632,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -467184,7 +467852,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -472643,13 +473327,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -478866,13 +479554,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -481296,13 +481988,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -489641,13 +490337,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -491088,13 +491788,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -493014,13 +493718,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -494688,7 +495396,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -494903,13 +495627,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.002759,
+            "60": 0.388546
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -495804,13 +496532,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -497009,13 +497741,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -498452,13 +499188,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -503694,13 +504434,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -505362,13 +506106,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -505829,13 +506577,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -507258,13 +508010,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -508593,13 +509349,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -508824,13 +509584,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -510947,13 +511711,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -513740,13 +514508,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -515910,13 +516682,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -518111,13 +518887,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -519562,13 +520342,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -521318,7 +522102,23 @@
       "v3_unscored_path_unavailable_reason": null,
       "v3_ma240_cross_research": null,
       "v3_ma240_cross_unavailable_reason": "possible_unadjusted_corporate_action",
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -522720,13 +523520,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -528113,13 +528917,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -529072,7 +529880,23 @@
         "source_regular_session_verified": false
       },
       "v3_ma240_cross_unavailable_reason": null,
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "asof": "2026-11-09",
+        "investment_score_certified": false,
+        "parts": {
+          "daily": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          },
+          "weekly": null
+        },
+        "raw_ohlcv_exported": false,
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "source_corporate_action_adjusted_verified": false,
+        "source_regular_session_verified": false,
+        "weekly_asof": null
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
         "confirmation_sessions": 5,
@@ -532868,13 +533692,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -533815,13 +534643,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -536448,13 +537280,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -540891,13 +541727,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -543080,13 +543920,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -553122,13 +553966,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": null
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -558052,13 +558900,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -562468,13 +563320,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -562945,13 +563801,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
@@ -566356,13 +567216,17 @@
             "20": 0.0,
             "60": 0.0
           },
-          "weekly": null
+          "weekly": {
+            "120": null,
+            "20": 0.0,
+            "60": 0.0
+          }
         },
         "raw_ohlcv_exported": false,
         "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": null
+        "weekly_asof": "2026-11-06"
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-09",
