@@ -128,6 +128,31 @@ function missingMarkup(v){
   '<p class="u-muted">미관측은 0점이 아닙니다. 아래 숫자는 점수 손실이 아닌 아직 확보되지 않은 배점입니다. 구체적인 원천 결손 사유는 검증 중입니다.</p><ul>'+
   gaps.map(g=>'<li>'+esc(LABELS[g.area])+' · '+esc(COMPONENTS[g.key])+' · '+g.missing.toFixed(2)+'점 '+(g.partiallyObserved?'추가 근거 필요':'근거 미관측')+'</li>').join('')+'</ul></details>';
 }
+// The five areas are GROSS earned points. The stored R1d score is NET of
+// capital, structural-stop and financial-risk adjustments; the same source
+// reconciliation is rendered in both the stock list and the detail panel.
+function scoreReconciliation(v){
+ if(!v||![v.base,v.score,v.capital_deduction,v.stop_adjustment,v.risk_deduction].every(finite))return null;
+ return {gross:v.base,capital:v.capital_deduction,stop:v.stop_adjustment,
+  risk:v.risk_deduction,netDeduction:v.capital_deduction-v.stop_adjustment+v.risk_deduction,
+  final:v.score};
+}
+function reconciliationMarkup(v,compact=false){
+ const s=scoreReconciliation(v);if(!s)return '';
+ const n=value=>value.toFixed(1);
+ const signed=value=>(value<0?'−':value>0?'+':'')+n(Math.abs(value));
+ const clamped=s.gross-s.netDeduction<0||s.gross-s.netDeduction>100;
+ const netLabel=s.netDeduction>0?'순감점 −'+n(s.netDeduction):
+  s.netDeduction<0?'순가점 +'+n(-s.netDeduction):'가감점 0.0';
+ return '<div class="u-score-reconcile'+(compact?' u-score-reconcile-compact':'')+'" aria-label="운영점수 산출 및 가감점">'+
+  '<span>영역 합계 <b>'+n(s.gross)+'</b></span>'+
+  '<span class="'+(s.capital>0?'u-score-deduction':'')+'">시총 '+(s.capital>0?'−':'')+n(s.capital)+'</span>'+
+  '<span class="'+(s.stop<0?'u-score-deduction':s.stop>0?'u-score-bonus':'')+'">손절거리 '+signed(s.stop)+'</span>'+
+  '<span class="'+(s.risk>0?'u-score-deduction':'')+'">재무위험 '+(s.risk>0?'−':'')+n(s.risk)+'</span>'+
+  '<span class="u-score-adjustment">'+netLabel+'</span>'+
+  (clamped?'<span class="u-score-clip">0~100점 범위 적용</span>':'')+
+  '<strong>최종 '+n(s.final)+'점</strong></div>';
+}
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
  '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':
  r?.v3_operational_evidence_missing?
@@ -135,19 +160,25 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
  '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
  return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
-  '</p><p>시총 -'+v.capital_deduction+' · 손절거리 '+(v.stop_adjustment>=0?'+':'')+v.stop_adjustment+' · 재무위험 -'+v.risk_deduction.toFixed(2)+
-  '점 · 재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
+  '</p>'+reconciliationMarkup(v)+
+  '<p class="u-muted">재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
   (v.risk_warnings.length?'<p class="u-muted">'+v.risk_warnings.map(esc).join(' · ')+'</p>':'')+
   '<p>기존 모델 '+(finite(v.legacy_score)?v.legacy_score.toFixed(1)+'점':'미관측')+' · 신규 '+(v.rank??'—')+'위 / 기존 '+(v.legacy_rank??'—')+'위</p>'+
   (finite(v.prior_operational_score)?'<p class="u-muted">직전 운영모델 '+v.prior_operational_score.toFixed(1)+'점 · '+(v.prior_operational_rank??'—')+'위 (점수 계산식 변경 전 비교)</p>':'')+
   '<table><thead><tr><th>영역</th><th>점수</th><th>확보/전체</th></tr></thead><tbody>'+Object.entries(BUDGET).map(([a,max])=>
-   '<tr><td>'+LABELS[a]+'</td><td>'+(v.areas[a].available?v.areas[a].points.toFixed(2):'미관측')+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+'</tbody></table>'+
+   '<tr><td>'+LABELS[a]+'</td><td>'+(v.areas[a].available?v.areas[a].points.toFixed(2):'미관측')+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+
+  (scoreReconciliation(v)?'<tr class="u-score-table-gross"><th scope="row">영역 합계 (감점 전)</th><td>'+v.base.toFixed(2)+'</td><td>'+v.available.toFixed(1)+' / 100</td></tr>'+
+   '<tr class="u-score-table-deduction"><th scope="row">시총·손절거리·재무위험 순가감점</th><td>'+
+    (scoreReconciliation(v).netDeduction>0?'−':scoreReconciliation(v).netDeduction<0?'+':'')+
+    Math.abs(scoreReconciliation(v).netDeduction).toFixed(2)+'</td><td>점수 조정 (확보배점 아님)</td></tr>'+
+   '<tr class="u-score-table-final"><th scope="row">최종 운영점수</th><td>'+v.score.toFixed(1)+'</td><td>/ 100</td></tr>':'')+
+  '</tbody></table><p class="u-muted">영역별 표시 점수는 소수 둘째 자리로 반올림되어 합계와 약간 다를 수 있습니다. 최종점수는 반올림 전 원본으로 계산합니다.</p>'+
   missingMarkup(v)+
   '<details><summary>신규 점수 세부 근거</summary>'+Object.entries(v.parts).map(([a,ps])=>'<h4>'+LABELS[a]+'</h4><ul>'+Object.entries(ps).map(([k,p])=>
    '<li>'+esc(COMPONENTS[k])+': '+p[0].toFixed(2)+' / '+p[1].toFixed(2)+' · '+esc(p[2])+'</li>').join('')+'</ul>').join('')+
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
-const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,missingComponents,markup};
+const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

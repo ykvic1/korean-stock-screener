@@ -819,4 +819,22 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
 .u-stability-note strong{color:#16775b;font-size:15px}
 .u-stability-note small{display:block;font-size:11px;color:#638477;line-height:1.6}
 
+/* Gross component sum, risk adjustments, and net score are always visible
+   together on both mobile stock cards and the same issuer's detail view. */
+.u-score-reconcile{display:flex;flex-wrap:wrap;align-items:center;gap:5px 11px;
+  margin:10px 0;padding:10px 12px;border:1px solid #d7e7e1;border-radius:9px;
+  background:#f6faf8;color:#365f56;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums}
+.u-score-reconcile b{color:#1c4554}
+.u-score-reconcile strong{font-size:13px;color:#087962}
+.u-score-reconcile .u-score-deduction{color:#a34e39;font-weight:750}
+.u-score-reconcile .u-score-bonus{color:#167451;font-weight:750}
+.u-score-reconcile .u-score-adjustment{color:#785c3f;font-weight:700}
+.u-score-reconcile .u-score-clip{color:#6b7787;font-size:11px}
+.u-score-reconcile-compact{margin:0 0 9px;padding:7px 9px;gap:3px 9px;
+  font-size:11px;border-color:#f0ded0;background:#fff9f5}
+.u-score-reconcile-compact strong{font-size:12px}
+.u-operational-detail .u-score-table-gross{background:#f6faf8;font-weight:700}
+.u-operational-detail .u-score-table-deduction{color:#a34e39}
+.u-operational-detail .u-score-table-final{background:#e9f7f0;color:#087962;font-weight:800}
+
 .u-operational-detail{border:2px solid #66b9a4;border-radius:14px;padding:16px;margin:12px 0;overflow-wrap:anywhere}.u-operational-detail table{width:100%;border-collapse:collapse}.u-operational-detail td,.u-operational-detail th{padding:6px 4px;text-align:left;border-bottom:1px solid #384357}.u-operational-detail details{margin:12px 0}.u-operational-detail ul{padding-left:20px}
