@@ -54,7 +54,8 @@ for(const filename of ['index.html','workspace.html']){
  const html=fs.readFileSync(path.join(__dirname,'../docs',filename),'utf8');
  const addon=html.indexOf('v3-stop-evidence.js?');
  assert.ok(addon>=0&&addon<html.indexOf('<script src="workspace.js?'));
- assert.match(html,/workspace\.js\?v=v30b-20261109-volume-detail-reconcile/);
+ assert.match(html,/workspace\.js\?v=v30b-[0-9]{8}-[a-z0-9-]+/,
+  'workspace bundle must carry a dated cache-busting version');
 }
 const workspace=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 assert.ok(workspace.includes('root.V3StopEvidence.markup(r,model?.date)'));
