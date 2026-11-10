@@ -160,6 +160,8 @@ def reconcile_listed_roster(snapshots: dict, catalog: dict, *, asof: str) -> dic
             or len(catalog["rows"]) != catalog["listed_total"]):
         raise IngestError("unaligned_or_invalid_market_roster")
     roster = {}
+    published_states = ("priced", "price_source_or_validation_error",
+                        "insufficient_history", "unattempted_batch")
     for item in catalog["rows"]:
         if type(item) is not dict:
             raise IngestError("invalid_market_roster_row")
@@ -167,38 +169,59 @@ def reconcile_listed_roster(snapshots: dict, catalog: dict, *, asof: str) -> dic
         if (type(code) is not str or CODE.fullmatch(code) is None
                 or market not in MARKETS or code in roster):
             raise IngestError("invalid_or_duplicate_market_roster_code")
-        roster[code] = market
+        state = item.get("price_history_status")
+        if state is not None and state not in published_states:
+            raise IngestError("invalid_published_price_source_state")
+        roster[code] = (market, state)
     observed = {}
     for market in MARKETS:
         for item in snapshots[market]["ohlcv"]:
             code = item["code"]
             if code in observed:
                 raise IngestError("duplicate_cross_market_code")
-            observed[code] = (market, item["trading_status"])
+            observed[code] = (market, item["trading_status"],
+                              item["accumulated_volume_observed"])
     counts = {
         "same_day_catalog_listed": len(roster),
         "source_six_digit_market_rows": len(observed),
         "matching_market_valid_ohlc": 0,
         "matching_market_explicit_no_trade": 0,
         "matching_market_quarantined_ohlc": 0,
+        "matching_market_quarantined_with_zero_reported_volume": 0,
         "catalog_code_missing_from_source": 0,
         "catalog_code_wrong_source_market": 0,
         "source_code_not_in_listed_catalog": 0,
+        "public_price_status_rows_crosschecked": 0,
+        "public_price_status_overlap": {s: {
+            "krx_reported_ohlc": 0,
+            "krx_explicit_no_trade": 0,
+            "krx_quarantined_ohlc": 0,
+            "krx_missing_or_wrong_market": 0,
+        } for s in published_states},
     }
-    for code, expected_market in roster.items():
+    for code, (expected_market, published_state) in roster.items():
         actual = observed.get(code)
+        bucket = "krx_missing_or_wrong_market"
         if actual is None:
             counts["catalog_code_missing_from_source"] += 1
         elif actual[0] != expected_market:
             counts["catalog_code_wrong_source_market"] += 1
         elif actual[1] == "reported_ohlc":
             counts["matching_market_valid_ohlc"] += 1
+            bucket = "krx_reported_ohlc"
         elif actual[1] == "no_trade_or_suspended":
             counts["matching_market_explicit_no_trade"] += 1
+            bucket = "krx_explicit_no_trade"
         elif actual[1] == "quarantined_invalid_ohlc":
             counts["matching_market_quarantined_ohlc"] += 1
+            counts["matching_market_quarantined_with_zero_reported_volume"] += int(
+                actual[2] == 0)
+            bucket = "krx_quarantined_ohlc"
         else:
             raise IngestError("unrecognized_private_market_status")
+        if published_state is not None:
+            counts["public_price_status_rows_crosschecked"] += 1
+            counts["public_price_status_overlap"][published_state][bucket] += 1
     counts["source_code_not_in_listed_catalog"] = len(set(observed) - set(roster))
     counts["regular_session_verified"] = False
     counts["historical_membership_verified"] = False

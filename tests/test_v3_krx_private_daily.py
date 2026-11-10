@@ -222,10 +222,14 @@ class PrivateKrxDailyTests(unittest.TestCase):
         kospi[2]["TDD_HGPRC"] = "95"
         kosdaq = [stock("252990"), stock("035720")]
         catalog = {"date": ASOF, "listed_total": 6, "rows": [
-            {"code": code, "market": market} for code, market in (
-                ("005930", "KOSPI"), ("000660", "KOSPI"),
-                ("002020", "KOSPI"), ("252990", "KOSDAQ"),
-                ("035720", "KOSDAQ"), ("999999", "KOSDAQ"))]}
+            {"code": code, "market": market, "price_history_status": state}
+            for code, market, state in (
+                ("005930", "KOSPI", "priced"),
+                ("000660", "KOSPI", "priced"),
+                ("002020", "KOSPI", "price_source_or_validation_error"),
+                ("252990", "KOSDAQ", "priced"),
+                ("035720", "KOSDAQ", "insufficient_history"),
+                ("999999", "KOSDAQ", "price_source_or_validation_error"))]}
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
             roster_file = folder / "catalog.json"
@@ -242,6 +246,14 @@ class PrivateKrxDailyTests(unittest.TestCase):
             self.assertEqual(audit["catalog_code_missing_from_source"], 1)
             self.assertEqual(audit["source_code_not_in_listed_catalog"], 1)
             self.assertEqual(audit["catalog_code_wrong_source_market"], 0)
+            self.assertEqual(audit["public_price_status_rows_crosschecked"], 6)
+            self.assertEqual(audit["public_price_status_overlap"]["priced"], {
+                "krx_reported_ohlc": 2, "krx_explicit_no_trade": 1,
+                "krx_quarantined_ohlc": 0, "krx_missing_or_wrong_market": 0})
+            self.assertEqual(audit["public_price_status_overlap"]["price_source_or_validation_error"]["krx_quarantined_ohlc"], 1)
+            self.assertEqual(audit["public_price_status_overlap"]["price_source_or_validation_error"]["krx_missing_or_wrong_market"], 1)
+            self.assertEqual(audit["public_price_status_overlap"]["insufficient_history"]["krx_reported_ohlc"], 1)
+            self.assertEqual(audit["matching_market_quarantined_with_zero_reported_volume"], 0)
             self.assertFalse(audit["confirmed_scoring_allowed"])
             self.assertNotIn("005930", json.dumps(audit))
             self.assertNotIn("SYNTHETIC_PRIVATE_API_KEY", json.dumps(report))
@@ -267,7 +279,9 @@ class PrivateKrxDailyTests(unittest.TestCase):
         for bad in ({**catalog, "date": "2026-10-15"},
                     {**catalog, "listed_total": 3},
                     {**catalog, "rows": catalog["rows"] + [catalog["rows"][0]],
-                     "listed_total": 5}):
+                     "listed_total": 5},
+                    {**catalog, "rows": [{**catalog["rows"][0],
+                                              "price_history_status": "unknown"}] + catalog["rows"][1:]}):
             with self.subTest(bad=bad), self.assertRaises(p.IngestError):
                 p.reconcile_listed_roster(markets, bad, asof=ASOF)
 
