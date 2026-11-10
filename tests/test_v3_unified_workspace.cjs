@@ -245,6 +245,7 @@ const operationalProgress={version:operationalReport.version,asof:operationalRep
 const visibleR1d=liveProgress.operationalSummary(operationalProgress);
 assert.equal(visibleR1d.total,operationalReport.listed_total);
 assert.equal(visibleR1d.observed,operationalRows.filter(r=>r.available>=100).length);
+assert.equal(visibleR1d.near90,operationalRows.filter(r=>r.available>=90).length);
 assert.equal(visibleR1d.ranked,operationalRows.filter(r=>r.rank!==null).length);
 for(const [field,value] of [
  ['provider_calls',1],['investment_score_certified',true],
@@ -335,6 +336,7 @@ for(const page of [entry,html]){
  assert.ok(page.includes('id="liveUpdates"'));
  assert.ok(page.includes('id="liveProgressAsOf"'));
  assert.ok(page.includes('id="liveProgressCoverage"'));
+ assert.ok(page.includes('id="liveProgressCoverage90"'));
  assert.ok(page.includes('id="liveProgressDart"'));
  assert.ok(page.includes('v3-live-progress.js'));
  assert.ok(page.includes('patch-notes.html'));
@@ -840,9 +842,10 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261110-trading-status','v30b-20261110-trading-status'],[entry,'v30b-20261110-trading-status','v30b-20261110-trading-status']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261110-trading-status','v30b-20261110-90plus-coverage'],[entry,'v30b-20261110-trading-status','v30b-20261110-90plus-coverage']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
+  page.includes('v3-live-progress.js?v=v30b-20261110-90plus-coverage')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }

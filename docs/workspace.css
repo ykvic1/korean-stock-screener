@@ -370,7 +370,7 @@ html,body{max-width:100%}
 .u-live-updates-header small{font-weight:600;color:#96d2b3;font-size:11px;
  margin-left:7px}
 .u-live-updates-header a{font-size:12px;color:#90f4b9;text-underline-offset:3px}
-.u-live-updates-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.u-live-updates-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .u-live-updates-grid>div{background:#1b3129;border:1px solid #335b46;border-radius:8px;
  padding:8px 10px;min-width:0}
 .u-live-updates-grid span,.u-live-updates-grid b{display:block;overflow-wrap:anywhere}
@@ -379,7 +379,7 @@ html,body{max-width:100%}
 .u-live-updates-note{font-size:11px;color:#b4cfc2;line-height:1.55;margin:8px 0 0}
 @media(max-width:520px){.u-live-updates{padding:10px 11px;margin-bottom:37px}
  .u-live-updates-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
- .u-live-updates-grid>div:last-child{grid-column:span 2}
+ .u-live-updates-grid>div:last-child{grid-column:auto}
  .u-live-updates-grid b{font-size:14px}
  .u-live-updates-header strong{font-size:12px}
 }
@@ -628,7 +628,7 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
 .u-live-updates-header strong{color:#2a4c41;font-size:12px}
 .u-live-updates-header small{font-size:10px;color:#6b9183}
 .u-live-updates-header a{color:#397969;font-size:11px}
-.u-live-updates-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.u-live-updates-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
 .u-live-updates-grid>div{background:transparent;border:0;border-right:1px solid #d0e0d9;
   border-radius:0;padding:5px 14px}
 .u-live-updates-grid>div:first-child{padding-left:0}
@@ -778,9 +778,10 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
   .u-header-actions button,.u-header-more>summary{width:auto;padding:8px 11px}
   .u-header-more-items{right:auto;left:0}
   .u-live-updates{padding:11px}
-  .u-live-updates-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .u-live-updates-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .u-live-updates-grid>div{padding:4px 7px;border-right:1px solid #d0e0d9}
   .u-live-updates-grid>div:first-child{padding-left:0}
+  .u-live-updates-grid>div:nth-child(2n){border-right:0}
   .u-live-updates-grid>div:last-child{grid-column:auto;border-right:0}
   .u-live-updates-grid b{font-size:13px}
   .u-live-updates-grid span{font-size:10px}
