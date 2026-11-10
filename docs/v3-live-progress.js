@@ -113,6 +113,7 @@ if(!root.document)return;
 const doc=root.document;
 const fields={
  date:doc.getElementById('liveProgressAsOf'),
+ coverage90:doc.getElementById('liveProgressCoverage90'),
  coverage:doc.getElementById('liveProgressCoverage'),
  dart:doc.getElementById('liveProgressDart'),
  note:doc.getElementById('liveProgressNotice')
@@ -128,6 +129,7 @@ async function getJson(path){
 async function load(){
  const run=++generation;
  fields.date.textContent='확인 중';
+ fields.coverage90.textContent='확인 중';
  fields.coverage.textContent='확인 중';
  fields.dart.textContent='확인 중';
  fields.note.textContent='각 데이터 원천의 기준일과 수집 상태를 확인 중입니다.';
@@ -143,6 +145,8 @@ async function load(){
  const proposed=operational.status==='fulfilled'?operationalSummary(operational.value):null;
  const o=proposed&&(!m||(proposed.total===m.total&&proposed.asof<=m.asof))?proposed:null;
  fields.date.textContent=o?o.asof+' · R1d 점수':m?m.asof:'재확인 필요';
+ fields.coverage90.textContent=o?
+  fmt(o.near90)+' / '+fmt(o.total)+'종목 (R1d)': 'R1d 집계 대기';
  fields.coverage.textContent=o?
   fmt(o.observed)+' / '+fmt(o.total)+'종목 (R1d)':m?
   fmt(m.observed)+' / '+fmt(m.total)+'종목 (기존 모델)':'재확인 필요';
@@ -154,7 +158,7 @@ async function load(){
   (o&&m&&o.asof<m.asof?'신규 운영점수는 '+o.asof+' 기준으로 유지 중이며 최신 종가의 재계산을 기다립니다. ':'')+
   (m||f||o?
   '각 원천의 마지막 저장 결과입니다. ':'원천 자료 확인 대기 중입니다. ')+
-  (o?'R1d 100점은 새 배점(25/30/12.5/12.5/20)의 근거가 모두 관측된 종목 수입니다. ':
+  (o?'R1d 90점 이상·100점은 전체 상장종목에서 새 배점(25/30/12.5/12.5/20)의 실제 관측 가능 배점 기준 종목 수입니다. 거래정지·이력 부족 종목도 전체 분모에 남으며, 미확보분을 0점으로 계산하지 않습니다. ':
    '아직 R1d 집계가 연결되지 않아 기존 모델 배점의 확보율만 표시 중입니다. ')+
   '확보배점은 획득점수·정식 투자점수·예상 수익률이 아닙니다. '+
   '과거 공시 접수 수집도 수정주가·기업행위·PIT 인증과 별개입니다.';
