@@ -53,6 +53,48 @@ class MaSlopeTransitionTests(unittest.TestCase):
             bad=copy.deepcopy(item);altered(bad)
             self.assertFalse(valid_observation(bad,item['asof']))
 
+    def test_short_daily_history_keeps_observed_20_60_without_unearned_120(self):
+        item=observe(bars().iloc[-160:])
+        self.assertTrue(valid_observation(item,item['asof']))
+        self.assertIsNone(item['parts']['daily']['120'])
+        self.assertIsNotNone(item['parts']['daily']['20'])
+        self.assertIsNotNone(item['parts']['daily']['60'])
+        self.assertIsNone(item['parts']['weekly'])
+        stock={'price_date':item['asof'],'market':'KOSPI','v3_ma_slope_transition':item}
+        parts,_=ops.score_issuer(stock,{'code':'000001','name':'test','market':'KOSPI'},day=item['asof'])
+        self.assertAlmostEqual(parts['momentum']['daily_ma_slope_turn']['available'],1.1)
+        self.assertIsNone(parts['momentum']['weekly_ma_slope_turn'])
+
+    def test_short_weekly_history_keeps_20_60_but_not_120(self):
+        item=observe(bars().iloc[-520:])
+        self.assertTrue(valid_observation(item,item['asof']))
+        self.assertEqual(item['weekly_asof'],item['asof'])
+        self.assertIsNotNone(item['parts']['weekly']['20'])
+        self.assertIsNotNone(item['parts']['weekly']['60'])
+        self.assertIsNone(item['parts']['weekly']['120'])
+        stock={'price_date':item['asof'],'market':'KOSPI','v3_ma_slope_transition':item}
+        parts,_=ops.score_issuer(stock,{'code':'000001','name':'test','market':'KOSPI'},day=item['asof'])
+        self.assertAlmostEqual(parts['momentum']['weekly_ma_slope_turn']['available'],1.5)
+
+    def test_older_bad_weekly_candle_only_invalidates_its_long_ma(self):
+        df=bars();bad=df.copy()
+        bad.loc[bad.index[-650],'High']=bad.loc[bad.index[-650],'Close']*.5
+        item=observe(bad)
+        self.assertTrue(valid_observation(item,item['asof']))
+        self.assertIsNotNone(item['parts']['weekly']['20'])
+        self.assertIsNotNone(item['parts']['weekly']['60'])
+        self.assertIsNone(item['parts']['weekly']['120'])
+        self.assertEqual(item['parts']['daily'],observe(df)['parts']['daily'])
+
+    def test_null_and_all_missing_line_values_are_not_certified(self):
+        item=observe(bars().iloc[-160:])
+        bad=copy.deepcopy(item)
+        bad['parts']['daily']={'20':None,'60':None,'120':None}
+        self.assertFalse(valid_observation(bad,item['asof']))
+        bad=copy.deepcopy(item)
+        bad['parts']['daily']['20']='0'
+        self.assertFalse(valid_observation(bad,item['asof']))
+
     def test_older_bad_weekly_bar_preserves_independent_recent_daily_turn(self):
         df=bars();baseline=observe(df)
         bad=df.copy()

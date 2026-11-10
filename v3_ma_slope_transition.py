@@ -14,14 +14,18 @@ DAILY_REQUIRED = 120 + 60 + 20
 WEEKLY_REQUIRED = 120 + 26 + 8
 
 
-def _series_points(closes, *, prior, recent, hold, floor, frame):
+def _series_points(closes, *, prior, recent, hold, floor, frame, trusted_window):
     import numpy as np  # Only the full-market scanner needs numerical dependencies.
     parts = {}
     for period, maximum in WEIGHTS[frame].items():
         n = int(period)
-        if len(closes) < n + prior + recent:
-            return None
-        ma = np.convolve(closes, np.ones(n) / n, mode='valid')
+        required = n + prior + recent
+        if len(closes) < required or not trusted_window(required):
+            # A shorter MA is independently observable even when the 120-week
+            # window is missing, stale, or invalid. Never award its weight.
+            parts[period] = None
+            continue
+        ma = np.convolve(closes[-required:], np.ones(n) / n, mode='valid')
         early, mid, late = ma[-1-recent-prior], ma[-1-recent], ma[-1]
         prior_rate = math.log(mid / early) / prior
         recent_rate = math.log(late / mid) / recent
@@ -34,7 +38,7 @@ def _series_points(closes, *, prior, recent, hold, floor, frame):
             strength = min(1., recent_rate / abs(prior_rate))
             points = maximum * strength * (.4 + .6*rising/hold)
         parts[period] = round(max(0., min(maximum, points)), 6)
-    return parts
+    return parts if any(points is not None for points in parts.values()) else None
 
 
 def observe(daily):
@@ -68,27 +72,24 @@ def observe(daily):
                 and not np.any((a[1:,4] == 0) & (closes[1:] != closes[:-1])))
 
     day = daily.index[-1].date().isoformat()
-    daily_tail = daily.iloc[-DAILY_REQUIRED:]
-    recent_day = (_series_points(daily_tail['Close'].to_numpy(dtype=float),
-                                prior=60, recent=20, hold=5,
-                                floor=.0001, frame='daily')
-                  if len(daily_tail) == DAILY_REQUIRED and trusted(
-                      daily_tail, require_traded_last=True)
-                  else None)
+    recent_day = _series_points(daily['Close'].to_numpy(dtype=float),
+        prior=60, recent=20, hold=5, floor=.0001, frame='daily',
+        trusted_window=lambda required: trusted(
+            daily.iloc[-required:], require_traded_last=True))
     weeks = daily[['Close']].resample('W-FRI').last().dropna()
     weeks = weeks.loc[weeks.index <= daily.index[-1].normalize()]
-    recent_week = None
-    if len(weeks) >= WEEKLY_REQUIRED:
-        weekly_tail = weeks.iloc[-WEEKLY_REQUIRED:]
+    def trusted_week_window(required):
+        weekly_tail = weeks.iloc[-required:]
         bars_in_weekly_window = daily.loc[
             weekly_tail.index[0] - pd.Timedelta(days=6):weekly_tail.index[-1]]
-        # The last *completed* Friday can be a valid zero-volume suspension
-        # observation even when the most recent daily bar trades on Monday.
-        if len(bars_in_weekly_window) and trusted(
-                bars_in_weekly_window, require_traded_last=False):
-            recent_week = _series_points(weekly_tail['Close'].to_numpy(dtype=float),
-                                         prior=26, recent=8, hold=3,
-                                         floor=.0005, frame='weekly')
+        # A completed Friday can legitimately have no transactions. Validate
+        # each MA against only the OHLCV dates it actually consumes.
+        return bool(len(bars_in_weekly_window)) and trusted(
+            bars_in_weekly_window, require_traded_last=False)
+
+    recent_week = _series_points(weeks['Close'].to_numpy(dtype=float),
+        prior=26, recent=8, hold=3, floor=.0005, frame='weekly',
+        trusted_window=trusted_week_window)
     if recent_day is None and recent_week is None:
         return None
     return {'schema': SCHEMA, 'asof': day,
@@ -112,8 +113,10 @@ def valid_observation(o, asof):
         for frame, specs in WEIGHTS.items():
             part = o['parts'][frame]
             if part is not None and (type(part) is not dict or set(part) != set(specs) or
-                any(type(part[n]) not in (float,int) or not math.isfinite(part[n])
-                    or not 0 <= part[n] <= maximum for n,maximum in specs.items())):
+                not any(value is not None for value in part.values()) or
+                any(part[n] is not None and (type(part[n]) not in (float,int)
+                    or not math.isfinite(part[n]) or not 0 <= part[n] <= maximum)
+                    for n,maximum in specs.items())):
                 return False
         if o['parts']['daily'] is None and o['parts']['weekly'] is None:
             return False

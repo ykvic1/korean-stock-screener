@@ -19,7 +19,7 @@ from v3_pattern_composite_score import _observed as pattern_observed, _weekly_tr
 from v3_path_provisional_factors import preview as path_preview
 from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
-from v3_ma_slope_transition import valid_observation as valid_ma_slope
+from v3_ma_slope_transition import WEIGHTS as MA_SLOPE_WEIGHTS, valid_observation as valid_ma_slope
 from v3_ma240_cross_research import valid_observation as valid_ma_cross
 from v3_actual_money_structure import valid as valid_money_structure
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
@@ -129,9 +129,11 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             for frame in ('daily','weekly'):
                 pieces=slope['parts'][frame]
                 if pieces is not None:
-                    weight=SPECS['momentum'][frame+'_ma_slope_turn']
-                    put('momentum',frame+'_ma_slope_turn',sum(pieces.values()),weight,
-                        slope['weekly_asof'] if frame=='weekly' else day)
+                    measured={n:value for n,value in pieces.items() if value is not None}
+                    if measured:
+                        put('momentum',frame+'_ma_slope_turn',sum(measured.values()),
+                            sum(MA_SLOPE_WEIGHTS[frame][n] for n in measured),
+                            slope['weekly_asof'] if frame=='weekly' else day)
         breakout=stock.get('v3_breakout_followthrough')
         if breakout is not None and valid_breakout_followthrough(breakout,day):
             put('technical','independent_breakout_confirmation',breakout['points'],1.2,day)
@@ -435,7 +437,7 @@ def main():
         for name in ('v3_revenue_growth_evidence.py','v3_dart_bulk_history.py',
                      'v3_dart_revenue_2022.py','v3_dart_revenue_2023_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
-                     'v3_dart_eps_prior_receipt_probe.py')}
+                     'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
         sort_keys=True,separators=(',',':')).encode()).hexdigest()
