@@ -18000,7 +18000,38 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2915.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 26.2,
+        "krx_regular_session_verified": false,
+        "low20": 2915.0,
+        "low60": 2915.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 3559.52,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 5,
+          "upper": 3630.71
+        },
+        "pattern_invalidation": {
+          "basis": "우측 어깨 저점 (휴리스틱)",
+          "pattern": "역헤드앤숄더",
+          "price": 3750.0
+        },
+        "reference_line": 2900.43,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "참고선까지 하락 여지가 15% 초과 · 추격 진입 주의"
+      }
     },
     {
       "rank": 71,
@@ -27096,7 +27127,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 108,
@@ -27826,7 +27876,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 111,
@@ -35350,7 +35419,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 142,
@@ -50018,7 +50106,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 202,
@@ -55169,7 +55276,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 223,
@@ -104099,7 +104225,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 423,
@@ -109407,7 +109552,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 445,
@@ -114029,7 +114193,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 464,
@@ -117145,7 +117328,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 477,
@@ -120555,7 +120757,36 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "20일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 2840.0,
+        "confluence_count": 2,
+        "corporate_actions_verified": false,
+        "distance_pct": 7.9,
+        "krx_regular_session_verified": false,
+        "low20": 2800.0,
+        "low60": 2355.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 2850.53,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 12,
+          "upper": 2907.54
+        },
+        "pattern_invalidation": null,
+        "reference_line": 2786.0,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 491,
@@ -127842,7 +128073,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 521,
@@ -136406,7 +136656,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 557,
@@ -151925,7 +152194,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 621,
@@ -152642,7 +152930,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 624,
@@ -155079,7 +155386,37 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 1910.0,
+        "confluence_count": 2,
+        "corporate_actions_verified": false,
+        "distance_pct": 9.88,
+        "krx_regular_session_verified": false,
+        "low20": 1856.0,
+        "low60": 1856.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1791.54,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 6,
+          "upper": 1827.37
+        },
+        "pattern_invalidation": null,
+        "reference_line": 1782.58,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 634,
@@ -155827,7 +156164,40 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "20일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 1731.0,
+        "confluence_count": 2,
+        "corporate_actions_verified": false,
+        "distance_pct": 11.65,
+        "krx_regular_session_verified": false,
+        "low20": 1731.0,
+        "low60": 1584.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1687.15,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 8,
+          "upper": 1720.89
+        },
+        "pattern_invalidation": {
+          "basis": "우측 어깨 저점 (휴리스틱)",
+          "pattern": "역헤드앤숄더",
+          "price": 1584.0
+        },
+        "reference_line": 1678.71,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 637,
@@ -157471,7 +157841,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 644,
@@ -158903,7 +159292,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 650,
@@ -159547,7 +159955,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 653,
@@ -165833,7 +166260,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 679,
@@ -176019,7 +176465,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 721,
@@ -178396,7 +178861,36 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 3850.0,
+        "confluence_count": 2,
+        "corporate_actions_verified": false,
+        "distance_pct": 7.44,
+        "krx_regular_session_verified": false,
+        "low20": 3700.0,
+        "low60": 3600.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 3646.79,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 13,
+          "upper": 3719.72
+        },
+        "pattern_invalidation": null,
+        "reference_line": 3582.0,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 731,
@@ -181571,7 +182065,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 744,
@@ -193800,7 +194313,34 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2025.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 11.82,
+        "krx_regular_session_verified": false,
+        "low20": 2025.0,
+        "low60": 1504.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1731.74,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 8,
+          "upper": 1766.38
+        },
+        "pattern_invalidation": null,
+        "reference_line": 2014.88,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 795,
@@ -194267,7 +194807,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 797,
@@ -195175,7 +195734,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2000.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 5.24,
+        "krx_regular_session_verified": false,
+        "low20": 1905.0,
+        "low60": 1905.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 1990.0,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 801,
@@ -199268,7 +199848,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 818,
@@ -206324,7 +206923,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 847,
@@ -206771,7 +207389,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 849,
@@ -208430,7 +209067,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 856,
@@ -209614,7 +210270,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 861,
@@ -220954,7 +221629,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 908,
@@ -226783,7 +227477,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 932,
@@ -231397,7 +232110,34 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 4335.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 5.62,
+        "krx_regular_session_verified": false,
+        "low20": 4300.0,
+        "low60": 4300.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 3532.76,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 12,
+          "upper": 3603.41
+        },
+        "pattern_invalidation": null,
+        "reference_line": 4313.32,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 951,
@@ -232125,7 +232865,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 954,
@@ -233287,7 +234046,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 959,
@@ -234745,7 +235523,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2795.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 5.41,
+        "krx_regular_session_verified": false,
+        "low20": 2765.0,
+        "low60": 2765.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 2781.03,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 965,
@@ -240019,7 +240818,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1700.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 8.96,
+        "krx_regular_session_verified": false,
+        "low20": 1616.0,
+        "low60": 1616.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 1691.5,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 987,
@@ -244093,7 +244913,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1004,
@@ -259748,7 +260587,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1069,
@@ -267224,7 +268082,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1723.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 7.83,
+        "krx_regular_session_verified": false,
+        "low20": 1715.0,
+        "low60": 1715.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 1714.38,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 1100,
@@ -272236,7 +273115,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1121,
@@ -277333,7 +278231,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1142,
@@ -284510,7 +285427,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1172,
@@ -297208,7 +298144,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1225,
@@ -299783,7 +300738,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1236,
@@ -309105,7 +310079,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1275,
@@ -311740,7 +312733,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1286,
@@ -325256,7 +326268,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1342,
@@ -328144,7 +329175,32 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2400.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 8.15,
+        "krx_regular_session_verified": false,
+        "low20": 2350.0,
+        "low60": 2350.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": {
+          "basis": "최근 60일 저가 하단 추세선 근사 (확정 무효화 아님)",
+          "pattern": "하락쐐기",
+          "price": 2549.14
+        },
+        "reference_line": 2388.0,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 1354,
@@ -344277,7 +345333,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2505.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 5.23,
+        "krx_regular_session_verified": false,
+        "low20": 2505.0,
+        "low60": 2505.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 2492.47,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 1421,
@@ -357829,7 +358906,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1477,
@@ -358315,7 +359411,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1479,
@@ -360998,7 +362113,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1490,
@@ -377727,7 +378861,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1560,
@@ -382999,7 +384152,32 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1251.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 6.55,
+        "krx_regular_session_verified": false,
+        "low20": 1251.0,
+        "low60": 1251.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": {
+          "basis": "최근 60일 저가 하단 추세선 근사 (확정 무효화 아님)",
+          "pattern": "하락쐐기",
+          "price": 977.7
+        },
+        "reference_line": 1244.74,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 1582,
@@ -386123,7 +387301,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1595,
@@ -408636,7 +409833,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1689,
@@ -421430,7 +422646,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1742,
@@ -422113,7 +423348,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1745,
@@ -423257,7 +424511,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1750,
@@ -435602,7 +436875,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": null,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 11.84,
+        "krx_regular_session_verified": false,
+        "low20": 3655.0,
+        "low60": 3655.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 3636.72,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 1802,
@@ -439711,7 +441005,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1820,
@@ -442329,7 +443642,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1831,
@@ -446223,7 +447555,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1847,
@@ -451739,7 +453090,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1870,
@@ -458848,7 +460218,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1900,
@@ -464881,7 +466270,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1925,
@@ -465082,7 +466490,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1926,
@@ -470962,7 +472389,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1951,
@@ -474672,7 +476118,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 1967,
@@ -483808,7 +485273,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2005,
@@ -485893,7 +487377,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": null,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 6.84,
+        "krx_regular_session_verified": false,
+        "low20": 22050.0,
+        "low60": 22050.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 21939.75,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 2014,
@@ -495979,7 +497484,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2057,
@@ -500797,7 +502321,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2077,
@@ -502232,7 +503775,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2083,
@@ -507008,7 +508570,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2103,
@@ -508340,7 +509921,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2109,
@@ -512953,7 +514553,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2128,
@@ -514407,7 +516026,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2134,
@@ -517039,7 +518677,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2125.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 3.01,
+        "krx_regular_session_verified": false,
+        "low20": 2050.0,
+        "low60": 2050.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 2114.38,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 2145,
@@ -518486,7 +520145,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2151,
@@ -525703,7 +527381,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": null,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 6.48,
+        "krx_regular_session_verified": false,
+        "low20": 3600.0,
+        "low60": 3600.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 3582.0,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 2181,
@@ -528112,7 +529811,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2191,
@@ -530649,7 +532367,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2202,
@@ -531332,7 +533069,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2205,
@@ -532973,7 +534729,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2212,
@@ -534595,7 +536370,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2219,
@@ -534835,7 +536629,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": null,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 6.93,
+        "krx_regular_session_verified": false,
+        "low20": 8690.0,
+        "low60": 8690.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 8646.55,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 2220,
@@ -535058,7 +536873,28 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 478.0,
+        "confluence_count": 1,
+        "corporate_actions_verified": false,
+        "distance_pct": 5.82,
+        "krx_regular_session_verified": false,
+        "low20": 478.0,
+        "low60": 478.0,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": 475.61,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": null
+      }
     },
     {
       "rank": 2221,
@@ -538357,7 +540193,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2235,
@@ -539326,7 +541181,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2239,
@@ -539770,7 +541644,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2241,
@@ -543068,7 +544961,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2255,
@@ -545943,7 +547855,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2267,
@@ -558543,7 +560474,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2320,
@@ -560194,7 +562144,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2327,
@@ -561498,7 +563467,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2333,
@@ -564776,7 +566764,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2347,
@@ -565461,7 +567468,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2350,
@@ -568500,7 +570526,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2363,
@@ -569195,7 +571240,26 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_structural_stop_reference": {
+        "asof": "2026-11-10",
+        "basis": [],
+        "confidence": "unavailable",
+        "confirmed_swing_low": null,
+        "confluence_count": 0,
+        "corporate_actions_verified": false,
+        "distance_pct": null,
+        "krx_regular_session_verified": false,
+        "low20": null,
+        "low60": null,
+        "lower_volume_zone": null,
+        "pattern_invalidation": null,
+        "reference_line": null,
+        "schema": 1,
+        "score_impact": 0,
+        "unscored_reference_only": true,
+        "warning": "가격 원천값 무효 또는 결측"
+      }
     },
     {
       "rank": 2366,
