@@ -2,6 +2,11 @@ name: V3 Saved Close MA Evidence Recovery (90 First)
 
 on:
   workflow_dispatch:
+    inputs:
+      repair_legacy_stops:
+        description: 'One-time recheck of old stop references invalidated by irrelevant ancient candles'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -24,7 +29,14 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - name: Recover previous published close only, never today's unfinished market
-        run: python v3_saved_close_ma_recovery.py
+        env:
+          REPAIR_LEGACY_STOPS: ${{ inputs.repair_legacy_stops }}
+        run: |
+          if [ "${REPAIR_LEGACY_STOPS:-false}" = 'true' ]; then
+            python v3_saved_close_ma_recovery.py --repair-legacy-stops
+          else
+            python v3_saved_close_ma_recovery.py
+          fi
       - name: Audit exact market and calculate genuine added-source count
         id: delta
         run: |

@@ -87,6 +87,11 @@ def observe(df, *, asof, patterns=None):
     if df is None or len(df) < 20 or not {'High', 'Low', 'Close'}.issubset(df.columns):
         result['warning'] = '20거래일 이상 유효한 일봉 자료 부족'
         return result
+    # This research uses at most 120 daily bars. An invalid candle from years
+    # ago must not suppress an otherwise valid current 20/60-day reference.
+    # Invalid candles *inside* the required 120-bar window still fail closed.
+    df = df.iloc[-120:]
+    result['validation_window_bars'] = len(df)
     try:
         high = df['High'].to_numpy(dtype=float)
         low = df['Low'].to_numpy(dtype=float)
@@ -181,6 +186,9 @@ def valid_reference(value, asof, price):
             or not all(type(x) is str for x in value['basis'])
             or type(value.get('confluence_count')) is not int
             or not 0 <= value['confluence_count'] <= 3):
+        return False
+    window = value.get('validation_window_bars')
+    if window is not None and (type(window) is not int or not 20 <= window <= 120):
         return False
     for field in ('low20', 'low60', 'confirmed_swing_low',
                   'reference_line', 'distance_pct'):
