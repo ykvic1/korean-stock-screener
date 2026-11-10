@@ -4,26 +4,28 @@
   "attempted_issuers": 2501,
   "corporate_actions_adjusted_verified": false,
   "current_price_issuers": 2375,
-  "daily_source_sha256": "261e2c9a25501d00423cf896555b55060f90d99f60fa006e133df234b334440b",
+  "daily_source_sha256": "b5b8c572a6903e0754755e8e34ae46a01140ec53bef9d4a79d2a1efb80a1ed0f",
   "interpretation": "unscored_research_coverage_not_a_buy_signal",
   "investment_grade_score_certified": false,
-  "issuers_with_complete_high_volume_up_spike": 737,
-  "issuers_with_post_spike_price_hold_and_volume_easing": 332,
+  "issuers_with_complete_high_volume_up_spike": 794,
+  "issuers_with_post_spike_price_hold_and_volume_easing": 350,
   "listed_eligible_issuers": 2501,
   "market_index_path_verified": false,
   "market_scan_complete": true,
-  "observed_121_session_paths": 2108,
-  "path_coverage_pct_of_current": 88.76,
-  "positive_five_session_blocks_majority_count": 231,
+  "observed_121_session_paths": 2261,
+  "path_coverage_pct_of_current": 95.2,
+  "positive_five_session_blocks_majority_count": 241,
   "raw_ohlcv_exported": false,
   "reason_diagnostics_independently_verified": false,
   "reason_diagnostics_scored_points": 0,
-  "recent60_outperformed_prior60_issuer_count": 1312,
+  "recent60_outperformed_prior60_issuer_count": 1413,
   "regular_session_independently_verified": false,
   "schema": "v3-unscored-path-source-coverage-0.1",
-  "unavailable_121_session_paths": 267,
+  "unavailable_121_session_paths": 114,
   "unavailable_path_reason_counts": {
-    "nonpositive_or_invalid_price_volume": 267
+    "nonpositive_or_invalid_price_volume": 93,
+    "possible_unadjusted_corporate_action": 1,
+    "zero_volume_close_changed_without_trade": 20
   },
-  "up_days20_majority_issuer_count": 161
+  "up_days20_majority_issuer_count": 171
 }
