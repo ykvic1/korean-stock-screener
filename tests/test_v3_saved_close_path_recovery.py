@@ -4,7 +4,7 @@ import copy
 import unittest
 
 from v3_saved_close_path_recovery import (
-    RecoveryError, apply, select_targets,
+    RecoveryError, apply, reconcile_source_receipt, select_targets,
 )
 from v3_unscored_path_observations import observe
 
@@ -20,7 +20,10 @@ def receipt():
 
 
 def market():
-    return {'date': DAY, 'stocks': [
+    return {'date': DAY, 'candidate_count':2,
+      'v3_unscored_path_source': {
+          'observed_issuer_count':0, 'unavailable_issuer_count':2},
+      'stocks': [
         {'code':'000001','price_date':DAY,'price':100.,
          'v3_unscored_path_observations':None,
          'v3_unscored_path_unavailable_reason':'nonpositive_or_invalid_price_volume'},
@@ -61,6 +64,17 @@ class SavedClosePathRecoveryTests(unittest.TestCase):
         self.assertEqual(current['stocks'][0]['v3_unscored_path_observations'],existing)
         self.assertIsNone(current['stocks'][1]['v3_unscored_path_observations'])
         self.assertEqual(current['stocks'][0]['v3_unscored_path_unavailable_reason'],None)
+        self.assertEqual(reconcile_source_receipt(current, 1), 1)
+        self.assertEqual(current['v3_unscored_path_source']['observed_issuer_count'], 1)
+        self.assertEqual(current['v3_unscored_path_source']['unavailable_issuer_count'], 1)
+
+    def test_recovery_receipt_cannot_silently_hide_preexisting_drift(self):
+        current = market()
+        apply(current, {'rows': [row('000001', evidence=receipt())]})
+        current['v3_unscored_path_source']['observed_issuer_count'] = 1
+        current['v3_unscored_path_source']['unavailable_issuer_count'] = 1
+        with self.assertRaisesRegex(RecoveryError, 'source_coverage_receipt_mismatch'):
+            reconcile_source_receipt(current, 1)
 
     def test_diagnostic_reclassification_cannot_create_points(self):
         current=market()
