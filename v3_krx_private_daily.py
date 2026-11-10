@@ -147,6 +147,65 @@ def normalize_market(rows: Any, *, market: str, asof: str,
     }
 
 
+def reconcile_listed_roster(snapshots: dict, catalog: dict, *, asof: str) -> dict:
+    """Anonymous exact-code and market reconciliation; never a score gate.
+
+    The current listed-company catalog is not a historical point-in-time
+    membership certificate. Require the same date to avoid comparing today's
+    constituents against an unrelated historical KRX market observation.
+    """
+    if (type(catalog) is not dict or catalog.get("date") != asof
+            or type(catalog.get("rows")) is not list
+            or type(catalog.get("listed_total")) is not int
+            or len(catalog["rows"]) != catalog["listed_total"]):
+        raise IngestError("unaligned_or_invalid_market_roster")
+    roster = {}
+    for item in catalog["rows"]:
+        if type(item) is not dict:
+            raise IngestError("invalid_market_roster_row")
+        code, market = item.get("code"), item.get("market")
+        if (type(code) is not str or CODE.fullmatch(code) is None
+                or market not in MARKETS or code in roster):
+            raise IngestError("invalid_or_duplicate_market_roster_code")
+        roster[code] = market
+    observed = {}
+    for market in MARKETS:
+        for item in snapshots[market]["ohlcv"]:
+            code = item["code"]
+            if code in observed:
+                raise IngestError("duplicate_cross_market_code")
+            observed[code] = (market, item["trading_status"])
+    counts = {
+        "same_day_catalog_listed": len(roster),
+        "source_six_digit_market_rows": len(observed),
+        "matching_market_valid_ohlc": 0,
+        "matching_market_explicit_no_trade": 0,
+        "matching_market_quarantined_ohlc": 0,
+        "catalog_code_missing_from_source": 0,
+        "catalog_code_wrong_source_market": 0,
+        "source_code_not_in_listed_catalog": 0,
+    }
+    for code, expected_market in roster.items():
+        actual = observed.get(code)
+        if actual is None:
+            counts["catalog_code_missing_from_source"] += 1
+        elif actual[0] != expected_market:
+            counts["catalog_code_wrong_source_market"] += 1
+        elif actual[1] == "reported_ohlc":
+            counts["matching_market_valid_ohlc"] += 1
+        elif actual[1] == "no_trade_or_suspended":
+            counts["matching_market_explicit_no_trade"] += 1
+        elif actual[1] == "quarantined_invalid_ohlc":
+            counts["matching_market_quarantined_ohlc"] += 1
+        else:
+            raise IngestError("unrecognized_private_market_status")
+    counts["source_code_not_in_listed_catalog"] = len(set(observed) - set(roster))
+    counts["regular_session_verified"] = False
+    counts["historical_membership_verified"] = False
+    counts["confirmed_scoring_allowed"] = False
+    return counts
+
+
 def _private_dir(path: Path) -> Path:
     dest = path.expanduser().resolve()
     if dest == ROOT or ROOT in dest.parents:
@@ -199,7 +258,8 @@ def _atomically_write_new(destination: Path, filename: str, payload: dict) -> st
 
 def ingest(*, asof: str, key: str, private_dir: Path,
            client_factory=KRXClient, minimum_stocks: int = 500,
-           quarantine_invalid_prices: bool = False) -> dict:
+           quarantine_invalid_prices: bool = False,
+           roster_catalog: Path | None = None) -> dict:
     """One KRX request per market. One failure -> zero snapshot writes."""
     d = _date(asof)
     if type(key) is not str or not key.strip():
@@ -222,6 +282,15 @@ def ingest(*, asof: str, key: str, private_dir: Path,
     all_codes = [row["code"] for m in MARKETS for row in snapshots[m]["ohlcv"]]
     if len(all_codes) != len(set(all_codes)):
         raise IngestError("duplicate_cross_market_code")
+    roster_audit = None
+    if roster_catalog is not None:
+        try:
+            if roster_catalog.stat().st_size > 5_000_000:
+                raise IngestError("oversized_market_roster")
+            catalog = json.loads(roster_catalog.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError):
+            raise IngestError("unreadable_market_roster") from None
+        roster_audit = reconcile_listed_roster(snapshots, catalog, asof=d.isoformat())
     result = {
         "schema": "private-krx-two-market-eod-observation-v0.1",
         "asof": d.isoformat(),
@@ -229,6 +298,7 @@ def ingest(*, asof: str, key: str, private_dir: Path,
         "coverage": {m: {k: v for k, v in snapshots[m].items() if k != "ohlcv"}
                      for m in MARKETS},
         "markets": snapshots,
+        "same_day_listed_roster_audit": roster_audit,
         "source_crosscheck_required": False,
         "official_regular_session_volume_verified": False,
         "company_actions_adjustment_verified": False,
@@ -245,6 +315,7 @@ def ingest(*, asof: str, key: str, private_dir: Path,
         "kosdaq_rows": snapshots["KOSDAQ"]["six_digit_rows_validated"],
         "quarantined_price_rows": sum(snapshots[m]["quarantined_price_rows"]
                                       for m in MARKETS),
+        "same_day_listed_roster_audit": roster_audit,
         "source_hashes_recorded_privately": True,
         "raw_market_data_published": False,
         "investor_flow_confirmed": False,
@@ -261,6 +332,8 @@ def main(argv=None):
                     help="Explicit, authorized KRX live opt-in after service approval")
     ap.add_argument("--quarantine-invalid-prices", action="store_true",
                     help="Keep invalid individual KRX quotes unscored in private source only")
+    ap.add_argument("--roster-catalog", type=Path,
+                    help="Optional same-day public listed catalog for anonymous exact-code audit")
     args = ap.parse_args(argv)
     if not args.live:
         print('{"status":"not_run","reason":"service_approval_and_live_required"}')
@@ -268,7 +341,8 @@ def main(argv=None):
     try:
         report = ingest(asof=args.asof, key=os.environ.get("KRX_API_KEY", ""),
                         private_dir=Path(args.private_dir),
-                        quarantine_invalid_prices=args.quarantine_invalid_prices)
+                        quarantine_invalid_prices=args.quarantine_invalid_prices,
+                        roster_catalog=args.roster_catalog)
     except IngestError as exc:
         print(json.dumps({"status":"ingestion_blocked", "reason": str(exc)}))
         return 1

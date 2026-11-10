@@ -216,6 +216,75 @@ class PrivateKrxDailyTests(unittest.TestCase):
             self.assertFalse(saved["official_regular_session_volume_verified"])
             self.assertFalse(saved["confirmed_scoring_allowed"])
 
+    def test_same_day_listed_roster_reconciles_without_promoting_quotes(self):
+        kospi = [stock("005930"), stock("000660", price="0", volume="0"),
+                 stock("002020"), stock("123456")]
+        kospi[2]["TDD_HGPRC"] = "95"
+        kosdaq = [stock("252990"), stock("035720")]
+        catalog = {"date": ASOF, "listed_total": 6, "rows": [
+            {"code": code, "market": market} for code, market in (
+                ("005930", "KOSPI"), ("000660", "KOSPI"),
+                ("002020", "KOSPI"), ("252990", "KOSDAQ"),
+                ("035720", "KOSDAQ"), ("999999", "KOSDAQ"))]}
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            roster_file = folder / "catalog.json"
+            roster_file.write_text(json.dumps(catalog), encoding="utf-8")
+            report = p.ingest(asof=ASOF, key="SYNTHETIC_PRIVATE_API_KEY",
+                              private_dir=folder / "private",
+                              client_factory=fake_client(kospi=kospi, kosdaq=kosdaq),
+                              minimum_stocks=2, quarantine_invalid_prices=True,
+                              roster_catalog=roster_file)
+            audit = report["same_day_listed_roster_audit"]
+            self.assertEqual(audit["matching_market_valid_ohlc"], 3)
+            self.assertEqual(audit["matching_market_explicit_no_trade"], 1)
+            self.assertEqual(audit["matching_market_quarantined_ohlc"], 1)
+            self.assertEqual(audit["catalog_code_missing_from_source"], 1)
+            self.assertEqual(audit["source_code_not_in_listed_catalog"], 1)
+            self.assertEqual(audit["catalog_code_wrong_source_market"], 0)
+            self.assertFalse(audit["confirmed_scoring_allowed"])
+            self.assertNotIn("005930", json.dumps(audit))
+            self.assertNotIn("SYNTHETIC_PRIVATE_API_KEY", json.dumps(report))
+            saved = json.loads((folder / "private" / "krx_20261016.json").read_text())
+            self.assertEqual(saved["same_day_listed_roster_audit"], audit)
+
+    def test_roster_market_mismatch_and_stale_catalog_are_not_valid_quotes(self):
+        markets = {
+            "KOSPI": p.normalize_market(DEFAULT_KOSPI, market="KOSPI", asof=ASOF,
+                                          source=b"a", minimum_stocks=2),
+            "KOSDAQ": p.normalize_market(DEFAULT_KOSDAQ, market="KOSDAQ", asof=ASOF,
+                                           source=b"b", minimum_stocks=2),
+        }
+        catalog = {"date": ASOF, "listed_total": 4, "rows": [
+            {"code": "005930", "market": "KOSDAQ"},
+            {"code": "000660", "market": "KOSPI"},
+            {"code": "252990", "market": "KOSDAQ"},
+            {"code": "035720", "market": "KOSDAQ"},
+        ]}
+        result = p.reconcile_listed_roster(markets, catalog, asof=ASOF)
+        self.assertEqual(result["catalog_code_wrong_source_market"], 1)
+        self.assertEqual(result["matching_market_valid_ohlc"], 3)
+        for bad in ({**catalog, "date": "2026-10-15"},
+                    {**catalog, "listed_total": 3},
+                    {**catalog, "rows": catalog["rows"] + [catalog["rows"][0]],
+                     "listed_total": 5}):
+            with self.subTest(bad=bad), self.assertRaises(p.IngestError):
+                p.reconcile_listed_roster(markets, bad, asof=ASOF)
+
+    def test_invalid_same_day_roster_cannot_write_private_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            roster_file = folder / "catalog.json"
+            roster_file.write_text(json.dumps({"date": "2026-10-15",
+                                                "listed_total": 0, "rows": []}))
+            with self.assertRaisesRegex(p.IngestError, "unaligned_or_invalid_market_roster"):
+                p.ingest(asof=ASOF, key="SYNTHETIC_PRIVATE_API_KEY",
+                         private_dir=folder / "private",
+                         client_factory=fake_client(kospi=DEFAULT_KOSPI,
+                                                    kosdaq=DEFAULT_KOSDAQ),
+                         minimum_stocks=2, roster_catalog=roster_file)
+            self.assertFalse((folder / "private").exists())
+
     def test_reject_underpopulation_or_many_raw_rows(self):
         for rows in ([stock("005930")], [stock(str(x).zfill(6)) for x in range(5001)]):
             with self.subTest(count=len(rows)),self.assertRaises(p.IngestError):

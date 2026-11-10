@@ -51,7 +51,8 @@ jobs:
           if [[ "$MODE" == "live" ]]; then
             python v3_krx_private_daily.py --asof "$ASOF" \
               --private-dir "$RUNNER_TEMP_PRIVATE/krx-official-private" --live \
-              --quarantine-invalid-prices
+              --quarantine-invalid-prices \
+              --roster-catalog docs/v22-market-catalog.json
           else
             python v3_krx_private_daily.py --asof "$ASOF"
           fi
