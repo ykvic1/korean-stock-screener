@@ -51,3 +51,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
+      - name: Refresh legacy same-close price replay so its independent CSV cannot stay stale
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-current-price-replay.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
