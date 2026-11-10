@@ -66,14 +66,31 @@ class OperationalScoreTests(unittest.TestCase):
             for key,maximum in [('daily_ma_slope_turn',2),('weekly_ma_slope_turn',3)]:
                 receipt=r['parts']['momentum'][key]
                 if receipt is not None:
-                    self.assertEqual(receipt['available'],maximum)
-                    self.assertLessEqual(receipt['points'],maximum)
+                    self.assertGreater(receipt['available'],0)
+                    self.assertLessEqual(receipt['available'],maximum)
+                    self.assertLessEqual(receipt['points'],receipt['available'])
             breakout=r['parts']['technical']['independent_breakout_confirmation']
             if breakout is not None:
                 self.assertEqual(breakout['available'],1.2)
                 self.assertIn(breakout['points'],(0,.6,1.2))
             self.assertLessEqual(r['risk_deduction'],5)
             self.assertNotEqual(r['risk_status'],'safe')
+
+    def test_new_partial_ma_receipt_does_not_erase_prior_full_observation(self):
+        previous=json.loads((ROOT/'docs'/ops.OUTPUT).read_text())
+        market=copy.deepcopy(self.inputs[0])
+        stock=next(stock for stock in market['stocks']
+                   if stock.get('v3_ma_slope_transition',{}).get('parts',{}).get('weekly') is not None
+                   and previous['rows'][stock['code']]['parts']['momentum'].get('weekly_ma_slope_turn'))
+        code=stock['code']
+        stock['v3_ma_slope_transition']['parts']['weekly']['120']=None
+        partial,_=ops.score_issuer(stock,self.inputs[2]['rows'][code],day=market['date'])
+        self.assertLess(partial['momentum']['weekly_ma_slope_turn']['available'],3)
+        recovered=ops.build(*([market]+self.inputs[1:]),previous=previous)
+        new=recovered['rows'][code]['parts']['momentum']['weekly_ma_slope_turn']
+        old=previous['rows'][code]['parts']['momentum']['weekly_ma_slope_turn']
+        self.assertEqual(new['available'],old[1])
+        self.assertEqual(new['asof'],old[2])
 
     def test_ma240_receipt_survives_independent_volume_adapter_rejection(self):
         from v3_ma240_cross_research import observe as ma_observe
