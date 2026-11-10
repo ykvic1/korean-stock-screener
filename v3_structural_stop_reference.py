@@ -160,3 +160,39 @@ def observe(df, *, asof, patterns=None):
     elif result['distance_pct'] < 3:
         result['warning'] = '참고선이 종가에 너무 근접 · 일간 변동성 확인 필요'
     return result
+
+
+def valid_reference(value, asof, price):
+    """Guard retained unscored references against cross-session/score claims.
+
+    This validates the receipt's source-contract and numeric shape, not the
+    unverified provider's KRX session or corporate-action provenance.
+    """
+    if (type(value) is not dict or value.get('schema') != 1
+            or value.get('asof') != asof or type(asof) is not str
+            or value.get('score_impact') != 0
+            or value.get('unscored_reference_only') is not True
+            or value.get('krx_regular_session_verified') is not False
+            or value.get('corporate_actions_verified') is not False
+            or type(price) not in (int, float) or not math.isfinite(price)
+            or price <= 0 or value.get('confidence') not in
+            ('unavailable', 'single_support', 'confluence')
+            or type(value.get('basis')) is not list
+            or not all(type(x) is str for x in value['basis'])
+            or type(value.get('confluence_count')) is not int
+            or not 0 <= value['confluence_count'] <= 3):
+        return False
+    for field in ('low20', 'low60', 'confirmed_swing_low',
+                  'reference_line', 'distance_pct'):
+        number = value.get(field)
+        if number is not None and (type(number) not in (float, int)
+                                   or not math.isfinite(number)):
+            return False
+    ref = value.get('reference_line')
+    distance = value.get('distance_pct')
+    if ref is None:
+        return distance is None and value['confidence'] == 'unavailable'
+    return (0 < ref < price and distance is not None and
+            abs(distance - 100 * (price - ref) / price) < .03 and
+            value['confidence'] != 'unavailable' and
+            bool(value['basis']))

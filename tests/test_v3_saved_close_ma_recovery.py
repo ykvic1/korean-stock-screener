@@ -1,9 +1,11 @@
 """Manual last-close recovery never fabricates new weighted observations."""
 from copy import deepcopy
 import unittest
+import pandas as pd
 
 from v3_saved_close_ma_recovery import availability, apply, select_targets, RecoveryError
 from v3_ma_slope_transition import SCHEMA
+from v3_structural_stop_reference import observe as observe_stop
 
 
 DAY = '2026-11-09'
@@ -32,6 +34,13 @@ def inputs():
               'coverage_90_first':{'family_conditional_priority_codes':{
                   'price_chart_windows':['000001','000004']}}}
     return market,priority,report
+
+
+def stop_reference():
+    return observe_stop(pd.DataFrame({
+        'Low': [8500.] * 60, 'High': [9200.] * 60,
+        'Close': [8990.] * 60, 'Volume': [100000.] * 60,
+    }), asof=DAY)
 
 
 class SavedCloseMARecoveryTests(unittest.TestCase):
@@ -77,6 +86,46 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
         tampered=receipt({'20':0.,'60':None,'120':None},None)
         tampered['source_regular_session_verified']=True
         with self.assertRaises(RecoveryError):availability(tampered,DAY)
+
+    def test_same_saved_close_reuses_ma_frame_for_unscored_stop(self):
+        full=receipt({'20':0.,'60':0.,'120':0.},
+                     {'20':0.,'60':0.,'120':0.})
+        market={'date':DAY,'stocks':[stock('000001',deepcopy(full))]}
+        candidate=stop_reference()
+        self.assertEqual(candidate['score_impact'],0)
+        updated=apply(market,{'rows':[{'code':'000001','metrics':{
+            'price_date':DAY,'price_latest':8990.,
+            'v3_ma_slope_transition':full,
+            'v3_structural_stop_reference':candidate}}]})
+        self.assertEqual(updated.get('more_observed_receipts',0),0)
+        self.assertEqual(updated['new_unscored_stop_references'],1)
+        self.assertEqual(market['stocks'][0]['v3_ma_slope_transition'],full)
+        self.assertEqual(market['stocks'][0]['v3_structural_stop_reference'],candidate)
+
+    def test_stop_reference_never_overwrites_saved_date_or_earned_score(self):
+        market={'date':DAY,'stocks':[stock('000001')]}
+        bad=stop_reference()
+        bad['score_impact']=3
+        with self.assertRaises(RecoveryError):
+            apply(market,{'rows':[{'code':'000001','metrics':{
+                'price_date':DAY,'price_latest':8990.,
+                'v3_structural_stop_reference':bad}}]})
+        self.assertNotIn('v3_structural_stop_reference',market['stocks'][0])
+        checked=apply(market,{'rows':[{'code':'000001','metrics':{
+            'price_date':DAY,'price_latest':8991.,
+            'v3_structural_stop_reference':stop_reference()}}]})
+        self.assertEqual(checked['source_close_or_date_mismatch'],1)
+        self.assertNotIn('v3_structural_stop_reference',market['stocks'][0])
+
+    def test_missing_stop_is_first_cohort_only_when_ma_already_full(self):
+        market, priority, report=inputs()
+        full=receipt({'20':0.,'60':0.,'120':0.},
+                     {'20':0.,'60':0.,'120':0.})
+        market['stocks'][0]['v3_ma_slope_transition']=full
+        market['stocks'][1]['v3_ma_slope_transition']=full
+        cohorts,counts=select_targets(market,priority,report)
+        self.assertEqual(cohorts,(['000001'],[]))
+        self.assertEqual(counts,{'below_90_priority':1,'already_90_priority':0})
 
 
 if __name__=='__main__':unittest.main()
