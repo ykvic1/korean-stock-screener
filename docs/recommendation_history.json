@@ -1,5 +1,23 @@
 [
   {
+    "date": "2026-11-10",
+    "screened": 2377,
+    "selected": [
+      "005500",
+      "192080"
+    ],
+    "confirmed_count": 0,
+    "entered": [
+      "005500",
+      "192080"
+    ],
+    "exited": [
+      "069510",
+      "101330"
+    ],
+    "updated": []
+  },
+  {
     "date": "2026-11-09",
     "screened": 2375,
     "selected": [
