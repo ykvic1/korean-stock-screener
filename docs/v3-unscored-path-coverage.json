@@ -4,7 +4,7 @@
   "attempted_issuers": 2501,
   "corporate_actions_adjusted_verified": false,
   "current_price_issuers": 2377,
-  "daily_source_sha256": "c41470abf7d2c094bf7f768b093b8fcb39e372616cb69da8375023ded7abee1a",
+  "daily_source_sha256": "0dc5d76371c9e63c16f21e8330399c9f011d3a686e225f9b4857ddaadd642062",
   "interpretation": "unscored_research_coverage_not_a_buy_signal",
   "investment_grade_score_certified": false,
   "issuers_with_complete_high_volume_up_spike": 772,
