@@ -67,8 +67,14 @@ def _whole(value: Any, field: str) -> int:
 
 
 def normalize_market(rows: Any, *, market: str, asof: str,
-                     source: bytes, minimum_stocks: int = 500) -> dict:
-    """No guessed zero prices. Insufficient population blocks both-market commit."""
+                     source: bytes, minimum_stocks: int = 500,
+                     quarantine_invalid_prices: bool = False) -> dict:
+    """Keep invalid individual quotes unavailable, never turn them into zeros.
+
+    Default remains strict. The opt-in only saves malformed price rows in a
+    private quarantine, so one halted issuer cannot discard the other market
+    observations. Identity/date/duplicate and invalid volume still fail closed.
+    """
     day = _date(asof)
     if market not in MARKETS or type(source) is not bytes or not source or len(source) > 20_000_000:
         raise IngestError("invalid_market_source")
@@ -80,6 +86,8 @@ def normalize_market(rows: Any, *, market: str, asof: str,
     seen = set()
     skipped_nonstock = 0
     observed_nontrading = 0
+    quarantined_prices = 0
+    accepted_quotes = 0
     for raw in rows:
         if type(raw) is not dict:
             raise IngestError("invalid_market_row")
@@ -92,33 +100,48 @@ def normalize_market(rows: Any, *, market: str, asof: str,
         seen.add(code)
         if str(raw.get("BAS_DD", "")).replace("-", "") != day.strftime("%Y%m%d"):
             raise IngestError("wrong_market_trade_date")
-        values = {k: _whole(raw.get(v), k) for k, v in OHLC.items()}
+        try:
+            values = {k: _whole(raw.get(v), k) for k, v in OHLC.items()}
+        except IngestError:
+            if not quarantine_invalid_prices:
+                raise
+            values = None
         volume = _whole(raw.get("ACC_TRDVOL"), "volume")
-        valid_ohlc = (values["low"] > 0 and values["high"] >= values["low"]
+        valid_ohlc = (values is not None and values["low"] > 0
+                      and values["high"] >= values["low"]
                       and values["low"] <= values["open"] <= values["high"]
                       and values["low"] <= values["close"] <= values["high"])
-        no_trade = (volume == 0 and all(v == 0 for v in values.values()))
+        no_trade = (values is not None and volume == 0
+                    and all(v == 0 for v in values.values()))
         if not valid_ohlc and not no_trade:
-            raise IngestError("invalid_market_ohlc")
+            if not quarantine_invalid_prices:
+                raise IngestError("invalid_market_ohlc")
+            quarantined_prices += 1
+        else:
+            accepted_quotes += 1
         if no_trade:
             observed_nontrading += 1
         result.append({
             "code": code, "market": market, "trade_date": day.isoformat(),
             "ohlc_observed": values if valid_ohlc else None,
             "accumulated_volume_observed": volume,
-            "trading_status": "reported_ohlc" if valid_ohlc else "no_trade_or_suspended",
+            "trading_status": ("reported_ohlc" if valid_ohlc else
+                               "no_trade_or_suspended" if no_trade else
+                               "quarantined_invalid_ohlc"),
             "regular_only_volume": None,
             "regular_session_verified": False,
             "adjusted_history_verified": False,
             "confirmed_scoring_allowed": False,
         })
-    if len(result) < minimum_stocks:
+    if accepted_quotes < minimum_stocks:
         raise IngestError("not_enough_six_digit_market_codes")
     return {
         "market": market, "trade_date": day.isoformat(),
         "rows_received": len(rows), "six_digit_rows_validated": len(result),
         "nonstock_codes_not_imported": skipped_nonstock,
         "no_trade_rows_observed": observed_nontrading,
+        "quarantined_price_rows": quarantined_prices,
+        "valid_or_explicit_no_trade_rows": accepted_quotes,
         "raw_source_sha256": sha256(source).hexdigest(),
         "ohlcv": result,
     }
@@ -175,7 +198,8 @@ def _atomically_write_new(destination: Path, filename: str, payload: dict) -> st
 
 
 def ingest(*, asof: str, key: str, private_dir: Path,
-           client_factory=KRXClient, minimum_stocks: int = 500) -> dict:
+           client_factory=KRXClient, minimum_stocks: int = 500,
+           quarantine_invalid_prices: bool = False) -> dict:
     """One KRX request per market. One failure -> zero snapshot writes."""
     d = _date(asof)
     if type(key) is not str or not key.strip():
@@ -187,7 +211,8 @@ def ingest(*, asof: str, key: str, private_dir: Path,
             rows, source = client.daily_market(market, d.isoformat())
             snapshots[market] = normalize_market(
                 rows, market=market, asof=d.isoformat(), source=source,
-                minimum_stocks=minimum_stocks)
+                minimum_stocks=minimum_stocks,
+                quarantine_invalid_prices=quarantine_invalid_prices)
     except IngestError:
         raise
     except (ProbeError, ValueError, TypeError):
@@ -218,6 +243,8 @@ def ingest(*, asof: str, key: str, private_dir: Path,
         "status": outcome, "asof": d.isoformat(),
         "kospi_rows": snapshots["KOSPI"]["six_digit_rows_validated"],
         "kosdaq_rows": snapshots["KOSDAQ"]["six_digit_rows_validated"],
+        "quarantined_price_rows": sum(snapshots[m]["quarantined_price_rows"]
+                                      for m in MARKETS),
         "source_hashes_recorded_privately": True,
         "raw_market_data_published": False,
         "investor_flow_confirmed": False,
@@ -232,13 +259,16 @@ def main(argv=None):
     ap.add_argument("--private-dir", default=str(PRIVATE_DEFAULT))
     ap.add_argument("--live", action="store_true",
                     help="Explicit, authorized KRX live opt-in after service approval")
+    ap.add_argument("--quarantine-invalid-prices", action="store_true",
+                    help="Keep invalid individual KRX quotes unscored in private source only")
     args = ap.parse_args(argv)
     if not args.live:
         print('{"status":"not_run","reason":"service_approval_and_live_required"}')
         return 0
     try:
         report = ingest(asof=args.asof, key=os.environ.get("KRX_API_KEY", ""),
-                        private_dir=Path(args.private_dir))
+                        private_dir=Path(args.private_dir),
+                        quarantine_invalid_prices=args.quarantine_invalid_prices)
     except IngestError as exc:
         print(json.dumps({"status":"ingestion_blocked", "reason": str(exc)}))
         return 1

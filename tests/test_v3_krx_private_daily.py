@@ -161,6 +161,61 @@ class PrivateKrxDailyTests(unittest.TestCase):
         self.assertEqual(result["ohlcv"][0]["trading_status"],"no_trade_or_suspended")
         self.assertFalse(result["ohlcv"][0]["confirmed_scoring_allowed"])
 
+    def test_opt_in_quarantines_inconsistent_or_missing_quote_without_zero_fill(self):
+        for bad in ({"TDD_LWPRC":"110"}, {"TDD_CLSPRC":"-"},
+                    {"TDD_CLSPRC":"0", "ACC_TRDVOL":"20"}):
+            with self.subTest(bad=bad):
+                rows=[stock("005930"),stock("000660"),stock("252990")]
+                rows[0].update(bad)
+                with self.assertRaises(p.IngestError):
+                    p.normalize_market(rows,market="KOSPI",asof=ASOF,
+                                       source=b"private",minimum_stocks=2)
+                result=p.normalize_market(rows,market="KOSPI",asof=ASOF,
+                                          source=b"private",minimum_stocks=2,
+                                          quarantine_invalid_prices=True)
+                self.assertEqual(result["six_digit_rows_validated"],3)
+                self.assertEqual(result["valid_or_explicit_no_trade_rows"],2)
+                self.assertEqual(result["quarantined_price_rows"],1)
+                q=result["ohlcv"][0]
+                self.assertEqual(q["trading_status"],"quarantined_invalid_ohlc")
+                self.assertIsNone(q["ohlc_observed"])
+                self.assertEqual(q["accumulated_volume_observed"],
+                                 int(rows[0]["ACC_TRDVOL"].replace(",","")))
+                self.assertFalse(q["confirmed_scoring_allowed"])
+                self.assertNotIn("TDD_CLSPRC",json.dumps(result))
+
+    def test_opt_in_quarantine_still_rejects_identity_volume_and_mass_failure(self):
+        cases=[({"BAS_DD":"20261015"},"wrong_market_trade_date"),
+               ({"ACC_TRDVOL":"-"},"noninteger_volume")]
+        for damaged,reason in cases:
+            rows=[stock("005930"),stock("000660")]
+            rows[0].update(damaged)
+            with self.subTest(reason=reason),self.assertRaisesRegex(p.IngestError,reason):
+                p.normalize_market(rows,market="KOSPI",asof=ASOF,
+                                   source=b"private",minimum_stocks=1,
+                                   quarantine_invalid_prices=True)
+        with self.assertRaisesRegex(p.IngestError,"not_enough_six_digit_market_codes"):
+            p.normalize_market([stock("005930",price="0",volume="10")],
+                               market="KOSPI",asof=ASOF,source=b"private",
+                               minimum_stocks=1,quarantine_invalid_prices=True)
+
+    def test_partial_both_market_private_recovery_does_not_authorize_scores(self):
+        kospi=[stock("005930"),stock("000660"),stock("002020")]
+        kospi[0]["TDD_HGPRC"]="95"
+        creator=fake_client(kospi=kospi,kosdaq=DEFAULT_KOSDAQ)
+        with tempfile.TemporaryDirectory() as tmp:
+            private=Path(tmp)
+            report=p.ingest(asof=ASOF,key="SYNTHETIC_PRIVATE_API_KEY",
+                            private_dir=private,client_factory=creator,
+                            minimum_stocks=2,quarantine_invalid_prices=True)
+            self.assertEqual(report["status"],"new_private_snapshot_written")
+            self.assertEqual(report["quarantined_price_rows"],1)
+            saved=json.loads((private/"krx_20261016.json").read_text())
+            self.assertEqual(saved["coverage"]["KOSPI"]["quarantined_price_rows"],1)
+            self.assertEqual(saved["coverage"]["KOSDAQ"]["quarantined_price_rows"],0)
+            self.assertFalse(saved["official_regular_session_volume_verified"])
+            self.assertFalse(saved["confirmed_scoring_allowed"])
+
     def test_reject_underpopulation_or_many_raw_rows(self):
         for rows in ([stock("005930")], [stock(str(x).zfill(6)) for x in range(5001)]):
             with self.subTest(count=len(rows)),self.assertRaises(p.IngestError):
