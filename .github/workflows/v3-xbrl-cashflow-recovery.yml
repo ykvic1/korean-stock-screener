@@ -11,6 +11,11 @@ on:
       - v3_dart_xbrl_cashflow_recovery.py
       - .github/workflows/v3-xbrl-cashflow-recovery.yml
   workflow_dispatch:
+    inputs:
+      recheck_equivalent_contexts:
+        description: 'One-time recheck of old v1 no-result records after explicit annual context equivalence fix'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -56,9 +61,14 @@ jobs:
         id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          RECHECK_EQUIVALENT_CONTEXTS: ${{ inputs.recheck_equivalent_contexts }}
         run: |
           set -euo pipefail
           interrupted=0
+          extra_args=()
+          if [[ "${RECHECK_EQUIVALENT_CONTEXTS:-false}" == 'true' ]]; then
+            extra_args+=(--recheck-equivalent-contexts)
+          fi
           # Cohort 20 was independently surveyed by the structural pilot;
           # two missing facts had target-year dimensional contexts. Recheck
           # those receipts first, without bypassing the stronger verifier.
@@ -66,7 +76,7 @@ jobs:
           # receipt-checked issuer-years, 90-point candidates first. The
           # collector retains its six-minute source deadline and per-year
           # verified checkpoints; it does not infer missing CAPEX or scores.
-          if ! python v3_dart_xbrl_cashflow_recovery.py --mode live --limit 32 --structural-cohort-index 20; then interrupted=1; fi
+          if ! python v3_dart_xbrl_cashflow_recovery.py --mode live --limit 32 --structural-cohort-index 20 "${extra_args[@]}"; then interrupted=1; fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish
