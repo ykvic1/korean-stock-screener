@@ -54,9 +54,16 @@ class UnscoredPricePathTests(unittest.TestCase):
         self.assertTrue(valid_unavailable_reason(
             observe(close,volume,asof=ASOF,session_days=days),None))
         volume[70]=0
+        original_close=close[70]
+        close[70]=close[69]
+        retained=observe(close,volume,asof=ASOF,session_days=days)
+        self.assertTrue(valid_observation(retained,ASOF))
+        self.assertEqual(retained['up_close_days20'],20)
+        self.assertEqual(retained['complete_post_spike_events_evaluated'],0)
+        close[70]=original_close
         self.assertIsNone(observe(close,volume,asof=ASOF,session_days=days))
         reason=classify_unavailable(close,volume,asof=ASOF,session_days=days)
-        self.assertEqual(reason,"nonpositive_or_invalid_price_volume")
+        self.assertEqual(reason,"zero_volume_close_changed_without_trade")
         self.assertTrue(valid_unavailable_reason(None,reason))
         self.assertFalse(valid_unavailable_reason(None,None))
         self.assertFalse(valid_unavailable_reason(None,"SECRET_URL"))
@@ -79,7 +86,8 @@ class UnscoredPricePathTests(unittest.TestCase):
         close,volume,days=sample()
         self.assertIsNone(observe(close,volume,asof=ASOF))
         volume[70]=0
-        self.assertIsNone(observe(close,volume,asof=ASOF,session_days=days))
+        close[70]=close[69]
+        self.assertIsNotNone(observe(close,volume,asof=ASOF,session_days=days))
         volume[70]=100
         close[70]*=2
         self.assertIsNone(observe(close,volume,asof=ASOF,session_days=days))
@@ -96,6 +104,24 @@ class UnscoredPricePathTests(unittest.TestCase):
             altered=copy.deepcopy(out);altered[field]=value
             self.assertFalse(valid_observation(altered,ASOF))
         self.assertTrue(valid_observation(None,ASOF))
+
+    def test_historical_halt_never_fabricates_absorption_or_invalid_volume(self):
+        close,volume,days=sample()
+        volume[105]=500
+        for i in range(106,111):volume[i]=80
+        good=observe(close,volume,asof=ASOF,session_days=days)
+        self.assertGreater(good['post_spike_price_hold_with_volume_easing_events'],0)
+        volume[108]=0  # Actual recorded non-trading day with carried close.
+        close[108]=close[107]
+        result=observe(close,volume,asof=ASOF,session_days=days)
+        self.assertIsNotNone(result)
+        self.assertEqual(result['post_spike_price_hold_with_volume_easing_events'],0)
+        for bad in (-1,float('nan'),float('inf'),True):
+            invalid=volume.copy();invalid[70]=bad
+            self.assertIsNone(observe(close,invalid,asof=ASOF,session_days=days))
+        for i in (0,120):
+            invalid=volume.copy();invalid[i]=0
+            self.assertIsNone(observe(close,invalid,asof=ASOF,session_days=days))
 
 
 if __name__=="__main__":unittest.main()
