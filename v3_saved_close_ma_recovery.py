@@ -1,7 +1,7 @@
-"""Recover *observed* MA slope availability from a previously saved close.
+"""Recover *observed* MA slope and unscored stop references from saved close.
 
 Manual-only, 90-first source task.  The fetched Naver bars stay in memory;
-only validated provisional MA receipts can enter the saved market snapshot.
+only validated provisional observations can enter the saved market snapshot.
 This does not certify KRX regular-session prices or create trading signals.
 """
 from __future__ import annotations
@@ -14,6 +14,9 @@ import subprocess
 import tempfile
 
 from v3_ma_slope_transition import WEIGHTS, observe, valid_observation
+from v3_structural_stop_reference import (
+    observe as observe_structural_stop, valid_reference,
+)
 
 
 class RecoveryError(ValueError):
@@ -54,14 +57,24 @@ def select_targets(market, priority, report):
             or type(stock.get('price')) not in (int, float)
             or not math.isfinite(stock['price']) or stock['price'] <= 0):
             return False
-        return availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
+        # Reuse the same source read for a previously missing stop reference.
+        # This research field never makes a point available or changes rank.
+        reference = stock.get('v3_structural_stop_reference')
+        if reference is not None and not valid_reference(reference, day, stock['price']):
+            raise RecoveryError('invalid_retained_structural_stop_reference')
+        return (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
+                or reference is None)
 
     first = [code for code in focus if useful(code)]
     # Only current-date, not-yet-fully-observed 90+ issuers.  No all-market
     # rediscovery, historical full-market job, or future close requests.
     primary = set(first)
+    # Do not fetch 90+ names solely for optional stop references: the regular
+    # full-market scan handles those. Focus scarce calls on score gaps.
     second = [code for code, row in report['rows'].items()
-              if 90 <= row['available'] < 100 and code not in primary and useful(code)]
+              if 90 <= row['available'] < 100 and code not in primary
+              and useful(code)
+              and availability(stocks[code].get('v3_ma_slope_transition'), day) != (2., 3.)]
     if len(first) + len(second) > 400:
         raise RecoveryError('unexpectedly_large_target_cohort')
     return (sorted(first), sorted(second)), {'below_90_priority': len(first),
@@ -74,7 +87,10 @@ def analyze(code, cfg, day):
     receipt = observe(frame)
     return {'price_date': latest.isoformat(),
             'price_latest': float(frame['Close'].iloc[-1]),
-            'v3_ma_slope_transition': receipt}
+            'v3_ma_slope_transition': receipt,
+            'v3_structural_stop_reference': observe_structural_stop(
+                frame, asof=latest.isoformat(),
+                patterns=screener.daily_patterns(frame))}
 
 
 def collect(codes, day):
@@ -109,6 +125,18 @@ def apply(market, collected):
             or evidence.get('price_latest') != stock.get('price')):
             result['source_close_or_date_mismatch'] += 1
             continue
+        # Stop reference and MA evidence have independent acceptance gates.
+        # Even if MA cannot gain points, a valid unscored stop can be saved.
+        reference = evidence.get('v3_structural_stop_reference')
+        if reference is not None:
+            if not valid_reference(reference, day, stock['price']):
+                raise RecoveryError('invalid_recovered_structural_stop_reference')
+            existing = stock.get('v3_structural_stop_reference')
+            if existing is not None and not valid_reference(existing, day, stock['price']):
+                raise RecoveryError('invalid_retained_structural_stop_reference')
+            if existing is None:
+                stock['v3_structural_stop_reference'] = reference
+                result['new_unscored_stop_references'] += 1
         new = evidence.get('v3_ma_slope_transition')
         if new is None:
             result['still_unavailable'] += 1
@@ -159,7 +187,8 @@ def main():
                       'provider_errors':len(collected['errors']),
                       'insufficient_history':len(collected['excluded']),**changes},
                      sort_keys=True),flush=True)
-    if changes.get('more_observed_receipts', 0):
+    if (changes.get('more_observed_receipts', 0)
+            or changes.get('new_unscored_stop_references', 0)):
         out = docs/'data.json'
         out.write_text(json.dumps(latest,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf8')
 
