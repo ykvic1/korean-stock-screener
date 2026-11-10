@@ -115,14 +115,16 @@ def observe(df, *, asof, patterns=None):
         result['lower_volume_zone'] = _lower_zone(high, low, close, volume, price)
     result['pattern_invalidation'] = _pattern_support(high, low, close, patterns)
 
-    evidence = [('20일 저점', result['low20']),
-                ('60일 저점', result['low60']),
-                ('확인된 스윙 저점', result['confirmed_swing_low']),
+    # 20/60 lows and a swing point may be the *same trading day's low*.
+    # Treat them as one price-structure family, not independent confirmations.
+    evidence = [('20일 저점', result['low20'], 'price'),
+                ('60일 저점', result['low60'], 'price'),
+                ('확인된 스윙 저점', result['confirmed_swing_low'], 'price'),
                 ('일봉 기반 추정 하단 매물대',
-                 (result['lower_volume_zone'] or {}).get('lower')),
+                 (result['lower_volume_zone'] or {}).get('lower'), 'volume'),
                 ('패턴 무효화 추정',
-                 (result['pattern_invalidation'] or {}).get('price'))]
-    levels = [(name, value) for name, value in evidence
+                 (result['pattern_invalidation'] or {}).get('price'), 'pattern')]
+    levels = [(name, value, family) for name, value, family in evidence
               if value is not None and 0 < value < price * .98]
     if not levels:
         result['warning'] = '현 종가보다 충분히 아래에 있는 유효 지지 후보 없음'
@@ -130,26 +132,29 @@ def observe(df, *, asof, patterns=None):
     # Identify the strongest *distinct evidence* cluster within a 4% band.
     # Equal-size clusters prefer the one closest below today's close.
     clusters = []
-    for _, anchor in levels:
-        group = [(n, v) for n, v in levels if abs(v / anchor - 1) <= .04]
+    for _, anchor, _ in levels:
+        group = [(n, v, family) for n, v, family in levels
+                 if abs(v / anchor - 1) <= .04]
         clusters.append(group)
-    best = max(clusters, key=lambda group: (len(group), min(v for _, v in group)))
-    if len(best) < 2:
+    best = max(clusters, key=lambda group: (len({family for _, _, family in group}),
+                                           len(group), min(v for _, v, _ in group)))
+    if len({family for _, _, family in best}) < 2:
         # No confluence: use the latest confirmed swing, then 60/20 day low.
         preferred = ['확인된 스윙 저점', '60일 저점', '20일 저점',
                      '일봉 기반 추정 하단 매물대', '패턴 무효화 추정']
         best = [next((item for item in levels if item[0] == name), None)
                 for name in preferred]
         best = [next(item for item in best if item is not None)]
-    support = min(value for _, value in best)
+    support = min(value for _, value, _ in best)
     # Half-percent confirmation buffer below supporting price, not a promise
     # of executable exit price. Supports are invalidation *references* only.
     reference = support * .995
     result.update(reference_line=_round(reference),
                   distance_pct=round(100 * (price - reference) / price, 2),
-                  basis=[name for name, _ in best],
-                  confluence_count=len(best),
-                  confidence='confluence' if len(best) >= 2 else 'single_support')
+                  basis=[name for name, _, _ in best],
+                  confluence_count=len({family for _, _, family in best}),
+                  confidence=('confluence' if len({family for _, _, family in best}) >= 2
+                              else 'single_support'))
     if result['distance_pct'] > 15:
         result['warning'] = '참고선까지 하락 여지가 15% 초과 · 추격 진입 주의'
     elif result['distance_pct'] < 3:

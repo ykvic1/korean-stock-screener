@@ -28,7 +28,9 @@ class StructuralStopReferenceTests(unittest.TestCase):
         self.assertEqual(result['low60'], 91)
         self.assertEqual(result['confirmed_swing_low'], 91)
         self.assertEqual(result['reference_line'], 90.55)
-        self.assertGreaterEqual(result['confluence_count'], 3)
+        self.assertEqual(result['confluence_count'], 1,
+                         'one price trough counted as 20d, 60d and swing is NOT independent')
+        self.assertEqual(result['confidence'], 'single_support')
         self.assertEqual(result['score_impact'], 0)
         self.assertTrue(result['unscored_reference_only'])
         self.assertFalse(result['krx_regular_session_verified'])
@@ -58,6 +60,7 @@ class StructuralStopReferenceTests(unittest.TestCase):
         self.assertFalse(zone['exact_volume_at_price'])
         self.assertGreaterEqual(zone['observed_daily_candles'], 3)
         self.assertLess(zone['upper'], 105)
+        self.assertGreaterEqual(ref['confluence_count'], 2)
 
     def test_zero_volume_and_missing_volume_not_invented(self):
         df = history()
