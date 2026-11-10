@@ -65,11 +65,11 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261110-volume-contrast'),'homepage uses compact ranking UI assets');
- assert.ok(html.includes('v30b-20261110-volume-contrast'),'classic research route keeps its pinned assets');
- assert.ok(entry.includes('workspace.js?v=v30b-20261109-volume-detail-reconcile'),
-  'homepage must fetch the volume-detail reconciliation');
- assert.ok(html.includes('workspace.js?v=v30b-20261109-volume-detail-reconcile'),
+ assert.ok(entry.includes('v30b-20261110-trading-status'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261110-trading-status'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('workspace.js?v=v30b-20261110-trading-status'),
+  'homepage must fetch the current trading-status display');
+ assert.ok(html.includes('workspace.js?v=v30b-20261110-trading-status'),
   'research route must fetch the same updated script');
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
 }
@@ -840,9 +840,10 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261109-volume-detail-reconcile','v30b-20261110-volume-contrast'],[entry,'v30b-20261109-volume-detail-reconcile','v30b-20261110-volume-contrast']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261110-trading-status','v30b-20261110-trading-status'],[entry,'v30b-20261110-trading-status','v30b-20261110-trading-status']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
-  page.includes('workspace.css?v='+cssVersion),
+  page.includes('workspace.css?v='+cssVersion)&&
+  page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }
 assert.ok(css.includes('.u-ma-cross-note'), 'mobile MA crossing evidence needs a separate readable line');

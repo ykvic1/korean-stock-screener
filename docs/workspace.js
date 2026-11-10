@@ -2489,10 +2489,13 @@ function renderDetails(x){
  if(!x){view.innerHTML='';view.hidden=true;return;}
  const r=x.r;
  if(r.unpriced_operational_only){
+  const haltLabel=root.V3TradingStatus?.label(r);
+  const haltNote=root.V3TradingStatus?.explanation(r);
   view.hidden=false;
   view.innerHTML='<div class="u-detail-top"><div><small>전종목 등재 · '+esc(model.date)+
    '</small><h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
    '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
+   (haltLabel?'<div class="u-verdict warning"><strong>'+esc(haltLabel)+'</strong><span>'+esc(haltNote)+'</span></div>':'')+
    '<p class="u-muted">현재 가격 관측 목록에서 제외된 종목입니다. 가격·손절선·차트·기존 점수를 임의로 채우지 않습니다. 신규 운영점수는 개별 종목별 마지막 실제 관측 자료만 유지하며, 미관측 배점은 0점이 아닙니다.</p>'+
    (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
    '<p class="u-muted">가격 데이터 및 기업행위 검증 후 차트·위험 상세가 연결됩니다. 정규장 원천·수정주가·공시 효력 검증 전으로 매수 판단에 사용하지 마세요.</p>';
@@ -2515,6 +2518,7 @@ function renderDetails(x){
  view.innerHTML='<div class="u-detail-top"><div><small>종목별 분석 · '+esc(model.date)+'</small>'+
  '<h2>'+esc(r.name)+'</h2><p>'+esc(r.code)+' · '+esc(r.market)+'</p></div>'+
  '<button id="detailClose" type="button" aria-label="분석 닫기">✕</button></div>'+
+ (root.V3TradingStatus?.label(r)?'<div class="u-verdict warning"><strong>'+esc(root.V3TradingStatus.label(r))+'</strong><span>'+esc(root.V3TradingStatus.explanation(r))+'</span></div>':'')+
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
@@ -2612,6 +2616,7 @@ function draw(){
   const r=x.r;
   const tags=(obvLagCandidate(r)?'<span class="u-signal u-obv-lag">OBV↑ · 주가 미반영 관찰</span>':'')+
    x.signals.slice(0,3).map(patternPill).join('');
+  const tradingLabel=root.V3TradingStatus?.label(r);
   const stable=x.stability;
   const ops=r.v3_operational;
   const shownComposite=sort==='ops'&&root.V3OperationalScore?root.V3OperationalScore.composite(r):x.composite;
@@ -2641,7 +2646,8 @@ function draw(){
    '<span>점수 관측일 '+esc(ops?.asof||x.composite.asof||'미확인')+
    (x.composite.stalePillars?' · 이전 관측 '+x.composite.stalePillars+'영역':'')+
    '</span></div>'+
-   '<div class="u-tags">'+(tags||'<span class="u-faint">확인된 차트 신호 없음</span>')+'</div>'+
+   '<div class="u-tags">'+(tradingLabel?'<span class="u-halt-badge">'+esc(tradingLabel)+'</span>':'')+
+   (tags||(!tradingLabel?'<span class="u-faint">확인된 차트 신호 없음</span>':''))+'</div>'+
    '<div class="u-stock-foot"><span class="'+(x.risk.unsafe?'u-danger':'u-caution')+'">'+esc(state)+'</span>'+
    '<span>손절 참고 '+(x.risk.distance===null?'미확인':x.risk.distance.toFixed(1)+'%')+'</span>'+
    '<span class="u-open-hint">상세 보기 →</span></div></button>';
@@ -2709,7 +2715,8 @@ async function load(){
   'v3-dart-industry-classification.json',
   'v3-dart-cashflow-issuer-evidence.json',
   'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
-  'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json'];
+  'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json',
+  'v3-trading-status.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2759,6 +2766,12 @@ async function load(){
   // operational-only issuers so all listed names remain searchable/rankable.
   const operationalLink=root.V3OperationalScore?.attachAllListed(model,responses[22])||
    {linked:0,unpriced:0};
+  const tradingLink=root.V3TradingStatus?.attach(model,responses[23]);
+  if($('tradeStatusNote'))$('tradeStatusNote').textContent=tradingLink?
+    '상장목록 거래량 0: 거래정지 표시 '+tradingLink.halted+'종목 · 단기(1~2거래일 관측) '+
+    tradingLink.short+' · 기간 미확인 '+tradingLink.durationUnknown+
+    ' · 정지 사유는 공식 공시 별도 확인 필요 · 전종목 배점 분모 유지':
+    '거래정지 표시자료 미연결 또는 기준일 불일치 · 거래량 0만으로 기간·사유 추정하지 않음';
   if(sort==='ops'&&!operationalLink.linked){sort='stable';if($('sort'))$('sort').value=sort;}
   if($('operationalModelNote'))$('operationalModelNote').textContent=operationalLink.linked?
     'R1d 잠정 운영모델 · 25/30/12.5/12.5/20 · '+operationalLink.linked+
