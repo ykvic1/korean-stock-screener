@@ -35,8 +35,8 @@ on:
 permissions:
   contents: write
 
-# Isolated from ingestion: publishes the exact price-replay input together with
-# its two derived scorecard outputs, never unrelated market/DART source files.
+# Isolated from ingestion: the independent price-replay publisher owns the
+# exact input; this job only writes its own two derived scorecard outputs.
 # Source-collection work keeps its original lock and priority unchanged.
 concurrency:
   group: korea-stock-screener-scorecard-publisher
@@ -76,9 +76,8 @@ jobs:
       - name: Calculate exactly the listed market's observed factor scores
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
         run: |
-          # These three derived products must share the same saved market
-          # digest. A previous price replay cannot be joined to new closes.
-          python v3_current_price_replay.py --mode write
+          # The separate price-replay owner must have already published its
+          # exact-day digest. The date gate defers until that happens.
           python v3_all_listed_scorecard.py --mode write
       - name: Publish current-listed score CSV and source-readiness summary only
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
@@ -87,7 +86,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Never commit a shared DART/industry-source file from this job.
-          git add docs/v3-current-price-technical-momentum.json docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+          git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish observed-only all-listed V3 six-area scorecard"
             # The source collectors may publish while this lightweight job
@@ -111,13 +110,11 @@ jobs:
                 echo '::error::invalid_scorecard_rebase_preflight_state'
                 exit 1
               fi
-              python v3_current_price_replay.py --mode write
               python v3_all_listed_scorecard.py --mode write
-              git add docs/v3-current-price-technical-momentum.json docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
+              git add docs/v3-all-listed-scores.csv docs/v3-all-listed-scorecard-summary.json
               if ! git diff --cached --quiet; then
                 git commit --amend --no-edit
               fi
-              python v3_current_price_replay.py --mode verify
               python v3_all_listed_scorecard.py --mode verify
               if git push origin HEAD:main; then
                 echo "scorecard_source_reconciled"

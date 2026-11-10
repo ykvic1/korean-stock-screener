@@ -3,9 +3,10 @@ import copy
 from datetime import date,timedelta
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from v3_scorecard_source_day_preflight import (
-    preflight_day,ScorecardReadinessError,
+    preflight_day,defer_until_replay,ScorecardReadinessError,
 )
 from v3_dart_bulk_history import SCHEMA as BULK, SCORE_SCHEMA as PARTS
 from v3_weekly_rotation import SCHEMA as WEEKLY
@@ -26,6 +27,23 @@ def sources():
 
 
 class ScorecardMarketDayGateTests(unittest.TestCase):
+    def test_legacy_scorecard_defers_unverified_price_replay_without_erasing_prior_scores(self):
+        valid=preflight_day(DAY,*sources())
+        market={'date':DAY,'stocks':[]}
+        catalog={'rows':[{'code':'000001','market':'KOSPI'}]}
+        for state in ('source_not_available','source_rejected_or_stale'):
+            with self.subTest(state=state), patch(
+                    'v3_scorecard_source_day_preflight._verified_price_replay',
+                    return_value=({},state)):
+                result=defer_until_replay(valid,None,market,catalog)
+            self.assertFalse(result['ready'])
+            self.assertEqual(result['lagging_sources'],['price_replay'])
+            self.assertTrue(valid['ready'])
+        with patch('v3_scorecard_source_day_preflight._verified_price_replay',
+                   return_value=({},'same_market_digest_verified_research_only')):
+            result=defer_until_replay(valid,{},market,catalog)
+        self.assertTrue(result['ready'])
+
     def test_same_day_source_permits_only_further_full_ledger_audit(self):
         state=preflight_day(DAY,*sources())
         self.assertTrue(state["ready"])
