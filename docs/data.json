@@ -17,8 +17,8 @@
   ],
   "v3_unscored_path_source": {
     "schema": "v3-unscored-price-path-evidence-0.1",
-    "observed_issuer_count": 2108,
-    "unavailable_issuer_count": 267,
+    "observed_issuer_count": 2261,
+    "unavailable_issuer_count": 114,
     "additional_volume_or_momentum_points_authorized": 0,
     "raw_ohlcv_exported": false,
     "source_exchange_and_adjustments_independently_verified": false
