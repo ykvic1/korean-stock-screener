@@ -53,6 +53,11 @@ jobs:
         name: Plan all stocks, codes only, chunks of 100
         env:
           REQUESTED_ASOF: ${{ inputs.asof }}
+          # FDR's current KRX-MARCAP issuer roster can require a KRX login.
+          # The manual and scheduled batch path must use the same configured
+          # identity as the legacy emergency publisher, without logging it.
+          KRX_ID: ${{ secrets.KRX_ID }}
+          KRX_PW: ${{ secrets.KRX_PW }}
         shell: bash
         run: |
           set -euo pipefail
@@ -134,6 +139,9 @@ jobs:
       - name: Reconcile batch census; schedule publishes, manual audit is read-only
         env:
           MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}
+          # publish() re-reads KRX-MARCAP before joining issuer identities.
+          KRX_ID: ${{ secrets.KRX_ID }}
+          KRX_PW: ${{ secrets.KRX_PW }}
         shell: bash
         run: |
           set -euo pipefail
