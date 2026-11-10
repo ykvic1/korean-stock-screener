@@ -142,15 +142,25 @@ def apply(market, collected):
     day = market['date']
     by_code = {s['code']: s for s in market['stocks']}
     result = Counter()
+    # An upstream historical feed can disagree with the published close for
+    # several different reasons. Keep each rejected issuer traceable without
+    # guessing whether the cause was KRX/NXT, adjustment, or a provider delay.
+    source_mismatch_codes = {'saved_date': [], 'fetched_date': [],
+                             'fetched_close': []}
     for row in collected['rows']:
         code, evidence = row['code'], row['metrics']
         stock = by_code.get(code)
         if stock is None:
             result['not_in_latest_market'] += 1
             continue
-        if (stock.get('price_date') != day or evidence.get('price_date') != day
-            or evidence.get('price_latest') != stock.get('price')):
+        mismatch = ('saved_date' if stock.get('price_date') != day else
+                    'fetched_date' if evidence.get('price_date') != day else
+                    'fetched_close' if evidence.get('price_latest') != stock.get('price')
+                    else None)
+        if mismatch is not None:
             result['source_close_or_date_mismatch'] += 1
+            result[f'source_mismatch_{mismatch}'] += 1
+            source_mismatch_codes[mismatch].append(code)
             continue
         # Stop reference and MA evidence have independent acceptance gates.
         # Even if MA cannot gain points, a valid unscored stop can be saved.
@@ -186,7 +196,12 @@ def apply(market, collected):
         result['more_observed_receipts'] += 1
         result['new_daily_weight_tenths'] += round((new_budget[0]-old_budget[0])*10)
         result['new_weekly_weight_tenths'] += round((new_budget[1]-old_budget[1])*10)
-    return dict(result)
+    output = dict(result)
+    if any(source_mismatch_codes.values()):
+        output['source_mismatch_review_codes'] = {
+            reason: sorted(codes) for reason, codes in source_mismatch_codes.items()
+            if codes}
+    return output
 
 
 def main(argv=None):

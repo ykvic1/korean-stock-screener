@@ -67,6 +67,9 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
         result=apply(market,collected)
         self.assertEqual(result['more_observed_receipts'],1)
         self.assertEqual(result['source_close_or_date_mismatch'],1)
+        self.assertEqual(result['source_mismatch_fetched_close'],1)
+        self.assertEqual(result['source_mismatch_review_codes'],
+                         {'fetched_close':['000002']})
         self.assertEqual(availability(market['stocks'][0]['v3_ma_slope_transition'],DAY),
                          (1.1,.6))
         self.assertIsNone(market['stocks'][1]['v3_ma_slope_transition'])
@@ -115,7 +118,29 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
             'price_date':DAY,'price_latest':8991.,
             'v3_structural_stop_reference':stop_reference()}}]})
         self.assertEqual(checked['source_close_or_date_mismatch'],1)
+        self.assertEqual(checked['source_mismatch_fetched_close'],1)
         self.assertNotIn('v3_structural_stop_reference',market['stocks'][0])
+
+    def test_date_and_close_mismatches_remain_separate_unscored_rejections(self):
+        market={'date':DAY,'stocks':[stock('000001'),stock('000002'),
+                                    stock('000003',price_date='2026-11-06')]}
+        collected={'rows':[
+            {'code':'000001','metrics':{'price_date':'2026-11-06',
+                                      'price_latest':8991.}},
+            {'code':'000002','metrics':{'price_date':DAY,
+                                      'price_latest':8991.}},
+            {'code':'000003','metrics':{'price_date':DAY,
+                                      'price_latest':8990.}}]}
+        result=apply(market,collected)
+        self.assertEqual(result['source_close_or_date_mismatch'],3)
+        self.assertEqual(result['source_mismatch_fetched_date'],1)
+        self.assertEqual(result['source_mismatch_fetched_close'],1)
+        self.assertEqual(result['source_mismatch_saved_date'],1)
+        self.assertEqual(result['source_mismatch_review_codes'],{
+            'saved_date':['000003'], 'fetched_date':['000001'],
+            'fetched_close':['000002']})
+        self.assertTrue(all('v3_structural_stop_reference' not in item
+                            for item in market['stocks']))
 
     def test_missing_stop_is_first_cohort_only_when_ma_already_full(self):
         market, priority, report=inputs()
