@@ -15,6 +15,7 @@ from v3_dart_bulk_history import SCHEMA as BULK, SCORE_SCHEMA as PARTS
 from v3_weekly_rotation import SCHEMA as WEEKLY
 from v3_dart_rolling_book_reference import _inputs
 from v3_real_six_pillar_coverage_audit import coverage
+from v3_all_listed_scorecard import _verified_price_replay
 
 
 class ScorecardReadinessError(ValueError):
@@ -78,6 +79,24 @@ def preflight_day(day,history,parts,weekly,*,permit_weekly_only_lag=False):
             "new_provider_calls":0}
 
 
+def defer_until_replay(status,price_replay,market,catalog):
+    """Do not replace previously observed technical scores with stale fallback.
+
+    The independent replay publisher is responsible for writing this source.
+    A mismatch defers the CSV publisher, never substitutes historical prices
+    or silently degrades 2,375 same-market observations to 681 candidates.
+    """
+    if not status['ready']:
+        return status
+    members={row['code']:row for row in catalog['rows']}
+    _,state=_verified_price_replay(price_replay,market,catalog,status['market_asof'],members)
+    if state!='same_market_digest_verified_research_only':
+        status=dict(status,ready=False,
+                    status='deferred_waiting_for_same_market_price_replay',
+                    lagging_sources=status['lagging_sources']+['price_replay'])
+    return status
+
+
 def main(argv=None):
     a=argparse.ArgumentParser(description=__doc__)
     a.add_argument("--docs",default="docs")
@@ -101,6 +120,9 @@ def main(argv=None):
         # saved ledger contract before authorizing CSV regeneration. An older
         # technical source is a true omission, not re-dated to today's close.
         coverage(catalog,history,parts,weekly,allow_lagged_weekly=True)
+        replay_file=root/'v3-current-price-technical-momentum.json'
+        replay=read(replay_file.name) if replay_file.is_file() else None
+        status=defer_until_replay(status,replay,market,catalog)
     if os.getenv("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as fp:
             fp.write("ready="+str(status["ready"]).lower()+"\n")

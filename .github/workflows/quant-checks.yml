@@ -26,6 +26,12 @@ jobs:
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
           python v3_operational_model_diagnostics.py
+          # The saved all-listed scorecard may lag the independent price
+          # replay following a new close. Rebuild both in this ephemeral CI
+          # checkout before asserting exact issuer/CSV release-gate joins.
+          # No provider requests, no push and no authority promotion.
+          python v3_current_price_replay.py --mode write
+          python v3_all_listed_scorecard.py --mode write
       - name: Full Python regression once before integration
         run: python -m unittest discover -s tests -v
       - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py recommendation_engine.py

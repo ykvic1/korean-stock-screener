@@ -20,7 +20,9 @@ on:
   schedule:
     - cron: '24,54 * * * *'
   workflow_run:
-    workflows: [V3 Actual Money Personal Participation Score]
+    workflows:
+      - V3 Actual Money Personal Participation Score
+      - V3 All-Listed Same-Day Technical Momentum Replay (0 provider calls)
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -33,7 +35,8 @@ on:
 permissions:
   contents: write
 
-# Isolated from the ingestion queue: publishes ONLY its own two output files.
+# Isolated from ingestion: the independent price-replay publisher owns the
+# exact input; this job only writes its own two derived scorecard outputs.
 # Source-collection work keeps its original lock and priority unchanged.
 concurrency:
   group: korea-stock-screener-scorecard-publisher
@@ -56,6 +59,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: Validate full-listed six-pillar scoring, source joins and no invention
+        # Data-only scheduled replays reuse the code tested on changed-source
+        # PR/push; do not run the same unit tests twice an hour.
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'verify') }}
         run: |
           set -euo pipefail
           python -m py_compile v3_all_listed_scorecard.py v3_dart_industry_earnings_sample.py
@@ -70,6 +76,8 @@ jobs:
       - name: Calculate exactly the listed market's observed factor scores
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
         run: |
+          # The separate price-replay owner must have already published its
+          # exact-day digest. The date gate defers until that happens.
           python v3_all_listed_scorecard.py --mode write
       - name: Publish current-listed score CSV and source-readiness summary only
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
