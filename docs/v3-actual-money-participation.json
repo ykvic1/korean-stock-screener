@@ -150443,7 +150443,7 @@
   "retained_prior_money_issuers": 0,
   "schema": "v3-personal-actual-money-participation-six-0.1",
   "single_day_money_component_points": 0,
-  "source_catalog_sha256": "359b2116760c1a7da2a0f0bbd9450d81732d7866472aadde8244fed068042801",
+  "source_catalog_sha256": "38f73bfd3ed37469a535a43a72c0b9f94f608a8d8f485ad781ea42d8702ffa54",
   "source_checkpoint_sha256": {
     "0": "3cbca1d9645682c93b7176d0a676a50c3fd64baa2a24832fd63013efadc6152e",
     "1": "079dc5ac27c7da0fc93a718ff708ae936ad0d37c233fdcac4ed253314ee647e0",
