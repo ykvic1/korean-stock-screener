@@ -1146,13 +1146,22 @@ function comparisonPillarBars(a,b,names,comparable){
   '<p class="u-compare-bars-foot">미산출은 0점이 아니며, 채워진 색도 공식 검증 점수가 아닌 연구 관측치입니다.</p>'+
   '</section>';
 }
-function scoreOverviewMarkup(c,normalized,r){
+function scoreOverviewMarkup(c,normalized,r,stability=null){
  if(!c||!Array.isArray(c.pillars)||c.pillars.length!==5||
     !Number.isInteger(c.available)||c.available<0||c.available>100||
     !Number.isInteger(c.missing)||c.missing!==100-c.available||
     (c.earned!==null&&(!finite(c.earned)||c.earned<0||
       c.earned>c.available)))return '<p class="u-muted">영역별 점수 데이터 재검증 중</p>';
- const earned=c.earned??0, headroom=c.available-earned;
+ // Legacy five-area bars are pre-adjustment components. When the same stock
+ // is shown with its NET legacy score, the headline and 100-point meter must
+ // match the stock-list score instead of silently showing the gross subtotal.
+ const adjusted=stability&&finite(stability.score)&&finite(stability.capitalDeduction)&&
+  finite(stability.stopAdjustment)&&finite(c.earned)&&
+  Math.abs(Math.max(0,Math.min(100,Math.round(((c.earned-stability.capitalDeduction+
+   stability.stopAdjustment)+Number.EPSILON)*10)/10))-stability.score)<.00001;
+ const total=adjusted?stability.score:c.earned;
+ const earned=total===null?0:Math.min(total,c.available);
+ const headroom=c.available-earned;
  const percent=(value,maximum)=>(value/maximum*100).toFixed(2);
  const number=value=>finite(value)?value.toFixed(1).replace(/\.0$/,''):'—';
  const labels=[['momentum','모멘텀'],['valuation','밸류'],
@@ -1184,32 +1193,39 @@ function scoreOverviewMarkup(c,normalized,r){
  if(rows.some(v=>v===null)||
     c.pillars.reduce((sum,p)=>sum+p.available,0)!==c.available||
     (c.earned===null)!==(c.available===0)||
-    Math.abs(c.pillars.reduce((sum,p)=>sum+(p.candidate??0),0)-earned)>0.000101||
+    Math.abs(c.pillars.reduce((sum,p)=>sum+(p.candidate??0),0)-(c.earned??0))>0.000101||
     normalized!==personalHundredFromComposite(c))
    return '<p class="u-muted">영역별 점수 데이터 재검증 중</p>';
  return '<section class="u-score-visual" aria-labelledby="detailScoreTitle">'+
-  '<div class="u-score-visual-heading"><h3 id="detailScoreTitle">5영역 잠정 점수</h3>'+
+  '<div class="u-score-visual-heading"><h3 id="detailScoreTitle">5영역 잠정 점수'+(adjusted?' · 감점 후':'')+'</h3>'+
   '<span>총 100점 배점 · 미인증 · 막대를 눌러서 근거 보기</span></div>'+
   '<div class="u-score-visual-body">'+
   '<div class="u-score-total"><div class="u-score-total-max"><strong>100</strong><small>만점</small></div>'+
-  '<div class="u-score-total-track" role="img" aria-label="100점 만점 중 잠정 획득 '+
-   number(c.earned)+'점, 산출 가능 배점 '+c.available+'점, 미확보 '+c.missing+'점">'+
+  '<div class="u-score-total-track" role="img" aria-label="100점 만점 중 '+(adjusted?'보정 후 잠정점수 ':'잠정 획득 ')+
+   number(total)+'점, 산출 가능 배점 '+c.available+'점, 미확보 '+c.missing+'점">'+
    '<span class="u-score-earned" data-score-height="'+percent(earned,100)+'"></span>'+
    '<span class="u-score-observed" data-score-height="'+percent(headroom,100)+'"></span>'+
    '<span class="u-score-missing" data-score-height="'+percent(c.missing,100)+'"></span>'+
-   '<strong class="u-score-total-value">'+number(c.earned)+'</strong></div>'+
-  '<strong class="u-score-total-caption">잠정 합계</strong></div>'+
+   '<strong class="u-score-total-value">'+number(total)+'</strong></div>'+
+  '<strong class="u-score-total-caption">'+(adjusted?'보정 후 점수':'잠정 합계')+'</strong></div>'+
   '<div class="u-score-rows">'+rows.join('')+'</div></div>'+
-  '<div class="u-score-legend"><span><i class="u-score-swatch earned"></i>잠정 획득</span>'+
+  '<div class="u-score-legend"><span><i class="u-score-swatch earned"></i>'+(adjusted?'보정 후 점수':'잠정 획득')+'</span>'+
   '<span><i class="u-score-swatch observed"></i>확보 배점 중 미획득</span>'+
   '<span><i class="u-score-swatch missing"></i>자료 미확보</span></div>'+
-  '<p class="u-score-disclaimer">잠정 합계 <b>'+
-  (c.earned===null?'미산출':number(c.earned)+'점')+'</b> · 산출 가능 '+
+  (adjusted?'<div class="u-score-reconcile" aria-label="기존 모델 점수 산출 및 가감점">'+
+   '<span>영역 합계 (감점 전) <b>'+number(c.earned)+'</b></span>'+
+   '<span class="'+(stability.capitalDeduction>0?'u-score-deduction':'')+'">시총 '+
+   (stability.capitalDeduction>0?'−':'')+number(stability.capitalDeduction)+'</span>'+
+   '<span class="'+(stability.stopAdjustment<0?'u-score-deduction':stability.stopAdjustment>0?'u-score-bonus':'')+'">손절거리 '+
+   (stability.stopAdjustment<0?'−':stability.stopAdjustment>0?'+':'')+number(Math.abs(stability.stopAdjustment))+'</span>'+
+   '<strong>감점 후 최종 '+number(total)+'점</strong></div>':'')+
+  '<p class="u-score-disclaimer">'+(adjusted?'보정 후 잠정점수':'잠정 합계')+' <b>'+
+  (total===null?'미산출':number(total)+'점')+'</b> · 산출 가능 '+
   c.available+'/100점 · 미확보 '+c.missing+'/100점. 미확보는 0점이 아닙니다. '+
   (c.stalePillars?' 이전 관측일이 포함된 영역 '+c.stalePillars+
    '개, 가장 오래된 근거 '+esc(c.oldestAsOf)+'. 각 영역의 실제 기준일을 확인하세요.':'')+
   (normalized===null?'개인용 100점 비율 환산은 5영역·75점 이상 관측 시에만 표시합니다.':
-   '별도 비율 환산 '+number(normalized)+'/100점은 관측 배점 기준이며 확정 투자점수가 아닙니다.')+
+   '별도 비율 환산 '+number(normalized)+'/100점은 감점 전 영역 합계의 관측 배점 기준이며 확정 투자점수가 아닙니다.')+
   ' 매수 신호나 수익 예측으로 사용하지 마세요.</p></section>';
 }
 // The site CSP rejects style attributes in innerHTML. Once mounted, use
@@ -2522,13 +2538,13 @@ function renderDetails(x){
  '<div class="u-verdict '+(risk.unsafe?'warning':'neutral')+'"><strong>'+esc(risk.description)+'</strong>'+
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
- '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r)+issuerReadinessMarkup(r)+
+ '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r,stability)+issuerReadinessMarkup(r)+
  (root.V3StopEvidence?root.V3StopEvidence.markup(r,model?.date):'')+
  '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
  '<div><small>구조 무효화 참고선</small><strong>'+won(r.stop_line)+'</strong></div>'+
  '<div><small>참고 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
- '<div class="u-factor-unverified"><small>V3 잠정 종합점수 (미검증)</small><strong>'+
+ '<div class="u-factor-unverified"><small>기존 5영역 감점 전 합계 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
  '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
  (composite.stalePillars?' · 이전 관측 '+composite.stalePillars+'영역 포함':'')+
@@ -2640,6 +2656,7 @@ function draw(){
       ' · 기준일 '+(p.asof||'미확인')+' · 미검증')+'"><small>'+esc(short)+'</small><b>'+
       (p.candidate===null?'—':p.candidate.toFixed(1))+'</b></span>';
    }).join('')+'</div>'+
+   (sort==='ops'&&root.V3OperationalScore?root.V3OperationalScore.reconciliationMarkup(ops,true):'')+
    '<div class="u-card-meta"><span>시총 '+(stable.capitalEok===null?'미확인':Math.round(stable.capitalEok).toLocaleString('ko-KR')+'억')+'</span>'+
    '<span>당일 거래대금 '+(stable.tradingEok===null?'미확인':stable.tradingEok.toLocaleString('ko-KR',{maximumFractionDigits:1})+'억')+'</span>'+
    '<span>업종 '+esc(r.v3_sector_research?.name||'미확인')+'</span>'+

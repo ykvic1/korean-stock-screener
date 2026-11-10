@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const unified=require('../docs/workspace.js');
+const operational=require('../docs/operational-score.js');
 const legacy=require('../docs/v3-ranking.js');
 const html=fs.readFileSync(path.join(__dirname,'../docs/workspace.html'),'utf8');
 const css=fs.readFileSync(path.join(__dirname,'../docs/workspace.css'),'utf8');
@@ -63,15 +64,90 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-total-track'));
  assert.ok(css.includes('.u-score-missing'));
  assert.ok(css.includes('.u-score-row[open]'));
- assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
+ assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261110-trading-status'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261110-trading-status'),'classic research route keeps its pinned assets');
- assert.ok(entry.includes('workspace.js?v=v30b-20261110-trading-status'),
-  'homepage must fetch the current trading-status display');
- assert.ok(html.includes('workspace.js?v=v30b-20261110-trading-status'),
-  'research route must fetch the same updated script');
- assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r)'));
+ assert.ok(entry.includes('v30b-20261110-score-reconcile'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261110-score-reconcile'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('operational-score.js?v=r1d-score-reconcile')&&
+  html.includes('operational-score.js?v=r1d-score-reconcile'),
+  'both routes must invalidate cached R1d deduction markup');
+ assert.ok(source.includes('root.V3OperationalScore.reconciliationMarkup(ops,true)'),
+  'the stock card must render the same net-score deductions as the detail panel');
+}
+
+// Reported 036890 regression: the same issuer's five positive area points
+// are GROSS, while the card score is net of 3 capital and 1 stop penalty.
+// Verify the LIVE saved issuer record, rather than inventing compensating
+// area points to force a match.
+{
+ const report=JSON.parse(fs.readFileSync(path.join(__dirname,
+  '../docs/v3-operational-research-scores.json'),'utf8'));
+ const issuer=report.rows['036890'];
+ assert.equal(issuer.name,'진성티이씨');
+ assert.ok(operational.validRow(issuer,report.asof));
+ const score=operational.scoreReconciliation(issuer);
+ assert.ok(score&&Math.abs(score.gross-
+  Object.values(issuer.areas).reduce((sum,a)=>sum+a.points,0))<.00002);
+ assert.equal(score.netDeduction,score.capital-score.stop+score.risk);
+ assert.equal(score.final,Math.round((Math.max(0,Math.min(100,
+  score.gross-score.netDeduction))+Number.EPSILON)*10)/10);
+ const card=operational.reconciliationMarkup(issuer,true);
+ const detail=operational.markup({v3_operational:issuer,
+  v3_operational_version:report.version});
+ const fixture={base:22.716705,score:18.7,capital_deduction:3,
+  stop_adjustment:-1,risk_deduction:0};
+ const historicalCard=operational.reconciliationMarkup(fixture,true);
+ for(const view of [historicalCard]){
+  assert.match(view,/영역 합계.*22\.7/);
+  assert.match(view,/시총 −3\.0/);
+  assert.match(view,/손절거리 −1\.0/);
+  assert.match(view,/순감점 −4\.0/);
+  assert.match(view,/최종 18\.7점/);
+ }
+ for(const view of [card,detail]){
+  assert.ok(view.includes('최종 '+score.final.toFixed(1)+'점'));
+  assert.ok(view.includes('영역 합계'));
+ }
+ assert.ok(detail.includes('최종 운영점수</th><td>'+score.final.toFixed(1)));
+ assert.match(detail,/영역 합계 \(감점 전\)/);
+ // The legacy value printed next to the R1d score must use the same
+ // personal EPS/valuation overlay as the detail's legacy comparison chart.
+ const market=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/data.json'),'utf8'));
+ const factorLedger=JSON.parse(fs.readFileSync(path.join(__dirname,
+  '../docs/v3-issuer-last-observed-factors.json'),'utf8'));
+ const personal=JSON.parse(fs.readFileSync(path.join(__dirname,
+  '../docs/v3-personal-adjusted-score-summary.json'),'utf8'));
+ const priced=market.stocks.find(r=>r.code==='036890');
+ if(priced&&market.date===report.asof&&factorLedger.market_asof===report.asof&&
+    personal.asof===report.asof){
+  priced.v3_last_known_factors=factorLedger.rows['036890']?.factors;
+  const model={date:market.date,rows:[{r:priced}]};
+  assert.equal(unified.applyPersonalValuation(model,personal),1);
+  const c=unified.researchComposite(priced);
+  const s=unified.stabilityProfile(priced,c);
+  assert.equal(s.score,issuer.legacy_score,
+   'legacy adjusted score in list and detail must use the same updated data');
+  const html=unified.scoreOverviewMarkup(c,unified.personalHundredFromComposite(c),priced,s);
+  assert.ok(html.includes('class="u-score-total-value">'+issuer.legacy_score.toFixed(1)));
+ }
+ const legacy={earned:33.4,available:100,missing:0,observedPillars:5,
+  pillars:[
+   {key:'volume',max:20,available:20,candidate:.1},
+   {key:'technical',max:25,available:25,candidate:5},
+   {key:'financial',max:20,available:20,candidate:13},
+   {key:'valuation',max:20,available:20,candidate:12.5},
+   {key:'momentum',max:15,available:15,candidate:2.8}
+  ]};
+ const stable={score:29.4,capitalDeduction:3,stopAdjustment:-1};
+ const overview=unified.scoreOverviewMarkup(legacy,
+  unified.personalHundredFromComposite(legacy),null,stable);
+ assert.match(overview,/class="u-score-total-value">29\.4<\/strong>/);
+ assert.match(overview,/영역 합계 \(감점 전\).*33\.4/);
+ assert.match(overview,/시총 −3/);
+ assert.match(overview,/손절거리 −1/);
+ assert.match(overview,/감점 후 최종 29\.4점/);
+ assert.match(overview,/data-score-height="29\.40"/);
+ assert.doesNotMatch(overview,/class="u-score-total-value">33\.4/);
 }
 
 // Keep the latest individually validated factor points in the same research
@@ -842,7 +918,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261110-trading-status','v30b-20261110-90plus-coverage'],[entry,'v30b-20261110-trading-status','v30b-20261110-90plus-coverage']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261110-score-reconcile','v30b-20261110-score-reconcile'],[entry,'v30b-20261110-score-reconcile','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
   page.includes('v3-live-progress.js?v=v30b-20261110-90plus-coverage')&&
