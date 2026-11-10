@@ -1,6 +1,6 @@
 {
-  "id": "20261109-ma240-zero-volume-recovery-06",
-  "asof": "2026-11-06",
-  "workflow": "v3-ma240-source-completion.yml",
-  "mode": "recover"
+  "id": "20261110-90point-fullmarket-retry-01",
+  "asof": "2026-11-09",
+  "workflow": "full-market-batches.yml",
+  "mode": "publish"
 }
