@@ -27145,6 +27145,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -27879,22 +27880,34 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 4100.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 6.78,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 4010.0,
+        "low60": 4010.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 4033.14,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 12,
+          "upper": 4113.8
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 3989.95,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -35422,22 +35435,36 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "일봉 기반 추정 하단 매물대",
+          "패턴 무효화 추정"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 137700.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 12.79,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
-        "pattern_invalidation": null,
-        "reference_line": null,
+        "low20": 157100.0,
+        "low60": 137700.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 150351.31,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 8,
+          "upper": 153358.34
+        },
+        "pattern_invalidation": {
+          "basis": "우측 어깨 저점 (휴리스틱)",
+          "pattern": "역헤드앤숄더",
+          "price": 145500.0
+        },
+        "reference_line": 144772.5,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -50124,6 +50151,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -55279,22 +55307,34 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 3650.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 12.81,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 3645.0,
+        "low60": 3505.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 3695.38,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 10,
+          "upper": 3769.29
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 3487.47,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -104228,22 +104268,38 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대",
+          "패턴 무효화 추정"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 4500.0,
+        "confluence_count": 3,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.25,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
-        "pattern_invalidation": null,
-        "reference_line": null,
+        "low20": 4500.0,
+        "low60": 4255.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 4598.53,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 4,
+          "upper": 4690.5
+        },
+        "pattern_invalidation": {
+          "basis": "우측 어깨 저점 (휴리스틱)",
+          "pattern": "역헤드앤숄더",
+          "price": 4630.0
+        },
+        "reference_line": 4477.5,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -109555,22 +109611,34 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 11500.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.09,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 11500.0,
+        "low60": 11500.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 11731.91,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 6,
+          "upper": 11966.55
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 11442.5,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -114196,22 +114264,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2255.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 5.92,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 2255.0,
+        "low60": 2145.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2243.72,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -117346,6 +117417,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -128091,6 +128163,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -136674,6 +136747,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -152197,22 +152271,37 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대",
+          "패턴 무효화 추정"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 2080.0,
+        "confluence_count": 3,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 11.65,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
-        "pattern_invalidation": null,
-        "reference_line": null,
+        "low20": 2090.0,
+        "low60": 1975.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1944.66,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 3,
+          "upper": 1983.55
+        },
+        "pattern_invalidation": {
+          "basis": "우측 어깨 저점 (휴리스틱)",
+          "pattern": "역헤드앤숄더",
+          "price": 1975.0
+        },
+        "reference_line": 1934.94,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -152933,22 +153022,37 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 6.24,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
-        "pattern_invalidation": null,
-        "reference_line": null,
+        "low20": 5250.0,
+        "low60": 5250.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 5154.5,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 4,
+          "upper": 5257.59
+        },
+        "pattern_invalidation": {
+          "basis": "최근 60일 저가 하단 추세선 근사 (확정 무효화 아님)",
+          "pattern": "하락쐐기",
+          "price": 5456.22
+        },
+        "reference_line": 5128.73,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -157859,6 +157963,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -159295,22 +159400,31 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1840.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 6.73,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 1826.0,
+        "low60": 1341.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1610.34,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 9,
+          "upper": 1642.55
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1830.8,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -159973,6 +160087,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -166278,6 +166393,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -176468,22 +176584,33 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 6100.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 20.6,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 5650.0,
+        "low60": 5650.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 5808.07,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 4,
+          "upper": 5924.23
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 5621.75,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": "참고선까지 하락 여지가 15% 초과 · 추격 진입 주의"
       }
     },
     {
@@ -182068,22 +182195,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 11.84,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 7000.0,
+        "low60": 7000.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 6965.0,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -194810,22 +194940,31 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1261.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 28.86,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 1142.0,
+        "low60": 918.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1012.43,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 7,
+          "upper": 1032.67
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 913.41,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": "참고선까지 하락 여지가 15% 초과 · 추격 진입 주의"
       }
     },
     {
@@ -199851,22 +199990,32 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 2500.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 14.63,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 2365.0,
+        "low60": 2175.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 2206.87,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 6,
+          "upper": 2251.01
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2164.12,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -206941,6 +207090,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -207407,6 +207557,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -209085,6 +209236,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -210288,6 +210440,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -221632,22 +221785,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 3.9,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 3105.0,
+        "low60": 3105.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 3089.47,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -227480,22 +227636,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 9.35,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 23050.0,
+        "low60": 23050.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 22934.75,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -232868,22 +233027,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 7.49,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 1230.0,
+        "low60": 1230.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1223.85,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -234064,6 +234226,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -244931,6 +245094,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -260590,22 +260754,33 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.08,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 32050.0,
+        "low60": 32050.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 31272.17,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 3,
+          "upper": 31897.61
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 31115.81,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -273118,22 +273293,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 4.6,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 2560.0,
+        "low60": 2560.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2547.2,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -278234,22 +278412,32 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 1600.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 6.85,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 1455.0,
+        "low60": 1455.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 1610.43,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 3,
+          "upper": 1642.64
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1592.0,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -285430,22 +285618,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2500.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.72,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 2500.0,
+        "low60": 2500.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2487.5,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -298162,6 +298353,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -300756,6 +300948,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -310097,6 +310290,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -312736,22 +312930,34 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 38350.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.71,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 38350.0,
+        "low60": 38350.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 39389.07,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 3,
+          "upper": 40176.86
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 38158.25,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -326271,22 +326477,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 5.66,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 4475.0,
+        "low60": 4475.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 4452.62,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -358924,6 +359133,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -359414,22 +359624,34 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "확인된 스윙 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
+        "confirmed_swing_low": 2270.0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 7.58,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 2220.0,
+        "low60": 2220.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 2252.15,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 3,
+          "upper": 2297.19
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2208.9,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -362116,22 +362338,33 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "20일 저점",
+          "60일 저점",
+          "일봉 기반 추정 하단 매물대"
+        ],
+        "confidence": "confluence",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 2,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 6.24,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 17250.0,
+        "low60": 17250.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 17084.3,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 3,
+          "upper": 17425.99
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 16998.88,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -378879,6 +379112,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -387319,6 +387553,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -409836,22 +410071,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2580.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 7.16,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 2580.0,
+        "low60": 2580.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2567.1,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -422664,6 +422902,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -423366,6 +423605,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -424529,6 +424769,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -441023,6 +441264,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -443660,6 +443902,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -447558,22 +447801,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 10.34,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 5010.0,
+        "low60": 5010.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 4984.95,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -453108,6 +453354,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -460236,6 +460483,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -466273,22 +466521,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1250.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 6.06,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 1126.0,
+        "low60": 1101.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1243.75,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -466508,6 +466759,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -472407,6 +472659,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -476121,22 +476374,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 10.71,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 245.0,
+        "low60": 245.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 243.78,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -485291,6 +485547,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -497502,6 +497759,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -502324,22 +502582,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 6030.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.82,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 6000.0,
+        "low60": 6000.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 5999.85,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -503778,22 +504039,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 3.27,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 559.0,
+        "low60": 559.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 556.21,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -508588,6 +508852,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -509939,6 +510204,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -514556,22 +514822,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 10.53,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 2855.0,
+        "low60": 2855.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2840.72,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -516029,22 +516298,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 1563.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 4.31,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 1530.0,
+        "low60": 1530.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1522.35,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -520148,22 +520420,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 7.82,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 1700.0,
+        "low60": 1700.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1691.5,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -529814,22 +530089,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 18.0,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 1813.0,
+        "low60": 1813.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1803.93,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": "참고선까지 하락 여지가 15% 초과 · 추격 진입 주의"
       }
     },
     {
@@ -532385,6 +532663,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -533087,6 +533366,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -534732,22 +535012,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 11.95,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 2730.0,
+        "low60": 2730.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 2716.35,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -536388,6 +536671,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -540211,6 +540495,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -541184,22 +541469,31 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
-        "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "basis": [
+          "확인된 스윙 저점"
+        ],
+        "confidence": "single_support",
+        "confirmed_swing_low": 2000.0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 14.96,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
-        "lower_volume_zone": null,
+        "low20": 1960.0,
+        "low60": 1960.0,
+        "lower_volume_zone": {
+          "exact_volume_at_price": false,
+          "lower": 2119.41,
+          "method": "daily_typical_price_volume_proxy",
+          "observed_daily_candles": 5,
+          "upper": 2161.8
+        },
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 1990.0,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -541662,6 +541956,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -544979,6 +545274,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -547858,22 +548154,25 @@
       "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
       "v3_structural_stop_reference": {
         "asof": "2026-11-10",
-        "basis": [],
-        "confidence": "unavailable",
+        "basis": [
+          "60일 저점"
+        ],
+        "confidence": "single_support",
         "confirmed_swing_low": null,
-        "confluence_count": 0,
+        "confluence_count": 1,
         "corporate_actions_verified": false,
-        "distance_pct": null,
+        "distance_pct": 8.35,
         "krx_regular_session_verified": false,
-        "low20": null,
-        "low60": null,
+        "low20": 362.0,
+        "low60": 362.0,
         "lower_volume_zone": null,
         "pattern_invalidation": null,
-        "reference_line": null,
+        "reference_line": 360.19,
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
-        "warning": "가격 원천값 무효 또는 결측"
+        "validation_window_bars": 120,
+        "warning": null
       }
     },
     {
@@ -560492,6 +560791,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -562162,6 +562462,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -563485,6 +563786,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -566782,6 +567084,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -567486,6 +567789,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -570544,6 +570848,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
@@ -571258,6 +571563,7 @@
         "schema": 1,
         "score_impact": 0,
         "unscored_reference_only": true,
+        "validation_window_bars": 120,
         "warning": "가격 원천값 무효 또는 결측"
       }
     },
