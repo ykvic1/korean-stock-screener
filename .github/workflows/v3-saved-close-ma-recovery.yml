@@ -46,8 +46,8 @@ jobs:
           git commit -m 'Restore real partial MA observations from last saved close'
           git pull --rebase origin main
           git push origin HEAD:main
-      - name: Recalculate 90/95/100 observed coverage from published evidence
+      - name: Refresh dated-path audit before recalculating 90/95/100 coverage
         if: steps.delta.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
