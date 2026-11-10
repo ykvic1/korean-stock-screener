@@ -363,6 +363,11 @@ def analyze_history(code,cfg,day):
     reward_pct=pct(high52,p) if high52>p else None
     rr=(reward_pct / abs(stop_pct)) if reward_pct is not None and stop_pct is not None and stop_pct<0 else None
     pat=daily_patterns(df)
+    # Separate 20/60-session support research. This MUST NOT feed legacy
+    # stop_line/stop_pct, risk weights, R1d adjustments or any earned score.
+    from v3_structural_stop_reference import observe as observe_structural_stop
+    v3_structural_stop_reference=observe_structural_stop(
+        df,asof=last.isoformat(),patterns=pat)
     # Independent unscored pattern/RSI observation. Legacy v2 weights unchanged.
     from v3_pattern_first_observations import observe, observe_completed_weekly
     pattern_research=observe(df)
@@ -390,6 +395,7 @@ def analyze_history(code,cfg,day):
       'reference_target_pct':round_or_none(reward_pct),'reward_risk':round_or_none(rr,2),
       'close_vs_ma60_pct':round_or_none(pct(p,m60)),
       'pattern_research':pattern_research,
+      'v3_structural_stop_reference':v3_structural_stop_reference,
       'pattern_weekly_research':pattern_weekly_research,**pat}
 
 
@@ -793,6 +799,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'v3_ma240_cross_unavailable_reason':r.get('v3_ma240_cross_unavailable_reason'),
           'v3_ma_slope_transition':r.get('v3_ma_slope_transition'),
           'v3_breakout_followthrough':r.get('v3_breakout_followthrough'),
+          'v3_structural_stop_reference':r.get('v3_structural_stop_reference'),
           'flows_confirmed':bool(r.get('flows_confirmed')),
           'foreign_shares':r.get('foreign_net_shares'),'flow_observations':r.get('flow_observations'),
           'flow_cross_validation':r.get('flow_cross_validation','독립 소스 미검증'),

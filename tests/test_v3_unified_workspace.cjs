@@ -12,6 +12,28 @@ const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
 
+// Structural 20/60 support is visible as an independent, unscored reference.
+{
+ const base={price:105,price_date:'2026-11-10',stop_line:94,stop_pct:-10.48};
+ const ref={schema:1,asof:'2026-11-10',score_impact:0,
+  unscored_reference_only:true,reference_line:90.55,distance_pct:13.76,
+  low20:91,low60:91,confirmed_swing_low:91,
+  lower_volume_zone:{lower:92,upper:93.84,exact_volume_at_price:false},
+  pattern_invalidation:null,basis:['20일 저점','60일 저점','확인된 스윙 저점'],
+  confidence:'confluence',warning:null};
+ const body=unified.structuralStopMarkup({...base,v3_structural_stop_reference:ref});
+ assert.match(body,/20·60일 구조적 손절 참고선 · 배점 미반영/);
+ assert.match(body,/91원/);
+ assert.match(body,/13\.8%/);
+ assert.match(body,/일봉 대표가격·거래량 추정/);
+ assert.match(body,/기존 점수·손절거리 보정에 영향을 주지 않습니다/);
+ assert.match(unified.structuralStopMarkup(base),/신규 구조적 참고선 관측 대기/);
+ assert.match(unified.structuralStopMarkup({...base,
+  v3_structural_stop_reference:{...ref,asof:'2026-11-09'}}),/관측 대기/);
+ assert.ok(source.includes('structuralStopMarkup(r)+'));
+ assert.ok(source.includes('기존 점수용 손절선 (20·45일)'));
+}
+
 // Stock detail's visual five-pillar breakdown must not paint missing evidence as 0.
 {
  const c={earned:29,available:61,missing:39,observedPillars:5,pillars:[
