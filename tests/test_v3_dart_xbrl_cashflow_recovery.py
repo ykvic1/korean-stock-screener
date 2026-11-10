@@ -1,6 +1,6 @@
 import copy
 import unittest
-from v3_dart_xbrl_cashflow_recovery import instance_values,archive_values,bounded_archive_values,merge,verify_recovery,company_ids,targets,cashflow_90_focus,RecoveryError
+from v3_dart_xbrl_cashflow_recovery import instance_values,archive_values,bounded_archive_values,merge,verify_recovery,company_ids,targets,cashflow_90_focus,RecoveryError,CONTRACT,LEGACY_CONTRACT
 from test_v3_dart_xbrl_capex_pilot import archive
 
 NS='http://xbrl.ifrs.org/taxonomy/2024-03-27/ifrs-full'
@@ -72,6 +72,66 @@ class OriginalRecoveryTests(unittest.TestCase):
             bad=copy.deepcopy(out);bad[key]=value
             with self.assertRaises(RecoveryError):verify_recovery(bad)
         with self.assertRaises(RecoveryError):merge(prior(),{'intangible_capex_krw':0},reason='recovered',archive_hash='a'*64,profile_hash='b'*64)
+
+    def test_equivalent_explicit_annual_context_ids_are_not_false_missing(self):
+        # CFO and CAPEX may share the identical IFRS annual issuer/scope
+        # coordinates while the filing gives their contexts different IDs.
+        source=xml()
+        second=b'<context id="P"><entity><identifier scheme="http://dart.fss.or.kr">00123456</identifier></entity>'
+        second+=b'<period><startDate>2024-01-01</startDate><endDate>2024-12-31</endDate></period>'
+        second+=b'<scenario><d:explicitMember dimension="i:ConsolidatedAndSeparateFinancialStatementsAxis">i:ConsolidatedMember</d:explicitMember></scenario></context>'
+        observed=source.replace(b'</xbrl>',second+b'</xbrl>')
+        observed=observed.replace(b'<i:PurchaseOfIntangibleAssets contextRef="C"',
+                                  b'<i:PurchaseOfIntangibleAssets contextRef="P"')
+        self.assertEqual(extract(observed)['intangible_capex_krw'],0)
+        for changed in (
+            second.replace(b'i:ConsolidatedMember',b'i:SeparateMember'),
+            second.replace(b'2024-12-31',b'2023-12-31'),
+            second.replace(b'>00123456<',b'>00999999<'),
+            second.replace(b'</scenario>',b'<d:explicitMember dimension="i:OtherAxis">i:OtherMember</d:explicitMember></scenario>'),
+        ):
+            mismatched=source.replace(b'</xbrl>',changed+b'</xbrl>')
+            mismatched=mismatched.replace(b'<i:PurchaseOfIntangibleAssets contextRef="C"',
+                                          b'<i:PurchaseOfIntangibleAssets contextRef="P"')
+            self.assertNotIn('intangible_capex_krw',extract(mismatched))
+        conflicting=observed.replace(b'</xbrl>',b'<i:PurchaseOfIntangibleAssets contextRef="C" unitRef="U">30</i:PurchaseOfIntangibleAssets></xbrl>')
+        with self.assertRaises(RecoveryError):extract(conflicting)
+
+    def test_one_time_v1_no_result_recheck_preserves_existing_proofs(self):
+        old=prior();old['original_xbrl_review']={
+            'contract':LEGACY_CONTRACT,'receipt_id':old['annual_receipt_id'],
+            'reason':'no_missing_supported_fact'}
+        self.assertFalse(verify_recovery(old))
+        state={'records':{'000001':{'years':{'2024':old}}}}
+        self.assertEqual(targets(state,{'000001'},1),[])
+        self.assertEqual([(c,y) for c,y,_ in targets(state,{'000001'},1,recheck_legacy=True)],
+                         [('000001','2024')])
+        values=extract(xml())
+        new=merge(old,values,reason='no_missing_supported_fact',archive_hash='a'*64,
+                  profile_hash='b'*64)
+        self.assertTrue(verify_recovery(new))
+        self.assertEqual(new['original_xbrl_review']['contract'],CONTRACT)
+        self.assertEqual(new['original_xbrl_proof']['fields'],{'intangible_capex_krw':0})
+        self.assertEqual(new['free_cashflow_krw'],80)
+        self.assertEqual(old['original_xbrl_review']['contract'],LEGACY_CONTRACT)
+        with self.assertRaises(RecoveryError):merge(new,values,reason='recovered',
+                                                    archive_hash='a'*64,profile_hash='b'*64)
+        # Prior v1 proofs remain valid and immutable after v2 ships.
+        historic=copy.deepcopy(new)
+        historic['original_xbrl_review']['contract']=LEGACY_CONTRACT
+        historic['original_xbrl_proof']['contract']=LEGACY_CONTRACT
+        from v3_dart_cashflow_enrichment import fingerprint
+        historic['original_xbrl_proof']['digest']=fingerprint({k:v for k,v in historic['original_xbrl_proof'].items() if k!='digest'})
+        self.assertTrue(verify_recovery(historic))
+        with self.assertRaises(RecoveryError):merge(historic,values,reason='recovered',
+                                                    archive_hash='a'*64,profile_hash='b'*64)
+        # A completed no-result v2 recheck must leave the queue.
+        missing=xml().replace(b'<i:PurchaseOfIntangibleAssets contextRef="C" unitRef="U">0</i:PurchaseOfIntangibleAssets>',b'')
+        v2_reviewed=merge(old,extract(missing),reason='no_missing_supported_fact',
+                          archive_hash='a'*64,profile_hash='b'*64)
+        self.assertFalse(verify_recovery(v2_reviewed))
+        state['records']['000001']['years']['2024']=v2_reviewed
+        self.assertEqual(targets(state,{'000001'},1,recheck_legacy=True),[])
 
     def test_profile_identity_and_bounded_original_archive(self):
         ids=company_ids({'status':'000','corp_code':'00123456','stock_code':'005930','bizr_no':'123-45-67890'},'00123456','005930')

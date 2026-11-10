@@ -22,7 +22,8 @@ import v3_dart_cashflow_enrichment as cf
 import v3_dart_xbrl_capex_pilot as xp
 from v3_dart_bulk_history import _mapping, verified_company_mapping_cache, write_json
 
-CONTRACT='original_xbrl_entity_scope_cfo_anchor_v1'
+LEGACY_CONTRACT='original_xbrl_entity_scope_cfo_anchor_v1'
+CONTRACT='original_xbrl_entity_scope_cfo_anchor_v2'
 FIELDS={'operating_cashflow_krw':cf.CFO_IDS,'ppe_capex_krw':cf.PPE_IDS,
         'intangible_capex_krw':cf.INTANGIBLE_IDS}
 CAPEX=set(FIELDS)-{'operating_cashflow_krw'}
@@ -157,10 +158,15 @@ def instance_values(data,*,year,scope,identifiers,expected_cfo,diagnostic=None):
     cfo=[v for values in facts['operating_cashflow_krw'].values() for v in values]
     if not cfo:return {}
     if any(v is None for v in cfo) or set(cfo)!={expected_cfo}:raise RecoveryError('unverified_original_cfo')
-    anchors=set(facts['operating_cashflow_krw'])
+    # Context IDs are only document-local labels. Different IDs can describe
+    # the very same issuer, annual period and explicit CFS/OFS member. All
+    # entries in `facts` have already passed those independent checks above;
+    # requiring the purchase fact to reuse the CFO's *literal* context ID
+    # discards otherwise identical annual statements. The exact amount of
+    # every qualifying CFO fact still has to match the saved receipt anchor.
     result={'operating_cashflow_krw':expected_cfo}
     for field in CAPEX:
-        values=[v for ctx,vals in facts[field].items() if ctx in anchors for v in vals]
+        values=[v for vals in facts[field].values() for v in vals]
         if values:
             if any(v is None or v<0 for v in values) or len(set(values))!=1:raise RecoveryError('unusable_original_capex_fact')
             result[field]=values[0]
@@ -201,7 +207,8 @@ def verify_recovery(record):
         if record.get('original_xbrl_proof') is not None:raise RecoveryError('original_xbrl_review_missing')
         return False
     if (type(marker) is not dict or set(marker)!={'contract','receipt_id','reason'}
-        or marker['contract']!=CONTRACT or marker['receipt_id']!=record.get('annual_receipt_id')
+        or marker['contract'] not in (LEGACY_CONTRACT,CONTRACT)
+        or marker['receipt_id']!=record.get('annual_receipt_id')
         or marker['reason'] not in REASONS or record.get('major_annual_receipt_matched') is not True):
         raise RecoveryError('untrusted_original_xbrl_review')
     proof=record.get('original_xbrl_proof')
@@ -209,7 +216,7 @@ def verify_recovery(record):
         if proof is not None:raise RecoveryError('unexpected_original_xbrl_proof')
         return False
     keys={'contract','receipt_id','year','scope','archive_sha256','profile_sha256','cfo_anchor','fields','digest'}
-    if (type(proof) is not dict or set(proof)!=keys or proof['contract']!=CONTRACT
+    if (type(proof) is not dict or set(proof)!=keys or proof['contract']!=marker['contract']
         or proof['receipt_id']!=record.get('annual_receipt_id') or proof['year']!=record.get('year')
         or proof['scope']!=record.get('scope') or type(proof['cfo_anchor']) is not int
         or proof['cfo_anchor']!=record.get('operating_cashflow_krw')
@@ -223,7 +230,8 @@ def verify_recovery(record):
 
 def merge(old,values,*,reason,archive_hash,profile_hash):
     if (old.get('major_annual_receipt_matched') is not True or old.get('operating_cashflow_krw') is None
-        or old.get('original_xbrl_review') is not None):raise RecoveryError('untrusted_original_xbrl_merge')
+        or (old.get('original_xbrl_review') is not None and not legacy_review_eligible(old))):
+        raise RecoveryError('untrusted_original_xbrl_merge')
     if type(values) is not dict or not set(values)<=set(FIELDS):raise RecoveryError('invalid_original_xbrl_values')
     new=deepcopy(old)
     for field,value in values.items():
@@ -242,6 +250,15 @@ def merge(old,values,*,reason,archive_hash,profile_hash):
     new['free_cashflow_krw']=new['operating_cashflow_krw']-new['total_capex_krw'] if new['total_capex_krw'] is not None else None
     verify_recovery(new)
     return new
+
+
+def legacy_review_eligible(row):
+    """One safe v1 no-result recheck after semantic context equivalence fix."""
+    marker=row.get('original_xbrl_review')
+    return (type(marker) is dict and marker.get('contract')==LEGACY_CONTRACT
+        and marker.get('reason')=='no_missing_supported_fact'
+        and row.get('original_xbrl_proof') is None
+        and verify_recovery(row) is False)
 
 
 def cashflow_90_focus(report,priority):
@@ -264,14 +281,15 @@ def cashflow_90_focus(report,priority):
     return selected
 
 
-def targets(state,priority,limit,seed_years=(),*,near_90=()):
+def targets(state,priority,limit,seed_years=(),*,near_90=(),recheck_legacy=False):
     if type(limit) is not int or not 1<=limit<=32:raise RecoveryError('invalid_original_xbrl_budget')
     if not set(near_90)<=set(priority):raise RecoveryError('unverified_90_priority_issuer')
+    if type(recheck_legacy) is not bool:raise RecoveryError('invalid_legacy_recheck_selector')
     queue=[]
     for code,issuer in state['records'].items():
         missing=[(year,row) for year,row in issuer['years'].items() if row.get('free_cashflow_krw') is None
                  and row.get('operating_cashflow_krw') is not None and row.get('major_annual_receipt_matched') is True
-                 and row.get('original_xbrl_review') is None]
+                 and (legacy_review_eligible(row) if recheck_legacy else row.get('original_xbrl_review') is None)]
         if missing:queue.append((code not in near_90,code not in priority,len(missing),code,missing))
     candidates=[(code,year,row) for _,_,_,code,missing in sorted(queue) for year,row in sorted(missing)]
     # Revisit the deterministic structural sample with this stronger verifier.
@@ -289,6 +307,8 @@ def main():
     p.add_argument('--limit',type=int,default=16)
     p.add_argument('--structural-cohort-index',type=int,
                    help='Recheck a completed original-file structural sample first (0..1000000)')
+    p.add_argument('--recheck-equivalent-contexts',action='store_true',
+                   help='Only revisit completed v1 no-result original XBRL records once under v2')
     a=p.parse_args();root=Path('docs')
     read=lambda name:json.loads((root/name).read_text())
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json','v3-dart-cashflow-reference.json')]
@@ -301,10 +321,12 @@ def main():
         seeds=[(code,year) for code,year,*_ in xp.select_candidates(
             state,bulk,asof=catalog['date'],limit=xp.MAX_PROBES,
             cohort_index=a.structural_cohort_index,priority_codes=priority)]
-    selected=targets(state,priority,a.limit,seeds,near_90=near_90)
+    selected=targets(state,priority,a.limit,seeds,near_90=near_90,
+                     recheck_legacy=a.recheck_equivalent_contexts)
     output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),
         'conditional_90_priority_issuers':len(near_90),
         'selected_conditional_90_issuer_years':sum(code in near_90 for code,_,_ in selected),
+        'legacy_context_recheck':a.recheck_equivalent_contexts,
         'provider_calls':0,'completed':0,'recovered_fields':0,'reasons':{},
         'scores_certified':False,'context_checks':{}}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
