@@ -72,6 +72,46 @@ class ActiveListedMarketCatalogTests(unittest.TestCase):
         self.assertIsNone(entries["300003"]["flow_reference"])
         self.assertIsNone(entries["300004"]["fundamental_revenue"])
 
+    def test_mixed_six_character_krx_codes_preserve_disjoint_outcomes(self):
+        # Numeric-only catalog validation used to reject the whole published
+        # universe when a legitimate uppercase alphanumeric ticker entered.
+        snap, listing = fixture()
+        replacements = {"247540": "0008Z0", "300003": "00AB10",
+                        "300004": "3Y1234"}
+        for original, updated in replacements.items():
+            item = listing.pop(original)
+            item["code"] = updated
+            listing[updated] = item
+            for stock in snap["stocks"]:
+                if stock["code"] == original:
+                    stock["code"] = updated
+            for error in snap["collection_errors"]:
+                if error[0] == original:
+                    error[0] = updated
+            for excluded in snap["history_exclusions"]:
+                if excluded[0] == original:
+                    excluded[0] = updated
+        result = build_active_catalog(snap, listing)
+        self.assertEqual(result["listed_total"], 7)
+        self.assertEqual(result["status_counts"], {
+            "priced": 2, "price_source_or_validation_error": 1,
+            "insufficient_history": 2, "unattempted_batch": 2})
+        entries = {row["code"]: row for row in result["rows"]}
+        self.assertIn("0008Z0", entries)
+        self.assertEqual(entries["0008Z0"]["published_price"], 12000)
+        self.assertEqual(entries["00AB10"]["price_history_status"],
+                         "price_source_or_validation_error")
+        self.assertIsNone(entries["00AB10"]["published_price"])
+        self.assertIsNone(entries["00AB10"]["v3_confirmed_score"])
+        self.assertEqual(entries["3Y1234"]["price_history_status"], "insufficient_history")
+        self.assertIsNone(entries["3Y1234"]["published_price"])
+        for invalid_code in ("00ab10", "ABCDE", "ABC/10", "0008 Z0"):
+            forged = copy.deepcopy(listing)
+            forged[invalid_code] = forged.pop("00AB10")
+            forged[invalid_code]["code"] = invalid_code
+            with self.assertRaisesRegex(ActiveCatalogError, "catalog_invalid_code"):
+                build_active_catalog(snap, forged)
+
     def test_rounded_zero_turnover_is_not_proof_of_exact_zero_shares(self):
         snap,listing=fixture()
         listing["300003"]["trading_eok"]=0.001  # nonzero KRW, rounded to 0.00억원
