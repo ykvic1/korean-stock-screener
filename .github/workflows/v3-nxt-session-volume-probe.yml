@@ -1,0 +1,40 @@
+name: V3 NXT Volume Session Boundary (Read Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Probe NXT source availability without publishing issuer-level data
+        required: true
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+  schedule:
+    # 05:10 KST Tuesday-Saturday, after Monday-Friday's 20:00 NXT close.
+    - cron: '10 20 * * 1-5'
+  pull_request:
+    paths:
+      - v3_nxt_session_volume_probe.py
+      - tests/test_v3_nxt_session_volume_probe.py
+      - .github/workflows/v3-nxt-session-volume-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  source_probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install requests
+      - name: Test source boundaries without vendor requests
+        run: python -m unittest tests.test_v3_nxt_session_volume_probe -v
+      - name: Probe NXT historical daily session rows (counts only)
+        if: github.event_name != 'pull_request'
+        env:
+          PROBE_MODE: ${{ github.event_name == 'schedule' && 'live' || inputs.mode }}
+        run: python v3_nxt_session_volume_probe.py --mode "$PROBE_MODE"
