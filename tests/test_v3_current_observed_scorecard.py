@@ -260,7 +260,7 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         for html in ("index.html","workspace.html"):
             text=(base/"docs"/html).read_text(encoding="utf8")
             self.assertIn('href="v3-personal-adjusted-scores.csv"',text)
-            self.assertIn('시총·손절 보정 점수 CSV',text)
+            self.assertIn('시총 보정 점수 CSV (손절은 참고만)',text)
             self.assertNotIn('당일 3영역 잠정점수 CSV',text)
             self.assertNotIn('href="v3-all-listed-scores.csv"',text)
 
