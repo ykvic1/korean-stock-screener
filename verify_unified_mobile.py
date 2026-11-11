@@ -219,14 +219,23 @@ with sync_playwright() as p:
     assert page.locator("#sort").input_value() == "personal"
     assert page.locator('[data-tab="all"]').get_attribute("aria-pressed") == "true"
     assert page.locator(".u-stock .u-card-score").first.is_visible()
-    # Keep all 2,501 listed issuers, including names with no same-day quote.
-    # A carried historical ratio may rank an unpriced issuer first. Its
-    # deliberately restricted detail panel has no current-price stop chart;
-    # exercise the full five-pillar/structural-stop UI on a priced issuer.
+    # Carried prior observations legitimately remain visible for a stock
+    # without a same-day quote and may occupy the first full-market page.
+    # Verify that restricted panel does not pretend to have a current chart.
+    first_personal_card = page.locator(".u-stock").first
+    if "종가 미관측" in first_personal_card.locator(".u-card-price small").inner_text():
+        first_personal_card.click()
+        assert "현재 가격 관측 목록에서 제외된 종목" in page.locator("#detail").inner_text()
+        assert "가격·손절선·차트·기존 점수를 임의로 채우지 않습니다" in page.locator("#detail").inner_text()
+        page.locator("#detailClose").click()
+    # For price/stop visual contract, search a known current-priced issuer.
+    # Search is global and independent of the visible top-20 sort window.
+    priced_code = context.request.get(URL + "data.json").json()["stocks"][0]["code"]
+    page.locator("#stockSearch").fill(priced_code)
     personal_card = page.locator(".u-stock").filter(
         has=page.locator(".u-card-price > small").filter(has_text="종가 ·")
     ).first
-    assert personal_card.count() == 1, "personal sorting must retain priced stocks"
+    assert personal_card.count() == 1, "current-priced stock must remain searchable"
     personal_label = personal_card.locator(".u-card-score > small").last.inner_text()
     assert "개인환산" in personal_label
     first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")
@@ -334,6 +343,7 @@ with sync_playwright() as p:
         assert "개별 공시 원장" in fcf_detail
     assert "0점" in fcf_detail
     page.locator("#personalRank").click()
+    page.locator("#stockSearch").fill("")
     assert page.locator("#sort").input_value() == "stable"
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
     # Compare only stocks with the same available ceilings for ALL five pillars.
