@@ -139,16 +139,24 @@ class PatternWithinOriginalSixPillars(unittest.TestCase):
         self.assertEqual(x["technical_parts"]["weekly_rsi"], 0)
         self.assertAlmostEqual(x["technical_research_candidate"], 19.04)
 
-    def test_loss_risks_not_waived_by_good_pattern(self):
+    def test_non_stop_risks_still_warn_but_stop_is_reference_only(self):
         r = stock()
         r["risk_flags"] = ["거래대금 부족 — 호가 스프레드"]
         x = evaluate(r)
         self.assertFalse(x["provisional_full_six_pillar_sort_eligible"])
         self.assertTrue(x["risk_warnings"])
-        r = stock()
-        r["stop_line"] = 82
-        r["stop_pct"] = -18
-        self.assertTrue(evaluate(r)["risk_warnings"])
+        for stop, percent in ((82, -18), (99, -1), (None, None), (92, -88)):
+            with self.subTest(stop=stop, percent=percent):
+                r = stock()
+                r["stop_line"] = stop
+                r["stop_pct"] = percent
+                r["risk_flags"] = ["예상 손절폭 과대", "구조적 손절선 미산출"]
+                candidate = evaluate(r, other_pillars={
+                    "ias": 18, "financial": 13, "valuation": 11,
+                    "industry": 13, "momentum": 8})
+                self.assertEqual(candidate["risk_warnings"], [])
+                self.assertTrue(candidate["provisional_full_six_pillar_sort_eligible"])
+                self.assertAlmostEqual(candidate["six_pillar_full_candidate_only"], 87.04)
 
     def test_other_pillars_complete_candidate_not_real_buy_score(self):
         r = stock()

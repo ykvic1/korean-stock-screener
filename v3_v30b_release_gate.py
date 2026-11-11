@@ -302,6 +302,7 @@ def _csv_points(raw: Any, maximum: int) -> Decimal | None:
 
 
 STOP_RESEARCH_STATES = {
+    "reference_only",
     "source_unavailable", "too_close_to_market_noise",
     "low_distance_but_unconfirmed_setup",
     "bounded_downside_and_reference_room",
@@ -326,7 +327,7 @@ def _research_decimal(raw: Any, *, signed=False) -> Decimal | None:
 
 
 def _stop_research_csv(row: dict[str, str]) -> str:
-    """Validate a separate non-scoring observation, never risk odds or grade."""
+    """Validate a separate reference; legacy published research remains readable."""
     distance = _research_decimal(row["손절거리_참고_퍼센트"])
     adjustment = _research_decimal(
         row["손절심각도_연구가감점_총점미반영"], signed=True)
@@ -337,6 +338,10 @@ def _stop_research_csv(row: dict[str, str]) -> str:
         if adjustment is not None:
             raise ValueError("unverified_stop_adjustment")
         return "unavailable"
+    if status == "reference_only":
+        if distance is None or not 0 < distance < 100 or adjustment is not None:
+            raise ValueError("invalid_stop_reference_only")
+        return "neutral_research_only"
     if distance is None or not 0 < distance < 100 or adjustment is None:
         raise ValueError("invalid_stop_research_reference")
     if status == "too_close_to_market_noise":

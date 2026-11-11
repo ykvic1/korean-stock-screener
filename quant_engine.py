@@ -338,12 +338,10 @@ def entry_playbooks(stock: dict) -> dict:
     """Conservative trigger checklist, not a validated signal or an order."""
     flags = stock.get("risk_flags") or []
     pats = stock.get("patterns") or []
-    stop = stock.get("stop_pct")
     flow = bool(stock.get("flows_confirmed"))
     gap120 = stock.get("ma120w_gap")
     vol = stock.get("volume_ratio")
     rel60 = stock.get("relative60")
-    risk_ok = isinstance(stop, (int,float)) and -15<=stop<=-3
     pattern_ok = bool(pats)
     no_chase = not any("급등" in x or "추격" in x for x in flags)
     return {
@@ -354,12 +352,12 @@ def entry_playbooks(stock: dict) -> dict:
       },
       "스윙": {
         "rule":"일봉 IHS·쐐기·삼각수렴 또는 상승 후 횡보 + 거래량 확인. 손절선은 구조적 지지 아래",
-        "testable_now":bool(pattern_ok and risk_ok and no_chase and flow),
+        "testable_now":bool(pattern_ok and no_chase and flow),
         "missing":None if flow else "기관·외국인 수급 확인 필요",
       },
       "중기": {
         "rule":"주봉 전환 + 시장대비 상대강도 개선 + 누적 수급 확인 후 분할매수",
-        "testable_now":bool(gap120 is not None and -8<=gap120<=15 and rel60 is not None and rel60>=0 and flow and risk_ok),
+        "testable_now":bool(gap120 is not None and -8<=gap120<=15 and rel60 is not None and rel60>=0 and flow),
         "missing":"실적·업종 사이클 별도 검증 필요",
       },
       "장기": {

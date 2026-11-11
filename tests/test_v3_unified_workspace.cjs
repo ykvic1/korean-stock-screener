@@ -88,8 +88,8 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261111-stop-reference-only'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261111-stop-reference-only'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261111-stop-reference-csv'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261111-stop-reference-csv'),'classic research route keeps its pinned assets');
  assert.ok(entry.includes('operational-score.js?v=r1e-stop-unscored')&&
   html.includes('operational-score.js?v=r1e-stop-unscored'),
   'both routes must invalidate cached score markup after removing stop adjustments');
@@ -953,13 +953,19 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261111-stop-reference-only','v30b-20261110-score-reconcile'],[entry,'v30b-20261111-stop-reference-only','v30b-20261110-score-reconcile']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261111-stop-reference-csv','v30b-20261110-score-reconcile'],[entry,'v30b-20261111-stop-reference-csv','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
   page.includes('v3-live-progress.js?v=v30b-20261111-r1e-coverage')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }
+assert.ok(source.includes("status==='reference_only'")&&
+ source.includes("status==='reference_only'?'neutral_research_only'"),
+ 'new stop-reference-only CSV must reconcile without discarding financial evidence');
+assert.ok(entry.includes('시총 보정 점수 CSV (손절은 참고만)')&&
+ html.includes('시총 보정 점수 CSV (손절은 참고만)'),
+ 'both routes must not advertise a removed stop-loss score adjustment');
 assert.ok(css.includes('.u-ma-cross-note'), 'mobile MA crossing evidence needs a separate readable line');
 assert.ok(css.includes('.u-score-row-explain .u-parts>div.u-factor-unverified')&&
  css.includes('background:#fff5f6;color:#244258')&&
@@ -2028,6 +2034,40 @@ const overlayCount=unified.applyCurrentObservedFinance(
  freshModel,observedPartialSummary,observedPartialCsv);
 assert.ok(overlayCount>=0&&
  overlayCount<=observedPartialSummary.observed_issuer_counts.financial);
+// The new publisher suppresses even research-only stop adjustments. Its
+// reference-only rows must still attach all dated financial observations.
+if(observedPartialSummary.asof===freshModel.date&&overlayCount>0){
+ const raw=observedPartialCsv.trimEnd().split(/\r?\n/);
+ const columns=raw[0].replace(/^\ufeff/,'').split(',');
+ const iStatus=columns.indexOf('손절심각도_연구상태');
+ const iAdjust=columns.indexOf('손절심각도_연구가감점_총점미반영');
+ const iDistance=columns.indexOf('손절거리_참고_퍼센트');
+ assert.ok(iStatus>0&&iAdjust>0&&iDistance>0);
+ let referenced=0,unavailable=0;
+ const nextRows=raw.slice(1).map(line=>{
+  const fields=line.split(',');
+  if(fields[iDistance]!==''){
+   fields[iStatus]='reference_only';fields[iAdjust]='';referenced++;
+  }else{
+   fields[iStatus]='source_unavailable';fields[iAdjust]='';unavailable++;
+  }
+  return fields.join(',');
+ });
+ const nextSummary=structuredClone(observedPartialSummary);
+ nextSummary.stop_loss_severity_research_counts={
+  bonus_research_only:0,penalty_research_only:0,
+  neutral_research_only:referenced,unavailable};
+ const nextCsv=[raw[0],...nextRows].join('\n')+'\n';
+ assert.equal(unified.applyCurrentObservedFinance(
+  structuredClone(freshModel),nextSummary,nextCsv),overlayCount);
+ const malicious=nextRows.slice();
+ const fake=malicious.findIndex(s=>s.includes(',reference_only,'));
+ assert.ok(fake>=0);
+ const fields=malicious[fake].split(',');
+ fields[iAdjust]='2';malicious[fake]=fields.join(',');
+ assert.equal(unified.applyCurrentObservedFinance(
+  structuredClone(freshModel),nextSummary,[raw[0],...malicious].join('\n')+'\n'),0);
+}
 // The additive money source dates preserve the existing financial source joins.
 if(observedPartialSummary.asof===freshModel.date&&overlayCount>0){
  const lines=observedPartialCsv.trimEnd().split(/\r?\n/);

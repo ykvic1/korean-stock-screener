@@ -478,11 +478,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             path_research["research_volume_weight_applied"]=add_vol
             path_research["research_momentum_weight_applied"]=add_mom
         stop_risk=stop_risk_preview(source_stock or {},asof=asof)
-        risk_points=stop_risk["research_adjustment_points_not_applied"]
-        risk_group=("unavailable" if risk_points is None else
-                    "bonus_research_only" if risk_points>0 else
-                    "penalty_research_only" if risk_points<0 else
-                    "neutral_research_only")
+        risk_group=("neutral_research_only" if stop_risk["status"] == "reference_only"
+                    else "unavailable")
         stop_risk_counts[risk_group]+=1
         for area in counts:
             if coverage[area]>0:

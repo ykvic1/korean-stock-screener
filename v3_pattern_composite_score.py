@@ -36,7 +36,6 @@ GEOMETRY = {
     "post_rise_consolidation_candidate": .65,
 }
 RISK_MARKERS = (
-    "예상 손절폭 과대", "손절선 과도하게 근접", "구조적 손절선 미산출",
     "단기 급등", "장기 추세 취약", "거래대금 부족",
     "급격한 거래량 집중", "52주 고점권",
 )
@@ -123,15 +122,8 @@ def _weekly_trend(p):
 
 def _risks(row):
     reasons = []
-    current = _num(row.get("price_latest"))
-    stop = _num(row.get("stop_line"))
-    pct = _num(row.get("stop_pct"))
-    if current is None or current <= 0 or stop is None or not 0 < stop < current:
-        reasons.append("structural_stop_unverified")
-    elif pct is None or abs(100 * (stop / current - 1) - pct) > 1.5:
-        reasons.append("structural_stop_mismatch")
-    elif not -15 <= pct <= -3:
-        reasons.append("stop_distance_outside_3_to_15")
+    # Structural stop prices are display-only references. Neither their
+    # absence nor their distance may suppress a research candidate.
     recent20, recent60 = _num(row.get("price20")), _num(row.get("price60"))
     if recent20 is None or recent60 is None:
         reasons.append("recent_return_missing")

@@ -1,9 +1,7 @@
-"""Dated structural-stop loss-SEVERITY proxy for V3.0b research only.
+"""Dated structural-stop reference for V3.0b, with no score or risk tier.
 
-A nearby stop is not proof of low stop-out PROBABILITY. No investment score,
-rank, risk budget, or trading decision may consume this provisional adjustment.
-Historical walk-forward bands must be independently PIT/corporate-action
-validated before any live bonus/penalty is authorized.
+The user removed all stop-loss bonuses/penalties, including research-only
+ones. A structural invalidation level is display-only, not a trading gate.
 """
 from __future__ import annotations
 
@@ -11,7 +9,6 @@ from datetime import date
 import math
 
 SCHEMA = "v3-stop-loss-severity-proxy-research-0.1"
-MAX_ABSOLUTE_RESEARCH_ADJUSTMENT = 5.0
 
 
 def _finite(value):
@@ -29,10 +26,10 @@ def _date(value):
 
 
 def preview(row, *, asof):
-    """Return a non-additive risk *research* field, never live-score points.
+    """Return a dated distance reference, never ranking/bonus/penalty points.
 
-    Missing or stale input is unknown, never zero. Downside severity uses
-    distance to a user/legacy structural stop, NOT estimated stop-hit odds.
+    Missing or stale input is unknown, never zero. Distance uses
+    a user/legacy structural stop, NOT estimated stop-hit odds.
     Existing 2 percentage-point client-side distance tolerance is retained.
     """
     if type(row) is not dict or _date(asof) is None:
@@ -69,6 +66,8 @@ def preview(row, *, asof):
         "stop_distance_pct": round(distance, 4) if distance is not None else None,
         "historical_resistance_room_pct": None,
         "reference_reward_risk_only": None,
+        # Legacy CSV column remains blank for existing consumers; no
+        # stop-derived adjustment is calculated, even as an offline proxy.
         "research_adjustment_points_not_applied": None,
         "status": "source_unavailable",
         "reason_codes": reasons,
@@ -83,51 +82,8 @@ def preview(row, *, asof):
             result["historical_resistance_room_pct"] = round(room, 4)
             result["reference_reward_risk_only"] = round(room / distance, 4)
 
-    flags = row.get("risk_flags")
-    # The legacy warning list also contains source-missing metadata on most
-    # issuers. "PBR unconfirmed" / "flows unconfirmed" are NOT evidence of a
-    # higher stop-hit rate. Unknown or genuinely adverse flags still block a
-    # bonus, while data-quality badges remain visible elsewhere.
-    non_price_evidence_flags = {
-        "외국인·기관 수급 미확인",
-        "실적·현금흐름 검증 필요",
-        "PBR 미확인",
-    }
-    flags_clear = (type(flags) is list and
-                   all(type(flag) is str and flag in non_price_evidence_flags
-                       for flag in flags))
-    price20, price60 = row.get("price20"), row.get("price60")
-    not_extended = (_finite(price20) and _finite(price60)
-                    and price20 <= 18 and price60 <= 40)
-    # Narrow stops are prone to ordinary noise; large distance increases
-    # loss if the stop actually executes. These are heuristic severity
-    # bands, not empirically calibrated trigger probabilities.
-    if distance < 3:
-        adjustment = -3.0
-        category = "too_close_to_market_noise"
-    elif distance <= 8:
-        if (result["reference_reward_risk_only"] is not None
-                and result["reference_reward_risk_only"] >= 2
-                and flags_clear and not_extended):
-            adjustment = 3 * (8 - distance) / 5
-            category = "bounded_downside_and_reference_room"
-        else:
-            adjustment = 0.0
-            category = "low_distance_but_unconfirmed_setup"
-    elif distance <= 12:
-        adjustment = -(distance - 8) / 4
-        category = "medium_loss_distance"
-    elif distance <= 15:
-        adjustment = -1 - 2 * (distance - 12) / 3
-        category = "elevated_loss_distance"
-    else:
-        adjustment = -3 - min(2, (distance - 15) / 5)
-        category = "wide_structural_loss_distance"
     result.update({
-        "status": category,
+        "status": "reference_only",
         "reason_codes": [],
-        "research_adjustment_points_not_applied": round(
-            max(-MAX_ABSOLUTE_RESEARCH_ADJUSTMENT,
-                min(MAX_ABSOLUTE_RESEARCH_ADJUSTMENT, adjustment)), 4),
     })
     return result

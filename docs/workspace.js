@@ -440,6 +440,7 @@ const MONEY_DATE_CURRENT_COLUMNS=Object.freeze([
  ...RISK_CURRENT_COLUMNS,'거래대금_일봉자료기준일','거래대금_주봉자료기준일'
 ]);
 const RISK_STATUSES=new Set([
+ 'reference_only',
  'source_unavailable','too_close_to_market_noise',
  'low_distance_but_unconfirmed_setup','bounded_downside_and_reference_room',
  'medium_loss_distance','elevated_loss_distance',
@@ -539,9 +540,12 @@ function applyCurrentObservedFinance(model,summary,csv){
       (rawDistance!==''&&(distance===null||!finite(distance)))||
       (rawAdjustment!==''&&(!finite(adjustment)||adjustment< -5||adjustment>5))||
       (status==='source_unavailable'&&adjustment!==null)||
-      (status!=='source_unavailable'&&
+      (status==='reference_only'&&
+       (!(distance>0&&distance<100)||adjustment!==null))||
+      (status!=='source_unavailable'&&status!=='reference_only'&&
        (!(distance>0&&distance<100)||adjustment===null)))return 0;
-   const category=adjustment===null?'unavailable':
+   const category=status==='reference_only'?'neutral_research_only':
+    adjustment===null?'unavailable':
     adjustment>0?'bonus_research_only':
     adjustment<0?'penalty_research_only':'neutral_research_only';
    riskCounts[category]++;
