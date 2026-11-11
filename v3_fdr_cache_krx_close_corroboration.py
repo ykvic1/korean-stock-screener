@@ -8,6 +8,7 @@ OHLCV consistency, or all-venue consolidated traded quantities.
 from __future__ import annotations
 
 import math
+import numbers
 import re
 
 SCHEMA = 'v3-dated-fdr-close-versus-official-krx-aggregate-v1'
@@ -21,9 +22,10 @@ class CacheCorroborationError(ValueError):
 def _price(value):
     if type(value) is bool or value is None:
         return None
-    if type(value) in (int, float):
+    if isinstance(value, numbers.Real):
+        value = float(value)
         if math.isfinite(value) and 0 < value < 1e12:
-            return float(value)
+            return value
         return None
     if isinstance(value, str) and re.fullmatch(r'[0-9][0-9,]*', value):
         numeric = int(value.replace(',', ''))
