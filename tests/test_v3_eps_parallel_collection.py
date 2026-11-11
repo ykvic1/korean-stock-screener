@@ -46,6 +46,14 @@ class ParallelEPSCollectionTests(unittest.TestCase):
         for workers in (0,5,True):
             with self.assertRaises(ValueError):collect([0],lambda v:v,lambda v:None,workers=workers,deadline=1000)
         with self.assertRaises(ValueError):collect(list(range(17)),lambda v:v,lambda v:None,deadline=1000)
+        with self.assertRaises(ValueError):collect(list(range(33)),lambda v:v,lambda v:None,
+                                                   max_choices=32,deadline=1000)
+        with self.assertRaises(ValueError):collect([0],lambda v:v,lambda v:None,
+                                                   max_choices=True,deadline=1000)
+        saved=[]
+        collect(list(range(32)),lambda v:v,saved.append,max_choices=32,
+                deadline=1000,clock=lambda:0)
+        self.assertCountEqual(saved,range(32))
         saved=[];collect([0],lambda v:None,saved.append,deadline=1000,clock=lambda:0)
         self.assertEqual(saved,[])
 

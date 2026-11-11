@@ -1,11 +1,16 @@
-"""Bounded source readers, one checkpoint caller, and drain-before-failure."""
+"""Bounded source readers, one checkpoint caller, and drain-before-failure.
+
+EPS keeps the 16-receipt default; original cashflow may opt into 32 receipts.
+"""
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 import time
 
 
-def collect(choices,fetch,checkpoint,*,workers=4,deadline,clock=time.monotonic):
+def collect(choices,fetch,checkpoint,*,workers=4,deadline,clock=time.monotonic,
+            max_choices=16):
     if (type(workers) is not int or not 1<=workers<=4
-        or type(choices) not in (list,tuple) or len(choices)>16):
+        or type(max_choices) is not int or not 1<=max_choices<=32
+        or type(choices) not in (list,tuple) or len(choices)>max_choices):
         raise ValueError('invalid_parallel_eps_budget')
     iterator=iter(choices);pending={};failure=None;exhausted=False
     with ThreadPoolExecutor(max_workers=workers) as executor:

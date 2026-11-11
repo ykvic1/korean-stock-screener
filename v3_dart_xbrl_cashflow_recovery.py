@@ -15,12 +15,14 @@ import json
 import os
 from pathlib import Path
 import re
+import threading
 import time
 import zipfile
 
 import v3_dart_cashflow_enrichment as cf
 import v3_dart_xbrl_capex_pilot as xp
 from v3_dart_bulk_history import _mapping, verified_company_mapping_cache, write_json
+from v3_eps_parallel_collection import collect
 
 LEGACY_CONTRACT='original_xbrl_entity_scope_cfo_anchor_v1'
 CONTRACT='original_xbrl_entity_scope_cfo_anchor_v2'
@@ -335,30 +337,57 @@ def main():
     if len(key)!=40:raise RecoveryError('original_xbrl_key_missing')
     members={r['code']:r for r in catalog['rows']};cache=Path('.cache/v3-dart-company-codes.json')
     mapping=verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None,catalog['date'],members)
-    session=requests.Session();profiles={};deadline=time.monotonic()+360;reasons=Counter();diagnostic=Counter()
+    local=threading.local();clients=[];api_lock=threading.Lock()
+    profiles={};profile_locks={code:threading.Lock() for code,_,_ in selected}
+    deadline=time.monotonic()+360;reasons=Counter();diagnostic=Counter()
     def request(endpoint,params,stream=False):
         try:
-            reply=session.get('https://opendart.fss.or.kr/api/'+endpoint,params={'crtfc_key':key,**params},timeout=(20,90),stream=stream)
-            output['provider_calls']+=1;reply.raise_for_status();return reply
+            if not hasattr(local,'session'):
+                local.session=requests.Session()
+                with api_lock:clients.append(local.session)
+            reply=local.session.get('https://opendart.fss.or.kr/api/'+endpoint,
+                params={'crtfc_key':key,**params},timeout=(20,90),stream=stream)
+            with api_lock:output['provider_calls']+=1
+            reply.raise_for_status();return reply
         except Exception:raise RecoveryError('original_xbrl_provider_unavailable') from None
-    if mapping is None:mapping=_mapping(request('corpCode.xml',{}).content,set(members))
-    for code,year,old in selected:
-        if time.monotonic()+120>=deadline:break
-        if code not in mapping:continue
-        if code not in profiles:
-            try:profile=request('company.json',{'corp_code':mapping[code]}).json()
-            except Exception:raise RecoveryError('original_xbrl_profile_unavailable') from None
-            profiles[code]=(company_ids(profile,mapping[code],code),cf.fingerprint(profile))
+    if mapping is None:
+        response=request('corpCode.xml',{})
+        try:mapping=_mapping(response.content,set(members))
+        finally:response.close()
+    def fetch(choice):
+        code,year,old=choice
+        if code not in mapping:return None
+        # Per-issuer locks avoid duplicate profile calls for different years;
+        # unrelated issuer requests can proceed on separate HTTP sessions.
+        with profile_locks[code]:
+            if code not in profiles:
+                try:
+                    response=request('company.json',{'corp_code':mapping[code]})
+                    try:profile=response.json()
+                    finally:response.close()
+                except Exception:raise RecoveryError('original_xbrl_profile_unavailable') from None
+                profiles[code]=(company_ids(profile,mapping[code],code),cf.fingerprint(profile))
         ids,profile_hash=profiles[code]
-        raw=xp._read_response_limited(request('fnlttXbrl.xml',{'rcept_no':old['annual_receipt_id'],'reprt_code':'11011'},True))
+        response=request('fnlttXbrl.xml',{'rcept_no':old['annual_receipt_id'],'reprt_code':'11011'},True)
+        try:raw=xp._read_response_limited(response)
+        finally:response.close()
+        checks=Counter()
         values,reason=bounded_archive_values(raw,year=int(year),scope=old['scope'],
-            identifiers=ids,expected_cfo=old['operating_cashflow_krw'],diagnostic=diagnostic)
+            identifiers=ids,expected_cfo=old['operating_cashflow_krw'],diagnostic=checks)
         new=merge(old,values,reason=reason,archive_hash=hashlib.sha256(raw).hexdigest(),profile_hash=profile_hash)
+        return code,year,new,checks
+    def checkpoint(result):
+        nonlocal state
+        code,year,new,checks=result
         state['records'][code]['years'][year]=new
         state=cf.summary(catalog['date'],members,state['records'],cf.fingerprint(bulk))
         cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True)
         write_json(root/'v3-dart-cashflow-reference.json',state)
-        output['completed']+=1;output['recovered_fields']+=len(new.get('original_xbrl_proof',{}).get('fields',{}));reasons[new['original_xbrl_review']['reason']]+=1
+        output['completed']+=1;output['recovered_fields']+=len(new.get('original_xbrl_proof',{}).get('fields',{}));reasons[new['original_xbrl_review']['reason']]+=1;diagnostic.update(checks)
+    try:
+        collect(selected,fetch,checkpoint,workers=4,max_choices=32,deadline=deadline)
+    finally:
+        for client in clients:client.close()
     output['reasons']=dict(reasons);output['context_checks']=dict(diagnostic);print(json.dumps(output,sort_keys=True))
 
 
