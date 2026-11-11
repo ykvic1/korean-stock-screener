@@ -52,11 +52,21 @@ class SavedCloseSourceTests(unittest.TestCase):
         self.assertTrue(exposure['price_feed_declared'])
         self.assertEqual(exposure['snapshot_published_window'], 'aftermarket_1600_2000')
         self.assertEqual(exposure['individual_quote_windows']['aftermarket_1600_2000']['different_close'],1)
-        self.assertEqual(exposure['individual_quote_windows']['post_regular_pre_aftermarket']['exact_close'],1)
+        self.assertEqual(exposure['individual_quote_windows']['post_regular_pre_aftermarket_1530_1540']['exact_close'],1)
         self.assertEqual(exposure['individual_quote_windows']['after_aftermarket']['exact_close'],1)
         self.assertEqual(sum(v['requested'] for v in exposure['individual_quote_windows'].values()),3)
         self.assertTrue(exposure['aftermarket_capture_is_not_proof_of_trade_session'])
         self.assertEqual(capture_window('2026-11-10 09:20:11 KST'),'regular_market')
+        self.assertEqual(capture_window('2026-11-10 15:39:59 KST'),
+                         'post_regular_pre_aftermarket_1530_1540')
+        self.assertEqual(capture_window('2026-11-10 15:40:00 KST'),
+                         'nxt_aftermarket_1540_1600')
+        self.assertEqual(capture_window('2026-11-10 15:59:59 KST'),
+                         'nxt_aftermarket_1540_1600')
+        self.assertEqual(capture_window('2026-11-10 16:00:00 KST'),
+                         'aftermarket_1600_2000')
+        self.assertEqual(capture_window('2026-11-10 20:00:00 KST'),
+                         'after_aftermarket')
         self.assertEqual(capture_window('bad-time'),'unknown')
 
     def test_claim_of_regular_session_from_fchart_is_rejected(self):
