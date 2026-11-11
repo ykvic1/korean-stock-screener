@@ -45,12 +45,20 @@ class SavedCloseSourceTests(unittest.TestCase):
         self.assertEqual(report['counts']['saved_market']['different_close'],1)
         self.assertEqual(report['counts']['below90_ma_priority']['exact_close'],1)
         self.assertEqual(report['counts']['ninety_plus_ma_priority']['different_close'],1)
+        profile=report['mismatch_distance_profile']['saved_market']
+        self.assertEqual(profile['different_close'],1)
+        self.assertEqual(profile['absolute_close_gap_pct']['3_to_10pct'],1)
+        self.assertEqual(profile['direction']['saved_below_krx'],1)
+        self.assertEqual(profile['krx_daily_high_low_position']['outside_krx_daily_low_high'],1)
+        self.assertEqual(profile['saved_equals_other_krx_ohlc']['open'],0)
         self.assertEqual(report['added_available_weight'],0)
         self.assertIs(report['krx_regular_only_volume_verified'],False)
         text=json.dumps(report)
         for code in ('000001','000002','000003'):
             self.assertNotIn(code,text)
         self.assertNotIn('TDD_CLSPRC',text)
+        self.assertNotIn('"close":',text)
+        self.assertNotIn('"price":',text)
 
     def test_absent_code_never_becomes_zero_or_valid_close(self):
         provider=Provider()
