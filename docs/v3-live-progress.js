@@ -107,8 +107,26 @@ function dartSummary(raw){
  return {complete:raw.filing_months_checkpointed,total:120,
   remaining:raw.filing_months_remaining};
 }
+function closeAuditSummary(raw,marketAsOf){
+ const c=raw?.counts?.saved_market;
+ if(!raw||raw.schema!=='v3-saved-close-official-krx-diagnostic-v1'||
+    !validDate(raw.asof)||!c||!nonnegative(c.requested)||c.requested<1||
+    !nonnegative(c.exact_close)||!nonnegative(c.different_close)||
+    !nonnegative(c.absent_in_krx)||!nonnegative(c.invalid_krx_price_row)||
+    !nonnegative(c.unusable_saved_close)||
+    c.exact_close+c.different_close+c.absent_in_krx+
+    c.invalid_krx_price_row+c.unusable_saved_close!==c.requested||
+    raw.source_requests!==2||raw.investment_score_certified!==false||
+    raw.krx_regular_only_volume_verified!==false||
+    raw.nxt_and_after_hours_exclusion_verified!==false||
+    raw.changed_market_price_rows!==0||raw.added_available_weight!==0)
+    return null;
+ const fresh=validDate(marketAsOf)&&marketAsOf===raw.asof;
+ return {asof:raw.asof,checked:c.requested,different:c.different_close,
+  fresh,percent:Math.round(c.different_close/c.requested*1000)/10};
+}
 if(typeof module!=='undefined'&&module.exports)
- module.exports={observedSummary,operationalSummary,dartSummary,scoreRolloverNotice};
+ module.exports={observedSummary,operationalSummary,dartSummary,scoreRolloverNotice,closeAuditSummary};
 if(!root.document)return;
 const doc=root.document;
 const fields={
@@ -116,7 +134,8 @@ const fields={
  coverage90:doc.getElementById('liveProgressCoverage90'),
  coverage:doc.getElementById('liveProgressCoverage'),
  dart:doc.getElementById('liveProgressDart'),
- note:doc.getElementById('liveProgressNotice')
+ note:doc.getElementById('liveProgressNotice'),
+ close:doc.getElementById('krxCloseAlert')
 };
 if(Object.values(fields).some(x=>!x))return;
 const fmt=x=>x.toLocaleString('ko-KR');
@@ -133,17 +152,31 @@ async function load(){
  fields.coverage.textContent='확인 중';
  fields.dart.textContent='확인 중';
  fields.note.textContent='각 데이터 원천의 기준일과 수집 상태를 확인 중입니다.';
- const [market,filings,previous,operational]=await Promise.allSettled([
+ fields.close.firstChild.textContent='가격 원천을 공식 KRX와 대조 중입니다. ';
+ const [market,filings,previous,operational,closeAudit]=await Promise.allSettled([
   getJson('v3-current-observed-all-listed-summary.json'),
   getJson('v3-dart-historical-receipt-progress.json'),
   getJson('v3-real-source-six-area-coverage.json'),
-  getJson('v3-operational-research-comparison.json')
+  getJson('v3-operational-research-comparison.json'),
+  getJson('v3-krx-saved-close-crosscheck.json')
  ]);
  if(run!==generation)return;
  const m=market.status==='fulfilled'?observedSummary(market.value):null;
  const f=filings.status==='fulfilled'?dartSummary(filings.value):null;
  const proposed=operational.status==='fulfilled'?operationalSummary(operational.value):null;
  const o=proposed&&(!m||(proposed.total===m.total&&proposed.asof<=m.asof))?proposed:null;
+ const price=closeAudit.status==='fulfilled'?closeAuditSummary(
+  closeAudit.value,o?.asof||m?.asof):null;
+ fields.close.firstChild.textContent=price?
+  price.fresh?
+   '가격 원천 불일치 · '+price.asof+' 공식 KRX 일별 종가와 저장 종가가 '+
+   fmt(price.different)+' / '+fmt(price.checked)+'종목 ('+price.percent+'%)에서 다릅니다. '+
+   'NXT·애프터마켓/수정주가 구분과 정규장 거래량 미인증 · 운영점수는 잠정 참고용입니다. ':
+   '최근 KRX 종가 대조 '+price.asof+' · '+fmt(price.different)+' / '+fmt(price.checked)+
+   '종목 불일치. 현재 '+(o?.asof||m?.asof||'시장')+' 자료에 대한 새 대조는 대기 중입니다. '+
+   '정규장 가격·거래량 근거는 아직 미인증입니다. ':
+  'KRX 정규장 종가와 저장 일봉의 독립 대조 결과를 확인할 수 없습니다. '+
+  '원천·거래세션 인증 전이므로 점수는 잠정 참고용입니다. ';
  fields.date.textContent=o?o.asof+' · '+o.model+' 점수':m?m.asof:'재확인 필요';
  fields.coverage90.textContent=o?
   fmt(o.near90)+' / '+fmt(o.total)+'종목 ('+o.model+')': '신규 모델 집계 대기';
