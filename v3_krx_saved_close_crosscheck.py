@@ -23,7 +23,7 @@ from v3_saved_close_ma_recovery import select_targets
 from v3_price_session_capture import FEED, WINDOWS, capture_window
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
-FORMAT_REVISION = 3
+FORMAT_REVISION = 4
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
