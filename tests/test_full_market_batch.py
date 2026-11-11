@@ -647,6 +647,47 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             self.assertEqual(complete["score"], 60)
             self.assertEqual([r["code"] for r in rows], sorted(r["code"] for r in rows))
 
+    def test_date_pinned_publisher_preserves_saved_market_if_prices_are_old(self):
+        """A verified same-day roster is not proof that FChart prices refreshed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, listed = self._plan(tmp, 105)
+            # The Monday roster is valid, but the history provider is still
+            # returning the Friday prices. Previously the maximum-age gate
+            # allowed this stale batch to overwrite the published market.
+            manifest["asof"] = "2026-10-19"
+            manifest["digest"] = b._digest(manifest["asof"], manifest["codes"])
+            manifest["roster_provenance"] = "date_pinned_fdr_public_cache"
+            manifest["roster_source_sha256"] = "a" * 64
+            folder, _ = self._scan_all(tmp, manifest)
+            with self.assertRaisesRegex(
+                    b.BatchError, "date_pinned_roster_price_day_mismatch"):
+                b.publish(
+                    manifest=manifest, parts_dir=folder, listing=listed,
+                    optional_sources=[], index_data={}, use_flow=False,
+                    write_report=False)
+
+    def test_date_pinned_current_price_day_is_not_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest, _, listed = self._plan(tmp, 105)
+            manifest["roster_provenance"] = "date_pinned_fdr_public_cache"
+            manifest["roster_source_sha256"] = "b" * 64
+            folder, _ = self._scan_all(tmp, manifest)
+
+            def score_stub(row, cfg):
+                row.update({"components": {"일봉 구조": 5, "주봉·추세": 5,
+                                           "거래량·OBV": 5},
+                            "score": 30, "coverage_pct": 25,
+                            "decision": "추가 검증 필요",
+                            "risk_flags": ["미확인"]})
+                return row
+
+            with patch.object(screener, "score_one", side_effect=score_stub):
+                result = b.publish(
+                    manifest=manifest, parts_dir=folder, listing=listed,
+                    optional_sources=[], index_data={}, use_flow=False,
+                    write_report=False)
+            self.assertEqual(len(result["rows"]), 105)
+
     def test_changed_market_listing_blocks_reusing_mismatched_date(self):
         with tempfile.TemporaryDirectory() as tmp:
             m, _, listed = self._plan(tmp, 105)
