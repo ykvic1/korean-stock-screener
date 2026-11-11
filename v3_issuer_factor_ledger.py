@@ -194,7 +194,8 @@ def _source_fiscal(parts,audit,current_day):
     for row in parts["rows"]:
         if (not isinstance(row,dict) or row.get("code") in index or
             not isinstance(row.get("code"),str) or
-            len(row["code"])!=6 or not row["code"].isascii() or\n            not row["code"].isalnum() or row["code"] != row["code"].upper() or
+            len(row["code"])!=6 or not row["code"].isascii() or
+            not row["code"].isalnum() or row["code"] != row["code"].upper() or
             row.get("market") not in ("KOSPI","KOSDAQ") or
             row.get("asof")!=parts["asof"] or
             row.get("confirmed_v3_score") is not None or
@@ -338,7 +339,8 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
     listed={}
     for row in members:
         code=row.get("code") if isinstance(row,dict) else None
-        if (not isinstance(code,str) or len(code)!=6 or not code.isascii() or not code.isalnum() or\n            code != code.upper() or
+        if (not isinstance(code,str) or len(code)!=6 or not code.isascii() or not code.isalnum() or
+            code != code.upper() or
             code in listed or row.get("market") not in ("KOSPI","KOSDAQ") or
             not isinstance(row.get("name"),str) or not row["name"].strip()):
             raise IssuerFactorLedgerError("untrusted_market_identity")
