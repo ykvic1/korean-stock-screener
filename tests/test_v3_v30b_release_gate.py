@@ -28,6 +28,35 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def test_alphanumeric_identity_is_reconciled_with_catalog(self):
+        docs = ROOT / "docs"
+        report = json.loads((docs / "v3-operational-research-scores.json").read_text())
+        comparison = json.loads((docs / "v3-operational-research-comparison.json").read_text())
+        catalog = json.loads((docs / "v22-market-catalog.json").read_text())
+        if report.get("asof") != catalog.get("date"):
+            self.skipTest("market_day_rolled_before_independent_catalog")
+        original = next(iter(report["rows"]))
+        new_code = "0001A0"
+        self.assertNotIn(new_code, report["rows"])
+        report["rows"][new_code] = report["rows"].pop(original)
+        for member in catalog["rows"]:
+            if member["code"] == original:
+                member["code"] = new_code
+                break
+        else:
+            self.fail("score member missing from source catalog")
+        ranked = sorted(((code, item) for code, item in report["rows"].items()
+                         if item["rank"] is not None),
+                        key=lambda pair: (-pair[1]["score"], -pair[1]["available"], pair[0]))
+        for rank, (_, item) in enumerate(ranked, 1):
+            item["rank"] = rank
+        self.assertIsNotNone(r1d_public_reconciles(report, comparison, catalog=catalog))
+        report["rows"]["0001a0"] = report["rows"].pop(new_code)
+        for member in catalog["rows"]:
+            if member["code"] == new_code:
+                member["code"] = "0001a0"
+                break
+        self.assertIsNone(r1d_public_reconciles(report, comparison, catalog=catalog))
     def setUp(self):
         # Date-atomic *positive* integration checks only apply once the
         # independent scorecard and market publisher have both rolled over.

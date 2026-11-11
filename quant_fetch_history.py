@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 import FinanceDataReader as fdr
 from quant_priority_universe import prioritized_stocks, optional_recommendations
-from quant_engine import read_ohlcv, source_cohort_digest
+from quant_engine import read_ohlcv, source_cohort_digest, valid_code
 
 NEEDED = ["Open","High","Low","Close","Volume"]
 
@@ -74,7 +74,7 @@ def collect(signals: Path, cache_dir: Path, asof: str, years:int=9,
     saved=0; fail=[]; fresh=0; diagnostics=[]
     for i,stock in enumerate(stocks,1):
         code=str(stock.get("code",""))
-        if len(code)!=6 or not code.isdigit(): continue
+        if not valid_code(code): continue
         path=cache_dir/f"{code}.csv"
         if path.exists() and not force:
             try:

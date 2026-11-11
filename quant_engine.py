@@ -57,7 +57,8 @@ class StudyCase:
 
 
 def valid_code(value: str) -> bool:
-    return len(value) == 6 and value.isdigit()
+    return (isinstance(value, str) and len(value) == 6 and value.isascii()
+            and value.isalnum() and value.upper() == value)
 
 
 def read_ohlcv(path: Path, asof: str) -> pd.DataFrame:

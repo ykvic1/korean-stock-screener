@@ -13,6 +13,15 @@ from quant_engine import (label_future,wilson,build_features,StudyCase,
                           load_collector_tail_diagnostics)
 
 class QuantTests(unittest.TestCase):
+    def test_uppercase_alphanumeric_stock_code_identifiers(self):
+        from quant_engine import valid_code as valid_old
+        from quant_engine_v22 import valid_code as valid_v22
+        for validator in (valid_old, valid_v22):
+            self.assertTrue(validator("005930"))
+            self.assertTrue(validator("0001A0"))
+            self.assertTrue(validator("37550L"))
+            for invalid in ("0001a0", "0001-0", "0001 A", "ABC12", "１２３４５６"):
+                self.assertFalse(validator(invalid))
     def mk(self, rows):
         d=pd.DataFrame(rows,columns=['Date','Open','High','Low','Close','Volume'])
         d['Date']=pd.to_datetime(d.Date)

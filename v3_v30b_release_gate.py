@@ -157,7 +157,7 @@ def r1d_public_reconciles(report: Any, comparison: Any,
     def near(a, b):
         return number(a) and number(b) and abs(a - b) < 0.00002
     for code, item in rows.items():
-        if (type(code) is not str or not re.fullmatch("[0-9]{6}", code)
+        if (type(code) is not str or not re.fullmatch("[0-9A-Z]{6}", code)
             or type(item) is not dict or not isinstance(item.get("name"), str)
             or not item["name"].strip() or item.get("market") not in ("KOSPI", "KOSDAQ")
             or not _valid_iso_day(item.get("asof")) or item["asof"] > day
@@ -429,7 +429,7 @@ def issuer_csv_reconciles(observed: Any, scorecard: Any,
         overlaps = 0
         for row in reader:
             if (not _money_dates_valid(row) or None in row or any(v is None for v in row.values())
-                    or not re.fullmatch(r"[0-9]{6}", row["종목코드"])):
+                    or not re.fullmatch(r"[0-9A-Z]{6}", row["종목코드"])):
                 return False
             code = row["종목코드"]
             market = row["시장"]
@@ -558,7 +558,7 @@ def issuer_fcf_preview_reconciles(
                 return False
             code = item.get("code")
             if (type(code) is not str
-                    or not re.fullmatch(r"[0-9]{6}", code)
+                    or not re.fullmatch(r"[0-9A-Z]{6}", code)
                     or code in expected
                     or item.get("asof") != observed["asof"]
                     or item.get("market") not in ("KOSPI", "KOSDAQ")
@@ -602,7 +602,7 @@ def issuer_fcf_preview_reconciles(
             if not _money_dates_valid(row) or None in row or any(v is None for v in row.values()):
                 return False
             code = row["종목코드"]
-            if (code in seen or not re.fullmatch(r"[0-9]{6}", code)
+            if (code in seen or not re.fullmatch(r"[0-9A-Z]{6}", code)
                     or row["가격자료기준일"] != observed["asof"]):
                 return False
             seen.add(code)
@@ -655,7 +655,7 @@ def issuer_catalog_reconciles(observed: Any, catalog: Any, csv_text: Any) -> boo
             code, name, market = (item.get("code"), item.get("name"),
                                   item.get("market"))
             if (type(code) is not str
-                    or not re.fullmatch(r"[0-9]{6}", code)
+                    or not re.fullmatch(r"[0-9A-Z]{6}", code)
                     or type(name) is not str or not name or len(name) > 120
                     or market not in ("KOSPI", "KOSDAQ") or code in census):
                 return False
