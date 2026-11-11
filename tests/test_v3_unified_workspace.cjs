@@ -36,9 +36,9 @@ assert.ok(source.includes("'가격 미관측'"));
  const result=operational.attachAllListed(model,changed);
  assert.equal(result.linked,1);
  assert.ok(model.rows[0].r.v3_operational);
- for(const rel of ('operational-score.js','v3-ranking.js','workspace.js',
+ for(const rel of ['operational-score.js','v3-ranking.js','workspace.js',
                    'watchlist.js','stock_research.js','stock_research_ui.js',
-                   'v3-trading-status.js')){
+                   'v3-trading-status.js']){
   const code=fs.readFileSync(path.join(__dirname,'../docs',rel),'utf8');
   assert.ok(code.includes('[0-9A-Z]{6}'),rel+' must accept mixed ticker codes');
  }
