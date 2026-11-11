@@ -232,10 +232,11 @@ with sync_playwright() as p:
     # Search is global and independent of the visible top-20 sort window.
     priced_code = context.request.get(URL + "data.json").json()["stocks"][0]["code"]
     page.locator("#stockSearch").fill(priced_code)
-    personal_card = page.locator(".u-stock").filter(
-        has=page.locator(".u-card-price > small").filter(has_text="종가 ·")
-    ).first
-    assert personal_card.count() == 1, "current-priced stock must remain searchable"
+    personal_card = page.locator(f'.u-stock[data-stock="{priced_code}"]')
+    personal_card.wait_for(timeout=10000)
+    assert "종가 ·" in personal_card.locator(".u-card-price small").inner_text(), (
+        "known current-priced stock must not be relabeled unpriced"
+    )
     personal_label = personal_card.locator(".u-card-score > small").last.inner_text()
     assert "개인환산" in personal_label
     first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")
@@ -642,15 +643,15 @@ with sync_playwright() as p:
     # Card order is provisional evidence-first, not the old 2.2 ranking.
     assert page.locator(".u-card-score").first.is_visible()
     assert "산출 배점" in page.locator(".u-card-coverage").first.inner_text()
-    page.locator(".u-stock").filter(
-        has=page.locator(".u-card-price > small").filter(has_text="종가 ·")
-    ).first.click()
+    page.locator("#stockSearch").fill(priced_code)
+    page.locator(f'.u-stock[data-stock="{priced_code}"]').click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
     assert "일봉 · 스윙 관찰" in details and "주봉 · 중기/장기 관찰" in details
     assert "5영역 잠정 점수" in details and "미인증" in details
     assert "손실 위험" in details
     page.locator("#detailClose").click()
+    page.locator("#stockSearch").fill("")
     personal_value = page.evaluate("""async () => {
         const r=await fetch('v3-personal-adjusted-score-summary.json',{cache:'no-store'});
         return r.ok?await r.json():null;
