@@ -74,6 +74,28 @@ class PriceOutcomeTriageTests(unittest.TestCase):
         self.assertTrue(output['missing_listing_start_does_not_prove_prelisting'])
         self.assertTrue(output['no_missing_close_carried_forward'])
 
+    def test_mixed_ticker_outcomes_are_counted_not_falsely_priced(self):
+        report = catalog()
+        for row in report["rows"]:
+            if row["code"] == "100001":
+                row["code"] = "0008Z0"
+            elif row["code"] == "100004":
+                row["code"] = "9A1200"
+        result = build(report)
+        self.assertEqual(result["listed_total"], 8)
+        self.assertEqual(result["unresolved_count"], 7)
+        self.assertEqual(result["counts"][REASONS[1]], 2)
+        self.assertEqual(result["counts"][REASONS[4]], 1)
+        self.assertEqual(result["score_points_added"], 0)
+        self.assertFalse(result["investment_score_certified"])
+        self.assertIn("0008Z0", {row["code"] for row in result["unresolved"]})
+        self.assertIn("9A1200", {row["code"] for row in result["unresolved"]})
+        for invalid in ("0008z0", "0008/Z", "0008Z"):
+            forged = copy.deepcopy(report)
+            forged["rows"][1]["code"] = invalid
+            with self.assertRaisesRegex(ValueError, "invalid_price_triage_issuer"):
+                build(forged)
+
     def test_untrusted_census_fails_closed(self):
         good = catalog()
         for mutate in (

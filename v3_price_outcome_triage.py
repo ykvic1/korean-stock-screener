@@ -65,7 +65,7 @@ def build(catalog):
         code, name = row.get('code'), row.get('name')
         market, status = row.get('market'), row.get('price_history_status')
         zero = row.get('listing_zero_volume_reference')
-        if (type(code) is not str or re.fullmatch(r'[0-9]{6}', code) is None or
+        if (type(code) is not str or re.fullmatch(r'[0-9A-Z]{6}', code) is None or
                 code in seen or type(name) is not str or not name.strip() or
                 market not in by_market or status not in STATUS or
                 zero is not None and type(zero) is not bool):
