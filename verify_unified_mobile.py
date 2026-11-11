@@ -58,18 +58,25 @@ with sync_playwright() as p:
     assert 0 <= independent_lag <= 10, "independent replay must not be future or unbounded stale"
     if independent_lag == 0:
         assert independent["listed_total"] == observed["listed_total"]
-        # Price/volume/momentum use the same market-day source receipts; their
-        # counts must match. Financial/valuation are separately updated DART
-        # observations, so a common market date does NOT establish a common
-        # filing-source snapshot. The release gate likewise checks the three
-        # shared price/volume areas, not a false same-day DART equality.
+        # A matching market date alone does not establish a matching source.
+        # The independent price replay may correctly reject a same-day market
+        # snapshot after its digest changed. In that case, keep technical and
+        # momentum as different, uncomparable observations (not zero scores).
+        # Volume can still be independently checked if its digest agrees.
         assert independent["source_sha256"]["catalog"] == observed["source_sha256"]["catalog"]
-        assert independent["source_sha256"]["same_day_price_replay"] == observed["source_sha256"]["price"]
         assert independent["source_sha256"]["volume_observed"] == observed["source_sha256"]["volume"]
-        for area in ("technical", "momentum", "volume"):
-            assert independent["provisional_numeric_issuer_counts"][area] == (
-                observed["observed_issuer_counts"][area]
-            ), f"shared source {area} count mismatch"
+        assert independent["provisional_numeric_issuer_counts"]["volume"] == (
+            observed["observed_issuer_counts"]["volume"]
+        ), "shared source volume count mismatch"
+        price_digest = independent["source_sha256"]["same_day_price_replay"]
+        if price_digest is not None:
+            assert price_digest == observed["source_sha256"]["price"], (
+                "independent replay cannot treat a different price snapshot as current"
+            )
+            for area in ("technical", "momentum"):
+                assert independent["provisional_numeric_issuer_counts"][area] == (
+                    observed["observed_issuer_counts"][area]
+                ), f"shared source {area} count mismatch"
         for area in ("financial", "valuation"):
             for snapshot in (independent["provisional_numeric_issuer_counts"],
                              observed["observed_issuer_counts"]):
