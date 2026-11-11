@@ -278,7 +278,7 @@ class FilingTitleTriageTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", wf)
         self.assertNotIn("DART_API_KEY:", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
-        self.assertIn("30 9 * * 1-5", legacy)
+        self.assertIn("30 12 * * 1-5", legacy)
 
 
 if __name__ == "__main__":
