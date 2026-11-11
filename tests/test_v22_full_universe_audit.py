@@ -56,6 +56,17 @@ class MarketAllStockAccountAudit(unittest.TestCase):
         self.assertNotIn("005930",json.dumps(r))
         self.assertNotIn("247540",json.dumps(r))
 
+    def test_uppercase_alphanumeric_issuer_keeps_market_accounting(self):
+        data=sample()
+        data["stocks"][0]["code"]="0001A0"
+        data["collection_errors"][1][0]="0001A0"
+        report=audit_published_universe(data)
+        self.assertEqual(report["priced_current_session_count"],2)
+        self.assertTrue(report["all_attempted_stock_codes_reconciled_once"])
+        data["stocks"][0]["code"]="0001a0"
+        with self.assertRaisesRegex(UniverseAccountingError,"invalid_stock_identity"):
+            audit_published_universe(data)
+
     def test_missing_entire_market_job_is_unattempted_not_price_fail(self):
         r=audit_published_universe(sample(missing=100))
         self.assertEqual(r["market_listing_size"],105)

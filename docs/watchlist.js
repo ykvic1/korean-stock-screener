@@ -194,7 +194,7 @@
   function candidate(row) {
     const a=row?._rating;
     return Boolean(row&&typeof row==='object' &&
-      /^\d{6}$/.test(String(row.code||''))&&
+      /^[0-9A-Z]{6}$/.test(String(row.code||''))&&
       typeof row.name==='string'&&row.name.trim() &&
       numeric(row.price)&&row.price>0 &&
       a&&numeric(a.normalized)&&a.normalized>=0&&a.normalized<=100 &&
@@ -229,7 +229,7 @@
     const byCode=new Map();
     if(quantSource?.asof===snapshot.date&&Array.isArray(quantSource.stocks)){
       for(const x of quantSource.stocks) {
-        if(x&&/^\d{6}$/.test(String(x.code||'')))byCode.set(x.code,{...x,asof:quantSource.asof});
+        if(x&&/^[0-9A-Z]{6}$/.test(String(x.code||'')))byCode.set(x.code,{...x,asof:quantSource.asof});
       }
     }
     const visited=new Set();

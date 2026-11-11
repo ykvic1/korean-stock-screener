@@ -19,7 +19,7 @@ from pathlib import Path
 import re
 from typing import Any
 
-CODE = re.compile(r"[0-9]{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 MARKETS = ("KOSPI", "KOSDAQ")
 REASONS = (
     "successfully_priced", "price_collection_or_validation_error",

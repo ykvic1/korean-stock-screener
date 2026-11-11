@@ -18,6 +18,32 @@ assert.ok(source.includes('FChart 기준가 · KRX 정규장 미검증'));
 assert.ok(source.includes('FChart 기준가 · '));
 assert.ok(source.includes("'가격 미관측'"));
 
+// A newly listed alphanumeric KRX ticker must not erase ALL operational scores.
+{
+ const report=JSON.parse(fs.readFileSync(path.join(__dirname,
+  '../docs/v3-operational-research-scores.json'),'utf8'));
+ const original=Object.keys(report.rows).find(code=>/^[0-9]{6}$/.test(code));
+ assert.ok(original);
+ const renamed='ZZ9999';
+ assert.equal(report.rows[renamed],undefined);
+ const changed={...report,rows:{...report.rows}};
+ const evidence=changed.rows[original];
+ delete changed.rows[original];
+ changed.rows[renamed]=evidence;
+ const model={date:report.asof,marketEligible:1,rows:[{
+  r:{code:renamed,name:evidence.name,market:evidence.market}
+ }]};
+ const result=operational.attachAllListed(model,changed);
+ assert.equal(result.linked,1);
+ assert.ok(model.rows[0].r.v3_operational);
+ for(const rel of ['operational-score.js','v3-ranking.js','workspace.js',
+                   'watchlist.js','stock_research.js','stock_research_ui.js',
+                   'v3-trading-status.js']){
+  const code=fs.readFileSync(path.join(__dirname,'../docs',rel),'utf8');
+  assert.ok(code.includes('[0-9A-Z]{6}'),rel+' must accept mixed ticker codes');
+ }
+}
+
 // Structural 20/60 support is visible as an independent, unscored reference.
 {
  const base={price:105,price_date:'2026-11-10',stop_line:94,stop_pct:-10.48};

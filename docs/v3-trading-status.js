@@ -3,7 +3,7 @@
 'use strict';
 const SCHEMA='v3-trading-status-display-v1';
 const DAY=/^\d{4}-\d{2}-\d{2}$/;
-const CODE=/^\d{6}$/;
+const CODE=/^[0-9A-Z]{6}$/;
 const STATES=new Set(['zero_volume','trade_observed','volume_unknown']);
 const DURATIONS=new Set(['short_1_to_2','extended_3_plus','unknown']);
 function isDay(day){
