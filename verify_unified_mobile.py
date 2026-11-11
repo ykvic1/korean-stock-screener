@@ -289,21 +289,25 @@ with sync_playwright() as p:
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
     ), "five-area stock detail scorecard must not overflow mobile viewport"
-    stop_evidence=page.locator("#detail .u-stop-evidence")
-    assert stop_evidence.count()==1
-    assert not stop_evidence.evaluate("(el) => el.open")
-    stop_evidence.locator("summary").click()
-    assert "검증 표본 미연결" in stop_evidence.inner_text()
-    assert "미래 손절 확률은 미산출" in stop_evidence.inner_text()
-    assert stop_evidence.locator(".u-detail-grid > div").count()==6
-    assert re.search(r"\d{4}-\d{2}-\d{2}|기준일 확인 필요",stop_evidence.inner_text())
+    # A stop reference is displayed once, unscored, using the current 20/60
+    # structural receipt. Never revive the old 20/45 scored-stop expander.
+    stop_heading=page.locator("#detail h3").filter(has_text="20·60일 구조적 손절 참고선")
+    assert stop_heading.count()==1
+    assert "기존 점수용 손절선" not in page.locator("#detail").inner_text()
+    assert page.locator("#detail details.u-stop-evidence").count()==0
+    stop_reference=page.locator("#detail section.u-stop-reference")
+    if stop_reference.count():
+        assert stop_reference.locator(".u-stop-evidence > div").count()==5
+        assert "어떤 가점·감점도 없습니다" in stop_reference.inner_text()
+        assert "하단 매물대" in stop_reference.inner_text()
+        assert "패턴 무효화" in stop_reference.inner_text()
+    else:
+        assert "구조적 참고선 관측 대기" in page.locator("#detail").inner_text()
     for width in (320,390,430):
         page.set_viewport_size({"width":width,"height":844})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (
-            "expanded stop evidence must fit mobile",width)
+            "structural stop reference must fit mobile",width)
     page.set_viewport_size({"width":390,"height":844})
-    stop_evidence.locator("summary").click()
-    assert not stop_evidence.evaluate("(el) => el.open")
     # Every selected stock must disclose its FCF state without guessing missing accounts.
     deeper = page.locator("#detail .u-detail-evidence")
     assert not deeper.evaluate("(el) => el.open")
