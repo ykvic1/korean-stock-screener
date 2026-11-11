@@ -64,6 +64,21 @@ class FakeDART:
         return FakeResponse({"status":"000","list":payload_rows(year)})
 
 class BulkHistoryTests(unittest.TestCase):
+    def test_mixed_code_dart_mapping_retains_exact_issuer_and_corp_id(self):
+        members = {"005930": {}, "3000Z3": {}}
+        mapping = {"005930": "00000001", "3000Z3": "00000002"}
+        receipt = bulk.make_company_mapping_cache(mapping, DAY, members)
+        self.assertEqual(
+            bulk.verified_company_mapping_cache(receipt, DAY, members), mapping)
+        for bad in ("3000z3", "3000_3", "３０００Z３"):
+            with self.assertRaisesRegex(bulk.BulkHistoryError, "unsafe_official_company_mapping"):
+                bulk.make_company_mapping_cache({bad: "00000002"}, DAY,
+                                                {bad: {}})
+        wrong = copy.deepcopy(receipt)
+        wrong["issuer_codes"]["3000Z3"] = "00000003"
+        with self.assertRaisesRegex(bulk.BulkHistoryError, "unsafe_dart_company_mapping_cache"):
+            bulk.verified_company_mapping_cache(wrong, DAY, members)
+
     def test_official_corp_map_cached_only_on_matching_issuer_census_and_date(self):
         market,catalog=fixture()
         written=[]
