@@ -34,6 +34,7 @@ from v3_ma240_cross_research import (
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
 from v3_price_session_capture import capture_window
+from v3_dated_market_roster import load_dated_listing, DatedRosterError
 
 SCHEMA = "full-market-batched-100-v0.1"
 CHUNK = 100
@@ -101,6 +102,10 @@ def validate_manifest(manifest: dict):
             or manifest["batch_count"] != count
             or manifest.get("digest") != _digest(asof, codes)):
         raise BatchError("bad_manifest_identity")
+    if manifest.get("roster_provenance") == "date_pinned_fdr_public_cache":
+        if (type(manifest.get("roster_source_sha256")) is not str or
+                not re.fullmatch(r"[0-9a-f]{64}", manifest["roster_source_sha256"])):
+            raise BatchError("untrusted_date_pinned_roster_digest")
     return asof, codes
 
 
@@ -150,11 +155,25 @@ def _same_day_saved_catalog(path: Path, asof: str) -> dict:
 
 
 def plan(*, asof: str, out: Path, listing=None,
-         fallback_catalog: Path | None = None) -> dict:
+         fallback_catalog: Path | None = None,
+         date_pinned_roster: bool = False) -> dict:
     asof = _date(asof)
     provenance = 'live_market_snapshot'
+    source_digest = None
     if listing is not None:
         universe = listing
+    elif date_pinned_roster:
+        # Exact trading-day cache, no implicit latest-date KRX endpoint.
+        # Raw CSV remains only in memory, never in the public artifacts.
+        try:
+            source, source_digest = load_dated_listing(asof)
+            universe = screener.market_snapshot(listing=source)
+            provenance = 'date_pinned_fdr_public_cache'
+        except (DatedRosterError, RuntimeError, ValueError, TypeError):
+            if fallback_catalog is None:
+                raise BatchError('date_pinned_roster_unavailable_or_invalid') from None
+            universe = _same_day_saved_catalog(fallback_catalog, asof)
+            provenance = 'same_day_saved_catalog_audit_only'
     else:
         try:
             universe = market_roster_with_retries()
@@ -174,6 +193,8 @@ def plan(*, asof: str, out: Path, listing=None,
                 "digest": _digest(asof, codes), "source_raw_rows_saved": False,
                 "company_size_filter": False,
                 "roster_provenance": provenance}
+    if source_digest is not None and provenance == 'date_pinned_fdr_public_cache':
+        manifest["roster_source_sha256"] = source_digest
     validate_manifest(manifest)
     _write(out/"manifest.json", manifest)
     _write(out/"matrix.json", {"include": [
@@ -420,7 +441,17 @@ def publish(*, manifest: dict, parts_dir: Path,
     merged = load_receipts(
         manifest, parts_dir, allow_missing_parts=allow_missing_parts)
     cfg = screener.cfg_read() if cfg is None else cfg
-    listing = market_roster_with_retries() if listing is None else listing
+    if listing is None and manifest.get("roster_provenance") == 'date_pinned_fdr_public_cache':
+        # Never join a different cached market-day file at publication time.
+        try:
+            source, digest = load_dated_listing(manifest["asof"])
+            if digest != manifest.get("roster_source_sha256"):
+                raise BatchError('date_pinned_roster_changed_between_jobs')
+            listing = screener.market_snapshot(listing=source)
+        except DatedRosterError:
+            raise BatchError('date_pinned_roster_unavailable_or_invalid') from None
+    else:
+        listing = market_roster_with_retries() if listing is None else listing
     if set(listing) != set(manifest["codes"]):
         raise BatchError("listing_changed_between_jobs")
     day = datetime.fromisoformat(manifest["asof"])
@@ -511,6 +542,8 @@ def main(argv=None):
     p.add_argument("--out", required=True)
     p.add_argument("--fallback-catalog", type=Path, default=None,
                    help='Use same-day saved roster only after live listing fails; audit only')
+    p.add_argument("--date-pinned-roster", action="store_true",
+                   help='Use exact-date FinanceData cache, no implicit latest-date resolver')
     p = subs.add_parser("scan")
     p.add_argument("--manifest", required=True)
     p.add_argument("--part", required=True, type=int)
@@ -525,7 +558,8 @@ def main(argv=None):
         if args.cmd == "plan":
             asof = args.asof or datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
             result = plan(asof=asof, out=Path(args.out),
-                          fallback_catalog=args.fallback_catalog)
+                          fallback_catalog=args.fallback_catalog,
+                          date_pinned_roster=args.date_pinned_roster)
         elif args.cmd == "scan":
             result = scan(manifest=_read(Path(args.manifest)),
                           part=args.part, out=Path(args.out), workers=args.workers)

@@ -103,8 +103,11 @@ def round_or_none(x,n=1):
     return round(v,n) if v is not None else None
 
 
-def market_snapshot():
-    listing = fdr.StockListing('KRX-MARCAP')
+def market_snapshot(listing=None):
+    # The nightly workflow may pass an exact-day, SHA-pinned public FDR
+    # listing instead of the FDR latest-date resolver. The parsed schema and
+    # stock selection policy below stay identical for both sources.
+    listing = fdr.StockListing('KRX-MARCAP') if listing is None else listing
     needed={'Code','Name','Market','Close','Volume','Amount','Marcap'}
     if listing is None or len(listing)<1000 or not needed.issubset(set(listing.columns)):
         raise RuntimeError('KRX-MARCAP 전체 시장 조회 실패/데이터 구조 변경')

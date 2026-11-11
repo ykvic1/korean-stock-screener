@@ -31,22 +31,27 @@ class PostCloseSourceAuditWorkflowTests(unittest.TestCase):
         self.assertIn("Full-Market 100-Stock Batches", text)
 
 
-    def test_full_market_source_steps_receive_configured_krx_identity(self):
-        """The KRX-MARCAP listing is queried in both plan and publish.
+    def test_date_pinned_listing_needs_no_secret_and_flow_secrets_remain_optional(self):
+        """The 21:30 price-universe roster must not depend on KRX login.
 
-        Secret names must be bound at those steps, never interpolated into
-        a command line or emitted to an Actions log.
+        Public cache is selected by the exact market asof in BOTH plan and
+        publish. Separate investor-flow research may still accept secrets;
+        no credentials may be interpolated into shell commands or logs.
         """
         text = Path(".github/workflows/full-market-batches.yml").read_text(
             encoding="utf-8")
-        plan = text.split("      - id: plan\n", 1)[1].split("        shell:", 1)[0]
+        plan = text.split("      - id: plan\n", 1)[1].split("      - uses: actions/upload-artifact@v4", 1)[0]
         combine = text.split(
             "      - name: Reconcile batch census; schedule publishes, manual audit is read-only\n",
             1)[1].split("        shell:", 1)[0]
-        for step in (plan, combine):
-            self.assertIn("KRX_ID: ${{ secrets.KRX_ID }}", step)
-            self.assertIn("KRX_PW: ${{ secrets.KRX_PW }}", step)
-            self.assertNotIn("echo $KRX", step)
+        self.assertIn("python full_market_batch.py plan --date-pinned-roster", plan)
+        self.assertNotIn("KRX_ID: ${{ secrets.KRX_ID }}", plan)
+        self.assertNotIn("KRX_PW: ${{ secrets.KRX_PW }}", plan)
+        for secret in ("KRX_ID", "KRX_PW"):
+            self.assertIn(f"{secret}: ${{{{ secrets.{secret} }}}}", combine)
+        self.assertIn("roster_source_sha256",
+                      Path("full_market_batch.py").read_text(encoding="utf-8"))
+        self.assertNotIn("echo $KRX", plan + combine)
 
 if __name__ == "__main__":
     unittest.main()

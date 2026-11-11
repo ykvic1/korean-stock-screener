@@ -1,0 +1,51 @@
+name: V3 Exact-Date Public Market Roster Source Audit
+
+on:
+  pull_request:
+    paths:
+      - v3_dated_market_roster.py
+      - full_market_batch.py
+      - screener.py
+      - tests/test_v3_dated_market_roster.py
+      - .github/workflows/full-market-batches.yml
+      - .github/workflows/v3-dated-market-roster-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  date_pinned_roster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing stock analysis dependencies
+        run: pip install -r requirements.txt
+      - name: Offline exact-date data identity and anti-stale publication tests
+        run: python -m unittest tests.test_v3_dated_market_roster tests.test_full_market_batch -v
+      - name: One actual dated public cache request, aggregate-only cohort
+        run: |
+          python - <<'PY'
+          import json
+          from v3_dated_market_roster import load_dated_listing
+          import screener
+          # Fixed historic cohort: this checks actual source availability and
+          # schema, not whether an unverified raw price is the regular close.
+          df, digest = load_dated_listing('2026-11-11')
+          market = screener.market_snapshot(listing=df)
+          total = len(market)
+          mixed = sum(any(c.isalpha() for c in code) for code in market)
+          zeros = sum(row['snapshot_volume'] == 0 for row in market.values())
+          assert (total, mixed, zeros) == (2541, 40, 98), 'source_cohort_changed_or_unavailable'
+          print(json.dumps({
+              'asof': '2026-11-11', 'eligible': total,
+              'alphanumeric_issuers': mixed, 'listing_zero_volume_reference': zeros,
+              'raw_price_or_volume_exported': False,
+              'regular_close_certified': False,
+              'investment_score_promoted': False,
+              'provider_calls': 1,
+          }, sort_keys=True))
+          PY
