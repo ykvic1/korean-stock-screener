@@ -1,0 +1,45 @@
+{
+  "added_available_weight": 0,
+  "asof": "2026-11-10",
+  "changed_market_price_rows": 0,
+  "corporate_action_adjustments_verified": false,
+  "counts": {
+    "below90_ma_priority": {
+      "absent_in_krx": 0,
+      "different_close": 79,
+      "exact_close": 52,
+      "invalid_krx_price_row": 0,
+      "requested": 131,
+      "unusable_saved_close": 0
+    },
+    "ninety_plus_ma_priority": {
+      "absent_in_krx": 0,
+      "different_close": 84,
+      "exact_close": 14,
+      "invalid_krx_price_row": 0,
+      "requested": 98,
+      "unusable_saved_close": 0
+    },
+    "saved_market": {
+      "absent_in_krx": 0,
+      "different_close": 1933,
+      "exact_close": 444,
+      "invalid_krx_price_row": 0,
+      "requested": 2377,
+      "unusable_saved_close": 0
+    }
+  },
+  "historical_issuer_pit_verified": false,
+  "investment_score_certified": false,
+  "krx_market_source_sha256": {
+    "KOSDAQ": "92f4d4dd47b4d02d7169fa019358f18fd335f80e39a91855d67445e6a8a6eead",
+    "KOSPI": "8eeb3c0ef02294088be75b62a2a4f3ecbe04aa44463ed9c13db5f10b11fc4566"
+  },
+  "krx_regular_only_volume_verified": false,
+  "nxt_and_after_hours_exclusion_verified": false,
+  "original_krx_rows_exported": false,
+  "schema": "v3-saved-close-official-krx-diagnostic-v1",
+  "snapshot_sha256": "46822205554e13a35b52f95b2bc7f5a6d7fede24dc27e5c68bec77c3460f59b2",
+  "source_requests": 2,
+  "source_scope": "KRX_DAILY_EOD_RAW_UNVERIFIED_SESSION_SPLIT"
+}
