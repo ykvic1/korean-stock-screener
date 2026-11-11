@@ -5,7 +5,6 @@
   "flow_days": 20,
   "max_data_age_days": 6,
   "preferred_pbr_max": 1.5,
-  "max_stop_distance_pct": 15,
   "enable_optional_company_listing": true,
   "flow_crosscheck_count": 10,
   "history_time_budget_seconds": 2100,
