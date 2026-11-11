@@ -68,6 +68,28 @@ def report_fixture(catalog):
 
 
 class ActualMoneyTests(unittest.TestCase):
+    def test_mixed_code_without_private_history_is_listed_but_not_scored(self):
+        store, days, forward, catalog = fixture()
+        catalog["rows"].append(
+            {"code": "3000Z3", "market": "KOSDAQ", "name": "mixed-code issuer"})
+        catalog["listed_total"] = 2
+        report = m.collect(store, asof=catalog["date"], catalog=catalog,
+                           source_revision="a" * 40, days=days, digest="a" * 64,
+                           forward_days=forward, week_loader=week_days)
+        self.assertEqual(report["listed_total"], 2)
+        self.assertEqual(report["eligible_issuers"], 1)
+        self.assertNotIn("3000Z3", report["records"])
+        self.assertNotIn("3000Z3", report["component_records"])
+        self.assertEqual(report["coverage_gap_diagnostic"]["fresh_unscored_issuers"], 1)
+        for bad in ("3000z3", "3000_3", "３０００Z３"):
+            malformed = copy.deepcopy(catalog)
+            malformed["rows"][1]["code"] = bad
+            with self.assertRaisesRegex(
+                    m.ActualMoneyError, "invalid_money_current_issuer_catalog"):
+                m.collect(store, asof=malformed["date"], catalog=malformed,
+                          source_revision="a" * 40, days=days, digest="a" * 64,
+                          forward_days=forward, week_loader=week_days)
+
     def test_missing_period_and_zero_baseline_reason_are_not_issuer_or_price_leaks(self):
         daily=[2]*96
         self.assertEqual(m.family_coverage_reason(daily,(4,12,24,48)),'complete')
