@@ -11,6 +11,7 @@ from hashlib import sha256
 import argparse
 import json
 import math
+import re
 import os
 from pathlib import Path
 
