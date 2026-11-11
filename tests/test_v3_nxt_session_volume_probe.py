@@ -39,11 +39,12 @@ class Session:
 
 class NXTVolumeProbeTests(unittest.TestCase):
     def test_two_nxt_sessions_sum_without_counting_overlap_twice(self):
-        s = Session([row('000001','1,000'),row('000002','200','KSQ')],
-                    [row('000001','70'),row('000003','30')])
+        s = Session([row('0008Z0','1,000'),row('000002','200','KSQ')],
+                    [row('0008Z0','70'),row('000003','30')])
         result=collect(s, DAY)
         self.assertEqual(result['regular_plus_closing'], {
-            ('KOSPI','000001'):1070,('KOSDAQ','000002'):200,('KOSPI','000003'):30})
+            ('KOSPI','0008Z0'):1070,('KOSDAQ','000002'):200,
+            ('KOSPI','000003'):30})
         self.assertEqual(result['overlap_issuers'],1)
         self.assertEqual(len(s.calls),2)
         self.assertTrue(all(day=='20261111' and count==10000 for _,day,count in s.calls))
@@ -55,6 +56,8 @@ class NXTVolumeProbeTests(unittest.TestCase):
         with self.assertRaisesRegex(NXTProbeError,'nxt_duplicate_market_identity'):
             fetch_session(Session([row('000001',1),row('000001',2)],[]),
                           'regular_market',DAY)
+        with self.assertRaisesRegex(NXTProbeError,'nxt_row_identity_invalid'):
+            fetch_session(Session([row('000*Z0',1)],[]), 'regular_market',DAY)
 
     def test_zero_and_invalid_volumes_are_distinguished(self):
         self.assertEqual(quantity('0'),0)

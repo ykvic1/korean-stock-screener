@@ -94,7 +94,9 @@ def fetch_session(session, kind, day):
             raise NXTProbeError('nxt_row_day_unverified')
         market = MARKETS.get(row.get('mktId'))
         code = row.get('isuSrdCd')
-        if market is None or not isinstance(code, str) or not re.fullmatch(r'A\d{6}', code):
+        # Since 2026, some valid KRX/NXT short codes contain a letter, e.g.
+        # A0008Z0. Numeric-only filtering silently excludes listed issuers.
+        if market is None or not isinstance(code, str) or not re.fullmatch(r'A[0-9A-Z]{6}', code):
             raise NXTProbeError('nxt_row_identity_invalid')
         key = (market, code[1:])
         if key in observed:
