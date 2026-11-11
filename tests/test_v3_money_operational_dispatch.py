@@ -28,6 +28,18 @@ class OperationalDispatchTests(unittest.TestCase):
         self.assertIn('GH_TOKEN: ${{ github.token }}',self.dispatch)
         self.assertNotIn('V3_PRIVATE_ARCHIVE_TOKEN',self.dispatch)
 
+    def test_current_score_push_cannot_cancel_shared_actual_money_publisher(self):
+        current=(Path(__file__).resolve().parents[1]/
+            '.github/workflows/v3-current-observed-scorecard.yml').read_text()
+        source_header=current.split('\njobs:',1)[0]
+        self.assertIn('group: korea-stock-screener-current-observed-publisher',source_header)
+        self.assertIn('queue: max',source_header)
+        self.assertIn('cancel-in-progress: false',source_header)
+        self.assertNotIn("cancel-in-progress: ${{ github.event_name == 'push' }}",source_header)
+        self.assertIn('group: korea-stock-screener-current-observed-publisher',self.live)
+        self.assertIn('queue: max',self.live)
+        self.assertIn('cancel-in-progress: false',self.live)
+
     def test_write_permissions_and_pending_queue_are_restricted_to_trusted_live_job(self):
         offline_job=self.offline.split('  offline:',1)[1]
         self.assertIn('permissions:\n      contents: read',offline_job)
