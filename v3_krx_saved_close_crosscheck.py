@@ -79,6 +79,50 @@ def check(market, first, second, client, *, snapshot_sha256):
             return 'invalid_krx_price_row'
         return 'exact_close' if close == saved else 'different_close'
 
+    def distance_profile(codes):
+        """Aggregate differences without exporting source prices or identities."""
+        bands = ('lt_0_1pct', '0_1_to_0_5pct', '0_5_to_1pct',
+                 '1_to_3pct', '3_to_10pct', 'ge_10pct')
+        gap = Counter()
+        direction = Counter()
+        intraday = Counter()
+        alternative = Counter()
+        for code in codes:
+            if reason(code) != 'different_close':
+                continue
+            saved = by_code[code]['price']
+            row = observed[(by_code[code]['market'], code)]
+            close = _numeric(row['TDD_CLSPRC'], 'TDD_CLSPRC', positive=True)
+            low = _numeric(row['TDD_LWPRC'], 'TDD_LWPRC', positive=True)
+            high = _numeric(row['TDD_HGPRC'], 'TDD_HGPRC', positive=True)
+            opening = _numeric(row['TDD_OPNPRC'], 'TDD_OPNPRC', positive=True)
+            difference = abs(saved/close - 1) * 100
+            threshold = (difference < .1, difference < .5, difference < 1,
+                         difference < 3, difference < 10)
+            band = next((name for name, below in zip(bands, threshold) if below),
+                        bands[-1])
+            gap[band] += 1
+            direction['saved_above_krx' if saved > close else 'saved_below_krx'] += 1
+            intraday['inside_krx_daily_low_high' if low <= saved <= high
+                     else 'outside_krx_daily_low_high'] += 1
+            for price_name, price in (('open', opening), ('high', high), ('low', low)):
+                if saved == price:
+                    alternative[price_name] += 1
+        n = sum(gap.values())
+        if (sum(direction.values()) != n or sum(intraday.values()) != n
+            or sum(alternative.values()) > n*3):
+            raise CrosscheckError('price_gap_accounting_mismatch')
+        return {
+            'different_close': n,
+            'absolute_close_gap_pct': {name: gap[name] for name in bands},
+            'direction': {name: direction[name] for name in
+                          ('saved_above_krx','saved_below_krx')},
+            'krx_daily_high_low_position': {name: intraday[name] for name in
+                ('inside_krx_daily_low_high','outside_krx_daily_low_high')},
+            'saved_equals_other_krx_ohlc': {name: alternative[name] for name in
+                                           ('open','high','low')},
+        }
+
     groups = {
         'saved_market': sorted(by_code),
         'below90_ma_priority': first,
@@ -91,10 +135,15 @@ def check(market, first, second, client, *, snapshot_sha256):
             raise CrosscheckError('crosscheck_count_mismatch')
         counts[name] = {'requested': len(codes),
                         **{k: c[k] for k in REASONS}}
+    profile = {name: distance_profile(codes) for name, codes in groups.items()}
+    for name in groups:
+        if profile[name]['different_close'] != counts[name]['different_close']:
+            raise CrosscheckError('price_gap_count_disagrees_with_saved_close')
     return {
         'schema': SCHEMA, 'asof': day, 'snapshot_sha256': snapshot_sha256,
         'krx_market_source_sha256': source_sha,
         'source_requests': len(MARKETS), 'counts': counts,
+        'mismatch_distance_profile': profile,
         'source_scope': 'KRX_DAILY_EOD_RAW_UNVERIFIED_SESSION_SPLIT',
         'krx_regular_only_volume_verified': False,
         'nxt_and_after_hours_exclusion_verified': False,
