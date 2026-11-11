@@ -2468,7 +2468,7 @@ function renderCompare(){
   const risk=riskState(x,core);
   return '<article class="u-compare-card"><h3>'+esc(names[i])+
    ' <small>'+esc(x.r.code)+' · '+esc(x.r.market)+'</small></h3>'+
-   '<div class="u-compare-kpis"><div><small>종가 · '+esc(x.r.price_date)+'</small><b>'+won(x.r.price)+'</b></div>'+
+   '<div class="u-compare-kpis"><div><small>FChart 기준가 · '+esc(x.r.price_date)+'</small><b>'+won(x.r.price)+'</b></div>'+
    '<div><small>개인용 100점 환산 · 미인증</small><b>'+compareNum(c)+'</b></div>'+
    '<div><small>V3 잠정 합계 · 미검증</small><b>'+
    (c.earned===null?'미산출':c.earned.toFixed(1)+'점')+'</b></div>'+
@@ -2562,7 +2562,7 @@ function renderDetails(x){
  '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r,stability)+issuerReadinessMarkup(r)+
  '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 손절 참고선 배점 미반영 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
  structuralStopMarkup(r)+
- '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
+ '<div class="u-detail-grid"><div><small>FChart 기준가 · KRX 정규장 미검증</small><strong>'+won(r.price)+'</strong></div>'+
  '<div class="u-factor-unverified"><small>기존 5영역 감점 전 합계 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
  '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
@@ -2661,7 +2661,7 @@ function draw(){
    '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="현재 조건에서의 표시 순서">'+
    String(i+1).padStart(2,'0')+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
-   '<div class="u-card-kpis"><div class="u-card-price"><small>'+(r.unpriced_operational_only?'종가 미관측':'종가 · '+esc(r.price_date||model.date))+'</small><b>'+won(r.price)+'</b></div>'+
+   '<div class="u-card-kpis"><div class="u-card-price"><small>'+(r.unpriced_operational_only?'가격 미관측':'FChart 기준가 · '+esc(r.price_date||model.date))+'</small><b>'+won(r.price)+'</b></div>'+
    '<div class="u-card-score"><small>'+(sort==='ops'?'신규 운영 R1 · 잠정':sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
    (sort==='ops'?(ops?.score===null||ops?.score===undefined?'—':ops.score.toFixed(1)):sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
     (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
@@ -2718,7 +2718,7 @@ function present(data){
  $('statV3').textContent=metrics.provisional.toLocaleString('ko-KR')+'종목';
  $('sourceNotes').textContent='전체 '+(metrics.eligible||'미확인')+
   '종목 중 가격 분석 '+metrics.total+'종목 · 나머지 '+(metrics.eligible-metrics.total)+
-  '종목은 종가 미관측으로 별도 보존(신규 운영점수만 확인 가능) · 일/주봉 관찰 후보 '+metrics.discover+
+  '종목은 가격 미관측으로 별도 보존(신규 운영점수만 확인 가능) · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
   '종목. 안정형 추가 보정은 시총(연속형 최대 -5점)만 적용하며, 손절 관련 가점·감점은 완전히 제외했습니다. 구조적 참고선은 점수 밖에서 표시합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 거래량·OBV 영역의 지속참여 6점에는 20·60·120·240일 및 5·10·20·60·120주 실제 거래대금 근거가 '+actualMoneyCount+
@@ -2811,7 +2811,7 @@ async function load(){
   if(sort==='ops'&&!operationalLink.linked){sort='stable';if($('sort'))$('sort').value=sort;}
   if($('operationalModelNote'))$('operationalModelNote').textContent=operationalLink.linked?
     (model.operationalVersion?.includes('r1e')?'R1e 잠정 운영모델(손절 미반영)':'R1d 과거 잠정 운영모델(손절 가감점 포함)')+' · 25/30/12.5/12.5/20 · '+operationalLink.linked+
-    '종목 연결 (종가 미관측 '+operationalLink.unpriced+'종목 포함) · 미관측 가점은 보류 · 기존 모델 비교 가능':
+    '종목 연결 (가격 미관측 '+operationalLink.unpriced+'종목 포함) · 미관측 가점은 보류 · 기존 모델 비교 가능':
     '신규 운영점수 연결 대기 · 기존 모델을 표시합니다.';
   $('industryResearchContent').innerHTML=
     (industryPrice?industryPrice.html:'<p class="u-muted">동일 시장일 업종 상대강도 집계 자료 동기화 대기 중입니다.</p>')+
