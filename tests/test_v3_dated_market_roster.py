@@ -1,0 +1,108 @@
+"""Offline contract for date-pinned market roster; never publishes raw KRX rows."""
+from __future__ import annotations
+
+from io import StringIO
+from pathlib import Path
+from unittest.mock import patch
+import json
+import tempfile
+import unittest
+
+import pandas as pd
+
+import full_market_batch as batches
+import screener
+from v3_dated_market_roster import load_dated_listing, DatedRosterError
+
+DAY = '2026-11-11'
+
+
+def fixture_listing(n=1000):
+    codes = [f'{120000+i:06}' for i in range(n-1)] + ['0008Z0']
+    return pd.DataFrame([{
+        'Code': code, 'Name': f'Ordinary share {i}',
+        'Market': 'KOSPI' if i % 2 else 'KOSDAQ',
+        'Close': 8000 + i, 'Volume': 0 if i == 5 else 11,
+        'Amount': 0 if i == 5 else 90000,
+        'Marcap': 2_000_000_000 + i,
+    } for i, code in enumerate(codes)])
+
+
+class Response:
+    def __init__(self, raw, status=200):
+        self.status_code = status
+        self.content = raw
+
+
+class DatedRosterTests(unittest.TestCase):
+    def test_immutable_requested_date_path_and_mixed_code_not_truncated(self):
+        frame = fixture_listing(1001)
+        raw = frame.to_csv(index=False).encode('utf-8-sig')
+        seen = []
+        def get(url, **kwargs):
+            seen.append(url)
+            self.assertIn('2026-11-11.csv', url)
+            self.assertIn('timeout', kwargs)
+            return Response(raw)
+        parsed, digest = load_dated_listing(DAY, get=get, minimum=100)
+        self.assertEqual(len(parsed), 1001)
+        self.assertIn('0008Z0', parsed['Code'].tolist())
+        self.assertEqual(len(digest), 64)
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(len(screener.market_snapshot(listing=parsed)), 1001)
+        self.assertEqual(sum(x['snapshot_volume'] == 0 for x in
+                             screener.market_snapshot(listing=parsed).values()), 1)
+
+    def test_fail_closed_on_missing_wrong_day_bad_schema_and_duplicates(self):
+        frame = fixture_listing(1001)
+        raw = frame.to_csv(index=False).encode()
+        with self.assertRaisesRegex(DatedRosterError, 'invalid_dated_roster_day'):
+            load_dated_listing('2026-11-31',get=lambda *a,**k: Response(raw))
+        with self.assertRaisesRegex(DatedRosterError, 'dated_roster_unavailable'):
+            load_dated_listing(DAY, get=lambda *a,**k: Response(b'', 404))
+        with self.assertRaisesRegex(DatedRosterError, 'dated_roster_schema_invalid'):
+            load_dated_listing(DAY, get=lambda *a,**k: Response(b'Code,Market\nA,STK\n'),minimum=1)
+        same = pd.concat([frame,frame.iloc[[0]]],ignore_index=True).to_csv(index=False).encode()
+        with self.assertRaisesRegex(DatedRosterError,'dated_roster_duplicate_identity'):
+            load_dated_listing(DAY, get=lambda *a,**k: Response(same),minimum=1)
+
+    def test_1001_stock_plan_exact_digest_and_republication_guard(self):
+        frame = fixture_listing(1001)
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with patch.object(batches, 'load_dated_listing',
+                              return_value=(frame, 'a'*64)) as fetch:
+                response = batches.plan(asof=DAY, out=base/'plan',
+                                        date_pinned_roster=True)
+            self.assertEqual(fetch.call_count, 1)
+            self.assertEqual(response['eligible'], 1001)
+            manifest = batches._read(base/'plan'/'manifest.json')
+            self.assertEqual(manifest['roster_provenance'],'date_pinned_fdr_public_cache')
+            self.assertEqual(manifest['roster_source_sha256'],'a'*64)
+            self.assertIn('0008Z0',manifest['codes'])
+            with patch.object(batches,'load_receipts',return_value={'rows':[],'errors':[]}):
+                with patch.object(batches,'load_dated_listing',
+                                  return_value=(frame,'b'*64)):
+                    with self.assertRaisesRegex(batches.BatchError,
+                                                 'date_pinned_roster_changed_between_jobs'):
+                        batches.publish(manifest=manifest,parts_dir=base/'parts',
+                                        use_flow=False,write_report=False)
+            missing = dict(manifest)
+            del missing['roster_source_sha256']
+            with self.assertRaisesRegex(batches.BatchError,
+                                         'untrusted_date_pinned_roster_digest'):
+                batches.validate_manifest(missing)
+
+    def test_unavailable_exact_day_never_falls_back_in_publication(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(batches,'load_dated_listing',
+                              side_effect=DatedRosterError('dated_roster_unavailable')):
+                with self.assertRaisesRegex(batches.BatchError,
+                                             'date_pinned_roster_unavailable_or_invalid'):
+                    batches.plan(asof=DAY, out=Path(tmp),
+                                 date_pinned_roster=True)
+            self.assertFalse((Path(tmp)/'manifest.json').exists())
+
+
+if __name__ == '__main__':
+    unittest.main()
