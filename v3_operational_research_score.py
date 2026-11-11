@@ -28,10 +28,11 @@ from v3_dart_bulk_history import _stable_digest
 from v3_revenue_growth_evidence import derive as revenue_growth_evidence
 from v3_eps_valuation import evaluate as evaluate_reported_eps
 
-VERSION = 'v3-stable-r1d-operational-research'
+VERSION = 'v3-stable-r1e-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
                        'v3-stable-r1b-operational-research',
-                       'v3-stable-r1c-operational-research',VERSION)
+                       'v3-stable-r1c-operational-research',
+                       'v3-stable-r1d-operational-research', VERSION)
 OUTPUT = 'v3-operational-research-scores.json'
 SPECS = {
  'volume': {'long_horizon_growth':6,'persistence':5,'concentration_quality':2,
@@ -318,7 +319,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         available=round(sum(v['available'] for v in areas.values()),6)
         base=round(sum(v['points'] for v in areas.values()),6) if available else None
         adj=profile(stock,base)
-        score=rounded(max(0,min(100,base-adj['capital_deduction']+adj['stop_adjustment']-risk['deduction']))) if base is not None else None
+        score=rounded(max(0,min(100,base-adj['capital_deduction']-risk['deduction']))) if base is not None else None
         previous_score=(prior.get('prior_operational_score') if previous.get('version')==VERSION
                         else prior.get('score')) if prior else None
         previous_rank=(prior.get('prior_operational_rank') if previous.get('version')==VERSION
@@ -377,7 +378,7 @@ def can_hold_previous_during_temporal_lag(market,catalog,ledger,history,previous
 def to_csv(report):
     out=StringIO(newline='');w=csv.writer(out,lineterminator='\n')
     w.writerow(['운영순위','종목코드','종목명','시장','모델버전','잠정운영점수','관측합계','확보배점','기준일','가장오래된기준일',
-        '시총감점','손절보정','재무위험감점','재무위험상태','기존점수','기존순위','직전운영모델점수','직전운영모델순위']+
+        '시총감점','손절보정_미적용','재무위험감점','재무위험상태','기존점수','기존순위','직전운영모델점수','직전운영모델순위']+
         [a+'_'+k for a in BUDGET for k in ('점수','확보배점')])
     for code,r in sorted(report['rows'].items(),key=lambda x:x[1]['rank'] or 100000):
         w.writerow([r['rank'],code,r['name'],r['market'],VERSION,r['score'],r['base'],r['available'],r['asof'],r['oldest_asof'],

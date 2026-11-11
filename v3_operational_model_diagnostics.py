@@ -93,8 +93,12 @@ def build(report,comparison,catalog):
             declared.get('old_kospi')!=sum(rows[c]['market']=='KOSPI' for c in old_top)):
             raise ValueError('comparison_top_composition_mismatch')
     eligible=[c for c,r in rows.items() if r['rank'] is not None]
+    # Preserve the archived R1d counterfactual convention while R1e must
+    # never restore a stop adjustment under any diagnosis or ranking.
+    historical_stop=report['version']=='v3-stable-r1d-operational-research'
     without={c:rounded(max(0,min(100,rows[c]['base']-rows[c]['capital_deduction']+
-                                  rows[c]['stop_adjustment']))) for c in eligible}
+                         (rows[c]['stop_adjustment'] if historical_stop else 0))))
+             for c in eligible}
     ordered=sorted(eligible,key=lambda c:(-without[c],-rows[c]['available'],c))
     counter_ranks={c:i for i,c in enumerate(ordered,1)}
     changed=[{'code':c,'operational_rank':rows[c]['rank'],'without_risk_rank':counter_ranks[c],

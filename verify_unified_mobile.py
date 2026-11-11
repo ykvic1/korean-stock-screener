@@ -101,18 +101,19 @@ with sync_playwright() as p:
         URL + "v3-operational-research-comparison.json"
     ).json()
     r1d = comparison.get("operational_coverage")
-    if (comparison.get("version") == "v3-stable-r1d-operational-research"
+    if (comparison.get("version") in ("v3-stable-r1d-operational-research", "v3-stable-r1e-operational-research")
             and r1d and comparison["asof"] <= observed["asof"]
             and r1d["listed_total"] == observed["listed_total"]):
         assert r1d["budgets"] == {"volume": 25, "technical": 30,
                                     "financial": 12.5, "valuation": 12.5,
                                     "momentum": 20}
         assert r1d["investment_score_certified"] is False
+        model_label = "R1e" if "r1e" in comparison["version"] else "R1d"
         assert page.locator("#liveProgressAsOf").inner_text() == (
-            comparison["asof"] + " · R1d 점수"
+            comparison["asof"] + " · " + model_label + " 점수"
         )
         assert page.locator("#liveProgressCoverage").inner_text() == (
-            f'{r1d["available_100_count"]:,} / {r1d["listed_total"]:,}종목 (R1d)'
+            f'{r1d["available_100_count"]:,} / {r1d["listed_total"]:,}종목 ({model_label})'
         )
     else:
         assert page.locator("#liveProgressAsOf").inner_text() == observed["asof"]

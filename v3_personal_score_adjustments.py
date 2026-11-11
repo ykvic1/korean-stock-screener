@@ -1,7 +1,7 @@
 """Publish the same dated personal stability calculation used by the screen.
 
 Five factor budgets remain 20/25/20/20/15. Retained observations keep their
-dates; cap/stop adjustments are explicit and never calibrate stop-hit odds.
+dates. Stop distance is information only and must never affect scores/ranks.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from v3_dart_bulk_history import _stable_digest
 from v3_issuer_factor_ledger import BUDGET, SCHEMA as LEDGER_SCHEMA, _factor
 from v3_eps_valuation import valid as valid_valuation, MODEL as EPS_MODEL
 
-SCHEMA = "v3-personal-stability-adjusted-score-v3"
+SCHEMA = "v3-personal-stability-adjusted-score-v4"
 
 
 def finite(value):
@@ -39,24 +39,15 @@ def profile(row, earned):
         raw = 100 * (price - stop) / price
         if abs(reported + raw) <= 2:
             distance = rounded(raw, 2, epsilon=False)
+    # Retain a zero-valued compatibility field for dated CSV consumers. No
+    # stop reference, stop distance or prior stop-risk flag can move a score.
     adjustment = 0
-    if distance is not None:
-        d = distance
-        raw = (-2 + 2*d/3 if d < 3 else 2*(d-3)/3 if d < 6 else
-               2 if d <= 9 else 2*(12-d)/3 if d < 12 else
-               -(d-12)/3 if d < 15 else -1-2*(d-15)/10 if d < 25 else -3)
-        flags = row.get("risk_flags")
-        tech_risk = ((finite(row.get("price60")) and row["price60"] >= 40) or
-                     (isinstance(flags, list) and any(
-                         isinstance(flag, str) and any(term in flag for term in
-                         ("손절폭 과대", "단기 급등", "추격 주의", "장기 추세 취약")) for flag in flags)))
-        adjustment = rounded(min(raw, -1) if tech_risk else raw)
-    deduction = rounded(capital - adjustment)
+    deduction = capital
     return {
         "capital_deduction": capital, "stop_adjustment": adjustment,
         "stop_distance_pct": distance, "deduction": deduction,
         "adjusted_score": max(0, min(100, rounded(earned - deduction))) if finite(earned) else None,
-        "missing_adjustment_sources": int(cap is None) + int(distance is None),
+        "missing_adjustment_sources": int(cap is None),
         "single_day_trading_value_points": 0,
     }
 
@@ -138,7 +129,8 @@ def build(market, catalog, ledger, *, valuation_overrides=None):
     summary = {
         "schema": SCHEMA, "asof": day, "listed_total": len(output),
         "ranked_issuers": len(eligible), "factor_budgets": dict(BUDGET),
-        "capital_deduction_max": 5, "stop_adjustment_range": [-3, 2],
+        "capital_deduction_max": 5, "stop_adjustment_range": [0, 0],
+        "structural_stop_reference_scored": False,
         "single_day_trading_value_points": 0, "industry_points": 0,
         "mixed_date_factor_values_keep_original_dates": True,
         "missing_is_not_zero": True, "stop_hit_probability_calibrated": False,
@@ -155,7 +147,7 @@ def to_csv(rows):
     buffer = StringIO(newline="")
     writer = csv.writer(buffer, lineterminator="\n")
     fields = ["안정형순위", "종목코드", "종목명", "시장", "가격기준일", "점수산식버전",
-              "안정형보정점수", "보정전관측합계", "산출가능배점", "시총감점", "손절거리보정",
+              "안정형보정점수", "보정전관측합계", "산출가능배점", "시총감점", "손절거리보정_미적용",
               "손절거리퍼센트", "미확인보정근거수", "최초팩터기준일", "과거팩터유지수", "가치점수모형"]
     for key in BUDGET:
         fields += [key + "_점수", key + "_확보배점", key + "_기준일"]

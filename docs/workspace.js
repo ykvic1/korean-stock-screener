@@ -951,7 +951,7 @@ function validEPSValuation(q,r){
 }
 function applyPersonalValuation(model,report){
  if(!model||!Array.isArray(model.rows)||!report||
-    report.schema!=='v3-personal-stability-adjusted-score-v3'||
+    !['v3-personal-stability-adjusted-score-v3','v3-personal-stability-adjusted-score-v4'].includes(report.schema)||
     !validDate(report.asof)||report.asof>model.date||
     report.official_investment_scores_certified!==false||report.missing_is_not_zero!==true||
     !report.valuation_overrides||typeof report.valuation_overrides!=='object'||
@@ -1156,9 +1156,9 @@ function scoreOverviewMarkup(c,normalized,r,stability=null){
  // is shown with its NET legacy score, the headline and 100-point meter must
  // match the stock-list score instead of silently showing the gross subtotal.
  const adjusted=stability&&finite(stability.score)&&finite(stability.capitalDeduction)&&
-  finite(stability.stopAdjustment)&&finite(c.earned)&&
-  Math.abs(Math.max(0,Math.min(100,Math.round(((c.earned-stability.capitalDeduction+
-   stability.stopAdjustment)+Number.EPSILON)*10)/10))-stability.score)<.00001;
+  finite(c.earned)&&
+  Math.abs(Math.max(0,Math.min(100,Math.round(((c.earned-stability.capitalDeduction)+
+   Number.EPSILON)*10)/10))-stability.score)<.00001;
  const total=adjusted?stability.score:c.earned;
  const earned=total===null?0:Math.min(total,c.available);
  const headroom=c.available-earned;
@@ -1216,8 +1216,6 @@ function scoreOverviewMarkup(c,normalized,r,stability=null){
    '<span>영역 합계 (감점 전) <b>'+number(c.earned)+'</b></span>'+
    '<span class="'+(stability.capitalDeduction>0?'u-score-deduction':'')+'">시총 '+
    (stability.capitalDeduction>0?'−':'')+number(stability.capitalDeduction)+'</span>'+
-   '<span class="'+(stability.stopAdjustment<0?'u-score-deduction':stability.stopAdjustment>0?'u-score-bonus':'')+'">손절거리 '+
-   (stability.stopAdjustment<0?'−':stability.stopAdjustment>0?'+':'')+number(Math.abs(stability.stopAdjustment))+'</span>'+
    '<strong>감점 후 최종 '+number(total)+'점</strong></div>':'')+
   '<p class="u-score-disclaimer">'+(adjusted?'보정 후 잠정점수':'잠정 합계')+' <b>'+
   (total===null?'미산출':number(total)+'점')+'</b> · 산출 가능 '+
@@ -1325,30 +1323,17 @@ function stabilityProfile(r,composite){
  const pct=price!==null&&stop!==null&&stop<price?100*(price-stop)/price:null;
  const distance=pct!==null&&finite(r?.stop_pct)&&Math.abs(r.stop_pct+pct)<=2?
   Math.round(pct*100)/100:null;
- // A nearby stop can be hit by noise. Award only modest points for a
- // usable 6..9% distance; too tight (<3%) and too wide (>15%) lose points.
- let stopAdjustment=0;
- if(distance!==null){
-  const d=distance;
-  const raw=d<3?-2+2*d/3:
-   d<6?2*(d-3)/3:d<=9?2:d<12?2*(12-d)/3:
-   d<15?-(d-12)/3:d<25?-1-2*(d-15)/10:-3;
-  const techRisk=(finite(r?.price60)&&r.price60>=40)||
-   (Array.isArray(r?.risk_flags)&&r.risk_flags.some(f=>typeof f==='string'&&
-    ['손절폭 과대','단기 급등','추격 주의','장기 추세 취약'].some(k=>f.includes(k))));
-  stopAdjustment=tenths(techRisk?Math.min(raw,-1):raw);
- }
- // Signed deduction: a negative result denotes a small confirmed-shape
- // research bonus, never a promise of execution at the reference line.
- const deduction=tenths(capitalDeduction-stopAdjustment);
+ // Stop distance and technical flags inform risk references only. They are
+ // never an additive/deductive score, tie-breaker or earned weight.
+ const stopAdjustment=0; // legacy export compatibility; always unscored
+ const deduction=capitalDeduction;
  const score=composite?.earned===null||!finite(composite?.earned)?null:
   Math.max(0,Math.min(100,tenths(composite.earned-deduction)));
- const missing=(cap===null?1:0)+(distance===null?1:0);
+ const missing=cap===null?1:0;
  const status=distance===null?'손절 구조선 확인 필요':
   distance<3?'손절선 너무 근접 · 노이즈 위험':
   distance>15?'손절폭 과대 · 하락 위험':
   cap!==null&&cap<1000?'소형주 규모 주의 · 구조 참고':
-  stopAdjustment>0?'구조 손절거리 상대 양호 · 미검증':
   '구조 손절거리 추가 확인';
  return {capitalEok:cap,tradingEok:trading,capitalDeduction,
   liquidityDeduction,stopAdjustment,stopDistancePct:distance,
@@ -2389,7 +2374,7 @@ function structuralStopMarkup(r){
  if(!s||s.schema!==1||s.unscored_reference_only!==true||s.score_impact!==0||
     !validDate(s.asof)||s.asof!==r.price_date){
   return '<h3>20·60일 구조적 손절 참고선 · 배점 미반영</h3>'+
-   '<p class="u-muted">신규 구조적 참고선 관측 대기. 아래 기존 손절선은 과거 점수 산식의 20·45일 값이며 새로운 20·60일 근거로 혼동하지 마세요.</p>';
+   '<p class="u-muted">구조적 참고선 관측 대기. 임의의 손절 비율이나 과거 20·45일 기준선을 대신 사용하지 않습니다.</p>';
  }
  const zone=s.lower_volume_zone;
  const pattern=s.pattern_invalidation;
@@ -2414,7 +2399,7 @@ function structuralStopMarkup(r){
   (s.confidence==='confluence'?'복수 근거 인접':'단일 지지 근거 또는 미산출')+
   ' · 관측일 '+esc(s.asof)+'</p>'+
   (typeof s.warning==='string'&&s.warning?'<p class="u-stop-warning">'+esc(s.warning)+'</p>':'')+
-  '<p class="u-muted">일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 기존 점수·손절거리 보정에 영향을 주지 않습니다.</p></section>';
+  '<p class="u-muted">일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 이 참고선과 거리에는 어떤 가점·감점도 없습니다.</p></section>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
@@ -2571,12 +2556,9 @@ function renderDetails(x){
  '<span>V3 잠정점수는 미검증 연구값이며 매수 신호가 아닙니다.</span></div>'+
  (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
  '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r,stability)+issuerReadinessMarkup(r)+
- (root.V3StopEvidence?root.V3StopEvidence.markup(r,model?.date):'')+
- '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 구조 손절거리 '+(stability.stopAdjustment>=0?'+':'')+stability.stopAdjustment+'점 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 손절거리 '+(stability.stopDistancePct===null?'미확인':stability.stopDistancePct.toFixed(1)+'%')+' · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
+ '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 손절 참고선 배점 미반영 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
  structuralStopMarkup(r)+
  '<div class="u-detail-grid"><div><small>종가</small><strong>'+won(r.price)+'</strong></div>'+
- '<div><small>기존 점수용 손절선 (20·45일)</small><strong>'+won(r.stop_line)+'</strong></div>'+
- '<div><small>기존 점수용 손절거리</small><strong>'+(risk.distance===null?'미확인':pct(-risk.distance))+'</strong></div>'+
  '<div class="u-factor-unverified"><small>기존 5영역 감점 전 합계 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
  '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
@@ -2659,7 +2641,7 @@ function draw(){
   '종목 · '+(query?'전체 시장 검색 · ':top100Only?'현재 정렬 상위 100개 중 ':'전체 시장 중 ')+
   (obvOnly&&!query?'OBV 상승·주가 미반영 연구 관찰 · ':'')+
   (coverageOnly!=='all'&&!query?'5영역별 확보배점 '+coverageOnly.split('-').join('/')+' 동일 그룹 · ':'')+
-   (sort==='ops'?'신규 잠정 운영점수 R1 · 점수 우선':sort==='stable'?'안정형 보정순 (시총 소폭 보정·손절 구조 가감점)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
+   (sort==='ops'?'신규 잠정 운영점수 '+(model.operationalVersion?.includes('r1e')?'R1e':'R1d')+' · 점수 우선':sort==='stable'?'안정형 보정순 (시총만 소폭 보정·손절 배점 제외)':sort==='score'?'V3 잠정점수 관측범위 우선':sort==='personal'?'개인 연구용 100점 환산순':sort==='risk'?'손절 위험순':'패턴 관찰순')+
   ' · 점수 미검증 · 관측범위가 다른 종목 간 직접 순위 비교 주의';
  $('stockList').innerHTML=rows.length?rows.slice(0,limit).map((x,i)=>{
   const r=x.r;
@@ -2735,7 +2717,7 @@ function present(data){
   '종목은 종가 미관측으로 별도 보존(신규 운영점수만 확인 가능) · 일/주봉 관찰 후보 '+metrics.discover+
   '종목 · V3 기술 세부항목 점수 '+metrics.technical+
   '종목 · V3 잠정 합계 '+metrics.provisional+
-  '종목. 시총(연속형 최대 -5점)과 구조 손절거리(-3~+2점)만 안정형 추가 보정에 반영합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 거래량·OBV 영역의 지속참여 6점에는 20·60·120·240일 및 5·10·20·60·120주 실제 거래대금 근거가 '+actualMoneyCount+
+  '종목. 안정형 추가 보정은 시총(연속형 최대 -5점)만 적용하며, 손절 관련 가점·감점은 완전히 제외했습니다. 구조적 참고선은 점수 밖에서 표시합니다. 당일 거래대금은 참고값으로만 표시하며 점수에 반영하지 않습니다. 거래량·OBV 영역의 지속참여 6점에는 20·60·120·240일 및 5·10·20·60·120주 실제 거래대금 근거가 '+actualMoneyCount+
   '종목에 잠정 적용됐습니다. 나머지 종목은 관측된 기존 거래량(주식수) 비율 잠정 대체 또는 자료 미확보이며, 미확보를 0점으로 보지 않습니다. 거래량·OBV 신규 관측은 '+observedVolumeCount+
   '종목 / 관측가능 최대 16점·매물소화 4점 미확보입니다. 정규장 원천과 기업행사 독립 검증 전의 연구점수이며 실시간 투자등급이 아닙니다. '+
   '일부 데이터가 누락되어 있으면 합계가 낮게 표시될 수 있습니다. '+
@@ -2824,7 +2806,7 @@ async function load(){
     '거래정지 표시자료 미연결 또는 기준일 불일치 · 거래량 0만으로 기간·사유 추정하지 않음';
   if(sort==='ops'&&!operationalLink.linked){sort='stable';if($('sort'))$('sort').value=sort;}
   if($('operationalModelNote'))$('operationalModelNote').textContent=operationalLink.linked?
-    'R1d 잠정 운영모델 · 25/30/12.5/12.5/20 · '+operationalLink.linked+
+    (model.operationalVersion?.includes('r1e')?'R1e 잠정 운영모델(손절 미반영)':'R1d 과거 잠정 운영모델(손절 가감점 포함)')+' · 25/30/12.5/12.5/20 · '+operationalLink.linked+
     '종목 연결 (종가 미관측 '+operationalLink.unpriced+'종목 포함) · 미관측 가점은 보류 · 기존 모델 비교 가능':
     '신규 운영점수 연결 대기 · 기존 모델을 표시합니다.';
   $('industryResearchContent').innerHTML=
