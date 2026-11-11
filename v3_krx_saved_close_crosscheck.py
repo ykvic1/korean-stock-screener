@@ -21,9 +21,12 @@ from v3_krx_history_collection import (
 )
 from v3_saved_close_ma_recovery import select_targets
 from v3_price_session_capture import FEED, WINDOWS, capture_window
+from v3_regular_close_candidate_probe import (
+    compare_candidate, NaverMobileDailyProbe, SCHEMA as CANDIDATE_SCHEMA,
+)
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
-FORMAT_REVISION = 4
+FORMAT_REVISION = 5
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
@@ -60,7 +63,7 @@ def safe_failure_reason(exc):
     return 'krx_crosscheck_not_verified'
 
 
-def check(market, first, second, client, *, snapshot_sha256):
+def check(market, first, second, client, *, snapshot_sha256, candidate_probe=None):
     day = market.get('date')
     try:
         validate_dates([day])
@@ -195,7 +198,7 @@ def check(market, first, second, client, *, snapshot_sha256):
         or any(sum(value[name] for value in window_counts.values())
                != counts['saved_market'][name] for name in REASONS)):
         raise CrosscheckError('capture_window_counts_disagree')
-    return {
+    result = {
         'schema': SCHEMA, 'format_revision': FORMAT_REVISION,
         'asof': day, 'snapshot_sha256': snapshot_sha256,
         'krx_market_source_sha256': source_sha,
@@ -217,6 +220,32 @@ def check(market, first, second, client, *, snapshot_sha256):
         'investment_score_certified': False,
         'original_krx_rows_exported': False,
     }
+    # Separate public-provider historical daily-close pilot. The official KRX
+    # rows and comparison prices stay in memory, including when the candidate
+    # endpoint is missing/stale. This is not evidence that any full historical
+    # OHLCV series is 09:00-15:30-only.
+    if candidate_probe is None:
+        result['public_daily_price_candidate'] = {
+            'schema': CANDIDATE_SCHEMA, 'status': 'not_requested',
+            'regular_session_source_certified': False,
+            'price_or_issuer_identity_exported': False,
+            'investment_score_or_coverage_promoted': False,
+            'official_krx_source_data_republished': False,
+        }
+    else:
+        numeric_closes = {}
+        for key, row in observed.items():
+            quality, _ = classify_row(row)
+            if quality == 'valid_numeric_observation':
+                try:
+                    numeric_closes[key] = _numeric(
+                        row['TDD_CLSPRC'], 'TDD_CLSPRC', positive=True)
+                except (ProbeError, KeyError, ValueError):
+                    continue
+        result['public_daily_price_candidate'] = compare_candidate(
+            by_code, numeric_closes, day, candidate_probe)
+        result['public_daily_price_candidate']['status'] = 'sampled'
+    return result
 
 
 def current_report(report, *, digest, day):
@@ -227,6 +256,9 @@ def current_report(report, *, digest, day):
                 and report['format_revision'] == FORMAT_REVISION
                 and report['snapshot_sha256'] == digest and report['asof'] == day
                 and report['source_requests'] == len(MARKETS)
+                and report['public_daily_price_candidate']['schema'] == CANDIDATE_SCHEMA
+                and report['public_daily_price_candidate']['regular_session_source_certified'] is False
+                and report['public_daily_price_candidate']['investment_score_or_coverage_promoted'] is False
                 and report['investment_score_certified'] is False
                 and report['changed_market_price_rows'] == 0
                 and report['added_available_weight'] == 0
@@ -272,7 +304,8 @@ def main(argv=None):
         raise CrosscheckError('krx_api_key_not_configured')
     try:
         result = check(market, first, second, KRXClient(key),
-                       snapshot_sha256=digest)
+                       snapshot_sha256=digest,
+                       candidate_probe=NaverMobileDailyProbe())
     except CrosscheckError:
         raise
     except (KRXProbeError, HistoryCollectionError, ProbeError, ValueError) as exc:

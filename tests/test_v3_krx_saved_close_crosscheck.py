@@ -117,6 +117,28 @@ class SavedCloseSourceTests(unittest.TestCase):
         self.assertNotIn('"close":',text)
         self.assertNotIn('"price":',text)
 
+    def test_public_historical_candidate_is_aggregate_only_and_not_promoted(self):
+        class PublicProbe:
+            def __init__(self):
+                self.calls = []
+            def daily_close(self, code, day):
+                self.calls.append((code, day))
+                return 220 if code == '000002' else None
+        candidate = PublicProbe()
+        report = check(saved(), ['000001'], ['000002'], Provider(),
+                       snapshot_sha256='9'*64, candidate_probe=candidate)
+        part = report['public_daily_price_candidate']
+        self.assertEqual(part['status'], 'sampled')
+        self.assertEqual(part['markets']['KOSPI']['sampled'], 1)
+        self.assertEqual(part['markets']['KOSPI']['equals_krx'], 1)
+        self.assertEqual(part['markets']['KOSDAQ']['sampled'], 0)
+        self.assertEqual(candidate.calls, [('000002', DAY)])
+        self.assertFalse(part['regular_session_source_certified'])
+        self.assertFalse(part['investment_score_or_coverage_promoted'])
+        self.assertTrue(current_report(report, digest='9'*64, day=DAY))
+        for code in ('000001', '000002', '000003'):
+            self.assertNotIn(code, json.dumps(report))
+
     def test_absent_code_never_becomes_zero_or_valid_close(self):
         provider=Provider()
         provider.rows['KOSDAQ']=[item('000004',350)]
