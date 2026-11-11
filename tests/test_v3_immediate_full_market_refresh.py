@@ -18,7 +18,8 @@ class ImmediateFullMarketRefreshTests(unittest.TestCase):
             workflow)
         self.assertEqual(workflow.count(
             "github.event_name == 'schedule' || inputs.mode == 'publish'"),
-            4)
+            5)
+        self.assertEqual(workflow.count("v3_aftermarket_cutoff.py --manifest"), 2)
         self.assertIn("options: [audit, publish]", workflow)
         self.assertIn("default: audit", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
