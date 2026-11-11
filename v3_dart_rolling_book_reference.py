@@ -16,7 +16,7 @@ from typing import Callable
 from v22_full_universe_audit import audit_published_universe
 
 SCHEMA="v3-dart-current-listed-annual-book-reference-0.1"
-CODE=re.compile(r"\d{6}\Z")
+CODE=re.compile(r"[0-9A-Z]{6}\Z")
 RECEIPT=re.compile(r"\d{14}\Z")
 MAX_PER_RUN=40
 MAX_RECORDS=5000

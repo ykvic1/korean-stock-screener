@@ -11,6 +11,7 @@ from hashlib import sha256
 import argparse
 import json
 import math
+import re
 import os
 from pathlib import Path
 
@@ -249,7 +250,7 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     members=set()
     for item in catalog['rows']:
         code=item.get('code'); market=item.get('market')
-        if (type(code) is not str or len(code)!=6 or not code.isdigit()
+        if (type(code) is not str or not re.fullmatch(r'[0-9A-Z]{6}', code)
             or market not in ('KOSPI','KOSDAQ') or code in members):
             raise ActualMoneyError('invalid_money_current_issuer_catalog')
         members.add(code)

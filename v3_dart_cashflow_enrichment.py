@@ -154,7 +154,7 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
         verify_state(prior,market,catalog,bulk,strict_fingerprint=True)
         return prior
     old_records=prior["records"]
-    if any(type(c) is not str or not re.fullmatch(r"[0-9]{6}",c)
+    if any(type(c) is not str or not re.fullmatch(r"[0-9A-Z]{6}",c)
            for c in old_records):
         raise CashflowError("invalid_prior_company_identity")
     # Validate the entire immutable old snapshot BEFORE source reconciliation.

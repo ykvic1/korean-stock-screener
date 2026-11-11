@@ -53,6 +53,23 @@ def report(code,*,scope="OFS",receipt="20260312001140",equity=400_000_000_000):
 
 
 class RollingCurrentListedDARTTests(unittest.TestCase):
+    def test_mixed_six_character_code_remains_in_live_dart_census(self):
+        daily, catalog = fixture()
+        daily["collection_errors"][0][0] = "3000Z3"
+        catalog["rows"][2]["code"] = "3000Z3"
+        day, members = mod._inputs(daily, catalog)
+        self.assertEqual(day, DAY)
+        self.assertEqual(len(members), 5)
+        self.assertIn("3000Z3", members)
+        self.assertEqual(mod._source_record(report("3000Z3"), DAY)["code"], "3000Z3")
+        self.assertIn("3000Z3", [r["code"] for r in
+                      mod.plan(daily, catalog, limit=5)[3]])
+        for malformed in ("3000z3", "3000_3", "３０００Z３"):
+            wrong = copy.deepcopy(catalog)
+            wrong["rows"][2]["code"] = malformed
+            with self.assertRaisesRegex(ValueError, "invalid_listing_code"):
+                mod._inputs(daily, wrong)
+
     def test_choose_highest_actual_score_first_then_whole_live_universe(self):
         daily,catalog=fixture()
         day,members,history,targets=mod.plan(daily,catalog,limit=2)

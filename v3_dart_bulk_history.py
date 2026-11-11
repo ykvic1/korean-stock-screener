@@ -43,7 +43,7 @@ LABELS = {
     ("BS","자본총계"): "equity",
 }
 FIELDS = ("revenue","operating_income","assets","liabilities","equity")
-CODE = re.compile(r"[0-9]{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 CORP = re.compile(r"[0-9]{8}\Z")
 RECEIPT = re.compile(r"[0-9]{14}\Z")
 
