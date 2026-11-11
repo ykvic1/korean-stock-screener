@@ -22,6 +22,7 @@ from v3_krx_history_collection import (
 from v3_saved_close_ma_recovery import select_targets
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
+FORMAT_REVISION = 2
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
@@ -140,7 +141,8 @@ def check(market, first, second, client, *, snapshot_sha256):
         if profile[name]['different_close'] != counts[name]['different_close']:
             raise CrosscheckError('price_gap_count_disagrees_with_saved_close')
     return {
-        'schema': SCHEMA, 'asof': day, 'snapshot_sha256': snapshot_sha256,
+        'schema': SCHEMA, 'format_revision': FORMAT_REVISION,
+        'asof': day, 'snapshot_sha256': snapshot_sha256,
         'krx_market_source_sha256': source_sha,
         'source_requests': len(MARKETS), 'counts': counts,
         'mismatch_distance_profile': profile,
@@ -153,6 +155,27 @@ def check(market, first, second, client, *, snapshot_sha256):
         'investment_score_certified': False,
         'original_krx_rows_exported': False,
     }
+
+
+def current_report(report, *, digest, day):
+    """Avoid duplicate official calls on unchanged *validated* saved inputs."""
+    try:
+        c = report['counts']['saved_market']
+        return (type(report) is dict and report['schema'] == SCHEMA
+                and report['format_revision'] == FORMAT_REVISION
+                and report['snapshot_sha256'] == digest and report['asof'] == day
+                and report['source_requests'] == len(MARKETS)
+                and report['investment_score_certified'] is False
+                and report['changed_market_price_rows'] == 0
+                and report['added_available_weight'] == 0
+                and report['krx_regular_only_volume_verified'] is False
+                and report['nxt_and_after_hours_exclusion_verified'] is False
+                and type(c['requested']) is int and c['requested'] >= 1
+                and sum(c[key] for key in REASONS) == c['requested']
+                and report['mismatch_distance_profile']['saved_market']['different_close']
+                == c['different_close'])
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def main(argv=None):
@@ -171,6 +194,14 @@ def main(argv=None):
         print(json.dumps({'status':'dry_run','asof':market['date'],
             'below90':len(first),'ninety_plus':len(second),
             'provider_calls':0,'score_points_added':0}))
+        return
+    try:
+        previous = json.loads((args.docs/OUT).read_text(encoding='utf-8'))
+    except (OSError, ValueError, UnicodeError):
+        previous = None
+    if current_report(previous, digest=digest, day=market['date']):
+        print(json.dumps({'status':'unchanged_saved_source',
+            'asof':market['date'], 'provider_calls':0,'score_points_added':0}))
         return
     key = os.getenv('KRX_API_KEY', '')
     if not key.strip():

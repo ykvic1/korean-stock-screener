@@ -2,7 +2,7 @@
 import json
 import unittest
 
-from v3_krx_saved_close_crosscheck import check, CrosscheckError
+from v3_krx_saved_close_crosscheck import check, current_report, CrosscheckError
 from v3_krx_history_collection import HistoryCollectionError
 
 DAY = '2026-11-10'
@@ -80,6 +80,18 @@ class SavedCloseSourceTests(unittest.TestCase):
             with self.assertRaises(CrosscheckError):
                 check(saved(),first,second,Provider(),
                       snapshot_sha256='d'*64)
+
+    def test_unchanged_report_avoids_duplicate_live_source_calls(self):
+        report=check(saved(),['000001'],['000002'],Provider(),
+                     snapshot_sha256='e'*64)
+        self.assertTrue(current_report(report,digest='e'*64,day=DAY))
+        for update in ({'snapshot_sha256':'f'*64},
+                       {'format_revision':1},
+                       {'investment_score_certified':True},
+                       {'added_available_weight':1}):
+            stale={**report,**update}
+            self.assertFalse(current_report(stale,digest='e'*64,day=DAY))
+        self.assertFalse(current_report(report,digest='e'*64,day='2026-11-09'))
 
 
 if __name__ == '__main__':

@@ -12,6 +12,11 @@ on:
       - v3_krx_saved_close_crosscheck.py
       - tests/test_v3_krx_saved_close_crosscheck.py
       - .github/workflows/v3-krx-saved-close-crosscheck.yml
+  schedule:
+    # 09:20 KST on weekdays: compare the previous trading day's saved
+    # snapshot after the KRX Open API daily release the following morning.
+    # A matching published source digest skips all official API calls.
+    - cron: '20 0 * * 1-5'
   workflow_dispatch:
     inputs:
       mode:
@@ -26,6 +31,7 @@ permissions:
 
 jobs:
   offline:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
@@ -44,8 +50,11 @@ jobs:
   source_crosscheck:
     needs: offline
     if: >-
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')
+      ${{ !cancelled() &&
+          (needs.offline.result == 'success' ||
+           (github.event_name == 'schedule' && needs.offline.result == 'skipped')) &&
+          (github.event_name == 'schedule' ||
+           (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 9
     permissions:
