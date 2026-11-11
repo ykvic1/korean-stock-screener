@@ -11,14 +11,15 @@ class ImmediateFullMarketRefreshTests(unittest.TestCase):
             encoding="utf-8")
         before_dispatch = workflow.split("  workflow_dispatch:", 1)[0]
         self.assertIn("  schedule:", before_dispatch)
-        self.assertIn("cron: '30 9 * * 1-5'", before_dispatch)
+        self.assertIn("cron: '30 12 * * 1-5'", before_dispatch)
         self.assertNotIn("  push:", before_dispatch)
         self.assertIn(
             "MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}",
             workflow)
         self.assertEqual(workflow.count(
             "github.event_name == 'schedule' || inputs.mode == 'publish'"),
-            4)
+            5)
+        self.assertEqual(workflow.count("v3_aftermarket_cutoff.py --manifest"), 2)
         self.assertIn("options: [audit, publish]", workflow)
         self.assertIn("default: audit", workflow)
         self.assertIn("cancel-in-progress: false", workflow)

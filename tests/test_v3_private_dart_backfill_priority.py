@@ -57,7 +57,7 @@ class PrivateDartBackfillPriorityTests(unittest.TestCase):
                 workflow)
             self.assertIn("cancel-in-progress: false", workflow)
             self.assertIn("v3_dart_historical_event_receipts.py", workflow)
-        self.assertIn("30 9 * * 1-5", legacy)
+        self.assertIn("30 12 * * 1-5", legacy)
 
 
 if __name__ == "__main__":

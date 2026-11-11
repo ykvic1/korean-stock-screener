@@ -222,7 +222,7 @@ class CheckPrivateProgress(unittest.TestCase):
                       (workflows.parent.parent/
                        "v3_krx_private_progress_report.py").read_text(
                            encoding="utf8"))
-        self.assertIn("cron: '30 9 * * 1-5'",
+        self.assertIn("cron: '30 12 * * 1-5'",
                       (workflows/"full-market-batches.yml").read_text(
                           encoding="utf8"))
 

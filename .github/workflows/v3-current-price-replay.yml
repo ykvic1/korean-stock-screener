@@ -18,7 +18,7 @@ on:
       - V3 Missing Price MA Source Completion
     types: [completed]
   schedule:
-    - cron: '14 13 * * 1-5'  # 22:14 Korea, one missed-event catch-up
+    - cron: '14 16 * * 1-5'  # 01:14 KST Tue-Sat; after 21:30 full-market batch
   workflow_dispatch:
     inputs:
       mode:

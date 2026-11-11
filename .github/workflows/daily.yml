@@ -2,7 +2,7 @@ name: Korean Stock Screener v2
 
 on:
   # Manual emergency fallback ONLY. The proven full-market 100-stock batches
-  # own the weekday 18:30 schedule. Do not run two publishers on each close.
+  # own the weekday 21:30 KST post-aftermarket schedule. No duplicate publisher.
   workflow_dispatch:
 
 permissions:
