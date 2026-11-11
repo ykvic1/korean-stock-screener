@@ -92,6 +92,52 @@ class BridgeTests(unittest.TestCase):
         for forbidden in ("005930","247540","103","TDD_CLSPRC",str(self.db)):
             self.assertNotIn(forbidden,rendered)
 
+    def test_price_only_extracts_official_close_and_no_volume(self):
+        self.archive(D0)
+        self.archive(D1)
+        r=self.panel(price_only=True)
+        bars=r["panels"][("KOSPI","005930")]["observed_bars"]
+        self.assertEqual([bar["close"] for bar in bars],[103,103])
+        self.assertEqual(r["summary"]["observed_valid_price_rows_for_targets"],2)
+        self.assertEqual(r["summary"]["price_selection"],
+                         "krx_tdd_clsprc_regular_close_only")
+        self.assertTrue(r["summary"]["aggregate_volume_ignored_for_price_acceptance"])
+        for bar in bars:
+            self.assertEqual(set(bar),{
+                "date","close","source_scope",
+                "corporate_action_adjustment_verified",
+                "issuer_identity_verified","regular_only_volume_verified"})
+            self.assertEqual(bar["source_scope"],
+                             "KRX_OFFICIAL_DAILY_REGULAR_CLOSE_ONLY")
+            self.assertNotIn("volume",bar)
+            self.assertNotIn("session",bar)
+        self.assertFalse(r["summary"]["eligible_for_investment_score"])
+        with self.assertRaises(PriceFeatureError):
+            extract_price_features(bars,asof=D1)
+
+    def test_price_only_salvages_close_when_combined_volume_missing(self):
+        self.archive(D0,kpi=payload(
+            stock(D0,"005930",volume="-"),stock(D0,"005931")))
+        self.archive(D1)
+        # The older complete-OHLCV research excludes the malformed total.
+        default=self.panel()["panels"][("KOSPI","005930")]
+        self.assertEqual([bar["date"] for bar in default["observed_bars"]],[D1])
+        self.assertEqual(default["quarantined_dates"],[D0])
+        # Price-only evidence is independent of that combined total field.
+        price=self.panel(price_only=True)["panels"][("KOSPI","005930")]
+        self.assertEqual([bar["date"] for bar in price["observed_bars"]],[D0,D1])
+        self.assertEqual(price["quarantined_dates"],[])
+        self.assertTrue(all("aggregate_acc_trdvol_observed" not in bar
+                            for bar in price["observed_bars"]))
+
+    def test_price_only_quarantines_invalid_close_even_when_volume_is_valid(self):
+        self.archive(D0,kpi=payload(
+            stock(D0,"005930",close="-"),stock(D0,"005931")))
+        self.archive(D1)
+        panel=self.panel(price_only=True)["panels"][("KOSPI","005930")]
+        self.assertEqual([bar["date"] for bar in panel["observed_bars"]],[D1])
+        self.assertEqual(panel["quarantined_dates"],[D0])
+
     def test_zero_price_is_quarantined_not_filled_or_replaced(self):
         self.archive(D0)
         self.archive(D1)
@@ -132,6 +178,12 @@ class BridgeTests(unittest.TestCase):
                     build_private_price_panels(
                         start=D0,end=D1,private_db=self.db,
                         targets=targets,calendar_source="weekdays")
+        self.assertFalse(self.db.exists())
+
+    def test_price_only_requires_an_explicit_boolean(self):
+        with self.assertRaisesRegex(PrivatePanelError,
+                                    "invalid_price_only_selection"):
+            self.panel(price_only="yes")
         self.assertFalse(self.db.exists())
 
     def test_bad_stored_source_cannot_generate_any_panels(self):
