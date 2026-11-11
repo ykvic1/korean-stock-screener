@@ -367,7 +367,7 @@ class CrosscheckTests(unittest.TestCase):
         self.assertNotIn("git push",workflow)
         self.assertIn("default: dry_run",workflow)
         self.assertIn("python v3_dart_candidate_catchup.py",workflow)
-        self.assertIn("cron: '30 9 * * 1-5'",
+        self.assertIn("cron: '30 12 * * 1-5'",
                       (base/".github/workflows/full-market-batches.yml").read_text())
 
 
