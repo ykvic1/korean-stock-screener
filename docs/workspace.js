@@ -1330,11 +1330,11 @@ function stabilityProfile(r,composite){
  const score=composite?.earned===null||!finite(composite?.earned)?null:
   Math.max(0,Math.min(100,tenths(composite.earned-deduction)));
  const missing=cap===null?1:0;
- const status=distance===null?'손절 구조선 확인 필요':
-  distance<3?'손절선 너무 근접 · 노이즈 위험':
-  distance>15?'손절폭 과대 · 하락 위험':
-  cap!==null&&cap<1000?'소형주 규모 주의 · 구조 참고':
-  '구조 손절거리 추가 확인';
+ const structural=r?.v3_structural_stop_reference;
+ const currentStructural=structural?.schema===1&&structural.score_impact===0&&
+  structural.unscored_reference_only===true&&structural.asof===r?.price_date;
+ const status=currentStructural?'20·60일 구조적 참고선 확인':
+  '20·60일 구조적 참고선 관측 대기';
  return {capitalEok:cap,tradingEok:trading,capitalDeduction,
   liquidityDeduction,stopAdjustment,stopDistancePct:distance,
   deduction,score,missing,status,turnoverPeriodEvidenceAvailable:false,
