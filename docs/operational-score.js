@@ -43,7 +43,7 @@ function attach(model,report){
     report.format!=='compact-parts-v1'||report.status!=='provisional_operational'||
     !isDay(report.asof)||report.asof>model.date||report.investment_score_certified!==false||report.performance_validated!==false||
     report.missing_is_not_zero!==true||report.unobserved_weight_not_normalized!==true||
-    report.provider_calls!==0||!Number.isInteger(report.listed_total)||report.listed_total<1||report.listed_total>10000||!report.rows||Object.keys(report.rows).some(k=>!/^\d{6}$/.test(k))||Object.keys(report.rows).length!==report.listed_total||
+    report.provider_calls!==0||!Number.isInteger(report.listed_total)||report.listed_total<1||report.listed_total>10000||!report.rows||Object.keys(report.rows).some(k=>!/^[0-9A-Z]{6}$/.test(k))||Object.keys(report.rows).length!==report.listed_total||
     Object.entries(BUDGET).some(([k,v])=>report.budgets?.[k]!==v)||
     Object.values(report.rows).some(r=>!validRow(r,report.asof,report.version)))return 0;
  // A new listing or a renamed/reclassified issuer must never blank the
@@ -79,7 +79,7 @@ function attachAllListed(model,report){
  const seen=new Set();
  for(const item of model.rows){
   const code=item?.r?.code;
-  if(typeof code!=='string'||!/^[0-9]{6}$/.test(code)||seen.has(code))
+  if(typeof code!=='string'||!/^[0-9A-Z]{6}$/.test(code)||seen.has(code))
    return {linked:0,unpriced:0,blocked:0,missing:0,stale:false};
   seen.add(code);
  }
