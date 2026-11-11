@@ -24,6 +24,15 @@ def census(day,companies):
 
 
 class IssuerFactorRetentionTests(unittest.TestCase):
+    def test_alphanumeric_issuer_can_keep_its_own_factors(self):
+        company = member("0001A0", "New Alphanumeric Issuer")
+        day = "2026-11-11"
+        saved = build(census(day, [company]), [row(company, day)])
+        self.assertTrue(saved["rows"]["0001A0"]["active"])
+        self.assertEqual(saved["rows"]["0001A0"]["factors"]["technical"]["points"], 12)
+        malformed = member("0001a0", "Invalid Lowercase")
+        with self.assertRaises(IssuerFactorLedgerError):
+            build(census(day, [malformed]), [row(malformed, day)])
     def test_new_listing_and_delisting_do_not_wipe_other_issuers(self):
         a=member("005930","A");b=member("000020","B")
         day1="2026-10-30";day2="2026-11-02"
