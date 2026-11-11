@@ -4,13 +4,17 @@ on:
   pull_request:
     paths:
       - v3_krx_saved_close_crosscheck.py
+      - v3_regular_close_candidate_probe.py
       - tests/test_v3_krx_saved_close_crosscheck.py
+      - tests/test_v3_regular_close_candidate_probe.py
       - .github/workflows/v3-krx-saved-close-crosscheck.yml
   push:
     branches: [main]
     paths:
       - v3_krx_saved_close_crosscheck.py
+      - v3_regular_close_candidate_probe.py
       - tests/test_v3_krx_saved_close_crosscheck.py
+      - tests/test_v3_regular_close_candidate_probe.py
       - .github/workflows/v3-krx-saved-close-crosscheck.yml
   schedule:
     # 09:20 KST on weekdays: compare the previous trading day's saved
@@ -43,7 +47,7 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3'
       - name: Check aggregate-only match and source quarantine
-        run: python -m unittest tests.test_v3_krx_saved_close_crosscheck -v
+        run: python -m unittest tests.test_v3_krx_saved_close_crosscheck tests.test_v3_regular_close_candidate_probe -v
       - name: Show current saved-source eligible counts without KRX calls
         run: python v3_krx_saved_close_crosscheck.py --mode dry-run
 
