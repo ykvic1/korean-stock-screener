@@ -47,7 +47,8 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
     def test_only_saved_day_needy_90_first_and_followup(self):
         self.assertEqual(select_targets(*inputs()),
                          ((['000001'],['000002']),
-                          {'below_90_priority':1,'already_90_priority':1}))
+                          {'below_90_priority':1,'already_90_priority':1,
+                           'unscored_stop_only_deferred':0}))
 
     def test_report_source_mismatch_is_not_trusted(self):
         market,priority,report=inputs()
@@ -142,15 +143,16 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
         self.assertTrue(all('v3_structural_stop_reference' not in item
                             for item in market['stocks']))
 
-    def test_missing_stop_is_first_cohort_only_when_ma_already_full(self):
+    def test_missing_unscored_stop_never_consumes_90_point_source_budget(self):
         market, priority, report=inputs()
         full=receipt({'20':0.,'60':0.,'120':0.},
                      {'20':0.,'60':0.,'120':0.})
         market['stocks'][0]['v3_ma_slope_transition']=full
         market['stocks'][1]['v3_ma_slope_transition']=full
         cohorts,counts=select_targets(market,priority,report)
-        self.assertEqual(cohorts,(['000001'],[]))
-        self.assertEqual(counts,{'below_90_priority':1,'already_90_priority':0})
+        self.assertEqual(cohorts,([],[]))
+        self.assertEqual(counts,{'below_90_priority':0,'already_90_priority':0,
+                                 'unscored_stop_only_deferred':1})
 
     def test_one_time_legacy_stop_recheck_preserves_score(self):
         market, priority, report=inputs()
