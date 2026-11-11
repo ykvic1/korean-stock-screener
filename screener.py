@@ -75,11 +75,10 @@ DEFAULT = {
     'flow_days':20, 'history_time_budget_seconds':2100,
     'flow_time_budget_seconds':420,
     'max_data_age_days':6, 'preferred_pbr_max':1.5,
-    'max_stop_distance_pct':15,
     'enable_optional_company_listing':True
 }
 WEIGHTS = {'거래량·OBV':20, '일봉 구조':20, '주봉·추세':15,
-           '수급':20, '시장 대비 강도':10, 'PBR':5, '실적·현금흐름':5, '위험·손익비':5}
+           '수급':20, '시장 대비 강도':10, 'PBR':5, '실적·현금흐름':5}
 
 
 def cfg_read():
@@ -355,20 +354,17 @@ def analyze_history(code,cfg,day):
     goldencross=bool(m20 and m60 and close[-6:-1].mean()<=close[-65:-5].mean() and m20>m60)
     high52=float(max(hi[-252:])) if len(hi)>=252 else float(max(hi))
     low52=float(min(lo[-252:])) if len(lo)>=252 else float(min(lo))
-    # stop line = structural 20d/45d swing support, must be below price
-    support20=float(min(lo[-20:]));support45=float(min(lo[-45:]))
-    stop=support20 if support20<p*.98 else support45
-    if stop>=p:stop=None
-    stop_pct=pct(stop,p) if stop is not None else None
     reward_pct=pct(high52,p) if high52>p else None
-    rr=(reward_pct / abs(stop_pct)) if reward_pct is not None and stop_pct is not None and stop_pct<0 else None
     pat=daily_patterns(df)
-    # Separate 20/60-session support research. This MUST NOT feed legacy
-    # stop_line/stop_pct, risk weights, R1d adjustments or any earned score.
+    # A single 20/60-session structure supplies reference-only legacy display
+    # fields as well. It must never affect scoring or priority decisions.
     from v3_structural_stop_reference import observe as observe_structural_stop
     v3_structural_stop_reference=observe_structural_stop(
         df,asof=last.isoformat(),patterns=pat)
-    # Independent unscored pattern/RSI observation. Legacy v2 weights unchanged.
+    stop=v3_structural_stop_reference['reference_line']
+    stop_pct=pct(stop,p) if stop is not None else None
+    rr=(reward_pct / abs(stop_pct)) if reward_pct is not None and stop_pct is not None and stop_pct<0 else None
+    # Independent unscored pattern/RSI observation.
     from v3_pattern_first_observations import observe, observe_completed_weekly
     pattern_research=observe(df)
     pattern_weekly_research=observe_completed_weekly(df)
@@ -513,13 +509,10 @@ def score_one(r,cfg):
     val=None
     if r.get('pbr') is not None:
         pbr=r['pbr'];val=5 if pbr<=cfg['preferred_pbr_max'] else 2 if pbr<=3 else 0
-    stop_pct=r['stop_pct'];rr=r['reward_risk']
-    risk=0 if stop_pct is None else (3 if -cfg['max_stop_distance_pct']<=stop_pct<=-3 else 1 if -23<=stop_pct<-cfg['max_stop_distance_pct'] else 0)
-    risk+=(2 if rr is not None and rr>=2 else 1 if rr is not None and rr>=1 else 0)
     parts={'거래량·OBV':turnover_score,'일봉 구조':daily_score,
            '주봉·추세':weekly_score if weekly_available else None,
            '수급':fl_score,'시장 대비 강도':relscore,'PBR':val,
-           '실적·현금흐름':None,'위험·손익비':risk}
+           '실적·현금흐름':None}
     observed=sum(v for v in parts.values() if v is not None)
     available=sum(WEIGHTS[k] for k,v in parts.items() if v is not None)
     r['components']=parts;r['raw_score']=int(observed);r['available_max']=available
@@ -528,9 +521,6 @@ def score_one(r,cfg):
     r['pbr_confirmed']=val is not None
     r['financial_confirmed']=False  # 실적/현금흐름 데이터를 아직 확인하지 못함
     risk_flags=[]
-    if stop_pct is None:risk_flags.append('구조적 손절선 미산출')
-    elif stop_pct<-cfg['max_stop_distance_pct']:risk_flags.append('예상 손절폭 과대')
-    elif stop_pct>-3:risk_flags.append('손절선 과도하게 근접')
     if r['high52_gap'] is not None and r['high52_gap']>-7:risk_flags.append('52주 고점권 — 추격 주의')
     if r['price60']>=40:risk_flags.append('단기 급등 — 추격 주의')
     if r['ma120w_gap'] is not None and r['ma120w_gap']<-15:risk_flags.append('장기 추세 취약')
@@ -549,8 +539,8 @@ def score_one(r,cfg):
       '장기 추세 전환 관찰' if r['weekly_turn'] else
       '추세 상승 중' if r['sma_aligned'] and p60>10 else
       '바닥·반등 확인 중' if r['high52_gap']<-20 and p60<10 else '중립/기타')
-    has_risk=any(s in risk_flags for s in ['예상 손절폭 과대','장기 추세 취약','단기 급등 — 추격 주의'])
-    # Never mark buy/priority when funds/financials missing or support is unsafe
+    has_risk=any(s in risk_flags for s in ['장기 추세 취약','단기 급등 — 추격 주의'])
+    # Never mark buy/priority when funds/financials are not independently verified.
     if has_risk:r['decision']='위험 우선 점검'
     elif not r.get('flows_confirmed') or not r['financial_confirmed']:
         r['decision']='기술적 상위 후보·검증 필요' if (r['score'] or 0)>=73 and (r['coverage_pct'] or 0)>=50 else '추가 검증 필요'
@@ -720,7 +710,7 @@ def make_report(rows,errors,analysis_day,cfg,meta):
       ['투자자 수급','pykrx 조회 성공 시에만 표시. 수급 미확인은 매집 아님'],
       ['PBR','보조 목록에서 확보한 수치만 사용. 공시 확인 전 최종 판단 금지'],
       ['재무 실적/현금흐름','아직 자동 연동되지 않음. 배점 5점을 결측 처리'],
-      ['손절선','최근 20~45 거래일 저점 기준 참고선. 확정 지지선 아님'],
+      ['손절선','최근 20·60거래일 저점·스윙저점·하단 매물대·패턴 무효화 기반 참고선. 점수 미반영'],
       ['상승 여력','52주 고점 대비 공간은 목표주가 예측이 아님'],
       ['종목 선정','전체시장 보통주 1차 검색 (시가총액/거래대금 상하한 없음) 후 실행시간 내 개별 차트 조회. 일별 시작 위치 순환'],
       ['데이터 출처','https://github.com/FinanceData/FinanceDataReader'],
