@@ -30,6 +30,7 @@ AREA_WEIGHTS = {
 }
 EXPECTED_SCORE_STATE = "provisional_observed_only_not_investment_grade"
 R1D_VERSION = "v3-stable-r1d-operational-research"
+R1E_VERSION = "v3-stable-r1e-operational-research"
 # Independent published-contract limits, not a replacement scoring formula.
 R1D_PART_LIMITS = {
     "volume": {"long_horizon_growth": 6, "persistence": 5,
@@ -108,7 +109,7 @@ def r1d_public_reconciles(report: Any, comparison: Any,
     rows = report.get("rows")
     total = report.get("listed_total")
     coverage = comparison.get("operational_coverage")
-    if (report.get("version") != R1D_VERSION or
+    if (report.get("version") not in (R1D_VERSION, R1E_VERSION) or
         report.get("format") != "compact-parts-v1" or
         report.get("status") != "provisional_operational" or
         report.get("investment_score_certified") is not False or
@@ -122,7 +123,7 @@ def r1d_public_reconciles(report: Any, comparison: Any,
         not _is_count(total) or not 100 <= total <= 6000 or
         type(rows) is not dict or len(rows) != total or
         comparison.get("asof") != day or
-        comparison.get("version") != R1D_VERSION or
+        comparison.get("version") != report.get("version") or
         comparison.get("performance_validated") is not False or
         not isinstance(coverage, dict) or
         coverage.get("status") != "provisional_operational" or
@@ -170,6 +171,7 @@ def r1d_public_reconciles(report: Any, comparison: Any,
             or not 0 <= item["capital_deduction"] <= 5
             or not number(item.get("stop_adjustment"))
             or not -3 <= item["stop_adjustment"] <= 2
+            or (report["version"] == R1E_VERSION and item["stop_adjustment"] != 0)
             or not number(item.get("risk_deduction"))
             or not 0 <= item["risk_deduction"] <= 5
             or item.get("risk_status") not in ("unknown", "partial")
@@ -211,8 +213,9 @@ def r1d_public_reconciles(report: Any, comparison: Any,
         else:
             if not near(points, item.get("base")) or not number(item.get("score")):
                 return None
+            old_stop = item["stop_adjustment"] if report["version"] == R1D_VERSION else 0
             expected = max(0, min(100, points - item["capital_deduction"] +
-                                  item["stop_adjustment"] - item["risk_deduction"]))
+                                  old_stop - item["risk_deduction"]))
             rounded = math.floor((expected + 2.220446049250313e-16) * 10 + .5) / 10
             if not near(item["score"], rounded):
                 return None

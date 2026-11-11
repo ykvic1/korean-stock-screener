@@ -28,7 +28,7 @@ function observedSummary(raw){
 }
 function operationalSummary(raw){
  const c=raw?.operational_coverage;
- if(!raw||raw.version!=='v3-stable-r1d-operational-research'||
+ if(!raw||!['v3-stable-r1d-operational-research','v3-stable-r1e-operational-research'].includes(raw.version)||
     raw.performance_validated!==false||!validDate(raw.asof)||
     !c||c.status!=='provisional_operational'||
     !/^[a-f0-9]{64}$/.test(c.source_digest||'')||
@@ -42,7 +42,7 @@ function operationalSummary(raw){
     c.available_90_count>c.ranked_count||c.ranked_count>c.listed_total||
     !c.budgets||Object.keys(c.budgets).length!==5||
     Object.keys(R1D_WEIGHTS).some(k=>c.budgets[k]!==R1D_WEIGHTS[k]))return null;
- return {asof:raw.asof,total:c.listed_total,observed:c.available_100_count,
+ return {asof:raw.asof,model:raw.version.includes('r1e')?'R1e':'R1d',total:c.listed_total,observed:c.available_100_count,
   near95:c.available_95_count,near90:c.available_90_count,ranked:c.ranked_count};
 }
 // A new market close can arrive before the annual DART replay. Explain the
@@ -144,11 +144,11 @@ async function load(){
  const f=filings.status==='fulfilled'?dartSummary(filings.value):null;
  const proposed=operational.status==='fulfilled'?operationalSummary(operational.value):null;
  const o=proposed&&(!m||(proposed.total===m.total&&proposed.asof<=m.asof))?proposed:null;
- fields.date.textContent=o?o.asof+' · R1d 점수':m?m.asof:'재확인 필요';
+ fields.date.textContent=o?o.asof+' · '+o.model+' 점수':m?m.asof:'재확인 필요';
  fields.coverage90.textContent=o?
-  fmt(o.near90)+' / '+fmt(o.total)+'종목 (R1d)': 'R1d 집계 대기';
+  fmt(o.near90)+' / '+fmt(o.total)+'종목 ('+o.model+')': '신규 모델 집계 대기';
  fields.coverage.textContent=o?
-  fmt(o.observed)+' / '+fmt(o.total)+'종목 (R1d)':m?
+  fmt(o.observed)+' / '+fmt(o.total)+'종목 ('+o.model+')':m?
   fmt(m.observed)+' / '+fmt(m.total)+'종목 (기존 모델)':'재확인 필요';
  fields.dart.textContent=f?
   fmt(f.complete)+' / '+fmt(f.total)+'개월':'재확인 필요';
@@ -158,8 +158,8 @@ async function load(){
   (o&&m&&o.asof<m.asof?'신규 운영점수는 '+o.asof+' 기준으로 유지 중이며 최신 종가의 재계산을 기다립니다. ':'')+
   (m||f||o?
   '각 원천의 마지막 저장 결과입니다. ':'원천 자료 확인 대기 중입니다. ')+
-  (o?'R1d 90점 이상·100점은 전체 상장종목에서 새 배점(25/30/12.5/12.5/20)의 실제 관측 가능 배점 기준 종목 수입니다. 거래정지·이력 부족 종목도 전체 분모에 남으며, 미확보분을 0점으로 계산하지 않습니다. ':
-   '아직 R1d 집계가 연결되지 않아 기존 모델 배점의 확보율만 표시 중입니다. ')+
+  (o?o.model+' 90점 이상·100점은 전체 상장종목에서 새 배점(25/30/12.5/12.5/20)의 실제 관측 가능 배점 기준 종목 수입니다. '+(o.model==='R1e'?'손절 참고선은 가감점·정렬에 반영하지 않습니다. ':'R1d는 과거 손절 가감점이 포함된 산식으로 보존됩니다. ')+'거래정지·이력 부족 종목도 전체 분모에 남으며, 미확보분을 0점으로 계산하지 않습니다. ':
+   '아직 신규 모델 집계가 연결되지 않아 기존 모델 배점의 확보율만 표시 중입니다. ')+
   '확보배점은 획득점수·정식 투자점수·예상 수익률이 아닙니다. '+
   '과거 공시 접수 수집도 수정주가·기업행위·PIT 인증과 별개입니다.';
 }

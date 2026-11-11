@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
-const VERSION='v3-stable-r1d-operational-research';
-const ACCEPTED_VERSIONS=new Set([VERSION,'v3-stable-r1c-operational-research','v3-stable-r1b-operational-research','v3-stable-r1a-operational-research']);
+const VERSION='v3-stable-r1e-operational-research';
+const ACCEPTED_VERSIONS=new Set([VERSION,'v3-stable-r1d-operational-research','v3-stable-r1c-operational-research','v3-stable-r1b-operational-research','v3-stable-r1a-operational-research']);
 const BUDGET={volume:25,technical:30,financial:12.5,valuation:12.5,momentum:20};
 const MAXES={volume:{long_horizon_growth:6,persistence:5,concentration_quality:2,up_down_asymmetry:2,post_spike_absorption:3,correction_contraction:1,weekly_structure_increment:2,obv_price_divergence:4},technical:{daily_pattern:8.4,weekly_pattern:9.6,ma20_ma60_cross_near_ma240:6,daily_rsi:1.2,weekly_rsi:1.8,long_ma_position:1.8,independent_breakout_confirmation:1.2},financial:{revenue_growth:3.5,operating_growth_margin:3,cashflow_fcf_persistence:3,balance_sheet_strength:3},valuation:{per_eps_quality_growth:5,pbr_equity_quality:2.5,fcf_yield:2.5,sales_to_cap:2.5},momentum:{existing_momentum:15,daily_ma_slope_turn:2,weekly_ma_slope_turn:3}};
 const isDay=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
@@ -11,12 +11,13 @@ const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const near=(a,b)=>finite(a)&&finite(b)&&Math.abs(a-b)<.00002;
 const round=n=>Math.round((n+Number.EPSILON)*10)/10;
-function validRow(r,day){
+function validRow(r,day,version=VERSION){
  if(!r||typeof r.name!=='string'||!['KOSPI','KOSDAQ'].includes(r.market)||
     !finite(r.available)||r.available<0||r.available>100||!r.areas||!r.parts||
     !['unknown','partial'].includes(r.risk_status)||!Array.isArray(r.risk_warnings)||
     !finite(r.capital_deduction)||r.capital_deduction<0||r.capital_deduction>5||
     !finite(r.stop_adjustment)||r.stop_adjustment< -3||r.stop_adjustment>2||
+    (version===VERSION&&r.stop_adjustment!==0)||
     !finite(r.risk_deduction)||r.risk_deduction<0||r.risk_deduction>5||
     !isDay(r.asof)||r.asof>day)return false;
  let points=0,available=0;
@@ -34,7 +35,8 @@ function validRow(r,day){
  }
  if(!near(available,r.available))return false;
  if(!available)return r.score===null&&r.base===null;
- return near(points,r.base)&&near(r.score,round(Math.max(0,Math.min(100,r.base-r.capital_deduction+r.stop_adjustment-r.risk_deduction))));
+ const legacyStop=version===VERSION?0:r.stop_adjustment;
+ return near(points,r.base)&&near(r.score,round(Math.max(0,Math.min(100,r.base-r.capital_deduction+legacyStop-r.risk_deduction))));
 }
 function attach(model,report){
  if(!model||!Array.isArray(model.rows)||!report||!ACCEPTED_VERSIONS.has(report.version)||
@@ -43,7 +45,7 @@ function attach(model,report){
     report.missing_is_not_zero!==true||report.unobserved_weight_not_normalized!==true||
     report.provider_calls!==0||!Number.isInteger(report.listed_total)||report.listed_total<1||report.listed_total>10000||!report.rows||Object.keys(report.rows).some(k=>!/^\d{6}$/.test(k))||Object.keys(report.rows).length!==report.listed_total||
     Object.entries(BUDGET).some(([k,v])=>report.budgets?.[k]!==v)||
-    Object.values(report.rows).some(r=>!validRow(r,report.asof)))return 0;
+    Object.values(report.rows).some(r=>!validRow(r,report.asof,report.version)))return 0;
  // A new listing or a renamed/reclassified issuer must never blank the
  // entire market. Quarantine disputed identities, never assign by code alone.
  let n=0;
@@ -128,13 +130,13 @@ function missingMarkup(v){
   '<p class="u-muted">미관측은 0점이 아닙니다. 아래 숫자는 점수 손실이 아닌 아직 확보되지 않은 배점입니다. 구체적인 원천 결손 사유는 검증 중입니다.</p><ul>'+
   gaps.map(g=>'<li>'+esc(LABELS[g.area])+' · '+esc(COMPONENTS[g.key])+' · '+g.missing.toFixed(2)+'점 '+(g.partiallyObserved?'추가 근거 필요':'근거 미관측')+'</li>').join('')+'</ul></details>';
 }
-// The five areas are GROSS earned points. The stored R1d score is NET of
-// capital, structural-stop and financial-risk adjustments; the same source
-// reconciliation is rendered in both the stock list and the detail panel.
+// R1e scores omit stop-distance bonuses/penalties entirely. Older historical
+// versions are reconciled using their recorded rule without rewriting history.
 function scoreReconciliation(v){
  if(!v||![v.base,v.score,v.capital_deduction,v.stop_adjustment,v.risk_deduction].every(finite))return null;
- return {gross:v.base,capital:v.capital_deduction,stop:v.stop_adjustment,
-  risk:v.risk_deduction,netDeduction:v.capital_deduction-v.stop_adjustment+v.risk_deduction,
+ const oldStop=v.stop_adjustment;
+ return {gross:v.base,capital:v.capital_deduction,stop:oldStop,
+  risk:v.risk_deduction,netDeduction:v.capital_deduction-oldStop+v.risk_deduction,
   final:v.score};
 }
 function reconciliationMarkup(v,compact=false){
@@ -147,7 +149,7 @@ function reconciliationMarkup(v,compact=false){
  return '<div class="u-score-reconcile'+(compact?' u-score-reconcile-compact':'')+'" aria-label="운영점수 산출 및 가감점">'+
   '<span>영역 합계 <b>'+n(s.gross)+'</b></span>'+
   '<span class="'+(s.capital>0?'u-score-deduction':'')+'">시총 '+(s.capital>0?'−':'')+n(s.capital)+'</span>'+
-  '<span class="'+(s.stop<0?'u-score-deduction':s.stop>0?'u-score-bonus':'')+'">손절거리 '+signed(s.stop)+'</span>'+
+  (s.stop!==0?'<span class="'+(s.stop<0?'u-score-deduction':'u-score-bonus')+'">과거 모델 손절보정 '+signed(s.stop)+'</span>':'')+
   '<span class="'+(s.risk>0?'u-score-deduction':'')+'">재무위험 '+(s.risk>0?'−':'')+n(s.risk)+'</span>'+
   '<span class="u-score-adjustment">'+netLabel+'</span>'+
   (clamped?'<span class="u-score-clip">0~100점 범위 적용</span>':'')+
@@ -158,7 +160,7 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
  r?.v3_operational_evidence_missing?
  '<p class="u-muted">이 종목의 신규 운영점수 근거가 현재 저장본에 없습니다. 다른 종목의 과거 점수를 대입하지 않습니다.</p>':
  '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
- return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
+ return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1e':r.v3_operational_version==='v3-stable-r1d-operational-research'?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
   '</p>'+reconciliationMarkup(v)+
   '<p class="u-muted">재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
@@ -168,7 +170,7 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
   '<table><thead><tr><th>영역</th><th>점수</th><th>확보/전체</th></tr></thead><tbody>'+Object.entries(BUDGET).map(([a,max])=>
    '<tr><td>'+LABELS[a]+'</td><td>'+(v.areas[a].available?v.areas[a].points.toFixed(2):'미관측')+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+
   (scoreReconciliation(v)?'<tr class="u-score-table-gross"><th scope="row">영역 합계 (감점 전)</th><td>'+v.base.toFixed(2)+'</td><td>'+v.available.toFixed(1)+' / 100</td></tr>'+
-   '<tr class="u-score-table-deduction"><th scope="row">시총·손절거리·재무위험 순가감점</th><td>'+
+   '<tr class="u-score-table-deduction"><th scope="row">'+(r.v3_operational_version===VERSION?'시총·재무위험 순감점 (손절 미반영)':'시총·재무위험·과거 손절보정 순감점')+'</th><td>'+
     (scoreReconciliation(v).netDeduction>0?'−':scoreReconciliation(v).netDeduction<0?'+':'')+
     Math.abs(scoreReconciliation(v).netDeduction).toFixed(2)+'</td><td>점수 조정 (확보배점 아님)</td></tr>'+
    '<tr class="u-score-table-final"><th scope="row">최종 운영점수</th><td>'+v.score.toFixed(1)+'</td><td>/ 100</td></tr>':'')+

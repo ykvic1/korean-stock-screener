@@ -97,7 +97,12 @@ console.log(JSON.stringify(rows.map(r=>w.stabilityProfile(r,{earned:63.1}))));
         base = {'market_cap_eok': 1000, 'price': 100, 'stop_line': 94, 'stop_pct': -6}
         self.assertEqual(profile({**base, 'trading_eok': 0}, 60),
                          profile({**base, 'trading_eok': 1e12}, 60))
-        self.assertEqual(profile(base, 60)['adjusted_score'], 58)
+        self.assertEqual(profile(base, 60)['adjusted_score'], 56)
+        for stop in (None, -1, -6, -12, -20, -90):
+            measured = profile({**base, 'stop_pct': stop,
+                                'stop_line': None if stop is None else 100 + stop}, 60)
+            self.assertEqual(measured['adjusted_score'], 56)
+            self.assertEqual(measured['stop_adjustment'], 0)
         self.assertIsNone(profile(base, None)['adjusted_score'])
 
     def test_export_retains_dated_factors_and_unpriced_history_without_inventing_rank(self):

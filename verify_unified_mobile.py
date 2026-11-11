@@ -58,18 +58,25 @@ with sync_playwright() as p:
     assert 0 <= independent_lag <= 10, "independent replay must not be future or unbounded stale"
     if independent_lag == 0:
         assert independent["listed_total"] == observed["listed_total"]
-        # Price/volume/momentum use the same market-day source receipts; their
-        # counts must match. Financial/valuation are separately updated DART
-        # observations, so a common market date does NOT establish a common
-        # filing-source snapshot. The release gate likewise checks the three
-        # shared price/volume areas, not a false same-day DART equality.
+        # A matching market date alone does not establish a matching source.
+        # The independent price replay may correctly reject a same-day market
+        # snapshot after its digest changed. In that case, keep technical and
+        # momentum as different, uncomparable observations (not zero scores).
+        # Volume can still be independently checked if its digest agrees.
         assert independent["source_sha256"]["catalog"] == observed["source_sha256"]["catalog"]
-        assert independent["source_sha256"]["same_day_price_replay"] == observed["source_sha256"]["price"]
         assert independent["source_sha256"]["volume_observed"] == observed["source_sha256"]["volume"]
-        for area in ("technical", "momentum", "volume"):
-            assert independent["provisional_numeric_issuer_counts"][area] == (
-                observed["observed_issuer_counts"][area]
-            ), f"shared source {area} count mismatch"
+        assert independent["provisional_numeric_issuer_counts"]["volume"] == (
+            observed["observed_issuer_counts"]["volume"]
+        ), "shared source volume count mismatch"
+        price_digest = independent["source_sha256"]["same_day_price_replay"]
+        if price_digest is not None:
+            assert price_digest == observed["source_sha256"]["price"], (
+                "independent replay cannot treat a different price snapshot as current"
+            )
+            for area in ("technical", "momentum"):
+                assert independent["provisional_numeric_issuer_counts"][area] == (
+                    observed["observed_issuer_counts"][area]
+                ), f"shared source {area} count mismatch"
         for area in ("financial", "valuation"):
             for snapshot in (independent["provisional_numeric_issuer_counts"],
                              observed["observed_issuer_counts"]):
@@ -101,18 +108,19 @@ with sync_playwright() as p:
         URL + "v3-operational-research-comparison.json"
     ).json()
     r1d = comparison.get("operational_coverage")
-    if (comparison.get("version") == "v3-stable-r1d-operational-research"
+    if (comparison.get("version") in ("v3-stable-r1d-operational-research", "v3-stable-r1e-operational-research")
             and r1d and comparison["asof"] <= observed["asof"]
             and r1d["listed_total"] == observed["listed_total"]):
         assert r1d["budgets"] == {"volume": 25, "technical": 30,
                                     "financial": 12.5, "valuation": 12.5,
                                     "momentum": 20}
         assert r1d["investment_score_certified"] is False
+        model_label = "R1e" if "r1e" in comparison["version"] else "R1d"
         assert page.locator("#liveProgressAsOf").inner_text() == (
-            comparison["asof"] + " · R1d 점수"
+            comparison["asof"] + " · " + model_label + " 점수"
         )
         assert page.locator("#liveProgressCoverage").inner_text() == (
-            f'{r1d["available_100_count"]:,} / {r1d["listed_total"]:,}종목 (R1d)'
+            f'{r1d["available_100_count"]:,} / {r1d["listed_total"]:,}종목 ({model_label})'
         )
     else:
         assert page.locator("#liveProgressAsOf").inner_text() == observed["asof"]
@@ -281,21 +289,25 @@ with sync_playwright() as p:
     assert page.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth"
     ), "five-area stock detail scorecard must not overflow mobile viewport"
-    stop_evidence=page.locator("#detail .u-stop-evidence")
-    assert stop_evidence.count()==1
-    assert not stop_evidence.evaluate("(el) => el.open")
-    stop_evidence.locator("summary").click()
-    assert "검증 표본 미연결" in stop_evidence.inner_text()
-    assert "미래 손절 확률은 미산출" in stop_evidence.inner_text()
-    assert stop_evidence.locator(".u-detail-grid > div").count()==6
-    assert re.search(r"\d{4}-\d{2}-\d{2}|기준일 확인 필요",stop_evidence.inner_text())
+    # A stop reference is displayed once, unscored, using the current 20/60
+    # structural receipt. Never revive the old 20/45 scored-stop expander.
+    stop_heading=page.locator("#detail h3").filter(has_text="20·60일 구조적 손절 참고선")
+    assert stop_heading.count()==1
+    assert "기존 점수용 손절선" not in page.locator("#detail").inner_text()
+    assert page.locator("#detail details.u-stop-evidence").count()==0
+    stop_reference=page.locator("#detail section.u-stop-reference")
+    if stop_reference.count():
+        assert stop_reference.locator(".u-stop-evidence > div").count()==5
+        assert "어떤 가점·감점도 없습니다" in stop_reference.inner_text()
+        assert "하단 매물대" in stop_reference.inner_text()
+        assert "패턴 무효화" in stop_reference.inner_text()
+    else:
+        assert "구조적 참고선 관측 대기" in page.locator("#detail").inner_text()
     for width in (320,390,430):
         page.set_viewport_size({"width":width,"height":844})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (
-            "expanded stop evidence must fit mobile",width)
+            "structural stop reference must fit mobile",width)
     page.set_viewport_size({"width":390,"height":844})
-    stop_evidence.locator("summary").click()
-    assert not stop_evidence.evaluate("(el) => el.open")
     # Every selected stock must disclose its FCF state without guessing missing accounts.
     deeper = page.locator("#detail .u-detail-evidence")
     assert not deeper.evaluate("(el) => el.open")

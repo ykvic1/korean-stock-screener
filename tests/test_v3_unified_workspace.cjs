@@ -26,12 +26,12 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(body,/91원/);
  assert.match(body,/13\.8%/);
  assert.match(body,/일봉 대표가격·거래량 추정/);
- assert.match(body,/기존 점수·손절거리 보정에 영향을 주지 않습니다/);
- assert.match(unified.structuralStopMarkup(base),/신규 구조적 참고선 관측 대기/);
+ assert.match(body,/이 참고선과 거리에는 어떤 가점·감점도 없습니다/);
+ assert.match(unified.structuralStopMarkup(base),/구조적 참고선 관측 대기/);
  assert.match(unified.structuralStopMarkup({...base,
   v3_structural_stop_reference:{...ref,asof:'2026-11-09'}}),/관측 대기/);
  assert.ok(source.includes('structuralStopMarkup(r)+'));
- assert.ok(source.includes('기존 점수용 손절선 (20·45일)'));
+ assert.ok(!source.includes('기존 점수용 손절선 (20·45일)'));
 }
 
 // Stock detail's visual five-pillar breakdown must not paint missing evidence as 0.
@@ -88,11 +88,11 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261110-score-reconcile'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261110-score-reconcile'),'classic research route keeps its pinned assets');
- assert.ok(entry.includes('operational-score.js?v=r1d-score-reconcile')&&
-  html.includes('operational-score.js?v=r1d-score-reconcile'),
-  'both routes must invalidate cached R1d deduction markup');
+ assert.ok(entry.includes('v30b-20261111-stop-reference-only'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261111-stop-reference-only'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('operational-score.js?v=r1e-stop-unscored')&&
+  html.includes('operational-score.js?v=r1e-stop-unscored'),
+  'both routes must invalidate cached score markup after removing stop adjustments');
  assert.ok(source.includes('root.V3OperationalScore.reconciliationMarkup(ops,true)'),
   'the stock card must render the same net-score deductions as the detail panel');
 }
@@ -106,7 +106,13 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
   '../docs/v3-operational-research-scores.json'),'utf8'));
  const issuer=report.rows['036890'];
  assert.equal(issuer.name,'진성티이씨');
- assert.ok(operational.validRow(issuer,report.asof));
+ assert.ok(operational.validRow(issuer,report.asof,report.version));
+ if(report.version===operational.VERSION){
+  assert.equal(issuer.stop_adjustment,0);
+  assert.equal(Object.values(report.rows).filter(x=>x.stop_adjustment!==0).length,0);
+  assert.equal(operational.validRow({...issuer,stop_adjustment:-1},report.asof,report.version),false,
+   'R1e rejects nonzero stop adjustment even if the displayed total is unchanged');
+ }
  const score=operational.scoreReconciliation(issuer);
  assert.ok(score&&Math.abs(score.gross-
   Object.values(issuer.areas).reduce((sum,a)=>sum+a.points,0))<.00002);
@@ -122,7 +128,7 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  for(const view of [historicalCard]){
   assert.match(view,/영역 합계.*22\.7/);
   assert.match(view,/시총 −3\.0/);
-  assert.match(view,/손절거리 −1\.0/);
+  assert.match(view,/과거 모델 손절보정 −1\.0/);
   assert.match(view,/순감점 −4\.0/);
   assert.match(view,/최종 18\.7점/);
  }
@@ -152,10 +158,12 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
   assert.equal(unified.applyPersonalValuation(model,personal),1);
   const c=unified.researchComposite(priced);
   const s=unified.stabilityProfile(priced,c);
-  assert.equal(s.score,issuer.legacy_score,
-   'legacy adjusted score in list and detail must use the same updated data');
+  if(report.version===operational.VERSION){
+   assert.equal(s.score,issuer.legacy_score,
+    'new score uses the same unscored-stop rule in list and detail');
+  }
   const html=unified.scoreOverviewMarkup(c,unified.personalHundredFromComposite(c),priced,s);
-  assert.ok(html.includes('class="u-score-total-value">'+issuer.legacy_score.toFixed(1)));
+  assert.ok(html.includes('class="u-score-total-value">'+s.score.toFixed(1)));
  }
  const legacy={earned:33.4,available:100,missing:0,observedPillars:5,
   pillars:[
@@ -165,15 +173,15 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
    {key:'valuation',max:20,available:20,candidate:12.5},
    {key:'momentum',max:15,available:15,candidate:2.8}
   ]};
- const stable={score:29.4,capitalDeduction:3,stopAdjustment:-1};
+ const stable={score:30.4,capitalDeduction:3,stopAdjustment:0};
  const overview=unified.scoreOverviewMarkup(legacy,
   unified.personalHundredFromComposite(legacy),null,stable);
- assert.match(overview,/class="u-score-total-value">29\.4<\/strong>/);
+ assert.match(overview,/class="u-score-total-value">30\.4<\/strong>/);
  assert.match(overview,/영역 합계 \(감점 전\).*33\.4/);
  assert.match(overview,/시총 −3/);
- assert.match(overview,/손절거리 −1/);
- assert.match(overview,/감점 후 최종 29\.4점/);
- assert.match(overview,/data-score-height="29\.40"/);
+ assert.doesNotMatch(overview,/손절거리 −1/);
+ assert.match(overview,/감점 후 최종 30\.4점/);
+ assert.match(overview,/data-score-height="30\.40"/);
  assert.doesNotMatch(overview,/class="u-score-total-value">33\.4/);
 }
 
@@ -945,10 +953,10 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261110-score-reconcile','v30b-20261110-score-reconcile'],[entry,'v30b-20261110-score-reconcile','v30b-20261110-score-reconcile']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261111-stop-reference-only','v30b-20261110-score-reconcile'],[entry,'v30b-20261111-stop-reference-only','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
-  page.includes('v3-live-progress.js?v=v30b-20261110-90plus-coverage')&&
+  page.includes('v3-live-progress.js?v=v30b-20261111-r1e-coverage')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }
@@ -1564,8 +1572,8 @@ const safeHighRisk={...row,code:'111111',name:'손절위험',stop_line:60,
  stop_pct:-40,v3_pattern_integrated:{...row.v3_pattern_integrated,
  technical_research_candidate:24}};
 const risks={...model,rows:[safe,{...safe,r:safeHighRisk}]};
-assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'005930',
- 'default bounded stability sort should favor the lower stop risk');
+assert.equal(unified.rankItems(risks,legacy,'all')[0].r.code,'111111',
+ 'default stability sort must not prefer a narrower stop distance');
 assert.equal(unified.rankItems(risks,legacy,'all','all','','score')[0].r.code,'111111',
  'the unmodified observed V3 score order remains accessible');
 assert.equal(unified.rankItems(risks,legacy,'all','all','','score',true).length,1);
@@ -2265,7 +2273,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
 }
 
 
-/* Stable-profile regression: no single-day money penalty; bounded cap and stop risk. */
+/* Stable-profile regression: no single-day money or stop-loss adjustment. */
 {
  const source={code:'005930',market:'KOSPI',price_date:'2026-11-02',
   market_cap_eok:56000,trading_eok:220};
@@ -2273,8 +2281,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  const normal=unified.stabilityProfile(source,composite);
  assert.equal(normal.score,63.2);
  assert.equal(normal.deduction,0);
- assert.equal(normal.missing,1,'invalid/unknown stop evidence is explicitly missing');
- assert.match(normal.status,/확인 필요/);
+ assert.equal(normal.missing,0,'unscored stop evidence cannot block scoring');
  const tiny=unified.stabilityProfile({...source,market_cap_eok:900,trading_eok:0.8},composite);
  assert.equal(tiny.capitalDeduction,4.1);
  assert.equal(tiny.liquidityDeduction,0);
@@ -2282,7 +2289,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.equal(composite.earned,63.2,'the original 5-area score must never be changed');
  const missing=unified.stabilityProfile({...source,market_cap_eok:null,trading_eok:undefined},composite);
  assert.equal(missing.score,63.2,'missing evidence must not become a zero score');
- assert.equal(missing.missing,2);
+ assert.equal(missing.missing,1);
  assert.equal(unified.stabilityProfile(source,{earned:null,available:0}).score,null);
  // Same cap and stop: any amount from 0 to 5000억원 MUST NOT change score.
  const allTrading=[0,0.1,0.99,1.01,2,10,30,5000].map(trading_eok=>
@@ -2299,21 +2306,21 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  const ref={...source,price:100,stop_line:94,stop_pct:-6};
  const safe=unified.stabilityProfile(ref,composite);
  assert.equal(safe.stopDistancePct,6);
- assert.equal(safe.stopAdjustment,2);
- assert.equal(safe.score,65.2,'moderate stop distance gets a bounded research bonus');
+ assert.equal(safe.stopAdjustment,0);
+ assert.equal(safe.score,63.2,'stop distance cannot earn a research bonus');
  assert.equal(safe.missing,0);
  const highRisk=unified.stabilityProfile({...ref,price60:50},composite);
- assert.equal(highRisk.stopAdjustment,-1,'chase risk vetoes stop proximity bonus');
+ assert.equal(highRisk.stopAdjustment,0,'stop reference remains informational');
  const tooTight=unified.stabilityProfile({...ref,stop_line:99,stop_pct:-1},composite);
- assert.equal(tooTight.stopAdjustment,-1.3,'tight stop can be hit by noise');
+ assert.equal(tooTight.stopAdjustment,0,'tight reference cannot change score');
  const tooWide=unified.stabilityProfile({...ref,stop_line:80,stop_pct:-20},composite);
- assert.equal(tooWide.stopAdjustment,-2,'wide stop risks substantial loss');
- assert.equal(tooWide.score,61.2);
+ assert.equal(tooWide.stopAdjustment,0,'wide reference cannot change score');
+ assert.equal(tooWide.score,63.2);
  assert.equal(unified.stabilityProfile({...ref,stop_pct:-25},composite).stopAdjustment,0,
   'contradictory stop reference cannot earn points');
  const totalCap=unified.stabilityProfile({...ref,market_cap_eok:900},composite);
- assert.equal(totalCap.score,61.1,'max5 cap and max2 bonus are separate');
+ assert.equal(totalCap.score,59.1,'capital adjustment is independent of unscored stop');
  assert.equal(JSON.stringify(ref),JSON.stringify({...source,price:100,stop_line:94,stop_pct:-6}),
   'source object remains unchanged');
- console.log('Personal stability overlay: no single-day money score, cap <=5, stop [-3,+2], missing retained PASS');
+ console.log('Personal stability overlay: cap <=5, stop reference unscored, missing retained PASS');
 }
