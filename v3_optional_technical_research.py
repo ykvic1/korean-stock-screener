@@ -1,8 +1,10 @@
 """Step 8: executable *partial* technical research from PRIVATE KRX observations.
 
-No regular-session provenance, corporate-action adjustment, ticker-issuer
-lifecycle or investment scoring is inferred. This uses Step 7's strictly
-unverified aggregate volume field: no fake 'session' or 'volume' keys.
+The price_only route consumes only KRX's documented regular-market close,
+never combined ACC_TRDVOL; no volume/OBV or daily high/low feature is
+fabricated from closes. Corporate-action adjustment, ticker-issuer lifecycle
+and investment scoring remain unverified. The legacy research mode retains
+its explicitly unverified aggregate-volume proxy for existing callers.
 Detailed numeric signals stay in the calling LOCAL Python process only.
 CLI emits aggregate availability counts, never symbols or source prices.
 """
@@ -36,7 +38,8 @@ class PartialTechnicalError(ValueError):
     """Fixed reason string only; never echo stock codes, paths or prices."""
 
 
-def _empty(status, *, asof=None, observed=0, warning=None):
+def _empty(status, *, asof=None, observed=0, warning=None,
+           price_only=False):
     return {
         "status": status, "asof": asof,
         "contiguous_ending_bars": observed, "contiguous_ending_weeks": 0,
@@ -47,6 +50,7 @@ def _empty(status, *, asof=None, observed=0, warning=None):
         "price_adjustments_verified": False,
         "issuer_identity_verified": False,
         "reported_acc_volume_is_regular_only": False,
+        "krx_documented_regular_close_only": price_only,
         "all_values_unverified_research_only": True,
         "v3_score_allowed": False, "confirmed_buy": False,
     }
@@ -67,17 +71,18 @@ def _rsi14(closes):
     return round(100 - 100 / (1 + up / down), 4)
 
 
-def analyze_observed_panel(panel, archived_prefix):
+def analyze_observed_panel(panel, archived_prefix, *, price_only=False):
     """Compute only suffix-consecutive price observations ending at saved EOD.
 
     Missing ticker rows / zero OHLC break the contiguous run. Split-like
     jumps greater than 35% also break unadjusted signal history, but cannot
     prove an actual split or warrant patching raw prices.
     """
-    if not isinstance(panel, dict) or not isinstance(archived_prefix, list):
+    if (not isinstance(panel, dict) or not isinstance(archived_prefix, list)
+            or type(price_only) is not bool):
         raise PartialTechnicalError("invalid_private_analysis_input")
     if not archived_prefix:
-        return _empty("no_saved_two_market_dates")
+        return _empty("no_saved_two_market_dates",price_only=price_only)
     last = archived_prefix[-1]
     bars = panel.get("observed_bars")
     if not isinstance(bars, list):
@@ -89,22 +94,31 @@ def analyze_observed_panel(panel, archived_prefix):
         day = row["date"]
         if day in by_date:
             raise PartialTechnicalError("duplicate_private_price_day")
-        if row.get("source_scope") != "KRX_EOD_AGGREGATE_UNVERIFIED":
+        expected_scope = ("KRX_OFFICIAL_DAILY_REGULAR_CLOSE_ONLY" if price_only
+                          else "KRX_EOD_AGGREGATE_UNVERIFIED")
+        if row.get("source_scope") != expected_scope:
             raise PartialTechnicalError("unexpected_or_spoofed_source_scope")
         if row.get("regular_only_volume_verified") is not False:
             raise PartialTechnicalError("false_regular_session_assertion")
-        for field in ("open", "high", "low", "close", "aggregate_acc_trdvol_observed"):
+        if price_only and any(field in row for field in (
+                "volume", "session", "aggregate_acc_trdvol_observed")):
+            raise PartialTechnicalError("combined_volume_in_price_only_row")
+        fields = ("close",) if price_only else (
+            "open", "high", "low", "close", "aggregate_acc_trdvol_observed")
+        for field in fields:
             v = row.get(field)
             if type(v) not in (int, float) or not math.isfinite(v) or v < 0:
                 raise PartialTechnicalError("invalid_private_price_numeric")
             if field != "aggregate_acc_trdvol_observed" and v <= 0:
                 raise PartialTechnicalError("invalid_private_price_numeric")
-        if not (row["low"] <= min(row["open"], row["close"])
+        if not price_only and not (
+                row["low"] <= min(row["open"], row["close"])
                 and row["high"] >= max(row["open"], row["close"])):
             raise PartialTechnicalError("private_price_range_invalid")
         by_date[day] = row
     if last not in by_date:
-        return _empty("latest_saved_pair_missing_or_quarantined", asof=last)
+        return _empty("latest_saved_pair_missing_or_quarantined", asof=last,
+                      price_only=price_only)
     tail = []
     jump_detected = False
     for day in reversed(archived_prefix):
@@ -118,7 +132,8 @@ def analyze_observed_panel(panel, archived_prefix):
     tail.reverse()
     n = len(tail)
     if n == 0:
-        return _empty("latest_saved_pair_missing_or_quarantined", asof=last)
+        return _empty("latest_saved_pair_missing_or_quarantined", asof=last,
+                      price_only=price_only)
     closes = [float(b["close"]) for b in tail]
     values = {name: None for name in OPTIONAL}
     for window in MA_WINDOWS:
@@ -129,7 +144,7 @@ def analyze_observed_panel(panel, archived_prefix):
         if n >= window + 1:
             values[f"close_return{window}_pct"] = round(
                 100 * (closes[-1] / closes[-window-1] - 1), 4)
-    if n >= 21:
+    if n >= 21 and not price_only:
         values["prior20_support_low"] = min(float(b["low"]) for b in tail[-21:-1])
         values["prior20_resistance_high"] = max(float(b["high"]) for b in tail[-21:-1])
         historic_vol = [b["aggregate_acc_trdvol_observed"] for b in tail[-21:-1]]
@@ -138,7 +153,7 @@ def analyze_observed_panel(panel, archived_prefix):
             values["reported_acc_volume_ratio20"] = round(
                 tail[-1]["aggregate_acc_trdvol_observed"] / avg, 4)
     for window in (20, 60):
-        if n >= window + 1:
+        if n >= window + 1 and not price_only:
             last_rows = tail[-window:]
             total = sum(b["aggregate_acc_trdvol_observed"] for b in last_rows)
             if total > 0:
@@ -165,7 +180,8 @@ def analyze_observed_panel(panel, archived_prefix):
     result = _empty(
         "partial_observed_research_only",
         asof=last, observed=n,
-        warning="large_unadjusted_price_jump_in_older_history" if jump_detected else None)
+        warning="large_unadjusted_price_jump_in_older_history" if jump_detected else None,
+        price_only=price_only)
     result["contiguous_ending_weeks"] = len(weekly)
     result["indicators"] = values
     result["available"] = [k for k, v in values.items() if v is not None]
@@ -174,13 +190,14 @@ def analyze_observed_panel(panel, archived_prefix):
 
 
 def run_optional_technical_research(*, start, end, private_db, targets,
-                                    calendar_source="xkrx"):
+                                    calendar_source="xkrx", price_only=False):
     """Read an already consented private source, not a live collection job."""
     try:
         _targets(targets)
         bundled = build_private_price_panels(
             start=start, end=end, private_db=private_db,
-            targets=targets, calendar_source=calendar_source)
+            targets=targets, calendar_source=calendar_source,
+            price_only=price_only)
         weekdays = calendar_weekday_candidates(start, end)
         candidate = candidate_dates(weekdays, source=calendar_source)
     except (PrivatePanelError, BackfillPlanError, CandidateCalendarError):
@@ -193,7 +210,8 @@ def run_optional_technical_research(*, start, end, private_db, targets,
     results = {}
     c = Counter()
     for key, panel in bundled["panels"].items():
-        checked = analyze_observed_panel(panel, saved_dates)
+        checked = analyze_observed_panel(panel, saved_dates,
+                                         price_only=price_only)
         results[key] = checked
         c["targets_with_any_daily_indicator"] += bool(
             any(x.startswith("daily_") for x in checked["available"]))
@@ -215,6 +233,8 @@ def run_optional_technical_research(*, start, end, private_db, targets,
             "actual_api_calls": 0, "new_storage_writes": 0,
             "target_count": len(results), "archived_paired_market_days": archived_n,
             "historical_candidate_days_unverified": len(candidate_days),
+            "krx_documented_regular_close_only": price_only,
+            "combined_volume_excluded_from_factors": price_only,
             "last_archived_day": saved_dates[-1] if saved_dates else None,
             "last_archived_day_is_requested_end": (
                 bool(saved_dates) and saved_dates[-1] == candidate_days[-1]),
@@ -247,12 +267,14 @@ def main(argv=None):
                    default="xkrx")
     p.add_argument("--market", choices=("KOSPI", "KOSDAQ"), required=True)
     p.add_argument("--code", required=True)
+    p.add_argument("--price-only", action="store_true",
+                   help="KRX regular close only; no combined volume/OBV factors")
     a = p.parse_args(argv)
     try:
         output = run_optional_technical_research(
             start=a.start, end=a.end, private_db=a.private_db,
             targets=[{"market": a.market, "code": a.code}],
-            calendar_source=a.calendar_source)
+            calendar_source=a.calendar_source, price_only=a.price_only)
         print(json.dumps(output["summary"], sort_keys=True))
         return 0
     except PartialTechnicalError as err:
