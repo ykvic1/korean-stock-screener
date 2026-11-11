@@ -101,12 +101,25 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
                             analyzer=concurrent_source,
                             cfg={"request_sleep_seconds": 0}, workers=2)
             self.assertEqual(peak, 2)
-            self.assertEqual((serial/"part-000.json").read_bytes(),
-                             (parallel/"part-000.json").read_bytes())
+            left=json.loads((serial/"part-000.json").read_text())
+            right=json.loads((parallel/"part-000.json").read_text())
+            # Per-issuer capture times intentionally differ across serial
+            # and concurrent fetches. Derived finance/technical receipts
+            # must nevertheless remain deterministic and in the same order.
+            for receipt in (left,right):
+                for item in receipt['rows']:
+                    self.assertRegex(item['metrics']['price_feed_observed_at_kst'],
+                                     r'^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d KST$')
+                    del item['metrics']['price_feed_observed_at_kst']
+            self.assertEqual(left,right)
             self.assertEqual(result["valid"], 18)
             self.assertEqual(result["errors"], 1)
             self.assertEqual(result["excluded"], 1)
             self.assertEqual(result["timing"]["workers"], 2)
+            bad=json.loads((parallel/"part-000.json").read_text())
+            bad['rows'][0]['metrics']['price_feed_observed_at_kst']='2026-11-10 invalid'
+            with self.assertRaisesRegex(b.BatchError,'invalid_price_capture_time'):
+                b.validate_part(manifest,bad)
 
     def test_start_pacing_does_not_add_sleep_after_slow_requests(self):
         with tempfile.TemporaryDirectory() as tmp:

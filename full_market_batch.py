@@ -33,6 +33,7 @@ from v3_ma240_cross_research import (
     valid_unavailable_reason as valid_ma240_unavailable_reason)
 from v3_ma_slope_transition import valid_observation as valid_ma_slope
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
+from v3_price_session_capture import capture_window
 
 SCHEMA = "full-market-batched-100-v0.1"
 CHUNK = 100
@@ -169,6 +170,9 @@ def validate_part(manifest: dict, receipt: dict):
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("metrics"), dict):
             raise BatchError("invalid_technical_observation")
+        stamp = row['metrics'].get('price_feed_observed_at_kst')
+        if stamp is not None and capture_window(stamp) == 'unknown':
+            raise BatchError('invalid_price_capture_time')
         if ("v3_unscored_path_observations" in row["metrics"] and
             not valid_observation(
                 row["metrics"]["v3_unscored_path_observations"],
@@ -261,6 +265,12 @@ def scan(*, manifest: dict, part: int, out: Path,
                 not valid_breakout_followthrough(data["v3_breakout_followthrough"],
                                                  data["price_date"])):
                 raise BatchError("untrusted_breakout_followthrough")
+            # Individual 100-stock workers finish at different points during
+            # the 16:00-20:00 aftermarket.  Capture when EACH price-derived
+            # observation was completed; the final publication time alone is
+            # not its as-of time.  This is provenance, never session approval.
+            data['price_feed_observed_at_kst'] = datetime.now(
+                ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M:%S KST')
             return "rows", {"code": code, "metrics": data}, time.monotonic()-start
         except screener.InsufficientHistory:
             return "excluded", [code, "insufficient_valid_price_history"], time.monotonic()-start

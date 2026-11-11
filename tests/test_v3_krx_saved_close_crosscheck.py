@@ -4,6 +4,7 @@ import unittest
 
 from v3_krx_saved_close_crosscheck import check, current_report, CrosscheckError
 from v3_krx_history_collection import HistoryCollectionError
+from v3_price_session_capture import capture_window
 
 DAY = '2026-11-10'
 
@@ -36,6 +37,37 @@ def saved():
 
 
 class SavedCloseSourceTests(unittest.TestCase):
+    def test_aftermarket_capture_is_exposure_not_regular_session_evidence(self):
+        market=saved()
+        market.update({'price_feed':'NAVER_FCHART_DAY_UNVERIFIED_SESSION',
+                       'price_regular_session_verified':False,
+                       'volume_regular_session_verified':False,
+                       'aftermarket_close_contamination_possible':True,
+                       'generated_kst':'2026-11-10 19:43 KST'})
+        market['stocks'][0]['price_feed_observed_at_kst']='2026-11-10 15:35:20 KST'
+        market['stocks'][1]['price_feed_observed_at_kst']='2026-11-10 19:40:05 KST'
+        market['stocks'][2]['price_feed_observed_at_kst']='2026-11-10 20:04:00 KST'
+        report=check(market,['000001'],['000002'],Provider(),snapshot_sha256='f'*64)
+        exposure=report['capture_time_exposure']
+        self.assertTrue(exposure['price_feed_declared'])
+        self.assertEqual(exposure['snapshot_published_window'], 'aftermarket_1600_2000')
+        self.assertEqual(exposure['individual_quote_windows']['aftermarket_1600_2000']['different_close'],1)
+        self.assertEqual(exposure['individual_quote_windows']['post_regular_pre_aftermarket']['exact_close'],1)
+        self.assertEqual(exposure['individual_quote_windows']['after_aftermarket']['exact_close'],1)
+        self.assertEqual(sum(v['requested'] for v in exposure['individual_quote_windows'].values()),3)
+        self.assertTrue(exposure['aftermarket_capture_is_not_proof_of_trade_session'])
+        self.assertEqual(capture_window('2026-11-10 09:20:11 KST'),'regular_market')
+        self.assertEqual(capture_window('bad-time'),'unknown')
+
+    def test_claim_of_regular_session_from_fchart_is_rejected(self):
+        market=saved()
+        market.update({'price_feed':'NAVER_FCHART_DAY_UNVERIFIED_SESSION',
+                       'price_regular_session_verified':True,
+                       'volume_regular_session_verified':False,
+                       'aftermarket_close_contamination_possible':True})
+        with self.assertRaises(CrosscheckError):
+            check(market,[],[],Provider(),snapshot_sha256='a'*64)
+
     def test_all_market_and_priority_are_counted_without_ticker_export(self):
         provider=Provider()
         report=check(saved(),['000001'],['000002'],provider,
