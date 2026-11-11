@@ -76,12 +76,14 @@ def run_five_day_evidence(*, live=False, key=None, client=None):
             researched = run_optional_technical_research(
                 start=FIRST_DAY, end=LAST_DAY,
                 private_db=private_db, targets=PRIVATE_TARGETS,
-                calendar_source="weekdays")
+                calendar_source="weekdays", price_only=True)
             summary = researched["summary"]
             if (history["observed_days"] != 5
                     or verified["archive_paired_dates"] != 5
                     or not verified["internal_chain_and_source_shape_consistent"]
-                    or summary["archived_paired_market_days"] != 5):
+                    or summary["archived_paired_market_days"] != 5
+                    or summary["krx_documented_regular_close_only"] is not True
+                    or summary["combined_volume_excluded_from_factors"] is not True):
                 raise LiveEvidenceError("cross_stage_real_pair_count_mismatch")
             market_counts = {
                 m: verified["by_market"][m] for m in ("KOSPI", "KOSDAQ")
@@ -94,6 +96,8 @@ def run_five_day_evidence(*, live=False, key=None, client=None):
                 "mode": "live",
                 "status": "real_api_to_v3_partial_technical_pipeline_observed",
                 "source": "KRX OpenAPI KOSPI and KOSDAQ daily market",
+                "official_regular_close_only_used_for_research": True,
+                "all_session_aggregate_volume_excluded_from_features": True,
                 "first_observed_candidate_day": FIRST_DAY,
                 "last_observed_candidate_day": LAST_DAY,
                 "planned_paired_days": 5,

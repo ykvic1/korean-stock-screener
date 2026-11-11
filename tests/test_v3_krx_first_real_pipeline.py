@@ -63,6 +63,8 @@ class BoundedRealDataIntegrationTests(unittest.TestCase):
         self.assertEqual(r["real_target_daily_ma5_available"],2)
         self.assertEqual(r["real_target_daily_ma20_available"],0)
         self.assertTrue(r["real_data_reached_v3_analysis"])
+        self.assertTrue(r["official_regular_close_only_used_for_research"])
+        self.assertTrue(r["all_session_aggregate_volume_excluded_from_features"])
         self.assertTrue(r["source_json_and_hash_chain_internal_consistent"])
         self.assertFalse(r["private_source_retained"])
         self.assertFalse(r["vendor_rows_published"])
