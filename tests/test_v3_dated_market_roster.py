@@ -61,7 +61,7 @@ class DatedRosterTests(unittest.TestCase):
         with self.assertRaisesRegex(DatedRosterError, 'dated_roster_unavailable'):
             load_dated_listing(DAY, get=lambda *a,**k: Response(b'', 404))
         with self.assertRaisesRegex(DatedRosterError, 'dated_roster_schema_invalid'):
-            load_dated_listing(DAY, get=lambda *a,**k: Response(b'Code,Market\nA,STK\n'),minimum=1)
+            load_dated_listing(DAY, get=lambda *a,**k: Response(b'Code,Market,Note\nA,STK,' + b'x'*100 + b'\n'),minimum=1)
         same = pd.concat([frame,frame.iloc[[0]]],ignore_index=True).to_csv(index=False).encode()
         with self.assertRaisesRegex(DatedRosterError,'dated_roster_duplicate_identity'):
             load_dated_listing(DAY, get=lambda *a,**k: Response(same),minimum=1)
