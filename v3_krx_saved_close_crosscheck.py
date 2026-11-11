@@ -33,6 +33,33 @@ class CrosscheckError(ValueError):
     """Safe static cause only; do not echo response or issuer details."""
 
 
+SAVED_SOURCE_REJECTIONS = frozenset((
+    'invalid_or_unfinished_market_day', 'untrusted_saved_market',
+    'untrusted_price_feed_session_claim', 'untrusted_ma_recovery_priority',
+    'ambiguous_krx_market_identity', 'price_gap_accounting_mismatch',
+    'crosscheck_count_mismatch', 'price_gap_count_disagrees_with_saved_close',
+    'capture_window_counts_disagree', 'krx_api_key_not_configured',
+    'krx_row_date_or_schema_not_verified', 'krx_original_value_not_verified',
+))
+
+
+def safe_failure_reason(exc):
+    """Allowlisted classification only; never print provider payloads or URLs."""
+    if isinstance(exc, KRXProbeError):
+        return 'krx_' + exc.reason  # KRXProbeError validates a finite reason list.
+    if isinstance(exc, CrosscheckError):
+        reason = str(exc)
+        if reason in SAVED_SOURCE_REJECTIONS or (
+            reason.startswith('krx_') and reason[4:] in KRXProbeError.REASONS
+        ):
+            return reason
+    if isinstance(exc, HistoryCollectionError):
+        return 'krx_row_date_or_schema_not_verified'
+    if isinstance(exc, ProbeError):
+        return 'krx_original_value_not_verified'
+    return 'krx_crosscheck_not_verified'
+
+
 def check(market, first, second, client, *, snapshot_sha256):
     day = market.get('date')
     try:
@@ -246,8 +273,10 @@ def main(argv=None):
     try:
         result = check(market, first, second, KRXClient(key),
                        snapshot_sha256=digest)
-    except (KRXProbeError, HistoryCollectionError, ProbeError, ValueError):
-        raise CrosscheckError('krx_original_source_not_verified') from None
+    except CrosscheckError:
+        raise
+    except (KRXProbeError, HistoryCollectionError, ProbeError, ValueError) as exc:
+        raise CrosscheckError(safe_failure_reason(exc)) from None
     target = args.docs/OUT
     target.write_text(json.dumps(result, ensure_ascii=False,
                        sort_keys=True, indent=2, allow_nan=False)+'\n',encoding='utf-8')
@@ -259,7 +288,7 @@ def main(argv=None):
 if __name__ == '__main__':
     try:
         main()
-    except (CrosscheckError, OSError, KeyError, TypeError):
-        print(json.dumps({'status':'blocked','reason':'krx_crosscheck_not_verified',
+    except (CrosscheckError, OSError, KeyError, TypeError) as exc:
+        print(json.dumps({'status':'blocked','reason':safe_failure_reason(exc),
                           'score_points_added':0}))
         raise SystemExit(1)
