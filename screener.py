@@ -110,10 +110,11 @@ def market_snapshot():
         raise RuntimeError('KRX-MARCAP 전체 시장 조회 실패/데이터 구조 변경')
     found={}
     for _,r in listing.iterrows():
-        code=str(r['Code']).zfill(6)
+        code=str(r['Code']).strip().upper().zfill(6)
         name=str(r['Name']).strip()
         market=str(r['Market']).upper()
-        if not (code.isdigit() and len(code)==6 and market in ('KOSPI','KOSDAQ')):continue
+        # KRX short codes may contain letters (since the 2024 code reform).
+        if not (re.fullmatch(r'[0-9A-Z]{6}',code) and market in ('KOSPI','KOSDAQ')):continue
         if any(t in name.upper() for t in ('ETF','ETN','SPAC','스팩','인버스','레버리지')) or name.endswith(('우','우B')):continue
         vals=[finite(r[t]) for t in ('Close','Volume','Amount','Marcap')]
         if any(v is None for v in vals):continue
@@ -140,7 +141,7 @@ def optional_listings(rows):
             sect_col=next((c for c in ('Sector','Industry','업종','업종명') if c in df.columns),None)
             pbr_col=next((c for c in ('PBR','Pbr','pbr') if c in df.columns),None)
             for _,t in df.iterrows():
-                code=str(t['Code']).zfill(6)
+                code=str(t['Code']).strip().upper().zfill(6)
                 if code not in rows:continue
                 if sect_col and not rows[code]['sector']:
                     s=str(t[sect_col]).strip()

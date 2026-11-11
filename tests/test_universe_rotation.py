@@ -135,6 +135,19 @@ class NoMarketSizeOrCountLimitTests(unittest.TestCase):
         self.assertEqual(snapshot["100000"]["market_cap_eok"],1)
         self.assertEqual(snapshot["100000"]["trading_eok"],0)
 
+    def test_market_snapshot_retains_valid_letter_bearing_short_codes(self):
+        data = pd.DataFrame([{
+            'Code': '0008Z0' if i == 0 else str(100000+i),
+            'Name': '에스엔시스' if i == 0 else f'보통주{i}',
+            'Market': 'KOSDAQ', 'Close': 100,
+            'Volume': 100, 'Amount': 10000, 'Marcap': 100000000,
+        } for i in range(1001)])
+        with patch.object(screener.fdr,'StockListing',return_value=data):
+            snapshot = screener.market_snapshot()
+        self.assertEqual(len(snapshot),1001)
+        self.assertIn('0008Z0',snapshot)
+        self.assertEqual(snapshot['0008Z0']['market'],'KOSDAQ')
+
     def test_market_snapshot_excludes_invalid_quotes_not_small_firms(self):
         data = pd.DataFrame([{
             "Code": str(100000+i), "Name": f"보통주{i}", "Market":"KOSDAQ",
