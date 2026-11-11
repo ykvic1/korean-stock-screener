@@ -42,7 +42,7 @@ class NXTVolumeProbeTests(unittest.TestCase):
         s = Session([row('000001','1,000'),row('000002','200','KSQ')],
                     [row('000001','70'),row('000003','30')])
         result=collect(s, DAY)
-        self.assertEqual(result['all_nxt_sessions'], {
+        self.assertEqual(result['regular_plus_closing'], {
             ('KOSPI','000001'):1070,('KOSDAQ','000002'):200,('KOSPI','000003'):30})
         self.assertEqual(result['overlap_issuers'],1)
         self.assertEqual(len(s.calls),2)
