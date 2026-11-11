@@ -129,6 +129,24 @@ def market_roster_with_retries(*, fetch=None, sleep=None):
             sleep(1 + attempt * 2)
 
 
+def dated_market_roster_with_retries(asof: str, *, fetch=None, sleep=None):
+    """Retry only transient exact-date cache unavailability, never source drift.
+
+    The trading day is fixed before any request. A malformed, duplicate or
+    changed archive must fail immediately; retrying it could silently replace
+    issuer membership after a partial 100-stock scan. No latest-day fallback.
+    """
+    fetch = load_dated_listing if fetch is None else fetch
+    sleep = time.sleep if sleep is None else sleep
+    for attempt in range(3):
+        try:
+            return fetch(asof)
+        except DatedRosterError as exc:
+            if str(exc) != 'dated_roster_unavailable' or attempt == 2:
+                raise
+            sleep(1 + attempt * 2)
+
+
 def _same_day_saved_catalog(path: Path, asof: str) -> dict:
     """An explicitly labelled, *audit-only* roster when live KRX login fails.
 
@@ -166,7 +184,7 @@ def plan(*, asof: str, out: Path, listing=None,
         # Exact trading-day cache, no implicit latest-date KRX endpoint.
         # Raw CSV remains only in memory, never in the public artifacts.
         try:
-            source, source_digest = load_dated_listing(asof)
+            source, source_digest = dated_market_roster_with_retries(asof)
             universe = screener.market_snapshot(listing=source)
             provenance = 'date_pinned_fdr_public_cache'
         except (DatedRosterError, RuntimeError, ValueError, TypeError):
@@ -444,7 +462,7 @@ def publish(*, manifest: dict, parts_dir: Path,
     if listing is None and manifest.get("roster_provenance") == 'date_pinned_fdr_public_cache':
         # Never join a different cached market-day file at publication time.
         try:
-            source, digest = load_dated_listing(manifest["asof"])
+            source, digest = dated_market_roster_with_retries(manifest["asof"])
             if digest != manifest.get("roster_source_sha256"):
                 raise BatchError('date_pinned_roster_changed_between_jobs')
             listing = screener.market_snapshot(listing=source)
