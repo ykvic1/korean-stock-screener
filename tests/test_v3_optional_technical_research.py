@@ -50,6 +50,16 @@ def series(days, *, gaps=(), closes=None):
     return {"observed_bars": bars}
 
 
+def regular_closes(days):
+    return {"observed_bars": [
+        {"date": d, "close": 100 + i,
+         "source_scope": "KRX_OFFICIAL_DAILY_REGULAR_CLOSE_ONLY",
+         "corporate_action_adjustment_verified": False,
+         "issuer_identity_verified": False,
+         "regular_only_volume_verified": False}
+        for i, d in enumerate(days)]}
+
+
 def raw(day, code, close="103"):
     rows = [{
         "BAS_DD": day.replace("-", ""), "ISU_CD": code,
@@ -87,6 +97,36 @@ class OptionalTechnicalTests(unittest.TestCase):
         self.assertIsNone(v["weekly_ma20"])
         self.assertIsNone(v["weekly_ma120"])
         self.assertFalse(report["reported_acc_volume_is_regular_only"])
+
+    def test_regular_close_only_computes_ma_rsi_without_combined_volume(self):
+        days = weekdays("2026-06-01", 65)
+        checked = analyze_observed_panel(regular_closes(days), days,
+                                         price_only=True)
+        values = checked["indicators"]
+        self.assertEqual(values["daily_ma20"],154.5)
+        self.assertEqual(values["daily_ma60"],134.5)
+        self.assertEqual(values["daily_rsi14"],100.0)
+        self.assertTrue(checked["krx_documented_regular_close_only"])
+        for field in ("prior20_support_low", "prior20_resistance_high",
+                      "reported_acc_volume_ratio20",
+                      "reported_acc_obv_proxy20_pct",
+                      "reported_acc_obv_proxy60_pct"):
+            self.assertIsNone(values[field],field)
+            self.assertIn(field,checked["unavailable"])
+        self.assertFalse(checked["v3_score_allowed"])
+
+    def test_price_only_rejects_aggregate_volume_or_wrong_scope(self):
+        days = weekdays("2026-09-14", 6)
+        for field, value in (("aggregate_acc_trdvol_observed",100),
+                             ("volume",100),("session","KRX_REGULAR")):
+            fake = regular_closes(days)
+            fake["observed_bars"][-1][field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(
+                    PartialTechnicalError,"combined_volume_in_price_only_row"):
+                analyze_observed_panel(fake,days,price_only=True)
+        with self.assertRaisesRegex(PartialTechnicalError,
+                                    "unexpected_or_spoofed_source_scope"):
+            analyze_observed_panel(series(days),days,price_only=True)
 
     def test_105_days_compute_weekly_20_optional_not_weekly120(self):
         days = weekdays("2026-04-20", 105)
@@ -164,6 +204,25 @@ class OptionalTechnicalTests(unittest.TestCase):
         self.assertFalse(summary["last_archived_day_is_requested_end"])
         self.assertFalse(summary["full_v3_six_pillar_score_ready"])
         self.assertNotIn("005930", json.dumps(summary))
+
+    def test_close_only_batched_research_preserves_source_flags(self):
+        days = calendar_weekday_candidates("2025-10-13", "2026-10-16")[:65]
+        mock_bundle = {"summary": {"archived_two_market_pairs": 65},
+                       "panels": {("KOSPI", "005930"): regular_closes(days)}}
+        with patch("v3_optional_technical_research.build_private_price_panels",
+                   return_value=mock_bundle) as bridge:
+            result = run_optional_technical_research(
+                start="2025-10-13", end="2026-10-16", private_db="/ignored.sqlite3",
+                targets=[{"market":"KOSPI","code":"005930"}],
+                calendar_source="weekdays", price_only=True)
+        self.assertTrue(bridge.call_args.kwargs["price_only"])
+        summary = result["summary"]
+        self.assertTrue(summary["krx_documented_regular_close_only"])
+        self.assertTrue(summary["combined_volume_excluded_from_factors"])
+        self.assertEqual(summary["targets_with_daily_ma20"],1)
+        self.assertEqual(summary["targets_with_obv_proxy20_unverified"],0)
+        self.assertFalse(summary["full_v3_six_pillar_score_ready"])
+        self.assertNotIn("005930",json.dumps(summary))
 
     def test_real_sqlite_integrated_pipeline_is_offline_and_summary_only(self):
         with tempfile.TemporaryDirectory() as temp:
