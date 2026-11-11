@@ -56,11 +56,8 @@ jobs:
         name: Plan all stocks, codes only, chunks of 100
         env:
           REQUESTED_ASOF: ${{ inputs.asof }}
-          # FDR's current KRX-MARCAP issuer roster can require a KRX login.
-          # The manual and scheduled batch path must use the same configured
-          # identity as the legacy emergency publisher, without logging it.
-          KRX_ID: ${{ secrets.KRX_ID }}
-          KRX_PW: ${{ secrets.KRX_PW }}
+          # FDR cached exact-day market listing is publicly date-indexed;
+          # do not require private KRX login for issuer roster discovery.
         shell: bash
         run: |
           set -euo pipefail
@@ -72,9 +69,9 @@ jobs:
             fallback_args=(--fallback-catalog docs/v22-market-catalog.json)
           fi
           if [[ -n "$REQUESTED_ASOF" ]]; then
-            python full_market_batch.py plan --asof "$REQUESTED_ASOF" --out batch-plan "${fallback_args[@]}"
+            python full_market_batch.py plan --date-pinned-roster --asof "$REQUESTED_ASOF" --out batch-plan "${fallback_args[@]}"
           else
-            python full_market_batch.py plan --out batch-plan "${fallback_args[@]}"
+            python full_market_batch.py plan --date-pinned-roster --out batch-plan "${fallback_args[@]}"
           fi
           # Fail before launching up to 25 costly worker jobs if manual
           # publication is requested while either evening venue is open.
@@ -157,7 +154,9 @@ jobs:
       - name: Reconcile batch census; schedule publishes, manual audit is read-only
         env:
           MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}
-          # publish() re-reads KRX-MARCAP before joining issuer identities.
+          # publish() re-reads the same exact-day public cache and verifies
+          # its SHA-256 before joining issuer identities. KRX login secrets
+          # remain optional here for the separately scoped investor flow.
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
         shell: bash
