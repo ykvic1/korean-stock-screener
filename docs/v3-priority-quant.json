@@ -35,11 +35,11 @@
           "sample_n": 500,
           "symbol_n": 26,
           "quarter_n": 27,
-          "mean_net_return_pct": -0.31,
-          "stop_first_pct": 24.6,
-          "max_adverse_p75_pct": 5.48,
-          "target_first_pct": 17.0,
-          "up_pct": 44.0,
+          "mean_net_return_pct": -0.34,
+          "stop_first_pct": 24.8,
+          "max_adverse_p75_pct": 5.5,
+          "target_first_pct": 16.8,
+          "up_pct": 43.8,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }
@@ -49,11 +49,11 @@
           "sample_n": 500,
           "symbol_n": 26,
           "quarter_n": 27,
-          "mean_net_return_pct": 0.5,
-          "stop_first_pct": 24.0,
-          "max_adverse_p75_pct": 7.07,
-          "target_first_pct": 22.4,
-          "up_pct": 50.0,
+          "mean_net_return_pct": 0.45,
+          "stop_first_pct": 24.4,
+          "max_adverse_p75_pct": 7.12,
+          "target_first_pct": 22.2,
+          "up_pct": 49.8,
           "chronological_holdout": {
             "test_mean_net_return_pct": null
           }

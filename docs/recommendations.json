@@ -111,9 +111,9 @@
       "historical_quant": {
         "1m": {
           "evidence": "historical_exploratory",
-          "mean_historical_net_pct": 0.5,
-          "historical_stop_first_pct": 24.0,
-          "historical_adverse_p75_pct": 7.07,
+          "mean_historical_net_pct": 0.45,
+          "historical_stop_first_pct": 24.4,
+          "historical_adverse_p75_pct": 7.12,
           "historical_sample_n": 500,
           "forward_validated": false
         },
@@ -177,7 +177,7 @@
       "elliott_primary": null,
       "elliott_alternative": null,
       "analyst_attention": "수급·실적·주봉 대안 파동 검증 후 매매 재판단",
-      "evidence_fingerprint": "d099e2c1aba285eb",
+      "evidence_fingerprint": "dec4759b590887b3",
       "rank": 1,
       "daily_change": "updated"
     },
