@@ -62,7 +62,7 @@
     }
 
     async function openQuant(code) {
-      if(!/^\d{6}$/.test(code))return;
+      if(!/^[0-9A-Z]{6}$/.test(code))return;
       const row=getStocks().find(r=>r.code===code);
       if(!row)return;
       activeCode=code;
