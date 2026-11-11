@@ -1,9 +1,11 @@
 """Read-only bridge: PRIVATE observed KRX paired snapshots -> per-ticker research panel.
 
 This is a reusable *in-process* bridge for up to 100 targets per scan, NOT an
-investable price adapter. KRX ACC_TRDVOL is left explicitly AGGREGATE and no
-'session' or 'volume' field is emitted, to prevent accidental promotion to
-v3_price_feature_adapter's verified-regular-session input contract.
+investable price adapter. With price_only=True it selects only the KRX
+TDD_CLSPRC regular-market closing-price field: a missing or invalid combined
+ACC_TRDVOL cannot cause a good close to be discarded. No volume or 'session'
+field is emitted, to prevent accidental promotion to the verified OHLCV
+scoring contract. Default mode retains the earlier aggregate-volume research.
 
 Raw bars and ticker identifiers never leave local process except when an
 authorized local Python caller explicitly reads the return object's private
@@ -82,13 +84,37 @@ def _numeric_observation(row, day):
     }
 
 
+def _close_only_observation(row, day):
+    """Official daily regular-market close; NEVER infer volume from ACC_TRDVOL.
+
+    KRX documents OHLC as regular-market prices, whereas daily accumulated
+    volume combines sessions. A documented field scope is not independent
+    evidence of corporate-action adjustment or historical issuer continuity.
+    """
+    try:
+        close = _numeric(row["TDD_CLSPRC"], "TDD_CLSPRC")
+    except (ProbeError, ValueError, KeyError, TypeError):
+        raise PrivatePanelError("invalid_official_regular_close") from None
+    if close <= 0:
+        raise PrivatePanelError("invalid_official_regular_close")
+    return {
+        "date": day, "close": close,
+        "source_scope": "KRX_OFFICIAL_DAILY_REGULAR_CLOSE_ONLY",
+        "corporate_action_adjustment_verified": False,
+        "issuer_identity_verified": False,
+        "regular_only_volume_verified": False,
+    }
+
+
 def build_private_price_panels(*, start, end, private_db, targets,
-                               calendar_source="xkrx"):
+                               calendar_source="xkrx", price_only=False):
     """Returns PRIVATE in-memory panels plus safe aggregate-only summary.
 
     Never persist or print the returned private panels in a public repository.
     Same six-character code is not assumed to be a stable historic issuer.
     """
+    if type(price_only) is not bool:
+        raise PrivatePanelError("invalid_price_only_selection")
     keys = _targets(targets)
     try:
         audit = audit_private_archive(
@@ -124,11 +150,20 @@ def build_private_price_panels(*, start, end, private_db, targets,
                         found.add(code)
                         panel = panels[key]
                         panel["present_in_archived_pairs"] += 1
-                        reason, _ = classify_row(row)
-                        if reason == "valid_numeric_observation":
-                            panel["observed_bars"].append(_numeric_observation(row, day))
+                        if price_only:
+                            try:
+                                observation = _close_only_observation(row, day)
+                            except PrivatePanelError:
+                                panel["quarantined_dates"].append(day)
+                            else:
+                                panel["observed_bars"].append(observation)
                         else:
-                            panel["quarantined_dates"].append(day)
+                            reason, _ = classify_row(row)
+                            if reason == "valid_numeric_observation":
+                                panel["observed_bars"].append(
+                                    _numeric_observation(row, day))
+                            else:
+                                panel["quarantined_dates"].append(day)
                     for code in lookup[market] - found:
                         panels[(market, code)]["missing_in_archived_pairs"] += 1
         except (PrivateStoreError, sqlite3.Error, ValueError, KeyError, TypeError,
@@ -170,6 +205,10 @@ def build_private_price_panels(*, start, end, private_db, targets,
     summary = {
         "schema": "v3-private-krx-observed-panel-bridge-0.1",
         "mode": "offline_read_only",
+        "price_selection": (
+            "krx_tdd_clsprc_regular_close_only" if price_only
+            else "krx_ohlc_with_unverified_aggregate_volume"),
+        "aggregate_volume_ignored_for_price_acceptance": price_only,
         "status": "internal_research_observations_only",
         "actual_api_calls": 0, "storage_created_or_mutated": False,
         "requested_targets": len(keys),
@@ -207,12 +246,14 @@ def main(argv=None):
     parser.add_argument("--market", choices=MARKETS, required=True)
     parser.add_argument("--code", required=True,
                         help="One private target, never printed")
+    parser.add_argument("--price-only", action="store_true",
+                        help="Select only official KRX regular close; ignore accumulated volume")
     args = parser.parse_args(argv)
     try:
         result = build_private_price_panels(
             start=args.start, end=args.end, private_db=args.private_db,
             targets=[{"market": args.market, "code": args.code}],
-            calendar_source=args.calendar_source)
+            calendar_source=args.calendar_source, price_only=args.price_only)
         print(json.dumps(result["summary"], sort_keys=True))
         return 0
     except PrivatePanelError as exc:
