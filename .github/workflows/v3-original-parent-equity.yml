@@ -24,17 +24,30 @@ jobs:
   offline:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    outputs:
+      remaining: ${{ steps.work.outputs.remaining }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Reject unsupported source facts and forged receipt proofs
+        id: work
         run: |
-          python v3_dart_xbrl_parent_equity.py --mode dry-run
+          python - <<'PY'
+          import json, os, subprocess
+          result=json.loads(subprocess.check_output([
+              'python','v3_dart_xbrl_parent_equity.py','--mode','dry-run'],text=True))
+          remaining=result.get('remaining')
+          if type(remaining) is not int or remaining<0 or result.get('provider_calls')!=0:
+              raise SystemExit('untrusted_parent_equity_work_plan')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write(f'remaining={remaining}\n')
+          print(json.dumps({'unreviewed_parent_equity_remaining':remaining,'provider_calls':0}))
+          PY
   recover:
     needs: offline
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.offline.outputs.remaining != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
