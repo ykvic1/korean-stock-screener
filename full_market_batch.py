@@ -471,6 +471,15 @@ def publish(*, manifest: dict, parts_dir: Path,
     if not valid:
         raise BatchError("no_valid_price_rows")
     freshest = max(r["price_date"] for r in valid)
+    # A same-day, hash-pinned issuer roster must not be published under a
+    # previous trading day\u0027s FChart price data. Otherwise the next R1e
+    # re-calculation can mislabel lagged observations as a new close. Keep
+    # the last published market and scores unchanged until a current-day
+    # price receipt is genuinely available. This does NOT certify that the
+    # FChart close is the KRX 15:30 regular-session closing price.
+    if (manifest.get("roster_provenance") == "date_pinned_fdr_public_cache"
+            and freshest != manifest["asof"]):
+        raise BatchError("date_pinned_roster_price_day_mismatch")
     if (day.date()-datetime.fromisoformat(freshest).date()).days > cfg["max_data_age_days"]:
         raise BatchError("stale_market_date")
     current = []
