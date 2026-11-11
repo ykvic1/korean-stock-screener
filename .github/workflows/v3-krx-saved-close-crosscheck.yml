@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install 'requests>=2.31,<3'
+      - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3'
       - name: Check aggregate-only match and source quarantine
         run: python -m unittest tests.test_v3_krx_saved_close_crosscheck -v
       - name: Show current saved-source eligible counts without KRX calls
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install 'requests>=2.31,<3'
+      - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3'
       - name: Read exactly two official KRX day-market responses
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
