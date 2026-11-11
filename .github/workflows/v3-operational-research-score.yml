@@ -79,6 +79,11 @@ permissions:
 
 jobs:
   offline:
+    # Saved-source publications already recompute and validate their own
+    # outputs. Only code-changing PR/push events need the extra offline test
+    # pass; workflow_run, hourly and manual events would otherwise calculate
+    # the same unchanged scores twice and repeatedly rerun the same tests.
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +109,11 @@ jobs:
   publish:
     needs: offline
     if: >-
-      ${{ github.event_name != 'pull_request' &&
+      ${{ !cancelled() &&
+          (needs.offline.result == 'success' ||
+           (needs.offline.result == 'skipped' &&
+            github.event_name != 'push' && github.event_name != 'pull_request')) &&
+          github.event_name != 'pull_request' &&
           (github.event_name != 'workflow_run' ||
            (github.event.workflow_run.conclusion == 'success' &&
             github.event.workflow_run.head_branch == 'main' &&
