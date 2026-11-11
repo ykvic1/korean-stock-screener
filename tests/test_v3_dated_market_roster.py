@@ -93,14 +93,70 @@ class DatedRosterTests(unittest.TestCase):
                                          'untrusted_date_pinned_roster_digest'):
                 batches.validate_manifest(missing)
 
+    def test_transient_dated_cache_retries_with_fixed_date_before_plan(self):
+        frame = fixture_listing(1001)
+        attempts = []
+        delays = []
+
+        def fetch(day):
+            attempts.append(day)
+            if len(attempts) < 3:
+                raise DatedRosterError('dated_roster_unavailable')
+            return frame, 'c' * 64
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(batches, 'load_dated_listing', side_effect=fetch):
+                with patch.object(batches.time, 'sleep', side_effect=delays.append):
+                    result = batches.plan(
+                        asof=DAY, out=Path(tmp) / 'plan',
+                        date_pinned_roster=True)
+        self.assertEqual(attempts, [DAY, DAY, DAY])
+        self.assertEqual(delays, [1, 3])
+        self.assertEqual(result['eligible'], 1001)
+
+    def test_dated_roster_retries_only_source_unavailable(self):
+        delays = []
+        with patch.object(batches.time, 'sleep', side_effect=delays.append):
+            for reason in ('dated_roster_schema_invalid',
+                           'dated_roster_duplicate_identity',
+                           'dated_roster_size_invalid'):
+                calls = []
+                def fail(day):
+                    calls.append(day)
+                    raise DatedRosterError(reason)
+                with self.assertRaisesRegex(DatedRosterError, reason):
+                    batches.dated_market_roster_with_retries(DAY, fetch=fail)
+                self.assertEqual(calls, [DAY])
+        self.assertEqual(delays, [])
+
+    def test_dated_cache_retry_exhaustion_keeps_prior_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sentinel = root / 'prior-report.json'
+            sentinel.write_text('retained', encoding='utf-8')
+            calls = []
+            with patch.object(batches, 'load_dated_listing',
+                              side_effect=DatedRosterError('dated_roster_unavailable')) as fetch:
+                with patch.object(batches.time, 'sleep', side_effect=calls.append):
+                    with self.assertRaisesRegex(
+                            batches.BatchError,
+                            'date_pinned_roster_unavailable_or_invalid'):
+                        batches.plan(asof=DAY, out=root / 'plan',
+                                     date_pinned_roster=True)
+                self.assertEqual(fetch.call_count, 3)
+            self.assertEqual(calls, [1, 3])
+            self.assertEqual(sentinel.read_text(), 'retained')
+            self.assertFalse((root / 'plan' / 'manifest.json').exists())
+
     def test_unavailable_exact_day_never_falls_back_in_publication(self):
         with tempfile.TemporaryDirectory() as tmp:
             with patch.object(batches,'load_dated_listing',
                               side_effect=DatedRosterError('dated_roster_unavailable')):
-                with self.assertRaisesRegex(batches.BatchError,
-                                             'date_pinned_roster_unavailable_or_invalid'):
-                    batches.plan(asof=DAY, out=Path(tmp),
-                                 date_pinned_roster=True)
+                with patch.object(batches.time, 'sleep'):
+                    with self.assertRaisesRegex(batches.BatchError,
+                                                 'date_pinned_roster_unavailable_or_invalid'):
+                        batches.plan(asof=DAY, out=Path(tmp),
+                                     date_pinned_roster=True)
             self.assertFalse((Path(tmp)/'manifest.json').exists())
 
 
