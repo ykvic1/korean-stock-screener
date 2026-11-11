@@ -219,13 +219,21 @@ with sync_playwright() as p:
     assert page.locator("#sort").input_value() == "personal"
     assert page.locator('[data-tab="all"]').get_attribute("aria-pressed") == "true"
     assert page.locator(".u-stock .u-card-score").first.is_visible()
-    personal_label = page.locator(".u-stock").first.locator(".u-card-score > small").last.inner_text()
+    # Keep all 2,501 listed issuers, including names with no same-day quote.
+    # A carried historical ratio may rank an unpriced issuer first. Its
+    # deliberately restricted detail panel has no current-price stop chart;
+    # exercise the full five-pillar/structural-stop UI on a priced issuer.
+    personal_card = page.locator(".u-stock").filter(
+        has=page.locator(".u-card-price > small").filter(has_text="종가 ·")
+    ).first
+    assert personal_card.count() == 1, "personal sorting must retain priced stocks"
+    personal_label = personal_card.locator(".u-card-score > small").last.inner_text()
     assert "개인환산" in personal_label
     first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")
     # Complete 100/100 observations and eligible *partial* personal ratios
     # are distinct: the latter needs all five pillars and at least 75 points
     # of observed budget, even when the issuer census has 0 complete rows.
-    page.locator(".u-stock").first.click()
+    personal_card.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
     # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
     # total. Show earned, observed-but-unearned, and missing budgets separately.
@@ -624,7 +632,9 @@ with sync_playwright() as p:
     # Card order is provisional evidence-first, not the old 2.2 ranking.
     assert page.locator(".u-card-score").first.is_visible()
     assert "산출 배점" in page.locator(".u-card-coverage").first.inner_text()
-    page.locator(".u-stock").first.click()
+    page.locator(".u-stock").filter(
+        has=page.locator(".u-card-price > small").filter(has_text="종가 ·")
+    ).first.click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
     assert "일봉 · 스윙 관찰" in details and "주봉 · 중기/장기 관찰" in details
