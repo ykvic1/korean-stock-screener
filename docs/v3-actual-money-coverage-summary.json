@@ -3,10 +3,10 @@
   "comparison_window_coverage": {
     "complete_window_is_not_full_six_point_eligibility": true,
     "daily_comparison_eligible_issuers": {
-      "120": 2338,
+      "120": 2343,
       "20": 2379,
-      "240": 2241,
-      "60": 2364
+      "240": 2250,
+      "60": 2365
     },
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
@@ -21,33 +21,33 @@
     "complete_structure_not_full_100_observation": true,
     "full_weight_issuers": {
       "concentration_quality": 2375,
-      "correction_contraction": 2242,
-      "persistence": 1939,
-      "up_down_asymmetry": 2248,
+      "correction_contraction": 2248,
+      "persistence": 1942,
+      "up_down_asymmetry": 2254,
       "weekly_structure_increment": 1957
     },
     "observed_issuers": {
       "concentration_quality": 2383,
-      "correction_contraction": 2242,
+      "correction_contraction": 2248,
       "persistence": 2383,
-      "up_down_asymmetry": 2248,
+      "up_down_asymmetry": 2254,
       "weekly_structure_increment": 1957
     },
     "partial_weight_not_renormalized": true,
-    "structure_only_issuers": 444
+    "structure_only_issuers": 441
   },
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 562,
-    "full_fresh_evidence_issuers": 1939,
+    "fresh_unscored_issuers": 559,
+    "full_fresh_evidence_issuers": 1942,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
-      "complete__incomplete_periods": 297,
+      "complete__incomplete_periods": 304,
       "complete__zero_baseline": 1,
-      "incomplete_periods__complete": 16,
-      "incomplete_periods__incomplete_periods": 243,
+      "incomplete_periods__complete": 14,
+      "incomplete_periods__incomplete_periods": 236,
       "incomplete_periods__zero_baseline": 1,
-      "zero_baseline__complete": 2,
+      "zero_baseline__complete": 1,
       "zero_baseline__zero_baseline": 2
     },
     "zero_baseline_is_unavailable_not_zero_points": true
@@ -58,21 +58,20 @@
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },
-  "eligible_issuers": 1939,
+  "eligible_issuers": 1942,
   "history_shape_diagnostic": {
     "does_not_identify_listing_or_gap_cause": true,
     "issuer_dates_or_source_series_published": false,
     "pair_counts": {
-      "complete__complete": 1944,
+      "complete__complete": 1946,
       "complete__recent_missing": 2,
-      "complete__tail_only_missing": 295,
-      "no_observed_history__no_observed_history": 1,
-      "no_observed_history__recent_missing": 15,
-      "no_observed_history__tail_only_missing": 3,
-      "recent_missing__complete": 4,
-      "recent_missing__recent_missing": 93,
-      "tail_only_missing__complete": 13,
-      "tail_only_missing__tail_only_missing": 131
+      "complete__tail_only_missing": 302,
+      "internal_missing__complete": 4,
+      "internal_missing__recent_missing": 93,
+      "tail_only_missing__complete": 11,
+      "tail_only_missing__no_observed_history": 1,
+      "tail_only_missing__recent_missing": 15,
+      "tail_only_missing__tail_only_missing": 127
     }
   },
   "investment_score_certified": false,
