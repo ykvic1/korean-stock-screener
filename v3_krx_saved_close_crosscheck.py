@@ -24,9 +24,14 @@ from v3_price_session_capture import FEED, WINDOWS, capture_window
 from v3_regular_close_candidate_probe import (
     compare_candidate, NaverMobileDailyProbe, SCHEMA as CANDIDATE_SCHEMA,
 )
+from v3_dated_market_roster import load_dated_listing, DatedRosterError
+from v3_fdr_cache_krx_close_corroboration import (
+    compare_dated_cache, unavailable as cache_unavailable,
+    SCHEMA as CACHE_CORROBORATION_SCHEMA, CacheCorroborationError,
+)
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
-FORMAT_REVISION = 5
+FORMAT_REVISION = 6
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
@@ -43,6 +48,7 @@ SAVED_SOURCE_REJECTIONS = frozenset((
     'crosscheck_count_mismatch', 'price_gap_count_disagrees_with_saved_close',
     'capture_window_counts_disagree', 'krx_api_key_not_configured',
     'krx_row_date_or_schema_not_verified', 'krx_original_value_not_verified',
+    'dated_public_cache_corroboration_invalid',
 ))
 
 
@@ -63,7 +69,8 @@ def safe_failure_reason(exc):
     return 'krx_crosscheck_not_verified'
 
 
-def check(market, first, second, client, *, snapshot_sha256, candidate_probe=None):
+def check(market, first, second, client, *, snapshot_sha256,
+          candidate_probe=None, dated_cache_loader=None):
     day = market.get('date')
     try:
         validate_dates([day])
@@ -245,6 +252,35 @@ def check(market, first, second, client, *, snapshot_sha256, candidate_probe=Non
         result['public_daily_price_candidate'] = compare_candidate(
             by_code, numeric_closes, day, candidate_probe)
         result['public_daily_price_candidate']['status'] = 'sampled'
+    if dated_cache_loader is None:
+        result['dated_public_cache_official_crosscheck'] = cache_unavailable()
+    else:
+        try:
+            cache, digest = dated_cache_loader(day)
+        except DatedRosterError:
+            # Public archive downtime cannot erase already validated official
+            # KRX counts. Explicitly report an unverified candidate and retry
+            # it in the next scheduled run (current_report rejects this state).
+            result['dated_public_cache_official_crosscheck'] = cache_unavailable(
+                'dated_cache_unavailable')
+        else:
+            official_closes = {}
+            for key, row in observed.items():
+                quality, _ = classify_row(row)
+                if quality != 'valid_numeric_observation':
+                    continue
+                try:
+                    official_closes[key] = _numeric(
+                        row['TDD_CLSPRC'], 'TDD_CLSPRC', positive=True)
+                except (ProbeError, KeyError, ValueError):
+                    continue
+            try:
+                result['dated_public_cache_official_crosscheck'] = compare_dated_cache(
+                    by_code, official_closes, cache, digest)
+            except CacheCorroborationError as exc:
+                # An invalid cache can never certify prices. No official rows
+                # or raw cache values may appear in output/exceptions.
+                raise CrosscheckError('dated_public_cache_corroboration_invalid') from None
     return result
 
 
@@ -256,6 +292,11 @@ def current_report(report, *, digest, day):
                 and report['format_revision'] == FORMAT_REVISION
                 and report['snapshot_sha256'] == digest and report['asof'] == day
                 and report['source_requests'] == len(MARKETS)
+                and report['dated_public_cache_official_crosscheck']['schema'] == CACHE_CORROBORATION_SCHEMA
+                and report['dated_public_cache_official_crosscheck']['status'] in ('observed', 'not_requested')
+                and report['dated_public_cache_official_crosscheck']['historical_ohlcv_regular_session_certified'] is False
+                and report['dated_public_cache_official_crosscheck']['licensed_krx_data_republished'] is False
+                and report['dated_public_cache_official_crosscheck']['investment_score_or_available_weight_changed'] is False
                 and report['public_daily_price_candidate']['schema'] == CANDIDATE_SCHEMA
                 and report['public_daily_price_candidate']['regular_session_source_certified'] is False
                 and report['public_daily_price_candidate']['investment_score_or_coverage_promoted'] is False
@@ -305,7 +346,8 @@ def main(argv=None):
     try:
         result = check(market, first, second, KRXClient(key),
                        snapshot_sha256=digest,
-                       candidate_probe=NaverMobileDailyProbe())
+                       candidate_probe=NaverMobileDailyProbe(),
+                       dated_cache_loader=load_dated_listing)
     except CrosscheckError:
         raise
     except (KRXProbeError, HistoryCollectionError, ProbeError, ValueError) as exc:
