@@ -1,28 +1,28 @@
 {
   "asof": "2026-11-10",
-  "version": "v3-stable-r1d-operational-research",
+  "version": "v3-stable-r1e-operational-research",
   "same_input_common_issuers": 2377,
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 31,
+      "overlap": 34,
       "new_kospi": 28,
-      "old_kospi": 29
+      "old_kospi": 25
     },
     "100": {
-      "overlap": 67,
-      "new_kospi": 54,
-      "old_kospi": 50
+      "overlap": 66,
+      "new_kospi": 50,
+      "old_kospi": 54
     },
     "200": {
-      "overlap": 138,
-      "new_kospi": 103,
-      "old_kospi": 94
+      "overlap": 135,
+      "new_kospi": 102,
+      "old_kospi": 92
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "34fa7083be2cee7176189340b3d3475f3308814b4b3caf80de9967287a95f821",
+    "source_digest": "42c943c24e2e41ed65ff9eac8da97cdc1627858011f7f489ea6b796b96f4771a",
     "listed_total": 2501,
     "ranked_count": 2493,
     "available_100_count": 1072,
@@ -40,11 +40,11 @@
     "investment_score_certified": false,
     "performance_validated": false
   },
-  "prior_operational_version": "v3-stable-r1c-operational-research",
-  "same_input_prior_ranked_issuers": 2481,
+  "prior_operational_version": "v3-stable-r1d-operational-research",
+  "same_input_prior_ranked_issuers": 2493,
   "prior_top_overlap": {
-    "50": 21,
-    "100": 52,
-    "200": 111
+    "50": 43,
+    "100": 89,
+    "200": 182
   }
 }
