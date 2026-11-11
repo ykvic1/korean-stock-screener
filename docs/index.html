@@ -11,7 +11,7 @@
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
 <script src="operational-score.js?v=r1e-stop-unscored" defer></script>
 <script src="v3-trading-status.js?v=20261110-halt-display" defer></script>
-<script src="workspace.js?v=v30b-20261111-stop-reference-only" defer></script>
+<script src="workspace.js?v=v30b-20261111-stop-reference-csv" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -24,7 +24,7 @@
   <div><div class="u-eyebrow">KOREAN STOCK RESEARCH</div>
    <h1>한국주식 스크리너 <span class="u-version">V3 BETA</span></h1>
    <p>종목 탐색부터 재무·차트·위험 분석까지</p></div>
-  <div class="u-header-actions"><button type="button" id="reload">새로고침</button><details class="u-header-more"><summary>다운로드 · 메뉴</summary><div class="u-header-more-items"><a href="v3-personal-adjusted-scores.csv" download>시총·손절 보정 점수 CSV</a><a href="reports/latest.xlsx" download>전체 엑셀</a><a href="patch-notes.html">변경 내역</a><a href="legacy.html">이전 화면</a></div></details></div>
+  <div class="u-header-actions"><button type="button" id="reload">새로고침</button><details class="u-header-more"><summary>다운로드 · 메뉴</summary><div class="u-header-more-items"><a href="v3-personal-adjusted-scores.csv" download>시총 보정 점수 CSV (손절은 참고만)</a><a href="reports/latest.xlsx" download>전체 엑셀</a><a href="patch-notes.html">변경 내역</a><a href="legacy.html">이전 화면</a></div></details></div>
  </div>
 </header>
 <main class="u-wrap">
@@ -64,7 +64,7 @@
     <select id="market"><option value="all">코스피 + 코스닥</option>
      <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
    <label>정렬 기준
-    <select id="sort"><option value="ops" selected>신규 잠정 운영점수 R1</option><option value="stable">안정형 보정순 (시총·손절 구조)</option><option value="score">V3 잠정 원점수순</option><option value="personal">개인 연구용 100점 환산순</option>
+    <select id="sort"><option value="ops" selected>신규 잠정 운영점수 R1</option><option value="stable">안정형 보정순 (시총만 보정)</option><option value="score">V3 잠정 원점수순</option><option value="personal">개인 연구용 100점 환산순</option>
      <option value="research">패턴·위험 우선</option>
      <option value="risk">손절거리순</option></select></label>
    <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
