@@ -1,0 +1,82 @@
+name: V3 Saved Close KRX Official Crosscheck (Aggregates Only)
+
+on:
+  pull_request:
+    paths:
+      - v3_krx_saved_close_crosscheck.py
+      - tests/test_v3_krx_saved_close_crosscheck.py
+      - .github/workflows/v3-krx-saved-close-crosscheck.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_krx_saved_close_crosscheck.py
+      - tests/test_v3_krx_saved_close_crosscheck.py
+      - .github/workflows/v3-krx-saved-close-crosscheck.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry_run=zero provider calls; live=one saved date x two KRX markets'
+        type: choice
+        required: true
+        default: dry_run
+        options: [dry_run, live]
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3'
+      - name: Check aggregate-only match and source quarantine
+        run: python -m unittest tests.test_v3_krx_saved_close_crosscheck -v
+      - name: Show current saved-source eligible counts without KRX calls
+        run: python v3_krx_saved_close_crosscheck.py --mode dry-run
+
+  source_crosscheck:
+    needs: offline
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    permissions:
+      contents: write
+    concurrency:
+      group: v3-saved-close-krx-aggregates-publisher
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3'
+      - name: Read exactly two official KRX day-market responses
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: python v3_krx_saved_close_crosscheck.py --mode live
+      - name: Publish count-only diagnostic only if snapshot remains current
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-krx-saved-close-crosscheck.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record official KRX saved-close crosscheck aggregates'
+          git pull --rebase origin main
+          # Abort stale publication if another publisher replaced the saved
+          # market during the official-source read. Never change scores here.
+          python -c 'import hashlib,json,pathlib,sys; p=pathlib.Path("docs"); digest=hashlib.sha256((p/"data.json").read_bytes()).hexdigest(); report=json.loads((p/"v3-krx-saved-close-crosscheck.json").read_text()); sys.exit(0 if report["snapshot_sha256"]==digest else 1)'
+          git push origin HEAD:main
