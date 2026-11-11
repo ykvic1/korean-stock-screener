@@ -8,6 +8,7 @@ official KRX source rows or issuer identities to GitHub.
 from __future__ import annotations
 
 from hashlib import sha256
+import math
 import re
 
 import requests
@@ -20,6 +21,8 @@ SAMPLE_PER_MARKET = 12
 def _price(value):
     if type(value) is int and value > 0:
         return value
+    if type(value) is float and math.isfinite(value) and value > 0 and value.is_integer():
+        return int(value)
     if isinstance(value, str) and re.fullmatch(r'[0-9][0-9,]*', value):
         number = int(value.replace(',', ''))
         return number if number > 0 else None
