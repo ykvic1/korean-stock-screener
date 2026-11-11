@@ -139,6 +139,44 @@ class SavedCloseSourceTests(unittest.TestCase):
         for code in ('000001', '000002', '000003'):
             self.assertNotIn(code, json.dumps(report))
 
+    def test_dated_public_cache_corrobates_same_official_rows_without_more_krx_calls(self):
+        import pandas as pd
+        probe = Provider()
+        cache_calls = []
+        def loader(day):
+            cache_calls.append(day)
+            return pd.DataFrame([
+                {'Code': '000001', 'Market': 'KOSPI', 'Close': 100},
+                {'Code': '000002', 'Market': 'KOSPI', 'Close': 220},
+                {'Code': '000003', 'Market': 'KOSDAQ', 'Close': 300},
+            ]), 'b'*64
+        report=check(saved(),['000001'],['000002'],probe,
+                     snapshot_sha256='f'*64,dated_cache_loader=loader)
+        part=report['dated_public_cache_official_crosscheck']
+        self.assertEqual(probe.calls, [('KOSPI', DAY), ('KOSDAQ', DAY)])
+        self.assertEqual(cache_calls, [DAY])
+        self.assertEqual(part['status'], 'observed')
+        self.assertEqual(part['counts']['requested'], 3)
+        self.assertEqual(part['counts']['exact_close'], 3)
+        self.assertEqual(part['counts']['different_close'], 0)
+        self.assertTrue(part['regular_close_full_market_corroborated'])
+        self.assertIs(part['historical_ohlcv_regular_session_certified'],False)
+        self.assertIs(part['licensed_krx_data_republished'],False)
+        self.assertTrue(current_report(report,digest='f'*64,day=DAY))
+        for code in ('000001','000002','000003'):
+            self.assertNotIn(code,json.dumps(report))
+
+    def test_missing_dated_cache_does_not_block_valid_official_counts_but_retries(self):
+        from v3_dated_market_roster import DatedRosterError
+        def missing(day):
+            raise DatedRosterError('dated_roster_unavailable')
+        report=check(saved(),[],[],Provider(),
+                     snapshot_sha256='c'*64,dated_cache_loader=missing)
+        self.assertEqual(report['counts']['saved_market']['requested'],3)
+        self.assertEqual(report['dated_public_cache_official_crosscheck']['status'],
+                         'dated_cache_unavailable')
+        self.assertFalse(current_report(report,digest='c'*64,day=DAY))
+
     def test_absent_code_never_becomes_zero_or_valid_close(self):
         provider=Provider()
         provider.rows['KOSDAQ']=[item('000004',350)]
