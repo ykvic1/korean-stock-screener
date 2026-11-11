@@ -572,7 +572,7 @@ class OriginalEvidenceTests(unittest.TestCase):
         self.assertIn("default: dry_run", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
         self.assertNotIn("git push", wf)
-        self.assertIn("30 9 * * 1-5",
+        self.assertIn("30 12 * * 1-5",
             Path(".github/workflows/full-market-batches.yml").read_text())
 
 
