@@ -36,6 +36,80 @@
     "KOSPI": "8eeb3c0ef02294088be75b62a2a4f3ecbe04aa44463ed9c13db5f10b11fc4566"
   },
   "krx_regular_only_volume_verified": false,
+  "mismatch_distance_profile": {
+    "below90_ma_priority": {
+      "absolute_close_gap_pct": {
+        "0_1_to_0_5pct": 37,
+        "0_5_to_1pct": 18,
+        "1_to_3pct": 18,
+        "3_to_10pct": 5,
+        "ge_10pct": 0,
+        "lt_0_1pct": 1
+      },
+      "different_close": 79,
+      "direction": {
+        "saved_above_krx": 36,
+        "saved_below_krx": 43
+      },
+      "krx_daily_high_low_position": {
+        "inside_krx_daily_low_high": 74,
+        "outside_krx_daily_low_high": 5
+      },
+      "saved_equals_other_krx_ohlc": {
+        "high": 0,
+        "low": 0,
+        "open": 1
+      }
+    },
+    "ninety_plus_ma_priority": {
+      "absolute_close_gap_pct": {
+        "0_1_to_0_5pct": 30,
+        "0_5_to_1pct": 29,
+        "1_to_3pct": 23,
+        "3_to_10pct": 2,
+        "ge_10pct": 0,
+        "lt_0_1pct": 0
+      },
+      "different_close": 84,
+      "direction": {
+        "saved_above_krx": 46,
+        "saved_below_krx": 38
+      },
+      "krx_daily_high_low_position": {
+        "inside_krx_daily_low_high": 79,
+        "outside_krx_daily_low_high": 5
+      },
+      "saved_equals_other_krx_ohlc": {
+        "high": 1,
+        "low": 0,
+        "open": 4
+      }
+    },
+    "saved_market": {
+      "absolute_close_gap_pct": {
+        "0_1_to_0_5pct": 854,
+        "0_5_to_1pct": 519,
+        "1_to_3pct": 410,
+        "3_to_10pct": 85,
+        "ge_10pct": 2,
+        "lt_0_1pct": 63
+      },
+      "different_close": 1933,
+      "direction": {
+        "saved_above_krx": 1018,
+        "saved_below_krx": 915
+      },
+      "krx_daily_high_low_position": {
+        "inside_krx_daily_low_high": 1740,
+        "outside_krx_daily_low_high": 193
+      },
+      "saved_equals_other_krx_ohlc": {
+        "high": 34,
+        "low": 7,
+        "open": 50
+      }
+    }
+  },
   "nxt_and_after_hours_exclusion_verified": false,
   "original_krx_rows_exported": false,
   "schema": "v3-saved-close-official-krx-diagnostic-v1",
