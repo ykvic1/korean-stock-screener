@@ -7,14 +7,14 @@ const finite=x=>typeof x==='number'&&Number.isFinite(x);
 const money=x=>finite(x)?Math.round(x).toLocaleString('ko-KR')+'원':'미확인';
 const pct=x=>finite(x)?(x>=0?'+':'')+x.toFixed(1)+'%':'미산출';
 const eok=x=>finite(x)?(x/100000000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'억원':'미확인';
-const stockPage=code=>/^[0-9]{6}$/.test(String(code))?
+const stockPage=code=>/^[0-9A-Z]{6}$/.test(String(code))?
   'https://finance.naver.com/item/main.naver?code='+code:null;
 function observedAnnuals(official,asof){
  const byCode=new Map();
  if(!official||official.asof!==asof||!['observed','completed'].includes(official.dart?.status)
     ||!Array.isArray(official.dart.stocks))return byCode;
  for(const stock of official.dart.stocks){
-  if(!stock||!/^[0-9]{6}$/.test(String(stock.code))||
+  if(!stock||!/^[0-9A-Z]{6}$/.test(String(stock.code))||
     stock.status!=='observed'||!Array.isArray(stock.reports))continue;
   // Keep the latest dated annual reference AND up to three comparable
   // years of the SAME accounting scope. Do not blend consolidated CFS with
@@ -54,7 +54,7 @@ function observedRollingBook(rolling,asof,eligible){
    return found;
  const allowed=new Set(),accounts=new Map();
  for(const record of rolling.records){
-   if(!record||typeof record.code!=='string'||!/^\d{6}$/.test(record.code)||
+   if(!record||typeof record.code!=='string'||!/^[0-9A-Z]{6}$/.test(record.code)||
       allowed.has(record.code)||!['observed','unconfirmed','deferred'].includes(record.status))
      return new Map();
    allowed.add(record.code);
@@ -69,7 +69,7 @@ function observedRollingBook(rolling,asof,eligible){
  }
  const seen=new Set();
  for(const row of rolling.observations){
-   if(!row||!/^\d{6}$/.test(String(row.code))||seen.has(row.code)||
+   if(!row||!/^[0-9A-Z]{6}$/.test(String(row.code))||seen.has(row.code)||
       !accounts.has(row.code)||row.market_cap_reference_day!==asof||
       row.official_exchange_pbr_verified!==false||
       row.financial_statement_pit_verified!==false) return new Map();
@@ -106,7 +106,7 @@ function observedFourYearEvidence(source,asof,eligible){
    source.records.length!==source.pilot_issuer_count)return empty;
  const result=new Map(),seen=new Set();
  for(const item of source.records){
-  if(!item||typeof item.code!=='string'||!/^[0-9]{6}$/.test(item.code)||
+  if(!item||typeof item.code!=='string'||!/^[0-9A-Z]{6}$/.test(item.code)||
      seen.has(item.code)||item.v3_full100_investable_score!==null||
      item.financial15_confirmed_points!==null||
      item.valuation15_confirmed_points!==null||
@@ -274,14 +274,14 @@ function prepare(data,quant,recs,official,priorityQuant,rollingAnnual,fourYearAn
  const pmap=new Map((priorityMatched?priorityQuant.stocks:[]).filter(x=>
     x&&x.reference_price_date===data.date&&
     (x.status==='exploratory'||x.status==='insufficient')&&
-    /^[0-9]{6}$/.test(String(x.code))&&rmap.has(x.code)&&
+    /^[0-9A-Z]{6}$/.test(String(x.code))&&rmap.has(x.code)&&
     finite(x.peer_cohort_requested)&&x.peer_cohort_requested>=20).map(x=>[x.code,x]));
  const financials=observedAnnuals(official,data.date);
  const books=observedRollingBook(rollingAnnual,data.date,data.eligible_count);
  const fourYear=observedFourYearEvidence(fourYearAnnual,data.date,data.eligible_count);
  const rows=[],seen=new Set();
  for(const r of data.stocks){
-   if(!r||!/^\d{6}$/.test(String(r.code))||seen.has(r.code)||!finite(r.price)||r.price<=0||
+   if(!r||!/^[0-9A-Z]{6}$/.test(String(r.code))||seen.has(r.code)||!finite(r.price)||r.price<=0||
       !['KOSPI','KOSDAQ'].includes(r.market)||!observedScore(r,data.weights))continue;
    seen.add(r.code);
    const rec=rmap.get(r.code)||null;
