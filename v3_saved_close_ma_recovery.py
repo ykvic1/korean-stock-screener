@@ -92,7 +92,15 @@ def select_targets(market, priority, report, *, repair_legacy_stops=False):
         return (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
                 or reference is None)
 
-    first = [code for code in focus if useful(code)]
+    first_candidates = [code for code in focus if useful(code)]
+    # The score-first queue must not spend provider calls on a stock whose
+    # MA availability is already complete merely because its informational,
+    # zero-point stop reference is missing. The normal full-market scanner
+    # remains responsible for those optional references.
+    first = [code for code in first_candidates
+             if availability(stocks[code].get('v3_ma_slope_transition'), day)
+             != (2., 3.)]
+    stop_only_deferred = len(first_candidates) - len(first)
     # Only current-date, not-yet-fully-observed 90+ issuers.  No all-market
     # rediscovery, historical full-market job, or future close requests.
     primary = set(first)
@@ -104,8 +112,11 @@ def select_targets(market, priority, report, *, repair_legacy_stops=False):
               and availability(stocks[code].get('v3_ma_slope_transition'), day) != (2., 3.)]
     if len(first) + len(second) > 400:
         raise RecoveryError('unexpectedly_large_target_cohort')
-    return (sorted(first), sorted(second)), {'below_90_priority': len(first),
-                                            'already_90_priority': len(second)}
+    return (sorted(first), sorted(second)), {
+        'below_90_priority': len(first),
+        'already_90_priority': len(second),
+        'unscored_stop_only_deferred': stop_only_deferred,
+    }
 
 
 def analyze(code, cfg, day):
