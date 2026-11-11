@@ -27,7 +27,7 @@ class PostCloseSourceAuditWorkflowTests(unittest.TestCase):
     def test_source_audit_cannot_change_the_daily_schedule(self):
         full_market = Path(".github/workflows/full-market-batches.yml")
         text = full_market.read_text(encoding="utf-8")
-        self.assertIn("cron: '30 9 * * 1-5'", text)
+        self.assertIn("cron: '30 12 * * 1-5'", text)
         self.assertIn("Full-Market 100-Stock Batches", text)
 
 
