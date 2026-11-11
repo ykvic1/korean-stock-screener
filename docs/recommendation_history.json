@@ -1,5 +1,17 @@
 [
   {
+    "date": "2026-11-11",
+    "screened": 2378,
+    "selected": [],
+    "confirmed_count": 0,
+    "entered": [],
+    "exited": [
+      "005500",
+      "192080"
+    ],
+    "updated": []
+  },
+  {
     "date": "2026-11-10",
     "screened": 2377,
     "selected": [
