@@ -206,16 +206,24 @@ function watchEvidence(r){
 function observedScore(r,weights){
  if(!finite(r.score)||!finite(r.coverage_pct)||r.score<0||r.score>100||r.coverage_pct<0||r.coverage_pct>100||
     !weights||typeof weights!=='object'||!r.components)return false;
- const entries=Object.entries(weights);if(entries.length!==8)return false;
- let obs=0,max=0;
+ // The stop-risk score was removed from the legacy display: its live
+ // snapshot has seven weights totaling 95, while archived snapshots have
+ // eight totaling 100. Coverage is a percentage of that snapshot's total
+ // possible weight, not the raw count of observed weight points.
+ const entries=Object.entries(weights);
+ if(entries.length!==7&&entries.length!==8)return false;
+ let obs=0,max=0,total=0;
  for(const [k,w] of entries){
    if(!finite(w)||w<=0||!Object.prototype.hasOwnProperty.call(r.components,k))return false;
+   total+=w;
    const v=r.components[k];
    if(v!==null&&(!finite(v)||v<0||v>w))return false;
    if(v!==null){obs+=v;max+=w;}
  }
+ if((entries.length===7&&Math.abs(total-95)>0.00001)||
+    (entries.length===8&&Math.abs(total-100)>0.00001))return false;
  return max>0&&Math.abs(r.score-obs/max*100)<=1.1&&
-   Math.abs(r.coverage_pct-max)<=1.1;
+   Math.abs(r.coverage_pct-max/total*100)<=1.1;
 }
 function period(q,name){
  const p=q?.periods?.[name];

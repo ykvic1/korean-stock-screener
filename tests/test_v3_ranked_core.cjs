@@ -65,6 +65,20 @@ assert.ok(m.sourceCompletenessText(null).includes('확인 대기'));
 const statusPage=fs.readFileSync(path.join(__dirname,'../docs/v3-beta.html'),'utf8');
 assert.ok(statusPage.includes('rankSourceQuality'));
 assert.equal(m.observedScore(stocks[0],w),true);
+// Current seven-factor legacy display has no stop-risk score and retains
+// the 95-point denominator; it must still link *priced* issuers correctly.
+const currentWeights={...w};delete currentWeights['위험·손익비'];
+const currentComponents={...comps};delete currentComponents['위험·손익비'];
+const currentScore=Math.round((18+17+12+8)/65*1000)/10;
+const currentPriced={...stocks[0],score:currentScore,components:currentComponents,
+  coverage_pct:Math.round(65/95*1000)/10};
+assert.equal(m.observedScore(currentPriced,currentWeights),true);
+assert.equal(m.prepare({...snap,weights:currentWeights,stocks:[currentPriced]},null,null)
+  .rows.length,1,'current priced issuer must not appear as operational-only');
+assert.equal(m.observedScore({...currentPriced,coverage_pct:65},currentWeights),false,
+  'raw observed weight is not the normalized coverage percentage');
+assert.equal(m.observedScore({...currentPriced,score:currentScore+8},currentWeights),false);
+assert.equal(m.observedScore(currentPriced,{...currentWeights,'extra':5}),false);
 assert.equal(m.stopDistance(stocks[0]),10);
 assert.equal(m.stopDistance(stocks[2]),null);
 assert.equal(m.highRisk(stocks[1]),true);

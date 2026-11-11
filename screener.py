@@ -771,6 +771,7 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
         view.append({
           'rank':i,'code':r['code'],'name':r['name'],'market':r['market'],
           'sector':r['sector'],'price':int(r['price_latest']),
+          'price_feed_observed_at_kst':r.get('price_feed_observed_at_kst'),
           'market_cap_eok':round_or_none(r['market_cap_eok'],0),
           'trading_eok':round_or_none(r['trading_eok']),
           'price_date':r['price_date'],'phase':r['phase'],'decision':r['decision'],
@@ -806,6 +807,13 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
           'risk_flags':r['risk_flags'],'forecast':r['forecast']})
     out={'status':'success','version':'2.0','date':analysis_day.strftime('%Y-%m-%d'),
          'generated_kst':datetime.now(ZoneInfo('Asia/Seoul')).strftime('%Y-%m-%d %H:%M KST'),
+         # This is the actual upstream read by price_history(), not a KRX
+         # regular-session OHLCV certificate.  Do not relabel it on an 20:00+
+         # schedule: the last FChart day bar can settle at aftermarket final.
+         'price_feed':'NAVER_FCHART_DAY_UNVERIFIED_SESSION',
+         'price_regular_session_verified':False,
+         'volume_regular_session_verified':False,
+         'aftermarket_close_contamination_possible':True,
          'candidate_count':len(view),'examined_count':meta['examined'],'eligible_count':meta['eligible'],
           'history_deferred_count':meta.get('history_deferred',0),
           'history_scan_complete':bool(meta.get('history_scan_complete',False)),

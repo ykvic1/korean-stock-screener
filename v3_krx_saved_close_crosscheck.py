@@ -20,9 +20,10 @@ from v3_krx_history_collection import (
     _snapshot_market, HistoryCollectionError, MARKETS, validate_dates,
 )
 from v3_saved_close_ma_recovery import select_targets
+from v3_price_session_capture import FEED, WINDOWS, capture_window
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
-FORMAT_REVISION = 2
+FORMAT_REVISION = 3
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
@@ -44,6 +45,15 @@ def check(market, first, second, client, *, snapshot_sha256):
         or not all(isinstance(s, dict) and s.get('market') in MARKETS
                    for s in stocks)):
         raise CrosscheckError('untrusted_saved_market')
+    # The producer names its real source, not the session the user requested.
+    # Old saved snapshots have no declaration and remain explicitly unknown.
+    if 'price_feed' in market and (
+        market['price_feed'] != FEED
+        or market.get('price_regular_session_verified') is not False
+        or market.get('volume_regular_session_verified') is not False
+        or market.get('aftermarket_close_contamination_possible') is not True
+    ):
+        raise CrosscheckError('untrusted_price_feed_session_claim')
     by_code = {s['code']: s for s in stocks}
     if (not isinstance(first, list) or not isinstance(second, list)
         or len(set(first+second)) != len(first)+len(second)
@@ -140,12 +150,37 @@ def check(market, first, second, client, *, snapshot_sha256):
     for name in groups:
         if profile[name]['different_close'] != counts[name]['different_close']:
             raise CrosscheckError('price_gap_count_disagrees_with_saved_close')
+    # Count mismatch exposure by the per-issuer capture time recorded during
+    # the 100-stock batch. A 19:00 saved price is *not* proof its trades took
+    # place after 16:00; it only identifies the feed risk window. Never
+    # export issuer identities or the KRX source close to GitHub.
+    by_window = {name: Counter() for name in WINDOWS}
+    for code in groups['saved_market']:
+        stamp = by_code[code].get('price_feed_observed_at_kst')
+        window = capture_window(stamp)
+        by_window[window][reason(code)] += 1
+    window_counts = {name: {'requested': sum(by_window[name].values()),
+                     **{reason_name: by_window[name][reason_name]
+                        for reason_name in REASONS}}
+                     for name in WINDOWS}
+    if (sum(value['requested'] for value in window_counts.values())
+        != counts['saved_market']['requested']
+        or any(sum(value[name] for value in window_counts.values())
+               != counts['saved_market'][name] for name in REASONS)):
+        raise CrosscheckError('capture_window_counts_disagree')
     return {
         'schema': SCHEMA, 'format_revision': FORMAT_REVISION,
         'asof': day, 'snapshot_sha256': snapshot_sha256,
         'krx_market_source_sha256': source_sha,
         'source_requests': len(MARKETS), 'counts': counts,
         'mismatch_distance_profile': profile,
+        'capture_time_exposure': {
+            'price_feed_declared': market.get('price_feed') == FEED,
+            'snapshot_published_window': capture_window(market.get('generated_kst')),
+            'individual_quote_windows': window_counts,
+            'aftermarket_capture_is_not_proof_of_trade_session': True,
+            'changing_schedule_to_after_2000_does_not_certify_close': True,
+        },
         'source_scope': 'KRX_DAILY_EOD_RAW_UNVERIFIED_SESSION_SPLIT',
         'krx_regular_only_volume_verified': False,
         'nxt_and_after_hours_exclusion_verified': False,
@@ -173,7 +208,9 @@ def current_report(report, *, digest, day):
                 and type(c['requested']) is int and c['requested'] >= 1
                 and sum(c[key] for key in REASONS) == c['requested']
                 and report['mismatch_distance_profile']['saved_market']['different_close']
-                == c['different_close'])
+                == c['different_close']
+                and sum(v['requested'] for v in report['capture_time_exposure']
+                        ['individual_quote_windows'].values()) == c['requested'])
     except (KeyError, TypeError, ValueError):
         return False
 

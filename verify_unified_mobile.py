@@ -219,13 +219,31 @@ with sync_playwright() as p:
     assert page.locator("#sort").input_value() == "personal"
     assert page.locator('[data-tab="all"]').get_attribute("aria-pressed") == "true"
     assert page.locator(".u-stock .u-card-score").first.is_visible()
-    personal_label = page.locator(".u-stock").first.locator(".u-card-score > small").last.inner_text()
+    # Carried prior observations legitimately remain visible for a stock
+    # without a same-day quote and may occupy the first full-market page.
+    # Verify that restricted panel does not pretend to have a current chart.
+    first_personal_card = page.locator(".u-stock").first
+    if "종가 미관측" in first_personal_card.locator(".u-card-price small").inner_text():
+        first_personal_card.click()
+        assert "현재 가격 관측 목록에서 제외된 종목" in page.locator("#detail").inner_text()
+        assert "가격·손절선·차트·기존 점수를 임의로 채우지 않습니다" in page.locator("#detail").inner_text()
+        page.locator("#detailClose").click()
+    # For price/stop visual contract, search a known current-priced issuer.
+    # Search is global and independent of the visible top-20 sort window.
+    priced_code = context.request.get(URL + "data.json").json()["stocks"][0]["code"]
+    page.locator("#stockSearch").fill(priced_code)
+    personal_card = page.locator(f'.u-stock[data-stock="{priced_code}"]')
+    personal_card.wait_for(timeout=10000)
+    assert "종가 ·" in personal_card.locator(".u-card-price small").inner_text(), (
+        "known current-priced stock must not be relabeled unpriced"
+    )
+    personal_label = personal_card.locator(".u-card-score > small").last.inner_text()
     assert "개인환산" in personal_label
     first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")
     # Complete 100/100 observations and eligible *partial* personal ratios
     # are distinct: the latter needs all five pillars and at least 75 points
     # of observed budget, even when the issuer census has 0 complete rows.
-    page.locator(".u-stock").first.click()
+    personal_card.click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
     # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
     # total. Show earned, observed-but-unearned, and missing budgets separately.
@@ -326,6 +344,7 @@ with sync_playwright() as p:
         assert "개별 공시 원장" in fcf_detail
     assert "0점" in fcf_detail
     page.locator("#personalRank").click()
+    page.locator("#stockSearch").fill("")
     assert page.locator("#sort").input_value() == "stable"
     assert page.locator("#personalRank").get_attribute("aria-pressed") == "false"
     # Compare only stocks with the same available ceilings for ALL five pillars.
@@ -624,13 +643,15 @@ with sync_playwright() as p:
     # Card order is provisional evidence-first, not the old 2.2 ranking.
     assert page.locator(".u-card-score").first.is_visible()
     assert "산출 배점" in page.locator(".u-card-coverage").first.inner_text()
-    page.locator(".u-stock").first.click()
+    page.locator("#stockSearch").fill(priced_code)
+    page.locator(f'.u-stock[data-stock="{priced_code}"]').click()
     assert page.locator("#detail").is_visible()
     details = page.locator("#detail").inner_text()
     assert "일봉 · 스윙 관찰" in details and "주봉 · 중기/장기 관찰" in details
     assert "5영역 잠정 점수" in details and "미인증" in details
     assert "손실 위험" in details
     page.locator("#detailClose").click()
+    page.locator("#stockSearch").fill("")
     personal_value = page.evaluate("""async () => {
         const r=await fetch('v3-personal-adjusted-score-summary.json',{cache:'no-store'});
         return r.ok?await r.json():null;
