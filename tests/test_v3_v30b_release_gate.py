@@ -45,6 +45,11 @@ class V30bReadinessTests(unittest.TestCase):
                 break
         else:
             self.fail("score member missing from source catalog")
+        ranked = sorted(((code, item) for code, item in report["rows"].items()
+                         if item["rank"] is not None),
+                        key=lambda pair: (-pair[1]["score"], -pair[1]["available"], pair[0]))
+        for rank, (_, item) in enumerate(ranked, 1):
+            item["rank"] = rank
         self.assertIsNotNone(r1d_public_reconciles(report, comparison, catalog=catalog))
         report["rows"]["0001a0"] = report["rows"].pop(new_code)
         for member in catalog["rows"]:
