@@ -354,6 +354,19 @@ const operationalProgress={version:operationalReport.version,asof:operationalRep
   provider_calls:0,missing_is_not_zero:true,investment_score_certified:false,
   performance_validated:false}};
 const visibleR1d=liveProgress.operationalSummary(operationalProgress);
+const savedCloseAudit=JSON.parse(fs.readFileSync(
+ path.join(__dirname,'../docs/v3-krx-saved-close-crosscheck.json'),'utf8'));
+const closeScope=liveProgress.closeAuditSummary(savedCloseAudit,operationalReport.asof);
+assert.ok(closeScope,'official daily close count diagnostic must validate');
+assert.equal(closeScope.checked,savedCloseAudit.counts.saved_market.requested);
+assert.equal(closeScope.different,savedCloseAudit.counts.saved_market.different_close);
+assert.equal(closeScope.fresh,operationalReport.asof===savedCloseAudit.asof);
+assert.equal(liveProgress.closeAuditSummary(savedCloseAudit,'2026-11-09').fresh,false);
+assert.equal(liveProgress.closeAuditSummary({...savedCloseAudit,
+ investment_score_certified:true},operationalReport.asof),null);
+assert.equal(liveProgress.closeAuditSummary({...savedCloseAudit,
+ counts:{saved_market:{...savedCloseAudit.counts.saved_market,different_close:99999}}},
+ operationalReport.asof),null);
 assert.equal(visibleR1d.total,operationalReport.listed_total);
 assert.equal(visibleR1d.observed,operationalRows.filter(r=>r.available>=100).length);
 assert.equal(visibleR1d.near90,operationalRows.filter(r=>r.available>=90).length);
