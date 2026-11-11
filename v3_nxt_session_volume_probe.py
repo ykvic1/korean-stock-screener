@@ -113,7 +113,7 @@ def collect(session, day):
     return {
         'regular_market': regular,
         'closing_price': closing,
-        'all_nxt_sessions': combined,
+    'regular_plus_closing': combined,
         'overlap_issuers': len(regular.keys() & closing.keys()),
     }
 
@@ -142,17 +142,18 @@ def main(argv=None):
     universe = {(s['market'],s['code']) for s in saved.get('stocks', [])
                 if isinstance(s,dict) and s.get('market') in ('KOSPI','KOSDAQ')
                 and isinstance(s.get('code'),str)}
-    merged = result['all_nxt_sessions']
+    merged = result['regular_plus_closing']
     print(json.dumps({
         'status':'nxt_components_observed_no_score_change', 'asof':day,
         'source':SOURCE, 'provider_calls':2,
         'regular_issuer_count':len(result['regular_market']),
         'closing_issuer_count':len(result['closing_price']),
         'overlap_issuer_count':result['overlap_issuers'],
-        'combined_nxt_issuer_count':len(merged),
-        'combined_nxt_issuers_in_saved_universe':len(merged.keys() & universe),
+        'regular_plus_closing_issuer_count':len(merged),
+        'regular_plus_closing_issuers_in_saved_universe':len(merged.keys() & universe),
         'krx_venue_volume_verified':False,
         'combined_krx_nxt_volume_verified':False,
+        'other_nxt_sessions_included_verified':False,
         'original_nxt_volume_values_exported':False,
         'score_points_added':0,
     },sort_keys=True))
