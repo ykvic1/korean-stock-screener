@@ -2,9 +2,12 @@
 import json
 import unittest
 
-from v3_krx_saved_close_crosscheck import check, current_report, CrosscheckError
+from v3_krx_saved_close_crosscheck import (
+    check, current_report, CrosscheckError, safe_failure_reason,
+)
 from v3_krx_history_collection import HistoryCollectionError
 from v3_price_session_capture import capture_window
+from official_probe.clients import KRXProbeError
 
 DAY = '2026-11-10'
 
@@ -37,6 +40,18 @@ def saved():
 
 
 class SavedCloseSourceTests(unittest.TestCase):
+    def test_provider_failure_classification_is_bounded_and_has_no_raw_data(self):
+        self.assertEqual(safe_failure_reason(KRXProbeError('KOSPI', 'empty_market_rows', 200)),
+                         'krx_empty_market_rows')
+        self.assertEqual(safe_failure_reason(KRXProbeError('KOSDAQ', 'http_forbidden', 403)),
+                         'krx_http_forbidden')
+        self.assertEqual(safe_failure_reason(CrosscheckError('untrusted_saved_market')),
+                         'untrusted_saved_market')
+        self.assertEqual(safe_failure_reason(CrosscheckError('secret=abc123')),
+                         'krx_crosscheck_not_verified')
+        self.assertEqual(safe_failure_reason(ValueError('secret=abc123')),
+                         'krx_crosscheck_not_verified')
+
     def test_aftermarket_capture_is_exposure_not_regular_session_evidence(self):
         market=saved()
         market.update({'price_feed':'NAVER_FCHART_DAY_UNVERIFIED_SESSION',
