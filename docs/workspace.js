@@ -43,7 +43,7 @@ const esc=x=>String(x===null||x===undefined?'':x).replace(/[&<>"']/g,c=>({'&':'&
 const won=x=>finite(x)?Math.round(x).toLocaleString('ko-KR')+'원':'미확인';
 const pct=x=>finite(x)?(x>0?'+':'')+x.toFixed(1)+'%':'미확인';
 const eok=x=>finite(x)?(x/1e8).toLocaleString('ko-KR',{maximumFractionDigits:1})+'억':'미확인';
-const TODAY_CODE=/^[0-9]{6}$/;
+const TODAY_CODE=/^[0-9A-Z]{6}$/;
 const datePattern=/^\d{4}-\d{2}-\d{2}$/;
 function validDate(v){
  if(typeof v!=='string'||!datePattern.test(v))return false;
@@ -678,7 +678,7 @@ function applyIssuerCashflowEvidence(model,report,fcfPreview){
     !Number.isInteger(report.unfetched_company_year_slots))return 0;
  let unfetched=3*(model.marketEligible-rows.length),attempted=0;
  for(const [code,values] of rows){
-  if(!/^[0-9]{6}$/.test(code)||
+  if(!/^[0-9A-Z]{6}$/.test(code)||
      !Array.isArray(values)||values.length!==4||
      !['CFS','OFS'].includes(values[0]))return 0;
   let saved=0;
@@ -1246,7 +1246,7 @@ function matchCompareStock(model,value){
  if(!Array.isArray(model?.rows))return null;
  const token=String(value??'').trim().toLocaleLowerCase('ko-KR');
  if(!token)return null;
- const isCode=/^[0-9]{6}$/.test(token);
+ const isCode=/^[0-9A-Z]{6}$/.test(token);
  const hits=model.rows.filter(x=>isCode?
   x.r?.code===token:String(x.r?.name||'').trim().toLocaleLowerCase('ko-KR')===token);
  return hits.length===1?hits[0]:null;
@@ -1600,7 +1600,7 @@ function quantSourceQualityView(report, marketDate){
  if(keys.some(k=>!Object.prototype.hasOwnProperty.call(labels,k)||
      !Number.isInteger(counts[k])||counts[k]<0)||
     keys.reduce((sum,k)=>sum+counts[k],0)!==q.excluded_symbols||
-    report.missing.some(m=>!m||!/^[0-9]{6}$/.test(String(m.code))||
+    report.missing.some(m=>!m||!/^[0-9A-Z]{6}$/.test(String(m.code))||
      !Object.prototype.hasOwnProperty.call(labels,m.reason_code)))return null;
  const missingCodes=report.missing.map(m=>String(m.code));
  if(new Set(missingCodes).size!==missingCodes.length)return null;
