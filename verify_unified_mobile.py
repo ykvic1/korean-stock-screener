@@ -223,7 +223,7 @@ with sync_playwright() as p:
     # without a same-day quote and may occupy the first full-market page.
     # Verify that restricted panel does not pretend to have a current chart.
     first_personal_card = page.locator(".u-stock").first
-    if "종가 미관측" in first_personal_card.locator(".u-card-price small").inner_text():
+    if "가격 미관측" in first_personal_card.locator(".u-card-price small").inner_text():
         first_personal_card.click()
         assert "현재 가격 관측 목록에서 제외된 종목" in page.locator("#detail").inner_text()
         assert "가격·손절선·차트·기존 점수를 임의로 채우지 않습니다" in page.locator("#detail").inner_text()
@@ -234,7 +234,7 @@ with sync_playwright() as p:
     page.locator("#stockSearch").fill(priced_code)
     personal_card = page.locator(f'.u-stock[data-stock="{priced_code}"]')
     personal_card.wait_for(timeout=10000)
-    assert "종가 ·" in personal_card.locator(".u-card-price small").inner_text(), (
+    assert "FChart 기준가 ·" in personal_card.locator(".u-card-price small").inner_text(), (
         "known current-priced stock must not be relabeled unpriced"
     )
     personal_label = personal_card.locator(".u-card-score > small").last.inner_text()

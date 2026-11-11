@@ -12,6 +12,12 @@ const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
 
+// The latest FChart daily bar can include aftermarket trading: never describe
+// an unverified provider reference price as certified KRX regular-session close.
+assert.ok(source.includes('FChart 기준가 · KRX 정규장 미검증'));
+assert.ok(source.includes('FChart 기준가 · '));
+assert.ok(source.includes("'가격 미관측'"));
+
 // Structural 20/60 support is visible as an independent, unscored reference.
 {
  const base={price:105,price_date:'2026-11-10',stop_line:94,stop_pct:-10.48};
