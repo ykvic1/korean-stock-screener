@@ -37,7 +37,7 @@ from v3_price_session_capture import capture_window
 
 SCHEMA = "full-market-batched-100-v0.1"
 CHUNK = 100
-CODE = re.compile(r"\d{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 MAX_UNIVERSE = 20000
 MAX_BATCHES = 256
 MAX_FILE = 10_000_000
@@ -124,9 +124,46 @@ def market_roster_with_retries(*, fetch=None, sleep=None):
             sleep(1 + attempt * 2)
 
 
-def plan(*, asof: str, out: Path, listing=None) -> dict:
+def _same_day_saved_catalog(path: Path, asof: str) -> dict:
+    """An explicitly labelled, *audit-only* roster when live KRX login fails.
+
+    A cached market catalog cannot establish today's new issues, delistings or
+    a valid source close.  Only a full same-date published roster may seed a
+    read-only history scan; never silently promote it into publication.
+    """
+    catalog = _read(path)
+    rows = catalog.get('rows')
+    if (catalog.get('schema') != 'v22-current-listed-catalog-0.1'
+            or catalog.get('date') != asof or type(rows) is not list
+            or type(catalog.get('listed_total')) is not int
+            or not 20 <= len(rows) == catalog['listed_total'] <= MAX_UNIVERSE):
+        raise BatchError('saved_catalog_not_same_day_full_roster')
+    saved = {}
+    for row in rows:
+        if (not isinstance(row, dict) or type(row.get('code')) is not str
+                or not CODE.fullmatch(row['code'])
+                or row.get('market') not in ('KOSPI', 'KOSDAQ')
+                or row['code'] in saved):
+            raise BatchError('saved_catalog_invalid_or_duplicate_issuer')
+        saved[row['code']] = {'code': row['code'], 'market': row['market']}
+    return saved
+
+
+def plan(*, asof: str, out: Path, listing=None,
+         fallback_catalog: Path | None = None) -> dict:
     asof = _date(asof)
-    universe = market_roster_with_retries() if listing is None else listing
+    provenance = 'live_market_snapshot'
+    if listing is not None:
+        universe = listing
+    else:
+        try:
+            universe = market_roster_with_retries()
+        except BatchError as exc:
+            if (str(exc) != 'market_roster_source_unavailable_after_retries'
+                    or fallback_catalog is None):
+                raise
+            universe = _same_day_saved_catalog(fallback_catalog, asof)
+            provenance = 'same_day_saved_catalog_audit_only'
     selected, eligible = screener.select_universe(
         universe, screener.cfg_read(), datetime.fromisoformat(asof))
     codes = sorted(r["code"] for r in selected)
@@ -135,13 +172,15 @@ def plan(*, asof: str, out: Path, listing=None) -> dict:
     manifest = {"schema": SCHEMA, "asof": asof, "codes": codes,
                 "batch_size": CHUNK, "batch_count": math.ceil(len(codes)/CHUNK),
                 "digest": _digest(asof, codes), "source_raw_rows_saved": False,
-                "company_size_filter": False}
+                "company_size_filter": False,
+                "roster_provenance": provenance}
     validate_manifest(manifest)
     _write(out/"manifest.json", manifest)
     _write(out/"matrix.json", {"include": [
         {"part": n} for n in range(manifest["batch_count"])]})
     return {"status": "market_plan_ready", "eligible": len(codes),
-            "chunk_size": CHUNK, "jobs": manifest["batch_count"]}
+            "chunk_size": CHUNK, "jobs": manifest["batch_count"],
+            "roster_provenance": provenance}
 
 
 def batch_codes(manifest: dict, part: int) -> list[str]:
@@ -376,6 +415,8 @@ def publish(*, manifest: dict, parts_dir: Path,
             listing=None, index_data=None, optional_sources=None,
             cfg=None, use_flow=True, write_report=True,
             allow_missing_parts=False):
+    if manifest.get('roster_provenance') == 'same_day_saved_catalog_audit_only':
+        raise BatchError('cached_market_roster_cannot_publish')
     merged = load_receipts(
         manifest, parts_dir, allow_missing_parts=allow_missing_parts)
     cfg = screener.cfg_read() if cfg is None else cfg
@@ -468,6 +509,8 @@ def main(argv=None):
     p = subs.add_parser("plan")
     p.add_argument("--asof", default=None)
     p.add_argument("--out", required=True)
+    p.add_argument("--fallback-catalog", type=Path, default=None,
+                   help='Use same-day saved roster only after live listing fails; audit only')
     p = subs.add_parser("scan")
     p.add_argument("--manifest", required=True)
     p.add_argument("--part", required=True, type=int)
@@ -481,7 +524,8 @@ def main(argv=None):
     try:
         if args.cmd == "plan":
             asof = args.asof or datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
-            result = plan(asof=asof, out=Path(args.out))
+            result = plan(asof=asof, out=Path(args.out),
+                          fallback_catalog=args.fallback_catalog)
         elif args.cmd == "scan":
             result = scan(manifest=_read(Path(args.manifest)),
                           part=args.part, out=Path(args.out), workers=args.workers)

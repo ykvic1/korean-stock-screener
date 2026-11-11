@@ -64,6 +64,50 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             self.assertEqual(fetch.call_count, 3)
             self.assertFalse((Path(tmp) / 'manifest.json').exists())
 
+    def test_explicit_same_day_saved_roster_allows_audit_but_never_publish(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp)
+            members = [
+                {'code': '0008Z0' if i == 0 else f'{100000+i:06d}',
+                 'market': 'KOSDAQ' if i % 2 == 0 else 'KOSPI'}
+                for i in range(21)]
+            cached = p / 'catalog.json'
+            cached.write_text(json.dumps({
+                'schema': 'v22-current-listed-catalog-0.1',
+                'date': DAY, 'listed_total': len(members), 'rows': members,
+            }), encoding='utf-8')
+            with patch.object(screener, 'market_snapshot', side_effect=RuntimeError('login')) as fetch:
+                with patch.object(b.time, 'sleep'):
+                    result = b.plan(asof=DAY, out=p / 'plan', fallback_catalog=cached)
+            self.assertEqual(fetch.call_count, 3)
+            self.assertEqual(result['eligible'], 21)
+            self.assertEqual(result['roster_provenance'], 'same_day_saved_catalog_audit_only')
+            manifest = b._read(p / 'plan' / 'manifest.json')
+            self.assertIn('0008Z0', manifest['codes'])
+            b.validate_manifest(manifest)
+            with self.assertRaisesRegex(b.BatchError, 'cached_market_roster_cannot_publish'):
+                b.publish(manifest=manifest, parts_dir=p / 'parts')
+
+    def test_saved_roster_must_match_requested_date_and_have_unique_codes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cached = Path(tmp) / 'catalog.json'
+            members = [
+                {'code': f'{100000+i:06d}', 'market': 'KOSPI'}
+                for i in range(21)]
+            payload = {'schema': 'v22-current-listed-catalog-0.1',
+                       'date': '2026-10-15', 'listed_total': 21,
+                       'rows': members}
+            with patch.object(screener, 'market_snapshot', side_effect=RuntimeError('login')):
+                with patch.object(b.time, 'sleep'):
+                    for variant, reason in ((payload, 'saved_catalog_not_same_day_full_roster'),
+                                            ({**payload, 'date': DAY,
+                                              'rows': members[:-1]+[members[0]]},
+                                             'saved_catalog_invalid_or_duplicate_issuer')):
+                        cached.write_text(json.dumps(variant), encoding='utf-8')
+                        with self.assertRaisesRegex(b.BatchError, reason):
+                            b.plan(asof=DAY, out=Path(tmp)/'plan', fallback_catalog=cached)
+            self.assertFalse((Path(tmp) / 'plan' / 'manifest.json').exists())
+
     def test_parallel_scan_overlaps_waits_and_preserves_every_outcome(self):
         release = Event()
         lock = Lock()
