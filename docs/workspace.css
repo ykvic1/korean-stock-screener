@@ -641,6 +641,10 @@ body{background:var(--bg);color:var(--ink);font-size:14px}
 .u-live-disclaimer>summary::before{content:"ⓘ ";color:var(--teal)}
 .u-live-disclaimer>summary::-webkit-details-marker{display:none}
 .u-live-updates-note{color:#526b60;font-size:11px;margin:7px 0 4px}
+.u-krx-price-alert{margin:0 0 12px;padding:10px 13px;background:#fff8e9;
+  color:#755112;border:1px solid #e8d3a5;border-radius:10px;font-size:12px;
+  line-height:1.6;overflow-wrap:anywhere}
+.u-krx-price-alert a{color:#795012;text-decoration:underline;text-underline-offset:2px}
 .u-controls{background:#fff;border:1px solid var(--line);border-radius:15px;
   padding:17px 19px 13px;margin:0 0 14px;box-shadow:none}
 .u-quick-search{padding:0 0 8px;color:#4e6575}
