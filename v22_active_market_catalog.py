@@ -26,7 +26,7 @@ def _amount(value):
     return round(float(value),2) if _finite(value) and value>=0 else None
 
 def _six_code(value):
-    return type(value) is str and re.fullmatch(r"\d{6}",value) is not None
+    return type(value) is str and re.fullmatch(r"[0-9A-Z]{6}",value) is not None
 
 def _listing_zero_volume(value):
     """Boolean-only single-session listing reference; never the source volume.
