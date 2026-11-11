@@ -6,7 +6,7 @@
  */
 (function (root) {
   'use strict';
-  const CODE = /^\d{6}$/;
+  const CODE = /^[0-9A-Z]{6}$/;
   const num = x => typeof x === 'number' && Number.isFinite(x);
   const asofOk = x => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x);
 
