@@ -556,7 +556,7 @@ class HistoricalDARTReceiptTests(unittest.TestCase):
         self.assertNotIn("contents: write", fast)
         self.assertNotIn("git push", fast)
         self.assertNotIn("upload-artifact", fast)
-        self.assertIn("cron: '30 12 * * 1-5'",
+        self.assertIn("cron: '30 17 * * 1-5'",
                       (base / ".github/workflows/full-market-batches.yml").read_text())
 
 
