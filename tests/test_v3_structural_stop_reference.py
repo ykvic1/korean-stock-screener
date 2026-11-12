@@ -84,6 +84,8 @@ class StructuralStopReferenceTests(unittest.TestCase):
         ref = observe(history(20), asof='2026-11-10')
         self.assertEqual(ref['low20'], 96)
         self.assertIsNone(ref['low60'])
+        self.assertEqual(ref['ma20'], 105.)
+        self.assertIsNone(ref['ma60'])
         self.assertIsNone(ref['confirmed_swing_low'])
 
     def test_volume_profile_is_daily_proxy_not_actual_execution(self):
