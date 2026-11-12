@@ -543,8 +543,10 @@ def publish(*, manifest: dict, parts_dir: Path,
             allow_missing_parts=False):
     if manifest.get('roster_provenance') == 'same_day_saved_catalog_audit_only':
         raise BatchError('cached_market_roster_cannot_publish')
+    print(json.dumps({"status":"market_merge_stage","stage":"validate_26_part_receipts"}), flush=True)
     merged = load_receipts(
         manifest, parts_dir, allow_missing_parts=allow_missing_parts)
+    print(json.dumps({"status":"market_merge_stage","stage":"load_exact_dated_listing"}), flush=True)
     cfg = screener.cfg_read() if cfg is None else cfg
     if listing is None and manifest.get("roster_provenance") == 'date_pinned_fdr_public_cache':
         # Never join a different cached market-day file at publication time.
@@ -560,8 +562,11 @@ def publish(*, manifest: dict, parts_dir: Path,
     if set(listing) != set(manifest["codes"]):
         raise BatchError("listing_changed_between_jobs")
     day = datetime.fromisoformat(manifest["asof"])
+    print(json.dumps({"status":"market_merge_stage","stage":"optional_company_listings"}), flush=True)
     optional = screener.optional_listings(listing) if optional_sources is None else optional_sources
+    print(json.dumps({"status":"market_merge_stage","stage":"index_lookups"}), flush=True)
     idx = screener.load_indexes(day, cfg) if index_data is None else index_data
+    print(json.dumps({"status":"market_merge_stage","stage":"join_scanned_rows"}), flush=True)
     valid = []
     errors = list(merged["errors"])
     for x in merged["rows"]:
@@ -596,9 +601,11 @@ def publish(*, manifest: dict, parts_dir: Path,
             current.append(r)
     if len(current)<20:
         raise BatchError("fewer_than_20_current_stocks")
+    print(json.dumps({"status":"market_merge_stage","stage":"optional_flow_lookup"}), flush=True)
     attempted = deferred = planned = 0
     if use_flow:
         attempted, deferred, planned = flow_after_merge(current, day, cfg, errors)
+    print(json.dumps({"status":"market_merge_stage","stage":"final_market_score_recheck"}), flush=True)
     for r in current:
         screener.score_one(r, cfg)
     # Scheduled 18:30 uses THIS full-market merger, not build_rows() in
@@ -607,6 +614,7 @@ def publish(*, manifest: dict, parts_dir: Path,
     # every stock incorrectly remains V3-technical-unobserved.
     # Other five pillars stay explicitly null and the existing v2.2 order,
     # decision, scoring and recommendation logic are NOT replaced.
+    print(json.dumps({"status":"market_merge_stage","stage":"technical_research_adapter"}), flush=True)
     from v3_pattern_composite_score import compute_candidates
     compute_candidates(current)
     current.sort(key=lambda r: (
@@ -622,11 +630,14 @@ def publish(*, manifest: dict, parts_dir: Path,
     if not write_report:
         return {"rows": current, "errors": errors, "metadata": meta}
     screener.LOG.mkdir(parents=True, exist_ok=True)
+    print(json.dumps({"status":"market_merge_stage","stage":"generate_excel"}), flush=True)
     excel = screener.make_report(current, errors,
                                  datetime.fromisoformat(freshest), cfg, meta)
+    print(json.dumps({"status":"market_merge_stage","stage":"generate_web_snapshot"}), flush=True)
     data = screener.web_publish(current, errors,
                                 datetime.fromisoformat(freshest), cfg, meta, excel)
     # Keep ALL currently listed stocks searchable even when OHLCV unavailable.
+    print(json.dumps({"status":"market_merge_stage","stage":"write_all_listed_catalog"}), flush=True)
     from v22_active_market_catalog import write_active_catalog
     write_active_catalog(data, listing, screener.SITE / "v22-market-catalog.json")
     # Separate small active-listing research: 60-159 genuine bars can yield
@@ -634,6 +645,7 @@ def publish(*, manifest: dict, parts_dir: Path,
     # full v2.2 ranking score. Any source failure stays unavailable.
     from v22_short_history_observations import write_short_history
     write_short_history(data, screener.SITE / "v22-partial-history.json", cfg=cfg)
+    print(json.dumps({"status":"market_merge_stage","stage":"all_local_artifacts_verified"}), flush=True)
     return {"status": ("complete_market_report_published"
                         if merged["market_scan_complete"]
                         else "partial_market_report_published_with_missing_batch_warning"),
