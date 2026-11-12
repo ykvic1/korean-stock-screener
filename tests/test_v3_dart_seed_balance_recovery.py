@@ -104,10 +104,20 @@ class SeedBalanceTests(unittest.TestCase):
         market,catalog,prior=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json')]
         day,_,_,fiscal,cohorts=b.plan(market,catalog,prior=prior,recover_seed_balance=True)
         targets={c for cohort in cohorts for c in cohort}
-        expected={c for c,row in prior['records'].items() if any(
-            b._seed_balance_pending(row['years'].get(str(y)),y,day) for y in fiscal)}
+        # The current roster can expand independently of a previously saved
+        # four-year DART archive (e.g., 2,501 -> 2,590 listed companies).
+        # Reconcile against CURRENT valid identities, not just old record keys:
+        # an unqueried new issuer is a real gap, never a fabricated zero.
+        _,members=b._inputs(market,catalog)
+        retained=b._validate_prior(prior,day,members)
+        expected={code for code in members if (
+            any(str(y) not in retained.get(code,{}).get('years',{}) for y in fiscal)
+            or any(b._seed_balance_pending(
+                retained.get(code,{}).get('years',{}).get(str(y)),y,day)
+                for y in fiscal))}
         self.assertTrue(targets<=expected)
         self.assertEqual(len(targets),min(300,len(expected)))
+        self.assertTrue(all(code in members for code in targets))
         self.assertTrue(all(len(x)<=100 for x in cohorts))
 
     def test_synthetic_same_receipt_assets_replay_into_fcf_and_full_model_without_loss(self):
