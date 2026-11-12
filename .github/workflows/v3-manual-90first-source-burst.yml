@@ -116,7 +116,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-reported-capex-total.yml/dispatches" -f ref=main --silent
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-reported-capex-total.yml/dispatches" -f ref=main -f 'inputs[focus]=sub90' --silent
       - name: Manually start 90-first exact saved-close path collection
         if: steps.gaps.outputs.price == 'true'
         env:
