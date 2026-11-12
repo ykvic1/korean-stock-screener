@@ -35,6 +35,42 @@ class Response:
 
 
 class DatedRosterTests(unittest.TestCase):
+    def test_krx_global_is_kosdaq_but_konex_and_spacs_stay_out(self):
+        # Regression against 2026-11-11 dated FDR market labels:
+        # a third-looking source label silently dropped 50 KOSDAQ GLOBAL
+        # ordinary issuers before daily OHLCV or scoring even started.
+        frame=fixture_listing(1000)
+        samples=[
+            ('196170','알테오젠','KOSDAQ GLOBAL'),
+            ('247540','에코프로비엠','KOSDAQ GLOBAL'),
+            ('458650','성우','KOSDAQ'),
+            ('294090','이오플로우','KOSDAQ'),
+            ('159910','에코글로우','KOSDAQ'),
+            ('0126Z0','삼성에피스홀딩스','KOSPI'),
+            ('0009K0','에임드바이오','KOSDAQ'),
+            ('0205H0','에스케이증권제14호기업인수목적','KOSDAQ'),
+            ('00104K','CJ4우(전환)','KOSPI'),
+            ('00279K','아모레퍼시픽홀딩스3우C','KOSPI'),
+            ('37550L','DL이앤씨2우(전환)','KOSPI'),
+            ('008355','남선알미우','KOSPI'),
+            ('496320','본시스템즈','KONEX'),
+        ]
+        for i,(code,name,market) in enumerate(samples):
+            frame.loc[i,['Code','Name','Market']]=[code,name,market]
+        selected=screener.market_snapshot(listing=frame)
+        for code in ('196170','247540','458650','294090','159910',
+                     '0126Z0','0009K0','0008Z0'):
+            self.assertIn(code,selected)
+        for code in ('0205H0','00104K','00279K','37550L',
+                     '008355','496320'):
+            self.assertNotIn(code,selected)
+        self.assertEqual(selected['196170']['market'],'KOSDAQ')
+        self.assertEqual(selected['247540']['market'],'KOSDAQ')
+        self.assertEqual(selected['0126Z0']['market'],'KOSPI')
+        # Exactly 6 excluded fixture positions, not zero-scored or rebranded.
+        self.assertEqual(len(selected),1000-6)
+
+
     def test_immutable_requested_date_path_and_mixed_code_not_truncated(self):
         frame = fixture_listing(1001)
         raw = frame.to_csv(index=False).encode('utf-8-sig')
