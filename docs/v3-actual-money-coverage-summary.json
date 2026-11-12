@@ -1,5 +1,5 @@
 {
-  "asof": "2026-11-11",
+  "asof": "2026-11-12",
   "comparison_window_coverage": {
     "complete_window_is_not_full_six_point_eligibility": true,
     "daily_comparison_eligible_issuers": {
@@ -37,7 +37,7 @@
     "structure_only_issuers": 468
   },
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 593,
+    "fresh_unscored_issuers": 594,
     "full_fresh_evidence_issuers": 1997,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
@@ -45,7 +45,7 @@
       "complete__incomplete_periods": 304,
       "complete__zero_baseline": 1,
       "incomplete_periods__complete": 12,
-      "incomplete_periods__incomplete_periods": 272,
+      "incomplete_periods__incomplete_periods": 273,
       "incomplete_periods__zero_baseline": 1,
       "zero_baseline__complete": 1,
       "zero_baseline__zero_baseline": 2
@@ -70,7 +70,7 @@
       "internal_missing__complete": 2,
       "internal_missing__internal_missing": 3,
       "internal_missing__recent_missing": 90,
-      "no_observed_history__no_observed_history": 2,
+      "no_observed_history__no_observed_history": 3,
       "tail_only_missing__complete": 11,
       "tail_only_missing__no_observed_history": 2,
       "tail_only_missing__recent_missing": 15,
@@ -78,7 +78,7 @@
     }
   },
   "investment_score_certified": false,
-  "listed_total": 2590,
+  "listed_total": 2591,
   "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
   "original_amounts_or_bars_published": false,
   "schema": "v3-personal-actual-money-coverage-summary-0.1",
