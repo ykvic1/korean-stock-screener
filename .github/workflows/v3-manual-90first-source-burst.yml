@@ -86,6 +86,11 @@ jobs:
               "price": price_candidates > 0,
               "cashflow": counts.get("dart_cashflow_capex", 0) > 0,
               "money": counts.get("exchange_actual_money_windows", 0) > 0,
+              # These are conditional 90-first source families, not certified
+              # recoveries. The bounded live collectors independently verify
+              # exact issuer/year/scope/receipt and skip reviewed requests.
+              "annual": counts.get("dart_annual_fundamentals", 0) > 0,
+              "profit": counts.get("reported_eps_earnings_yield", 0) > 0,
           }
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               for key, value in flags.items():
@@ -100,6 +105,8 @@ jobs:
               "price_path_selection": path_state,
               "cashflow_conditional_90first_issuers": counts.get("dart_cashflow_capex", 0),
               "money_conditional_90first_issuers": counts.get("exchange_actual_money_windows", 0),
+              "annual_conditional_90first_issuers": counts.get("dart_annual_fundamentals", 0),
+              "earnings_conditional_90first_issuers": counts.get("reported_eps_earnings_yield", 0),
               "dispatch": flags, "points_added_by_dispatch": 0,
               "no_missing_source_guessed": True,
           }, sort_keys=True))
@@ -122,6 +129,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-krx-money-week-repair.yml/dispatches" -f ref=main --silent
+      - name: Manually resume receipt-matched FY2022 annual revenue recovery
+        if: steps.gaps.outputs.annual == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The collector owns a 100-issuer checkpoint, receipt/date gate,
+          # and a no-refetch cache; a priority count is NOT evidence.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-dart-revenue-2022.yml/dispatches" \
+            -f ref=main -f 'inputs[mode]=live' --silent
+      - name: Manually resume bounded FY2025 original owner-profit recovery
+        if: steps.gaps.outputs.profit == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The underlying worker independently checks 2025 annual identity,
+          # scope, original receipt and source day before recording anything.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-dart-owner-profit-probe.yml/dispatches" \
+            -f ref=main -f 'inputs[mode]=live' --silent
       - name: Explain strict acquisition boundaries
         run: |
           echo "Only existing source-verified collectors were dispatched."
