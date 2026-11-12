@@ -95,8 +95,10 @@ def overnight_previous_market_date(*, now=None):
     local=local.astimezone(ZoneInfo("Asia/Seoul"))
     if local.weekday() not in (1,2,3,4,5) or not 1<=local.hour<8:
         raise BatchError("outside_overnight_market_batch_window")
-    day=(local.date()-timedelta(days=1)).isoformat()
-    return _date(day)
+    # `plan()` validates this date against the real clock before fetching.
+    # Keep the clock projection pure so historical/future DST-free KST
+    # boundary tests do not depend on which date CI happened to run.
+    return (local.date()-timedelta(days=1)).isoformat()
 
 
 def _digest(asof: str, codes: list[str]) -> str:
