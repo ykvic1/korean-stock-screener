@@ -44,6 +44,25 @@ class IssuerHistoryWatchTests(unittest.TestCase):
         self.assertEqual(report["counts"]["prior_component_events"],1)
         self.assertEqual(report["per_component_observed_issuer_counts"]["valuation.pbr"],1)
 
+    def test_mixed_code_score_history_passes_independent_integrity_watch(self):
+        older,today="2026-11-10","2026-11-11"
+        code="0008Z0"
+        company=(code,"Mixed-code Stock")
+        before=build(catalog(older,[company]),
+                     [price_row(older,code,company[1])])
+        after=build(catalog(today,[company]),
+                    [price_row(today,code,company[1])],before)
+        report=inspect(after,before)
+        self.assertEqual(report["status"],"ok")
+        self.assertEqual(report["counts"]["active"],1)
+        self.assertFalse(report["score_mutations_authorized"])
+        corrupt=copy.deepcopy(after)
+        old=corrupt["rows"].pop(code)
+        corrupt["rows"]["0008z0"]={**old,"code":"0008z0"}
+        report=inspect(corrupt)
+        self.assertEqual(report["status"],"error")
+        self.assertIn("invalid_issuer_identity_or_ledger_contract",report["issues"])
+
     def test_a_lag_does_not_become_an_error_or_a_zero(self):
         old="2026-10-30";now="2026-11-02"
         first=build(catalog(old,[("005930","A")]),
