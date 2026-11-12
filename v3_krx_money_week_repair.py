@@ -102,7 +102,7 @@ def validate(blob, original_blob, original):
             or diag['restored_with_explicit_zero_amount'] > len(d['factors'])):
             raise ValueError()
         for key, factor in d['factors'].items():
-            if (not re.fullmatch('(KOSPI|KOSDAQ):[0-9]{6}', key)
+            if (not re.fullmatch('(KOSPI|KOSDAQ):[0-9A-Z]{6}', key)
                 or key in original['issuer_week_factors']
                 or type(factor) is not dict
                 or set(factor) != {'amount_100k_krw', 'observed_sessions'}
@@ -260,7 +260,7 @@ def select(history, catalog, examined, focus_codes=None, *,
     members = set()
     for item in catalog['rows']:
         code, market = item.get('code'), item.get('market')
-        if (type(code) is not str or not re.fullmatch('[0-9]{6}', code)
+        if (type(code) is not str or not re.fullmatch('[0-9A-Z]{6}', code)
             or market not in ('KOSPI', 'KOSDAQ') or code in members):
             raise MoneyRepairError('invalid_money_repair_catalog')
         members.add(code)
@@ -277,18 +277,34 @@ def select(history, catalog, examined, focus_codes=None, *,
         gaps = [i for i in range(min(positions), max(positions) + 1) if not present[i]]
         if gaps:
             internal_issuers += 1
-        for i in gaps:
+        # Previously only INTERNAL holes could be repaired. Source-proven
+        # 90/100 completion candidates may instead lack one or two weeks
+        # immediately outside their observed run, even when an adjacent
+        # official week is present. Check at most two boundary periods per
+        # side, ONLY for priority codes and only if that side has <=5 gaps.
+        # Large leading/trailing blocks may be genuine pre-listing/halts:
+        # do not launch a 240-week blind recovery or infer an IPO date.
+        focus = item['code'] in (focus_codes or set())
+        edges = []
+        if focus:
+            newer, older = positions[0], len(present) - positions[-1] - 1
+            if 0 < newer <= 5:
+                edges.extend(range(max(0, newer - 2), newer))
+            if 0 < older <= 5:
+                edges.extend(range(positions[-1] + 1,
+                                   min(len(present), positions[-1] + 3)))
+        missing_total = sum(not yes for yes in present)
+        for i in sorted(set(gaps).union(edges)):
             week = history[i][1][period_field]
             if week in examined:
                 continue
             targets.setdefault(week, set()).add(key)
-            # This closes weekly evidence only if there are no other holes,
-            # including at the latest or oldest edge of the inspected chain.
-            if sum(not yes for yes in present) == 1:
+            # Never assume a partial week is zero turnover or full history.
+            if missing_total == 1:
                 single[week] = single.get(week, 0) + 1
-            if item['code'] in (focus_codes or set()):
-                focused_share[week] = focused_share.get(week, 0) + 1 / sum(not yes for yes in present)
-                if sum(not yes for yes in present) == 1:
+            if focus:
+                focused_share[week] = focused_share.get(week, 0) + 1 / missing_total
+                if missing_total == 1:
                     focused_single[week] = focused_single.get(week, 0) + 1
     order = sorted(targets, key=lambda w: (-focused_single.get(w, 0),
         -focused_share.get(w, 0), -single.get(w, 0), -len(targets[w]), w))

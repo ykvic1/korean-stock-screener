@@ -104,7 +104,7 @@ def validate(blob, original_blob, original, sessions):
             or diag['restored_with_explicit_zero_amount'] > diag['restored_pairs']):
             raise ValueError()
         for key, f in d['amount_factors'].items():
-            if (not re.fullmatch('(KOSPI|KOSDAQ):[0-9]{6}', key)
+            if (not re.fullmatch('(KOSPI|KOSDAQ):[0-9A-Z]{6}', key)
                 or key in original['derived_issuer_money_factors']
                 or type(f) is not dict or set(f) != {'total_actual_amount_100k_krw', 'positive_amount_days'}
                 or type(f['total_actual_amount_100k_krw']) is not int

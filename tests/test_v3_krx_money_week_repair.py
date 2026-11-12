@@ -199,6 +199,61 @@ class RepairTests(unittest.TestCase):
         focused, _, _, _ = repair.select(history, catalog, {}, {'000003'})
         self.assertIn(focused[0], ('2026-10-11', '2026-10-25'))
 
+    def test_priority_only_repairs_short_boundary_gaps_without_blind_ipo_history(self):
+        history = []
+        for i in range(8):
+            factors = {}
+            for code, present in (
+                ('000001', i >= 1),       # one recent missing week
+                ('000002', i <= 6),       # one oldest missing week
+                ('000003', i in (3, 4)), # bounded two-side missing
+                ('000004', i == 0),      # long unknown prelisting tail
+            ):
+                if present:
+                    factors['KOSPI:' + code] = {}
+            week = (date(2026, 11, 1) - timedelta(weeks=i)).isoformat()
+            row = {'week_end': week, 'issuer_week_factors': factors}
+            history.append((b'', row, row))
+        catalog = {'listed_total': 4, 'rows': [
+            {'code': f'{i:06d}', 'market': 'KOSPI'} for i in range(1, 5)]}
+        self.assertEqual(repair.select(history, catalog, {})[0], [])
+        order, targets, singles, internal = repair.select(
+            history, catalog, {}, {'000001', '000002', '000003', '000004'})
+        self.assertEqual(internal, 0)
+        self.assertEqual(set(order), {history[i][1]['week_end']
+                                     for i in (0, 1, 2, 5, 6, 7)})
+        self.assertIn('KOSPI:000001', targets[history[0][1]['week_end']])
+        self.assertIn('KOSPI:000002', targets[history[7][1]['week_end']])
+        self.assertEqual(singles[history[0][1]['week_end']], 1)
+        self.assertEqual(singles[history[7][1]['week_end']], 1)
+        self.assertFalse(any('KOSPI:000004' in codes for codes in targets.values()))
+        examined = {history[0][1]['week_end']: 'a' * 64}
+        checked = repair.select(history, catalog, examined, {'000001'})
+        self.assertEqual(checked[0], [], 'immutable receipt is not refetched')
+        # Without a focus code, a missing edge is never guessed to be source data.
+        self.assertEqual(repair.select(history, catalog, {}, set())[0], [])
+
+    def test_mixed_stock_code_source_receipt_is_strict_and_not_a_fabricated_score(self):
+        blob, data = original()
+        _, compressed = repair.source_additions(
+            Client(), blob, data, {'KOSPI:000002'}, {'requests': 0})
+        original_receipt = json.loads(gzip.decompress(compressed))
+        for code in ('00A0Z0', '00a0Z0', '00A0_0', '００A０Z０'):
+            receipt = copy.deepcopy(original_receipt)
+            receipt['factors']['KOSPI:' + code] = receipt['factors'].pop('KOSPI:000002')
+            payload = gzip.compress(canonical(receipt))
+            if code == '00A0Z0':
+                self.assertEqual(repair.validate(payload, blob, data)['factors'],
+                                 receipt['factors'])
+            else:
+                with self.assertRaises(repair.MoneyRepairError):
+                    repair.validate(payload, blob, data)
+        catalog = {'listed_total': 1, 'rows': [
+            {'code': '00A0Z0', 'market': 'KOSPI'}]}
+        newest = {'week_end': '2026-11-01', 'issuer_week_factors': {
+            'KOSPI:00A0Z0': {'amount_100k_krw': 5, 'observed_sessions': 5}}}
+        self.assertEqual(repair.select([(b'', newest, newest)], catalog, {})[0], [])
+
     def test_focus_uses_missing_component_evidence_and_never_changes_scoring(self):
         catalog = {'date': '2026-11-06', 'rows': [{'code': '000001'}, {'code': '000002'}]}
         priority = {'asof': catalog['date'], 'shape_names': [

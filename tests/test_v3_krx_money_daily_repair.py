@@ -71,6 +71,24 @@ class DailyRepairTests(unittest.TestCase):
         with self.assertRaisesRegex(daily.MoneyRepairError,'digest_mismatch'):
             daily.overlay(store,blob,data,sessions,idx)
 
+    def test_reported_money_repair_receipts_accept_only_uppercase_mixed_codes(self):
+        sessions, data, blob = original()
+        receipt, _ = daily.source_additions(Client(amount='0'), blob, data,
+                                            sessions, {'KOSPI:000001'}, {'requests': 0})
+        self.assertEqual(receipt['diagnostic']['restored_pairs'], 1)
+        for code in ('00A0Z0', '00a0Z0', '00A0_0', '００A０Z０'):
+            changed = copy.deepcopy(receipt)
+            changed['amount_factors']['KOSPI:' + code] = (
+                changed['amount_factors'].pop('KOSPI:000001'))
+            payload = gzip.compress(canonical(changed))
+            if code == '00A0Z0':
+                self.assertEqual(daily.validate(payload, blob, data, sessions)
+                                 ['amount_factors'], changed['amount_factors'])
+                self.assertFalse(changed['investment_score_certified'])
+            else:
+                with self.assertRaises(daily.MoneyRepairError):
+                    daily.validate(payload, blob, data, sessions)
+
     def test_missing_values_stay_missing_and_changed_established_money_blocks(self):
         sessions, data, blob = original()
         receipt, _ = daily.source_additions(Client(amount=None),blob,data,sessions,
