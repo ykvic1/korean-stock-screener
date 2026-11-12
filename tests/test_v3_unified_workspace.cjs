@@ -1014,7 +1014,7 @@ assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup
 for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile'],[entry,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
-  page.includes('v3-live-progress.js?v=v30b-20261111-r1e-coverage')&&
+  page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }
