@@ -3,49 +3,49 @@
   "comparison_window_coverage": {
     "complete_window_is_not_full_six_point_eligibility": true,
     "daily_comparison_eligible_issuers": {
-      "120": 2349,
-      "20": 2385,
-      "240": 2256,
-      "60": 2371
+      "120": 2403,
+      "20": 2463,
+      "240": 2305,
+      "60": 2442
     },
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
-      "10": 2371,
-      "120": 1968,
-      "20": 2359,
-      "5": 2380,
-      "60": 2218
+      "10": 2444,
+      "120": 2014,
+      "20": 2422,
+      "5": 2458,
+      "60": 2266
     }
   },
   "component_observation_coverage": {
     "complete_structure_not_full_100_observation": true,
     "full_weight_issuers": {
-      "concentration_quality": 2378,
-      "correction_contraction": 2248,
-      "persistence": 1951,
-      "up_down_asymmetry": 2254,
-      "weekly_structure_increment": 1966
+      "concentration_quality": 2456,
+      "correction_contraction": 2324,
+      "persistence": 1997,
+      "up_down_asymmetry": 2330,
+      "weekly_structure_increment": 2012
     },
     "observed_issuers": {
-      "concentration_quality": 2387,
-      "correction_contraction": 2248,
-      "persistence": 2387,
-      "up_down_asymmetry": 2254,
-      "weekly_structure_increment": 1966
+      "concentration_quality": 2465,
+      "correction_contraction": 2324,
+      "persistence": 2465,
+      "up_down_asymmetry": 2330,
+      "weekly_structure_increment": 2012
     },
     "partial_weight_not_renormalized": true,
-    "structure_only_issuers": 436
+    "structure_only_issuers": 468
   },
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 550,
-    "full_fresh_evidence_issuers": 1951,
+    "fresh_unscored_issuers": 593,
+    "full_fresh_evidence_issuers": 1997,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
-      "complete__incomplete_periods": 301,
+      "complete__incomplete_periods": 304,
       "complete__zero_baseline": 1,
       "incomplete_periods__complete": 12,
-      "incomplete_periods__incomplete_periods": 232,
+      "incomplete_periods__incomplete_periods": 272,
       "incomplete_periods__zero_baseline": 1,
       "zero_baseline__complete": 1,
       "zero_baseline__zero_baseline": 2
@@ -58,25 +58,27 @@
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },
-  "eligible_issuers": 1951,
+  "eligible_issuers": 1997,
   "history_shape_diagnostic": {
     "does_not_identify_listing_or_gap_cause": true,
     "issuer_dates_or_source_series_published": false,
     "pair_counts": {
-      "complete__complete": 1955,
-      "complete__internal_missing": 2,
+      "complete__complete": 2001,
+      "complete__internal_missing": 3,
       "complete__recent_missing": 5,
-      "complete__tail_only_missing": 294,
+      "complete__tail_only_missing": 296,
       "internal_missing__complete": 2,
-      "internal_missing__recent_missing": 89,
+      "internal_missing__internal_missing": 3,
+      "internal_missing__recent_missing": 90,
+      "no_observed_history__no_observed_history": 2,
       "tail_only_missing__complete": 11,
-      "tail_only_missing__no_observed_history": 1,
+      "tail_only_missing__no_observed_history": 2,
       "tail_only_missing__recent_missing": 15,
-      "tail_only_missing__tail_only_missing": 127
+      "tail_only_missing__tail_only_missing": 160
     }
   },
   "investment_score_certified": false,
-  "listed_total": 2501,
+  "listed_total": 2590,
   "model": "actual-money-disjoint-d4-w5-persistence-concentration-v1",
   "original_amounts_or_bars_published": false,
   "schema": "v3-personal-actual-money-coverage-summary-0.1",
