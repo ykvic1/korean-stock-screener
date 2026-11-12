@@ -115,10 +115,17 @@ def market_snapshot(listing=None):
     for _,r in listing.iterrows():
         code=str(r['Code']).strip().upper().zfill(6)
         name=str(r['Name']).strip()
-        market=str(r['Market']).upper()
-        # KRX short codes may contain letters (since the 2024 code reform).
+        market_label=str(r['Market']).upper().strip()
+        # KOSDAQ GLOBAL is a KOSDAQ issuer designation in the dated FDR
+        # listing, not a separate exchange. KONEX remains excluded.
+        market='KOSDAQ' if market_label=='KOSDAQ GLOBAL' else market_label
+        # Korean short codes may contain letters; keep all six characters.
         if not (re.fullmatch(r'[0-9A-Z]{6}',code) and market in ('KOSPI','KOSDAQ')):continue
-        if any(t in name.upper() for t in ('ETF','ETN','SPAC','스팩','인버스','레버리지')) or name.endswith(('우','우B')):continue
+        if any(t in name.upper() for t in ('ETF','ETN','SPAC','스팩','인버스','레버리지','기업인수목적')):continue
+        # A common company name may end in 우 (e.g., 성우/이오플로우).
+        # Reject actual class suffixes in non-common ticker classes only.
+        if (code[-1]!='0' and re.search(
+            r'(?:[1-9][0-9]*)?우(?:[A-Z]|\(전환\))?$',name)):continue
         vals=[finite(r[t]) for t in ('Close','Volume','Amount','Marcap')]
         if any(v is None for v in vals):continue
         px,volume,amount,marcap=vals
