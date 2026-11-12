@@ -227,6 +227,53 @@ class EPSNameRecheckTests(unittest.TestCase):
         with self.assertRaises(eps.EPSError):
             eps.plan(catalog,book,damaged,recover_missing_names=True)
 
+    def test_score_90_eps_rechecks_precede_full_100_queue_with_same_receipt(self):
+        catalog, book, prior=blank_state()
+        for code, market in [('000001','KOSPI'),('000002','KOSDAQ'),
+                             ('000003','KOSDAQ')]:
+            catalog['rows'].append({'code':code,'name':code,'market':market})
+            book['records'].append({'code':code,'status':'observed','annual':{
+                'year':2025,'fs_div':'CFS','currency':'KRW',
+                'receipt_id':BASE['annual_receipt_id']}})
+            prior['records'][code]={**prior['records']['005930'],
+                                   'code':code,'name':code,'market':market}
+        catalog['listed_total']=4
+        evidence={'schema':'v3-r1d-observation-work-priority-v1',
+                  'asof':catalog['date'],'listed_total':4,'missing_is_not_zero':True,
+                  'coverage_90_first':{
+                      'threshold':90,'recovery_not_a_score_or_observation':True,
+                      'family_conditional_priority_codes':{
+                          'reported_eps_earnings_yield':['000002']}},
+                  'single_component_queue':[
+                      {'code':'000001','gaps':[{'area':'valuation',
+                          'component':'per_eps_quality_growth'}]}]}
+        ninety,completion=eps.verified_eps_recovery_priority(evidence,catalog)
+        self.assertEqual(ninety,{'000002'})
+        self.assertEqual(completion,{'000001'})
+        selected=eps.plan(catalog,book,prior,limit=3,
+            recover_missing_names=True,priority_90_codes=ninety,
+            priority_codes=completion)[-1]
+        self.assertEqual(selected,['000002','000001','005930'])
+        # One unchanged receipt still gets only one exact-name check.
+        reviewed=copy.deepcopy(prior)
+        reviewed['records']['000002']['source_name_recheck']={
+            'version':eps.NAME_RECHECK_VERSION,
+            'receipt_id':BASE['annual_receipt_id'],'result':'checked_unavailable'}
+        self.assertNotIn('000002',eps.plan(catalog,book,reviewed,
+            recover_missing_names=True,priority_90_codes=ninety,
+            priority_codes=completion)[-1])
+        with self.assertRaises(eps.EPSError):
+            eps.plan(catalog,book,prior,recover_missing_names=True,
+                     priority_90_codes={'999999'})
+        for bad in ({**evidence,'asof':'2026-11-10'},
+                    {**evidence,'listed_total':5},
+                    {**evidence,'coverage_90_first':{
+                        'threshold':90,'recovery_not_a_score_or_observation':True,
+                        'family_conditional_priority_codes':{
+                            'reported_eps_earnings_yield':['999999']}}}):
+            self.assertEqual(eps.verified_eps_recovery_priority(bad,catalog),
+                             (set(),set()))
+
     def test_recovery_prioritizes_actual_missing_eps_and_rejects_unknown_codes(self):
         catalog,book,prior=blank_state()
         for code in ('000001','000002','000003'):
