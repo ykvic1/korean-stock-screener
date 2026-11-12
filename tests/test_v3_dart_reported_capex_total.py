@@ -29,6 +29,19 @@ def recover(old,body=None):
 
 
 class ReportedTotalTests(unittest.TestCase):
+    def test_verified_reported_total_workflow_has_bounded_next_day_source_cadence(self):
+        from pathlib import Path
+        root=Path(__file__).resolve().parents[1]
+        text=(root/'.github/workflows/v3-reported-capex-total.yml').read_text()
+        self.assertIn("cron: '20 22 * * 1-5'",text)
+        self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'",text)
+        self.assertIn("needs.offline.result == 'skipped'",text)
+        self.assertIn("--mode live --limit 40",text)
+        self.assertIn("group: korea-stock-screener-dart-cashflow",text)
+        self.assertIn("v3_current_observed_scorecard.yml/dispatches",text)
+        self.assertNotIn("--recheck-equivalent-contexts",text)
+
+
     def test_reported_combined_total_computes_fcf_without_inventing_components(self):
         old=prior();out=recover(old)
         self.assertEqual(out['total_capex_krw'],400000000);self.assertEqual(out['free_cashflow_krw'],800000000)
