@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       asof:
-        description: 'Korean market date YYYY-MM-DD; empty = today KST (scheduled 21:30)'
+        description: 'Manual asof YYYY-MM-DD; empty = today KST. Scheduled 02:30 KST uses previous day.'
         required: false
         default: ''
         type: string
