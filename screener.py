@@ -124,7 +124,7 @@ def market_snapshot(listing=None):
         if any(t in name.upper() for t in ('ETF','ETN','SPAC','스팩','인버스','레버리지','기업인수목적')):continue
         # A common company name may end in 우 (e.g., 성우/이오플로우).
         # Reject actual class suffixes in non-common ticker classes only.
-        if code[-1]!='0' and re.search(
+        if (code[-1]!='0' and re.search(
             r'(?:[1-9][0-9]*)?우(?:[A-Z]|\(전환\))?$',name)):continue
         vals=[finite(r[t]) for t in ('Close','Volume','Amount','Marcap')]
         if any(v is None for v in vals):continue
