@@ -18,7 +18,7 @@ from v22_short_history_validation import (
 )
 
 SCHEMA="v22-current-listed-partial-daily-60to159-v0.1"
-VALID_CODE=re.compile(r"\d{6}\Z")
+VALID_CODE=re.compile(r"[0-9A-Z]{6}\Z")
 MAX_ISSUERS=80
 
 
@@ -81,7 +81,7 @@ def build_short_history(snapshot,reader,*,asof=None,cfg=None,sleep=lambda x:None
     if date!=snapshot.get("date"):
         raise ValueError("source_day_mismatch")
     exclusions=snapshot["history_exclusions"]
-    targets=[x[0] for x in exclusions if (
+    # Full-market census permits A-Z in six-character listed identifiers;\n    # reject malformed identities, but do not drop actual mixed-code issuers.\n    targets=[x[0] for x in exclusions if (
         isinstance(x,list) and len(x)==2 and
         x[1]=="insufficient_valid_price_history" and
         isinstance(x[0],str) and VALID_CODE.fullmatch(x[0]))]
