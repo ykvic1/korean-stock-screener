@@ -40,28 +40,48 @@ jobs:
           market = load("data.json")
           score = load("v3-operational-research-scores.json")
           priority = load("v3-operational-evidence-priority.json")
+          catalog = load("v22-market-catalog.json")
           day = market.get("date")
           census = market.get("candidate_count")
-          if (priority.get("schema") != "v3-r1d-observation-work-priority-v1"
-                  or priority.get("asof") != day or score.get("asof") != day
-                  or census != priority.get("listed_total")
-                  or type(market.get("stocks")) is not list
-                  or len(market["stocks"]) != census
-                  or priority.get("missing_is_not_zero") is not True):
-              raise SystemExit("manual_90first_source_date_or_census_mismatch")
+          # Financial and private-money collectors independently check their
+          # exact source dates. Do not block them merely because the *price*
+          # presenter counts eligible candidates, not all listed issuers.
+          consistent = {
+              "priority_schema": priority.get("schema") == "v3-r1d-observation-work-priority-v1",
+              "catalog_schema": catalog.get("schema") == "v22-current-listed-catalog-0.1",
+              "score_priority_date": priority.get("asof") == score.get("asof"),
+              "catalog_priority_date": priority.get("asof") == catalog.get("date"),
+              "score_priority_census": priority.get("listed_total") == score.get("listed_total"),
+              "catalog_priority_census": priority.get("listed_total") == catalog.get("listed_total"),
+              "missing_not_zero": priority.get("missing_is_not_zero") is True,
+          }
+          if not all(consistent.values()):
+              print(json.dumps({"source_preflight": "blocked",
+                                "reconciliation_checks": consistent}, sort_keys=True))
+              raise SystemExit("manual_90first_score_catalog_or_priority_mismatch")
+          # Saved-close path replay is different: it requires the same market
+          # date and a fully accounted local candidate set. If that path alone
+          # is stale, keep it disabled without suppressing other collectors.
+          path_source_ready = (
+              day == score.get("asof")
+              and type(census) is int
+              and type(market.get("stocks")) is list
+              and len(market["stocks"]) == census)
           coverage = priority["coverage_90_first"]
           if (coverage.get("recovery_not_a_score_or_observation") is not True
                   or coverage.get("independent_source_recoverability_not_proven") is not True
                   or coverage.get("missing_data_never_zero_filled") is not True):
               raise SystemExit("manual_90first_unverified_priority_contract")
           counts = coverage["family_upper_bound_counts"]
-          try:
-              below, other = select_targets(market, score)
-              price_candidates = len(below) + len(other)
-              path_state = "valid_source_selection"
-          except RecoveryError:
-              price_candidates = 0
-              path_state = "source_selection_blocked"
+          price_candidates = 0
+          path_state = "price_presenter_date_or_candidate_count_mismatch"
+          if path_source_ready:
+              try:
+                  below, other = select_targets(market, score)
+                  price_candidates = len(below) + len(other)
+                  path_state = "valid_source_selection"
+              except RecoveryError:
+                  path_state = "source_selection_blocked"
           flags = {
               "price": price_candidates > 0,
               "cashflow": counts.get("dart_cashflow_capex", 0) > 0,
@@ -71,7 +91,10 @@ jobs:
               for key, value in flags.items():
                   output.write(key + "=" + str(value).lower() + "\n")
           print(json.dumps({
-              "asof": day, "listed_total": census,
+              "operational_asof": priority["asof"], "price_presenter_asof": day,
+              "listed_total": priority["listed_total"],
+              "price_candidate_count": census,
+              "price_source_ready": path_source_ready,
               "below_90": coverage["below_90_issuers"],
               "price_path_exact_recovery_candidates": price_candidates,
               "price_path_selection": path_state,
