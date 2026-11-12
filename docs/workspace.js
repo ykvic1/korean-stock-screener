@@ -2394,6 +2394,7 @@ function structuralStopMarkup(r){
   (accurate?won(s.reference_line):'미산출')+'</strong></div><div><small>현 종가 대비 하락 거리</small><strong>'+
   (accurate?s.distance_pct.toFixed(1)+'%':'미산출')+'</strong></div></div>'+
   '<div class="u-stop-evidence">'+
+  item('20일 이동평균선 (종가)',s.ma20)+item('60일 이동평균선 (종가)',s.ma60)+
   item('20거래일 저점',s.low20)+item('60거래일 저점',s.low60)+
   item('3거래일 사후확인 스윙 저점',s.confirmed_swing_low)+
   '<div><small>하단 매물대 (일봉 대표가격·거래량 추정)</small><strong>'+zoneLabel+'</strong></div>'+
@@ -2403,7 +2404,7 @@ function structuralStopMarkup(r){
   (s.confidence==='confluence'?'복수 근거 인접':'단일 지지 근거 또는 미산출')+
   ' · 관측일 '+esc(s.asof)+'</p>'+
   (typeof s.warning==='string'&&s.warning?'<p class="u-stop-warning">'+esc(s.warning)+'</p>':'')+
-  '<p class="u-muted">일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 이 참고선과 거리에는 어떤 가점·감점도 없습니다.</p></section>';
+  '<p class="u-muted">20·60일 이동평균선은 종가의 단순평균입니다. 저점·스윙과 같은 가격계열 근거는 중복 독립확인으로 계산하지 않습니다. 일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 이 참고선과 거리에는 어떤 가점·감점도 없습니다.</p></section>';
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
