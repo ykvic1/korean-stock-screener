@@ -68,6 +68,25 @@ class FDRDatedCloseTests(unittest.TestCase):
         self.assertEqual(result['counts']['absent_in_official'],1)
         self.assertFalse(result['regular_close_full_market_corroborated'])
 
+    def test_kosdaq_global_uses_same_krx_exchange_identity_without_extra_points(self):
+        source=frame()
+        source.loc[source.Code=='200002','Market']='KOSDAQ GLOBAL'
+        official={('KOSPI','000001'):100,('KOSPI','0008Z0'):220,
+                  ('KOSDAQ','200002'):310,('KOSDAQ','200003'):350}
+        report=compare_dated_cache(saved(),official,source,'b'*64)
+        self.assertEqual(report['counts']['exact_close'],4)
+        self.assertEqual(report['counts']['absent_in_public_cache'],0)
+        self.assertFalse(report['historical_ohlcv_regular_session_certified'])
+        self.assertFalse(report['investment_score_or_available_weight_changed'])
+        # Both aliases in one dated cache must fail, not double count.
+        duplicated=pd.concat([source,frame().iloc[[2]]],ignore_index=True)
+        with self.assertRaisesRegex(CacheCorroborationError,'duplicate_public_cache_market_code'):
+            compare_dated_cache(saved(),official,duplicated,'b'*64)
+        # An unrelated market classification remains excluded.
+        source.loc[source.Code=='200002','Market']='UNVERIFIED'
+        unknown=compare_dated_cache(saved(),official,source,'b'*64)
+        self.assertEqual(unknown['counts']['absent_in_public_cache'],1)
+
     def test_duplicated_market_ticker_rejected_not_summed(self):
         source=pd.concat([frame(),frame().iloc[[0]]],ignore_index=True)
         with self.assertRaisesRegex(CacheCorroborationError,'duplicate_public_cache_market_code'):
