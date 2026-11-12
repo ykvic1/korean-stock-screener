@@ -171,10 +171,10 @@ async function load(){
   price.fresh?
    '가격 원천 불일치 · '+price.asof+' 공식 KRX 일별 종가와 저장 종가가 '+
    fmt(price.different)+' / '+fmt(price.checked)+'종목 ('+price.percent+'%)에서 다릅니다. '+
-   '네이버 FChart 일봉의 애프터마켓 최종가 혼입이 실제 확인됐습니다. 정규장 전용 OHLCV·수정주가 미인증 · 운영점수는 잠정 참고용입니다. ':
+   '종가 불일치의 원인은 아직 확인되지 않았습니다. 거래세션 혼입 여부, 제공자 산식, 기업행위 조정 등을 별도로 검증해야 합니다. 정규장 전용 OHLCV·수정주가 미인증 · 운영점수는 잠정 참고용입니다. ':
    '최근 KRX 종가 대조 '+price.asof+' · '+fmt(price.different)+' / '+fmt(price.checked)+
    '종목 불일치. 현재 '+(o?.asof||m?.asof||'시장')+' 자료에 대한 새 대조는 대기 중입니다. '+
-   '기존 FChart 일봉의 애프터마켓 혼입 위험이 있어 정규장 가격·거래량 근거는 아직 미인증입니다. ':
+   '기존 FChart 일봉의 거래세션 구분과 정규장 가격·거래량 근거는 아직 미인증입니다. ':
   'KRX 정규장 종가와 저장 일봉의 독립 대조 결과를 확인할 수 없습니다. '+
   '원천·거래세션 인증 전이므로 점수는 잠정 참고용입니다. ';
  fields.date.textContent=o?o.asof+' · '+o.model+' 점수':m?m.asof:'재확인 필요';

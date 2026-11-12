@@ -11,6 +11,15 @@ const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+const auditWarningSource=fs.readFileSync(path.join(__dirname,'../docs/v3-live-progress.js'),'utf8');
+assert.ok(auditWarningSource.includes('종가 불일치의 원인은 아직 확인되지 않았습니다.'));
+assert.ok(auditWarningSource.includes('거래세션 혼입 여부'));
+assert.ok(!auditWarningSource.includes('혼입이 실제 확인됐습니다.'));
+assert.ok(!entry.includes('애프터마켓 종가 혼입이 확인됐습니다.'));
+assert.ok(entry.includes('불일치가 관측됐으나 원인은 미확인'));
+assert.ok(entry.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'));
+assert.ok(html.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'));
+
 
 // The latest FChart daily bar can include aftermarket trading: never describe
 // an unverified provider reference price as certified KRX regular-session close.
@@ -1005,7 +1014,7 @@ assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup
 for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile'],[entry,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
-  page.includes('v3-live-progress.js?v=v30b-20261111-r1e-coverage')&&
+  page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
 }
