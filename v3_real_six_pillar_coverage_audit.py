@@ -10,6 +10,7 @@ from datetime import date
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 from v3_dart_bulk_history import (
@@ -223,8 +224,8 @@ def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False,
     members={}
     for row in catalog["rows"]:
         code=row.get("code")
-        if (not isinstance(code,str) or len(code)!=6 or
-            not code.isascii() or not code.isdecimal() or
+        if (not isinstance(code,str) or
+            re.fullmatch(r"[0-9A-Z]{6}",code) is None or
             row.get("market") not in ("KOSPI","KOSDAQ") or
             code in members):
             raise CoverageAuditError("invalid_or_duplicate_market_member")
