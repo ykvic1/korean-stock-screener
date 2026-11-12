@@ -263,23 +263,22 @@ def retain_original_priority_cohort(original, observed, supplement):
         return observed, False
     if type(original) is not dict or original.get("asof")!=observed.get("asof"):
         return observed, False
-    # A same calendar date can receive a newly verified broader market
-    # listing. The older frozen acquisition queue is tied to a DIFFERENT
-    # issuer census, even though its old owner-profit receipts stay saved.
-    # Rebuild the current universe's source-priority plan from real receipts;
-    # never relabel the 2,501-company priority as today's 2,590-company plan.
+    # A new same-day market census may expand 2,501 -> 2,590 after an
+    # official FY2025 receipt-anchored source has already been collected.
+    # Preserve that original immutable acquisition queue, even when the
+    # new 2,590-stock SCORECARD is recalculated independently below.
+    # Only a new close date or no existing official supplement may create
+    # a fresh acquisition queue; never relabel the old receipt selection.
     if original.get("listed_total") != observed.get("listed_total"):
-        if (type(original.get("listed_total")) is int
+        if not (type(original.get("listed_total")) is int
             and type(observed.get("listed_total")) is int
             and 0 < original["listed_total"] < observed["listed_total"] <= 6000):
-            return observed, False
-        raise GapAuditError("untrusted_frozen_profit_priority_cohort")
+            raise GapAuditError("untrusted_frozen_profit_priority_cohort")
     names=original.get("official_2025_owners_profit_missing_priority_codes")
     if (original.get("schema")!=SCHEMA
         or original.get("no_points_added") is not True
         or original.get("official_trade_score_certified") is not False
         or original.get("missing_capex_is_not_zero") is not True
-        or original.get("listed_total")!=observed.get("listed_total")
         or type(names) is not list or names!=sorted(set(names))
         or len(names)!=original.get(
             "official_2025_owners_profit_missing_priority_count")
