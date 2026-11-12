@@ -64,9 +64,9 @@ jobs:
           # Public same-day saved roster is an audit-only continuation when
           # KRX listing authentication is unavailable. Scheduled/manual
           # publication still requires the live listing and will fail closed.
-          fallback_args=()
+          fallback_args=(--priority-file docs/v3-operational-evidence-priority.json --priority-catalog docs/v22-market-catalog.json)
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.mode }}" == "audit" ]]; then
-            fallback_args=(--fallback-catalog docs/v22-market-catalog.json)
+            fallback_args+=(--fallback-catalog docs/v22-market-catalog.json)
           fi
           if [[ -n "$REQUESTED_ASOF" ]]; then
             python full_market_batch.py plan --date-pinned-roster --asof "$REQUESTED_ASOF" --out batch-plan "${fallback_args[@]}"
