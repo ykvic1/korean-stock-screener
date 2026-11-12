@@ -30,7 +30,10 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
           from v3_dated_market_roster import load_dated_listing
+          import full_market_batch
           import screener
           # Fixed historic cohort: this checks actual source availability and
           # schema, not whether an unverified raw price is the regular close.
@@ -43,6 +46,35 @@ jobs:
           mixed = sum(any(c.isalpha() for c in code) for code in market)
           zeros = sum(row['snapshot_volume'] == 0 for row in market.values())
           assert (total, mixed, zeros) == (2590, 36, 99), 'source_cohort_changed_or_unavailable'
+          # Critical integration gate: the 2026-11-11 full-market schedule
+          # previously failed in PREPARE, before launching any scan chunk.
+          # Exercise the *actual plan generator* and configured 90-first
+          # hints using this one in-memory vendor lookup (no extra request).
+          with TemporaryDirectory() as tmp:
+              result = full_market_batch.plan(
+                  asof='2026-11-11',out=Path(tmp),listing=market,
+                  priority_file=Path('docs/v3-operational-evidence-priority.json'),
+                  priority_catalog=Path('docs/v22-market-catalog.json'))
+              manifest=json.loads((Path(tmp)/'manifest.json').read_text())
+              matrix=json.loads((Path(tmp)/'matrix.json').read_text())
+              full_market_batch.validate_manifest(manifest)
+              order=[entry['part'] for entry in matrix['include']]
+              assert result['eligible']==2590 and result['jobs']==26, 'whole_market_plan_not_2590'
+              assert manifest['codes']==sorted(market), 'planned_issuer_identity_changed'
+              assert manifest['batch_count']==26 and sorted(order)==list(range(26)), 'matrix_missing_duplicate_parts'
+              assert manifest['source_raw_rows_saved'] is False, 'vendor_row_leak_risk'
+              priority=json.loads(Path('docs/v3-operational-evidence-priority.json').read_text())
+              reference=json.loads(Path('docs/v22-market-catalog.json').read_text())
+              # The retained dated hint can legitimately move after this fixed
+              # historic 2026-11-11 source benchmark; stale hints must degrade
+              # to normal chunk order without discarding any issuer identity.
+              if priority.get('asof')==reference.get('date')=='2026-11-11':
+                  assert result['priority_status']=='conditional_source_work_only', 'priority_hint_not_used'
+                  assert result['conditional_price_chart_gap_codes_in_roster']==174, 'historic_hint_count_changed'
+              else:
+                  assert result['priority_status']!='conditional_source_work_only', 'stale_hint_accepted'
+              planning_status=result['priority_status']
+              planned_batches=result['jobs']
           print(json.dumps({
               'asof': '2026-11-11', 'eligible': total,
               'alphanumeric_issuers': mixed, 'listing_zero_volume_reference': zeros,
@@ -50,5 +82,7 @@ jobs:
               'regular_close_certified': False,
               'investment_score_promoted': False,
               'provider_calls': 1,
+              'planned_chunks': planned_batches,
+              'plan_source_hint_status': planning_status,
           }, sort_keys=True))
           PY
