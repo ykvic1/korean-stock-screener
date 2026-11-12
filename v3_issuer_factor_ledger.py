@@ -246,7 +246,8 @@ def _archived_identity(old, code, last_known_day, recorded_on):
     Earlier as-of dates are preserved; no historic value is re-dated.
     """
     if (not isinstance(old, dict) or old.get("code") != code
-        or type(code) is not str or len(code) != 6 or not code.isdecimal()
+        or type(code) is not str or len(code) != 6 or
+        not all(ch in '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' for ch in code)
         or old.get("market") not in ("KOSPI", "KOSDAQ")
         or type(old.get("name")) is not str
         or not 0 < len(old["name"].strip()) <= 120
