@@ -65,6 +65,32 @@ class NXTVolumeProbeTests(unittest.TestCase):
             with self.subTest(value=value),self.assertRaises(NXTProbeError):
                 quantity(value)
 
+    def test_invalid_nxt_identity_emits_only_bounded_shape_counts(self):
+        bad=[
+            row('000001',3,market='UNSEEN'),
+            {'aggDd':'20261111','mktId':'STK','isuSrdCd':'000002',
+             'accTdQty':'17'},
+            {'aggDd':'20261111','mktId':'KSQ','isuSrdCd':'A00*0',
+             'accTdQty':'23'},
+            {'aggDd':'20261111','mktId':'KSQ','accTdQty':'12'},
+        ]
+        with self.assertRaisesRegex(NXTProbeError,'nxt_row_identity_invalid') as caught:
+            fetch_session(Session(bad,[]),'regular_market',DAY)
+        shape=caught.exception.shape_counts
+        self.assertEqual(shape,{
+            'unexpected_market_id':1,
+            'missing_or_nonstring_short_code':1,
+            'code_missing_A_prefix':1,
+            'code_wrong_width':1,
+            'code_non_ascii_alphanumeric':2,
+        })
+        # Never carry any actual NXT row values, market IDs, or ticker strings
+        # into the public diagnostic, regardless of which row first failed.
+        self.assertNotIn('000001',json.dumps(shape))
+        self.assertNotIn('000002',json.dumps(shape))
+        self.assertNotIn('A00*0',json.dumps(shape))
+        self.assertEqual(len(shape),5)
+
     def test_incomplete_page_rejected(self):
         s=Session([row('000001',42)],[])
         s.responses[0].payload['records']=100
