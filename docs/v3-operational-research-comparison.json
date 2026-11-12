@@ -15,14 +15,14 @@
       "old_kospi": 50
     },
     "200": {
-      "overlap": 142,
+      "overlap": 141,
       "new_kospi": 90,
-      "old_kospi": 82
+      "old_kospi": 81
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "c3c5ebe959d0a6e4006b8634d442f16d2b96594d7fd951ee8a71ac67e620e024",
+    "source_digest": "74e7abc74d22e47cba558f9532a4c20c43b433afc7d9f2e2b50d41e7c00bb677",
     "listed_total": 2591,
     "ranked_count": 2572,
     "available_100_count": 1121,
