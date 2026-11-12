@@ -115,8 +115,23 @@ jobs:
               python v3_dart_bulk_history.py --mode verify
               POST_ALIGNMENT="$(python v3_real_six_pillar_coverage_audit.py --mode alignment)"
               if [[ "$POST_ALIGNMENT" != "$ALIGNMENT" ]]; then
-                echo '::error::fouryear_alignment_changed_after_rebase'
-                exit 1
+                # The just-verified weekly source can become current while
+                # this independent DART archive is collecting. This ONE
+                # upgrade is safe only after full source/rebase verification;
+                # never downgrade aligned evidence or reuse stale scores.
+                if [[ "$ALIGNMENT" == 'deferred_weekly' && "$POST_ALIGNMENT" == 'aligned' ]]; then
+                  python v3_real_six_pillar_coverage_audit.py --mode write
+                  python v3_real_source_progress_ledger.py --mode write
+                  git add docs/v3-real-source-six-area-coverage.json docs/v3-real-source-six-area-progress.json
+                  if ! git diff --cached --quiet; then
+                    git commit --amend --no-edit
+                  fi
+                  ALIGNMENT='aligned'
+                  echo 'fouryear_verified_weekly_alignment_upgraded_after_rebase'
+                else
+                  echo '::error::fouryear_alignment_changed_after_rebase'
+                  exit 1
+                fi
               fi
               if [[ "$ALIGNMENT" == 'aligned' ]]; then
                 python v3_real_six_pillar_coverage_audit.py --mode verify
