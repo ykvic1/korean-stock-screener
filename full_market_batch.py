@@ -190,7 +190,7 @@ def prioritized_part_order(codes, asof, *, priority_path=None, catalog_path=None
                 or priority.get("missing_is_not_zero") is not True
                 or prior_day != catalog.get("date")
                 or type(prior_day) is not str
-                or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", prior_day)
+                or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", prior_day)
                 or not 0 <= (datetime.fromisoformat(asof) -
                              datetime.fromisoformat(prior_day)).days <= 7
                 or catalog.get("schema") != "v22-current-listed-catalog-0.1"
@@ -213,13 +213,13 @@ def prioritized_part_order(codes, asof, *, priority_path=None, catalog_path=None
             return parts, "invalid_priority_contract", 0
         candidates = coverage["family_conditional_priority_codes"].get(
             "price_chart_windows")
+        existing = set(older)
         if (type(candidates) is not list or len(candidates) > len(older)
+                or any(type(code) is not str for code in candidates)
                 or len(set(candidates)) != len(candidates)
-                or any(type(code) is not str or code not in set(older)
-                       for code in candidates)):
+                or any(code not in existing for code in candidates)):
             return parts, "invalid_priority_codes", 0
         preferred = set(candidates)
-        existing = set(older)
         # Prioritize SOURCE work with more conditional sub-90 chart gaps.
         # For a tie, prioritize newly included ordinary symbols. This does
         # not claim that history exists or that it can earn 90/100 points.
