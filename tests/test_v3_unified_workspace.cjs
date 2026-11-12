@@ -208,7 +208,11 @@ assert.ok(source.includes("'가격 미관측'"));
     'new score uses the same unscored-stop rule in list and detail');
   }
   const html=unified.scoreOverviewMarkup(c,unified.personalHundredFromComposite(c),priced,s);
-  assert.ok(html.includes('class="u-score-total-value">'+s.score.toFixed(1)));
+  // The public scorecard omits a trailing .0 (e.g. 31 rather than 31.0).
+  // Compare the SAME one-decimal rounded value with display formatting;
+  // never require an obsolete decimal glyph from a changed real score.
+  const shownScore=s.score.toFixed(1).replace(/\\.0$/,'');
+  assert.ok(html.includes('class="u-score-total-value">'+shownScore+'</strong>'));
  }
  const legacy={earned:33.4,available:100,missing:0,observedPillars:5,
   pillars:[
