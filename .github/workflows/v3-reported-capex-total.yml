@@ -11,10 +11,18 @@ on:
       - v3_dart_reported_capex_total.py
       - .github/workflows/v3-reported-capex-total.yml
   workflow_dispatch:
+  schedule:
+    # 07:20 KST Tue-Sat, after the 02:30 previous-session market source
+    # sync. Source year, scope and issuer receipts are checked independently.
+    # No repeat queries for saved reviewed issuer-years.
+    - cron: '20 22 * * 1-5'
 permissions:
   contents: read
 jobs:
   offline:
+    # On scheduled retrieval use the already reviewed source and focused
+    # offline tests from PR/main changes; don't rerun unchanged test suites.
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +36,9 @@ jobs:
           python v3_dart_reported_capex_total.py --mode dry-run --limit 8
   recover:
     needs: offline
-    if: github.event_name != 'pull_request'
+    if: >-
+      ${{ always() && github.event_name != 'pull_request' &&
+          (needs.offline.result == 'success' || needs.offline.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -57,6 +67,10 @@ jobs:
         run: |
           set -euo pipefail
           interrupted=0
+          # The existing target selector excludes issuer-years with a
+          # reviewed source result and prioritizes sub-90 coverage gaps.
+          # At most 40 independently matched official annual reports/run;
+          # an unobserved account is NEVER turned into a zero.
           if ! python v3_dart_reported_capex_total.py --mode live --limit 40; then interrupted=1; fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
