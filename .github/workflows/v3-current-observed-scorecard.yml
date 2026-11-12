@@ -78,10 +78,13 @@ permissions:
 
 concurrency:
   group: korea-stock-screener-current-observed-publisher
-  # Routine source-completion events queue without discarding active work.
-  # A main code/source push may replace a stalled older derived publisher;
-  # the last verified public snapshot stays until the new replay is verified.
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  # This group is intentionally shared with the actual-money publisher.
+  # A main push must never cancel its in-flight or queued private-money
+  # projection: that would suppress real evidence and the dependent R1e
+  # replay. Serialize source writers, and let the already bounded git-rebase
+  # plus source verification reject stale work after checkout.
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   same-close-current-price-only:
