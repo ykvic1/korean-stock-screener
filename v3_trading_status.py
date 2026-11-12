@@ -93,7 +93,7 @@ def build(catalog: dict, previous: dict | None = None) -> dict:
             raise ValueError("invalid_catalog_issuer")
         code, name, market = row.get("code"), row.get("name"), row.get("market")
         zero = row.get("listing_zero_volume_reference")
-        if (type(code) is not str or not re.fullmatch(r"\d{6}", code) or
+        if (type(code) is not str or not re.fullmatch(r"[0-9A-Z]{6}", code) or
                 code in seen or type(name) is not str or not name.strip() or
                 market not in ("KOSPI", "KOSDAQ") or zero is not None and type(zero) is not bool):
             raise ValueError("invalid_catalog_issuer")
