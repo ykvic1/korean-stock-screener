@@ -200,7 +200,12 @@ def collect(store, client, dates, windows=MAX_WINDOWS_PER_RUN):
 
 
 class RetryingMoneyClient:
-    """Bounded transient GET retry; no auth/quota/schema retries."""
+    """Bounded transient GET/empty-data retry; no auth/quota/schema retries.
+
+    Some KRX responses are HTTP 200 but contain an empty OutBlock_1.
+    Retry only a bounded number of times: a persistently empty market/day
+    still fails closed without committing an immutable money cohort.
+    """
     def __init__(self, client):
         self.client=client
         self.requests=0
@@ -212,7 +217,8 @@ class RetryingMoneyClient:
             try:
                 return self.client.daily_market(market,day)
             except KRXProbeError as error:
-                if attempt==2 or error.reason not in ('empty_body','transport_failure','http_server_error'):
+                if attempt==2 or error.reason not in ('empty_body','empty_market_rows',
+                                                         'transport_failure','http_server_error'):
                     raise
                 retry_clock.sleep(attempt+1)
 
