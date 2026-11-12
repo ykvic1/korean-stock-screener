@@ -62,7 +62,12 @@ def compare_dated_cache(saved, official_closes, frame, source_sha):
         raise CacheCorroborationError('untrusted_dated_cache_corroboration_inputs')
     public = {}
     for _, row in frame.iterrows():
-        code, market = row['Code'], row['Market']
+        code, market_label = row['Code'], row['Market']
+        # The FDR public cache labels the same KOSDAQ exchange cohort as
+        # "KOSDAQ GLOBAL". The source-listing planner already normalizes
+        # this exact designation; keep the price corroboration join coherent.
+        # Never guess/convert any other unknown market or instrument class.
+        market = 'KOSDAQ' if market_label == 'KOSDAQ GLOBAL' else market_label
         if (not isinstance(code, str) or not re.fullmatch(r'[0-9A-Z]{6}', code)
             or market not in ('KOSPI', 'KOSDAQ')):
             continue
