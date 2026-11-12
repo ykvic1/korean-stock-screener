@@ -36,8 +36,12 @@ class V30bReadinessTests(unittest.TestCase):
         if report.get("asof") != catalog.get("date"):
             self.skipTest("market_day_rolled_before_independent_catalog")
         original = next(iter(report["rows"]))
-        new_code = "0001A0"
-        self.assertNotIn(new_code, report["rows"])
+        # Since the market expanded to include real mixed-code shares,
+        # 0001A0 may already be listed. Pick a reproducible unused strictly
+        # uppercase six-character identity instead of mutating a real issuer.
+        new_code = next((f"ZZZ{i:03d}" for i in range(1000)
+                         if f"ZZZ{i:03d}" not in report["rows"]), None)
+        self.assertIsNotNone(new_code)
         report["rows"][new_code] = report["rows"].pop(original)
         for member in catalog["rows"]:
             if member["code"] == original:
