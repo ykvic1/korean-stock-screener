@@ -202,7 +202,7 @@ def build(market,catalog,money_source=None):
     members={}
     for entry in catalog["rows"]:
         if (type(entry) is not dict or type(entry.get("code")) is not str
-            or len(entry["code"])!=6 or not entry["code"].isdigit()
+            or re.fullmatch(r"[0-9A-Z]{6}", entry["code"]) is None
             or entry["code"] in members or
             entry.get("market") not in ("KOSPI","KOSDAQ")):
             raise VolumeEvidenceError("invalid_listed_issuer_identity")
