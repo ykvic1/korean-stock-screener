@@ -667,12 +667,27 @@ class V30bReadinessTests(unittest.TestCase):
         else:
             self.assertEqual(exit_code, 2)
             self.assertIsNone(result)
-            self.assertTrue(
-                {"public_snapshot_asof_mismatch",
-                 "public_fcf_receipt_source_aggregate_mismatch",
-                 "public_fcf_issuer_subscore_source_mismatch",
-                 "public_issuer_catalog_membership_mismatch"}
-                & set(displayed["blocker_codes"]), displayed["blocker_codes"])
+            earlier, secondary, _ = public_inputs()
+            # In a live census expansion the current 2,590+ issuer scorecard
+            # may be published before the independently scheduled LEGACY
+            # five-area reference (previously 2,501). Recognize only this
+            # source-proven mismatch as a valid fail-CLOSED report, never
+            # mark it as reconciled or certified.
+            if (earlier.get("asof") == secondary.get("asof")
+                    and type(earlier.get("listed_total")) is int
+                    and type(secondary.get("listed_total")) is int
+                    and 0 < secondary["listed_total"] < earlier["listed_total"]):
+                self.assertIn("listed_universe_mismatch",
+                              displayed["blocker_codes"])
+                self.assertIn("area_count_or_source_mismatch",
+                              displayed["blocker_codes"])
+            else:
+                self.assertTrue(
+                    {"public_snapshot_asof_mismatch",
+                     "public_fcf_receipt_source_aggregate_mismatch",
+                     "public_fcf_issuer_subscore_source_mismatch",
+                     "public_issuer_catalog_membership_mismatch"}
+                    & set(displayed["blocker_codes"]), displayed["blocker_codes"])
         self.assertEqual(
             displayed["gates"]["published_fcf_issuer_subscore_source"],
             displayed["public_summary_valid"] and
