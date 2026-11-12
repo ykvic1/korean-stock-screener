@@ -37,6 +37,60 @@ def mock_history(code, cfg, day):
 
 
 class FullMarketHundredBatchesTests(unittest.TestCase):
+    def test_priority_only_changes_batch_launch_order_without_reordering_issuer_codes(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            universe_map=universe(255)
+            cohort=sorted(universe_map)
+            historic=census_day="2026-11-11"
+            catalogue={"schema":"v22-current-listed-catalog-0.1",
+                       "date":historic,"listed_total":len(cohort),
+                       "rows":[{"code":code} for code in cohort]}
+            priority={
+                "schema":"v3-r1d-observation-work-priority-v1",
+                "asof":historic,"listed_total":len(cohort),
+                "missing_is_not_zero":True,
+                "coverage_90_first":{
+                    "threshold":90,
+                    "recovery_not_a_score_or_observation":True,
+                    "missing_data_never_zero_filled":True,
+                    "independent_source_recoverability_not_proven":True,
+                    "family_conditional_priority_codes":{
+                        "price_chart_windows":cohort[210:225]}}}
+            source=root/"priority.json"
+            saved=root/"catalog.json"
+            source.write_text(json.dumps(priority))
+            saved.write_text(json.dumps(catalogue))
+            before=b.plan(asof=historic,out=root/"old",listing=universe_map)
+            new=b.plan(asof=historic,out=root/"new",listing=universe_map,
+                priority_file=source,priority_catalog=saved)
+            old_manifest=json.loads((root/"old"/"manifest.json").read_text())
+            new_manifest=json.loads((root/"new"/"manifest.json").read_text())
+            self.assertEqual(before["eligible"],255)
+            self.assertEqual(old_manifest,new_manifest)
+            order=json.loads((root/"new"/"matrix.json").read_text())["include"]
+            self.assertEqual([part["part"] for part in order],[2,0,1])
+            self.assertEqual(new["conditional_price_chart_gap_codes_in_roster"],15)
+            self.assertEqual(new["priority_status"],"conditional_source_work_only")
+            priority["asof"]="2026-11-01"
+            source.write_text(json.dumps(priority))
+            stale=b.plan(asof=historic,out=root/"stale",listing=universe_map,
+                priority_file=source,priority_catalog=saved)
+            self.assertEqual(stale["priority_status"],"unaligned_priority_source")
+            self.assertEqual(json.loads((root/"stale"/"matrix.json").read_text())[
+                "include"],[{"part":0},{"part":1},{"part":2}])
+            priority["asof"]=historic
+            priority["coverage_90_first"][
+                "family_conditional_priority_codes"]["price_chart_windows"]=[
+                "999999"]
+            source.write_text(json.dumps(priority))
+            tampered=b.plan(asof=historic,out=root/"tampered",
+                listing=universe_map,priority_file=source,priority_catalog=saved)
+            self.assertEqual(tampered["priority_status"],"invalid_priority_codes")
+            self.assertEqual(json.loads((root/"tampered"/"matrix.json").read_text())[
+                "include"],[{"part":0},{"part":1},{"part":2}])
+
+
     def test_transient_roster_failures_recover_without_stale_fallback(self):
         calls = [0]
         delays = []
