@@ -263,6 +263,17 @@ def retain_original_priority_cohort(original, observed, supplement):
         return observed, False
     if type(original) is not dict or original.get("asof")!=observed.get("asof"):
         return observed, False
+    # A same calendar date can receive a newly verified broader market
+    # listing. The older frozen acquisition queue is tied to a DIFFERENT
+    # issuer census, even though its old owner-profit receipts stay saved.
+    # Rebuild the current universe's source-priority plan from real receipts;
+    # never relabel the 2,501-company priority as today's 2,590-company plan.
+    if original.get("listed_total") != observed.get("listed_total"):
+        if (type(original.get("listed_total")) is int
+            and type(observed.get("listed_total")) is int
+            and 0 < original["listed_total"] < observed["listed_total"] <= 6000):
+            return observed, False
+        raise GapAuditError("untrusted_frozen_profit_priority_cohort")
     names=original.get("official_2025_owners_profit_missing_priority_codes")
     if (original.get("schema")!=SCHEMA
         or original.get("no_points_added") is not True

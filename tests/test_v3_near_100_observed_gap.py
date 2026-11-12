@@ -167,6 +167,36 @@ class SourceRolloverGuardTests(unittest.TestCase):
                 GapAuditError,"untrusted_frozen_profit_priority_cohort"):
             retain_original_priority_cohort(prior,recalculated,invalid)
 
+    def test_same_day_expanded_market_rebuilds_priority_without_relabeling_old_receipts(self):
+        original={"schema":"v3-observed-near100-source-gap-priority-0.1",
+                  "asof":"2026-11-11","listed_total":2501,
+                  "no_points_added":True,"official_trade_score_certified":False,
+                  "missing_capex_is_not_zero":True,
+                  "official_2025_owners_profit_missing_priority_codes":["005930"],
+                  "official_2025_owners_profit_missing_priority_count":1,
+                  "provisional_observed_100_weight_issuers":1083}
+        observed={**original,"listed_total":2590,
+                  "official_2025_owners_profit_missing_priority_codes":["0008Z0","005930"],
+                  "official_2025_owners_profit_missing_priority_count":2,
+                  "provisional_observed_100_weight_issuers":1089}
+        official={"schema":"v3-official-fy2025-owner-profit-source-0.1",
+                  "market_asof":"2026-11-11",
+                  "investment_grade_score_certified":False,
+                  "historical_pit_verified":False,
+                  "account_value_used_in_scores":False,
+                  "records":{"005930":{"source_status":"observed_owner_profit"}}}
+        selected,frozen=retain_original_priority_cohort(original,observed,official)
+        self.assertEqual(selected,observed)
+        self.assertFalse(frozen)
+        self.assertEqual(selected["listed_total"],2590)
+        self.assertIn("0008Z0",selected["official_2025_owners_profit_missing_priority_codes"])
+        # The old source receipt itself remains unchanged and is not scored.
+        self.assertEqual(official["records"]["005930"]["source_status"],"observed_owner_profit")
+        bogus={**observed,"listed_total":2490}
+        with self.assertRaisesRegex(GapAuditError,
+                                    "untrusted_frozen_profit_priority_cohort"):
+            retain_original_priority_cohort(original,bogus,official)
+
     def test_old_volume_contract_can_reduce_same_day_100_coverage_without_losing_dart_queue(self):
         from v3_near_100_observed_gap import VOLUME_CONTRACT
         prior={"schema":"v3-observed-near100-source-gap-priority-0.1",
