@@ -21,7 +21,7 @@ OWNER_IDS = frozenset({'ifrs-full_EquityAttributableToOwnersOfParent',
                        'ifrs_EquityAttributableToOwnersOfParent'})
 NCI_IDS = frozenset({'ifrs-full_NoncontrollingInterests', 'ifrs_NoncontrollingInterests'})
 MAX_CALLS = 12
-CODE = re.compile(r'[0-9]{6}\Z')
+CODE = re.compile(r'[0-9A-Z]{6}\Z')
 
 
 class ParentEquityError(ValueError):
