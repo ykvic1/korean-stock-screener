@@ -86,3 +86,34 @@ jobs:
               'plan_source_hint_status': planning_status,
           }, sort_keys=True))
           PY
+      - name: Bounded mixed-code historical quote availability diagnostic
+        timeout-minutes: 3
+        run: |
+          python - <<'PY'
+          import json
+          import screener
+          from collections import Counter
+          from datetime import datetime
+          # Fixed historic source-compatibility audit, not investment-price
+          # validation. Only aggregate status escapes this workflow.
+          groups = {
+              'mixed_ticker': ('0008Z0', '0126Z0'),
+              'kosdaq_global': ('196170', '247540'),
+              'ordinary_suffix': ('458650',),
+              'numeric_control': ('005930',),
+          }
+          summary = {}
+          for group,codes in groups.items():
+              found=Counter()
+              for code in codes:
+                  try:
+                      df=screener.price_history(code,'2026-11-04','2026-11-11')
+                      found['dated_close_present' if datetime(2026,11,11) in df.index else 'dated_close_absent']+=1
+                  except Exception:
+                      found['source_unavailable']+=1
+              summary[group]=dict(found)
+          print(json.dumps({'asof':'2026-11-11','source':'FChart',
+              'bounded_history_requests':6,'source_status_only':summary,
+              'raw_ohlcv_exported':False,'regular_session_verified':False,
+              'score_points_added':0},sort_keys=True))
+          PY
