@@ -175,7 +175,7 @@ def parse(payload, *, corp, base, on_day, allow_nonstandard_names=False):
 
 
 def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
-         recover_missing_names=False, priority_codes=()):
+         recover_missing_names=False, priority_codes=(), priority_90_codes=()):
     day = catalog.get('date')
     try:
         cutoff = date.fromisoformat(day)
@@ -218,7 +218,12 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
         or len(priority_codes)>6000 or any(
             type(code) is not str or code not in members for code in priority_codes)):
         raise EPSError('untrusted_eps_recovery_priority')
+    if (type(priority_90_codes) not in (list, tuple, set, frozenset)
+        or len(priority_90_codes)>6000 or any(
+            type(code) is not str or code not in members for code in priority_90_codes)):
+        raise EPSError('untrusted_eps_90_first_priority')
     priority_codes=set(priority_codes)
+    priority_90_codes=set(priority_90_codes)
     retained = {}
     if prior is not None:
         if (prior.get('schema') != SCHEMA or prior.get('investment_score_certified') is not False
@@ -288,7 +293,8 @@ def plan(catalog, book, prior=None, limit=MAX_PER_RUN,
         pending=[code for code,row in retained.items()
                  if row['status']=='standard_eps_not_observed'
                  and (row.get('source_name_recheck') or {}).get('version') != NAME_RECHECK_VERSION]
-        pending.sort(key=lambda code:(code not in priority_codes,
+        pending.sort(key=lambda code:(code not in priority_90_codes,
+                                     code not in priority_codes,
                                      members[code][1]!='KOSPI',code))
         selected.extend(pending[:limit-len(selected)])
     return day, members, expected, retained, selected
@@ -322,13 +328,14 @@ def snapshot(day, catalog, book, expected, records):
 
 def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN,
             on_progress=None, workers=1, session_factory=None,
-            recover_missing_names=False, priority_codes=()):
+            recover_missing_names=False, priority_codes=(), priority_90_codes=()):
     if type(workers) is not int or not 1 <= workers <= MAX_WORKERS:
         raise EPSError('invalid_eps_parallelism')
     if workers > 1 and not callable(session_factory):
         raise EPSError('parallel_eps_session_factory_required')
     day, members, expected, retained, selected = plan(
-        catalog, book, prior, limit, recover_missing_names, priority_codes)
+        catalog, book, prior, limit, recover_missing_names,
+        priority_codes, priority_90_codes)
     calls = 0
     if selected:
         if type(key) is not str or not re.fullmatch('[A-Za-z0-9]{40}', key):
@@ -413,6 +420,49 @@ def collect(catalog, book, prior, *, key, session, cache=None, limit=MAX_PER_RUN
     return snapshot(day, catalog, book, expected, retained), calls
 
 
+def verified_eps_recovery_priority(priority, catalog):
+    """Trust only same-day, same-census source-gap work hints; no new points.
+
+    90-first candidates must require *only* the EPS workstream to bridge
+    the 90-point available-weight threshold. Their provider recoverability
+    is unknown; one-receipt negative checks still remain final.
+    """
+    empty = (set(), set())
+    if (type(priority) is not dict or type(catalog) is not dict
+        or priority.get('schema') != 'v3-r1d-observation-work-priority-v1'
+        or priority.get('asof') != catalog.get('date')
+        or priority.get('listed_total') != catalog.get('listed_total')
+        or priority.get('missing_is_not_zero') is not True):
+        return empty
+    rows = catalog.get('rows')
+    if (type(rows) is not list or len(rows) != catalog.get('listed_total')
+        or not all(type(row) is dict and type(row.get('code')) is str
+                   for row in rows)):
+        return empty
+    valid = {row['code'] for row in rows}
+    if len(valid) != len(rows):
+        return empty
+    coverage = priority.get('coverage_90_first')
+    if (type(coverage) is not dict or coverage.get('threshold') != 90
+        or coverage.get('recovery_not_a_score_or_observation') is not True
+        or type(coverage.get('family_conditional_priority_codes')) is not dict):
+        return empty
+    ninety = coverage['family_conditional_priority_codes'].get(
+        'reported_eps_earnings_yield')
+    single = priority.get('single_component_queue')
+    if (type(ninety) is not list or type(single) is not list
+        or len(ninety) > len(valid) or len(single) > len(valid)
+        or any(type(code) is not str or code not in valid for code in ninety)
+        or any(type(row) is not dict or row.get('code') not in valid
+               or type(row.get('gaps')) is not list for row in single)):
+        return empty
+    full = {row['code'] for row in single
+            if len(row['gaps']) == 1 and
+            row['gaps'][0].get('area') == 'valuation' and
+            row['gaps'][0].get('component') == 'per_eps_quality_growth'}
+    return set(ninety), full
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--docs', default='docs')
@@ -430,22 +480,15 @@ def main(argv=None):
     target = root/'v3-dart-reported-eps.json'
     old = json.loads(target.read_text()) if target.is_file() else None
     recovery=args.mode=='recover-exact-name'
-    priority=set()
+    priority_90,priority=set(),set()
     if recovery:
         priority_file=root/'v3-operational-evidence-priority.json'
         if priority_file.is_file():
             saved_priority=json.loads(priority_file.read_text())
-            if (saved_priority.get('asof')==catalog.get('date')
-                and saved_priority.get('listed_total')==catalog.get('listed_total')
-                and saved_priority.get('schema')=='v3-r1d-observation-work-priority-v1'
-                and saved_priority.get('missing_is_not_zero') is True):
-                priority={entry['code'] for entry in
-                    saved_priority.get('single_component_queue',[])
-                    if len(entry.get('gaps',[]))==1
-                    and entry['gaps'][0].get('area')=='valuation'
-                    and entry['gaps'][0].get('component')=='per_eps_quality_growth'}
+            priority_90,priority=verified_eps_recovery_priority(saved_priority,catalog)
     day, _, expected, retained, selected = plan(catalog, book, old, args.limit,
-        recover_missing_names=recovery,priority_codes=priority)
+        recover_missing_names=recovery,priority_codes=priority,
+        priority_90_codes=priority_90)
     if args.mode == 'refresh':
         if target.is_symlink():
             raise EPSError('eps_output_must_not_be_symlink')
@@ -470,7 +513,8 @@ def main(argv=None):
                                 cache=_read_company_cache_from_root(args.cache), on_progress=checkpoint,
                                 workers=args.workers,
                                 session_factory=requests.Session if args.workers > 1 else None,
-                                recover_missing_names=recovery,priority_codes=priority)
+                                recover_missing_names=recovery,priority_codes=priority,
+                                priority_90_codes=priority_90)
     except EPSError as error:
         if not saved:
             raise
