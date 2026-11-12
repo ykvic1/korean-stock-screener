@@ -38,6 +38,30 @@ class PublicationAlignmentTests(unittest.TestCase):
     def test_aligned_headers_allow_full_validation(self):
         self.assertEqual(audit.publication_alignment(*self.sources()), "aligned")
 
+    def test_same_date_market_expansion_defers_old_source_without_scores(self):
+        baseline=self.sources()
+        # The old technical 2,501-member cohort cannot be silently relabeled
+        # to the new 2,590-member market even if the market date is identical.
+        before=copy.deepcopy(baseline)
+        before[3]["listed_total"]-=89
+        self.assertEqual(audit.publication_alignment(*before),"deferred_weekly")
+        with self.assertRaises(audit.CoverageAuditError):
+            audit.coverage(*before)
+        # Conversely the current weekly source must never borrow stale 4Y
+        # data from a smaller old market census as current-year financial.
+        old_finance=copy.deepcopy(baseline)
+        old_finance[1]["listed_total"]-=89
+        old_finance[2]["listed_total"]-=89
+        self.assertEqual(audit.publication_alignment(*old_finance),"deferred_dart")
+        with self.assertRaises(audit.CoverageAuditError):
+            audit.coverage(*old_finance)
+        # A larger forged archive or impossible count can NEVER defer.
+        forged=copy.deepcopy(baseline)
+        forged[3]["listed_total"]+=1
+        with self.assertRaisesRegex(audit.CoverageAuditError,
+                                    "current_source_universe_mismatch"):
+            audit.publication_alignment(*forged)
+
     def test_yesterdays_weekly_never_blocks_dart_source_only_publication(self):
         base = self.sources()
         base[3]["market_asof"] = (
@@ -100,6 +124,11 @@ class RealCoverageAuditTests(unittest.TestCase):
         if any(d!=day for d in (
                 bulk["asof"],parts["asof"],weekly["market_asof"])):
             self.skipTest("saved_research_sources_await_same_market_date")
+        # Genuine saved-ledger integration requires the SAME roster, not
+        # merely matching calendar dates. Keep this suite guarded until the
+        # already-running independently verified 4Y/weekly sources catch up.
+        if audit.publication_alignment(catalog,bulk,parts,weekly)!="aligned":
+            self.skipTest("saved_research_sources_await_same_market_census")
     def test_actual_saved_sources_are_reconciled_with_no_fake_100point(self):
         sources=actual_inputs()
         out=audit.coverage(*sources)
@@ -340,6 +369,8 @@ class RealCoverageRolloverTests(unittest.TestCase):
 class SameDayPriceCoverageEvidenceTests(unittest.TestCase):
     def test_reproducible_saved_price_replay_expands_only_provisional_counts(self):
         sources=actual_inputs()
+        if audit.publication_alignment(*sources)!="aligned":
+            self.skipTest("saved_research_sources_await_same_market_census")
         catalog,history,parts,weekly=sources
         day=catalog["date"]
         if any(s.get(k)!=day for s,k in (
