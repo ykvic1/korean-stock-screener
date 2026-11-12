@@ -643,6 +643,7 @@ def publish(*, manifest: dict, parts_dir: Path,
     # Separate small active-listing research: 60-159 genuine bars can yield
     # MA20/MA60 and OBV without pretending to have 120-week history or a
     # full v2.2 ranking score. Any source failure stays unavailable.
+    print(json.dumps({"status":"market_merge_stage","stage":"write_short_daily_history"}), flush=True)
     from v22_short_history_observations import write_short_history
     write_short_history(data, screener.SITE / "v22-partial-history.json", cfg=cfg)
     print(json.dumps({"status":"market_merge_stage","stage":"all_local_artifacts_verified"}), flush=True)
