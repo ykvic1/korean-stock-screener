@@ -208,7 +208,11 @@ assert.ok(source.includes("'가격 미관측'"));
     'new score uses the same unscored-stop rule in list and detail');
   }
   const html=unified.scoreOverviewMarkup(c,unified.personalHundredFromComposite(c),priced,s);
-  assert.ok(html.includes('class="u-score-total-value">'+s.score.toFixed(1)));
+  // The public scorecard omits a trailing .0 (e.g. 31 rather than 31.0).
+  // Compare the SAME one-decimal rounded value with display formatting;
+  // never require an obsolete decimal glyph from a changed real score.
+  const shownScore=s.score.toFixed(1).replace(/\.0$/,'');
+  assert.ok(html.includes('class="u-score-total-value">'+shownScore+'</strong>'));
  }
  const legacy={earned:33.4,available:100,missing:0,observedPillars:5,
   pillars:[
@@ -420,7 +424,11 @@ for(const [field,value] of [
  ['provider_calls',1],['investment_score_certified',true],
  ['missing_is_not_zero',false],['status','certified'],
  ['source_digest','unsigned'],['available_100_count',2502],
- ['available_95_count',0],['available_90_count',2502],
+ ['available_95_count',0],
+ // Aggregate-only UI can reject internally impossible totals but cannot
+ // authenticate a plausible changed count without the per-stock ledger.
+ // Do not freeze an old 2,501-company test constant after the 2,590 expansion.
+ ['available_90_count',operationalProgress.operational_coverage.ranked_count+1],
  ['budgets',{volume:20,technical:25,financial:20,valuation:20,momentum:15}]
 ]){
  const corrupted=structuredClone(operationalProgress);

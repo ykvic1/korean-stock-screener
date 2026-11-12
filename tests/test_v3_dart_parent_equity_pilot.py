@@ -30,6 +30,26 @@ def parse(source):
 
 
 class ParentEquityPilotTests(unittest.TestCase):
+    def test_genuine_mixed_code_equity_proof_identity_is_valid_but_malformed_is_not(self):
+        self.assertIsNotNone(mod.CODE.fullmatch('0008Z0'))
+        self.assertIsNotNone(mod.CODE.fullmatch('A12345'))
+        for invalid in ('0008z0', '00/8Z0', '0008Z01', '00593'):
+            self.assertIsNone(mod.CODE.fullmatch(invalid))
+        body = copy.deepcopy(payload(
+            row('ifrs-full_NoncontrollingInterests', 200000000)))
+        for fact in body['list']:
+            fact['stock_code'] = '0008Z0'
+        value, reason = mod.parse(
+            body, corp=CORP, code='0008Z0', receipt=RECEIPT,
+            year=2025, scope='CFS', expected_equity=TOTAL)
+        self.assertEqual((value, reason),
+                         (800000000, 'same_receipt_total_minus_explicit_nci'))
+        body['list'][1]['stock_code'] = '0008z0'
+        with self.assertRaisesRegex(mod.ParentEquityError,
+                                    'parent_equity_stock_mismatch'):
+            mod.parse(body, corp=CORP, code='0008Z0', receipt=RECEIPT,
+                      year=2025, scope='CFS', expected_equity=TOTAL)
+
     def test_never_substitute_undifferentiated_total_equity(self):
         self.assertEqual(parse(payload()), (None, 'neither_owner_nor_explicit_nci'))
 

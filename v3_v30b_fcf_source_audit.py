@@ -153,7 +153,7 @@ def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
     finance, valuation, seen = 0, 0, set()
     for item in rows:
         _assert(type(item) is dict and type(item.get("code")) is str
-                and re.fullmatch(r"[0-9]{6}", item["code"]) is not None
+                and re.fullmatch(r"[0-9A-Z]{6}", item["code"]) is not None
                 and item["code"] not in seen
                 and item.get("asof") == day
                 and item.get("market") in ("KOSPI", "KOSDAQ")

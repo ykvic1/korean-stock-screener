@@ -46,6 +46,37 @@ class FCFSourceAuditTests(unittest.TestCase):
                 self.observed.get("fcf_observed_issuer_counts") != expected):
             self.skipTest("new_cashflow_snapshot_waiting_for_current_scorecard_replay")
 
+    def test_six_character_mixed_code_fcf_identity_is_source_valid_not_score_certified(self):
+        observed, gap, preview = map(copy.deepcopy,
+                                     (self.observed, self.gap, self.preview))
+        if not observed["asof"] == gap["asof"] == preview["asof"]:
+            self.skipTest("separate_saved_FCF_day_not_aligned")
+        if observed.get("fcf_observed_issuer_counts") != {
+            "financial4": preview["financial_fcf4_research_candidate_issuer_count"],
+            "valuation5": preview["valuation_fcf5_research_candidate_issuer_count"],
+        }:
+            self.skipTest("FCF_snapshot_waiting_for_score_replay")
+        source_codes = {x["code"] for x in preview["rows"]}
+        mixed = next((f"ZZZ{i:03d}" for i in range(1000)
+                      if f"ZZZ{i:03d}" not in source_codes), None)
+        self.assertIsNotNone(mixed)
+        preview["rows"][0]["code"] = mixed
+        audited = audit_fcf_sources(observed, gap, preview)
+        self.assertTrue(audited["cashflow_snapshot_reconciled"])
+        self.assertFalse(audited["approved_final_100point_scoring"])
+        self.assertNotIn(mixed, json.dumps(audited))
+        # Lowercase, slashes and excessive length never qualify as a
+        # genuine listed issuer; no aggregate-only audit can prove issuer
+        # provenance independently of a second source.
+        for invalid in ("zzZ000", "00/8Z0", "0008Z01"):
+            bad = copy.deepcopy(preview)
+            bad["rows"][0]["code"] = invalid
+            with self.assertRaisesRegex(
+                FCFReconciliationError,
+                "fcf_preview_identity_or_certification_invalid",
+            ):
+                audit_fcf_sources(observed, gap, bad)
+
     def test_same_day_fcf_count_mismatch_is_rejected_without_mutation(self):
         observed,gap,preview=map(copy.deepcopy,(self.observed,self.gap,self.preview))
         if not observed.get("asof")==gap.get("asof")==preview.get("asof"):

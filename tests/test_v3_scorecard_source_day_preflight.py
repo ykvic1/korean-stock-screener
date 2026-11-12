@@ -91,6 +91,29 @@ class ScorecardMarketDayGateTests(unittest.TestCase):
             with self.assertRaises(ScorecardReadinessError, msg=field):
                 preflight_day(DAY,h,p,w)
 
+    def test_quant_ci_defers_only_a_genuine_verified_source_lag(self):
+        wf=(ROOT/".github/workflows/quant-checks.yml").read_text(encoding="utf8")
+        step=wf.split("Reconcile saved-source derivatives across closing publication order",1)[1].split("Full Python regression once before integration",1)[0]
+        assert_source=step.index("python v3_scorecard_source_day_preflight.py")
+        assert_derived=step.index("python v3_all_listed_scorecard.py --mode write")
+        self.assertLess(assert_source, assert_derived)
+        self.assertIn('assert type(x.get("ready")) is bool',step)
+        self.assertIn("if [[ \"$READY\" == 'true' ]]; then",step)
+        self.assertIn("quant_ci_legacy_five_area_deferred_for_verified_source_day_lag",step)
+        self.assertIn("set -euo pipefail",step)
+        self.assertNotIn("|| true",step)
+        self.assertNotIn("DART_API_KEY:",step)
+        self.assertNotIn("KRX_API_KEY:",step)
+        # A legitimate 1-day lag must defer, whereas impossible future or
+        # falsely certified evidence is NOT swallowed by the CI gate.
+        h,p,w=sources()
+        h["asof"]="2026-10-20"
+        status=preflight_day(DAY,h,p,w,permit_weekly_only_lag=True)
+        self.assertFalse(status["ready"])
+        h["asof"]="2026-10-22"
+        with self.assertRaises(ScorecardReadinessError):
+            preflight_day(DAY,h,p,w,permit_weekly_only_lag=True)
+
     def test_workflow_skips_calculate_publish_on_source_mismatch(self):
         wf=(ROOT/".github/workflows/v3-all-listed-scorecard.yml").read_text(encoding="utf8")
         self.assertIn("id: date_gate",wf)
