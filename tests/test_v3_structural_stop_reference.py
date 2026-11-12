@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from v3_structural_stop_reference import observe
+from v3_structural_stop_reference import observe, valid_reference
 
 
 def history(length=100):
