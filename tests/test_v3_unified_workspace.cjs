@@ -49,7 +49,7 @@ assert.ok(source.includes("'가격 미관측'"));
  const base={price:105,price_date:'2026-11-10',stop_line:94,stop_pct:-10.48};
  const ref={schema:1,asof:'2026-11-10',score_impact:0,
   unscored_reference_only:true,reference_line:90.55,distance_pct:13.76,
-  low20:91,low60:91,confirmed_swing_low:91,
+  low20:91,low60:91,ma20:101.3,ma60:99.4,confirmed_swing_low:91,
   lower_volume_zone:{lower:92,upper:93.84,exact_volume_at_price:false},
   pattern_invalidation:null,basis:['20일 저점','60일 저점','확인된 스윙 저점'],
   confidence:'confluence',warning:null};
