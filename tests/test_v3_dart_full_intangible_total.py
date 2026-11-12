@@ -87,6 +87,17 @@ def recover(old,body=None,cert=None):
 
 
 class FullIntangibleTests(unittest.TestCase):
+    def test_verified_intangible_source_daily_cadence_is_bounded_and_replayed(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    '.github/workflows/v3-full-intangible-total.yml').read_text()
+        self.assertIn("cron: '0 23 * * 1-5'", workflow)
+        self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'", workflow)
+        self.assertIn("needs.offline.result == 'skipped'", workflow)
+        self.assertIn("group: korea-stock-screener-dart-cashflow", workflow)
+        self.assertIn("--mode live --limit 40", workflow)
+        self.assertIn("steps.publish.outputs.changed == 'true'", workflow)
+        self.assertIn("v3-current-observed-scorecard.yml/dispatches", workflow)
+
     def test_official_scope_sections_match_consolidated_1_3_and_separate_2_4(self):
         cert=t.certificate(tax_payloads());self.assertTrue(t.verify_certificate(cert,'CFS'));self.assertTrue(t.verify_certificate(cert,'OFS'))
         parts=tax_payloads();parts['CF2']['list']=[];parts['CF4']['list']=[]
