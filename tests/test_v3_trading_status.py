@@ -19,6 +19,27 @@ def catalog(day, volume_by_code):
 
 
 class TradingStatusTests(unittest.TestCase):
+    def test_mixed_code_halt_is_display_only_and_roster_change_resets_streak(self):
+        prior = build(catalog('2026-11-09', {'000001': False}))
+        current = catalog('2026-11-10', {'000001': False})
+        current["rows"][2]["code"] = "00A8Z0"
+        current["rows"][2]["name"] = "혼합종목코드"
+        current["rows"][2]["listing_zero_volume_reference"] = True
+        status = build(current, prior)
+        self.assertEqual(status["listed_total"], 3)
+        self.assertIn("00A8Z0", status["rows"])
+        self.assertEqual(status["rows"]["00A8Z0"]["state"], "zero_volume")
+        self.assertIsNone(status["rows"]["00A8Z0"]["observed_zero_streak"])
+        self.assertEqual(status["rows"]["00A8Z0"]["duration"], "unknown")
+        self.assertFalse(status["rows"]["00A8Z0"]["official_reason_verified"])
+        self.assertEqual(status["score_points_added"], 0)
+        self.assertEqual(build(current, status), status)
+        for invalid in ("00a8Z0", "00A8_0", "００A８Z０"):
+            malformed = copy.deepcopy(current)
+            malformed["rows"][2]["code"] = invalid
+            with self.assertRaisesRegex(ValueError, "invalid_catalog_issuer"):
+                build(malformed)
+
     def test_unproven_long_halt_has_unknown_duration(self):
         report=build(catalog('2026-11-09',{'000001':True,'000002':True,'000003':False}))
         self.assertEqual(report['listed_total'],3)

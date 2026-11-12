@@ -198,6 +198,50 @@ class ObservedVolumeTests(unittest.TestCase):
             with self.assertRaises(VolumeEvidenceError):
                 main(["--docs",str(root),"--mode","verify"])
 
+    def test_mixed_code_census_remains_observed_or_missing_without_invented_points(self):
+        market, catalog = fixture()
+        original = market["stocks"][0]["code"]
+        mixed = "00A9Z0"
+        market["stocks"][0]["code"] = mixed
+        for row in catalog["rows"]:
+            if row["code"] == original:
+                row["code"] = mixed
+            for item in market["stocks"]:
+                if row["code"] == item["code"]:
+                    row["name"] = item["name"]
+        market["stocks"][0].update({
+            "volume_ratio": 1.5, "obv_rising": True,
+            "price60": 3.0, "divergence": True,
+        })
+        report = build(market, catalog)
+        self.assertEqual(report["listed_total"], 5)
+        self.assertIn(mixed, report["records"])
+        self.assertEqual(report["records"][mixed]["observed_available_max"], 10)
+        self.assertNotIn(original, report["records"])
+        self.assertFalse(report["certified_100_point_investment_scores"])
+
+        # A newly listed mixed issuer with no price evidence must not
+        # receive a volume score, or vanish from the issuer denominator.
+        not_priced = copy.deepcopy(market)
+        pending = copy.deepcopy(catalog)
+        pending_code = "00B8X0"
+        previous = pending["rows"][3]["code"]
+        pending["rows"][3]["code"] = pending_code
+        for row in not_priced["history_exclusions"]:
+            if row[0] == previous:
+                row[0] = pending_code
+        for row in not_priced["collection_errors"]:
+            if row[0] == previous:
+                row[0] = pending_code
+        missing_report = build(not_priced, pending)
+        self.assertEqual(missing_report["listed_total"], 5)
+        self.assertNotIn(pending_code, missing_report["records"])
+        for wrong in ("00a9Z0", "00A9_0", "００A９Z０"):
+            broken = copy.deepcopy(catalog)
+            next(row for row in broken["rows"] if row["code"] == mixed)["code"] = wrong
+            with self.assertRaisesRegex(VolumeEvidenceError, "invalid_listed_issuer_identity"):
+                build(market, broken)
+
     def test_full_listed_catalog_missing_is_not_zero_score(self):
         market,catalog=fixture()
         s=market["stocks"][0]
