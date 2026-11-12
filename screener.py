@@ -129,7 +129,8 @@ def market_snapshot(listing=None):
         # Exclude a clearly suffixed preferred class only for non-common
         # ticker class suffixes; handle newer 1우/2우B/3우C/우(전환) too.
         if (code[-1]!='0' and re.search(
-            r'(?:[1-9][0-9]*)?우(?:[A-Z]|\\(전환\\))?        vals=[finite(r[t]) for t in ('Close','Volume','Amount','Marcap')]
+            r'(?:[1-9][0-9]*)?우(?:[A-Z]|\(전환\))?$',name)):continue
+        vals=[finite(r[t]) for t in ('Close','Volume','Amount','Marcap')]
         if any(v is None for v in vals):continue
         px,volume,amount,marcap=vals
         # No market-cap or trading-value cutoff: thinly traded and small-cap
