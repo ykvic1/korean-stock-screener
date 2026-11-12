@@ -39,6 +39,22 @@ class Revenue2022Tests(unittest.TestCase):
         self.assertIsNone(history['records']['005490']['years']['2022']['CFS']['values']['revenue'])
         self.assertEqual(expected['005490'], base)
 
+    def test_genuine_mixed_code_enterprise_is_valid_2022_revenue_source_target(self):
+        catalog,history,base,row=fixtures()
+        original='005490'
+        mixed='0008Z0'
+        catalog['rows'][0]['code']=mixed
+        history['records'][mixed]=history['records'].pop(original)
+        targets=expected_sources(catalog,history)
+        self.assertEqual(list(targets),[mixed])
+        self.assertEqual(targets[mixed]['fiscal_year'],2022)
+        malformed={'0008z0','00/8Z0','0008Z0X'}
+        for code in malformed:
+            catalog['rows'][0]['code']=code
+            with self.assertRaisesRegex(Revenue2022Error,
+                                        'invalid_revenue_2022_market_identity'):
+                expected_sources(catalog,history)
+
     def test_exact_standard_krw_receipt(self):
         _, _, base, row = fixtures()
         result = parse({'status': '000', 'list': [row]}, base, '00123456', '2026-11-05')

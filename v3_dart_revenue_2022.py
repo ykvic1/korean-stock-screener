@@ -30,7 +30,7 @@ NONSTANDARD = '-표준계정코드 미사용-'
 EXACT_NAMES = frozenset({
     '매출액', '영업수익', '수익(매출액)', '매출액(수익)',
 })
-CODE = re.compile(r'[0-9]{6}\Z')
+CODE = re.compile(r'[0-9A-Z]{6}\Z')
 CORP = re.compile(r'[0-9]{8}\Z')
 ISSUER_SOURCE_GAP_ERRORS = frozenset({
     'revenue_2022_conflicting_annual_accounts',
