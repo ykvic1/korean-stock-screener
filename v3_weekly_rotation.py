@@ -23,7 +23,7 @@ SCHEMA = "v3-seven-day-research-source-rotation-0.1"
 REPORT_SCHEMA = "v3-seven-day-research-coverage-0.1"
 EPOCH = date(2026, 10, 20)  # first intended Tuesday evening local session
 GROUPS = 7
-CODE = re.compile(r"[0-9]{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 TECH_PARTS = {
     "daily_pattern": 7, "weekly_pattern": 8, "daily_rsi": 2,
     "weekly_rsi": 3, "weekly_ma120": 3, "volume_confirmation": 2,
@@ -113,17 +113,19 @@ def source_tables(market, catalog, book, four=None):
             type(four.get("records")) is not list):
             raise RotationError("untrusted_four_year_reference")
         if four_day == day(asof):
-            if four["listed_total"] != len(members):
+            if four["listed_total"] > len(members):
                 raise RotationError("untrusted_four_year_reference")
-            for row in four["records"]:
-                c = row.get("code") if type(row) is dict else None
-                if c not in members or c in four_source:
-                    raise RotationError("duplicate_or_unlisted_four_year_source")
-                four_source[c] = row
-        # A previous market day's optional 4Y reference may have a different
-        # listed universe. Ignore its individual rows altogether. Current
-        # technical/momentum research can still advance using dated prices;
-        # no old financial evidence is borrowed or scored as current.
+            if four["listed_total"] == len(members):
+                for row in four["records"]:
+                    c = row.get("code") if type(row) is dict else None
+                    if c not in members or c in four_source:
+                        raise RotationError("duplicate_or_unlisted_four_year_source")
+                    four_source[c] = row
+            # An older same-date small roster is a distinct source snapshot,
+            # not missing-as-zero and NOT usable for today's financial points.
+        # A previous day's or same-day smaller-census optional 4Y reference
+        # is research-only and excluded from any current financial factors.
+        # Technical/momentum can advance without borrowing old evidence.
     return asof, members, prices, annual, four_source
 
 

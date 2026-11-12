@@ -59,6 +59,24 @@ def fixture(n=2497):
 
 
 class RotationTests(unittest.TestCase):
+    def test_genuine_mixed_code_listed_issuer_never_dropped_from_weekly(self):
+        from v3_weekly_rotation import codes_from_catalog
+        market,catalog,book=fixture(n=8)
+        old='000007'
+        mixed='0008Z0'
+        catalog["rows"][-1]["code"]=mixed
+        market["stocks"][-1]["code"]=mixed
+        ids=codes_from_catalog(catalog)
+        self.assertEqual(len(ids),8)
+        self.assertIn(mixed,ids)
+        state,report=recalculate(market,catalog,book,when='2026-10-20')
+        self.assertEqual(report["listed_total"],8)
+        self.assertEqual(report["source_collection_calls"],0)
+        self.assertFalse(state["v3_live_full_six_pillar_score_claimed"])
+        catalog["rows"][-1]["code"]='00/0Z0'
+        with self.assertRaisesRegex(RotationError,'duplicate_or_unlisted_code'):
+            codes_from_catalog(catalog)
+
     def test_stale_optional_four_year_reference_does_not_block_current_prices(self):
         market, catalog, book = fixture(n=8)
         four = {
@@ -81,9 +99,14 @@ class RotationTests(unittest.TestCase):
                                when="2026-10-21", prior=state, four=four)
         self.assertEqual(
             later["source_reference_counts_this_cycle"]["current_four_year_core"], 0)
+        same_day_old_census={**four, "asof":"2026-10-19"}
+        _, dated = recalculate(market, catalog, book,
+                               when="2026-10-20", four=same_day_old_census)
+        self.assertEqual(dated["source_reference_counts_this_cycle"]["current_four_year_core"],0)
+        self.assertEqual(dated["source_collection_calls"],0)
         for invalid in (
             {**four, "asof": "2026-10-20"},
-            {**four, "asof": "2026-10-19"},
+            {**four, "asof": "2026-10-19", "listed_total":9},
             {**four, "full_v3_ready": True},
         ):
             with self.assertRaisesRegex(RotationError,

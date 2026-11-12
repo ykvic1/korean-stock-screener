@@ -10,6 +10,7 @@ from datetime import date
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 from v3_dart_bulk_history import (
@@ -63,9 +64,19 @@ def publication_alignment(catalog, history, parts, weekly):
         or any(not 0 <= (market - d).days <= 9 for d in dates[1:])):
         raise CoverageAuditError("invalid_source_alignment_scope")
     if annual == market and technical == market:
-        if counts != [counts[0]] * 4:
-            raise CoverageAuditError("current_source_universe_mismatch")
-        return "aligned"
+        if counts == [counts[0]] * 4:
+            return "aligned"
+        # A same-calendar-day full-market roster expansion may be published
+        # AFTER either independently scheduled archive. An old same-day
+        # issuer census must never be relabeled as the new market's source.
+        # Defer ONLY the combined audit; the verified DART source itself may
+        # still be collected and retained. No stale technical or financial
+        # candidate can enter the new-day common research score.
+        if counts[1] < counts[0] and counts[3] <= counts[0]:
+            return "deferred_dart"
+        if counts[1] == counts[0] and counts[3] < counts[0]:
+            return "deferred_weekly"
+        raise CoverageAuditError("current_source_universe_mismatch")
     if annual < market:
         return "deferred_dart"
     return "deferred_weekly"
@@ -213,8 +224,8 @@ def coverage(catalog,history,parts,weekly,*,allow_lagged_weekly=False,
     members={}
     for row in catalog["rows"]:
         code=row.get("code")
-        if (not isinstance(code,str) or len(code)!=6 or
-            not code.isascii() or not code.isdecimal() or
+        if (not isinstance(code,str) or
+            re.fullmatch(r"[0-9A-Z]{6}",code) is None or
             row.get("market") not in ("KOSPI","KOSDAQ") or
             code in members):
             raise CoverageAuditError("invalid_or_duplicate_market_member")
