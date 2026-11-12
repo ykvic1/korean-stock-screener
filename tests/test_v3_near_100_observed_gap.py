@@ -22,6 +22,16 @@ def saved_sources():
     )
 
 
+class MixedCodePriorityGrammarTests(unittest.TestCase):
+    def test_mixed_code_investment_research_issuer_is_eligible_for_gap_queue(self):
+        from v3_near_100_observed_gap import CODE
+        self.assertIsNotNone(CODE.fullmatch("0008Z0"))
+        self.assertIsNotNone(CODE.fullmatch("A12345"))
+        self.assertIsNotNone(CODE.fullmatch("005930"))
+        for bad in ("0008z0","00/8Z0","0008Z0X","0008Z","0008 Z0"):
+            self.assertIsNone(CODE.fullmatch(bad))
+
+
 class NearHundredSourceGapTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
