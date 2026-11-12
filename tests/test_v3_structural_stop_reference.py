@@ -35,7 +35,44 @@ class StructuralStopReferenceTests(unittest.TestCase):
         self.assertTrue(result['unscored_reference_only'])
         self.assertFalse(result['krx_regular_session_verified'])
 
-    def test_pivot_requires_three_subsequent_closed_candles(self):
+    def test_actual_sma20_sma60_replace_low_only_stop_candidate_gap(self):
+        # First 40 closes 100, next 19 110, final 120. The 20/60
+        # simple moving averages are 110.5 and 103.5, not the low of 90.
+        df = pd.DataFrame({
+            'Low': np.full(80, 90.),
+            'High': np.full(80, 130.),
+            'Close': np.r_[np.full(60, 100.), np.full(19, 110.), 120.],
+            'Volume': np.zeros(80),
+        })
+        row = observe(df, asof='2026-11-12')
+        self.assertEqual(row['low20'], 90.)
+        self.assertEqual(row['ma20'], 110.5)
+        self.assertEqual(row['ma60'], 103.5)
+        self.assertEqual(row['reference_line'], 109.95)
+        self.assertEqual(row['basis'], ['20일 이동평균선'])
+        self.assertEqual(row['confluence_count'], 1)
+        self.assertEqual(row['score_impact'], 0)
+        self.assertTrue(valid_reference(row, '2026-11-12', 120.))
+        # Never manufacture a certified KRX session or stop probability.
+        self.assertFalse(row['krx_regular_session_verified'])
+        self.assertFalse(row['corporate_actions_verified'])
+
+    def test_two_price_based_ma_levels_do_not_double_count_confirmation(self):
+        df = pd.DataFrame({
+            'Low': np.full(80, 90.),
+            'High': np.full(80, 130.),
+            'Close': np.r_[np.full(79, 105.), 120.],
+            'Volume': np.zeros(80),
+        })
+        row = observe(df, asof='2026-11-12')
+        self.assertEqual(row['ma20'], 105.75)
+        self.assertEqual(row['ma60'], 105.25)
+        self.assertEqual(row['confluence_count'], 1)
+        self.assertEqual(row['confidence'], 'single_support')
+        invalid = dict(row, ma20=float('nan'))
+        self.assertFalse(valid_reference(invalid, '2026-11-12', 120.))
+
+
         df = history()
         df.loc[98, 'Low'] = 88
         df.loc[98, 'Close'] = 96
