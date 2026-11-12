@@ -645,7 +645,36 @@ def publish(*, manifest: dict, parts_dir: Path,
     # full v2.2 ranking score. Any source failure stays unavailable.
     print(json.dumps({"status":"market_merge_stage","stage":"write_short_daily_history"}), flush=True)
     from v22_short_history_observations import write_short_history
-    write_short_history(data, screener.SITE / "v22-partial-history.json", cfg=cfg)
+    try:
+        write_short_history(data, screener.SITE / "v22-partial-history.json", cfg=cfg)
+    except Exception as exc:
+        # Source and private quote details must never cross into public CI.
+        # Restrict exception text to a tiny documented set of static reasons.
+        from v22_short_history_observations import VALID_CODE, MAX_ISSUERS
+        reasons = frozenset((
+            "current_market_snapshot_required", "source_day_mismatch",
+            "partial_history_population_invalid", "partial_history_duplicate_stock",
+            "partial_history_already_full_scored", "partial_price_outcome_count_mismatch",
+            "partial_price_public_data_limit", "nonfinite_observation",
+        ))
+        excluded = data.get("history_exclusions", [])
+        eligible = sum(
+            type(x) is list and len(x) == 2 and
+            type(x[0]) is str and VALID_CODE.fullmatch(x[0]) is not None and
+            x[1] == "insufficient_valid_price_history"
+            for x in excluded
+        ) if type(excluded) is list else None
+        reason = str(exc) if type(exc) is ValueError and str(exc) in reasons else "unclassified_short_history_failure"
+        print(json.dumps({
+            "status": "short_history_stage_rejected",
+            "reason": reason,
+            "exception_class": type(exc).__name__ if type(exc).__name__ in
+                ("ValueError", "TypeError", "KeyError", "OSError", "AttributeError") else "other",
+            "eligible_short_issuer_count": eligible,
+            "excluded_short_issuer_count": len(excluded) if type(excluded) is list else None,
+            "maximum_short_issuers": MAX_ISSUERS,
+        }, sort_keys=True), flush=True)
+        raise
     print(json.dumps({"status":"market_merge_stage","stage":"all_local_artifacts_verified"}), flush=True)
     return {"status": ("complete_market_report_published"
                         if merged["market_scan_complete"]
