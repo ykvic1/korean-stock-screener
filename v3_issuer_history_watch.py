@@ -95,7 +95,8 @@ def inspect(current,previous=None):
         for row in archive.values())
     for code,row in rows.items():
         if (not isinstance(row,dict) or code!=row.get("code") or
-            not isinstance(code,str) or len(code)!=6 or not code.isdecimal() or
+            not isinstance(code,str) or len(code)!=6 or
+            not all(ch in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" for ch in code) or
             row.get("market") not in ("KOSPI","KOSDAQ") or
             not isinstance(row.get("name"),str) or
             type(row.get("active")) is not bool or
