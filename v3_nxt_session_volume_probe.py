@@ -28,7 +28,45 @@ MARKETS = {'STK': 'KOSPI', 'KSQ': 'KOSDAQ'}
 
 
 class NXTProbeError(ValueError):
-    """Static, safe error code: never expose response or URL."""
+    """Static, safe reason plus optional aggregate-only identity shape."""
+
+    def __init__(self, reason, *, shape_counts=None):
+        super().__init__(reason)
+        self.shape_counts = shape_counts
+
+
+def identity_shape_counts(rows):
+    """Classify *only* invalid identity shapes; never export ticker values.
+
+    Historical NXT feeds may include non-ordinary instruments. Do not simply
+    skip them or recast them as listed stocks without provider evidence.
+    """
+    reasons = {
+        'unexpected_market_id': 0,
+        'missing_or_nonstring_short_code': 0,
+        'code_missing_A_prefix': 0,
+        'code_wrong_width': 0,
+        'code_non_ascii_alphanumeric': 0,
+    }
+    for row in rows:
+        if not isinstance(row, dict):
+            reasons['unexpected_market_id'] += 1
+            reasons['missing_or_nonstring_short_code'] += 1
+            continue
+        if row.get('mktId') not in MARKETS:
+            reasons['unexpected_market_id'] += 1
+        code = row.get('isuSrdCd')
+        if not isinstance(code, str):
+            reasons['missing_or_nonstring_short_code'] += 1
+            continue
+        if not code.startswith('A'):
+            reasons['code_missing_A_prefix'] += 1
+        if len(code) != 7:
+            reasons['code_wrong_width'] += 1
+        if not re.fullmatch(r'A[0-9A-Z]{6}', code):
+            reasons['code_non_ascii_alphanumeric'] += 1
+    return reasons
+
 
 
 def quantity(value):
@@ -97,7 +135,8 @@ def fetch_session(session, kind, day):
         # Since 2026, some valid KRX/NXT short codes contain a letter, e.g.
         # A0008Z0. Numeric-only filtering silently excludes listed issuers.
         if market is None or not isinstance(code, str) or not re.fullmatch(r'A[0-9A-Z]{6}', code):
-            raise NXTProbeError('nxt_row_identity_invalid')
+            raise NXTProbeError('nxt_row_identity_invalid',
+                                shape_counts=identity_shape_counts(rows))
         key = (market, code[1:])
         if key in observed:
             raise NXTProbeError('nxt_duplicate_market_identity')
@@ -174,5 +213,11 @@ if __name__ == '__main__':
             'saved_market_not_previous_calendar_day',
         ))
         reason = str(exc) if isinstance(exc, NXTProbeError) and str(exc) in allowed else 'nxt_probe_not_verified'
-        print(json.dumps({'status':'blocked','reason':reason,'score_points_added':0}))
+        report={'status':'blocked','reason':reason,'score_points_added':0}
+        if (reason=='nxt_row_identity_invalid' and isinstance(exc,NXTProbeError)
+            and isinstance(exc.shape_counts,dict)):
+            # Aggregate shape categories only. No source values or example
+            # tickers; a malformed row never becomes a zero-volume stock.
+            report['invalid_identity_shape_counts']=exc.shape_counts
+        print(json.dumps(report,sort_keys=True))
         raise SystemExit(1)
