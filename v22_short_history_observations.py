@@ -81,7 +81,9 @@ def build_short_history(snapshot,reader,*,asof=None,cfg=None,sleep=lambda x:None
     if date!=snapshot.get("date"):
         raise ValueError("source_day_mismatch")
     exclusions=snapshot["history_exclusions"]
-    # Full-market census permits A-Z in six-character listed identifiers;\n    # reject malformed identities, but do not drop actual mixed-code issuers.\n    targets=[x[0] for x in exclusions if (
+    # Full-market census permits A-Z in six-character listed identifiers;
+    # Reject malformed identities; preserve actual mixed-code issuers.
+    targets=[x[0] for x in exclusions if (
         isinstance(x,list) and len(x)==2 and
         x[1]=="insufficient_valid_price_history" and
         isinstance(x[0],str) and VALID_CODE.fullmatch(x[0]))]
