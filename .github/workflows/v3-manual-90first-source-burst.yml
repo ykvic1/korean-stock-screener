@@ -1,0 +1,106 @@
+name: V3.0b Manual 90-First Source Recovery Burst
+# One deliberate acquisition burst on first merge; later runs require manual
+# dispatch. Scheduled collectors retain their existing schedules and locks.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-manual-90first-source-burst.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: korea-stock-screener-manual-90-first-dispatch
+  cancel-in-progress: false
+
+jobs:
+  preflight-and-dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Validate saved source date and count eligible 90-first work
+        id: gaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from v3_saved_close_path_recovery import select_targets, RecoveryError
+          root = Path("docs")
+          load = lambda name: json.loads((root / name).read_text(encoding="utf-8"))
+          market = load("data.json")
+          score = load("v3-operational-research-scores.json")
+          priority = load("v3-operational-evidence-priority.json")
+          day = market.get("date")
+          census = market.get("candidate_count")
+          if (priority.get("schema") != "v3-r1d-observation-work-priority-v1"
+                  or priority.get("asof") != day or score.get("asof") != day
+                  or census != priority.get("listed_total")
+                  or type(market.get("stocks")) is not list
+                  or len(market["stocks"]) != census
+                  or priority.get("missing_is_not_zero") is not True):
+              raise SystemExit("manual_90first_source_date_or_census_mismatch")
+          coverage = priority["coverage_90_first"]
+          if (coverage.get("recovery_not_a_score_or_observation") is not True
+                  or coverage.get("independent_source_recoverability_not_proven") is not True
+                  or coverage.get("missing_data_never_zero_filled") is not True):
+              raise SystemExit("manual_90first_unverified_priority_contract")
+          counts = coverage["family_upper_bound_counts"]
+          try:
+              below, other = select_targets(market, score)
+              price_candidates = len(below) + len(other)
+              path_state = "valid_source_selection"
+          except RecoveryError:
+              price_candidates = 0
+              path_state = "source_selection_blocked"
+          flags = {
+              "price": price_candidates > 0,
+              "cashflow": counts.get("dart_cashflow_capex", 0) > 0,
+              "money": counts.get("exchange_actual_money_windows", 0) > 0,
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              for key, value in flags.items():
+                  output.write(key + "=" + str(value).lower() + "\n")
+          print(json.dumps({
+              "asof": day, "listed_total": census,
+              "below_90": coverage["below_90_issuers"],
+              "price_path_exact_recovery_candidates": price_candidates,
+              "price_path_selection": path_state,
+              "cashflow_conditional_90first_issuers": counts.get("dart_cashflow_capex", 0),
+              "money_conditional_90first_issuers": counts.get("exchange_actual_money_windows", 0),
+              "dispatch": flags, "points_added_by_dispatch": 0,
+              "no_missing_source_guessed": True,
+          }, sort_keys=True))
+          PY
+      - name: Manually start bounded original DART CAPEX recovery
+        if: steps.gaps.outputs.cashflow == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-reported-capex-total.yml/dispatches" -f ref=main --silent
+      - name: Manually start 90-first exact saved-close path collection
+        if: steps.gaps.outputs.price == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-saved-close-path-recovery.yml/dispatches" -f ref=main --silent
+      - name: Manually start historical KRX reported-money week gap recovery
+        if: steps.gaps.outputs.money == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-krx-money-week-repair.yml/dispatches" -f ref=main --silent
+      - name: Explain strict acquisition boundaries
+        run: |
+          echo "Only existing source-verified collectors were dispatched."
+          echo "No V3.0b investment-score points are credited by the dispatcher."
+          echo "Official-price/regular-close and consolidated NXT volume are not certified."
