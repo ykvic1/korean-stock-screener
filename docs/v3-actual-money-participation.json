@@ -155374,7 +155374,7 @@
   "retained_prior_money_issuers": 0,
   "schema": "v3-personal-actual-money-participation-six-0.1",
   "single_day_money_component_points": 0,
-  "source_catalog_sha256": "56b7ccdec301d5f3cf52ede733002ad8464d63ed055f73e9a1b13ee68c7f1848",
+  "source_catalog_sha256": "337d3afeb57bddc27326f42084c4a690318a31383b03cb8b34c784b763648d82",
   "source_checkpoint_sha256": {
     "0": "3cbca1d9645682c93b7176d0a676a50c3fd64baa2a24832fd63013efadc6152e",
     "1": "7f85d5471cbbd5541bef77029ce7cf2d0d3c0892fc40e124a449e829d1cd7a95",
