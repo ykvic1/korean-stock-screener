@@ -124,8 +124,8 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261111-stop-reference-csv'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261111-stop-reference-csv'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261112-stop-sma20-60'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261112-stop-sma20-60'),'classic research route keeps its pinned assets');
  assert.ok(entry.includes('operational-score.js?v=r1e-stop-unscored')&&
   html.includes('operational-score.js?v=r1e-stop-unscored'),
   'both routes must invalidate cached score markup after removing stop adjustments');
@@ -1002,7 +1002,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261111-stop-reference-csv','v30b-20261110-score-reconcile'],[entry,'v30b-20261111-stop-reference-csv','v30b-20261110-score-reconcile']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile'],[entry,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
   page.includes('v3-live-progress.js?v=v30b-20261111-r1e-coverage')&&
