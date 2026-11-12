@@ -89,6 +89,24 @@ class OwnerProfitSourceTests(unittest.TestCase):
         self.assertTrue(set(target)<=set(expected))
         self.assertEqual(len(set(target)),len(target))
 
+    def test_official_profit_priority_keeps_real_alphanumeric_issuer(self):
+        catalog,book,priority=inputs()
+        codes=["0008Z0","00A020"]
+        for i,code in enumerate(codes):
+            catalog["rows"][i]["code"]=code
+            book["records"][i]["code"]=code
+        priority["official_2025_owners_profit_missing_priority_codes"]=codes
+        day,members,expected,retained,targets=probe.plan(
+            catalog,book,priority,limit=20)
+        self.assertEqual(set(expected),set(codes))
+        self.assertEqual(set(targets),set(codes))
+        self.assertFalse(retained)
+        # Mixed-case and arbitrary characters never qualify as a ticker.
+        catalog["rows"][0]["code"]="0008z0"
+        with self.assertRaisesRegex(probe.ProfitProbeError,
+                                    "invalid_profit_issuer_roster"):
+            probe.plan(catalog,book,priority,limit=20)
+
     def test_source_observed_zero_or_negative_is_real_not_missing(self):
         day,members,base=self.first()
         for income in ("0","-20000000","100000000"):
