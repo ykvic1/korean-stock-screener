@@ -11,10 +11,19 @@ on:
       - v3_dart_full_intangible_total.py
       - .github/workflows/v3-full-intangible-total.yml
   workflow_dispatch:
+  schedule:
+    # 08:00 KST Tuesday-Saturday: after the 07:20 KST official combined-
+    # CAPEX recovery and the 02:30 previous-session market collection.
+    # The shared cashflow writer lock serializes any overrun; reviewed
+    # issuer-years remain excluded and absent accounts never become zero.
+    - cron: '0 23 * * 1-5'
 permissions:
   contents: read
 jobs:
   offline:
+    # Code was already checked by PR/push; do not rerun the same offline
+    # tests on unchanged daily source-only collection.
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +37,9 @@ jobs:
           python v3_dart_full_intangible_total.py --mode dry-run --limit 8
   recover:
     needs: offline
-    if: github.event_name != 'pull_request'
+    if: >-
+      ${{ always() && github.event_name != 'pull_request' &&
+          (needs.offline.result == 'success' || needs.offline.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
