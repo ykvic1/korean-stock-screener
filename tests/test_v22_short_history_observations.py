@@ -100,6 +100,28 @@ class PartialShortHistoryStockTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"population_invalid"):
             build_short_history(snap,lambda *args:frame(90))
 
+    def test_fullmarket_mixed_code_issuer_is_not_dropped_from_partial_research(self):
+        snapshot=sample(3)
+        snapshot['history_exclusions'][0][0]='0008Z0'
+        snapshot['history_exclusions'][1][0]='A00002'
+        observed={}
+        def reader(code,start,end):
+            observed[code]=True
+            return frame(90 if code=='0008Z0' else 22)
+        result=build_short_history(snapshot,reader,
+            cfg={'historical_days':1100,'request_sleep_seconds':0},
+            sleep=lambda _:None)
+        self.assertEqual(result['listed_insufficient_history_count'],3)
+        self.assertEqual(result['partial_observed_count'],1)
+        self.assertEqual(set(observed),{'0008Z0','A00002',snapshot['history_exclusions'][2][0]})
+        self.assertFalse(result['full_v22_score_allowed'])
+        self.assertFalse(result['v3_validated_technical_score_allowed'])
+        snapshot['history_exclusions'][1][0]='00/0Z0'
+        with self.assertRaisesRegex(ValueError,'partial_history_population_invalid'):
+            build_short_history(snapshot,reader,
+                cfg={'historical_days':1100,'request_sleep_seconds':0},
+                sleep=lambda _:None)
+
     def test_file_publishes_only_derived_observations_no_vendor_bar_copy(self):
         snap=sample(2)
         codes=[x[0] for x in snap["history_exclusions"]]
