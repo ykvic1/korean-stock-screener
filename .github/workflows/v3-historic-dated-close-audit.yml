@@ -1,0 +1,47 @@
+name: V3.0b Three Historical Regular-Close Candidate Spotchecks (No Scores)
+on:
+  pull_request:
+    paths:
+      - v3_historic_dated_close_corroboration.py
+      - tests/test_v3_historic_dated_close_corroboration.py
+      - .github/workflows/v3-historic-dated-close-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-historic-dated-close-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-historic-dated-close-corroboration-audit
+  cancel-in-progress: false
+
+jobs:
+  historical-public-close-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'main' }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the existing KRX/FDR source dependencies
+        run: pip install -r requirements.txt
+      - name: Focused identity, source-scope and no-export regression
+        run: |
+          python -m py_compile v3_historic_dated_close_corroboration.py
+          python -m unittest discover -s tests -p 'test_v3_historic_dated_close_corroboration.py' -v
+      - name: Compare three prior complete-market public cache closes with KRX
+        if: github.event_name != 'pull_request'
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Max 3 public dated-file + 6 official two-market source calls.
+          # Official KRX prices and identities never written to any artifact.
+          python v3_historic_dated_close_corroboration.py --mode live
