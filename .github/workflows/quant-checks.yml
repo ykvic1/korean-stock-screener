@@ -31,7 +31,18 @@ jobs:
           # checkout before asserting exact issuer/CSV release-gate joins.
           # No provider requests, no push and no authority promotion.
           python v3_current_price_replay.py --mode write
-          python v3_all_listed_scorecard.py --mode write
+          # The 21:00 full-market 2,591-company close can be published before
+          # the independently authenticated DART four-year annual source.
+          # A valid lag defers this LEGACY five-area derived CSV, NEVER its
+          # original-value integrity check or source dates. Propagate malformed,
+          # future or forged source statuses as hard CI failures.
+          READY="$(python v3_scorecard_source_day_preflight.py | python -c \
+            'import json,sys; x=json.load(sys.stdin); assert type(x.get("ready")) is bool; print(str(x["ready"]).lower())')"
+          if [[ "$READY" == 'true' ]]; then
+            python v3_all_listed_scorecard.py --mode write
+          else
+            echo 'quant_ci_legacy_five_area_deferred_for_verified_source_day_lag'
+          fi
       - name: Full Python regression once before integration
         run: python -m unittest discover -s tests -v
       - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py recommendation_engine.py
