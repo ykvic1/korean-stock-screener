@@ -33,6 +33,27 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         malformed = member("0001a0", "Invalid Lowercase")
         with self.assertRaises(IssuerFactorLedgerError):
             build(census(day, [malformed]), [row(malformed, day)])
+    def test_mixed_code_rename_archives_original_factor_without_current_leakage(self):
+        code="0008Z0"
+        original=member(code,"Mixed-code Old Name")
+        first=build(census("2026-11-10",[original]),
+                    [row(original,"2026-11-10")])
+        revised=member(code,"Mixed-code New Name")
+        updated=build(census("2026-11-11",[revised]),
+                      [row(revised,"2026-11-11",
+                           financial=None,valuation=None)],first)
+        self.assertEqual(updated["active_issuer_count"],1)
+        self.assertNotIn("financial",updated["rows"][code]["factors"])
+        self.assertEqual(len(updated["identity_review_archive"]),1)
+        archived=next(iter(updated["identity_review_archive"].values()))
+        self.assertEqual(archived["code"],code)
+        self.assertEqual(archived["factors"]["financial"]["asof"],"2026-11-10")
+        self.assertFalse(archived["eligible_for_current_ranking"])
+        malformed=member("0008z0","Lowercase Invalid")
+        with self.assertRaises(IssuerFactorLedgerError):
+            build(census("2026-11-11",[malformed]),
+                  [row(malformed,"2026-11-11")])
+
     def test_new_listing_and_delisting_do_not_wipe_other_issuers(self):
         a=member("005930","A");b=member("000020","B")
         day1="2026-10-30";day2="2026-11-02"
