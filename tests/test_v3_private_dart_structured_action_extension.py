@@ -271,7 +271,7 @@ class SupplementalActionTests(unittest.TestCase):
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN:", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
         self.assertNotIn("git push", wf)
-        self.assertIn("30 12 * * 1-5",
+        self.assertIn("30 17 * * 1-5",
                       Path(".github/workflows/full-market-batches.yml").read_text())
 
     def test_transient_supplement_upload_retries_without_provider_refetch(self):

@@ -24,15 +24,18 @@ class PostCloseSourceAuditWorkflowTests(unittest.TestCase):
         self.assertNotIn("git push", text)
         self.assertNotIn("screener.py --", text)
 
-    def test_source_audit_cannot_change_the_daily_schedule(self):
+    def test_source_audit_preserves_verified_overnight_schedule(self):
         full_market = Path(".github/workflows/full-market-batches.yml")
         text = full_market.read_text(encoding="utf-8")
-        self.assertIn("cron: '30 12 * * 1-5'", text)
+        self.assertIn("cron: '30 17 * * 1-5'", text)
+        self.assertIn("--overnight-previous-day", text)
+        self.assertIn("github.event_name", text)
         self.assertIn("Full-Market 100-Stock Batches", text)
+        self.assertNotIn("cron: '30 12 * * 1-5'", text)
 
 
     def test_date_pinned_listing_needs_no_secret_and_flow_secrets_remain_optional(self):
-        """The 21:30 price-universe roster must not depend on KRX login.
+        """The overnight previous-day price-universe roster must not depend on KRX login.
 
         Public cache is selected by the exact market asof in BOTH plan and
         publish. Separate investor-flow research may still accept secrets;

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import sha256
 import json
 import logging
@@ -79,6 +79,26 @@ def _date(asof: str) -> str:
     if d.date() > datetime.now(ZoneInfo("Asia/Seoul")).date():
         raise BatchError("future_asof")
     return asof
+
+
+def overnight_previous_market_date(*, now=None):
+    """Pin the after-market collection to the PRIOR KST calendar date.
+
+    Workflow cron fires 17:30 UTC Mon-Fri = 02:30 KST Tue-Sat. It must
+    not infer a new Korean trading date just because the checkout/plan job
+    starts after midnight. Korean exchange holidays remain source-unavailable
+    and fail closed, rather than silently reusing another session's data.
+    """
+    local=now if now is not None else datetime.now(ZoneInfo("Asia/Seoul"))
+    if not isinstance(local,datetime) or local.tzinfo is None:
+        raise BatchError("overnight_target_timezone_required")
+    local=local.astimezone(ZoneInfo("Asia/Seoul"))
+    if local.weekday() not in (1,2,3,4,5) or not 1<=local.hour<8:
+        raise BatchError("outside_overnight_market_batch_window")
+    # `plan()` validates this date against the real clock before fetching.
+    # Keep the clock projection pure so historical/future DST-free KST
+    # boundary tests do not depend on which date CI happened to run.
+    return (local.date()-timedelta(days=1)).isoformat()
 
 
 def _digest(asof: str, codes: list[str]) -> str:
@@ -638,6 +658,8 @@ def main(argv=None):
                    help='Use same-day saved roster only after live listing fails; audit only')
     p.add_argument("--date-pinned-roster", action="store_true",
                    help='Use exact-date FinanceData cache, no implicit latest-date resolver')
+    p.add_argument("--overnight-previous-day", action="store_true",
+                   help='Scheduled 02:30 KST Tue-Sat: target completed previous weekday')
     p.add_argument("--priority-file", type=Path, default=None)
     p.add_argument("--priority-catalog", type=Path, default=None)
     p = subs.add_parser("scan")
@@ -652,7 +674,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.cmd == "plan":
-            asof = args.asof or datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
+            if args.asof and args.overnight_previous_day:
+                raise BatchError("conflicting_requested_and_scheduled_dates")
+            asof = (overnight_previous_market_date() if args.overnight_previous_day
+                    else args.asof or datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d"))
             result = plan(asof=asof, out=Path(args.out),
                           fallback_catalog=args.fallback_catalog,
                           date_pinned_roster=args.date_pinned_roster,

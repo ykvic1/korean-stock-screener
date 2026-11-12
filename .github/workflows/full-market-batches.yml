@@ -5,9 +5,14 @@ on:
   # Automatically recompute ALL surviving ordinary stocks in 100-stock slices
   # on weekdays; this replaces the legacy time-limited daily schedule.
   schedule:
-    - cron: '30 12 * * 1-5' # 21:30 KST, 90 minutes after 20:00 aftermarket close
-  # Run once after BOTH KRX and NXT evening sessions. Scheduling later lets
-  # the daily provider settle; it does NOT turn FChart prices into certified
+    # 02:30 KST Tuesday-Saturday (17:30 UTC Monday-Friday), targeting the
+    # PRIOR KST calendar day. Actual source daily CSVs were refreshed after
+    # 21:30 on multiple recently observed sessions (e.g. 23:19 on Nov 10).
+    # This reduces the risk of hashing a still-changing after-market source.
+    - cron: '30 17 * * 1-5' # 02:30 KST Tue-Sat: prior weekday data
+  # Run in the next day's early hours after BOTH KRX and NXT evening
+  # sessions. Scheduling later lets the daily provider settle, but does NOT
+  # turn FChart prices into certified
   # KRX 15:30 regular closes or certify KRX+NXT consolidated volumes.
   # Code pushes must
   # not start another 2,500-history scrape during intraday trading or duplicate
@@ -16,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       asof:
-        description: 'Korean market date YYYY-MM-DD; empty = today KST (scheduled 21:30)'
+        description: 'Manual asof YYYY-MM-DD; empty = today KST. Scheduled 02:30 KST uses previous day.'
         required: false
         default: ''
         type: string
@@ -68,7 +73,11 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.mode }}" == "audit" ]]; then
             fallback_args+=(--fallback-catalog docs/v22-market-catalog.json)
           fi
-          if [[ -n "$REQUESTED_ASOF" ]]; then
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            # Never use the runtime's post-midnight "today" as the market date.
+            # The helper rejects runs outside the intended Tue-Sat KST window.
+            python full_market_batch.py plan --date-pinned-roster --overnight-previous-day --out batch-plan "${fallback_args[@]}"
+          elif [[ -n "$REQUESTED_ASOF" ]]; then
             python full_market_batch.py plan --date-pinned-roster --asof "$REQUESTED_ASOF" --out batch-plan "${fallback_args[@]}"
           else
             python full_market_batch.py plan --date-pinned-roster --out batch-plan "${fallback_args[@]}"

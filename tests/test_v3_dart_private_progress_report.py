@@ -271,7 +271,7 @@ class HistoricalReceiptProgressTests(unittest.TestCase):
         self.assertNotIn("DART_API_KEY:", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
         self.assertNotIn("python v3_dart_historical_event_receipts.py", wf)
-        self.assertIn("cron: '30 12 * * 1-5'",
+        self.assertIn("cron: '30 17 * * 1-5'",
             (base / ".github/workflows/full-market-batches.yml").read_text())
 
 

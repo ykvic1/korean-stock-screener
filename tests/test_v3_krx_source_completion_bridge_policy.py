@@ -99,7 +99,7 @@ class SourceCompletionBoundaryPolicy(unittest.TestCase):
 
     def test_production_market_screen_is_not_changed(self):
         production = read(WORKFLOWS / "full-market-batches.yml")
-        self.assertIn("cron: '30 12 * * 1-5'", production)
+        self.assertIn("cron: '30 17 * * 1-5'", production)
         bridge = read(BRIDGE)
         self.assertNotIn("full-market-batches", bridge)
         # Read-only public progress may short-circuit a finished archive;

@@ -151,7 +151,7 @@ class PricePathCoverageTests(unittest.TestCase):
         self.assertIn("python v3_unscored_path_coverage.py --verify", flow)
         self.assertIn("git add docs/data.json", flow)
         self.assertIn("docs/v3-unscored-path-coverage.json", flow)
-        self.assertIn("cron: '30 12 * * 1-5'", flow)
+        self.assertIn("cron: '30 17 * * 1-5'", flow)
 
 
 if __name__ == "__main__":

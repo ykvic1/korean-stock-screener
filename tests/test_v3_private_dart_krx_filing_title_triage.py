@@ -261,7 +261,7 @@ class FilingTitleTriageTests(unittest.TestCase):
                 triage.run(Private())
         self.assertNotIn("secret text",str(generic.exception))
 
-    def test_schedule_private_isolation_and_legacy_1830(self):
+    def test_schedule_private_isolation_and_overnight_market(self):
         wf = Path(".github/workflows/v3-private-dart-krx-event-crosscheck.yml").read_text()
         legacy = Path(".github/workflows/full-market-batches.yml").read_text()
         self.assertIn("v3_private_dart_krx_filing_title_triage.py", wf)
@@ -278,7 +278,7 @@ class FilingTitleTriageTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", wf)
         self.assertNotIn("DART_API_KEY:", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
-        self.assertIn("30 12 * * 1-5", legacy)
+        self.assertIn("30 17 * * 1-5", legacy)
 
 
 if __name__ == "__main__":
