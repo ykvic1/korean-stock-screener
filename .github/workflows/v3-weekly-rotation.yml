@@ -1,6 +1,13 @@
 name: V3 Seven-Day Rotating Research Coverage
 
 on:
+  # A vetted live collector identity fix should replay the already-saved,
+  # same-day ordinary-share census immediately, without new provider calls.
+  push:
+    branches: [main]
+    paths:
+      - v3_weekly_rotation.py
+      - .github/workflows/v3-weekly-rotation.yml
   # 20:43 KST every calendar day, including weekends. Group index cycles 0..6;
   # 2497 listed issuers => five groups of 357 and two groups of 356.
   # NEVER repeats 2497 live provider requests in a day. Research replay uses
@@ -51,13 +58,13 @@ jobs:
       - name: Recalculate existing source evidence without extra provider calls
         env:
           KST_DAY: ${{ steps.prep.outputs.kst_day }}
-          MODE: ${{ github.event_name == 'schedule' && 'publish' || inputs.mode }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'publish' }}
         shell: bash
         run: |
           set -euo pipefail
           python v3_weekly_rotation.py --when "$KST_DAY" --mode "$MODE"
       - name: Publish only calculated research coverage, never a buy ranking
-        if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'publish' }}
         env:
           KST_DAY: ${{ steps.prep.outputs.kst_day }}
         shell: bash
