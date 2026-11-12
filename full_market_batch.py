@@ -172,9 +172,72 @@ def _same_day_saved_catalog(path: Path, asof: str) -> dict:
     return saved
 
 
+def prioritized_part_order(codes, asof, *, priority_path=None, catalog_path=None):
+    """Best-effort SOURCE-work order only; never changes membership/digest.
+
+    A previously verified 90-point evidence gap is merely a workload hint:
+    NOT an observed factor, a new point, or a provider-recoverability claim.
+    Stale, mismatched, or malformed hints restore alphabetical chunk order.
+    """
+    parts = list(range(math.ceil(len(codes) / CHUNK)))
+    if priority_path is None or catalog_path is None:
+        return parts, "not_configured", 0
+    try:
+        priority = _read(Path(priority_path))
+        catalog = _read(Path(catalog_path))
+        prior_day = priority.get("asof")
+        if (priority.get("schema") != "v3-r1d-observation-work-priority-v1"
+                or priority.get("missing_is_not_zero") is not True
+                or prior_day != catalog.get("date")
+                or type(prior_day) is not str
+                or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", prior_day)
+                or not 0 <= (datetime.fromisoformat(asof) -
+                             datetime.fromisoformat(prior_day)).days <= 7
+                or catalog.get("schema") != "v22-current-listed-catalog-0.1"
+                or type(catalog.get("rows")) is not list
+                or len(catalog["rows"]) != priority.get("listed_total")
+                or catalog.get("listed_total") != priority.get("listed_total")):
+            return parts, "unaligned_priority_source", 0
+        older = [item.get("code") if isinstance(item, dict) else None
+                 for item in catalog["rows"]]
+        if (len(set(older)) != len(older) or
+                any(type(code) is not str or not CODE.fullmatch(code)
+                    for code in older)):
+            return parts, "invalid_prior_issuer_identity", 0
+        coverage = priority.get("coverage_90_first")
+        if (type(coverage) is not dict or coverage.get("threshold") != 90
+                or coverage.get("recovery_not_a_score_or_observation") is not True
+                or coverage.get("missing_data_never_zero_filled") is not True
+                or coverage.get("independent_source_recoverability_not_proven") is not True
+                or type(coverage.get("family_conditional_priority_codes")) is not dict):
+            return parts, "invalid_priority_contract", 0
+        candidates = coverage["family_conditional_priority_codes"].get(
+            "price_chart_windows")
+        if (type(candidates) is not list or len(candidates) > len(older)
+                or len(set(candidates)) != len(candidates)
+                or any(type(code) is not str or code not in set(older)
+                       for code in candidates)):
+            return parts, "invalid_priority_codes", 0
+        preferred = set(candidates)
+        existing = set(older)
+        # Prioritize SOURCE work with more conditional sub-90 chart gaps.
+        # For a tie, prioritize newly included ordinary symbols. This does
+        # not claim that history exists or that it can earn 90/100 points.
+        ranked = sorted(parts, key=lambda part: (
+            -sum(code in preferred for code in
+                 codes[part*CHUNK:(part+1)*CHUNK]),
+            -sum(code not in existing for code in
+                 codes[part*CHUNK:(part+1)*CHUNK]), part))
+        return ranked, "conditional_source_work_only", len(preferred & set(codes))
+    except (BatchError, OSError, ValueError, TypeError, OverflowError):
+        return parts, "unavailable_or_invalid_priority", 0
+
+
 def plan(*, asof: str, out: Path, listing=None,
          fallback_catalog: Path | None = None,
-         date_pinned_roster: bool = False) -> dict:
+         date_pinned_roster: bool = False,
+         priority_file: Path | None = None,
+         priority_catalog: Path | None = None) -> dict:
     asof = _date(asof)
     provenance = 'live_market_snapshot'
     source_digest = None
@@ -214,12 +277,16 @@ def plan(*, asof: str, out: Path, listing=None,
     if source_digest is not None and provenance == 'date_pinned_fdr_public_cache':
         manifest["roster_source_sha256"] = source_digest
     validate_manifest(manifest)
+    order, priority_status, targeted = prioritized_part_order(
+        codes, asof, priority_path=priority_file, catalog_path=priority_catalog)
     _write(out/"manifest.json", manifest)
     _write(out/"matrix.json", {"include": [
-        {"part": n} for n in range(manifest["batch_count"])]})
+        {"part": n} for n in order]})
     return {"status": "market_plan_ready", "eligible": len(codes),
             "chunk_size": CHUNK, "jobs": manifest["batch_count"],
-            "roster_provenance": provenance}
+            "roster_provenance": provenance,
+            "priority_status": priority_status,
+            "conditional_price_chart_gap_codes_in_roster": targeted}
 
 
 def batch_codes(manifest: dict, part: int) -> list[str]:
@@ -571,6 +638,8 @@ def main(argv=None):
                    help='Use same-day saved roster only after live listing fails; audit only')
     p.add_argument("--date-pinned-roster", action="store_true",
                    help='Use exact-date FinanceData cache, no implicit latest-date resolver')
+    p.add_argument("--priority-file", type=Path, default=None)
+    p.add_argument("--priority-catalog", type=Path, default=None)
     p = subs.add_parser("scan")
     p.add_argument("--manifest", required=True)
     p.add_argument("--part", required=True, type=int)
@@ -586,7 +655,9 @@ def main(argv=None):
             asof = args.asof or datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
             result = plan(asof=asof, out=Path(args.out),
                           fallback_catalog=args.fallback_catalog,
-                          date_pinned_roster=args.date_pinned_roster)
+                          date_pinned_roster=args.date_pinned_roster,
+                          priority_file=args.priority_file,
+                          priority_catalog=args.priority_catalog)
         elif args.cmd == "scan":
             result = scan(manifest=_read(Path(args.manifest)),
                           part=args.part, out=Path(args.out), workers=args.workers)
