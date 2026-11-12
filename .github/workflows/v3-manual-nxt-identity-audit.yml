@@ -1,0 +1,52 @@
+name: V3.0b Manual NXT Prior-Session Identity Audit (Read Only)
+# One live source check at merge; also manually dispatchable.
+# The existing regular 05:10 KST audit remains unchanged.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-manual-nxt-identity-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: korea-stock-screener-manual-nxt-identity-audit
+  cancel-in-progress: false
+
+jobs:
+  prior-session-nxt-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require saved date equals previous KST session calendar date
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime,timedelta
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+          market=json.loads(Path('docs/data.json').read_text())
+          asof=market.get('date')
+          yesterday=(datetime.now(ZoneInfo('Asia/Seoul')).date()-timedelta(days=1)).isoformat()
+          if asof!=yesterday:
+              raise SystemExit('manual_nxt_saved_day_not_yesterday')
+          print(json.dumps({'asof':asof,'source_audit_only':True,
+                            'published_score_delta':0},sort_keys=True))
+          PY
+      - name: Install NXT HTTP probe dependency
+        run: python -m pip install 'requests>=2.31,<3'
+      - name: Audit NXT session row identities and two components without issuer leakage
+        run: |
+          set -euo pipefail
+          # Source-rejection categories are bounded, no ticker/volume or OHLCV
+          # written. The original read-only probe enforces 20:00 finalization.
+          python v3_nxt_session_volume_probe.py --mode live
