@@ -38,7 +38,7 @@ class ReportedTotalTests(unittest.TestCase):
         self.assertIn("needs.offline.result == 'skipped'",text)
         self.assertIn("--mode live --limit 40",text)
         self.assertIn("group: korea-stock-screener-dart-cashflow",text)
-        self.assertIn("v3_current_observed_scorecard.yml/dispatches",text)
+        self.assertIn("v3-current-observed-scorecard.yml/dispatches",text)
         self.assertNotIn("--recheck-equivalent-contexts",text)
 
 
