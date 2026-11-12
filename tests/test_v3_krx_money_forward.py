@@ -7,9 +7,10 @@ import unittest
 from unittest.mock import patch
 
 from v3_krx_money_backfill import _path
+from official_probe.clients import KRXProbeError
 from v3_krx_money_forward import (
     SCHEMA, CHECKPOINT, _manifest, collect, forward_candidates,
-    ForwardMoneyError,
+    ForwardMoneyError, RetryingMoneyClient,
 )
 
 
@@ -113,6 +114,45 @@ class ForwardMoneyTests(unittest.TestCase):
         store.files[CHECKPOINT] = json.dumps(checkpoint).encode()
         with self.assertRaisesRegex(ForwardMoneyError, "invalid_forward_checkpoint"):
             collect(store, object(), dates)
+
+    def test_transient_http_200_empty_rows_is_retried_with_bounded_budget(self):
+        class Source:
+            calls = 0
+            def daily_market(self, market, day):
+                self.calls += 1
+                if self.calls < 3:
+                    raise KRXProbeError(market, "empty_market_rows", 200)
+                return ([{"validated": True}], b"valid market payload")
+
+        source = Source()
+        client = RetryingMoneyClient(source)
+        with patch("v3_krx_money_forward.retry_clock.sleep") as delay:
+            rows, payload = client.daily_market("KOSPI", "2026-11-10")
+        self.assertEqual(rows, [{"validated": True}])
+        self.assertEqual(payload, b"valid market payload")
+        self.assertEqual(source.calls, 3)
+        self.assertEqual(client.requests, 3)
+        self.assertEqual([call.args[0] for call in delay.call_args_list], [1, 2])
+
+    def test_persistent_empty_rows_and_forbidden_never_promote_unverified_cohort(self):
+        class Source:
+            calls = 0
+            reason = "empty_market_rows"
+            def daily_market(self, market, day):
+                self.calls += 1
+                raise KRXProbeError(market, self.reason, 200 if self.reason == "empty_market_rows" else 403)
+
+        for reason, expected in (("empty_market_rows", 3), ("http_forbidden", 1)):
+            with self.subTest(reason=reason):
+                source = Source()
+                source.reason = reason
+                client = RetryingMoneyClient(source)
+                with patch("v3_krx_money_forward.retry_clock.sleep"):
+                    with self.assertRaises(KRXProbeError) as raised:
+                        client.daily_market("KOSDAQ", "2026-11-10")
+                self.assertEqual(raised.exception.reason, reason)
+                self.assertEqual(client.requests, expected)
+                self.assertEqual(source.calls, expected)
 
     def test_failed_source_does_not_advance_private_checkpoint(self):
         store = FakeStore()
