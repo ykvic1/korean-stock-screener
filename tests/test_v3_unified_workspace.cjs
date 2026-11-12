@@ -49,13 +49,17 @@ assert.ok(source.includes("'가격 미관측'"));
  const base={price:105,price_date:'2026-11-10',stop_line:94,stop_pct:-10.48};
  const ref={schema:1,asof:'2026-11-10',score_impact:0,
   unscored_reference_only:true,reference_line:90.55,distance_pct:13.76,
-  low20:91,low60:91,confirmed_swing_low:91,
+  low20:91,low60:91,ma20:101.3,ma60:99.4,confirmed_swing_low:91,
   lower_volume_zone:{lower:92,upper:93.84,exact_volume_at_price:false},
   pattern_invalidation:null,basis:['20일 저점','60일 저점','확인된 스윙 저점'],
   confidence:'confluence',warning:null};
  const body=unified.structuralStopMarkup({...base,v3_structural_stop_reference:ref});
  assert.match(body,/20·60일 구조적 손절 참고선 · 배점 미반영/);
  assert.match(body,/91원/);
+ assert.match(body,/20일 이동평균선/);
+ assert.match(body,/60일 이동평균선/);
+ assert.match(body,/101원/);
+ assert.match(body,/가격계열 근거는 중복 독립확인으로 계산하지 않습니다/);
  assert.match(body,/13\.8%/);
  assert.match(body,/일봉 대표가격·거래량 추정/);
  assert.match(body,/이 참고선과 거리에는 어떤 가점·감점도 없습니다/);
@@ -120,8 +124,8 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261111-stop-reference-csv'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261111-stop-reference-csv'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261112-stop-sma20-60'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261112-stop-sma20-60'),'classic research route keeps its pinned assets');
  assert.ok(entry.includes('operational-score.js?v=r1e-stop-unscored')&&
   html.includes('operational-score.js?v=r1e-stop-unscored'),
   'both routes must invalidate cached score markup after removing stop adjustments');
@@ -998,7 +1002,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261111-stop-reference-csv','v30b-20261110-score-reconcile'],[entry,'v30b-20261111-stop-reference-csv','v30b-20261110-score-reconcile']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile'],[entry,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
   page.includes('v3-live-progress.js?v=v30b-20261111-r1e-coverage')&&

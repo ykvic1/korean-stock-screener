@@ -315,7 +315,9 @@ with sync_playwright() as p:
     assert page.locator("#detail details.u-stop-evidence").count()==0
     stop_reference=page.locator("#detail section.u-stop-reference")
     if stop_reference.count():
-        assert stop_reference.locator(".u-stop-evidence > div").count()==5
+        assert stop_reference.locator(".u-stop-evidence > div").count()==7
+        assert "20일 이동평균선" in stop_reference.inner_text()
+        assert "60일 이동평균선" in stop_reference.inner_text()
         assert "어떤 가점·감점도 없습니다" in stop_reference.inner_text()
         assert "하단 매물대" in stop_reference.inner_text()
         assert "패턴 무효화" in stop_reference.inner_text()

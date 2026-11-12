@@ -79,7 +79,8 @@ def observe(df, *, asof, patterns=None):
               'unscored_reference_only': True,
               'krx_regular_session_verified': False,
               'corporate_actions_verified': False,
-              'low20': None, 'low60': None, 'confirmed_swing_low': None,
+              'low20': None, 'low60': None,
+              'ma20': None, 'ma60': None, 'confirmed_swing_low': None,
               'lower_volume_zone': None, 'pattern_invalidation': None,
               'reference_line': None, 'distance_pct': None,
               'basis': [], 'confluence_count': 0,
@@ -109,8 +110,13 @@ def observe(df, *, asof, patterns=None):
         return result
     price = float(close[-1])
     result['low20'] = _round(np.min(low[-20:]))
+    # Actual moving averages, NOT the 20/60-session price lows. The MA and
+    # swing levels all come from the same price series: they count as only
+    # one family when evaluating independent confirmation.
+    result['ma20'] = _round(np.mean(close[-20:]))
     if len(low) >= 60:
         result['low60'] = _round(np.min(low[-60:]))
+        result['ma60'] = _round(np.mean(close[-60:]))
     swings = [(i, v) for i, v in _pivots(low[-60:]) if v < price]
     if swings:
         # Most recently confirmed 60-day swing, rather than a hindsight trough.
@@ -122,7 +128,9 @@ def observe(df, *, asof, patterns=None):
 
     # 20/60 lows and a swing point may be the *same trading day's low*.
     # Treat them as one price-structure family, not independent confirmations.
-    evidence = [('20일 저점', result['low20'], 'price'),
+    evidence = [('20일 이동평균선', result['ma20'], 'price'),
+                ('60일 이동평균선', result['ma60'], 'price'),
+                ('20일 저점', result['low20'], 'price'),
                 ('60일 저점', result['low60'], 'price'),
                 ('확인된 스윙 저점', result['confirmed_swing_low'], 'price'),
                 ('일봉 기반 추정 하단 매물대',
@@ -145,7 +153,8 @@ def observe(df, *, asof, patterns=None):
                                            len(group), min(v for _, v, _ in group)))
     if len({family for _, _, family in best}) < 2:
         # No confluence: use the latest confirmed swing, then 60/20 day low.
-        preferred = ['확인된 스윙 저점', '60일 저점', '20일 저점',
+        preferred = ['확인된 스윙 저점', '20일 이동평균선',
+                     '60일 이동평균선', '60일 저점', '20일 저점',
                      '일봉 기반 추정 하단 매물대', '패턴 무효화 추정']
         best = [next((item for item in levels if item[0] == name), None)
                 for name in preferred]
@@ -190,7 +199,7 @@ def valid_reference(value, asof, price):
     window = value.get('validation_window_bars')
     if window is not None and (type(window) is not int or not 20 <= window <= 120):
         return False
-    for field in ('low20', 'low60', 'confirmed_swing_low',
+    for field in ('low20', 'low60', 'ma20', 'ma60', 'confirmed_swing_low',
                   'reference_line', 'distance_pct'):
         number = value.get(field)
         if number is not None and (type(number) not in (float, int)
