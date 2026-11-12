@@ -81,7 +81,7 @@ class FiveSlotDerivedPipelineTests(unittest.TestCase):
         self.assertNotIn("KRX_API_KEY:", roll_wf)
         self.assertNotIn("KRX_API_KEY:", risk_wf)
         full_market = (WF / "full-market-batches.yml").read_text()
-        self.assertIn("cron: '30 12 * * 1-5'", full_market)
+        self.assertIn("cron: '30 17 * * 1-5'", full_market)
 
 
 if __name__ == "__main__":
