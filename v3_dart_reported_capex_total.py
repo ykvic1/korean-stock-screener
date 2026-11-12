@@ -120,11 +120,12 @@ def merge(old,normalized,proof,reason='no_reported_total'):
     verify(out);return out
 
 
-def targets(state,priority,limit,completion_priority=(),threshold_priority=()):
+def targets(state,priority,limit,completion_priority=(),threshold_priority=(),*,only_sub90=False):
     if type(limit) is not int or not 1<=limit<=40:raise ReportedTotalError('invalid_reported_total_budget')
     completion_priority=set(completion_priority)
     issuers=[]
     for code,issuer in state['records'].items():
+        if only_sub90 and code not in threshold_priority:continue
         missing=[(y,r) for y,r in issuer['years'].items() if r.get('free_cashflow_krw') is None]
         rows=[(y,r) for y,r in issuer['years'].items() if r.get('free_cashflow_krw') is None
               and type(r.get('operating_cashflow_krw')) is int and r.get('major_annual_receipt_matched') is True and r.get('reported_total_review') is None]
@@ -142,7 +143,7 @@ def targets(state,priority,limit,completion_priority=(),threshold_priority=()):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');p.add_argument('--limit',type=int,default=8);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');p.add_argument('--limit',type=int,default=8);p.add_argument('--focus',choices=('all','sub90'),default='all');a=p.parse_args()
     root=Path('docs');read=lambda n:json.loads((root/n).read_text());target=root/'v3-dart-cashflow-reference.json'
     if target.is_symlink():raise ReportedTotalError('unsafe_reported_total_output')
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json',target.name)]
@@ -159,8 +160,26 @@ def main():
                   if maximum-row['parts'][area].get(key,[0,0])[1]>.00001}
             if gaps=={('financial','cashflow_fcf_persistence')}:
                 completion_only.add(code)
-    selected=targets(state,priority,a.limit,completion_only,threshold_priority)
-    output={'selected_issuer_years':len(selected),'selected_sub90_issuers':len({code for code,_,_ in selected if code in threshold_priority}),'priority_issuers':len(priority),'completed':0,'recovered_years':0,'provider_calls':0,'reasons':{},'candidate_account_id_counts':{},'investment_score_certified':False}
+    # Audit the *real unreviewed receipt-bound years*, not just mathematical
+    # score-gap candidates. Exact issuer/year eligibility is checked again
+    # by targets before any official provider call.
+    actionable_90 = {
+        code:sum(
+            row.get('free_cashflow_krw') is None
+            and type(row.get('operating_cashflow_krw')) is int
+            and row.get('major_annual_receipt_matched') is True
+            and row.get('reported_total_review') is None
+            for row in state['records'][code]['years'].values()
+        )
+        for code in threshold_priority if code in state['records']
+    }
+    actionable_90 = {code:n for code,n in actionable_90.items() if n}
+    selected=targets(state,priority,a.limit,completion_only,threshold_priority,
+                     only_sub90=(a.focus=='sub90'))
+    output={'selected_issuer_years':len(selected),'selected_sub90_issuers':len({code for code,_,_ in selected if code in threshold_priority}),'priority_issuers':len(priority),
+            'focus':a.focus,'unreviewed_sub90_issuer_count':len(actionable_90),
+            'unreviewed_sub90_company_year_count':sum(actionable_90.values()),
+            'completed':0,'recovered_years':0,'provider_calls':0,'reasons':{},'candidate_account_id_counts':{},'investment_score_certified':False}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
     key=os.getenv('DART_API_KEY','')
