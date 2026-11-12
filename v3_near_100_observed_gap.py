@@ -26,7 +26,7 @@ AREAS = {
 }
 FCF_MISSING_ACCOUNT = {"B", "C", "I", "P", "X"}
 EVIDENCE_FLAGS = FCF_MISSING_ACCOUNT | {"V", "U"}
-CODE = re.compile(r"[0-9]{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 
 
 class GapAuditError(ValueError):
