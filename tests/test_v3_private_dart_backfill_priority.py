@@ -1,7 +1,7 @@
 """Keep auxiliary DART research from starving the 120-month receipt collector.
 
 No vendor calls: validate only workflow source, trigger scope, shared lock and
-the 18:30 KST existing full-market schedule.
+the verified 02:30 KST next-day full-market schedule.
 """
 from pathlib import Path
 import re
@@ -57,7 +57,9 @@ class PrivateDartBackfillPriorityTests(unittest.TestCase):
                 workflow)
             self.assertIn("cancel-in-progress: false", workflow)
             self.assertIn("v3_dart_historical_event_receipts.py", workflow)
-        self.assertIn("30 12 * * 1-5", legacy)
+        self.assertIn("30 17 * * 1-5", legacy)
+        self.assertIn("--overnight-previous-day", legacy)
+        self.assertNotIn("30 12 * * 1-5", legacy)
 
 
 if __name__ == "__main__":
