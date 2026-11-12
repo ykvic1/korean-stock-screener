@@ -37,6 +37,28 @@ def mock_history(code, cfg, day):
 
 
 class FullMarketHundredBatchesTests(unittest.TestCase):
+    def test_overnight_schedule_pins_previous_kst_weekday_not_runtime_day(self):
+        # UTC 17:30 Mon-Fri maps to KST 02:30 Tue-Sat.
+        for input_at,target in (
+            ("2026-11-10T02:31:00+09:00","2026-11-09"),
+            ("2026-11-13T02:31:00+09:00","2026-11-12"),
+            ("2026-11-14T02:31:00+09:00","2026-11-13"),
+            ("2026-11-12T17:30:00Z","2026-11-12")):
+            self.assertEqual(b.overnight_previous_market_date(
+                now=datetime.fromisoformat(input_at)),target)
+        for input_at in ("2026-11-12T22:30:00+09:00",
+                         "2026-11-13T08:01:00+09:00",
+                         "2026-11-16T02:31:00+09:00"):
+            with self.assertRaisesRegex(b.BatchError,
+                                        "outside_overnight_market_batch_window"):
+                b.overnight_previous_market_date(
+                    now=datetime.fromisoformat(input_at))
+        with self.assertRaisesRegex(b.BatchError,
+                                    "overnight_target_timezone_required"):
+            b.overnight_previous_market_date(
+                now=datetime.fromisoformat("2026-11-13T02:31:00"))
+
+
     def test_priority_only_changes_batch_launch_order_without_reordering_issuer_codes(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
