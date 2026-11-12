@@ -42,7 +42,7 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             root=Path(td)
             universe_map=universe(255)
             cohort=sorted(universe_map)
-            historic=census_day="2026-11-11"
+            historic="2026-11-11"
             catalogue={"schema":"v22-current-listed-catalog-0.1",
                        "date":historic,"listed_total":len(cohort),
                        "rows":[{"code":code} for code in cohort]}
