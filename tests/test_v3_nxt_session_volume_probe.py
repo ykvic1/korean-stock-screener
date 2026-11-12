@@ -68,7 +68,7 @@ class NXTVolumeProbeTests(unittest.TestCase):
     def test_invalid_nxt_identity_emits_only_bounded_shape_counts(self):
         bad=[
             row('000001',3,market='UNSEEN'),
-            {'aggDd':'20261111','mktId':'STK','isuSrdCd':'000002',
+            {'aggDd':'20261111','mktId':'STK','isuSrdCd':'B000002',
              'accTdQty':'17'},
             {'aggDd':'20261111','mktId':'KSQ','isuSrdCd':'A00*0',
              'accTdQty':'23'},
@@ -87,7 +87,7 @@ class NXTVolumeProbeTests(unittest.TestCase):
         # Never carry any actual NXT row values, market IDs, or ticker strings
         # into the public diagnostic, regardless of which row first failed.
         self.assertNotIn('000001',json.dumps(shape))
-        self.assertNotIn('000002',json.dumps(shape))
+        self.assertNotIn('B000002',json.dumps(shape))
         self.assertNotIn('A00*0',json.dumps(shape))
         self.assertEqual(len(shape),5)
 
