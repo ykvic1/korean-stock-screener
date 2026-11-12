@@ -420,7 +420,11 @@ for(const [field,value] of [
  ['provider_calls',1],['investment_score_certified',true],
  ['missing_is_not_zero',false],['status','certified'],
  ['source_digest','unsigned'],['available_100_count',2502],
- ['available_95_count',0],['available_90_count',2502],
+ ['available_95_count',0],
+ // Aggregate-only UI can reject internally impossible totals but cannot
+ // authenticate a plausible changed count without the per-stock ledger.
+ // Do not freeze an old 2,501-company test constant after the 2,590 expansion.
+ ['available_90_count',operationalProgress.operational_coverage.ranked_count+1],
  ['budgets',{volume:20,technical:25,financial:20,valuation:20,momentum:15}]
 ]){
  const corrupted=structuredClone(operationalProgress);
