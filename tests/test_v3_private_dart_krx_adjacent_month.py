@@ -236,7 +236,7 @@ class AdjacentMonthTests(unittest.TestCase):
         self.assertIn("contents: read", wf)
         self.assertIn("V3_PRIVATE_ARCHIVE_TOKEN:", wf)
         self.assertIn("group: v3-dart-private-historical-event-receipts", wf)
-        self.assertIn("30 12 * * 1-5", old)
+        self.assertIn("30 17 * * 1-5", old)
         self.assertNotIn("DART_API_KEY:", wf)
         self.assertNotIn("KRX_API_KEY:", wf)
 
