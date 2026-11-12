@@ -31,7 +31,7 @@ PROFIT_IDS = {
 QUARANTINED_REASONS=frozenset((
     'annual_profit_currency_not_krw','annual_profit_receipt_not_matched',
     'conflicting_official_owner_profit_accounts','annual_profit_amount_not_integer_krw'))
-CODE = re.compile(r"[0-9]{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 
 
 class ProfitProbeError(ValueError):
