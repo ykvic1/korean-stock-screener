@@ -186,12 +186,16 @@ class SourceRolloverGuardTests(unittest.TestCase):
                   "account_value_used_in_scores":False,
                   "records":{"005930":{"source_status":"observed_owner_profit"}}}
         selected,frozen=retain_original_priority_cohort(original,observed,official)
-        self.assertEqual(selected,observed)
-        self.assertFalse(frozen)
-        self.assertEqual(selected["listed_total"],2590)
-        self.assertIn("0008Z0",selected["official_2025_owners_profit_missing_priority_codes"])
-        # The old source receipt itself remains unchanged and is not scored.
+        # Source queue is receipt-anchored to 2,501; the independently
+        # recomputed current SCORECARD remains 2,590 without fake points.
+        self.assertEqual(selected,original)
+        self.assertTrue(frozen)
+        self.assertEqual(selected["listed_total"],2501)
+        self.assertEqual(observed["listed_total"],2590)
+        self.assertIn("0008Z0",observed["official_2025_owners_profit_missing_priority_codes"])
         self.assertEqual(official["records"]["005930"]["source_status"],"observed_owner_profit")
+        self.assertEqual(retain_original_priority_cohort(original,observed,None),
+                         (observed,False))
         bogus={**observed,"listed_total":2490}
         with self.assertRaisesRegex(GapAuditError,
                                     "untrusted_frozen_profit_priority_cohort"):
