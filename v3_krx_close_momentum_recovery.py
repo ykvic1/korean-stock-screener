@@ -6,6 +6,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 
 from official_probe.clients import KRXClient, ProbeError
 from official_probe.validation import _numeric
@@ -56,9 +57,12 @@ def closes_on(client, market, day, codes):
         if code not in codes:
             continue
         try:
+            close = _numeric(row.get('TDD_CLSPRC'), 'TDD_CLSPRC', positive=True)
+            change = str(row.get('CMPPREVDD_PRC', '')).strip().replace(',', '')
             found[code] = (
-                _numeric(row.get('TDD_CLSPRC'), 'TDD_CLSPRC', positive=True),
+                close,
                 _numeric(row.get('LIST_SHRS'), 'LIST_SHRS', positive=True),
+                close-int(change) if re.fullmatch(r'[+-]?[0-9]+', change) else None,
             )
         except ProbeError:
             continue
@@ -68,9 +72,14 @@ def closes_on(client, market, day, codes):
 def make_receipt(observations, *, asof):
     if len(observations) != SESSIONS or any(row is None for row in observations):
         return 'incomplete_close_history', None
-    close, shares = zip(*observations)
-    if len(set(shares)) != 1:
-        return 'listed_share_basis_changed', None
+    for previous, current in zip(observations, observations[1:]):
+        previous_close, previous_shares, _ = previous
+        _, shares, reference_price = current
+        if previous_shares != shares and reference_price != previous_close:
+            return 'listed_share_change_reference_discontinuous_or_missing', None
+        if reference_price is not None and reference_price != previous_close:
+            return 'official_reference_discontinuity', None
+    close = [row[0] for row in observations]
     facts = close_path_facts(close)
     if facts is None:
         return 'invalid_or_discontinuous_close_history', None
