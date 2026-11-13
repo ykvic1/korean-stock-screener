@@ -24,7 +24,7 @@ class OperationalScoreTests(unittest.TestCase):
         dates = [date.fromisoformat(day)-timedelta(days=i) for i in range(180)]
         dates = sorted(d for d in dates if d.weekday() < 5)[-121:]
         close = [100 + i for i in range(121)]
-        pairs = list(zip(close, [1_000_000]*121))
+        pairs = [(price, 1_000_000, price-1) for price in close]
         reason, receipt = make_receipt(pairs, asof=day)
         self.assertEqual(reason, 'recovered')
         stock = {'price_date': day, 'market': 'KOSPI', 'code': '000001'}
@@ -36,9 +36,13 @@ class OperationalScoreTests(unittest.TestCase):
                          {'asof': day, 'available': 15,
                           'points': 4+expected['research_momentum_additional_points']})
         self.assertIsNone(parts['volume']['post_spike_absorption'])
-        for bad in (pairs[:-1], [None, *pairs[1:]], [(100, 2_000_000), *pairs[1:]],
-                    [(1000, 1_000_000), *pairs[1:]]):
+        for bad in (pairs[:-1], [None, *pairs[1:]], [*pairs[:-1], (220, 2_000_000, 109)],
+                    [*pairs[:-1], (220, 2_000_000, None)],
+                    [*pairs[:-1], (220, 1_000_000, 109)],
+                    [(1000, 1_000_000, None), *pairs[1:]]):
             self.assertIsNone(make_receipt(bad, asof=day)[1])
+        self.assertEqual(make_receipt([*pairs[:-1], (220, 2_000_000, 219)], asof=day)[1],
+                         receipt)
         saved['factors']['momentum']['asof'] = '2026-11-11'
         parts, _ = ops.score_issuer(dict(stock, **{STOCK_FIELD: receipt}), saved, day=day)
         self.assertEqual(parts['momentum']['existing_momentum']['available'], 8)
