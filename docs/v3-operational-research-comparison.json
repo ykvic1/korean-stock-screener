@@ -1,33 +1,33 @@
 {
-  "asof": "2026-11-12",
+  "asof": "2026-11-13",
   "version": "v3-stable-r1e-operational-research",
-  "same_input_common_issuers": 2444,
+  "same_input_common_issuers": 2443,
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 37,
-      "new_kospi": 25,
-      "old_kospi": 23
+      "overlap": 38,
+      "new_kospi": 21,
+      "old_kospi": 19
     },
     "100": {
-      "overlap": 70,
-      "new_kospi": 47,
-      "old_kospi": 49
+      "overlap": 65,
+      "new_kospi": 46,
+      "old_kospi": 38
     },
     "200": {
-      "overlap": 140,
-      "new_kospi": 90,
-      "old_kospi": 80
+      "overlap": 141,
+      "new_kospi": 82,
+      "old_kospi": 84
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "73b785c3ab583eb84088fbbaf457e23120718fff1f250cfe91b080bdf45b6b0f",
+    "source_digest": "fe7e89aacf426b9f835814e63b22663e68b8d891b0402e2f64960f7894277091",
     "listed_total": 2591,
     "ranked_count": 2572,
-    "available_100_count": 1163,
-    "available_95_count": 1503,
-    "available_90_count": 2044,
+    "available_100_count": 1181,
+    "available_95_count": 1522,
+    "available_90_count": 2068,
     "budgets": {
       "volume": 25,
       "technical": 30.0,
@@ -43,8 +43,8 @@
   "prior_operational_version": "v3-stable-r1d-operational-research",
   "same_input_prior_ranked_issuers": 2493,
   "prior_top_overlap": {
-    "50": 36,
-    "100": 68,
-    "200": 147
+    "50": 34,
+    "100": 62,
+    "200": 137
   }
 }
