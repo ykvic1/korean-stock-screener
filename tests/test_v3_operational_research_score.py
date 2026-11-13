@@ -103,6 +103,22 @@ class OperationalScoreTests(unittest.TestCase):
             self.assertEqual(result['available'],expected[1])
             self.assertEqual(result['asof'],expected[2])
 
+    def test_new_relative_momentum_only_retains_prior_complete_momentum(self):
+        previous = json.loads((ROOT/'docs'/ops.OUTPUT).read_text())
+        ledger = copy.deepcopy(self.inputs[2])
+        code = next(code for code,row in previous['rows'].items()
+                    if row['parts']['momentum'].get('existing_momentum', [None,0])[1]==15
+                    and 'momentum' in ledger['rows'][code]['factors'])
+        old = previous['rows'][code]['parts']['momentum']['existing_momentum']
+        previous['rows'][code]['parts']['momentum']['existing_momentum'] = [
+            old[0], 15, (date.fromisoformat(previous['asof'])-timedelta(days=1)).isoformat()]
+        ledger['rows'][code]['factors']['momentum'].update(
+            points=4, available=8, asof=previous['asof'])
+        updated = ops.build(*self.inputs[:2], ledger, *self.inputs[3:], previous=previous)
+        result = updated['rows'][code]['parts']['momentum']['existing_momentum']
+        self.assertEqual([result['points'],result['available'],result['asof']],
+                         previous['rows'][code]['parts']['momentum']['existing_momentum'])
+
     def test_weights_missing_new_signals_and_no_cross_double_count(self):
         self.assertEqual(sum(ops.BUDGET.values()),100)
         self.assertEqual(len(self.report['rows']),self.inputs[1]['listed_total'])

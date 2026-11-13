@@ -343,7 +343,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                              or (((area=='volume' and key in COMPONENT_MAX)
                                   or (area=='valuation' and key=='per_eps_quality_growth')
                                   or (area=='momentum' and key in
-                                      ('daily_ma_slope_turn','weekly_ma_slope_turn')))
+                                      ('existing_momentum','daily_ma_slope_turn','weekly_ma_slope_turn')))
                                  and older['available']>p['available']+1e-6))
                         # A recent 1/3 earnings-yield receipt must not hide
                         # older but separately verified 2/3 reported EPS.
