@@ -1,0 +1,116 @@
+name: V3 FY2025 Original Operating-Margin Comparative Recovery
+on:
+  pull_request:
+    paths:
+      - v3_dart_operating_income_comparative.py
+      - v3_operational_research_score.py
+      - tests/test_v3_dart_operating_income_comparative.py
+      - .github/workflows/v3-dart-operating-margin-comparative.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_operating_income_comparative.py
+      - v3_operational_research_score.py
+      - tests/test_v3_dart_operating_income_comparative.py
+      - .github/workflows/v3-dart-operating-margin-comparative.yml
+  workflow_dispatch:
+  schedule:
+    # 08:47 KST on Tuesday-Saturday, after previous session's 02:30 collector.
+    - cron: '47 23 * * 1-5'
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Strict-source tests and current saved-source eligibility
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_operating_income_comparative.py' -v
+          python v3_dart_operating_income_comparative.py --mode dry-run --limit 32
+
+  collect:
+    needs: offline
+    if: >-
+      ${{ always() && github.event_name != 'pull_request' &&
+          (needs.offline.result == 'success' || needs.offline.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: v3-operating-margin-comparative-single-checkpoint-writer
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Check 2025 annual source receipt, scope and operating-profit anchor
+        id: source
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          if python v3_dart_operating_income_comparative.py --mode live --limit 32; then
+            echo 'interrupted=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'interrupted=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify provenance and persist only observed official source reviews
+        id: persist
+        run: |
+          set -euo pipefail
+          source=docs/v3-dart-operating-income-2025-comparative.json
+          if [ ! -f "$source" ]; then exit 0; fi
+          python v3_dart_operating_income_comparative.py --mode verify
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$source"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record CFO-independent receipt-matched 2025 operating-income comparatives'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_dart_operating_income_comparative.py --mode verify
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo '::error::operating_comparative_verified_checkpoint_push_failed'
+          exit 1
+      - name: Replay actual R1d available weights from source observations
+        if: steps.persist.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-operational-research-score.yml/dispatches" -f ref=main --silent
+      - name: Continue finite unreviewed-issuer queue only after persisted progress
+        if: steps.persist.outputs.changed == 'true' && steps.source.outputs.interrupted == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pending=$(python v3_dart_operating_income_comparative.py --mode dry-run --limit 1 |
+            python -c 'import json,sys; print(json.load(sys.stdin)["selected"])')
+          if [ "$pending" = "1" ]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-dart-operating-margin-comparative.yml/dispatches" -f ref=main --silent
+          fi
+      - name: Flag an interrupted source after preserving validated checkpoints
+        if: steps.source.outputs.interrupted == 'true'
+        run: exit 1
