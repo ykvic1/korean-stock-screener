@@ -142,7 +142,7 @@ class OriginalFcfComparativeTests(unittest.TestCase):
                         {'coverage_90_first':{
                             **priority['coverage_90_first'],
                             'family_conditional_priority_codes':{
-                                'dart_cashflow_capex':[['005930']]}}):
+                                'dart_cashflow_capex':[['005930']]}}}):
             with self.subTest(invalid=invalid), self.assertRaises(probe.ComparativeError):
                 probe.below_90_cashflow_priority(invalid)
 
