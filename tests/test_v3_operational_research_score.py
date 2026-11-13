@@ -10,12 +10,39 @@ from unittest.mock import patch
 import v3_operational_research_score as ops
 from v3_actual_money_structure import SCHEMA as MONEY_SCHEMA
 from v3_breakout_followthrough import observe as breakout_observe
+from v3_krx_close_momentum_recovery import make_receipt, STOCK_FIELD
+from v3_path_provisional_factors import preview as path_preview
+from v3_unscored_path_observations import observe as observe_path
 from datetime import date,timedelta
 
 ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
+    def test_official_close_path_adds_only_existing_momentum_weight(self):
+        day = '2026-11-12'
+        dates = [date.fromisoformat(day)-timedelta(days=i) for i in range(180)]
+        dates = sorted(d for d in dates if d.weekday() < 5)[-121:]
+        close = [100 + i for i in range(121)]
+        pairs = list(zip(close, [1_000_000]*121))
+        reason, receipt = make_receipt(pairs, asof=day)
+        self.assertEqual(reason, 'recovered')
+        stock = {'price_date': day, 'market': 'KOSPI', 'code': '000001'}
+        ordinary = observe_path(close, [100]*121, asof=day, session_days=dates)
+        expected = path_preview(dict(stock, v3_unscored_path_observations=ordinary), asof=day)
+        saved = {'factors': {'momentum': {'asof': day, 'available': 8, 'points': 4}}}
+        parts, _ = ops.score_issuer(dict(stock, **{STOCK_FIELD: receipt}), saved, day=day)
+        self.assertEqual(parts['momentum']['existing_momentum'],
+                         {'asof': day, 'available': 15,
+                          'points': 4+expected['research_momentum_additional_points']})
+        self.assertIsNone(parts['volume']['post_spike_absorption'])
+        for bad in (pairs[:-1], [None, *pairs[1:]], [(100, 2_000_000), *pairs[1:]],
+                    [(1000, 1_000_000), *pairs[1:]]):
+            self.assertIsNone(make_receipt(bad, asof=day)[1])
+        saved['factors']['momentum']['asof'] = '2026-11-11'
+        parts, _ = ops.score_issuer(dict(stock, **{STOCK_FIELD: receipt}), saved, day=day)
+        self.assertEqual(parts['momentum']['existing_momentum']['available'], 8)
+
     def test_independent_weekly_rsi_observes_only_its_existing_weight(self):
         day = '2026-11-12'
         receipt = {'asof': '2026-11-06', 'rsi14': 45.,
@@ -75,6 +102,22 @@ class OperationalScoreTests(unittest.TestCase):
             result=report['rows'][code]['parts']['valuation']['per_eps_quality_growth']
             self.assertEqual(result['available'],expected[1])
             self.assertEqual(result['asof'],expected[2])
+
+    def test_new_relative_momentum_only_retains_prior_complete_momentum(self):
+        previous = json.loads((ROOT/'docs'/ops.OUTPUT).read_text())
+        ledger = copy.deepcopy(self.inputs[2])
+        code = next(code for code,row in previous['rows'].items()
+                    if row['parts']['momentum'].get('existing_momentum', [None,0])[1]==15
+                    and 'momentum' in ledger['rows'][code]['factors'])
+        old = previous['rows'][code]['parts']['momentum']['existing_momentum']
+        previous['rows'][code]['parts']['momentum']['existing_momentum'] = [
+            old[0], 15, (date.fromisoformat(previous['asof'])-timedelta(days=1)).isoformat()]
+        ledger['rows'][code]['factors']['momentum'].update(
+            points=4, available=8, asof=previous['asof'])
+        updated = ops.build(*self.inputs[:2], ledger, *self.inputs[3:], previous=previous)
+        result = updated['rows'][code]['parts']['momentum']['existing_momentum']
+        self.assertEqual([result['points'],result['available'],result['asof']],
+                         previous['rows'][code]['parts']['momentum']['existing_momentum'])
 
     def test_weights_missing_new_signals_and_no_cross_double_count(self):
         self.assertEqual(sum(ops.BUDGET.values()),100)

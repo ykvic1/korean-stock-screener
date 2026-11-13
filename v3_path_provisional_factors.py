@@ -7,29 +7,19 @@ This function makes no provider calls and cannot mint a verified 100 score.
 """
 from __future__ import annotations
 
-from v3_unscored_path_observations import valid_observation
+from v3_unscored_path_observations import valid_close_path_facts, valid_observation
 
 SCHEMA = "v3-path-121session-provisional-factor-preview-0.1"
 VOLUME_MAX = 4
 MOMENTUM_MAX = 7
+CLOSE_PATH_SCHEMA = "v3-krx-official-regular-close-momentum-path-v1"
 
 
 class ProvisionalPathFactorError(ValueError):
     """Fixed source-contract error; never log raw quotes."""
 
 
-def preview(stock: dict, *, asof: str):
-    if type(stock) is not dict or stock.get("price_date") != asof:
-        raise ProvisionalPathFactorError("path_issuer_date_mismatch")
-    source = stock.get("v3_unscored_path_observations")
-    if source is None:
-        return None
-    if not valid_observation(source, asof):
-        raise ProvisionalPathFactorError("path_source_receipt_invalid")
-    # The 4pt event is observed only after a qualifying high-volume UP day
-    # and five fully completed follow-up sessions. Absent events earn 0,
-    # NEVER a fabricated missing observation or a forward-tested outcome.
-    absorption = 4 if source["post_spike_price_hold_with_volume_easing_events"] > 0 else 0
+def momentum_parts(source):
     up_days = source["up_close_days20"]
     positive_days = 2 if up_days >= 13 else 1 if up_days >= 10 else 0
     blocks = source["positive_nonoverlapping_five_interval_blocks60"]
@@ -40,6 +30,28 @@ def preview(stock: dict, *, asof: str):
     # candidate. It is NOT breadth across issuers or official wave counting.
     rebound = (2 if prior <= -5 and recent >= 5 else
                1 if prior < 0 and recent >= prior + 5 else 0)
+    return positive_days, persistence, rebound
+
+
+def recovered_close_momentum(source, asof):
+    if (type(source) is not dict or source.get("schema") != CLOSE_PATH_SCHEMA
+        or source.get("asof") != asof or source.get("path_window_trading_sessions") != 121
+        or not valid_close_path_facts(source)):
+        return None
+    return sum(momentum_parts(source))
+
+
+def preview(stock: dict, *, asof: str):
+    if type(stock) is not dict or stock.get("price_date") != asof:
+        raise ProvisionalPathFactorError("path_issuer_date_mismatch")
+    source = stock.get("v3_unscored_path_observations")
+    if source is None:
+        return None
+    if not valid_observation(source, asof):
+        raise ProvisionalPathFactorError("path_source_receipt_invalid")
+    # Require a qualifying high-volume UP day and five completed sessions.
+    absorption = 4 if source["post_spike_price_hold_with_volume_easing_events"] > 0 else 0
+    positive_days, persistence, rebound = momentum_parts(source)
     momentum = positive_days + persistence + rebound
     if not 0 <= absorption <= VOLUME_MAX or not 0 <= momentum <= MOMENTUM_MAX:
         raise ProvisionalPathFactorError("path_subfactor_weight_overflow")
