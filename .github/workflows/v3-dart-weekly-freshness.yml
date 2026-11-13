@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'audit: 0 official API calls; live: recheck one <=90-company slice'
+        description: 'audit: 0 official API calls; live: recheck one <=100-company slice'
         required: true
         default: audit
         type: choice
