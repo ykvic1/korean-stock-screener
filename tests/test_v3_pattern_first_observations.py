@@ -215,6 +215,31 @@ class PatternFirstObservations(unittest.TestCase):
         recent_bad.iloc[-3, recent_bad.columns.get_loc('Low')] = 999
         self.assertEqual(mod.observe_completed_weekly(recent_bad)['status'], 'insufficient')
 
+    def test_weekly_ohlc_ignores_only_explicit_no_trade_rows_in_traded_week(self):
+        source = make_df(np.linspace(100, 115, 650))
+        source.index = pd.bdate_range('2024-01-01', periods=len(source))
+        friday = source.index[-1]
+        previous_close = source.iloc[-2]['Close']
+        source.loc[friday] = [previous_close, previous_close, previous_close,
+                             previous_close, 0]
+        expected = mod.observe_completed_weekly(source)
+        source.loc[friday, ['Open', 'High', 'Low']] = 0
+        self.assertEqual(mod.observe_completed_weekly(source), expected)
+        self.assertEqual(expected['asof'], friday.date().isoformat())
+        self.assertEqual(mod.observe(source)['status'], 'insufficient')
+        source.loc[friday, 'Close'] += 1
+        self.assertEqual(mod.observe_completed_weekly(source)['status'], 'insufficient')
+        source.loc[friday, 'Close'] = previous_close
+        source.loc[friday, 'Volume'] = 1
+        self.assertEqual(mod.observe_completed_weekly(source)['status'], 'insufficient')
+
+    def test_whole_no_trade_week_does_not_create_weekly_evidence(self):
+        source = make_df(np.linspace(100, 115, 650))
+        source.index = pd.bdate_range('2024-01-01', periods=len(source))
+        previous_close = source.iloc[-11]['Close']
+        source.iloc[-10:-5] = [0, 0, 0, previous_close, 0]
+        self.assertEqual(mod.observe_completed_weekly(source)['status'], 'insufficient')
+
     def test_weekly_clean_suffix_must_have_90_completed_real_weeks(self):
         source = make_df(np.linspace(100, 116, 590))
         source.index = pd.bdate_range('2024-01-02', periods=len(source))

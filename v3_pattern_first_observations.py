@@ -190,9 +190,20 @@ def observe_completed_weekly(daily):
     keys = ["Open", "High", "Low", "Close", "Volume"]
     if not all(k in daily.columns for k in keys):
         return result
-    # Validate original daily bars first. A malformed OHLCV day must not be
-    # silently aggregated into a plausible-looking weekly bar.
+    # A source row with no trades can carry the last observed close while
+    # reporting no intraday prices. Build OHLC from observed trades in that
+    # week, keeping a whole no-trade week unavailable.
     d = daily[keys]
+    no_trade_marker = (
+        (d['Volume'] == 0) & (d['Close'] > 0)
+        & (d['Close'] == d['Close'].shift())
+        & (d[['Open', 'High', 'Low']] == 0).all(axis=1))
+    if no_trade_marker.any():
+        week_labels = d.index.to_period('W-FRI')
+        traded_weeks = week_labels[d['Volume'] > 0]
+        removable = no_trade_marker & week_labels.isin(traded_weeks)
+        d = d.loc[~removable]
+    # Validate every remaining daily bar before aggregation.
     clean_tail_only = False
     if _clean_ohlcv(d) is None:
         d, clean_tail_only = _recent_contiguous_clean_tail(

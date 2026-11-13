@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 
 from v3_ma_slope_transition import WEIGHTS, observe, valid_observation
+from v3_pattern_composite_score import _observed as observed_pattern, _weekly_trend
 from v3_structural_stop_reference import (
     observe as observe_structural_stop, valid_reference,
 )
@@ -46,7 +47,8 @@ def availability(receipt, day):
     return tuple(result)
 
 
-def select_targets(market, priority, report, *, repair_legacy_stops=False):
+def select_targets(market, priority, report, *, repair_legacy_stops=False,
+                   include_weekly_pattern=False):
     """Take same-close 90-point recovery first, then near-100 recovery."""
     day = market['date']
     if (priority.get('asof') != day or report.get('asof') != day
@@ -79,7 +81,7 @@ def select_targets(market, priority, report, *, repair_legacy_stops=False):
         return (sorted(first), sorted(second)), {
             'below_90_priority': len(first), 'already_90_priority': len(second)}
 
-    def useful(code):
+    def eligible(code):
         stock = stocks.get(code)
         if (stock is None or stock.get('price_date') != day
             or type(stock.get('price')) not in (int, float)
@@ -90,18 +92,26 @@ def select_targets(market, priority, report, *, repair_legacy_stops=False):
         reference = stock.get('v3_structural_stop_reference')
         if reference is not None and not valid_reference(reference, day, stock['price']):
             raise RecoveryError('invalid_retained_structural_stop_reference')
-        return (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
-                or reference is None)
+        return True
 
-    first_candidates = [code for code in focus if useful(code)]
+    def missing_weight(code):
+        stock = stocks[code]
+        if availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.):
+            return True
+        if include_weekly_pattern:
+            weekly = observed_pattern(stock, 'weekly')
+            return weekly is None or _weekly_trend(weekly) is None
+        return False
+
+    first_candidates = [code for code in focus if eligible(code)]
     # The score-first queue must not spend provider calls on a stock whose
     # MA availability is already complete merely because its informational,
     # zero-point stop reference is missing. The normal full-market scanner
     # remains responsible for those optional references.
-    first = [code for code in first_candidates
-             if availability(stocks[code].get('v3_ma_slope_transition'), day)
-             != (2., 3.)]
-    stop_only_deferred = len(first_candidates) - len(first)
+    first = [code for code in first_candidates if missing_weight(code)]
+    stop_only_deferred = sum(
+        stocks[code].get('v3_structural_stop_reference') is None
+        for code in set(first_candidates) - set(first))
     # Only current-date, not-yet-fully-observed 90+ issuers.  No all-market
     # rediscovery, historical full-market job, or future close requests.
     primary = set(first)
@@ -109,9 +119,8 @@ def select_targets(market, priority, report, *, repair_legacy_stops=False):
     # full-market scan handles those. Focus scarce calls on score gaps.
     second = [code for code, row in report['rows'].items()
               if 90 <= row['available'] < 100 and code not in primary
-              and useful(code)
-              and availability(stocks[code].get('v3_ma_slope_transition'), day) != (2., 3.)]
-    if len(first) + len(second) > 400:
+              and eligible(code) and missing_weight(code)]
+    if not include_weekly_pattern and len(first) + len(second) > 400:
         raise RecoveryError('unexpectedly_large_target_cohort')
     return (sorted(first), sorted(second)), {
         'below_90_priority': len(first),
@@ -149,19 +158,24 @@ def restrict_to_corroborated_close(cohorts, market, crosscheck, market_sha,
                  for cohort in cohorts)
 
 
-def analyze(code, cfg, day):
+def analyze(code, cfg, day, *, include_weekly_pattern=False):
     import screener
     frame, latest = screener.last_series(None, code, cfg, day)
     receipt = observe(frame)
-    return {'price_date': latest.isoformat(),
+    result = {'price_date': latest.isoformat(),
             'price_latest': float(frame['Close'].iloc[-1]),
             'v3_ma_slope_transition': receipt,
             'v3_structural_stop_reference': observe_structural_stop(
                 frame, asof=latest.isoformat(),
                 patterns=screener.daily_patterns(frame))}
+    if include_weekly_pattern:
+        from v3_pattern_first_observations import observe_completed_weekly
+        result['pattern_weekly_research'] = observe_completed_weekly(frame)
+    return result
 
 
-def collect(codes, day):
+def collect(codes, day, *, include_weekly_pattern=False):
+    from functools import partial
     import full_market_batch as batch
     if not codes:
         return {'rows': [], 'errors': [], 'excluded': [], 'examined': 0}
@@ -174,7 +188,8 @@ def collect(codes, day):
         target = Path(tmp)
         for part in range(manifest['batch_count']):
             batch.scan(manifest=manifest, part=part, out=target,
-                       analyzer=analyze, workers=2)
+                       analyzer=partial(analyze, include_weekly_pattern=include_weekly_pattern),
+                       workers=2)
         return batch.load_receipts(manifest, target)
 
 
@@ -221,6 +236,18 @@ def apply(market, collected):
                 result['rechecked_legacy_stop_references'] += 1
                 if reference.get('reference_line') is not None:
                     result['newly_usable_reference_lines'] += 1
+        if 'pattern_weekly_research' in evidence:
+            field = 'pattern_weekly_research'
+            current_weekly = observed_pattern(stock, 'weekly')
+            candidate_weekly = observed_pattern(
+                dict(stock, **{field: evidence[field]}), 'weekly')
+            if candidate_weekly is not None and (
+                current_weekly is None or (
+                    _weekly_trend(current_weekly) is None
+                    and _weekly_trend(candidate_weekly) is not None)
+            ):
+                stock[field] = candidate_weekly
+                result['more_observed_weekly_pattern_receipts'] += 1
         new = evidence.get('v3_ma_slope_transition')
         if new is None:
             result['still_unavailable'] += 1
@@ -251,7 +278,10 @@ def main(argv=None):
                         help='One bounded review of old all-history stop failures')
     parser.add_argument('--corroborated-close-only', action='store_true',
                         help='Query only stocks matching the KRX-corroborated dated close')
+    parser.add_argument('--include-weekly-pattern', action='store_true')
     args = parser.parse_args(argv)
+    if args.include_weekly_pattern and not args.corroborated_close_only:
+        parser.error('weekly pattern recovery requires the corroborated close option')
     docs = Path('docs')
     def load(name):
         return json.loads((docs/name).read_text(encoding='utf8'))
@@ -260,7 +290,8 @@ def main(argv=None):
     priority = load('v3-operational-evidence-priority.json')
     report = load('v3-operational-research-scores.json')
     cohorts, cohort = select_targets(market, priority, report,
-                                    repair_legacy_stops=args.repair_legacy_stops)
+        repair_legacy_stops=args.repair_legacy_stops,
+        include_weekly_pattern=args.include_weekly_pattern)
     if args.corroborated_close_only:
         from v3_dated_market_roster import load_dated_listing
         crosscheck = load('v3-krx-saved-close-crosscheck.json')
@@ -270,13 +301,16 @@ def main(argv=None):
         cohort['below_90_close_mismatch_or_missing'] = len(cohorts[0]) - len(matched[0])
         cohort['already_90_close_mismatch_or_missing'] = len(cohorts[1]) - len(matched[1])
         cohorts = matched
+        if sum(map(len, cohorts)) > 400:
+            raise RecoveryError('unexpectedly_large_corroborated_target_cohort')
         cohort['below_90_priority'], cohort['already_90_priority'] = map(len, cohorts)
     print(json.dumps({'stage':'selected','asof':market['date'],
                       'count':sum(map(len,cohorts)),**cohort},sort_keys=True),flush=True)
     # Finish the potential <90 threshold recoveries before spending provider
     # time on already-90 issuers.  Each receipt remains source-date checked.
-    first = collect(cohorts[0], market['date'])
-    second = collect(cohorts[1], market['date'])
+    first, second = [collect(codes, market['date'],
+                            include_weekly_pattern=args.include_weekly_pattern)
+                     for codes in cohorts]
     collected = {'rows': first['rows']+second['rows'],
                  'errors': first['errors']+second['errors'],
                  'excluded': first['excluded']+second['excluded'],
@@ -297,7 +331,18 @@ def main(argv=None):
                       'provider_errors':len(collected['errors']),
                       'insufficient_history':len(collected['excluded']),**changes},
                      sort_keys=True),flush=True)
+    if changes.get('more_observed_weekly_pattern_receipts'):
+        from v3_pattern_composite_score import compute_candidates
+        compute_candidates(latest['stocks'])
+        status = latest['v3_technical_pattern_status']
+        status['technical_observed_25_count'] = sum(
+            r['v3_pattern_integrated']['technical_research_candidate'] is not None
+            for r in latest['stocks'])
+        status['candidate_full_six_pillar_count'] = sum(
+            r['v3_pattern_integrated']['six_pillar_full_candidate_only'] is not None
+            for r in latest['stocks'])
     if (changes.get('more_observed_receipts', 0)
+            or changes.get('more_observed_weekly_pattern_receipts', 0)
             or changes.get('new_unscored_stop_references', 0)
             or changes.get('rechecked_legacy_stop_references', 0)):
         out = docs/'data.json'

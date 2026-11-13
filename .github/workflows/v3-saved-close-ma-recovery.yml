@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_ma_slope_transition.py
+      - v3_pattern_first_observations.py
   workflow_dispatch:
     inputs:
       repair_legacy_stops:
@@ -34,12 +35,17 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Recover previous published close only, never today's unfinished market
         env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           REPAIR_LEGACY_STOPS: ${{ inputs.repair_legacy_stops }}
         run: |
           if [ "${REPAIR_LEGACY_STOPS:-false}" = 'true' ]; then
             python v3_saved_close_ma_recovery.py --repair-legacy-stops
           elif [ "${{ github.event_name }}" = 'push' ]; then
-            python v3_saved_close_ma_recovery.py --corroborated-close-only
+            python v3_krx_saved_close_crosscheck.py --mode live
+            python v3_saved_close_ma_recovery.py --corroborated-close-only --include-weekly-pattern
+            # The crosscheck above was used for this exact input snapshot.
+            # Only the derived observations are published by this workflow.
+            git restore -- docs/v3-krx-saved-close-crosscheck.json
           else
             python v3_saved_close_ma_recovery.py
           fi
@@ -61,7 +67,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/data.json
-          git commit -m 'Restore real partial MA observations from last saved close'
+          git commit -m 'Restore validated MA and chart observations from last saved close'
           git pull --rebase origin main
           git push origin HEAD:main
       - name: Refresh dated-path audit before recalculating 90/95/100 coverage
