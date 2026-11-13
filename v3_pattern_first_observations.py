@@ -128,6 +128,19 @@ def _bull_flag(close, high, low, volume):
             "reference_flag_low": round(bottom, 2)}
 
 
+def rsi_observation(close):
+    """Compute the existing RSI evidence from chronological closing prices."""
+    rs = rsi(close)
+    bull, _ = divergence(close, rs, span=3, max_age=40)
+    cross_idx = np.where((rs[1:] >= 30) & (rs[:-1] < 30))[0] + 1
+    return {
+        "rsi14": round(float(rs[-1]), 2) if np.isfinite(rs[-1]) else None,
+        "rsi30_cross_recent": bool(len(cross_idx) and cross_idx[-1] >= len(rs)-7
+                                   and 30 <= rs[-1] <= 60),
+        "rsi_bullish_divergence_recent": bool(np.any(bull[-12:])),
+    }
+
+
 def observe(df):
     """Use only supplied daily OHLCV <= the source date, no future candles."""
     out = {"schema": SCHEMA, "status": "insufficient", "timeframe": "daily",
@@ -149,23 +162,13 @@ def observe(df):
             return out
     a = _clean_ohlcv(df)
     close, high, low, vol = a[:, 3], a[:, 1], a[:, 2], a[:, 4]
-    rs = rsi(close)
-    bull, _ = divergence(close, rs, span=3, max_age=40)
-    cross_idx = np.where((rs[1:] >= 30) & (rs[:-1] < 30))[0] + 1
-    # Count crossings only in the past 7 daily candles; an RSI still above
-    # 30 but already overbought is not called an early recovery.
-    cross_recent = bool(len(cross_idx) and cross_idx[-1] >= len(rs)-7 and
-                        30 <= rs[-1] <= 60)
     patterns = [p for p in (_bull_flag(close, high, low, vol),
                               _double_bottom(close, high, low, vol)) if p]
     out.update(asof=df.index[-1].date().isoformat(),
                status="heuristic_unverified",
                pattern_geometry=pattern_snapshot(df),
                source_recent_clean_window_only=clean_tail_only,
-               rsi14=round(float(rs[-1]), 2) if np.isfinite(rs[-1]) else None,
-               rsi30_cross_recent=cross_recent,
-               rsi_bullish_divergence_recent=bool(np.any(bull[-12:])),
-               patterns=patterns)
+               patterns=patterns, **rsi_observation(close))
     return out
 
 

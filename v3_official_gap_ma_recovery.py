@@ -1,4 +1,4 @@
-"""Recover price-only MA and weekly position observations after an official gap repair."""
+"""Recover price-only MA and completed-week RSI after an official gap repair."""
 from __future__ import annotations
 
 from collections import Counter
@@ -23,6 +23,7 @@ from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
 from v3_ma_slope_transition import observe
 from v3_pattern_composite_score import _observed, _weekly_trend
+from v3_pattern_first_observations import rsi_observation
 from v3_saved_close_ma_recovery import availability
 
 GAP = '2025-09-19'
@@ -129,6 +130,32 @@ def weekly_position(frame, asof):
             'weekly_ma120_gap_pct': round(100 * (weeks.iloc[-1] / weeks.mean() - 1), 4)}
 
 
+def weekly_rsi(frame, completed_friday):
+    """Use at least 90 consecutive completed weeks after any unresolved close."""
+    close = frame.loc[:completed_friday, 'Close']
+    previous = close.shift()
+    invalid = ~np.isfinite(close) | (close <= 0)
+    jumps = ((close / previous - 1).abs() > .5) & (previous > 0)
+    excluded = np.flatnonzero(invalid | jumps)
+    if len(excluded):
+        close = close.iloc[excluded[-1] + 1:]
+        if not close.empty:
+            first_week = close.index[0].to_period('W-FRI')
+            close = close.loc[close.index.to_period('W-FRI') > first_week]
+    weeks = close.resample('W-FRI').last()
+    if (len(weeks) < 90 or weeks.isna().any()
+            or weeks.index[-1].date().isoformat() != completed_friday):
+        return None
+    evidence = rsi_observation(weeks.to_numpy())
+    return {'asof': completed_friday, **evidence} if evidence['rsi14'] is not None else None
+
+
+def needs_weekly_rsi(stock, row):
+    return ('weekly_rsi' not in row['parts']['technical']
+            and _observed(stock, 'weekly') is None
+            and stock.get('v3_weekly_rsi_gap_recovery') is None)
+
+
 def needs_weekly_position(stock, row):
     if 'long_ma_position' in row['parts']['technical']:
         return False
@@ -139,7 +166,7 @@ def needs_weekly_position(stock, row):
 
 def selected(market, priority, report):
     day = market['date']
-    if (day != DATES[-1] or priority['asof'] != day or report['asof'] != day
+    if (day < DATES[-1] or priority['asof'] != day or report['asof'] != day
             or priority['operational_source_digest'] != report['source_digest']):
         raise ValueError('operating_sources_not_aligned')
     focus = set(priority['coverage_90_first']['family_conditional_priority_codes']['price_chart_windows'])
@@ -152,7 +179,7 @@ def selected(market, priority, report):
         if (stock['price_date'] == day and stock['market'] in MARKETS
             and (code in focus or 90 <= row['available'] < 100)
             and (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
-                 or needs_weekly_position(stock, row))):
+                 or needs_weekly_position(stock, row) or needs_weekly_rsi(stock, row))):
             key = (stock['market'], code)
             result[key] = stock
     if len(result) > MAX_TARGETS:
@@ -165,17 +192,21 @@ def run(market, priority, report, client):
     candidates = selected(market, priority, report)
     target_day = date.fromisoformat(day)
     completed_friday = (target_day - timedelta(days=(target_day.weekday() - 4) % 7)).isoformat()
-    close_anchors = sorted(set(DATES) | set(OUTER_ANCHORS) | {completed_friday})
+    first = (target_day - timedelta(days=1100)).isoformat()
+    expected = candidate_dates(calendar_weekday_candidates(first, day), source='xkrx')['dates']
+    if day not in expected:
+        raise ValueError('operating_sources_not_aligned')
+    completed_close_day = max(d for d in expected if d <= completed_friday)
+    close_anchors = sorted(set(DATES) | set(OUTER_ANCHORS) | {completed_close_day, day})
     dates = sorted(set(close_anchors) | set(REPAIR_SESSIONS))
     current = snapshots(client, day, candidates)
     targets = {key: stock for key, stock in candidates.items() if key in current and (
         current[key][0][3] != stock['price']
-        or needs_weekly_position(stock, report['rows'][key[1]]))}
+        or needs_weekly_position(stock, report['rows'][key[1]])
+        or needs_weekly_rsi(stock, report['rows'][key[1]]))}
     refs = {day: current}
     for d in dates[:-1]:
         refs[d] = snapshots(client, d, targets)
-    first = (date.fromisoformat(day) - timedelta(days=1100)).isoformat()
-    expected = candidate_dates(calendar_weekday_candidates(first, day), source='xkrx')['dates']
 
     def examine(item):
         key, stock = item
@@ -199,10 +230,15 @@ def run(market, priority, report, client):
         if repaired is None:
             return 'local_share_basis_or_neighbor_unverified', None
         updates = {}
-        if needs_weekly_position(stock, report['rows'][key[1]]):
+        row = report['rows'][key[1]]
+        if needs_weekly_position(stock, row):
             position = weekly_position(repaired, day)
             if position is not None:
                 updates['v3_weekly_position_gap_recovery'] = position
+        if needs_weekly_rsi(stock, row):
+            rsi_evidence = weekly_rsi(repaired, completed_friday)
+            if rsi_evidence is not None:
+                updates['v3_weekly_rsi_gap_recovery'] = rsi_evidence
         previous = stock.get('v3_ma_slope_transition')
         old = availability(previous, day)
         if old != (2., 3.):

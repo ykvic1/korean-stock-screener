@@ -16,6 +16,26 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
+    def test_independent_weekly_rsi_observes_only_its_existing_weight(self):
+        day = '2026-11-12'
+        receipt = {'asof': '2026-11-06', 'rsi14': 45.,
+                   'rsi30_cross_recent': True, 'rsi_bullish_divergence_recent': False}
+        stock = {'price_date': day, 'market': 'KOSPI', 'code': '000001',
+                 'v3_weekly_rsi_gap_recovery': receipt}
+        parts, _ = ops.score_issuer(stock, {}, day=day)
+        self.assertEqual(parts['technical']['weekly_rsi'],
+                         {'asof': '2026-11-06', 'available': 1.8, 'points': 1.8})
+        self.assertIsNone(parts['technical']['weekly_pattern'])
+        receipt['rsi30_cross_recent'] = False
+        parts, _ = ops.score_issuer(stock, {}, day=day)
+        self.assertEqual(parts['technical']['weekly_rsi']['points'], 0)
+        self.assertEqual(parts['technical']['weekly_rsi']['available'], 1.8)
+        for change in ({'asof': '2026-10-30'}, {'asof': '2026-11-13'}, {'rsi14': 101},
+                       {'rsi30_cross_recent': 1}):
+            stock['v3_weekly_rsi_gap_recovery'] = {**receipt, **change}
+            parts, _ = ops.score_issuer(stock, {}, day=day)
+            self.assertIsNone(parts['technical']['weekly_rsi'])
+
     def test_name_change_retention_requires_same_close_and_unchanged_filing_sources(self):
         day='2026-11-06';code='148250'
         member={'market':'KOSDAQ','name':'new label'}

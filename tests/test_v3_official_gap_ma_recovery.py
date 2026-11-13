@@ -5,8 +5,9 @@ import unittest
 import pandas as pd
 
 from v3_official_gap_ma_recovery import (
-    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, repair, source_frame, weekly_position,
+    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, repair, source_frame, weekly_position, weekly_rsi,
 )
+from v3_pattern_first_observations import observe_completed_weekly
 
 DATES = [NEIGHBORS[0], GAP, NEIGHBORS[1]]
 TICKER = '000001.KS'
@@ -69,6 +70,20 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertIsNone(source_frame(payload(), TICKER, list(NEIGHBORS), anchors))
         self.assertIsNone(source_frame(payload(), TICKER, DATES, dict(anchors, **{NEIGHBORS[0]: 90.})))
         self.assertIsNone(source_frame(payload(), '000002.KS', DATES, anchors))
+
+    def test_weekly_rsi_matches_existing_observation_with_completed_closes(self):
+        dates = pd.bdate_range(end='2026-11-12', periods=525)
+        close = [100 + index % 61 - index // 23 for index in range(len(dates))]
+        frame = pd.DataFrame(dict(Open=close, High=close, Low=close, Close=close, Volume=100),
+                             index=dates)
+        recovered = weekly_rsi(frame, '2026-11-06')
+        self.assertIsNotNone(recovered)
+        ordinary = observe_completed_weekly(frame)
+        self.assertEqual(recovered, {key: ordinary[key] for key in recovered})
+        frame.loc['2026-11-09':, 'Close'] = 1000.
+        self.assertEqual(weekly_rsi(frame, '2026-11-06'), recovered)
+        frame.at[pd.Timestamp('2026-03-02'), 'Close'] = float('nan')
+        self.assertIsNone(weekly_rsi(frame, '2026-11-06'))
 
 
 if __name__ == '__main__':
