@@ -139,6 +139,17 @@ def analyze(catalog,book,history,report):
             historical['fy2025_original_2023_2024_revenue_comparative_candidate']+=1
             if below:
                 historical_below['fy2025_original_2023_2024_revenue_comparative_candidate']+=1
+        # The FY2024 annual current-year value can anchor its explicit
+        # 2022 and 2023 reported comparatives. This is not evidence that
+        # either comparative exists until the actual filing is examined.
+        if missing_growth and all(
+            _observed(years,scope,year,'revenue',cutoff) is not None
+            for year in (2024,2025)) and any(
+            _observed(years,scope,year,'revenue',cutoff) is None
+            for year in (2022,2023)):
+            historical['fy2024_original_2022_2023_revenue_comparative_candidate']+=1
+            if below:
+                historical_below['fy2024_original_2022_2023_revenue_comparative_candidate']+=1
         source=annual.get(code)
         if not _valid_book(source,fiscal,cutoff):
             causes['no_current_year_annual_book_observation']+=1
