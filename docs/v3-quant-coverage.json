@@ -1,9 +1,9 @@
 {
   "schema": "v3-ranked-quant-coverage-v1",
-  "asof": "2026-11-11",
+  "asof": "2026-11-13",
   "candidate_count": 0,
   "candidates_in_next_120_stock_study": 0,
-  "study_source_asof": "2026-11-11",
+  "study_source_asof": "2026-11-13",
   "quant_study_same_date": true,
   "candidates_with_usable_historical_periods": 0,
   "candidate_status_counts": {
