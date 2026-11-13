@@ -1,6 +1,8 @@
 """Recover missing original annual sales from exact OpenDART annual receipts."""
-from copy import deepcopy
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+from itertools import islice
 import json
 import math
 import os
@@ -53,8 +55,12 @@ def verified(prior, expected, day):
         amount = record.get('revenue_krw')
         account = record.get('source_account_id')
         name = record.get('source_account_name')
+        source_error = record.get('source_error')
         if (digest != record.get('digest') or _day(record['checked_on']) > _day(day)
             or status not in ('observed', 'not_observed')
+            or (source_error is not None and (
+                type(source_error) is not str or source_error not in ISSUER_SOURCE_GAP_ERRORS
+                or status != 'not_observed'))
             or (status == 'observed' and (
                 type(amount) is not int or not 0 < amount <= 10**18
                 or record.get('source_receipt_id') != base['receipt_id']
@@ -65,6 +71,22 @@ def verified(prior, expected, day):
             raise ValueError('invalid_original_revenue_record')
         retained[key] = record
     return retained
+
+
+def review_statement(payload, base, corp, day):
+    try:
+        row = parse(payload, base, corp, day, fiscal_year=base['fiscal_year'])
+    except Revenue2022Error as error:
+        reason = str(error)
+        if reason not in ISSUER_SOURCE_GAP_ERRORS:
+            raise
+        row = {
+            **base, 'checked_on': day, 'status': 'not_observed', 'source_error': reason,
+            'revenue_krw': None, 'source_account_id': None, 'source_account_name': None,
+            'source_receipt_id': None,
+        }
+    row['digest'] = _stable_digest(row)
+    return row
 
 
 def overlay(catalog, history, source):
@@ -130,7 +152,7 @@ def main():
         return
     key = os.environ['DART_API_KEY']
     calls = 1
-    gaps = 0
+    gaps = Counter()
     observed = 0
     def request(client, endpoint, **params):
         reply = client.get('https://opendart.fss.or.kr/api/'+endpoint,
@@ -148,17 +170,9 @@ def main():
             payload = request(client, 'fnlttSinglAcntAll.json', corp_code=corp,
                               bsns_year=str(base['fiscal_year']), reprt_code='11011',
                               fs_div=base['scope']).json()
-        try:
-            row = parse(payload, base, corp, day, fiscal_year=base['fiscal_year'])
-        except Revenue2022Error as error:
-            if str(error) not in ISSUER_SOURCE_GAP_ERRORS:
-                raise
-            return identity, None
-        row['digest'] = _stable_digest(row)
-        return identity, row
+        return identity, review_statement(payload, base, corp, day)
 
     queued = (identity for identity in selected if expected[identity]['code'] in mapping)
-    from itertools import islice
     deadline = monotonic()+420
     with ThreadPoolExecutor(max_workers=3) as pool:
         while monotonic() < deadline:
@@ -167,9 +181,8 @@ def main():
                 break
             for identity, row in pool.map(fetch, batch):
                 calls += 1
-                if row is None:
-                    gaps += 1
-                    continue
+                if row.get('source_error') is not None:
+                    gaps[row['source_error']] += 1
                 retained[identity] = row
                 observed += row['status'] == 'observed'
                 checkpoint = {'schema':SCHEMA, 'asof':day, 'raw_provider_rows_published':False,
@@ -177,7 +190,8 @@ def main():
                 verified(checkpoint, expected, day)
                 write_json(path, checkpoint)
     print(json.dumps({'asof':day, 'selected':len(selected), 'new_observed':observed,
-                      'issuer_source_gaps':gaps, 'provider_calls':calls}))
+                      'issuer_source_gaps':sum(gaps.values()), 'issuer_source_gap_reasons':gaps,
+                      'provider_calls':calls}))
 
 
 if __name__ == '__main__':
