@@ -228,6 +228,23 @@ class OperationalScoreTests(unittest.TestCase):
             self.assertEqual(fallback['volume']['long_horizon_growth']['points'],4.9)
             self.assertIsNone(fallback['volume']['persistence'])
 
+    def test_recovered_weekly_position_fills_only_existing_long_ma_component(self):
+        from v3_operational_research_score import score_issuer
+
+        day = '2026-11-12'
+        stock = {'price_date': day, 'market': 'KOSPI',
+                 'v3_weekly_position_gap_recovery': {
+                     'asof': '2026-11-06', 'weekly_ma120_gap_pct': 5.}}
+        parts, _ = score_issuer(stock, {}, day=day)
+        self.assertEqual(parts['technical']['long_ma_position'],
+                         {'points': 1.8, 'available': 1.8, 'asof': '2026-11-06'})
+        self.assertIsNone(parts['technical']['weekly_pattern'])
+        self.assertIsNone(parts['technical']['weekly_rsi'])
+        for wrong_day in ('2026-11-13', '2026-10-30', '2026-11-10', None):
+            stock['v3_weekly_position_gap_recovery']['asof'] = wrong_day
+            parts, _ = score_issuer(stock, {}, day=day)
+            self.assertIsNone(parts['technical']['long_ma_position'])
+
     def test_price_only_breakout_confirmation_is_fifth_independent_observation(self):
         day='2026-11-04';last=date.fromisoformat(day)
         receipt=breakout_observe([100.]*82+[104.]*18,asof=day,

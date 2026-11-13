@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 
 from v3_official_gap_ma_recovery import (
-    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, repair, source_frame,
+    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, repair, source_frame, weekly_position,
 )
 
 DATES = [NEIGHBORS[0], GAP, NEIGHBORS[1]]
@@ -52,6 +52,17 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertIsNone(repair(frame, official, dict(shares, **{GAP: 2_000_000})))
         self.assertIsNone(repair(frame, official, dict(shares, **{GAP: None})))
         self.assertIsNone(repair(frame, dict(official, **{OUTER_ANCHORS[0]: (97.,)*5}), shares))
+
+    def test_120_week_position_rejects_missing_prices_and_ignores_partial_week(self):
+        weeks = pd.date_range(end='2026-11-06', periods=120, freq='W-FRI')
+        history = pd.DataFrame({'Close': 100.}, index=weeks)
+        history.loc[pd.Timestamp('2026-11-12')] = 1000.
+        self.assertEqual(weekly_position(history, '2026-11-12'),
+                         {'asof': '2026-11-06', 'weekly_ma120_gap_pct': 0.})
+        self.assertIsNone(weekly_position(history.drop(index=weeks[12]), '2026-11-12'))
+        self.assertIsNone(weekly_position(history.iloc[1:], '2026-11-12'))
+        history.loc[weeks[12], 'Close'] = 0.
+        self.assertIsNone(weekly_position(history, '2026-11-12'))
 
     def test_calendar_gaps_and_mismatching_anchors_are_rejected(self):
         anchors = {NEIGHBORS[0]: 100., NEIGHBORS[1]: 120.}
