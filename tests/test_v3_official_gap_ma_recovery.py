@@ -4,7 +4,9 @@ import unittest
 
 import pandas as pd
 
-from v3_official_gap_ma_recovery import FIELDS, GAP, KST, NEIGHBORS, repair, source_frame
+from v3_official_gap_ma_recovery import (
+    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, repair, source_frame,
+)
 
 DATES = [NEIGHBORS[0], GAP, NEIGHBORS[1]]
 TICKER = '000001.KS'
@@ -32,6 +34,24 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertIsNone(repair(filled, verified))
         self.assertIsNone(repair(original.drop(index=GAP), verified))
         self.assertIsNone(repair(original, dict(verified, **{NEIGHBORS[0]: (90.,)*5})))
+
+    def test_adjacent_close_corrected_only_with_official_boundaries_and_stable_shares(self):
+        dates = [OUTER_ANCHORS[0], *DATES, OUTER_ANCHORS[1]]
+        frame = pd.DataFrame(
+            [[price]*len(FIELDS) for price in (95., 99., None, 110., 115.)],
+            columns=FIELDS, index=pd.DatetimeIndex(dates))
+        official = dict(zip(dates, [(price,)*len(FIELDS)
+                                   for price in (95., 100., 105., 110., 115.)]))
+        shares = dict.fromkeys(dates, 1_000_000)
+        result = repair(frame, official, shares)
+        self.assertEqual(result.at[NEIGHBORS[0], 'Close'], 100.)
+        self.assertEqual(result.at[GAP, 'Close'], 105.)
+        pd.testing.assert_frame_equal(result.loc[list(OUTER_ANCHORS)],
+                                      frame.loc[list(OUTER_ANCHORS)])
+        self.assertEqual(frame.at[NEIGHBORS[0], 'Close'], 99.)
+        self.assertIsNone(repair(frame, official, dict(shares, **{GAP: 2_000_000})))
+        self.assertIsNone(repair(frame, official, dict(shares, **{GAP: None})))
+        self.assertIsNone(repair(frame, dict(official, **{OUTER_ANCHORS[0]: (97.,)*5}), shares))
 
     def test_calendar_gaps_and_mismatching_anchors_are_rejected(self):
         anchors = {NEIGHBORS[0]: 100., NEIGHBORS[1]: 120.}
