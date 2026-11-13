@@ -16,7 +16,7 @@ from v3_actual_money_contract import usable_records, usable_component_records
 from v3_actual_money_structure import COMPONENT_MAX, valid_components
 from v3_volume_participation import observed as volume_observed
 from v3_pattern_composite_score import _observed as pattern_observed, _weekly_trend
-from v3_path_provisional_factors import preview as path_preview
+from v3_path_provisional_factors import MOMENTUM_MAX, preview as path_preview, recovered_close_momentum
 from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
 from v3_ma_slope_transition import WEIGHTS as MA_SLOPE_WEIGHTS, valid_observation as valid_ma_slope
@@ -226,7 +226,12 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
         for new,old,m in [('pbr_equity_quality','pbr',4),('fcf_yield','fcf_yield',2),('sales_to_cap','sales_to_market_cap',2)]:
             put('valuation',new,q[old]*2.5/m,2.5,ed)
     mom=saved.get('factors',{}).get('momentum')
-    if mom:put('momentum','existing_momentum',mom['points'],mom['available'],mom['asof'])
+    if mom:
+        put('momentum','existing_momentum',mom['points'],mom['available'],mom['asof'])
+        if fresh and mom['available']==8 and mom['asof']==day:
+            extra=recovered_close_momentum(stock.get('v3_krx_close_momentum_path'),day)
+            if extra is not None:
+                put('momentum','existing_momentum',mom['points']+extra,8+MOMENTUM_MAX,day)
     return parts,risk_assessment(annual or {},financial_sector=financial_sector)
 
 
@@ -489,7 +494,8 @@ def main():
                      'v3_dart_revenue_2024_comparative.py',
                      'v3_dart_operating_income_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
-                     'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py')}
+                     'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py',
+                     'v3_path_provisional_factors.py','v3_unscored_path_observations.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
         sort_keys=True,separators=(',',':')).encode()).hexdigest()

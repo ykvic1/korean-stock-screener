@@ -85,6 +85,37 @@ def _number(value,*,positive=False):
     return math.isfinite(number) and (number>0 if positive else number>=0)
 
 
+def close_path_facts(closes):
+    """Calculate the four shared price-only facts for a 121-session path."""
+    if len(closes) != 121 or any(not _number(x, positive=True) for x in closes):
+        return None
+    closes = [float(x) for x in closes]
+    if any(abs(b / a - 1) > .5 for a, b in zip(closes, closes[1:])):
+        return None
+    prior = 100 * (closes[60] / closes[0] - 1)
+    recent = 100 * (closes[120] / closes[60] - 1)
+    if any(not math.isfinite(v) or abs(v) > 1e6 for v in (prior, recent)):
+        return None
+    return {
+        "up_close_days20":sum(closes[i] > closes[i-1] for i in range(101, 121)),
+        "positive_nonoverlapping_five_interval_blocks60":sum(
+            closes[i] > closes[i-5] for i in range(65, 121, 5)),
+        "prior60_close_change_pct":round(prior, 6),
+        "recent60_close_change_pct":round(recent, 6),
+    }
+
+
+def valid_close_path_facts(item):
+    return (type(item) is dict
+            and type(item.get("up_close_days20")) is int
+            and 0 <= item["up_close_days20"] <= 20
+            and type(item.get("positive_nonoverlapping_five_interval_blocks60")) is int
+            and 0 <= item["positive_nonoverlapping_five_interval_blocks60"] <= 12
+            and all(type(item.get(k)) in (int, float) and math.isfinite(item[k])
+                    and abs(item[k]) <= 1e6
+                    for k in ("prior60_close_change_pct", "recent60_close_change_pct")))
+
+
 def observe(close,volume,*,asof,session_days=None):
     """Only dated completed lookbacks; never synthesize missing bars/trades.
 
@@ -122,15 +153,8 @@ def observe(close,volume,*,asof,session_days=None):
     if any(volumes[i]==0 and closes[i]!=closes[i-1]
            for i in range(1,121)):
         return None
-    if any(abs(closes[i]/closes[i-1]-1)>0.5 for i in range(1,121)):
-        return None  # Potential unadjusted share-split/missing-session artifact.
-    up20=sum(closes[i]>closes[i-1] for i in range(101,121))
-    # Exactly twelve NON-OVERLAPPING five-interval windows, spanning 60
-    # daily close changes. Not another 20/60-day relative-return estimate.
-    positive_5day=sum(closes[i]>closes[i-5] for i in range(65,121,5))
-    prior60=100*(closes[60]/closes[0]-1)
-    recent60=100*(closes[120]/closes[60]-1)
-    if any(not math.isfinite(v) or abs(v)>1e6 for v in (prior60,recent60)):
+    facts = close_path_facts(closes)
+    if facts is None:
         return None
     # Look for an observed strong high-volume UP session (not a distribution
     # bar), followed by at least five complete sessions of price hold and
@@ -153,10 +177,7 @@ def observe(close,volume,*,asof,session_days=None):
     return {
         "schema":SCHEMA,"asof":asof,
         "path_window_trading_sessions":121,
-        "up_close_days20":up20,
-        "positive_nonoverlapping_five_interval_blocks60":positive_5day,
-        "prior60_close_change_pct":round(prior60,6),
-        "recent60_close_change_pct":round(recent60,6),
+        **facts,
         "complete_post_spike_events_evaluated":evaluated,
         "post_spike_price_hold_with_volume_easing_events":absorbed,
         "raw_ohlcv_exported":False,
@@ -199,8 +220,6 @@ def valid_observation(item,asof):
         item.get("interpretation")!="unscored_dated_source_observation_only"):
         return False
     bounds=(
-        ("up_close_days20",20),
-        ("positive_nonoverlapping_five_interval_blocks60",12),
         ("complete_post_spike_events_evaluated",15),
         ("post_spike_price_hold_with_volume_easing_events",15),
     )
@@ -210,6 +229,4 @@ def valid_observation(item,asof):
     if (item["post_spike_price_hold_with_volume_easing_events"]>
         item["complete_post_spike_events_evaluated"]):
         return False
-    return all(type(item.get(k)) in (int,float) and
-               math.isfinite(item[k]) and abs(item[k])<=1e6
-               for k in ("prior60_close_change_pct","recent60_close_change_pct"))
+    return valid_close_path_facts(item)
