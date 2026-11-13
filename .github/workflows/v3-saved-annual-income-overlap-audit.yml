@@ -1,0 +1,28 @@
+name: V3 Saved FY2025 Annual Income Same-Receipt Overlap Audit
+on:
+  pull_request:
+    paths:
+      - v3_saved_annual_income_overlap_audit.py
+      - tests/test_v3_saved_annual_income_overlap_audit.py
+      - .github/workflows/v3-saved-annual-income-overlap-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_saved_annual_income_overlap_audit.py
+      - .github/workflows/v3-saved-annual-income-overlap-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prove exact source/date/receipt guard and count candidate repairs
+        run: |
+          python -m unittest discover -s tests -p 'test_v3_saved_annual_income_overlap_audit.py' -v
+          python v3_saved_annual_income_overlap_audit.py
