@@ -1,5 +1,8 @@
 import copy
+import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 import v3_dart_reported_capex_total as t
 import v3_dart_cashflow_enrichment as cf
 import v3_dart_cashflow_factor_preview as factor
@@ -109,7 +112,40 @@ class ReportedTotalTests(unittest.TestCase):
         self.assertIsNone(t.verify(out));self.assertIsNone(out['total_capex_krw']);self.assertIsNone(out['free_cashflow_krw'])
         state={'records':{CODE:{'scope':'CFS','years':{'2025':out}}}}
         self.assertEqual(t.targets(state,{CODE},8),[])
-        with self.assertRaises(t.ReportedTotalError):t.parse({'status':'020'},old,code=CODE,corp=CORP,day=DAY)
+        with self.assertRaises(t.ReportedTotalSourceError) as error:
+            t.parse({'status': '020', 'message': 'untrusted provider text'}, old, code=CODE, corp=CORP, day=DAY)
+        self.assertEqual(str(error.exception), 'reported_total_provider_stop')
+        self.assertEqual(error.exception.details, {'provider_status': '020'})
+
+    def test_source_retries_transient_failures_once_without_leaking_request(self):
+        class ReadTimeout(Exception):
+            pass
+
+        class HTTPError(Exception):
+            response = SimpleNamespace(status_code=429)
+
+        requests = SimpleNamespace(exceptions=SimpleNamespace(
+            Timeout=ReadTimeout, ConnectionError=ConnectionError,
+            HTTPError=HTTPError, RequestException=Exception))
+        self.enterContext(patch.dict(sys.modules, {'requests': requests}))
+        self.enterContext(patch.object(t.time, 'monotonic', return_value=0))
+        self.enterContext(patch.object(t.time, 'sleep'))
+
+        session = Mock()
+        session.get.side_effect = [ReadTimeout('sensitive request URL'), Mock()]
+        progress = {'provider_calls': 0}
+        t.source_response(session, 'fnlttSinglAcntAll.json', 'mock-key', {}, deadline=300, progress=progress)
+        self.assertEqual(progress['provider_calls'], 2)
+
+        session.reset_mock()
+        session.get.side_effect = None
+        session.get.return_value.raise_for_status.side_effect = HTTPError('sensitive request URL')
+        progress = {'provider_calls': 0}
+        with self.assertRaises(t.ReportedTotalSourceError) as error:
+            t.source_response(session, 'fnlttSinglAcntAll.json', 'mock-key', {}, deadline=300, progress=progress)
+        self.assertEqual(str(error.exception), 'reported_total_http_status_failed')
+        self.assertEqual(error.exception.details, {'http_status': 429})
+        self.assertEqual(progress['provider_calls'], 1)
 
     def test_queue_prefers_completion_candidates_with_combined_missing_components(self):
         state={'records':{'000001':{'years':{'2025':prior(ppe=1)}},'000002':{'years':{'2025':prior()}}}}

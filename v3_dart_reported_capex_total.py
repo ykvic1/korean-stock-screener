@@ -31,6 +31,39 @@ REASONS={'recovered','no_reported_total','unverified_cfo','known_amount_conflict
 class ReportedTotalError(ValueError):pass
 
 
+class ReportedTotalSourceError(ReportedTotalError):
+    def __init__(self, reason, **details):
+        super().__init__(reason)
+        self.details = details
+
+
+def source_response(session, endpoint, key, params, *, deadline, progress):
+    from requests import exceptions
+
+    for attempt in range(2):
+        if time.monotonic() + 95 >= deadline:
+            raise ReportedTotalSourceError('reported_total_elapsed_budget')
+        progress['provider_calls'] += 1
+        try:
+            response = session.get('https://opendart.fss.or.kr/api/' + endpoint,
+                                   params={'crtfc_key': key, **params}, timeout=(20, 70))
+            response.raise_for_status()
+            return response
+        except (exceptions.Timeout, exceptions.ConnectionError) as error:
+            if attempt == 0 and time.monotonic() + 96 < deadline:
+                time.sleep(1)
+                continue
+            reason = ('reported_total_http_timeout' if isinstance(error, exceptions.Timeout)
+                      else 'reported_total_http_connection_failed')
+            raise ReportedTotalSourceError(reason) from None
+        except exceptions.HTTPError as error:
+            status = getattr(error.response, 'status_code', None)
+            details = {'http_status': status} if type(status) is int and 100 <= status <= 599 else {}
+            raise ReportedTotalSourceError('reported_total_http_status_failed', **details) from None
+        except exceptions.RequestException:
+            raise ReportedTotalSourceError('reported_total_transport_unavailable') from None
+
+
 def canonical(value):
     if type(value) is not str or len(value)>120:return None
     compact=''.join(value.split())
@@ -41,7 +74,12 @@ def parse(payload,old,*,code,corp,day,diagnostics=None):
     status=payload.get('status') if type(payload) is dict else None
     if status=='013':rows=[]
     elif status=='000' and isinstance(payload.get('list'),list) and payload['list']:rows=payload['list']
-    else:raise ReportedTotalError('reported_total_provider_unavailable')
+    elif status == '000':
+        raise ReportedTotalSourceError('reported_total_empty_success_response')
+    elif isinstance(status, str) and status in {'010', '011', '012', '014', '020', '021', '100', '101', '800', '900', '901'}:
+        raise ReportedTotalSourceError('reported_total_provider_stop', provider_status=status)
+    else:
+        raise ReportedTotalSourceError('reported_total_unexpected_response')
     normalized=cf.normalize_year(rows,code=code,corp=corp,year=old['year'],scope=old['scope'],asof=day,major_receipt=old['annual_receipt_id'])
     found=[]
     for row in rows:
@@ -184,30 +222,62 @@ def main():
     import requests
     key=os.getenv('DART_API_KEY','')
     if not re.fullmatch('[A-Za-z0-9]{40}',key):raise ReportedTotalError('missing_reported_total_key')
-    members={r['code']:r for r in catalog['rows']};cache=Path('.cache/v3-dart-company-codes.json')
-    mapping=verified_company_mapping_cache(json.loads(cache.read_text()) if cache.is_file() else None,catalog['date'],members)
-    client=requests.Session()
-    def get(endpoint,params):
-        try:
-            reply=client.get('https://opendart.fss.or.kr/api/'+endpoint,params={'crtfc_key':key,**params},timeout=(20,90));output['provider_calls']+=1;reply.raise_for_status();return reply
-        except Exception:raise ReportedTotalError('reported_total_provider_unavailable') from None
-    if mapping is None:mapping=_mapping(get('corpCode.xml',{}).content,set(members))
-    deadline=time.monotonic()+300;reasons=Counter();diagnostics=Counter()
-    for code,year,old in selected:
-        if time.monotonic()+95>=deadline:break
-        if code not in mapping:continue
-        try:payload=get('fnlttSinglAcntAll.json',{'corp_code':mapping[code],'bsns_year':year,'reprt_code':'11011','fs_div':old['scope']}).json()
-        except Exception:raise ReportedTotalError('reported_total_provider_unavailable') from None
-        try:
-            normalized,proof=parse(payload,old,code=code,corp=mapping[code],day=catalog['date'],diagnostics=diagnostics)
-            new=merge(old,normalized,proof)
-        except (ReportedTotalError,cf.CashflowError) as error:
-            if str(error)=='reported_total_provider_unavailable':raise
-            new=merge(old,None,None,'unusable_source')
-        state['records'][code]['years'][year]=new
-        state=cf.summary(catalog['date'],members,state['records'],cf.fingerprint(bulk));cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True);write_json(target,state)
-        output['completed']+=1;output['recovered_years']+=int(new['reported_total_review']['reason']=='recovered');reasons[new['reported_total_review']['reason']]+=1
-    output['reasons']=dict(reasons);output['candidate_account_id_counts']=dict(diagnostics);print(json.dumps(output,sort_keys=True))
+    members = {row['code']: row for row in catalog['rows']}
+    cache = Path('.cache/v3-dart-company-codes.json')
+    deadline = time.monotonic() + 300
+    reasons = Counter()
+    diagnostics = Counter()
+    stage = 'company_mapping'
+    try:
+        mapping = verified_company_mapping_cache(
+            json.loads(cache.read_text()) if cache.is_file() else None, catalog['date'], members)
+        with requests.Session() as client:
+            if mapping is None:
+                reply = source_response(client, 'corpCode.xml', key, {}, deadline=deadline, progress=output)
+                mapping = _mapping(reply.content, set(members))
+            bulk_digest = cf.fingerprint(bulk)
+            for code, year, old in selected:
+                if time.monotonic() + 95 >= deadline:
+                    output['stop_reason'] = 'reported_total_elapsed_budget'
+                    break
+                if code not in mapping:
+                    continue
+                stage = 'annual_cashflow_source'
+                reply = source_response(client, 'fnlttSinglAcntAll.json', key, {
+                    'corp_code': mapping[code], 'bsns_year': year,
+                    'reprt_code': '11011', 'fs_div': old['scope'],
+                }, deadline=deadline, progress=output)
+                try:
+                    payload = reply.json()
+                except ValueError:
+                    raise ReportedTotalSourceError('reported_total_invalid_json') from None
+                try:
+                    normalized, proof = parse(payload, old, code=code, corp=mapping[code],
+                                              day=catalog['date'], diagnostics=diagnostics)
+                    new = merge(old, normalized, proof)
+                except ReportedTotalSourceError:
+                    raise
+                except (ReportedTotalError, cf.CashflowError):
+                    new = merge(old, None, None, 'unusable_source')
+                stage = 'checkpoint_validation'
+                state['records'][code]['years'][year] = new
+                state = cf.summary(catalog['date'], members, state['records'], bulk_digest)
+                cf.verify_state(state, market, catalog, bulk, strict_fingerprint=True)
+                write_json(target, state)
+                output['completed'] += 1
+                reason = new['reported_total_review']['reason']
+                output['recovered_years'] += int(reason == 'recovered')
+                reasons[reason] += 1
+    except ReportedTotalSourceError as error:
+        output.update(status='blocked_reported_capex_total', stage=stage, reason=str(error), **error.details)
+        raise SystemExit(1) from None
+    except Exception:
+        output.update(status='blocked_reported_capex_total', stage=stage, reason='reported_total_source_not_verified')
+        raise SystemExit(1) from None
+    finally:
+        output['reasons'] = dict(reasons)
+        output['candidate_account_id_counts'] = dict(diagnostics)
+        print(json.dumps(output, sort_keys=True), flush=True)
 
 
 if __name__=='__main__':
