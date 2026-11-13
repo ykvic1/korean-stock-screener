@@ -41,6 +41,34 @@ def _series_points(closes, *, prior, recent, hold, floor, frame, trusted_window)
     return parts if any(points is not None for points in parts.values()) else None
 
 
+def _weekly_points(weeks, trusted_window):
+    return _series_points(weeks.to_numpy(dtype=float), prior=26, recent=8,
+        hold=3, floor=.0005, frame='weekly', trusted_window=trusted_window)
+
+
+def weekly_points_from_checked_closes(close, completed_friday):
+    """Calculate the existing weekly MA factors from a date-checked close series.
+
+    The caller establishes consecutive source sessions and corroborates prices.
+    Each MA window still requires every close in its completed weekly history.
+    """
+    import numpy as np
+    import pandas as pd
+    close = close.loc[:completed_friday]
+    weeks = close.resample('W-FRI').last()
+    if weeks.empty or weeks.index[-1].date().isoformat() != completed_friday:
+        return None
+
+    def trusted(required):
+        tail = weeks.iloc[-required:]
+        prices = close.loc[tail.index[0] - pd.Timedelta(days=6):].to_numpy(dtype=float)
+        return (not tail.isna().any() and np.isfinite(prices).all()
+                and (prices > 0).all()
+                and (np.abs(prices[1:] / prices[:-1] - 1) <= .5).all())
+
+    return _weekly_points(weeks, trusted)
+
+
 def observe(daily):
     """Validate each MA's necessary history, not unrelated older raw bars.
 
@@ -94,9 +122,7 @@ def observe(daily):
         return bool(len(bars_in_weekly_window)) and trusted(
             bars_in_weekly_window, require_traded_last=False)
 
-    recent_week = _series_points(weeks['Close'].to_numpy(dtype=float),
-        prior=26, recent=8, hold=3, floor=.0005, frame='weekly',
-        trusted_window=trusted_week_window)
+    recent_week = _weekly_points(weeks['Close'], trusted_week_window)
     if recent_day is None and recent_week is None:
         return None
     return {'schema': SCHEMA, 'asof': day,

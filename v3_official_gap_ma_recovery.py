@@ -21,7 +21,7 @@ from v3_krx_history_collection import MARKETS, _snapshot_market
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
-from v3_ma_slope_transition import observe
+from v3_ma_slope_transition import observe, valid_observation, weekly_points_from_checked_closes
 from v3_pattern_composite_score import _observed, _weekly_trend
 from v3_pattern_first_observations import rsi_observation
 from v3_saved_close_ma_recovery import availability
@@ -30,6 +30,7 @@ GAP = '2025-09-19'
 NEIGHBORS = ('2025-09-18', '2025-09-22')
 OUTER_ANCHORS = ('2025-09-17', '2025-09-23')
 REPAIR_SESSIONS = (NEIGHBORS[0], GAP, NEIGHBORS[1])
+LONG_MA_ANCHORS = ('2023-12-01', '2024-04-26', '2024-11-29')
 FIELDS = ('Open', 'High', 'Low', 'Close', 'Volume')
 MAX_TARGETS = 350
 
@@ -156,6 +157,25 @@ def needs_weekly_rsi(stock, row):
             and stock.get('v3_weekly_rsi_gap_recovery') is None)
 
 
+def needs_weekly_ma120(stock, day, completed_friday):
+    receipt = stock.get('v3_ma_slope_transition')
+    return (valid_observation(receipt, day)
+            and receipt['weekly_asof'] == completed_friday
+            and receipt['parts']['weekly']['120'] is None)
+
+
+def add_weekly_ma120(receipt, close, completed_friday):
+    if receipt is None or receipt['weekly_asof'] != completed_friday:
+        return receipt
+    weekly = receipt['parts']['weekly']
+    if weekly is None or weekly['120'] is not None:
+        return receipt
+    points = weekly_points_from_checked_closes(close, completed_friday)
+    if points is None or points['120'] is None:
+        return receipt
+    return dict(receipt, parts=dict(receipt['parts'], weekly=dict(weekly, **{'120': points['120']})))
+
+
 def needs_weekly_position(stock, row):
     if 'long_ma_position' in row['parts']['technical']:
         return False
@@ -198,12 +218,17 @@ def run(market, priority, report, client):
         raise ValueError('operating_sources_not_aligned')
     completed_close_day = max(d for d in expected if d <= completed_friday)
     close_anchors = sorted(set(DATES) | set(OUTER_ANCHORS) | {completed_close_day, day})
-    dates = sorted(set(close_anchors) | set(REPAIR_SESSIONS))
     current = snapshots(client, day, candidates)
+    long_ma_targets = {key: stock for key, stock in candidates.items()
+                       if key in current and needs_weekly_ma120(stock, day, completed_friday)}
+    long_ma_refs = {d: snapshots(client, d, long_ma_targets)
+                    for d in LONG_MA_ANCHORS} if long_ma_targets else {}
+    dates = sorted(set(close_anchors) | set(REPAIR_SESSIONS))
     targets = {key: stock for key, stock in candidates.items() if key in current and (
         current[key][0][3] != stock['price']
         or needs_weekly_position(stock, report['rows'][key[1]])
-        or needs_weekly_rsi(stock, report['rows'][key[1]]))}
+        or needs_weekly_rsi(stock, report['rows'][key[1]])
+        or key in long_ma_targets)}
     refs = {day: current}
     for d in dates[:-1]:
         refs[d] = snapshots(client, d, targets)
@@ -251,6 +276,17 @@ def run(market, priority, report, client):
                     for period, points in (parts or {}).items() if points is not None
                 ))):
                 updates['v3_ma_slope_transition'] = receipt
+        # Weekly MA uses closes only. An unrelated intraday field can make
+        # the OHLCV path unavailable even when the dated closes are intact.
+        if key in long_ma_targets and all(
+            key in historical and d in repaired.index
+            and repaired.at[d, 'Close'] == historical[key][0][3]
+            for d, historical in long_ma_refs.items()
+        ):
+            base = updates.get('v3_ma_slope_transition', previous)
+            extended = add_weekly_ma120(base, repaired['Close'], completed_friday)
+            if extended is not base:
+                updates['v3_ma_slope_transition'] = extended
         return ('recovered' if updates else 'no_added_observation'), updates
 
     counts = Counter()
@@ -262,15 +298,22 @@ def run(market, priority, report, client):
         item[0][1])))
     recovered = Counter()
     with ThreadPoolExecutor(max_workers=4) as pool:
-        for stock, (outcome, updates) in zip(targets.values(), pool.map(examine, targets.items())):
+        for (key, stock), (outcome, updates) in zip(targets.items(), pool.map(examine, targets.items())):
             counts[outcome] += 1
             if updates:
+                slope = updates.get('v3_ma_slope_transition')
+                if key in long_ma_targets and slope is not None and (
+                    slope['parts']['weekly'] or {}
+                ).get('120') is not None:
+                    recovered['weekly_ma120_transition'] += 1
                 stock.update(updates)
                 recovered.update(updates.keys())
     return {'asof': day, 'gap_session': GAP, 'comparison_sessions': close_anchors,
             'official_repair_sessions': list(REPAIR_SESSIONS),
             'selected': len(targets), 'counts': dict(counts), 'recovered_fields': dict(recovered),
-            'official_requests': 2*len(dates), 'source_history_adjusted_verified': False,
+            'long_ma_comparison_sessions': list(long_ma_refs),
+            'official_requests': 2*(len(dates) + len(long_ma_refs)),
+            'source_history_adjusted_verified': False,
             'volume_score_changed': False, 'raw_source_exported': False}
 
 
