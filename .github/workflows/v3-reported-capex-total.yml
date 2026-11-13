@@ -11,6 +11,13 @@ on:
       - v3_dart_reported_capex_total.py
       - .github/workflows/v3-reported-capex-total.yml
   workflow_dispatch:
+    inputs:
+      focus:
+        type: choice
+        description: 'sub90 = only unreviewed source years for below-90 issuers; all = existing general recovery'
+        options: [all, sub90]
+        default: all
+        required: true
   schedule:
     # 07:20 KST Tue-Sat, after the 02:30 previous-session market source
     # sync. Source year, scope and issuer receipts are checked independently.
@@ -64,6 +71,7 @@ jobs:
         id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          CAPEX_FOCUS: ${{ github.event_name == 'workflow_dispatch' && inputs.focus || 'all' }}
         run: |
           set -euo pipefail
           interrupted=0
@@ -71,7 +79,7 @@ jobs:
           # reviewed source result and prioritizes sub-90 coverage gaps.
           # At most 40 independently matched official annual reports/run;
           # an unobserved account is NEVER turned into a zero.
-          if ! python v3_dart_reported_capex_total.py --mode live --limit 40; then interrupted=1; fi
+          if ! python v3_dart_reported_capex_total.py --mode live --limit 40 --focus "$CAPEX_FOCUS"; then interrupted=1; fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish

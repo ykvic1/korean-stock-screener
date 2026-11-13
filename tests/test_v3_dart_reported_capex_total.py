@@ -36,7 +36,10 @@ class ReportedTotalTests(unittest.TestCase):
         self.assertIn("cron: '20 22 * * 1-5'",text)
         self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'",text)
         self.assertIn("needs.offline.result == 'skipped'",text)
-        self.assertIn("--mode live --limit 40",text)
+        self.assertIn("--mode live --limit 40 --focus",text)
+        self.assertIn("inputs.focus || 'all'",text)
+        manual=(root/'.github/workflows/v3-manual-90first-source-burst.yml').read_text()
+        self.assertIn("inputs[focus]=sub90",manual)
         self.assertIn("group: korea-stock-screener-dart-cashflow",text)
         self.assertIn("v3-current-observed-scorecard.yml/dispatches",text)
         self.assertNotIn("--recheck-equivalent-contexts",text)
@@ -118,6 +121,24 @@ class ReportedTotalTests(unittest.TestCase):
             '000001':{'years':{'2023':prior(2023),'2024':prior(2024)}},
             '000002':{'years':{'2023':prior(2023,ppe=1)}}}}
         self.assertEqual(t.targets(state,{'000001'},1,{'000002'})[0][0],'000002')
+
+    def test_sub90_manual_queue_never_falls_through_to_nonpriority_sources(self):
+        state={'records':{
+            '000001':{'years':{'2023':prior(2023)}},
+            '000002':{'years':{'2023':prior(2023),'2024':prior(2024)}},
+        }}
+        self.assertEqual(t.targets(state,{'000001','000002'},40,
+                                   threshold_priority={'000001'},
+                                   only_sub90=True)[0][0], '000001')
+        self.assertEqual(len(t.targets(state,{'000001','000002'},40,
+                                       threshold_priority={'000001'},
+                                       only_sub90=True)),1)
+        reviewed=copy.deepcopy(state)
+        reviewed['records']['000001']['years']['2023']=t.merge(prior(2023),None,None)
+        self.assertEqual(t.targets(reviewed,{'000001','000002'},40,
+                                   threshold_priority={'000001'},only_sub90=True),[])
+        # General scheduled collection still preserves its wider recovery.
+        self.assertEqual(t.targets(reviewed,{'000001','000002'},1)[0][0],'000002')
 
     def test_three_year_actual_total_receipts_replay_into_both_fcf_factors(self):
         market,catalog,bulk=live_inputs();records={}
