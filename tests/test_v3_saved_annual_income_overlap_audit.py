@@ -98,6 +98,19 @@ class SavedAnnualIncomeOverlapTests(unittest.TestCase):
         self.assertNotIn('fy2025_original_2023_2024_revenue_comparative_candidate',
                          blocked['historical_missing_year_fields'])
 
+    def test_fy2024_revenue_comparative_requires_actual_2024_and_2025_anchors(self):
+        catalog,book,history,report=fixture()
+        report['rows'][CODE]['parts']['financial']['revenue_growth']=[0,0]
+        rows=history['records'][CODE]['years']
+        rows['2022']['CFS']['values']['revenue']=None
+        result=audit.analyze(catalog,book,history,report)
+        self.assertEqual(result['historical_missing_year_fields'][
+            'fy2024_original_2022_2023_revenue_comparative_candidate'],1)
+        rows['2024']['CFS']['values']['revenue']=None
+        blocked=audit.analyze(catalog,book,history,report)
+        self.assertNotIn('fy2024_original_2022_2023_revenue_comparative_candidate',
+                         blocked['historical_missing_year_fields'])
+
     def test_cross_date_or_missing_certification_stops(self):
         catalog,book,history,report=fixture()
         book['asof']='2026-11-11'
