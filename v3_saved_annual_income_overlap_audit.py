@@ -7,11 +7,10 @@ provider calls, backfilled values or scoring points are written or printed.
 from __future__ import annotations
 import argparse
 from collections import Counter
-from datetime import date
 import json
 from pathlib import Path
 
-from v3_dart_bulk_history import _day, _valid_receipt, _three_year_margin
+from v3_dart_bulk_history import _day, _valid_receipt
 
 OUT_FIELDS=('revenue','operating_income')
 
@@ -36,6 +35,26 @@ def _valid_book(annual, fiscal, cutoff):
         annual.get('currency')=='KRW' and
         _valid_receipt(annual.get('receipt_id'),fiscal,cutoff) and
         type(annual.get('values')) is dict)
+
+
+
+def _observed(years,scope,year,field,cutoff):
+    item=years.get(str(year),{}).get(scope,{})
+    if (type(item) is not dict or
+        not _valid_receipt(item.get('receipt_id'),year,cutoff)):
+        return None
+    values=item.get('values',{})
+    if type(values) is not dict:return None
+    value=values.get(field)
+    return value if (type(value) is int and abs(value)<=10**18
+                     and (field!='revenue' or value>0)) else None
+
+
+def _best_scope(years,required,cutoff):
+    """Prefer the scope with the most real annual observations; ties CFS."""
+    return min(('CFS','OFS'),key=lambda scope:-sum(
+        _observed(years,scope,year,field,cutoff) is not None
+        for year,field in required))
 
 
 def analyze(catalog,book,history,report):
@@ -70,6 +89,8 @@ def analyze(catalog,book,history,report):
     counts=Counter()
     causes=Counter()
     under=Counter()
+    historical=Counter()
+    historical_below=Counter()
     for code,member in members.items():
         score=report['rows'][code]
         missing_margin=_missing_part(score,'financial','operating_growth_margin',3)
@@ -83,6 +104,41 @@ def analyze(catalog,book,history,report):
         if below:under['issuers_with_missing_income_factor']+=1
         old=history['records'].get(code,{})
         years=old.get('years',{}) if type(old) is dict else {}
+        # One diagnostic per genuinely missing source year/field, scoped to
+        # each independently missing R1d factor, not a made-up replacement.
+        required=[]
+        if missing_margin:
+            required.extend((year,field) for year in (2023,2024,2025)
+                            for field in ('revenue','operating_income'))
+        if missing_growth:
+            required.extend((year,'revenue') for year in (2022,2023,2024,2025))
+        scope=_best_scope(years,set(required),cutoff)
+        for year,field in sorted(set(required)):
+            if _observed(years,scope,year,field,cutoff) is None:
+                historical[f'missing_{year}_{field}']+=1
+                if below:historical_below[f'missing_{year}_{field}']+=1
+        # Alternative FY2024 source: its reported FY2023 comparative may
+        # fill exactly one missing earlier-year fact, IF the actual FY2024
+        # current-year and other years' facts are independently present.
+        if missing_margin and all(
+            _observed(years,scope,year,'revenue',cutoff) is not None
+            for year in (2023,2024,2025)) and all(
+            _observed(years,scope,year,'operating_income',cutoff) is not None
+            for year in (2024,2025)) and (
+            _observed(years,scope,2023,'operating_income',cutoff) is None):
+            historical['fy2024_original_2023_operating_comparative_candidate']+=1
+            if below:
+                historical_below['fy2024_original_2023_operating_comparative_candidate']+=1
+        # The existing FY2025 current-year revenue is an exact anchor for
+        # independently observed 2023/24 comparatives in that same filing.
+        if missing_growth and all(
+            _observed(years,scope,year,'revenue',cutoff) is not None
+            for year in (2022,2025)) and any(
+            _observed(years,scope,year,'revenue',cutoff) is None
+            for year in (2023,2024)):
+            historical['fy2025_original_2023_2024_revenue_comparative_candidate']+=1
+            if below:
+                historical_below['fy2025_original_2023_2024_revenue_comparative_candidate']+=1
         source=annual.get(code)
         if not _valid_book(source,fiscal,cutoff):
             causes['no_current_year_annual_book_observation']+=1
@@ -161,6 +217,8 @@ def analyze(catalog,book,history,report):
             'counts':dict(sorted(counts.items())),
             'below90_counts':dict(sorted(under.items())),
             'source_causes':dict(sorted(causes.items())),
+            'historical_missing_year_fields':dict(sorted(historical.items())),
+            'below90_historical_missing_year_fields':dict(sorted(historical_below.items())),
             'provider_calls':0,'points_added':0,'score_changed':False,
             'investment_score_certified':False,
             'historical_point_in_time_certified':False,
