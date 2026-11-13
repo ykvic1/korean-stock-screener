@@ -18,7 +18,7 @@ def make_inputs():
     codes=[str(i).zfill(6) for i in range(53)]
     session = {
         'price_session':'KRX_REGULAR_0900_1530_ASIA_SEOUL',
-        'volume_session':'KRX_REGULAR_0900_1530_ASIA_SEOUL',
+        'volume_session':'KRX_NXT_ALL_SESSION_VOLUME_TO_2000',
         'final':True,
         'official_close_status':'matched',
         'history_session_verified':True,
@@ -43,6 +43,16 @@ def make_inputs():
 
 
 class V3ReadinessTests(unittest.TestCase):
+    def test_current_volume_scope_is_required_but_not_self_certifying(self):
+        r,q,d,b=make_inputs()
+        reason=assess_v3(r,q,d,b)['gates']['regular_session_ohlcv']
+        self.assertFalse(reason['passed'])
+        self.assertIn('provider-level',reason['reasons'][0])
+        for row in r['stocks']:
+            row['session_validation']['volume_session']='KRX_REGULAR_0900_1530_ASIA_SEOUL'
+        reason=assess_v3(r,q,d,b)['gates']['regular_session_ohlcv']
+        self.assertIn('not verified',reason['reasons'][0])
+
     def test_all_internal_flags_true_do_not_bypass_independent_v3_contracts(self):
         r,q,d,b=make_inputs()
         output=assess_v3(r,q,d,b,proof={'v3_ready':True,
