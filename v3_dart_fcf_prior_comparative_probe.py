@@ -46,6 +46,25 @@ def eligible_missing_years(years, scope):
     return missing
 
 
+def below_90_cashflow_priority(priority):
+    """Return conditional 90-crossing issuer codes; not source evidence."""
+    coverage = priority.get('coverage_90_first')
+    if coverage is None:
+        return set()  # Older minimal source-work fixtures.
+    families = coverage.get('family_conditional_priority_codes') if type(coverage) is dict else None
+    if (coverage.get('recovery_not_a_score_or_observation') is not True
+        or coverage.get('missing_data_never_zero_filled') is not True
+        or type(families) is not dict
+        or type(families.get('dart_cashflow_capex')) is not list):
+        raise ComparativeError('invalid_fcf_90first_priority_contract')
+    codes = families['dart_cashflow_capex']
+    if (len(codes) != len(set(codes)) or
+        any(type(code) is not str or not re.fullmatch('[0-9A-Z]{6}', code)
+            for code in codes)):
+        raise ComparativeError('invalid_fcf_90first_priority_codes')
+    return set(codes)
+
+
 def targets(priority, cash, previous=None):
     if (type(priority) is not dict or type(cash) is not dict
         or type(previous or {}) is not dict or not isinstance(priority.get('single_component_queue'), list)):
@@ -71,6 +90,11 @@ def targets(priority, cash, previous=None):
             raise ComparativeError('invalid_fcf_comparative_gap_shape')
         if 'financial:cashflow_fcf_persistence' in shapes[item[3]].split('+'):
             codes.append(item[0])
+    # The historical queue listed one-gap / 100-completion candidates first.
+    # Move below-90 recovery candidates to the front without inventing a
+    # value or changing the original receipt-bound collection conditions.
+    below_90 = below_90_cashflow_priority(priority)
+    codes.sort(key=lambda code:code not in below_90)
     seen = set()
     for code in codes:
         if code in seen:
@@ -224,7 +248,11 @@ def main():
         raise ComparativeError('invalid_fcf_comparative_snapshot')
     records = prior.get('records', {})
     choices = targets(priority, cash, records)
+    below_90 = below_90_cashflow_priority(priority)
     result = {'selected': min(a.limit, len(choices)), 'remaining': len(choices),
+              'below90_mathematical_cashflow_candidates': len(below_90),
+              'below90_unreviewed_source_eligible_issuers':
+                  sum(code in below_90 for code, _, _ in choices),
               'reviewed': 0, 'complete_year_candidates': 0, 'provider_calls': 0,
               'reasons': {}, 'scores_unchanged': True}
     if a.mode == 'dry-run' or not choices:
