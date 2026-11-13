@@ -25,6 +25,8 @@ jobs:
         with:
           ref: main
           persist-credentials: false
+      - name: Test exact DART backlog dispatch gates (offline)
+        run: python -m unittest tests.test_v3_manual_90first_source_backlog -v
       - name: Validate saved source date and count eligible 90-first work
         id: gaps
         shell: bash
@@ -35,6 +37,7 @@ jobs:
           import os
           from pathlib import Path
           from v3_saved_close_path_recovery import select_targets, RecoveryError
+          from v3_manual_90first_source_backlog import source_queue_counts, should_dispatch
           root = Path("docs")
           load = lambda name: json.loads((root / name).read_text(encoding="utf-8"))
           market = load("data.json")
@@ -82,6 +85,10 @@ jobs:
                   path_state = "valid_source_selection"
               except RecoveryError:
                   path_state = "source_selection_blocked"
+          # Mathematical crossing ceilings are NOT an unqueried DART receipt
+          # backlog. Verify actual same-day saved-source queues before starting
+          # two expensive but already-exhausted annual collectors.
+          pending = source_queue_counts(root, catalog, score)
           flags = {
               "price": price_candidates > 0,
               "cashflow": counts.get("dart_cashflow_capex", 0) > 0,
@@ -89,8 +96,8 @@ jobs:
               # These are conditional 90-first source families, not certified
               # recoveries. The bounded live collectors independently verify
               # exact issuer/year/scope/receipt and skip reviewed requests.
-              "annual": counts.get("dart_annual_fundamentals", 0) > 0,
-              "profit": counts.get("reported_eps_earnings_yield", 0) > 0,
+              "annual": should_dispatch(counts.get("dart_annual_fundamentals", 0), pending["annual"]),
+              "profit": should_dispatch(counts.get("reported_eps_earnings_yield", 0), pending["profit"]),
           }
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               for key, value in flags.items():
@@ -107,6 +114,8 @@ jobs:
               "money_conditional_90first_issuers": counts.get("exchange_actual_money_windows", 0),
               "annual_conditional_90first_issuers": counts.get("dart_annual_fundamentals", 0),
               "earnings_conditional_90first_issuers": counts.get("reported_eps_earnings_yield", 0),
+              "verified_source_pending_issuers": pending,
+              "zero_pending_skips_only_its_own_collector": True,
               "dispatch": flags, "points_added_by_dispatch": 0,
               "no_missing_source_guessed": True,
           }, sort_keys=True))
