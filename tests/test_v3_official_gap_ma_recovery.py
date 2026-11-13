@@ -5,8 +5,10 @@ import unittest
 import pandas as pd
 
 from v3_official_gap_ma_recovery import (
-    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, repair, source_frame, weekly_position, weekly_rsi,
+    FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, add_weekly_ma120, repair, source_frame,
+    weekly_position, weekly_rsi,
 )
+from v3_ma_slope_transition import observe
 from v3_pattern_first_observations import observe_completed_weekly
 
 DATES = [NEIGHBORS[0], GAP, NEIGHBORS[1]]
@@ -84,6 +86,24 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertEqual(weekly_rsi(frame, '2026-11-06'), recovered)
         frame.at[pd.Timestamp('2026-03-02'), 'Close'] = float('nan')
         self.assertIsNone(weekly_rsi(frame, '2026-11-06'))
+
+    def test_weekly_ma120_only_adds_the_missing_same_week_component(self):
+        dates = pd.bdate_range(end='2026-11-12', periods=800)
+        clean = pd.DataFrame(dict(Open=100., High=100., Low=100., Close=100., Volume=100),
+                             index=dates)
+        broken = clean.copy()
+        broken.iloc[50, broken.columns.get_loc('High')] = 99.
+        previous = observe(broken)
+        self.assertIsNone(previous['parts']['weekly']['120'])
+        expected = observe(clean)
+        actual = add_weekly_ma120(previous, broken['Close'], '2026-11-06')
+        self.assertEqual(actual, expected)
+        self.assertIsNone(previous['parts']['weekly']['120'])
+        self.assertIs(add_weekly_ma120(previous, broken['Close'], '2026-11-13'), previous)
+        broken.iloc[50, broken.columns.get_loc('Close')] = float('nan')
+        self.assertIs(add_weekly_ma120(previous, broken['Close'], '2026-11-06'), previous)
+        broken.iloc[50, broken.columns.get_loc('Close')] = 49.
+        self.assertIs(add_weekly_ma120(previous, broken['Close'], '2026-11-06'), previous)
 
 
 if __name__ == '__main__':
