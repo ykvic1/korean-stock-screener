@@ -1,6 +1,6 @@
 """Fail-closed current-date reconciliation of official DART annual source changes.
 
-Rechecks <=90 listed issuers per part and all four fiscal years via official
+Rechecks <=100 listed issuers per part and all four fiscal years via official
 OpenDART. Only a strictly newer validated annual filing replaces its previous
 derived record. Missing/unmapped/older/same-receipt-different-value evidence
 is held for review, never treated as zero. In no mode is PIT certified.

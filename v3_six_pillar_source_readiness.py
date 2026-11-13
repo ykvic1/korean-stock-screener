@@ -15,7 +15,7 @@ import re
 
 from v3_score_contract import PILLAR_POINTS
 
-CODE = re.compile(r"[0-9]{6}\Z")
+CODE = re.compile(r"[0-9A-Z]{6}\Z")
 ISO = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 MAX_MARKET_BYTES = 80_000_000
 MAX_OTHER_BYTES = 30_000_000
