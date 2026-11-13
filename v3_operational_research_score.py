@@ -158,6 +158,17 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             if frame=='weekly':
                 ma=_weekly_trend(evidence)
                 if ma is not None:put('technical','long_ma_position',ma*.6,1.8,evidence['asof'])
+        recovered_position = stock.get('v3_weekly_position_gap_recovery')
+        if parts['technical']['long_ma_position'] is None and isinstance(recovered_position, dict):
+            source_day = recovered_position.get('asof')
+            try:
+                completed_week = date.fromisoformat(source_day)
+                age = (date.fromisoformat(day) - completed_week).days
+            except (TypeError, ValueError):
+                age = -1
+            ma = _weekly_trend(recovered_position)
+            if 0 <= age <= 6 and completed_week.weekday() == 4 and ma is not None:
+                put('technical', 'long_ma_position', ma*.6, 1.8, source_day)
     if money_components and valid_components(money_components.get('component_observations')):
         observation = money_components['component_observations']
         source_day = money_components['asof']

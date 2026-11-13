@@ -1,4 +1,4 @@
-"""Recover price-only MA observations for the dated Yahoo daily source gap."""
+"""Recover price-only MA and weekly position observations after an official gap repair."""
 from __future__ import annotations
 
 from collections import Counter
@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -21,6 +22,7 @@ from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
 from v3_ma_slope_transition import observe
+from v3_pattern_composite_score import _observed, _weekly_trend
 from v3_saved_close_ma_recovery import availability
 
 GAP = '2025-09-19'
@@ -108,6 +110,33 @@ def fetch(ticker, first, last):
     return None
 
 
+def weekly_position(frame, asof):
+    """Measure the existing 120-week position from completed closing prices."""
+    close = frame['Close']
+    completed = close.resample('W-FRI').last()
+    completed = completed.loc[:asof]
+    if len(completed) < 120:
+        return None
+    weeks = completed.iloc[-120:]
+    history = close.loc[weeks.index[0] - pd.Timedelta(days=6):weeks.index[-1]]
+    prices = history.to_numpy()
+    if (not np.isfinite(prices).all() or (prices <= 0).any()
+            or weeks.isna().any()
+            or (np.abs(prices[1:] / prices[:-1] - 1) > .5).any()
+            or (date.fromisoformat(asof) - weeks.index[-1].date()).days > 6):
+        return None
+    return {'asof': weeks.index[-1].date().isoformat(),
+            'weekly_ma120_gap_pct': round(100 * (weeks.iloc[-1] / weeks.mean() - 1), 4)}
+
+
+def needs_weekly_position(stock, row):
+    if 'long_ma_position' in row['parts']['technical']:
+        return False
+    old = _observed(stock, 'weekly')
+    return ((old is None or _weekly_trend(old) is None)
+            and stock.get('v3_weekly_position_gap_recovery') is None)
+
+
 def selected(market, priority, report):
     day = market['date']
     if (day != DATES[-1] or priority['asof'] != day or report['asof'] != day
@@ -122,7 +151,8 @@ def selected(market, priority, report):
         row = report['rows'][code]
         if (stock['price_date'] == day and stock['market'] in MARKETS
             and (code in focus or 90 <= row['available'] < 100)
-            and availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)):
+            and (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
+                 or needs_weekly_position(stock, row))):
             key = (stock['market'], code)
             result[key] = stock
     if len(result) > MAX_TARGETS:
@@ -133,10 +163,14 @@ def selected(market, priority, report):
 def run(market, priority, report, client):
     day = market['date']
     candidates = selected(market, priority, report)
-    dates = sorted([*DATES, *REPAIR_SESSIONS, *OUTER_ANCHORS])
+    target_day = date.fromisoformat(day)
+    completed_friday = (target_day - timedelta(days=(target_day.weekday() - 4) % 7)).isoformat()
+    close_anchors = sorted(set(DATES) | set(OUTER_ANCHORS) | {completed_friday})
+    dates = sorted(set(close_anchors) | set(REPAIR_SESSIONS))
     current = snapshots(client, day, candidates)
-    targets = {key: stock for key, stock in candidates.items()
-               if key in current and current[key][0][3] != stock['price']}
+    targets = {key: stock for key, stock in candidates.items() if key in current and (
+        current[key][0][3] != stock['price']
+        or needs_weekly_position(stock, report['rows'][key[1]]))}
     refs = {day: current}
     for d in dates[:-1]:
         refs[d] = snapshots(client, d, targets)
@@ -156,7 +190,7 @@ def run(market, priority, report, client):
         if payload is None:
             return 'alternative_response_unavailable', None
         reason, frame = inspect_source_frame(payload, ticker, expected,
-            {d: values[d][3] for d in (*DATES, *OUTER_ANCHORS)})
+            {d: values[d][3] for d in close_anchors})
         if reason is not None:
             return reason, None
         if GAP not in frame.index or not frame.loc[GAP].isna().all():
@@ -164,19 +198,24 @@ def run(market, priority, report, client):
         repaired = repair(frame, values, shares)
         if repaired is None:
             return 'local_share_basis_or_neighbor_unverified', None
-        receipt = observe(repaired)
-        old = availability(stock.get('v3_ma_slope_transition'), day)
-        new = availability(receipt, day)
+        updates = {}
+        if needs_weekly_position(stock, report['rows'][key[1]]):
+            position = weekly_position(repaired, day)
+            if position is not None:
+                updates['v3_weekly_position_gap_recovery'] = position
         previous = stock.get('v3_ma_slope_transition')
-        if old == new or any(a > b for a, b in zip(old, new)):
-            return 'no_added_ma_weight', None
-        if previous is not None and any(
-            (receipt['parts'][frame] or {}).get(period) is None
-            for frame, parts in previous['parts'].items()
-            for period, points in (parts or {}).items() if points is not None
-        ):
-            return 'previous_ma_window_unavailable', None
-        return 'recovered_ma_weight', receipt
+        old = availability(previous, day)
+        if old != (2., 3.):
+            receipt = observe(repaired)
+            new = availability(receipt, day)
+            if (new != old and all(a <= b for a, b in zip(old, new))
+                and (previous is None or all(
+                    (receipt['parts'][frame] or {}).get(period) is not None
+                    for frame, parts in previous['parts'].items()
+                    for period, points in (parts or {}).items() if points is not None
+                ))):
+                updates['v3_ma_slope_transition'] = receipt
+        return ('recovered' if updates else 'no_added_observation'), updates
 
     counts = Counter()
     targets = dict(sorted(targets.items(), key=lambda item: (
@@ -185,14 +224,16 @@ def run(market, priority, report, client):
         if report['rows'][item[0][1]]['available'] < 90
         else 100-report['rows'][item[0][1]]['available'],
         item[0][1])))
+    recovered = Counter()
     with ThreadPoolExecutor(max_workers=4) as pool:
-        for stock, (outcome, receipt) in zip(targets.values(), pool.map(examine, targets.items())):
+        for stock, (outcome, updates) in zip(targets.values(), pool.map(examine, targets.items())):
             counts[outcome] += 1
-            if receipt is not None:
-                stock['v3_ma_slope_transition'] = receipt
-    return {'asof': day, 'gap_session': GAP, 'comparison_sessions': sorted([*DATES, *OUTER_ANCHORS]),
+            if updates:
+                stock.update(updates)
+                recovered.update(updates.keys())
+    return {'asof': day, 'gap_session': GAP, 'comparison_sessions': close_anchors,
             'official_repair_sessions': list(REPAIR_SESSIONS),
-            'selected': len(targets), 'counts': dict(counts),
+            'selected': len(targets), 'counts': dict(counts), 'recovered_fields': dict(recovered),
             'official_requests': 2*len(dates), 'source_history_adjusted_verified': False,
             'volume_score_changed': False, 'raw_source_exported': False}
 
@@ -209,7 +250,7 @@ def main():
     result = run(market, load('v3-operational-evidence-priority.json'),
                  load('v3-operational-research-scores.json'), KRXClient(os.environ.get('KRX_API_KEY', '')))
     result['input_market_sha256'] = sha256(raw).hexdigest()
-    if result['counts'].get('recovered_ma_weight'):
+    if result['recovered_fields']:
         data.write_text(json.dumps(market, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     encoded = json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False)
     (root/'v3-official-gap-ma-recovery.json').write_text(encoded+'\n', encoding='utf-8')
