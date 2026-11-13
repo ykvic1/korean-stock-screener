@@ -130,6 +130,20 @@ class PublishedReadinessRegressions(unittest.TestCase):
                 with self.assertRaises(ReadinessError):
                     audit(m,c,b)
 
+    def test_uppercase_alphanumeric_issuer_codes_are_preserved(self):
+        m, c, b = fixture()
+        m["stocks"][1]["code"] = "0001A0"
+        c["rows"][1]["code"] = "0001A0"
+        report = audit(m, c, b)
+        self.assertEqual(report["observed_counts"]["priced_screened_issuer_count"], 2)
+        for malformed in ("0001a0", "0001A01", "0001-0"):
+            with self.subTest(malformed=malformed):
+                invalid = copy.deepcopy(m)
+                invalid["stocks"][1]["code"] = malformed
+                with self.assertRaisesRegex(ReadinessError,
+                                            "invalid_or_duplicate_issuer_code"):
+                    audit(invalid, c, b)
+
     def test_duplicate_codes_and_unlisted_screened_issuers_block(self):
         m,c,b=fixture()
         m["stocks"][1]["code"]="000001"
