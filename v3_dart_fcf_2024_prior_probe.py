@@ -64,11 +64,12 @@ def verify_record(record):
     return True
 
 
-def targets(cash, priority=(), previous=None):
+def targets(cash, priority=(), previous=None, *, threshold_priority=()):
     previous = previous or {}
     selected = []
     for code, entry in sorted(cash.get('records', {}).items(),
-                              key=lambda item:(item[0] not in priority, item[0])):
+                              key=lambda item:(item[0] not in threshold_priority,
+                                               item[0] not in priority, item[0])):
         years = entry.get('years', {})
         anchor, source = years.get('2023', {}), years.get('2024', {})
         if (anchor.get('free_cashflow_krw') is not None
@@ -91,6 +92,29 @@ def targets(cash, priority=(), previous=None):
                 continue
         selected.append((code, anchor, source))
     return selected
+
+
+def operational_priority_cohorts(report, comparison, catalog, bulk):
+    """Keep below-90 FCF gap candidates ahead of 100-completion-only gaps.
+
+    The existing operational gap calculation reconciles observed score
+    deficits against saved sources, but does not prove XBRL recoverability.
+    Actual unreviewed receipts and CFO anchors are checked by targets().
+    """
+    selected = xp.operational_gap_priority(report, comparison, catalog, bulk)
+    from v3_v30b_release_gate import R1D_PART_LIMITS
+    below_90, finish_100 = set(), set()
+    for code in selected:
+        row = report['rows'][code]
+        if row['available'] < 90:
+            below_90.add(code)
+            continue
+        gaps = {(area, key) for area, parts in R1D_PART_LIMITS.items()
+                for key, maximum in parts.items()
+                if maximum-row['parts'][area].get(key, [0, 0])[1] > .00001}
+        if gaps == {('financial', 'cashflow_fcf_persistence')}:
+            finish_100.add(code)
+    return below_90, finish_100
 
 
 def probe_archive(raw, anchor, source, identifiers):
@@ -284,20 +308,19 @@ def main(argv=None):
                               'scores_unchanged': True, 'status': 'waiting_same_day_major_source'}))
             return
     cash = cf.retained_current_market_cashflow(market, catalog, bulk, cash)
-    priority = xp.operational_gap_priority(report, comparison, catalog, bulk)
-    from v3_v30b_release_gate import R1D_PART_LIMITS
-    priority = {code for code in priority if {
-        (area, key) for area, parts in R1D_PART_LIMITS.items()
-        for key, maximum in parts.items()
-        if maximum - report['rows'][code]['parts'][area].get(key, [0, 0])[1] > .00001
-    } == {('financial', 'cashflow_fcf_persistence')}}
+    below90_priority, completion_priority = operational_priority_cohorts(
+        report, comparison, catalog, bulk)
+    priority = below90_priority | completion_priority
     saved = read(OUTPUT) if output.is_file() else {}
     if saved and (saved.get('schema') != SCHEMA or saved.get('scores_unchanged') is not True
                   or type(saved.get('records')) is not dict):
         raise Prior2024Error('invalid_fy2024_prior_checkpoint')
     records = saved.get('records', {})
-    choices = targets(cash, priority, records)
+    choices = targets(cash, priority, records, threshold_priority=below90_priority)
     result = {'selected': min(args.limit, len(choices)), 'remaining': len(choices),
+              'unreviewed_below90_issuer_count': sum(code in below90_priority
+                  for code, _, _ in choices),
+              'below90_score_gap_candidates': len(below90_priority),
               'maximum_run_issuers': min(args.limit * args.batches, len(choices)),
               'workers': args.workers,
               'priority_targets': sum(code in priority for code, _, _ in choices),
@@ -349,7 +372,8 @@ def main(argv=None):
         if collected['reviewed'] < len(selected):
             break
     result['reasons'] = dict(totals)
-    result['remaining_after'] = len(targets(cash, priority, records))
+    result['remaining_after'] = len(targets(cash, priority, records,
+                                                   threshold_priority=below90_priority))
     print(json.dumps(result, sort_keys=True))
 
 

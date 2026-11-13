@@ -57,6 +57,46 @@ def state(row):
 
 
 class FY2024PriorTests(unittest.TestCase):
+    def test_below90_fcf_recovery_precedes_single_factor_100_completion(self):
+        # The below-90 issuer has both FCF factors unobserved. Older code
+        # excluded it just because the score-gap set was not exactly one
+        # financial FCF component, even though the strict XBRL path is usable.
+        from v3_v30b_release_gate import R1D_PART_LIMITS
+        codes=('900001', '100002', '000003')
+        cash={'records': {code: fixture(code)[0]['records'][code] for code in codes}}
+        fully_observed={
+            area:{key:[maximum,maximum] for key,maximum in limits.items()}
+            for area,limits in R1D_PART_LIMITS.items()}
+        below_parts=copy.deepcopy(fully_observed)
+        below_parts['financial']['cashflow_fcf_persistence']=[0,0]
+        below_parts['valuation']['fcf_yield']=[0,0]
+        full_parts=copy.deepcopy(fully_observed)
+        full_parts['financial']['cashflow_fcf_persistence']=[0,0]
+        other_parts=copy.deepcopy(full_parts)
+        other_parts['valuation']['pbr_equity_quality']=[0,0]
+        report={'rows': {
+            '900001': {'available':87, 'parts':below_parts},
+            '100002': {'available':97, 'parts':full_parts},
+            '000003': {'available':93, 'parts':other_parts},
+        }}
+        with patch.object(probe.xp, 'operational_gap_priority',
+                          return_value=set(codes)):
+            below, completion=probe.operational_priority_cohorts(
+                report, {}, {}, {})
+        self.assertEqual(below, {'900001'})
+        self.assertEqual(completion, {'100002'})
+        chosen=probe.targets(cash,below|completion,
+                             threshold_priority=below)
+        self.assertEqual([code for code,_,_ in chosen],
+                         ['900001','100002','000003'])
+        # Reviewed sources are not queried again merely to raise a score.
+        reviewed=record(cash,'900001',missing_intangible=True)
+        chosen=probe.targets(cash,below|completion,
+                             previous={'900001':reviewed},
+                             threshold_priority=below)
+        self.assertEqual([code for code,_,_ in chosen],
+                         ['100002','000003'])
+
     def test_post_close_source_lag_defers_without_provider_calls_or_checkpoint_change(self):
         output = StringIO()
         with patch('v3_dart_source_day_preflight.check', return_value={'ready': False}), \
