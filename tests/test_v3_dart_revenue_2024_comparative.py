@@ -126,6 +126,16 @@ class FY2024RevenueTests(unittest.TestCase):
         self.assertEqual(selected,['000002','000000'])
         self.assertEqual(len(expected),3)
         self.assertEqual(prior,{})
+        # A source-eligible issuer with already available 3.5 revenue points
+        # must not consume an official-provider slot.
+        full,retained,only=comp.plan(catalog,history,None,
+            priority_codes={'000002'},source_gap_codes={'000000','000001'},
+            limit=16)
+        self.assertEqual(len(full),3)
+        self.assertEqual(only,['000000','000001'])
+        self.assertEqual(retained,{})
+        self.assertEqual(comp.plan(catalog,history,None,
+            source_gap_codes=set())[2],[])
         history['records']['000002']['years']['2022']['CFS']['values']['revenue']=200
         self.assertNotIn('000002',comp.expected_sources(catalog,history))
 
