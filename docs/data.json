@@ -7864,6 +7864,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -8.14
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 42.36,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -13442,6 +13448,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 66.9932
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 47.99,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -22664,6 +22676,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 2.4218
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 56.56,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -31372,6 +31390,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 30.4884
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 53.22,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -32176,6 +32200,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 27.0704
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 54.18,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -51855,6 +51885,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 174.315
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 54.24,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -58541,6 +58577,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 164.0191
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 73.9,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -69310,6 +69352,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 103.1845
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 47.43,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -69576,6 +69624,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -13.0101
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 52.24,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -96696,6 +96750,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 22.7723
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 53.33,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -98663,6 +98723,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 79.3921
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 55.14,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -132110,6 +132176,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 30.7297
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 46.67,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -134594,6 +134666,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -18.4141
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 44.77,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -136821,6 +136899,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -53.7782
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 44.17,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -145210,6 +145294,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -78.9006
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 27.97,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -161110,6 +161200,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -81.8342
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 26.39,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -170330,6 +170426,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 88.5875
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 47.08,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -186105,6 +186207,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -4.1773
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 40.96,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -192369,6 +192477,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -3.621
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 34.73,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -237098,6 +237212,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -14.1114
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 42.27,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -255176,6 +255296,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -12.1584
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 40.95,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -307012,6 +307138,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -22.0476
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 35.53,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -340293,6 +340425,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 2.3026
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 41.12,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -380653,6 +380791,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -65.6067
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 35.48,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -398383,6 +398527,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -13.6415
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 34.64,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -407300,6 +407450,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 60.3721
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 43.65,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -411860,6 +412016,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -42.2995
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 25.4,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -424399,6 +424561,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -34.3523
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 38.39,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -429398,6 +429566,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 15.2171
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 36.32,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -439008,6 +439182,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -9.8688
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 36.78,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -439528,6 +439708,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -36.995
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 32.35,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -470184,6 +470370,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -23.5832
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 31.96,
+        "rsi30_cross_recent": true,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -470701,6 +470893,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": 18.1408
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 41.5,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -477025,6 +477223,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -37.9643
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 38.23,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -517913,6 +518117,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -9.9945
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 37.84,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -527178,6 +527388,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -21.8344
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 32.47,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -528493,6 +528709,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -46.9639
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 28.83,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -531563,6 +531785,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -86.0368
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 30.51,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -543645,6 +543873,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -24.801
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 31.86,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -553457,6 +553691,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -11.7542
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 34.73,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -555852,6 +556092,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -46.5566
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 28.26,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -565024,6 +565270,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -35.8353
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 38.44,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -571826,6 +572078,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -35.3285
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 34.66,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -593097,6 +593355,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -34.9628
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 31.95,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -601757,6 +602021,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -22.5325
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 32.89,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -606481,6 +606751,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -10.6457
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 31.46,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -608028,6 +608304,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -24.8868
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 34.96,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -623834,6 +624116,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -49.47
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 29.0,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true
       }
     },
     {
@@ -627526,6 +627814,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -67.3933
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 26.07,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
@@ -634044,6 +634338,12 @@
       "v3_weekly_position_gap_recovery": {
         "asof": "2026-11-06",
         "weekly_ma120_gap_pct": -58.4507
+      },
+      "v3_weekly_rsi_gap_recovery": {
+        "asof": "2026-11-06",
+        "rsi14": 36.98,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": false
       }
     },
     {
