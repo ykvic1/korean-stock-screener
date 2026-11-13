@@ -57,19 +57,26 @@ def observe(daily):
         return None
     def trusted(frame, *, require_traded_last):
         a = frame[['Open','High','Low','Close','Volume']].to_numpy(dtype=float)
-        if (not np.isfinite(a).all() or np.any(a[:,:4] <= 0)
+        if (not np.isfinite(a).all() or np.any(a[:,3] <= 0)
             or np.any(a[:,4] < 0)
-            or (require_traded_last and a[-1, 4] <= 0)
-            or np.any(a[:,1] < np.maximum(a[:,0], a[:,3]))
-            or np.any(a[:,2] > np.minimum(a[:,0], a[:,3]))):
+            or (require_traded_last and a[-1, 4] <= 0)):
             return False
-        # Price-only MAs may retain a genuine no-trade session, but a bar
-        # reporting zero transactions cannot independently create a new close.
-        # Never replace an absent/zero close or infer a suspension from it.
-        # A split-like jump in the required window can manufacture a turn.
-        closes = a[:,3]
-        return (not np.any(np.abs(closes[1:] / closes[:-1] - 1) > .5)
-                and not np.any((a[1:,4] == 0) & (closes[1:] != closes[:-1])))
+        closes, volume = a[:,3], a[:,4]
+        # Some feeds report an explicit unchanged closing price and zero
+        # trades with all three intraday prices absent (encoded as zero).
+        # Use the reported close for these price-only MAs, without creating
+        # OHLC bars or inferring a halt. The first bar has no prior close
+        # within the validated window, so it needs ordinary OHLC evidence.
+        previous_close_matches = np.r_[False, closes[1:] == closes[:-1]]
+        observed_no_trade = (
+            (volume == 0) & previous_close_matches & np.all(a[:,:3] == 0, axis=1))
+        ordinary_ohlc = (
+            np.all(a[:,:3] > 0, axis=1)
+            & (a[:,1] >= np.maximum(a[:,0], closes))
+            & (a[:,2] <= np.minimum(a[:,0], closes)))
+        return (np.all(ordinary_ohlc | observed_no_trade)
+                and not np.any(np.abs(closes[1:] / closes[:-1] - 1) > .5)
+                and not np.any((volume[1:] == 0) & ~previous_close_matches[1:]))
 
     day = daily.index[-1].date().isoformat()
     recent_day = _series_points(daily['Close'].to_numpy(dtype=float),
