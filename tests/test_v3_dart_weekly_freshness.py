@@ -25,7 +25,7 @@ def archived():
 
 class SevenDaySourceAuditTests(unittest.TestCase):
     def test_exactly_once_across_seven_days_and_four_daily_parts(self):
-        for n in (1, 5, 49, 356, 2497):
+        for n in (1, 5, 49, 356, 2497, 2591, 2800):
             codes = [f"{i:06d}" for i in range(n)]
             selected = []
             per_day = []
@@ -35,7 +35,7 @@ class SevenDaySourceAuditTests(unittest.TestCase):
                     day_index, subset = fresh.slice_codes(
                         codes, TODAY + timedelta(days=offset), part)
                     self.assertEqual(day_index, offset)
-                    self.assertLessEqual(len(subset), 90)
+                    self.assertLessEqual(len(subset), 100)
                     one_day.extend(subset)
                     selected.extend(subset)
                 per_day.append(len(one_day))
@@ -43,8 +43,12 @@ class SevenDaySourceAuditTests(unittest.TestCase):
             self.assertEqual(len(set(selected)), n)
             self.assertEqual(set(selected), set(codes))
             self.assertLessEqual(max(per_day) - min(per_day), 1)
+        # Four annual requests per 25 issuers; no extra provider calls.
+        self.assertEqual(fresh.MAX_ISSUERS_PER_PART, 100)
+        self.assertLessEqual(((fresh.MAX_ISSUERS_PER_PART + 24) // 25) * 4,
+                             fresh.MAX_FISCAL_CALLS)
         with self.assertRaisesRegex(fresh.AuditError, "provider_batch_too_large"):
-            fresh.slice_codes([f"{i:06d}" for i in range(2600)], TODAY, 0)
+            fresh.slice_codes([f"{i:06d}" for i in range(2801)], TODAY, 0)
         with self.assertRaises(fresh.AuditError):
             fresh.slice_codes(CODES, TODAY, 4)
 
