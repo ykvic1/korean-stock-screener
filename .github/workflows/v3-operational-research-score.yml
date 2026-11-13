@@ -13,6 +13,9 @@ on:
       - tests/test_v3_pages_deployment_retry.py
       - v3_revenue_growth_evidence.py
       - tests/test_v3_revenue_growth_evidence.py
+      - v3_dart_operating_income_comparative.py
+      - tests/test_v3_dart_operating_income_comparative.py
+      - docs/v3-dart-operating-income-2025-comparative.json
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
@@ -45,6 +48,9 @@ on:
       - tests/test_v3_pages_deployment_retry.py
       - v3_revenue_growth_evidence.py
       - tests/test_v3_revenue_growth_evidence.py
+      - v3_dart_operating_income_comparative.py
+      - tests/test_v3_dart_operating_income_comparative.py
+      - docs/v3-dart-operating-income-2025-comparative.json
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
