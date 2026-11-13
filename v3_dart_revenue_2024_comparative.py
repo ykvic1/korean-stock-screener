@@ -205,13 +205,18 @@ def snapshot(day,catalog,records):
         'records':dict(sorted(records.items()))}
 
 
-def plan(catalog,history,prior=None,*,priority_codes=(),limit=MAX_PER_RUN):
+def plan(catalog,history,prior=None,*,priority_codes=(),
+         source_gap_codes=None,limit=MAX_PER_RUN):
     if type(limit) is not int or not 1<=limit<=MAX_PER_RUN:
         raise Revenue2024Error('invalid_fy2024_comparative_limit')
     expected=expected_sources(catalog,history)
     records=verified_prior(prior,expected,catalog['date'])
     priority=set(priority_codes)
-    selected=sorted((c for c in expected if c not in records),
+    # Never spend a provider call for an issuer whose 3.5-point revenue
+    # growth is already observed through a different independently verified
+    # FY2022/FY2023 source. Preserve all existing valid review records.
+    eligible=set(expected) if source_gap_codes is None else set(source_gap_codes)&set(expected)
+    selected=sorted((c for c in eligible if c not in records),
                     key=lambda c:(c not in priority,len(expected[c]['missing_years'])==1,c))[:limit]
     return expected,records,selected
 
@@ -228,6 +233,7 @@ def main(argv=None):
     catalog,history=read('v22-market-catalog.json'),read('v3-dart-bulk-history.json')
     path=root/OUTPUT;prior=read(OUTPUT) if path.is_file() else None
     priority=set()
+    factor_gaps=None
     score_path=root/'v3-operational-research-scores.json'
     if score_path.is_file():
         report=read(score_path.name)
@@ -236,15 +242,25 @@ def main(argv=None):
             report.get('investment_score_certified') is not False or
             type(report.get('rows')) is not dict):
             raise Revenue2024Error('unaligned_fy2024_comparative_priority')
-        priority={c for c,row in report['rows'].items()
-                  if row.get('available',100)<90 and
-                  ('revenue_growth' not in row.get('parts',{}).get('financial',{})
-                   or row['parts']['financial']['revenue_growth'][1]<3.5)}
+        factor_gaps=set()
+        for code,row in report['rows'].items():
+            part=row.get('parts',{}).get('financial',{}).get('revenue_growth')
+            available=0 if part is None else part[1] if (
+                type(part) is list and len(part)>1) else None
+            if (type(available) not in (int,float) or
+                not 0<=available<=3.5):
+                raise Revenue2024Error('malformed_fy2024_growth_source_weight')
+            if available<3.5-0.00001:
+                factor_gaps.add(code)
+                if row.get('available',100)<90:priority.add(code)
     expected,records,selected=plan(catalog,history,prior,
-        priority_codes=priority,limit=args.limit)
-    output={'asof':catalog['date'],'eligible':len(expected),
-        'remaining':len(expected)-len(records),'selected':len(selected),
-        'below90_eligible_unreviewed':sum(c in priority for c in expected
+        priority_codes=priority,source_gap_codes=factor_gaps,
+        limit=args.limit)
+    eligible=set(expected) if factor_gaps is None else set(expected)&factor_gaps
+    output={'asof':catalog['date'],'raw_comparative_receipt_eligible':len(expected),
+        'eligible':len(eligible),
+        'remaining':sum(c not in records for c in eligible),'selected':len(selected),
+        'below90_eligible_unreviewed':sum(c in priority for c in eligible
                                          if c not in records),
         'selected_below90':sum(c in priority for c in selected),
         'provider_calls':0,'reviewed':0,'new_observed_issuers':0,
