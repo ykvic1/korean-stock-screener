@@ -100,6 +100,52 @@ class OriginalFcfComparativeTests(unittest.TestCase):
         cash['records']['005930']['years']['2024']['scope'] = 'OFS'
         self.assertEqual([x[0] for x in probe.targets(priority, cash)], ['053620'])
 
+    def test_below90_two_fcf_gaps_precede_100_completion_with_no_repeat_calls(self):
+        priority={
+            'single_component_queue': [
+                {'code':'053620','gaps':[{'component':'cashflow_fcf_persistence'}]}],
+            'shape_names':['financial:cashflow_fcf_persistence+valuation:fcf_yield'],
+            'multiple_missing_index':[['005930',87,13,0,'available']],
+            'coverage_90_first':{
+                'recovery_not_a_score_or_observation': True,
+                'missing_data_never_zero_filled': True,
+                'family_conditional_priority_codes':{'dart_cashflow_capex':['005930']},
+            },
+        }
+        cash={'records':{
+            code:{'years':{'2024':copy.deepcopy(PRIOR),'2025':copy.deepcopy(LATEST)}}
+            for code in ('053620','005930')}}
+        original=copy.deepcopy(cash)
+        self.assertEqual(probe.below_90_cashflow_priority(priority),{'005930'})
+        self.assertEqual([code for code,_,_ in probe.targets(priority,cash)],
+                         ['005930','053620'])
+        seen=probe.make_record('005930',LATEST,[('2024',PRIOR)],
+            research={'2024':{'reason':'no_additional_comparative_capex',
+                              'candidate_parts':{}}},
+            archive_hash='a'*64,profile_hash='b'*64,day='2026-11-06')
+        self.assertEqual([code for code,_,_ in probe.targets(priority,cash,
+                                                             {'005930':seen})],['053620'])
+        self.assertEqual(cash,original)
+
+    def test_malformed_90_first_queue_fails_closed(self):
+        priority={'coverage_90_first':{
+            'recovery_not_a_score_or_observation': True,
+            'missing_data_never_zero_filled': True,
+            'family_conditional_priority_codes':{'dart_cashflow_capex':['005930']},
+        }}
+        for invalid in ({'coverage_90_first':'not_a_dict'},
+                        {'coverage_90_first':{'recovery_not_a_score_or_observation':False}},
+                        {'coverage_90_first':{
+                            **priority['coverage_90_first'],
+                            'family_conditional_priority_codes':{
+                                'dart_cashflow_capex':['005930','005930']}}},
+                        {'coverage_90_first':{
+                            **priority['coverage_90_first'],
+                            'family_conditional_priority_codes':{
+                                'dart_cashflow_capex':[['005930']]}}}):
+            with self.subTest(invalid=invalid), self.assertRaises(probe.ComparativeError):
+                probe.below_90_cashflow_priority(invalid)
+
     def test_malformed_multi_gap_indexes_fail_closed(self):
         base = {'single_component_queue': [], 'shape_names': ['financial:cashflow_fcf_persistence']}
         for index in (-1, True, 1, '0'):
