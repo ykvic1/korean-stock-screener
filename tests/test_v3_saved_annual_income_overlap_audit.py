@@ -68,6 +68,35 @@ class SavedAnnualIncomeOverlapTests(unittest.TestCase):
                 self.assertNotIn('new_2025_income_source_issuers',result['counts'])
                 self.assertEqual(result['points_added'],0)
 
+    def test_fy2024_original_op_comparative_has_independent_2024_anchor(self):
+        catalog,book,history,report=fixture()
+        source=history['records'][CODE]['years']
+        source['2023']['CFS']['values']['operating_income']=None
+        source['2025']['CFS']['values']['operating_income']=50
+        summary=audit.analyze(catalog,book,history,report)
+        self.assertEqual(summary['historical_missing_year_fields']['missing_2023_operating_income'],1)
+        self.assertEqual(summary['historical_missing_year_fields'][
+            'fy2024_original_2023_operating_comparative_candidate'],1)
+        self.assertEqual(summary['below90_historical_missing_year_fields'][
+            'fy2024_original_2023_operating_comparative_candidate'],1)
+        # A broken 2024 source anchor eliminates this candidate.
+        source['2024']['CFS']['values']['operating_income']=None
+        blocked=audit.analyze(catalog,book,history,report)
+        self.assertNotIn('fy2024_original_2023_operating_comparative_candidate',
+                         blocked['historical_missing_year_fields'])
+
+    def test_fy2025_revenue_comparative_requires_reported_2022_and_2025_anchors(self):
+        catalog,book,history,report=fixture()
+        source=history['records'][CODE]['years']
+        source['2023']['CFS']['values']['revenue']=None
+        summary=audit.analyze(catalog,book,history,report)
+        self.assertEqual(summary['historical_missing_year_fields'][
+            'fy2025_original_2023_2024_revenue_comparative_candidate'],1)
+        source['2022']['CFS']['values']['revenue']=None
+        blocked=audit.analyze(catalog,book,history,report)
+        self.assertNotIn('fy2025_original_2023_2024_revenue_comparative_candidate',
+                         blocked['historical_missing_year_fields'])
+
     def test_cross_date_or_missing_certification_stops(self):
         catalog,book,history,report=fixture()
         book['asof']='2026-11-11'
