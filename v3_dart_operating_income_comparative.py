@@ -103,7 +103,9 @@ def verified_prior(prior, expected, day):
             continue
         if any(row.get(k) != v for k,v in base.items()):
             continue  # Recheck changed original/2025 receipts, scope, or baseline.
-        if (row.get('status') not in ('observed','not_observed') or
+        if (row.get('digest') != _stable_digest(
+                {k:v for k,v in row.items() if k!='digest'}) or
+            row.get('status') not in ('observed','not_observed') or
             row.get('checked_on','9999') > day or
             type(row.get('source_sha256')) is not str or
             not re.fullmatch('[a-f0-9]{64}', row['source_sha256']) or
@@ -173,6 +175,7 @@ def parse(payload, base, *, corp, day):
         source_account_id=chosen[0] if observed else None,
         source_account_name=chosen[1] if observed and chosen[0]==NONSTANDARD else None,
         source_sha256=_stable_digest(payload))
+    result['digest']=_stable_digest(result)
     return result
 
 
@@ -301,16 +304,12 @@ def main(argv=None):
         if time.monotonic()+85>=deadline:break
         if code not in mapping:continue
         base=expected[code]
-        try:
-            response=request('fnlttSinglAcntAll.json',{
+        response=request('fnlttSinglAcntAll.json',{
                 'corp_code':mapping[code],'bsns_year':'2025',
                 'reprt_code':'11011','fs_div':base['scope']}).json()
-            observed=parse(response,base,corp=mapping[code],day=catalog['date'])
-        except OperatingComparativeError as err:
-            if str(err)=='operating_comparative_provider_unavailable':raise
-            observed={**base,'checked_on':catalog['date'],'status':'not_observed',
-                      'recovered_operating_income_krw':{},'source_account_id':None,
-                      'source_account_name':None,'source_sha256':_stable_digest(response)}
+        # Provider errors, conflicting accounts and mismatched annual identity
+        # are NOT evidence of absence; stop without writing a review marker.
+        observed=parse(response,base,corp=mapping[code],day=catalog['date'])
         retained[code]=observed
         write_json(path,snapshot(catalog['date'],catalog,retained))
         output['reviewed']+=1
