@@ -48,17 +48,10 @@ def unavailable(reason='not_requested'):
     }
 
 
-def compare_dated_cache(saved, official_closes, frame, source_sha):
-    """Bounded, complete code+market join; no per-stock raw price output.
-
-    official_closes contains only KRX independently validated closing prices,
-    indexed by (market, 6-character code). No volume or prices are persisted.
-    """
-    if (not isinstance(saved, dict) or not isinstance(official_closes, dict)
-        or not hasattr(frame, 'iterrows') or not hasattr(frame, 'columns')
-        or not {'Code','Market','Close'}.issubset(frame.columns)
-        or not isinstance(source_sha, str)
-        or not re.fullmatch(r'[0-9a-f]{64}', source_sha)):
+def cache_close_index(frame):
+    """Index public closing prices by normalized exchange and code in memory."""
+    if (not hasattr(frame, 'iterrows') or not hasattr(frame, 'columns')
+        or not {'Code','Market','Close'}.issubset(frame.columns)):
         raise CacheCorroborationError('untrusted_dated_cache_corroboration_inputs')
     public = {}
     for _, row in frame.iterrows():
@@ -75,6 +68,20 @@ def compare_dated_cache(saved, official_closes, frame, source_sha):
         if key in public:
             raise CacheCorroborationError('duplicate_public_cache_market_code')
         public[key] = _price(row['Close'])
+    return public
+
+
+def compare_dated_cache(saved, official_closes, frame, source_sha):
+    """Bounded, complete code+market join; no per-stock raw price output.
+
+    official_closes contains only KRX independently validated closing prices,
+    indexed by (market, 6-character code). No volume or prices are persisted.
+    """
+    if (not isinstance(saved, dict) or not isinstance(official_closes, dict)
+        or not isinstance(source_sha, str)
+        or not re.fullmatch(r'[0-9a-f]{64}', source_sha)):
+        raise CacheCorroborationError('untrusted_dated_cache_corroboration_inputs')
+    public = cache_close_index(frame)
     counts = {
         'requested': len(saved), 'exact_close': 0, 'different_close': 0,
         'absent_in_official': 0, 'absent_in_public_cache': 0,

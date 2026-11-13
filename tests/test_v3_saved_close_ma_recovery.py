@@ -3,7 +3,9 @@ from copy import deepcopy
 import unittest
 import pandas as pd
 
-from v3_saved_close_ma_recovery import availability, apply, select_targets, RecoveryError
+from v3_saved_close_ma_recovery import (
+    availability, apply, restrict_to_corroborated_close, select_targets, RecoveryError,
+)
 from v3_ma_slope_transition import SCHEMA
 from v3_structural_stop_reference import observe as observe_stop
 
@@ -49,6 +51,29 @@ class SavedCloseMARecoveryTests(unittest.TestCase):
                          ((['000001'],['000002']),
                           {'below_90_priority':1,'already_90_priority':1,
                            'unscored_stop_only_deferred':0}))
+
+    def test_corroborated_price_gate_excludes_different_and_unknown_closes(self):
+        from tests.test_v3_krx_saved_close_crosscheck import Provider, saved
+        from v3_krx_saved_close_crosscheck import check
+
+        market = saved()
+        listing = pd.DataFrame([
+            {'Code': '000001', 'Market': 'KOSPI', 'Close': 100},
+            {'Code': '000002', 'Market': 'KOSPI', 'Close': 220},
+            {'Code': '000003', 'Market': 'KOSDAQ GLOBAL', 'Close': 300},
+        ])
+        digest, listing_sha = 'a'*64, 'b'*64
+        check_result = check(market, [], [], Provider(), snapshot_sha256=digest,
+                             dated_cache_loader=lambda day: (listing, listing_sha))
+        cohorts = (['000002', '000001'], ['000003'])
+        self.assertEqual(
+            restrict_to_corroborated_close(
+                cohorts, market, check_result, digest, listing, listing_sha),
+            (['000001'], ['000003']))
+        for bad_digest, bad_listing_sha in (('c'*64, listing_sha), (digest, 'c'*64)):
+            with self.assertRaises(RecoveryError):
+                restrict_to_corroborated_close(
+                    cohorts, market, check_result, bad_digest, listing, bad_listing_sha)
 
     def test_report_source_mismatch_is_not_trusted(self):
         market,priority,report=inputs()

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 import argparse
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
@@ -119,6 +120,35 @@ def select_targets(market, priority, report, *, repair_legacy_stops=False):
     }
 
 
+def restrict_to_corroborated_close(cohorts, market, crosscheck, market_sha,
+                                   listing, listing_sha):
+    """Avoid calling the same chart feed for a known regular-close mismatch."""
+    from v3_krx_saved_close_crosscheck import current_report
+    from v3_fdr_cache_krx_close_corroboration import (
+        cache_close_index, CacheCorroborationError,
+    )
+
+    if not current_report(crosscheck, digest=market_sha, day=market['date']):
+        raise RecoveryError('current_saved_close_crosscheck_required')
+    proof = crosscheck['dated_public_cache_official_crosscheck']
+    counts = proof.get('counts', {})
+    if (proof['status'] != 'observed'
+        or proof.get('regular_close_full_market_corroborated') is not True
+        or proof.get('public_cache_source_sha256') != listing_sha
+        or counts.get('requested') != len(market['stocks'])
+        or counts.get('exact_close') != counts.get('requested')):
+        raise RecoveryError('current_corroborated_close_cache_required')
+
+    try:
+        closes = cache_close_index(listing)
+    except CacheCorroborationError:
+        raise RecoveryError('invalid_corroborated_close_cache') from None
+    stocks = {stock['code']: stock for stock in market['stocks']}
+    return tuple([code for code in cohort
+                  if closes.get((stocks[code]['market'], code)) == stocks[code]['price']]
+                 for cohort in cohorts)
+
+
 def analyze(code, cfg, day):
     import screener
     frame, latest = screener.last_series(None, code, cfg, day)
@@ -219,15 +249,28 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--repair-legacy-stops', action='store_true',
                         help='One bounded review of old all-history stop failures')
+    parser.add_argument('--corroborated-close-only', action='store_true',
+                        help='Query only stocks matching the KRX-corroborated dated close')
     args = parser.parse_args(argv)
     docs = Path('docs')
     def load(name):
         return json.loads((docs/name).read_text(encoding='utf8'))
-    market = load('data.json')
+    market_raw = (docs/'data.json').read_bytes()
+    market = json.loads(market_raw)
     priority = load('v3-operational-evidence-priority.json')
     report = load('v3-operational-research-scores.json')
     cohorts, cohort = select_targets(market, priority, report,
                                     repair_legacy_stops=args.repair_legacy_stops)
+    if args.corroborated_close_only:
+        from v3_dated_market_roster import load_dated_listing
+        crosscheck = load('v3-krx-saved-close-crosscheck.json')
+        listing, listing_sha = load_dated_listing(market['date'])
+        matched = restrict_to_corroborated_close(
+            cohorts, market, crosscheck, sha256(market_raw).hexdigest(), listing, listing_sha)
+        cohort['below_90_close_mismatch_or_missing'] = len(cohorts[0]) - len(matched[0])
+        cohort['already_90_close_mismatch_or_missing'] = len(cohorts[1]) - len(matched[1])
+        cohorts = matched
+        cohort['below_90_priority'], cohort['already_90_priority'] = map(len, cohorts)
     print(json.dumps({'stage':'selected','asof':market['date'],
                       'count':sum(map(len,cohorts)),**cohort},sort_keys=True),flush=True)
     # Finish the potential <90 threshold recoveries before spending provider
@@ -242,7 +285,10 @@ def main(argv=None):
     # Another bot may have published while source calls were in flight.
     # Re-read the latest actual saved market, never overwrite it blindly.
     subprocess.run(['git','pull','--ff-only','origin','main'],check=True)
-    latest = load('data.json')
+    latest_raw = (docs/'data.json').read_bytes()
+    latest = json.loads(latest_raw)
+    if args.corroborated_close_only and latest_raw != market_raw:
+        raise RecoveryError('corroborated_market_changed_during_collection')
     if latest['date'] != market['date']:
         raise RecoveryError('published_close_advanced_during_collection')
     changes = apply(latest, collected)

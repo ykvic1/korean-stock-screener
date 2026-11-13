@@ -129,6 +129,25 @@ class MaSlopeTransitionTests(unittest.TestCase):
         self.assertEqual(result['parts']['daily'].keys(),baseline['parts']['daily'].keys())
         self.assertIsNotNone(result['parts']['weekly'])
 
+    def test_recorded_flat_close_with_zero_intraday_prices_is_valid_for_ma_only(self):
+        df = bars()
+        day = df.index[-50]
+        previous_close = df.loc[df.index[-51], 'Close']
+        df.loc[day, ['Open', 'High', 'Low', 'Close', 'Volume']] = [
+            previous_close, previous_close, previous_close, previous_close, 0,
+        ]
+        expected = observe(df)
+        df.loc[day, ['Open', 'High', 'Low']] = 0
+        self.assertEqual(observe(df), expected)
+        df.loc[day, 'Close'] += 1
+        self.assertIsNone(observe(df))
+        df.loc[day, 'Close'] = previous_close
+        df.loc[day, 'Volume'] = 1
+        self.assertIsNone(observe(df))
+        df.loc[day, 'Volume'] = 0
+        df.loc[day, 'Open'] = previous_close
+        self.assertIsNone(observe(df))
+
     def test_completed_friday_with_no_trade_is_valid_for_monday_weekly_ma(self):
         df=bars()
         df.loc[df.index[-1],['Open','High','Low','Close']]=df.loc[

@@ -1,6 +1,10 @@
 name: V3 Saved Close MA Evidence Recovery (90 First)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - v3_ma_slope_transition.py
   workflow_dispatch:
     inputs:
       repair_legacy_stops:
@@ -34,6 +38,8 @@ jobs:
         run: |
           if [ "${REPAIR_LEGACY_STOPS:-false}" = 'true' ]; then
             python v3_saved_close_ma_recovery.py --repair-legacy-stops
+          elif [ "${{ github.event_name }}" = 'push' ]; then
+            python v3_saved_close_ma_recovery.py --corroborated-close-only
           else
             python v3_saved_close_ma_recovery.py
           fi
@@ -63,3 +69,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
+      - name: Recalculate operating coverage from newly published MA receipts
+        if: steps.delta.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
