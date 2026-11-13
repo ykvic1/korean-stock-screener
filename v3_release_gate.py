@@ -10,6 +10,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any
+from session_policy import required_volume_session
 
 REQUIRED_SESSION = "KRX_REGULAR_0900_1530_ASIA_SEOUL"
 BASELINE_COUNT = 53
@@ -94,6 +95,10 @@ def assess_v3(reliability: Any, quant: Any, daily: Any,
         "Original fixed 53 symbols must all have full, audited OHLCV histories"
     ])
 
+    try:
+        volume_session = required_volume_session(asofs[0] if dates_match else None)
+    except ValueError:
+        volume_session = None
     r_requested = r.get("requested")
     regular_session = (
         snapshot_consistent
@@ -102,7 +107,8 @@ def assess_v3(reliability: Any, quant: Any, daily: Any,
         and all(isinstance(stock, dict)
                 and isinstance(stock.get("session_validation"), dict)
                 and stock["session_validation"].get("price_session") == REQUIRED_SESSION
-                and stock["session_validation"].get("volume_session") == REQUIRED_SESSION
+                and stock["session_validation"].get("volume_session") == volume_session
+                and volume_session is not None
                 and stock["session_validation"].get("final") is True
                 and stock["session_validation"].get("official_close_status") == "matched"
                 and stock["session_validation"].get("history_session_verified") is True
@@ -111,11 +117,11 @@ def assess_v3(reliability: Any, quant: Any, daily: Any,
                 and len(stock["session_validation"]["official_source_sha256"]) == 64
                 for stock in r_stocks))
     # Even unanimous internal labels cannot replace an independently checked
-    # official regular-session *volume* provider contract.
+    # official era-specific *volume* provider contract.
     gates["regular_session_ohlcv"] = _result(False, [
-        "Certified provider-level KRX regular-only volume contract missing"
+        "Certified provider-level era-specific KRX/NXT volume contract missing"
         if regular_session else
-        "KRX regular-session prices AND volume and indicator history not verified"
+        "KRX regular closes, era-specific volume and indicator history not verified"
     ])
 
     independent = (
