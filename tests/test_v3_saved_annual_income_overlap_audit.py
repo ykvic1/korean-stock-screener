@@ -87,6 +87,7 @@ class SavedAnnualIncomeOverlapTests(unittest.TestCase):
 
     def test_fy2025_revenue_comparative_requires_reported_2022_and_2025_anchors(self):
         catalog,book,history,report=fixture()
+        report['rows'][CODE]['parts']['financial']['revenue_growth']=[0,0]
         source=history['records'][CODE]['years']
         source['2023']['CFS']['values']['revenue']=None
         summary=audit.analyze(catalog,book,history,report)
