@@ -51,16 +51,17 @@ def below_90_cashflow_priority(priority):
     coverage = priority.get('coverage_90_first')
     if coverage is None:
         return set()  # Older minimal source-work fixtures.
-    families = coverage.get('family_conditional_priority_codes') if type(coverage) is dict else None
+    if type(coverage) is not dict:
+        raise ComparativeError('invalid_fcf_90first_priority_contract')
+    families = coverage.get('family_conditional_priority_codes')
     if (coverage.get('recovery_not_a_score_or_observation') is not True
         or coverage.get('missing_data_never_zero_filled') is not True
         or type(families) is not dict
         or type(families.get('dart_cashflow_capex')) is not list):
         raise ComparativeError('invalid_fcf_90first_priority_contract')
     codes = families['dart_cashflow_capex']
-    if (len(codes) != len(set(codes)) or
-        any(type(code) is not str or not re.fullmatch('[0-9A-Z]{6}', code)
-            for code in codes)):
+    if (any(type(code) is not str or not re.fullmatch('[0-9A-Z]{6}', code)
+            for code in codes) or len(codes) != len(set(codes))):
         raise ComparativeError('invalid_fcf_90first_priority_codes')
     return set(codes)
 
