@@ -1,0 +1,63 @@
+name: V3 Original Annual Revenue Recovery (90 First)
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_original_revenue_recovery.py
+      - .github/workflows/v3-dart-original-revenue-recovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-original-annual-revenue-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Review original annual receipts
+        id: collect
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          if python v3_dart_original_revenue_recovery.py; then
+            echo 'interrupted=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'interrupted=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish verified checkpoints
+        id: publish
+        run: |
+          set -euo pipefail
+          path=docs/v3-dart-original-revenue-recovery.json
+          if [[ ! -f "$path" ]]; then exit 0; fi
+          git add "$path"
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Publish receipt-matched original annual revenue observations'
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+      - name: Refresh operational availability
+        if: steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
+      - name: Report collection interruption
+        if: steps.collect.outputs.interrupted == 'true'
+        run: exit 1
