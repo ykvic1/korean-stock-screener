@@ -1,0 +1,120 @@
+name: V3 FY2024 Original FY2022-23 Revenue Comparative Recovery
+on:
+  pull_request:
+    paths:
+      - v3_dart_revenue_2024_comparative.py
+      - v3_revenue_growth_evidence.py
+      - v3_operational_research_score.py
+      - tests/test_v3_dart_revenue_2024_comparative.py
+      - .github/workflows/v3-dart-revenue-2024-comparative.yml
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_revenue_2024_comparative.py
+      - v3_revenue_growth_evidence.py
+      - v3_operational_research_score.py
+      - .github/workflows/v3-dart-revenue-2024-comparative.yml
+  workflow_dispatch:
+  schedule:
+    # After the previous market-session's 02:30 KST source collection.
+    - cron: '57 23 * * 1-5'
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_revenue_2024_comparative.py' -v
+          python -m unittest discover -s tests -p 'test_v3_revenue_growth_evidence.py' -v
+          python v3_dart_revenue_2024_comparative.py --mode dry-run --limit 16
+  collect:
+    needs: offline
+    if: >-
+      ${{ always() && github.event_name != 'pull_request' &&
+          (needs.offline.result == 'success' || needs.offline.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: v3-dart-revenue-2024-original-comparative-writer
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Fetch source-year-verified FY2024 report comparatives (90 first)
+        id: collect
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          interrupted=false
+          for batch in 1 2 3; do
+            if ! python v3_dart_revenue_2024_comparative.py --mode live --limit 16; then
+              interrupted=true
+              break
+            fi
+            left=$(python v3_dart_revenue_2024_comparative.py --mode dry-run --limit 1 |
+              python -c 'import json,sys; print(json.load(sys.stdin)["selected"])')
+            if [ "$left" = "0" ]; then break; fi
+          done
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+      - name: Verify receipt-bound source checkpoints and publish independently
+        id: persist
+        run: |
+          set -euo pipefail
+          source=docs/v3-dart-revenue-2024-comparative.json
+          if [ ! -f "$source" ]; then exit 0; fi
+          python v3_dart_revenue_2024_comparative.py --mode verify
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$source"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Save independently checked FY2024 original revenue comparatives'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            python v3_dart_revenue_2024_comparative.py --mode verify
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo '::error::original_2024_revenue_comparative_push_retries_exhausted'
+          exit 1
+      - name: Recalculate R1d saved-source available weights after source publication
+        if: steps.persist.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-operational-research-score.yml/dispatches" -f ref=main --silent
+      - name: Continue truly unreviewed FY2024 official comparatives
+        if: steps.persist.outputs.changed == 'true' && steps.collect.outputs.interrupted == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          left=$(python v3_dart_revenue_2024_comparative.py --mode dry-run --limit 1 |
+            python -c 'import json,sys; print(json.load(sys.stdin)["selected"])')
+          if [ "$left" = "1" ]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-dart-revenue-2024-comparative.yml/dispatches" -f ref=main --silent
+          fi
+      - name: Surface source interruption after preserving real checkpoints
+        if: steps.collect.outputs.interrupted == 'true'
+        run: exit 1

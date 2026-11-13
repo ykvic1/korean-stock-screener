@@ -252,7 +252,7 @@ def unchanged_fiscal_identity(code, member, prior, day, previous, hashes, book, 
 def build(market,catalog,ledger,history,money_source,personal,industry=None,
           annual_book=None,reported_eps_source=None,previous=None,
           revenue_2022_source=None,revenue_2023_comparative=None,
-          operating_comparative_source=None,
+          revenue_2024_comparative=None,operating_comparative_source=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
           current_source_hashes=None):
     day=catalog['date']
@@ -267,7 +267,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         cashflow_source,eps_prior_research,eps_basis_source)
     for code,entry in audited_eps.items():raw_eps.setdefault(code,entry)
     revenue_parts,revenue_summary=revenue_growth_evidence(
-        history,catalog,revenue_2022_source,revenue_2023_comparative)
+        history,catalog,revenue_2022_source,revenue_2023_comparative,
+        revenue_2024_comparative)
     operating_parts,operating_summary=(
         comparative_margin_parts(catalog,history,operating_comparative_source)
         if operating_comparative_source is not None
@@ -427,6 +428,9 @@ def main():
     revenue_2022_source=read(revenue_2022_file) if (root/revenue_2022_file).exists() else None
     comparative_file='v3-dart-revenue-2023-comparative.json'
     comparative_source=read(comparative_file) if (root/comparative_file).exists() else None
+    comparative_2024_file='v3-dart-revenue-2024-comparative.json'
+    comparative_2024_source=(read(comparative_2024_file)
+        if (root/comparative_2024_file).exists() else None)
     operating_file='v3-dart-operating-income-2025-comparative.json'
     operating_source=read(operating_file) if (root/operating_file).exists() else None
     basis_files={'eps_basis_source':'v3-eps-basis-audit.json',
@@ -442,6 +446,7 @@ def main():
     source_hashes={n:sha256((root/n).read_bytes()).hexdigest() for n in names}
     report=build(*inputs,previous=previous,revenue_2022_source=revenue_2022_source,
                  revenue_2023_comparative=comparative_source,
+                 revenue_2024_comparative=comparative_2024_source,
                  operating_comparative_source=operating_source,
                  current_source_hashes=source_hashes,**basis_inputs)
     report['source_hashes']=source_hashes
@@ -449,6 +454,9 @@ def main():
         report['source_hashes'][revenue_2022_file]=sha256((root/revenue_2022_file).read_bytes()).hexdigest()
     if comparative_source is not None:
         report['source_hashes'][comparative_file]=sha256((root/comparative_file).read_bytes()).hexdigest()
+    if comparative_2024_source is not None:
+        report['source_hashes'][comparative_2024_file]=sha256(
+            (root/comparative_2024_file).read_bytes()).hexdigest()
     if operating_source is not None:
         report['source_hashes'][operating_file]=sha256((root/operating_file).read_bytes()).hexdigest()
     for key,name in basis_files.items():
@@ -457,6 +465,7 @@ def main():
     report['implementation_dependency_sha256']={name:sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
         for name in ('v3_revenue_growth_evidence.py','v3_dart_bulk_history.py',
                      'v3_dart_revenue_2022.py','v3_dart_revenue_2023_comparative.py',
+                     'v3_dart_revenue_2024_comparative.py',
                      'v3_dart_operating_income_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
                      'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py')}
