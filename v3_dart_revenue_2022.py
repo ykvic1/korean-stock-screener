@@ -139,7 +139,7 @@ def verified_prior(prior, expected, day):
     return valid
 
 
-def parse(payload, base, corp, day):
+def parse(payload, base, corp, day, *, fiscal_year=YEAR):
     status = payload.get('status') if type(payload) is dict else None
     rows = payload.get('list') if status == '000' else [] if status == '013' else None
     if type(rows) is not list or len(rows) > 20000 or (status == '000' and not rows):
@@ -148,7 +148,7 @@ def parse(payload, base, corp, day):
     for row in rows:
         if type(row) is not dict:
             raise Revenue2022Error('revenue_2022_malformed_statement_row')
-        if (row.get('corp_code') != corp or str(row.get('bsns_year')) != str(YEAR)
+        if (row.get('corp_code') != corp or str(row.get('bsns_year')) != str(fiscal_year)
             or row.get('reprt_code') != '11011'
             or ('stock_code' in row and row['stock_code'] != base['code'])
             or ('fs_div' in row and row['fs_div'] != base['scope'])):
@@ -160,7 +160,7 @@ def parse(payload, base, corp, day):
             or row.get('account_detail', '-') not in ('', '-')):
             continue
         receipt = row.get('rcept_no')
-        if (not _valid_receipt(receipt, YEAR, _day(day))
+        if (not _valid_receipt(receipt, fiscal_year, _day(day))
             or (base['receipt_id'] is not None and receipt != base['receipt_id'])
             or not _explicit_krw_currency(row.get('currency'))):
             raise Revenue2022Error('revenue_2022_receipt_or_unit_mismatch')

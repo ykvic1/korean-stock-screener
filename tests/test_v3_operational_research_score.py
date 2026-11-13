@@ -19,6 +19,35 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
+    def test_exact_original_revenue_fills_only_missing_sales_factor(self):
+        from v3_dart_bulk_history import _stable_digest
+        from v3_dart_original_revenue_recovery import SCHEMA, choices
+        from v3_dart_revenue_2022 import parse
+        market,catalog,ledger,history = self.inputs[:4]
+        ledger,history = copy.deepcopy((ledger,history))
+        day = catalog['date']
+        member = next(r for r in catalog['rows'] if r.get('reference_market_cap_eok')
+                      and 'CFS' in history['records'].get(r['code'],{}).get('years',{}).get('2025',{}))
+        code = member['code']
+        for stmt in history['records'][code]['years']['2025'].values():
+            stmt['values']['revenue'] = None
+        ledger['rows'][code]['components'].get('valuation',{}).pop('sales_to_market_cap',None)
+        identity = f'{code}:2025:CFS'
+        base = choices(catalog,history)[identity]
+        corp = '00000001'
+        payload = {'status':'000','list':[{'corp_code':corp,'bsns_year':'2025',
+            'reprt_code':'11011','fs_div':base['scope'],'sj_div':'IS',
+            'account_id':'ifrs-full_Revenue','currency':'KRW',
+            'rcept_no':base['receipt_id'],'thstrm_amount':'100000000000'}]}
+        receipt = parse(payload,base,corp,day,fiscal_year=2025)
+        receipt['digest'] = _stable_digest(receipt)
+        source = {'schema':SCHEMA,'asof':day,'raw_provider_rows_published':False,
+                  'records':{identity:receipt}}
+        refreshed = ops.build(market,catalog,ledger,history,*self.inputs[4:],original_revenue_source=source)
+        part = refreshed['rows'][code]['parts']['valuation']['sales_to_cap']
+        self.assertEqual(part['available'],2.5)
+        self.assertIsNone(history['records'][code]['years']['2025'][base['scope']]['values']['revenue'])
+
     def test_official_close_path_adds_only_existing_momentum_weight(self):
         day = '2026-11-12'
         dates = [date.fromisoformat(day)-timedelta(days=i) for i in range(180)]

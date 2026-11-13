@@ -28,6 +28,8 @@ from v3_dart_bulk_history import _stable_digest
 from v3_revenue_growth_evidence import derive as revenue_growth_evidence
 from v3_dart_operating_income_comparative import margin_parts as comparative_margin_parts
 from v3_eps_valuation import evaluate as evaluate_reported_eps
+from v3_dart_original_revenue_recovery import OUTPUT as ORIGINAL_REVENUE_OUTPUT
+from v3_dart_original_revenue_recovery import overlay as original_revenue_overlay, sales_parts
 
 VERSION = 'v3-stable-r1e-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
@@ -280,7 +282,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
           revenue_2022_source=None,revenue_2023_comparative=None,
           revenue_2024_comparative=None,operating_comparative_source=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
-          current_source_hashes=None):
+          current_source_hashes=None,original_revenue_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -300,6 +302,15 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         if operating_comparative_source is not None
         else ({},{'provider_calls':0,'verified_2025_comparative_margin_issuers':0,
                   'investment_score_certified':False}))
+    added_revenue, added_margin, added_sales, recovered_codes = {}, {}, {}, set()
+    if original_revenue_source is not None and history.get('asof') == day:
+        augmented, recovered_codes = original_revenue_overlay(catalog, history, original_revenue_source)
+        if recovered_codes:
+            # Resolve comparative receipts against the original archive above.
+            # Exact original revenues can independently complete the same formulas.
+            added_revenue,_ = revenue_growth_evidence(augmented,catalog)
+            added_margin,_ = comparative_margin_parts(catalog,augmented)
+            added_sales = sales_parts(catalog,augmented)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
     legacy={r['code']:r for r in old};rows={}
     previous=previous if previous and previous.get('version') in COMPATIBLE_PREVIOUS and previous.get('asof','9999')<=day else {}
@@ -330,6 +341,13 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         if (code in operating_parts and
             parts['financial'].get('operating_growth_margin') is None):
             parts['financial']['operating_growth_margin']=operating_parts[code]
+        if code in recovered_codes:
+            for area,key,recovered in (
+                ('financial','revenue_growth',added_revenue),
+                ('financial','operating_growth_margin',added_margin),
+                ('valuation','sales_to_cap',added_sales)):
+                if parts[area][key] is None and code in recovered:
+                    parts[area][key]=recovered[code]
         prior=previous.get('rows',{}).get(code)
         if (prior and prior['market']==member['market'] and
             (prior['name']==member['name'] or unchanged_fiscal_identity(
@@ -459,6 +477,7 @@ def main():
         if (root/comparative_2024_file).exists() else None)
     operating_file='v3-dart-operating-income-2025-comparative.json'
     operating_source=read(operating_file) if (root/operating_file).exists() else None
+    original_source=read(ORIGINAL_REVENUE_OUTPUT) if (root/ORIGINAL_REVENUE_OUTPUT).exists() else None
     basis_files={'eps_basis_source':'v3-eps-basis-audit.json',
         'eps_prior_research':'v3-eps-prior-original-receipt-research.json',
         'cashflow_source':'v3-dart-cashflow-reference.json'}
@@ -474,6 +493,7 @@ def main():
                  revenue_2023_comparative=comparative_source,
                  revenue_2024_comparative=comparative_2024_source,
                  operating_comparative_source=operating_source,
+                 original_revenue_source=original_source,
                  current_source_hashes=source_hashes,**basis_inputs)
     report['source_hashes']=source_hashes
     if revenue_2022_source is not None:
@@ -485,6 +505,9 @@ def main():
             (root/comparative_2024_file).read_bytes()).hexdigest()
     if operating_source is not None:
         report['source_hashes'][operating_file]=sha256((root/operating_file).read_bytes()).hexdigest()
+    if original_source is not None:
+        report['source_hashes'][ORIGINAL_REVENUE_OUTPUT]=sha256(
+            (root/ORIGINAL_REVENUE_OUTPUT).read_bytes()).hexdigest()
     for key,name in basis_files.items():
         if basis_inputs[key] is not None:report['source_hashes'][name]=sha256((root/name).read_bytes()).hexdigest()
     report['implementation_sha256']=sha256(Path(__file__).read_bytes()).hexdigest()
@@ -495,7 +518,8 @@ def main():
                      'v3_dart_operating_income_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
                      'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py',
-                     'v3_path_provisional_factors.py','v3_unscored_path_observations.py')}
+                     'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
+                     'v3_dart_original_revenue_recovery.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
         sort_keys=True,separators=(',',':')).encode()).hexdigest()
