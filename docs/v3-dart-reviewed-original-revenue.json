@@ -54,8 +54,8 @@
       "account_name": "영업수익",
       "revenue_krw": 11088745688,
       "operating_income_krw": -16850508679,
-      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240805000298&dcmNo=10049792&eleId=23&offset=230075&length=15740&dtd=dart4.xsd",
-      "source_sha256": "ec44b2e86a0c49167edc8e5845c1d389dce40fc3cdc37d89b9faf6e3074ce473"
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240805000298&dcmNo=10049792&eleId=21&offset=205308&length=114170&dtd=dart4.xsd",
+      "source_sha256": "0215a53f84adf76ccf92f14a61c51d42adec14fae1c584114172cd3184b813ad"
     },
     "347860:2023:CFS": {
       "receipt_id": "20240328001196",
@@ -160,6 +160,54 @@
       "operating_income_krw": -7263930208,
       "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260313000265&dcmNo=11118531&eleId=23&offset=296514&length=18171&dtd=dart4.xsd",
       "source_sha256": "83dd56b6cd3960f94f2536cd93ea0ac653e8a17b8f3393e74dcbae5549417cc5"
+    },
+    "003090:2022:CFS": {
+      "receipt_id": "20230321000752",
+      "account_name": "영업수익",
+      "revenue_krw": 1697338482580,
+      "operating_income_krw": 207334242877,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20230321000752&dcmNo=9080944&eleId=19&offset=696821&length=147139&dtd=dart3.xsd",
+      "source_sha256": "3a694f24a3a6351e46a05b7fc2880e70380e1ac5032453508b83f73779a32d96"
+    },
+    "019570:2022:CFS": {
+      "receipt_id": "20230321001158",
+      "account_name": "영업수익",
+      "revenue_krw": 6880519756,
+      "operating_income_krw": -17269386147,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20230321001158&dcmNo=9083480&eleId=17&offset=131379&length=80002&dtd=dart3.xsd",
+      "source_sha256": "0263612456689e77114cc3664d6ede02f82c89e14f1e33384acd323ef35301d4"
+    },
+    "358570:2022:OFS": {
+      "receipt_id": "20230323001521",
+      "account_name": "영업수익",
+      "revenue_krw": 3500000000,
+      "operating_income_krw": -67952023588,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20230323001521&dcmNo=9099776&eleId=21&offset=383442&length=67343&dtd=dart3.xsd",
+      "source_sha256": "a83bd78fc6fdfbba5a54523e95e3bb2979015f750debb13983ecec00ff60ea09"
+    },
+    "376980:2022:CFS": {
+      "receipt_id": "20230322000446",
+      "account_name": "영업수익",
+      "revenue_krw": 50291114355,
+      "operating_income_krw": 8947526886,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20230322000446&dcmNo=9087901&eleId=19&offset=176768&length=88654&dtd=dart3.xsd",
+      "source_sha256": "e18882e01732de950e7e5b9e682feb4f95d6755443c3c6883a23fd993af39130"
+    },
+    "389140:2022:CFS": {
+      "receipt_id": "20230322001176",
+      "account_name": "영업수익",
+      "revenue_krw": 16194298353,
+      "operating_income_krw": -10498782236,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20230322001176&dcmNo=9091817&eleId=19&offset=181280&length=66410&dtd=dart3.xsd",
+      "source_sha256": "d73bc27ad1c395314847d33c75cbe03e498b02174408b45414c8a4e85b54a4bd"
+    },
+    "397030:2022:OFS": {
+      "receipt_id": "20230317000793",
+      "account_name": "영업수익",
+      "revenue_krw": 200000000,
+      "operating_income_krw": -11474306802,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20230317000793&dcmNo=9070980&eleId=21&offset=359751&length=59589&dtd=dart3.xsd",
+      "source_sha256": "f5f87153a3c90c82a824509a93a5ae39c887ff3b7fe120fb6255fad287be5d36"
     }
   }
 }
