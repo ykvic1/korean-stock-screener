@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - v3_krx_close_momentum_recovery.py
+      - v3_krx_face_consolidation_notices.json
       - .github/workflows/v3-krx-close-momentum-recovery.yml
   pull_request:
     paths:
       - v3_krx_close_momentum_recovery.py
+      - v3_krx_face_consolidation_notices.json
       - tests/test_v3_krx_close_momentum_recovery.py
       - .github/workflows/v3-krx-close-momentum-recovery.yml
   workflow_dispatch:

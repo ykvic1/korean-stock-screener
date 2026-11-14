@@ -1,0 +1,237 @@
+{
+  "schema": "v3-krx-kind-fixed-face-consolidation-v1",
+  "notices": {
+    "115530": {
+      "2026-05-26": {
+        "reference_krw": 3360,
+        "old_face_krw": 100,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/22/000868/20260522001932/70795.htm"
+      }
+    },
+    "131760": {
+      "2026-05-22": {
+        "reference_krw": 5180,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/21/000900/20260521002190/70795.htm"
+      }
+    },
+    "137940": {
+      "2026-05-27": {
+        "reference_krw": 2630,
+        "old_face_krw": 100,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/26/000625/20260526001444/70795.htm"
+      }
+    },
+    "193250": {
+      "2026-05-22": {
+        "reference_krw": 1980,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/21/001008/20260521002518/70795.htm"
+      }
+    },
+    "198940": {
+      "2026-05-21": {
+        "reference_krw": 1722,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/20/000661/20260520001680/70795.htm"
+      }
+    },
+    "225590": {
+      "2026-05-21": {
+        "reference_krw": 4750,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/20/000662/20260520001701/70795.htm"
+      }
+    },
+    "227610": {
+      "2026-05-28": {
+        "reference_krw": 1588,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000759/20260527001669/70795.htm"
+      }
+    },
+    "227950": {
+      "2026-05-28": {
+        "reference_krw": 2515,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000754/20260527001698/70795.htm"
+      }
+    },
+    "234100": {
+      "2026-05-26": {
+        "reference_krw": 5100,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/22/000781/20260522001744/70795.htm"
+      }
+    },
+    "258790": {
+      "2026-05-28": {
+        "reference_krw": 8590,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000753/20260527001725/70795.htm"
+      }
+    },
+    "309930": {
+      "2026-05-27": {
+        "reference_krw": 2810,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/26/000727/20260526001662/70795.htm"
+      }
+    },
+    "322780": {
+      "2026-05-27": {
+        "reference_krw": 2290,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/26/000667/20260526001472/70795.htm"
+      }
+    },
+    "333050": {
+      "2026-05-20": {
+        "reference_krw": 6970,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/19/000553/20260519001003/70795.htm"
+      }
+    },
+    "368970": {
+      "2026-05-28": {
+        "reference_krw": 3850,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000760/20260527001653/70795.htm"
+      }
+    },
+    "417180": {
+      "2026-05-20": {
+        "reference_krw": 7900,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/19/000629/20260519001416/70795.htm"
+      }
+    },
+    "018620": {
+      "2026-05-21": {
+        "reference_krw": 3730,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/20/000656/20260520001676/70795.htm"
+      }
+    },
+    "019550": {
+      "2026-05-29": {
+        "reference_krw": 1276,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/28/000718/20260528001583/70795.htm"
+      }
+    },
+    "023790": {
+      "2026-05-26": {
+        "reference_krw": 2500,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/22/000870/20260522001906/70795.htm"
+      }
+    },
+    "027040": {
+      "2026-05-28": {
+        "reference_krw": 2400,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000766/20260527001623/70795.htm"
+      }
+    },
+    "032680": {
+      "2026-05-26": {
+        "reference_krw": 1340,
+        "old_face_krw": 200,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/22/000915/20260522001971/70795.htm"
+      }
+    },
+    "043910": {
+      "2026-05-20": {
+        "reference_krw": 4930,
+        "old_face_krw": 500,
+        "new_face_krw": 5000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/19/000630/20260519001431/70795.htm"
+      }
+    },
+    "046390": {
+      "2026-05-26": {
+        "reference_krw": 2480,
+        "old_face_krw": 200,
+        "new_face_krw": 500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/22/000866/20260522001949/70795.htm"
+      }
+    },
+    "052420": {
+      "2026-05-28": {
+        "reference_krw": 14480,
+        "old_face_krw": 500,
+        "new_face_krw": 5000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000764/20260527001631/70795.htm"
+      }
+    },
+    "061040": {
+      "2026-05-28": {
+        "reference_krw": 9690,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000762/20260527001645/70795.htm"
+      }
+    },
+    "065650": {
+      "2026-06-09": {
+        "reference_krw": 4220,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/06/08/000828/20260608001489/70795.htm"
+      }
+    },
+    "065770": {
+      "2026-05-21": {
+        "reference_krw": 3170,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/20/000660/20260520001695/70795.htm"
+      }
+    },
+    "066910": {
+      "2026-06-09": {
+        "reference_krw": 3400,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/06/08/000986/20260608001873/70795.htm"
+      }
+    },
+    "078130": {
+      "2026-05-20": {
+        "reference_krw": 4360,
+        "old_face_krw": 100,
+        "new_face_krw": 1000,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/19/000559/20260519001152/70795.htm"
+      }
+    },
+    "088290": {
+      "2026-05-28": {
+        "reference_krw": 3150,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000757/20260527001675/70795.htm"
+      }
+    }
+  }
+}
