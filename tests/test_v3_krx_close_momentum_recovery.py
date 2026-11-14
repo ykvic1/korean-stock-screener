@@ -84,6 +84,17 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(notices['333050']['2026-05-20']['reference_krw'], 6970)
         self.assertRegex(digest, r'^[a-f0-9]{64}$')
 
+    def test_face_notices_accept_kospi_and_syndicated_kosdaq(self):
+        notices, _ = recovery.load_face_notices()
+        kospi = notices['092220']['2026-05-20']
+        kosdaq = notices['424760']['2026-05-20']
+        self.assertEqual(kospi['market'], 'KOSPI')
+        self.assertEqual(kosdaq['market'], 'KOSDAQ')
+        self.assertTrue(recovery.valid_face_notice_source(kospi))
+        self.assertTrue(recovery.valid_face_notice_source(kosdaq))
+        self.assertFalse(recovery.valid_face_notice_source({**kospi, 'face_evidence_url': ''}))
+        self.assertFalse(recovery.valid_face_notice_source({**kosdaq, 'market': 'KOSPI'}))
+
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'
         stock = {'code': code, 'market': 'KOSDAQ', 'price': 105, 'price_date': DAY}

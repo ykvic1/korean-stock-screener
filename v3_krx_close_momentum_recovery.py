@@ -81,6 +81,21 @@ def closes_on(client, market, day, codes, *, missing=None):
     return found
 
 
+def valid_face_notice_source(item):
+    """Recognize exchange notices and the syndicated Koscom disclosure copy."""
+    kind = r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/'
+    if 'kind_url' in item:
+        return bool(re.fullmatch(kind + r'70795\.htm', item['kind_url']))
+    url = item.get('notice_url', '')
+    if item.get('market') == 'KOSPI':
+        return bool(re.fullmatch(kind + r'99321\.htm', url)
+                    and item.get('face_evidence_url', '').startswith('https://'))
+    if item.get('market') == 'KOSDAQ':
+        return bool(re.fullmatch(
+            r'https://spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+', url))
+    return False
+
+
 def load_face_notices(path=NOTICE_FILE):
     raw = path.read_bytes()
     data = json.loads(raw)
@@ -94,9 +109,7 @@ def load_face_notices(path=NOTICE_FILE):
                 or any(type(item.get(k)) is not int or item[k] <= 0
                        for k in ('reference_krw', 'old_face_krw', 'new_face_krw'))
                 or item['new_face_krw'] <= item['old_face_krw']
-                or not re.fullmatch(
-                    r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/70795\.htm',
-                    item.get('kind_url', ''))):
+                or not valid_face_notice_source(item)):
                 raise ValueError('invalid_krx_face_consolidation_notice')
     return data['notices'], sha256(raw).hexdigest()
 
@@ -216,7 +229,10 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing, face_no
             history.append(current)
             receipts = {}
             for code in sorted(eligible):
-                notices = (face_notices or {}).get(code)
+                notices = {
+                    session: notice for session, notice in (face_notices or {}).get(code, {}).items()
+                    if notice.get('market', 'KOSDAQ') == exchange
+                }
                 outcome, receipt = make_receipt([d.get(code) for d in history],
                                                 asof=day, sessions=dates, face_notices=notices)
                 counts[outcome] += 1
