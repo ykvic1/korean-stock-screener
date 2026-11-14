@@ -90,10 +90,20 @@ def closes_on(client, market, day, codes, *, missing=None, openings=None):
 
 def valid_face_notice_source(item):
     """Recognize exchange notices and the syndicated Koscom disclosure copy."""
-    kind = r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/'
+    kind = KIND_DOCUMENT
     if 'kind_url' in item:
         return bool(re.fullmatch(kind + r'70795\.htm', item['kind_url']))
     if 'listing_notice_url' in item:
+        if 'reference_krw' in item:
+            reference_form = (r'99321\.htm' if item['new_face_krw'] > item['old_face_krw']
+                              else r'99322\.htm')
+            return (item.get('market') == 'KOSPI'
+                    and bool(re.fullmatch(kind + reference_form, item.get('notice_url', '')))
+                    and bool(re.fullmatch(kind + r'68155\.htm', item['listing_notice_url']))
+                    and all(type(item.get(k)) is int and item[k] > 0 for k in
+                            ('listed_shares_before', 'listed_shares_after'))
+                    and (item['listed_shares_before'] * item['old_face_krw']
+                         == item['listed_shares_after'] * item['new_face_krw']))
         return (item.get('market') == 'KOSPI'
                 and bool(re.fullmatch(kind + r'68155\.htm', item['listing_notice_url']))
                 and all(type(item.get(k)) is int and item[k] > 0 for k in
@@ -122,9 +132,11 @@ def load_face_notices(path=NOTICE_FILE):
             if (date.fromisoformat(day).isoformat() != day or type(item) is not dict
                 or any(type(item.get(k)) is not int or item[k] <= 0
                        for k in ('old_face_krw', 'new_face_krw'))
-                or ('listing_notice_url' not in item and
-                    (type(item.get('reference_krw')) is not int or item['reference_krw'] <= 0))
-                or item['new_face_krw'] <= item['old_face_krw']
+                or (('listing_notice_url' not in item or 'reference_krw' in item)
+                    and (type(item.get('reference_krw')) is not int or item['reference_krw'] <= 0))
+                or item['new_face_krw'] == item['old_face_krw']
+                or (item['new_face_krw'] < item['old_face_krw']
+                    and ('listing_notice_url' not in item or 'reference_krw' not in item))
                 or not valid_face_notice_source(item)):
                 raise ValueError('invalid_krx_face_consolidation_notice')
     return data['notices'], sha256(raw).hexdigest()
@@ -211,16 +223,23 @@ def verified_face_consolidation(previous, current, notice):
     """Check the announced fixed reference against both sides of the action."""
     previous_close, previous_shares, _ = previous
     _, shares, reference = current
-    if notice is None or not 0 < previous_close < reference or shares >= previous_shares:
+    if notice is None or previous_close <= 0 or reference is None or reference <= 0:
         return False
     old_face, new_face = notice['old_face_krw'], notice['new_face_krw']
+    if new_face > old_face:
+        if reference <= previous_close or shares >= previous_shares:
+            return False
+    elif reference >= previous_close or shares <= previous_shares:
+        return False
     if 'listing_notice_url' in notice:
-        # The listing notice names the exact ordinary-share counts. Require
-        # an exact conversion of the preceding close to the observed reference.
-        return (previous_shares == notice['listed_shares_before']
-                and shares == notice['listed_shares_after']
-                and abs(previous_shares * old_face - shares * new_face) < new_face
-                and previous_close * new_face == reference * old_face)
+        if previous_shares != notice['listed_shares_before'] or shares != notice['listed_shares_after']:
+            return False
+        if 'reference_krw' not in notice:
+            # Without a separately published reference, require exact price conversion.
+            return (abs(previous_shares * old_face - shares * new_face) < new_face
+                    and previous_close * new_face == reference * old_face)
+        if previous_shares * old_face != shares * new_face:
+            return False
     if reference != notice['reference_krw']:
         return False
     # The published post-action count can truncate fractional shares.
@@ -256,16 +275,23 @@ def load_auction_notices(path=NOTICE_FILE):
                         or not re.fullmatch(KIND_DOCUMENT + r'11309\.htm',
                                             notice.get('action_url', ''))):
                     raise ValueError('invalid_krx_auction_split_notice')
-            elif (notice['market'] != 'KOSDAQ' or notice['ratio'] <= 1
+            elif (notice['ratio'] <= 1
                     or abs(notice['shares_before'] - notice['shares_after'] * notice['ratio'])
                         >= notice['ratio']):
                 raise ValueError('invalid_krx_auction_reduction_ratio')
-            auction_doc, listing_doc = (
-                (r'99326\.htm', SYNDICATED_DISCLOSURE) if notice['market'] == 'KOSPI'
-                else (r'70793\.htm', KIND_DOCUMENT + r'70763\.htm|' + SYNDICATED_DISCLOSURE)
-            )
-            if (not re.fullmatch(KIND_DOCUMENT + auction_doc + '|' + SYNDICATED_DISCLOSURE,
-                                 notice.get('auction_url', ''))
+            if notice['market'] == 'KOSPI' and 'split_ratio' not in notice:
+                auction_doc = KIND_DOCUMENT + r'99328\.htm'
+                listing_doc = KIND_DOCUMENT + r'68155\.htm'
+                if not re.fullmatch(KIND_DOCUMENT + r'(?:11306|99667)\.htm',
+                                    notice.get('action_url', '')):
+                    raise ValueError('invalid_krx_auction_reduction_source')
+            elif notice['market'] == 'KOSPI':
+                auction_doc = KIND_DOCUMENT + r'99326\.htm|' + SYNDICATED_DISCLOSURE
+                listing_doc = SYNDICATED_DISCLOSURE
+            else:
+                auction_doc = KIND_DOCUMENT + r'70793\.htm|' + SYNDICATED_DISCLOSURE
+                listing_doc = KIND_DOCUMENT + r'70763\.htm|' + SYNDICATED_DISCLOSURE
+            if (not re.fullmatch(auction_doc, notice.get('auction_url', ''))
                     or not re.fullmatch(listing_doc, notice.get('listing_url', ''))):
                 raise ValueError('invalid_krx_auction_notice_source')
     return notices
@@ -276,11 +302,12 @@ def verified_auction_capital_reduction(previous, current, opening, notice):
     if notice is None:
         return False
     previous_close, previous_shares, _ = previous
-    _, shares, reference = current
+    close, shares, reference = current
     split_ratio = notice.get('split_ratio', 1)
     valuation = notice['valuation_krw']
     return (type(opening) is int and opening == reference
             and notice['lower_krw'] <= opening <= notice['upper_krw']
+            and 100 * abs(close - opening) <= 30 * opening
             and previous_shares == notice['shares_before'] and shares == notice['shares_after']
             and abs(previous_close * notice['ratio'] - valuation * split_ratio)
                 <= krx_tick(valuation) * split_ratio)
@@ -329,7 +356,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
             or list(sessions) != sorted(set(sessions))):
         raise ValueError('invalid_close_momentum_session_window')
     links = {}
-    verified_resumption_indices = set()
+    verified_jump_indices = set()
     link_counts = Counter()
     for i, (previous, current) in enumerate(zip(observations, observations[1:]), start=1):
         previous_close, previous_shares, _ = previous
@@ -339,7 +366,10 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
         notice = face_notices.get(sessions[i]) if face_notices else None
         if reference is not None and verified_face_consolidation(previous, current, notice):
             links[i] = Fraction(reference, previous_close)
-            link_counts['kind_fixed_face_consolidation_links'] += 1
+            if notice['new_face_krw'] < notice['old_face_krw']:
+                link_counts['kind_fixed_face_split_links'] += 1
+            else:
+                link_counts['kind_fixed_face_consolidation_links'] += 1
             continue
         bonus = bonus_notices.get(sessions[i]) if bonus_notices else None
         if reference is not None and verified_bonus_issue(observations, sessions, i, bonus):
@@ -352,12 +382,13 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
             # Scale by the announced pro-rata exchange ratio. Comparing to
             # the auction open here would erase the opening price movement.
             links[i] = Fraction(auction['ratio'], auction.get('split_ratio', 1))
+            verified_jump_indices.add(i)
             link_counts['kind_auction_capital_reduction_links'] += 1
             continue
         resumption = resumption_notices.get(sessions[i]) if resumption_notices else None
         opening = (auction_openings or {}).get(sessions[i]) if resumption else None
         if verified_trading_resumption(previous, current, opening, resumption):
-            verified_resumption_indices.add(i)
+            verified_jump_indices.add(i)
             link_counts['kind_trading_resumption_links'] += 1
             continue
         if previous_shares != shares:
@@ -375,7 +406,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
         closes.append(float(observations[i][0] * multiplier))
         if i in links:
             multiplier *= links[i]
-    facts = close_path_facts(closes[::-1], verified_jump_indices=verified_resumption_indices)
+    facts = close_path_facts(closes[::-1], verified_jump_indices=verified_jump_indices)
     if facts is None:
         return 'invalid_or_discontinuous_close_history', None
     receipt = {'schema': CLOSE_PATH_SCHEMA, 'asof': asof,
@@ -475,6 +506,8 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
                 if receipt is not None:
                     if receipt.get('kind_fixed_face_consolidation_links'):
                         counts['recovered_with_kind_face_consolidation'] += 1
+                    if receipt.get('kind_fixed_face_split_links'):
+                        counts['recovered_with_kind_face_split'] += 1
                     if receipt.get('kind_bonus_issue_links'):
                         counts['recovered_with_kind_bonus_issue'] += 1
                     if receipt.get('kind_auction_capital_reduction_links'):
