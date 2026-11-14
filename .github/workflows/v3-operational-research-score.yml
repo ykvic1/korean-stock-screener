@@ -21,6 +21,9 @@ on:
       - docs/v3-dart-operating-income-2025-comparative.json
       - docs/v3-dart-reviewed-operating-margin.json
       - docs/v3-dart-reviewed-fcf-comparative.json
+      - docs/v3-dart-reviewed-ordinary-eps.json
+      - v3_dart_reviewed_ordinary_eps.py
+      - tests/test_v3_dart_reviewed_ordinary_eps.py
       - v3_dart_reviewed_fcf_comparative.py
       - tests/test_v3_dart_reviewed_fcf_comparative.py
       - docs/v3-dart-reviewed-original-revenue.json
@@ -65,6 +68,9 @@ on:
       - docs/v3-dart-operating-income-2025-comparative.json
       - docs/v3-dart-reviewed-operating-margin.json
       - docs/v3-dart-reviewed-fcf-comparative.json
+      - docs/v3-dart-reviewed-ordinary-eps.json
+      - v3_dart_reviewed_ordinary_eps.py
+      - tests/test_v3_dart_reviewed_ordinary_eps.py
       - v3_dart_reviewed_fcf_comparative.py
       - tests/test_v3_dart_reviewed_fcf_comparative.py
       - docs/v3-dart-reviewed-original-revenue.json

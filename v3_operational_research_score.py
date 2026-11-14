@@ -31,6 +31,7 @@ from v3_eps_valuation import evaluate as evaluate_reported_eps
 from v3_dart_original_revenue_recovery import OUTPUT as ORIGINAL_REVENUE_OUTPUT
 from v3_dart_original_revenue_recovery import overlay as original_revenue_overlay, sales_parts
 from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT, comparative_fcf_parts
+from v3_dart_reviewed_ordinary_eps import OUTPUT as REVIEWED_EPS_OUTPUT, reviewed_eps_parts
 
 VERSION = 'v3-stable-r1e-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
@@ -238,7 +239,7 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
     return parts,risk_assessment(annual or {},financial_sector=financial_sector)
 
 
-def verified_reported_eps(catalog, annual_book, source):
+def verified_reported_eps(catalog, annual_book, source, history=None, cash=None, reviewed=None):
     """Reuse only issuer/receipt-checked annual EPS; no provider or price calls."""
     if (not isinstance(annual_book,dict) or not isinstance(source,dict)
         or not isinstance(source.get('source_sha256'),dict)
@@ -248,9 +249,12 @@ def verified_reported_eps(catalog, annual_book, source):
         _,_,_,retained,_=reported_eps_plan(catalog,annual_book,source)
     except (EPSError,ValueError,KeyError,TypeError):
         return {}
-    return {code:entry for code,entry in retained.items()
-            if entry.get('status')=='reported_basic_eps'
-            and entry.get('metrics',{}).get('complete_three_years') is True}
+    verified = {code:entry for code,entry in retained.items()
+                if entry.get('status')=='reported_basic_eps'
+                and entry.get('metrics',{}).get('complete_three_years') is True}
+    if history is not None:
+        verified.update(reviewed_eps_parts(retained, history, cash, reviewed, catalog['date']))
+    return verified
 
 
 def unchanged_fiscal_identity(code, member, prior, day, previous, hashes, book, history):
@@ -284,14 +288,15 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
           revenue_2024_comparative=None,operating_comparative_source=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
           current_source_hashes=None,original_revenue_source=None,reviewed_margin_source=None,
-          reviewed_revenue_source=None,reviewed_fcf_source=None):
+          reviewed_revenue_source=None,reviewed_fcf_source=None,reviewed_eps_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
     money=usable_records(money_source,catalog)
     money_components=usable_component_records(money_source,catalog)
-    raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source)
+    raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source,history,
+                                  cashflow_source,reviewed_eps_source)
     from v3_verified_eps_basis import admit
     audited_eps,eps_basis_summary=admit(catalog,annual_book,reported_eps_source,history,
         cashflow_source,eps_prior_research,eps_basis_source)
@@ -490,7 +495,8 @@ def main():
         'cashflow_source':'v3-dart-cashflow-reference.json',
         'reviewed_margin_source':'v3-dart-reviewed-operating-margin.json',
         'reviewed_revenue_source':'v3-dart-reviewed-original-revenue.json',
-        'reviewed_fcf_source':REVIEWED_FCF_OUTPUT}
+        'reviewed_fcf_source':REVIEWED_FCF_OUTPUT,
+        'reviewed_eps_source':REVIEWED_EPS_OUTPUT}
     basis_inputs={key:read(name) if (root/name).exists() else None for key,name in basis_files.items()}
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
@@ -530,7 +536,8 @@ def main():
                      'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py',
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',
-                     'v3_dart_reviewed_fcf_comparative.py','v3_dart_cashflow_factor_preview.py')}
+                     'v3_dart_reviewed_fcf_comparative.py','v3_dart_cashflow_factor_preview.py',
+                     'v3_dart_reviewed_ordinary_eps.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
         sort_keys=True,separators=(',',':')).encode()).hexdigest()
