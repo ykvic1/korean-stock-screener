@@ -160,6 +160,16 @@
         "face_evidence_url": "https://footnotes.co.kr/disclosure/daily/2026-05-20/20260520800452"
       }
     },
+    "004410": {
+      "2026-05-21": {
+        "market": "KOSPI",
+        "old_face_krw": 100,
+        "new_face_krw": 1000,
+        "listed_shares_before": 394550136,
+        "listed_shares_after": 39455013,
+        "listing_notice_url": "https://kind.krx.co.kr/external/2026/05/18/000288/20260518000404/68155.htm"
+      }
+    },
     "018620": {
       "2026-05-21": {
         "reference_krw": 3730,
