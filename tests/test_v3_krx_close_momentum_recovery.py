@@ -1,7 +1,7 @@
 """Dated KRX close anchoring and historical continuity regressions."""
+from collections import Counter
 from types import SimpleNamespace
 import unittest
-from collections import Counter
 from unittest.mock import patch
 
 import pandas as pd
@@ -56,6 +56,33 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(found, {code: (100, 1_000, 99)})
         self.assertEqual(missing, {'invalid_close': 1, 'invalid_listed_shares': 1,
                                    'absent_issuer': 1})
+
+    def test_rebases_only_a_matching_fixed_face_consolidation(self):
+        dates = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        effective = dates[60]
+        records = {effective: {'reference_krw': 500, 'old_face_krw': 100,
+                               'new_face_krw': 500}}
+        prices = [(100, 1_001, 100)] * 60 + [(500, 200, 500)] * 61
+        outcome, receipt = recovery.make_receipt(prices, asof=DAY, sessions=dates,
+                                                 face_notices=records)
+        self.assertEqual(outcome, 'recovered')
+        self.assertEqual(receipt['kind_fixed_face_consolidation_links'], 1)
+        self.assertEqual(receipt['prior60_close_change_pct'], 0)
+        self.assertEqual(receipt['recent60_close_change_pct'], 0)
+        self.assertEqual(recovered_close_momentum(receipt, DAY), 0)
+
+        for bad in ({dates[59]: records[effective]},
+                    {effective: {**records[effective], 'reference_krw': 505}},
+                    {effective: {**records[effective], 'new_face_krw': 400}}):
+            with self.subTest(bad=bad):
+                self.assertEqual(recovery.make_receipt(
+                    prices, asof=DAY, sessions=dates, face_notices=bad),
+                    ('listed_share_change_reference_discontinuous_or_missing', None))
+
+    def test_published_kind_notice_registry_is_valid(self):
+        notices, digest = recovery.load_face_notices()
+        self.assertEqual(notices['333050']['2026-05-20']['reference_krw'], 6970)
+        self.assertRegex(digest, r'^[a-f0-9]{64}$')
 
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'

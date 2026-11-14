@@ -2,6 +2,7 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
+from fractions import Fraction
 from hashlib import sha256
 import json
 import os
@@ -24,6 +25,8 @@ OUTPUT = 'v3-krx-close-momentum-recovery.json'
 STOCK_FIELD = 'v3_krx_close_momentum_path'
 SESSIONS = 121
 MAX_TARGETS = 100
+NOTICE_FILE = Path(__file__).with_name('v3_krx_face_consolidation_notices.json')
+NOTICE_SCHEMA = 'v3-krx-kind-fixed-face-consolidation-v1'
 
 
 def select_targets(market, report, ledger):
@@ -78,24 +81,83 @@ def closes_on(client, market, day, codes, *, missing=None):
     return found
 
 
-def make_receipt(observations, *, asof):
+def load_face_notices(path=NOTICE_FILE):
+    raw = path.read_bytes()
+    data = json.loads(raw)
+    if data.get('schema') != NOTICE_SCHEMA or type(data.get('notices')) is not dict:
+        raise ValueError('invalid_krx_face_consolidation_notices')
+    for code, records in data['notices'].items():
+        if not re.fullmatch(r'[0-9A-Z]{6}', code) or type(records) is not dict:
+            raise ValueError('invalid_krx_face_consolidation_notice_identity')
+        for day, item in records.items():
+            if (date.fromisoformat(day).isoformat() != day or type(item) is not dict
+                or any(type(item.get(k)) is not int or item[k] <= 0
+                       for k in ('reference_krw', 'old_face_krw', 'new_face_krw'))
+                or item['new_face_krw'] <= item['old_face_krw']
+                or not re.fullmatch(
+                    r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/70795\.htm',
+                    item.get('kind_url', ''))):
+                raise ValueError('invalid_krx_face_consolidation_notice')
+    return data['notices'], sha256(raw).hexdigest()
+
+
+def verified_face_consolidation(previous, current, notice):
+    """Check the announced fixed reference against both sides of the action."""
+    previous_close, previous_shares, _ = previous
+    _, shares, reference = current
+    if notice is None or not 0 < previous_close < reference or shares >= previous_shares:
+        return False
+    if reference != notice['reference_krw']:
+        return False
+    old_face, new_face = notice['old_face_krw'], notice['new_face_krw']
+    # The published post-action count can truncate fractional shares.
+    if abs(previous_shares * old_face - shares * new_face) >= new_face:
+        return False
+    # KRX posts a tick-rounded reference on the effective trading date.
+    tick = next(tick for upper, tick in ((2_000, 1), (5_000, 5),
+                (20_000, 10), (50_000, 50), (200_000, 100),
+                (500_000, 500), (float('inf'), 1_000)) if reference < upper)
+    return abs(previous_close * new_face - reference * old_face) <= tick * old_face
+
+
+def make_receipt(observations, *, asof, sessions=None, face_notices=None):
     if len(observations) != SESSIONS or any(row is None for row in observations):
         return 'incomplete_close_history', None
-    for previous, current in zip(observations, observations[1:]):
+    if face_notices and (sessions is None or len(sessions) != SESSIONS or sessions[-1] != asof):
+        raise ValueError('invalid_close_momentum_session_window')
+    links = {}
+    for i, (previous, current) in enumerate(zip(observations, observations[1:]), start=1):
         previous_close, previous_shares, _ = previous
-        _, shares, reference_price = current
-        if previous_shares != shares and reference_price != previous_close:
+        _, shares, reference = current
+        if reference == previous_close:
+            continue
+        notice = face_notices.get(sessions[i]) if face_notices else None
+        if reference is not None and verified_face_consolidation(previous, current, notice):
+            links[i] = Fraction(reference, previous_close)
+            continue
+        if previous_shares != shares:
             return 'listed_share_change_reference_discontinuous_or_missing', None
-        if reference_price is None:
+        if reference is None:
             return 'missing_official_previous_close_reference', None
-        if reference_price != previous_close:
-            return 'official_reference_discontinuity', None
-    close = [row[0] for row in observations]
-    facts = close_path_facts(close)
+        return 'official_reference_discontinuity', None
+
+    # Rebase observations preceding each confirmed action to the latest
+    # price basis. The latest close is unchanged; the resumption-day move
+    # compares the close to the exchange's effective reference.
+    multiplier = Fraction(1)
+    closes = []
+    for i in range(SESSIONS - 1, -1, -1):
+        closes.append(float(observations[i][0] * multiplier))
+        if i in links:
+            multiplier *= links[i]
+    facts = close_path_facts(closes[::-1])
     if facts is None:
         return 'invalid_or_discontinuous_close_history', None
-    return 'recovered', {'schema': CLOSE_PATH_SCHEMA, 'asof': asof,
-                         'path_window_trading_sessions': SESSIONS, **facts}
+    receipt = {'schema': CLOSE_PATH_SCHEMA, 'asof': asof,
+               'path_window_trading_sessions': SESSIONS, **facts}
+    if links:
+        receipt['kind_fixed_face_consolidation_links'] = len(links)
+    return 'recovered', receipt
 
 
 def close_anchor(stock, official_row, dated_close):
@@ -110,7 +172,7 @@ def close_anchor(stock, official_row, dated_close):
     return None
 
 
-def run(market, report, ledger, key, *, load_listing=load_dated_listing):
+def run(market, report, ledger, key, *, load_listing=load_dated_listing, face_notices=None):
     day = market['date']
     targets = select_targets(market, report, ledger)
     start = (date.fromisoformat(day) - timedelta(days=210)).isoformat()
@@ -154,9 +216,13 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing):
             history.append(current)
             receipts = {}
             for code in sorted(eligible):
-                outcome, receipt = make_receipt([d.get(code) for d in history], asof=day)
+                notices = (face_notices or {}).get(code)
+                outcome, receipt = make_receipt([d.get(code) for d in history],
+                                                asof=day, sessions=dates, face_notices=notices)
                 counts[outcome] += 1
                 if receipt is not None:
+                    if receipt.get('kind_fixed_face_consolidation_links'):
+                        counts['recovered_with_kind_face_consolidation'] += 1
                     anchor = anchors[code]
                     counts[f'recovered_{anchor}'] += 1
                     if current[code][0] != wanted[code]['price']:
@@ -193,7 +259,11 @@ def main():
         if sha256(payload).hexdigest() != report['source_hashes'].get(name):
             raise ValueError('unaligned_close_momentum_sources')
     ledger = json.loads(ledger_raw)
-    result = run(market, report, ledger, os.environ.get('KRX_API_KEY', ''))
+    notices, notice_digest = load_face_notices()
+    result = run(market, report, ledger, os.environ.get('KRX_API_KEY', ''),
+                 face_notices=notices)
+    result['kind_face_consolidation_notice_count'] = sum(map(len, notices.values()))
+    result['kind_face_consolidation_notice_sha256'] = notice_digest
     result['input_market_sha256'] = sha256(raw).hexdigest()
     if result['counts'].get('recovered'):
         (root/'data.json').write_text(json.dumps(market, ensure_ascii=False, indent=2, allow_nan=False),
