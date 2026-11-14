@@ -34,6 +34,7 @@ REPAIR_SESSIONS = (NEIGHBORS[0], GAP, NEIGHBORS[1])
 LONG_MA_ANCHORS = ('2023-12-01', '2024-04-26', '2024-11-29')
 FIELDS = ('Open', 'High', 'Low', 'Close', 'Volume')
 MAX_TARGETS = 350
+WEEKLY_PATTERN_WEEKS = 90
 
 
 def inspect_source_frame(payload, ticker, expected, anchors):
@@ -194,6 +195,49 @@ def recover_weekly_pattern(stock, frame, official, day):
     return _observed({**stock, 'pattern_weekly_research': candidate}, 'weekly')
 
 
+def weekly_pattern_window(expected, completed_friday):
+    """Find complete observed-market weeks and spread anchors across the window."""
+    by_week = {}
+    for session in expected:
+        dt = date.fromisoformat(session)
+        friday = (dt + timedelta(days=(4 - dt.weekday()) % 7)).isoformat()
+        if friday <= completed_friday:
+            by_week.setdefault(friday, []).append(session)
+    weeks = list(by_week.values())[-WEEKLY_PATTERN_WEEKS:]
+    if len(weeks) < WEEKLY_PATTERN_WEEKS:
+        raise ValueError('operating_sources_not_aligned')
+    anchor_days = [weeks[index][-1] for index in (0, 29, 59, -1)]
+    return weeks[0][0], weeks[-1][-1], anchor_days
+
+
+def recover_recent_weekly_pattern(stock, frame, values, shares, window, friday):
+    """Replay the same detector on a clean, independently anchored 90-week suffix."""
+    first, last, anchor_days = window
+    if frame is None or first not in frame.index or last not in frame.index:
+        return None
+    tail = frame.loc[first:last]
+    if any(d not in values or tuple(tail.loc[d, list(FIELDS)]) != values[d]
+           for d in anchor_days):
+        return None
+    if GAP in tail.index and tail.loc[GAP].isna().all():
+        if (any(d not in values or d not in tail.index or
+                tuple(tail.loc[d, list(FIELDS)]) != values[d] for d in OUTER_ANCHORS)
+                or any(not shares.get(d) for d in (*OUTER_ANCHORS, *REPAIR_SESSIONS))
+                or len({shares[d] for d in (*OUTER_ANCHORS, *REPAIR_SESSIONS)}) != 1):
+            return None
+        tail = repair(tail, values, shares)
+        if tail is None:
+            return None
+    bars = _clean_ohlcv(tail)
+    if bars is None or (np.abs(bars[1:, 3] / bars[:-1, 3] - 1) > .5).any():
+        return None
+    candidate = observe_completed_weekly(tail, completed_through=friday)
+    if candidate.get('asof') != friday:
+        return None
+    candidate['source_recent_clean_window_only'] = True
+    return _observed({**stock, 'pattern_weekly_research': candidate}, 'weekly')
+
+
 def needs_weekly_rsi(stock, row):
     return ('weekly_rsi' not in row['parts']['technical']
             and _observed(stock, 'weekly') is None
@@ -279,13 +323,19 @@ def run(market, priority, report, client):
     refs = {day: current}
     for d in dates[:-1]:
         refs[d] = snapshots(client, d, targets)
+    recent_week = weekly_pattern_window(expected, completed_friday)
+    weekly_targets = {key: stock for key, stock in targets.items()
+                      if needs_weekly_pattern(stock, report['rows'][key[1]])}
+    extra_refs = {d: snapshots(client, d, weekly_targets)
+                  for d in recent_week[2] if d not in refs and weekly_targets}
 
     def examine(item):
         key, stock = item
         missing = next((d for d in dates if key not in refs[d]), None)
         row = report['rows'][key[1]]
         daily_needed = needs_daily_pattern(stock, row)
-        if missing is not None and not daily_needed:
+        weekly_needed = key in weekly_targets
+        if missing is not None and not (daily_needed or weekly_needed):
             return ('official_gap_row_unavailable' if missing in REPAIR_SESSIONS
                     else 'official_anchor_unavailable'), None
         values = {d: refs[d][key][0] for d in dates if key in refs[d]}
@@ -305,6 +355,17 @@ def run(market, priority, report, client):
                          if daily_frame is not None else None)
                 if daily is not None:
                     updates['pattern_research'] = daily
+        if weekly_needed:
+            weekly_anchors = {d: values.get(d, extra_refs.get(d, {}).get(key, (None, None))[0])
+                              for d in recent_week[2]}
+            if all(v is not None for v in weekly_anchors.values()):
+                week_frame = source_frame(payload, ticker, expected,
+                                          {d: v[3] for d, v in weekly_anchors.items()} |
+                                          {day: current[key][0][3]})
+                weekly = recover_recent_weekly_pattern(stock, week_frame, values | weekly_anchors,
+                                                       shares, recent_week, completed_friday)
+                if weekly is not None:
+                    updates['pattern_weekly_research'] = weekly
         if missing is not None:
             return ('recovered' if updates else 'official_anchor_unavailable'), updates
         reason, frame = inspect_source_frame(payload, ticker, expected,
@@ -316,7 +377,7 @@ def run(market, priority, report, client):
         repaired = repair(frame, values, shares)
         if repaired is None:
             return ('recovered' if updates else 'local_share_basis_or_neighbor_unverified'), updates
-        if needs_weekly_pattern(stock, row):
+        if weekly_needed and 'pattern_weekly_research' not in updates:
             weekly = recover_weekly_pattern(stock, repaired, values, completed_friday)
             if weekly is not None:
                 updates['pattern_weekly_research'] = weekly
@@ -376,7 +437,8 @@ def run(market, priority, report, client):
             'official_repair_sessions': list(REPAIR_SESSIONS),
             'selected': len(targets), 'counts': dict(counts), 'recovered_fields': dict(recovered),
             'long_ma_comparison_sessions': list(long_ma_refs),
-            'official_requests': 2*(len(dates) + len(long_ma_refs)),
+            'weekly_suffix_comparison_sessions': recent_week[2],
+            'official_requests': 2*(len(dates) + len(long_ma_refs) + len(extra_refs)),
             'source_history_adjusted_verified': False,
             'volume_score_changed': False, 'raw_source_exported': False}
 

@@ -7,6 +7,7 @@ import pandas as pd
 from v3_official_gap_ma_recovery import (
     FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, add_weekly_ma120, repair, source_frame,
     weekly_position, weekly_rsi, recover_daily_pattern, recover_weekly_pattern,
+    recover_recent_weekly_pattern, weekly_pattern_window,
 )
 from v3_ma_slope_transition import observe
 from v3_pattern_first_observations import observe as observe_daily, observe_completed_weekly
@@ -121,6 +122,22 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertIsNone(recover_daily_pattern(stock, frame, anchors, day))
         frame.iloc[-20] = float('nan')
         self.assertIsNone(recover_daily_pattern(stock, frame, anchors, day))
+
+    def test_recent_weekly_window_excludes_old_bad_bars_and_incomplete_weeks(self):
+        dates = pd.bdate_range(end='2026-11-13', periods=600).delete(-1)
+        days = dates.strftime('%Y-%m-%d').tolist()
+        close = [100 + i % 22 for i in range(len(dates))]
+        frame = pd.DataFrame(dict(Open=close, High=close, Low=close, Close=close, Volume=100),
+                             index=dates)
+        window = weekly_pattern_window(days, '2026-11-13')
+        anchors = {d: tuple(frame.loc[d]) for d in window[2]}
+        frame.iloc[0] = float('nan')
+        stock = {'price_date': '2026-11-13'}
+        result = recover_recent_weekly_pattern(stock, frame, anchors, {}, window, '2026-11-13')
+        self.assertEqual(result['asof'], '2026-11-13')
+        self.assertTrue(result['source_recent_clean_window_only'])
+        frame.iloc[-10, frame.columns.get_loc('High')] = 1.
+        self.assertIsNone(recover_recent_weekly_pattern(stock, frame, anchors, {}, window, '2026-11-13'))
 
     def test_weekly_ma120_only_adds_the_missing_same_week_component(self):
         dates = pd.bdate_range(end='2026-11-12', periods=800)
