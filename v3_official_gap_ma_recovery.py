@@ -23,7 +23,7 @@ from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
 from v3_ma_slope_transition import observe, valid_observation, weekly_points_from_checked_closes
 from v3_pattern_composite_score import _observed, _weekly_trend, compute_candidates
-from v3_pattern_first_observations import (DAILY_CLEAN_TAIL, observe as observe_daily,
+from v3_pattern_first_observations import (DAILY_CLEAN_TAIL, _clean_ohlcv, observe as observe_daily,
                                            observe_completed_weekly, rsi_observation)
 from v3_saved_close_ma_recovery import availability
 
@@ -170,12 +170,11 @@ def recover_daily_pattern(stock, frame, official, day):
             or day not in anchors or len(anchors) < 3
             or any(tuple(tail.loc[d, list(FIELDS)]) != official[d] for d in anchors)):
         return None
-    bars = tail.to_numpy()
-    closes = tail['Close'].to_numpy()
-    if (not np.isfinite(bars).all() or (bars[:, :4] <= 0).any()
-            or (np.abs(closes[1:] / closes[:-1] - 1) > .5).any()):
+    bars = _clean_ohlcv(tail)
+    if bars is None or (np.abs(bars[1:, 3] / bars[:-1, 3] - 1) > .5).any():
         return None
     candidate = observe_daily(tail)
+    candidate['source_recent_clean_window_only'] = len(frame) > len(tail)
     return _observed({**stock, 'pattern_research': candidate}, 'daily')
 
 

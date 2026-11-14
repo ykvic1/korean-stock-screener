@@ -113,10 +113,12 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         stock = {'price_date': day}
         frame.iloc[3] = float('nan')
         self.assertEqual(recover_daily_pattern(stock, frame, anchors, day),
-                         observe_daily(frame.iloc[-160:]))
+                         {**observe_daily(frame.iloc[-160:]), 'source_recent_clean_window_only': True})
         self.assertIsNone(recover_daily_pattern(stock, frame, {day: anchors[day]}, day))
         disagree = dict(anchors, **{day: (*anchors[day][:4], 101)})
         self.assertIsNone(recover_daily_pattern(stock, frame, disagree, day))
+        frame.at[dates[-150], 'High'] = frame.at[dates[-150], 'Close'] - 1
+        self.assertIsNone(recover_daily_pattern(stock, frame, anchors, day))
         frame.iloc[-20] = float('nan')
         self.assertIsNone(recover_daily_pattern(stock, frame, anchors, day))
 
