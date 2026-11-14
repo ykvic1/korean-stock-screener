@@ -286,15 +286,50 @@ def verified_auction_capital_reduction(previous, current, opening, notice):
                 <= krx_tick(valuation) * split_ratio)
 
 
+def load_resumption_notices(path=NOTICE_FILE):
+    data = json.loads(path.read_bytes())
+    notices = data.get('trading_resumptions', {})
+    if data.get('schema') != NOTICE_SCHEMA or type(notices) is not dict:
+        raise ValueError('invalid_krx_trading_resumption_notices')
+    kiwoom_notice = r'https://invest\.kiwoom\.com/inv/disclosure_detail\?code=02&date=[^&]+&keyword=[^&]+&seq=[0-9]+&stockCode=&tp=1&type=02'
+    for code, records in notices.items():
+        if not re.fullmatch(r'[0-9A-Z]{6}', code) or type(records) is not dict:
+            raise ValueError('invalid_krx_trading_resumption_notice_identity')
+        for day, item in records.items():
+            if (date.fromisoformat(day).isoformat() != day or type(item) is not dict
+                    or item.get('market') not in MARKETS
+                    or any(type(item.get(k)) is not int or item[k] <= 0 for k in (
+                        'valuation_krw', 'lower_krw', 'upper_krw'))
+                    or not item['lower_krw'] < item['valuation_krw'] < item['upper_krw']):
+                raise ValueError('invalid_krx_trading_resumption_notice')
+            pattern = (KIND_DOCUMENT + r'99409\.htm' if item['market'] == 'KOSPI'
+                       else KIND_DOCUMENT + r'70793\.htm|' + kiwoom_notice)
+            if not re.fullmatch(pattern, item.get('notice_url', '')):
+                raise ValueError('invalid_krx_trading_resumption_source')
+    return notices
+
+
+def verified_trading_resumption(previous, current, opening, notice):
+    """Keep the market return after a verified auction with unchanged shares."""
+    previous_close, previous_shares, _ = previous
+    close, shares, reference = current
+    return (notice is not None and type(opening) is int and opening == reference
+            and previous_shares == shares and previous_close == notice['valuation_krw']
+            and notice['lower_krw'] <= opening <= notice['upper_krw']
+            and 100 * abs(close - opening) <= 30 * opening)
+
+
 def make_receipt(observations, *, asof, sessions=None, face_notices=None,
-                 bonus_notices=None, auction_notices=None, auction_openings=None):
+                 bonus_notices=None, auction_notices=None, auction_openings=None,
+                 resumption_notices=None):
     if len(observations) != SESSIONS or any(row is None for row in observations):
         return 'incomplete_close_history', None
-    if (face_notices or bonus_notices or auction_notices) and (
+    if (face_notices or bonus_notices or auction_notices or resumption_notices) and (
             sessions is None or len(sessions) != SESSIONS or sessions[-1] != asof
             or list(sessions) != sorted(set(sessions))):
         raise ValueError('invalid_close_momentum_session_window')
     links = {}
+    verified_resumption_indices = set()
     link_counts = Counter()
     for i, (previous, current) in enumerate(zip(observations, observations[1:]), start=1):
         previous_close, previous_shares, _ = previous
@@ -319,6 +354,12 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
             links[i] = Fraction(auction['ratio'], auction.get('split_ratio', 1))
             link_counts['kind_auction_capital_reduction_links'] += 1
             continue
+        resumption = resumption_notices.get(sessions[i]) if resumption_notices else None
+        opening = (auction_openings or {}).get(sessions[i]) if resumption else None
+        if verified_trading_resumption(previous, current, opening, resumption):
+            verified_resumption_indices.add(i)
+            link_counts['kind_trading_resumption_links'] += 1
+            continue
         if previous_shares != shares:
             return 'listed_share_change_reference_discontinuous_or_missing', None
         if reference is None:
@@ -334,7 +375,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
         closes.append(float(observations[i][0] * multiplier))
         if i in links:
             multiplier *= links[i]
-    facts = close_path_facts(closes[::-1])
+    facts = close_path_facts(closes[::-1], verified_jump_indices=verified_resumption_indices)
     if facts is None:
         return 'invalid_or_discontinuous_close_history', None
     receipt = {'schema': CLOSE_PATH_SCHEMA, 'asof': asof,
@@ -356,7 +397,7 @@ def close_anchor(stock, official_row, dated_close):
 
 
 def run(market, report, ledger, key, *, load_listing=load_dated_listing,
-        face_notices=None, bonus_notices=None, auction_notices=None):
+        face_notices=None, bonus_notices=None, auction_notices=None, resumption_notices=None):
     day = market['date']
     targets = select_targets(market, report, ledger)
     start = (date.fromisoformat(day) - timedelta(days=210)).isoformat()
@@ -382,9 +423,10 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
         try:
             auction_codes = {}
             for code in wanted:
-                for session, notice in (auction_notices or {}).get(code, {}).items():
-                    if notice['market'] == exchange:
-                        auction_codes.setdefault(session, {})[code] = None
+                for records in (auction_notices, resumption_notices):
+                    for session, notice in (records or {}).get(code, {}).items():
+                        if notice['market'] == exchange:
+                            auction_codes.setdefault(session, {})[code] = None
             current = closes_on(client, exchange, day, wanted, openings=auction_codes.get(day))
             anchors = {code: close_anchor(stock, current.get(code), cache.get((exchange, code)))
                        for code, stock in wanted.items()}
@@ -414,9 +456,14 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
                     session: notice for session, notice in (bonus_notices or {}).get(code, {}).items()
                     if notice['market'] == exchange
                 }
+                resumptions = {
+                    session: notice for session, notice in (resumption_notices or {}).get(code, {}).items()
+                    if notice['market'] == exchange
+                }
                 outcome, receipt = make_receipt([d.get(code) for d in history],
                                                 asof=day, sessions=dates,
                                                 face_notices=notices, bonus_notices=bonus,
+                                                resumption_notices=resumptions,
                                                 auction_notices={
                                                     session: notice for session, notice in
                                                     (auction_notices or {}).get(code, {}).items()
@@ -432,6 +479,8 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
                         counts['recovered_with_kind_bonus_issue'] += 1
                     if receipt.get('kind_auction_capital_reduction_links'):
                         counts['recovered_with_kind_auction_capital_reduction'] += 1
+                    if receipt.get('kind_trading_resumption_links'):
+                        counts['recovered_with_kind_trading_resumption'] += 1
                     anchor = anchors[code]
                     counts[f'recovered_{anchor}'] += 1
                     if current[code][0] != wanted[code]['price']:
@@ -471,8 +520,11 @@ def main():
     notices, notice_digest = load_face_notices()
     bonus_notices = load_bonus_notices()
     auction_notices = load_auction_notices()
+    resumption_notices = load_resumption_notices()
     result = run(market, report, ledger, os.environ.get('KRX_API_KEY', ''),
-                 face_notices=notices, bonus_notices=bonus_notices, auction_notices=auction_notices)
+                 face_notices=notices, bonus_notices=bonus_notices, auction_notices=auction_notices,
+                 resumption_notices=resumption_notices)
+    result['kind_trading_resumption_notice_count'] = sum(map(len, resumption_notices.values()))
     result['kind_auction_capital_reduction_notice_count'] = sum(map(len, auction_notices.values()))
     result['kind_bonus_issue_notice_count'] = sum(map(len, bonus_notices.values()))
     result['kind_face_consolidation_notice_count'] = sum(map(len, notices.values()))
