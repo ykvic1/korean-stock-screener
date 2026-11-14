@@ -23,7 +23,8 @@ from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
 from v3_ma_slope_transition import observe, valid_observation, weekly_points_from_checked_closes
 from v3_pattern_composite_score import _observed, _weekly_trend, compute_candidates
-from v3_pattern_first_observations import observe_completed_weekly, rsi_observation
+from v3_pattern_first_observations import (DAILY_CLEAN_TAIL, _clean_ohlcv, observe as observe_daily,
+                                           observe_completed_weekly, rsi_observation)
 from v3_saved_close_ma_recovery import availability
 
 GAP = '2025-09-19'
@@ -155,6 +156,28 @@ def needs_weekly_pattern(stock, row):
     return 'weekly_pattern' not in row['parts']['technical'] and _observed(stock, 'weekly') is None
 
 
+def needs_daily_pattern(stock, row):
+    parts = row['parts']['technical']
+    return ('daily_pattern' not in parts and 'daily_rsi' not in parts
+            and _observed(stock, 'daily') is None)
+
+
+def recover_daily_pattern(stock, frame, official, day):
+    """Check recent complete bars against KRX before replaying the daily detector."""
+    tail = frame.iloc[-DAILY_CLEAN_TAIL:]
+    anchors = [d for d in official if d in tail.index]
+    if (len(tail) < DAILY_CLEAN_TAIL or tail.index[-1].date().isoformat() != day
+            or day not in anchors or len(anchors) < 3
+            or any(tuple(tail.loc[d, list(FIELDS)]) != official[d] for d in anchors)):
+        return None
+    bars = _clean_ohlcv(tail)
+    if bars is None or (np.abs(bars[1:, 3] / bars[:-1, 3] - 1) > .5).any():
+        return None
+    candidate = observe_daily(tail)
+    candidate['source_recent_clean_window_only'] = len(frame) > len(tail)
+    return _observed({**stock, 'pattern_research': candidate}, 'daily')
+
+
 def recover_weekly_pattern(stock, frame, official, day):
     """Use the existing weekly detector on a completed, cross-checked history."""
     # Match both feeds' volumes around the replacement before aggregating
@@ -220,6 +243,7 @@ def selected(market, priority, report):
             and (code in focus or 90 <= row['available'] < 100)
             and (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
                  or needs_weekly_position(stock, row) or needs_weekly_rsi(stock, row)
+                 or needs_daily_pattern(stock, row)
                  or needs_weekly_pattern(stock, row))):
             key = (stock['market'], code)
             result[key] = stock
@@ -249,6 +273,7 @@ def run(market, priority, report, client):
         current[key][0][3] != stock['price']
         or needs_weekly_position(stock, report['rows'][key[1]])
         or needs_weekly_rsi(stock, report['rows'][key[1]])
+        or needs_daily_pattern(stock, report['rows'][key[1]])
         or needs_weekly_pattern(stock, report['rows'][key[1]])
         or key in long_ma_targets)}
     refs = {day: current}
@@ -257,27 +282,40 @@ def run(market, priority, report, client):
 
     def examine(item):
         key, stock = item
-        if any(key not in refs[d] for d in dates):
-            missing = next(d for d in dates if key not in refs[d])
+        missing = next((d for d in dates if key not in refs[d]), None)
+        row = report['rows'][key[1]]
+        daily_needed = needs_daily_pattern(stock, row)
+        if missing is not None and not daily_needed:
             return ('official_gap_row_unavailable' if missing in REPAIR_SESSIONS
                     else 'official_anchor_unavailable'), None
-        values = {d: refs[d][key][0] for d in dates}
-        shares = {d: refs[d][key][1] for d in dates}
+        values = {d: refs[d][key][0] for d in dates if key in refs[d]}
+        shares = {d: refs[d][key][1] for d in values}
         ticker = key[1] + ('.KS' if key[0] == 'KOSPI' else '.KQ')
         payload = fetch(ticker, first, day)
         if payload is None:
             return 'alternative_response_unavailable', None
+        updates = {}
+        if daily_needed:
+            tail_start = expected[-DAILY_CLEAN_TAIL]
+            daily_anchors = {d: v for d, v in values.items() if d >= tail_start}
+            if day in daily_anchors and len(daily_anchors) >= 3:
+                daily_frame = source_frame(payload, ticker, expected,
+                                           {d: v[3] for d, v in daily_anchors.items()})
+                daily = (recover_daily_pattern(stock, daily_frame, daily_anchors, day)
+                         if daily_frame is not None else None)
+                if daily is not None:
+                    updates['pattern_research'] = daily
+        if missing is not None:
+            return ('recovered' if updates else 'official_anchor_unavailable'), updates
         reason, frame = inspect_source_frame(payload, ticker, expected,
             {d: values[d][3] for d in close_anchors})
         if reason is not None:
-            return reason, None
+            return ('recovered' if updates else reason), updates
         if GAP not in frame.index or not frame.loc[GAP].isna().all():
-            return 'alternative_gap_not_all_null', None
+            return ('recovered' if updates else 'alternative_gap_not_all_null'), updates
         repaired = repair(frame, values, shares)
         if repaired is None:
-            return 'local_share_basis_or_neighbor_unverified', None
-        updates = {}
-        row = report['rows'][key[1]]
+            return ('recovered' if updates else 'local_share_basis_or_neighbor_unverified'), updates
         if needs_weekly_pattern(stock, row):
             weekly = recover_weekly_pattern(stock, repaired, values, completed_friday)
             if weekly is not None:
@@ -355,7 +393,7 @@ def main():
     result = run(market, load('v3-operational-evidence-priority.json'),
                  load('v3-operational-research-scores.json'), KRXClient(os.environ.get('KRX_API_KEY', '')))
     result['input_market_sha256'] = sha256(raw).hexdigest()
-    if result['recovered_fields'].get('pattern_weekly_research'):
+    if any(result['recovered_fields'].get(key) for key in ('pattern_research', 'pattern_weekly_research')):
         compute_candidates(market['stocks'])
         status = market['v3_technical_pattern_status']
         status['technical_observed_25_count'] = sum(
