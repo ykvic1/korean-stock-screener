@@ -1,6 +1,15 @@
 {
   "schema": "v3-krx-kind-fixed-face-consolidation-v1",
   "notices": {
+    "115480": {
+      "2026-05-20": {
+        "reference_krw": 2740,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSDAQ",
+        "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/467982"
+      }
+    },
     "115530": {
       "2026-05-26": {
         "reference_krw": 3360,
@@ -121,6 +130,36 @@
         "kind_url": "https://kind.krx.co.kr/external/2026/05/19/000629/20260519001416/70795.htm"
       }
     },
+    "424760": {
+      "2026-05-20": {
+        "reference_krw": 3775,
+        "old_face_krw": 100,
+        "new_face_krw": 200,
+        "market": "KOSDAQ",
+        "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/467980",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/14/000535/20260514001212/11013.htm"
+      }
+    },
+    "000890": {
+      "2026-05-20": {
+        "reference_krw": 2110,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000422/20260519001022/99321.htm",
+        "face_evidence_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/466941"
+      }
+    },
+    "001020": {
+      "2026-05-28": {
+        "reference_krw": 3370,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000526/20260527001284/99321.htm",
+        "face_evidence_url": "https://footnotes.co.kr/disclosure/daily/2026-05-20/20260520800452"
+      }
+    },
     "018620": {
       "2026-05-21": {
         "reference_krw": 3730,
@@ -225,12 +264,32 @@
         "kind_url": "https://kind.krx.co.kr/external/2026/05/19/000559/20260519001152/70795.htm"
       }
     },
+    "085310": {
+      "2026-06-01": {
+        "reference_krw": 11690,
+        "old_face_krw": 500,
+        "new_face_krw": 5000,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/29/001330/20260529002096/99321.htm",
+        "face_evidence_url": "https://comp.nicebizline.com/co/CO0100M010GE.nice?nav=2&stockcd=085310"
+      }
+    },
     "088290": {
       "2026-05-28": {
         "reference_krw": 3150,
         "old_face_krw": 500,
         "new_face_krw": 2500,
         "kind_url": "https://kind.krx.co.kr/external/2026/05/27/000757/20260527001675/70795.htm"
+      }
+    },
+    "092220": {
+      "2026-05-20": {
+        "reference_krw": 9190,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000420/20260519001024/99321.htm",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/15/000281/20260515000516/68155.htm"
       }
     }
   }
