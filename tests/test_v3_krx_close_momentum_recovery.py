@@ -133,6 +133,30 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(notices['368970']['2026-06-19']['listing_date'], '2026-07-08')
         self.assertEqual(notices['018620']['2026-06-12']['listing_date'], '2026-07-06')
 
+    def test_auction_reduction_preserves_price_discovery(self):
+        sessions = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        day = sessions[60]
+        notice = {'valuation_krw': 300, 'lower_krw': 150, 'upper_krw': 450,
+                  'shares_before': 3000, 'shares_after': 1000, 'ratio': 3}
+        prices = [(100, 3000, 100)] * 60 + [(250, 1000, 270)] + [(250, 1000, 250)] * 60
+        outcome, receipt = recovery.make_receipt(
+            prices, asof=DAY, sessions=sessions, auction_notices={day: notice},
+            auction_openings={day: 270})
+        self.assertEqual(outcome, 'recovered')
+        self.assertEqual(receipt['kind_auction_capital_reduction_links'], 1)
+        self.assertAlmostEqual(receipt['prior60_close_change_pct'], -100 / 6, places=5)
+        for opening in (None, 250, 460):
+            with self.subTest(opening=opening):
+                self.assertEqual(recovery.make_receipt(
+                    prices, asof=DAY, sessions=sessions, auction_notices={day: notice},
+                    auction_openings={day: opening}),
+                    ('listed_share_change_reference_discontinuous_or_missing', None))
+
+    def test_auction_notices_have_exact_exchange_evidence(self):
+        notices = recovery.load_auction_notices()
+        self.assertEqual(notices['109960']['2026-06-01']['ratio'], 20)
+        self.assertEqual(notices['036090']['2026-05-21']['shares_after'], 39464095)
+
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'
         stock = {'code': code, 'market': 'KOSDAQ', 'price': 105, 'price_date': DAY}
