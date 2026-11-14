@@ -235812,7 +235812,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 15,
+        "positive_nonoverlapping_five_interval_blocks60": 4,
+        "prior60_close_change_pct": -15.357766,
+        "recent60_close_change_pct": -7.36377,
+        "kind_auction_capital_reduction_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 852,
@@ -421146,7 +421157,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 8,
+        "positive_nonoverlapping_five_interval_blocks60": 6,
+        "prior60_close_change_pct": -44.281046,
+        "recent60_close_change_pct": -2.8739,
+        "kind_auction_capital_reduction_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 1539,
@@ -468145,7 +468167,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 10,
+        "positive_nonoverlapping_five_interval_blocks60": 5,
+        "prior60_close_change_pct": -38.497653,
+        "recent60_close_change_pct": -17.557252,
+        "kind_auction_capital_reduction_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 1717,
