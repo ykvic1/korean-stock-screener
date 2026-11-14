@@ -221,7 +221,7 @@ def load_auction_notices(path=NOTICE_FILE):
                     'valuation_krw', 'lower_krw', 'upper_krw', 'shares_before', 'shares_after', 'ratio'))
                 or not notice['lower_krw'] < notice['valuation_krw'] < notice['upper_krw']
                 or notice['ratio'] <= 1
-                or not 0 <= notice['shares_before'] - notice['shares_after'] * notice['ratio'] < notice['ratio']
+                or abs(notice['shares_before'] - notice['shares_after'] * notice['ratio']) >= notice['ratio']
                 or not re.fullmatch(kind + r'70793\.htm', notice.get('auction_url', ''))
                 or not re.fullmatch(kind + r'70763\.htm', notice.get('listing_url', ''))):
                 raise ValueError('invalid_krx_auction_capital_reduction_notice')
