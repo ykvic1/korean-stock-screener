@@ -1,4 +1,4 @@
-"""Recover price-only MA and completed-week RSI after an official gap repair."""
+"""Recover MA, RSI and completed-week patterns after an official gap repair."""
 from __future__ import annotations
 
 from collections import Counter
@@ -22,8 +22,8 @@ from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
 from v3_ma_slope_transition import observe, valid_observation, weekly_points_from_checked_closes
-from v3_pattern_composite_score import _observed, _weekly_trend
-from v3_pattern_first_observations import rsi_observation
+from v3_pattern_composite_score import _observed, _weekly_trend, compute_candidates
+from v3_pattern_first_observations import observe_completed_weekly, rsi_observation
 from v3_saved_close_ma_recovery import availability
 
 GAP = '2025-09-19'
@@ -151,6 +151,26 @@ def weekly_rsi(frame, completed_friday):
     return {'asof': completed_friday, **evidence} if evidence['rsi14'] is not None else None
 
 
+def needs_weekly_pattern(stock, row):
+    return 'weekly_pattern' not in row['parts']['technical'] and _observed(stock, 'weekly') is None
+
+
+def recover_weekly_pattern(stock, frame, official, day):
+    """Use the existing weekly detector on a completed, cross-checked history."""
+    # Match both feeds' volumes around the replacement before aggregating
+    # a mixed-source week. This does not certify any venue/session split.
+    if any(frame.at[d, 'Volume'] != official[d][4] for d in OUTER_ANCHORS):
+        return None
+    closes = frame['Close'].to_numpy()
+    if (not np.isfinite(closes).all() or (closes <= 0).any()
+            or (np.abs(closes[1:] / closes[:-1] - 1) > .5).any()):
+        return None
+    candidate = observe_completed_weekly(frame)
+    if candidate.get('asof') != day:
+        return None
+    return _observed({**stock, 'pattern_weekly_research': candidate}, 'weekly')
+
+
 def needs_weekly_rsi(stock, row):
     return ('weekly_rsi' not in row['parts']['technical']
             and _observed(stock, 'weekly') is None
@@ -199,7 +219,8 @@ def selected(market, priority, report):
         if (stock['price_date'] == day and stock['market'] in MARKETS
             and (code in focus or 90 <= row['available'] < 100)
             and (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
-                 or needs_weekly_position(stock, row) or needs_weekly_rsi(stock, row))):
+                 or needs_weekly_position(stock, row) or needs_weekly_rsi(stock, row)
+                 or needs_weekly_pattern(stock, row))):
             key = (stock['market'], code)
             result[key] = stock
     if len(result) > MAX_TARGETS:
@@ -228,6 +249,7 @@ def run(market, priority, report, client):
         current[key][0][3] != stock['price']
         or needs_weekly_position(stock, report['rows'][key[1]])
         or needs_weekly_rsi(stock, report['rows'][key[1]])
+        or needs_weekly_pattern(stock, report['rows'][key[1]])
         or key in long_ma_targets)}
     refs = {day: current}
     for d in dates[:-1]:
@@ -256,6 +278,10 @@ def run(market, priority, report, client):
             return 'local_share_basis_or_neighbor_unverified', None
         updates = {}
         row = report['rows'][key[1]]
+        if needs_weekly_pattern(stock, row):
+            weekly = recover_weekly_pattern(stock, repaired, values, completed_friday)
+            if weekly is not None:
+                updates['pattern_weekly_research'] = weekly
         if needs_weekly_position(stock, row):
             position = weekly_position(repaired, day)
             if position is not None:
@@ -329,6 +355,15 @@ def main():
     result = run(market, load('v3-operational-evidence-priority.json'),
                  load('v3-operational-research-scores.json'), KRXClient(os.environ.get('KRX_API_KEY', '')))
     result['input_market_sha256'] = sha256(raw).hexdigest()
+    if result['recovered_fields'].get('pattern_weekly_research'):
+        compute_candidates(market['stocks'])
+        status = market['v3_technical_pattern_status']
+        status['technical_observed_25_count'] = sum(
+            r['v3_pattern_integrated']['technical_research_candidate'] is not None
+            for r in market['stocks'])
+        status['candidate_full_six_pillar_count'] = sum(
+            r['v3_pattern_integrated']['six_pillar_full_candidate_only'] is not None
+            for r in market['stocks'])
     if result['recovered_fields']:
         data.write_text(json.dumps(market, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
     encoded = json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False)

@@ -32,7 +32,7 @@ jobs:
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
         run: python v3_official_gap_ma_recovery.py
-      - name: Validate and publish derived MA and completed-week RSI evidence
+      - name: Validate and publish derived completed-week chart evidence
         id: publish
         run: |
           set -euo pipefail
@@ -42,10 +42,16 @@ jobs:
             python v22_full_universe_audit.py --daily docs/data.json
             echo 'changed=true' >> "$GITHUB_OUTPUT"
           fi
+          snapshot_sha=$(git rev-parse HEAD:docs/data.json)
           git add docs/data.json docs/v3-official-gap-ma-recovery.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Publish derived MA and weekly RSI evidence from KRX gap recovery'
-          git pull --rebase origin main
+          git commit -m 'Publish derived chart evidence from KRX gap recovery'
+          git fetch origin main
+          if [[ $(git rev-parse origin/main:docs/data.json) != "$snapshot_sha" ]]; then
+            echo 'Saved market changed during historical gap recovery.'
+            exit 1
+          fi
+          git rebase origin/main
           git push origin HEAD:main
       - name: Refresh the operational scorecard
         if: steps.publish.outputs.changed == 'true'
