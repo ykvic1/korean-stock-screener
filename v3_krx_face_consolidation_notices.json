@@ -292,5 +292,36 @@
         "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/15/000281/20260515000516/68155.htm"
       }
     }
+  },
+  "bonus_issues": {
+    "368970": {
+      "2026-06-19": {
+        "market": "KOSDAQ",
+        "reference_krw": 1963,
+        "ratio_numerator": 1,
+        "ratio_denominator": 2,
+        "shares_before": 4856433,
+        "shares_after": 7283547,
+        "listing_date": "2026-07-08",
+        "rights_url": "https://kind.krx.co.kr/external/2026/06/18/000729/20260618001546/70766.htm",
+        "listing_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/483899",
+        "ratio_url": "https://kind.krx.co.kr/external/2026/06/04/000230/20260604000563/11307.htm",
+        "correction_url": "https://samara.kr/disclosure/20260625000169"
+      }
+    },
+    "018620": {
+      "2026-06-12": {
+        "market": "KOSDAQ",
+        "reference_krw": 2615,
+        "ratio_numerator": 1,
+        "ratio_denominator": 5,
+        "shares_before": 5777858,
+        "shares_after": 6932982,
+        "listing_date": "2026-07-06",
+        "rights_url": "https://kind.krx.co.kr/external/2026/06/11/000840/20260611001254/70766.htm",
+        "listing_url": "https://invest.kiwoom.com/inv/disclosure_detail?code=02&date=2026.07.01&keyword=%EC%9A%B0%EC%A7%84%EB%B9%84%EC%95%A4%EC%A7%80&seq=00073791&stockCode=&tp=&type=02",
+        "ratio_url": "https://www.yna.co.kr/view/AKR20260529071700008"
+      }
+    }
   }
 }
