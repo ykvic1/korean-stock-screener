@@ -333,5 +333,46 @@
         "ratio_url": "https://www.yna.co.kr/view/AKR20260529071700008"
       }
     }
+  },
+  "auction_capital_reductions": {
+    "109960": {
+      "2026-06-01": {
+        "market": "KOSDAQ",
+        "valuation_krw": 3060,
+        "lower_krw": 1530,
+        "upper_krw": 4590,
+        "shares_before": 220789269,
+        "shares_after": 11039463,
+        "ratio": 20,
+        "auction_url": "https://kind.krx.co.kr/external/2026/05/29/001674/20260529002634/70793.htm",
+        "listing_url": "https://kind.krx.co.kr/external/2026/05/27/000696/20260527001670/70763.htm"
+      }
+    },
+    "096690": {
+      "2026-05-21": {
+        "market": "KOSDAQ",
+        "valuation_krw": 8030,
+        "lower_krw": 4015,
+        "upper_krw": 12050,
+        "shares_before": 24137053,
+        "shares_after": 4022842,
+        "ratio": 6,
+        "auction_url": "https://kind.krx.co.kr/external/2026/05/20/000654/20260520001665/70793.htm",
+        "listing_url": "https://kind.krx.co.kr/external/2026/05/18/000695/20260518001580/70763.htm"
+      }
+    },
+    "036090": {
+      "2026-05-21": {
+        "market": "KOSDAQ",
+        "valuation_krw": 2130,
+        "lower_krw": 1065,
+        "upper_krw": 3195,
+        "shares_before": 118392284,
+        "shares_after": 39464095,
+        "ratio": 3,
+        "auction_url": "https://kind.krx.co.kr/external/2026/05/20/000653/20260520001664/70793.htm",
+        "listing_url": "https://kind.krx.co.kr/external/2026/05/18/000863/20260518001922/70763.htm"
+      }
+    }
   }
 }

@@ -53,7 +53,7 @@ def select_targets(market, report, ledger):
     return targets
 
 
-def closes_on(client, market, day, codes, *, missing=None):
+def closes_on(client, market, day, codes, *, missing=None, openings=None):
     rows, raw = client.daily_market(market, day)
     _snapshot_market(rows, raw, market=market, asof=day)
     found, rejected = {}, {}
@@ -76,6 +76,11 @@ def closes_on(client, market, day, codes, *, missing=None):
         change = str(row.get('CMPPREVDD_PRC', '')).strip().replace(',', '')
         reference = close-int(change) if re.fullmatch(r'[+-]?[0-9]+', change) else None
         found[code] = (close, shares, reference)
+        if openings is not None and code in openings:
+            try:
+                openings[code] = _numeric(row.get('TDD_OPNPRC'), 'TDD_OPNPRC', positive=True)
+            except ProbeError:
+                pass  # The auction link stays unavailable without a positive open.
     if missing is not None:
         missing.update(rejected.get(code, 'absent_issuer') for code in codes if code not in found)
     return found
@@ -198,10 +203,47 @@ def verified_face_consolidation(previous, current, notice):
     return abs(previous_close * new_face - reference * old_face) <= krx_tick(reference) * old_face
 
 
-def make_receipt(observations, *, asof, sessions=None, face_notices=None, bonus_notices=None):
+def load_auction_notices(path=NOTICE_FILE):
+    data = json.loads(path.read_bytes())
+    if data.get('schema') != NOTICE_SCHEMA:
+        raise ValueError('invalid_krx_auction_capital_reduction_notices')
+    notices = data.get('auction_capital_reductions', {})
+    if type(notices) is not dict:
+        raise ValueError('invalid_krx_auction_capital_reduction_notices')
+    kind = r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/'
+    for code, records in notices.items():
+        if not re.fullmatch(r'[0-9A-Z]{6}', code) or type(records) is not dict:
+            raise ValueError('invalid_krx_auction_notice_identity')
+        for day, notice in records.items():
+            if (date.fromisoformat(day).isoformat() != day or type(notice) is not dict
+                or notice.get('market') != 'KOSDAQ'
+                or any(type(notice.get(k)) is not int or notice[k] <= 0 for k in (
+                    'valuation_krw', 'lower_krw', 'upper_krw', 'shares_before', 'shares_after', 'ratio'))
+                or not notice['lower_krw'] < notice['valuation_krw'] < notice['upper_krw']
+                or notice['ratio'] <= 1
+                or not 0 <= notice['shares_before'] - notice['shares_after'] * notice['ratio'] < notice['ratio']
+                or not re.fullmatch(kind + r'70793\.htm', notice.get('auction_url', ''))
+                or not re.fullmatch(kind + r'70763\.htm', notice.get('listing_url', ''))):
+                raise ValueError('invalid_krx_auction_capital_reduction_notice')
+    return notices
+
+
+def verified_auction_capital_reduction(previous, current, opening, notice):
+    """Confirm a pro-rata reduction and the separately observed auction opening."""
+    previous_close, previous_shares, _ = previous
+    _, shares, reference = current
+    return (notice is not None and type(opening) is int and opening == reference
+            and notice['lower_krw'] <= opening <= notice['upper_krw']
+            and previous_shares == notice['shares_before'] and shares == notice['shares_after']
+            and abs(previous_close * notice['ratio'] - notice['valuation_krw'])
+                <= krx_tick(notice['valuation_krw']))
+
+
+def make_receipt(observations, *, asof, sessions=None, face_notices=None,
+                 bonus_notices=None, auction_notices=None, auction_openings=None):
     if len(observations) != SESSIONS or any(row is None for row in observations):
         return 'incomplete_close_history', None
-    if (face_notices or bonus_notices) and (
+    if (face_notices or bonus_notices or auction_notices) and (
             sessions is None or len(sessions) != SESSIONS or sessions[-1] != asof
             or list(sessions) != sorted(set(sessions))):
         raise ValueError('invalid_close_momentum_session_window')
@@ -222,6 +264,14 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None, bonus_
             links[i] = Fraction(reference, previous_close)
             link_counts['kind_bonus_issue_links'] += 1
             continue
+        auction = auction_notices.get(sessions[i]) if auction_notices else None
+        opening = (auction_openings or {}).get(sessions[i]) if auction else None
+        if verified_auction_capital_reduction(previous, current, opening, auction):
+            # Scale by the announced pro-rata exchange ratio. Comparing to
+            # the auction open here would erase the opening price movement.
+            links[i] = Fraction(auction['ratio'])
+            link_counts['kind_auction_capital_reduction_links'] += 1
+            continue
         if previous_shares != shares:
             return 'listed_share_change_reference_discontinuous_or_missing', None
         if reference is None:
@@ -230,7 +280,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None, bonus_
 
     # Rebase observations preceding each confirmed action to the latest
     # price basis. The latest close is unchanged; the resumption-day move
-    # compares the close to the exchange's effective reference.
+    # keeps auction price discovery when the share ratio is independently known.
     multiplier = Fraction(1)
     closes = []
     for i in range(SESSIONS - 1, -1, -1):
@@ -259,7 +309,7 @@ def close_anchor(stock, official_row, dated_close):
 
 
 def run(market, report, ledger, key, *, load_listing=load_dated_listing,
-        face_notices=None, bonus_notices=None):
+        face_notices=None, bonus_notices=None, auction_notices=None):
     day = market['date']
     targets = select_targets(market, report, ledger)
     start = (date.fromisoformat(day) - timedelta(days=210)).isoformat()
@@ -283,7 +333,12 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
             return counts, {}, 0
         client = RetryingMoneyClient(KRXClient(key))
         try:
-            current = closes_on(client, exchange, day, wanted)
+            auction_codes = {}
+            for code in wanted:
+                for session, notice in (auction_notices or {}).get(code, {}).items():
+                    if notice['market'] == exchange:
+                        auction_codes.setdefault(session, {})[code] = None
+            current = closes_on(client, exchange, day, wanted, openings=auction_codes.get(day))
             anchors = {code: close_anchor(stock, current.get(code), cache.get((exchange, code)))
                        for code, stock in wanted.items()}
             eligible = {code for code, anchor in anchors.items() if anchor is not None}
@@ -295,7 +350,8 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
             history = []
             for session in dates[:-1]:
                 missing = Counter()
-                history.append(closes_on(client, exchange, session, eligible, missing=missing))
+                history.append(closes_on(client, exchange, session, eligible, missing=missing,
+                                         openings=auction_codes.get(session)))
                 for reason, count in missing.items():
                     counts[f'history_rows_{reason}'] += count
                 if missing:
@@ -313,13 +369,22 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
                 }
                 outcome, receipt = make_receipt([d.get(code) for d in history],
                                                 asof=day, sessions=dates,
-                                                face_notices=notices, bonus_notices=bonus)
+                                                face_notices=notices, bonus_notices=bonus,
+                                                auction_notices={
+                                                    session: notice for session, notice in
+                                                    (auction_notices or {}).get(code, {}).items()
+                                                    if notice['market'] == exchange
+                                                },
+                                                auction_openings={session: openings.get(code)
+                                                                  for session, openings in auction_codes.items()})
                 counts[outcome] += 1
                 if receipt is not None:
                     if receipt.get('kind_fixed_face_consolidation_links'):
                         counts['recovered_with_kind_face_consolidation'] += 1
                     if receipt.get('kind_bonus_issue_links'):
                         counts['recovered_with_kind_bonus_issue'] += 1
+                    if receipt.get('kind_auction_capital_reduction_links'):
+                        counts['recovered_with_kind_auction_capital_reduction'] += 1
                     anchor = anchors[code]
                     counts[f'recovered_{anchor}'] += 1
                     if current[code][0] != wanted[code]['price']:
@@ -358,8 +423,10 @@ def main():
     ledger = json.loads(ledger_raw)
     notices, notice_digest = load_face_notices()
     bonus_notices = load_bonus_notices()
+    auction_notices = load_auction_notices()
     result = run(market, report, ledger, os.environ.get('KRX_API_KEY', ''),
-                 face_notices=notices, bonus_notices=bonus_notices)
+                 face_notices=notices, bonus_notices=bonus_notices, auction_notices=auction_notices)
+    result['kind_auction_capital_reduction_notice_count'] = sum(map(len, auction_notices.values()))
     result['kind_bonus_issue_notice_count'] = sum(map(len, bonus_notices.values()))
     result['kind_face_consolidation_notice_count'] = sum(map(len, notices.values()))
     result['kind_face_consolidation_notice_sha256'] = notice_digest
