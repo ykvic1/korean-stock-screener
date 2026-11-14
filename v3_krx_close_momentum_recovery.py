@@ -27,6 +27,8 @@ SESSIONS = 121
 MAX_TARGETS = 100
 NOTICE_FILE = Path(__file__).with_name('v3_krx_face_consolidation_notices.json')
 NOTICE_SCHEMA = 'v3-krx-kind-fixed-face-consolidation-v1'
+KIND_DOCUMENT = r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/'
+SYNDICATED_DISCLOSURE = r'https://(?:stock\.mk\.co\.kr/news/disclosure/template|spn\.stockplus\.com/news/api/v1/disclosure_views/koscom)/[0-9]+'
 
 
 def select_targets(market, report, ledger):
@@ -147,10 +149,25 @@ def load_bonus_notices(path=NOTICE_FILE):
                 or item['shares_after'] <= item['shares_before']
                 or date.fromisoformat(item['listing_date']).isoformat() != item['listing_date']
                 or item['listing_date'] <= day
-                or not re.fullmatch(r'https://kind\.krx\.co\.kr/external/[0-9/]+/70766\.htm',
-                                    item.get('rights_url', ''))
+                or not re.fullmatch(KIND_DOCUMENT + (
+                    r'70795\.htm' if 'consolidation_ratio' in item else r'70766\.htm'),
+                    item.get('rights_url', ''))
                 or any(not item.get(k, '').startswith('https://') for k in ('ratio_url', 'listing_url'))):
                 raise ValueError('invalid_krx_bonus_issue_notice')
+            if 'consolidation_ratio' in item and (
+                item['market'] != 'KOSDAQ'
+                or any(type(item.get(k)) is not int or item[k] <= 0 for k in
+                       ('consolidation_ratio', 'shares_before_consolidation', 'bonus_eligible_shares'))
+                or item['bonus_eligible_shares'] > item['shares_before']
+                or ((item['shares_after'] - item['shares_before']) * item['ratio_denominator']
+                    != item['bonus_eligible_shares'] * item['ratio_numerator'])
+                or item['consolidation_ratio'] <= 1
+                or abs(item['shares_before_consolidation']
+                       - item['shares_before'] * item['consolidation_ratio'])
+                    >= item['consolidation_ratio']
+                or not re.fullmatch(KIND_DOCUMENT + r'70764\.htm',
+                                    item.get('consolidation_url', ''))):
+                raise ValueError('invalid_krx_consolidation_bonus_notice')
     return notices
 
 
@@ -164,17 +181,27 @@ def verified_bonus_issue(observations, sessions, index, notice):
     """Match the rights-date reference and the separate later share issuance."""
     previous_close, previous_shares, _ = observations[index - 1]
     _, rights_shares, reference = observations[index]
-    if (notice is None or reference != notice['reference_krw'] or
-            not 0 < reference < previous_close or
+    if notice is None or reference != notice['reference_krw']:
+        return False
+    if 'consolidation_ratio' in notice:
+        if (previous_shares != notice['shares_before_consolidation']
+                or rights_shares != notice['shares_before']):
+            return False
+    elif not 0 < reference < previous_close or (
             previous_shares != notice['shares_before'] or rights_shares != previous_shares):
         return False
     listing_date = notice['listing_date']
     if listing_date not in sessions[index + 1:]:
         return False
     listing = sessions.index(listing_date, index + 1)
-    if (observations[listing - 1][1] != previous_shares or
+    if (observations[listing - 1][1] != rights_shares or
             observations[listing][1] != notice['shares_after']):
         return False
+    if 'consolidation_ratio' in notice:
+        # A treasury-share exclusion changes the effective bonus denominator.
+        pre_bonus = previous_close * notice['consolidation_ratio'] * rights_shares
+        post_bonus_shares = notice['shares_after']
+        return abs(pre_bonus - reference * post_bonus_shares) <= krx_tick(reference) * post_bonus_shares
     denominator = notice['ratio_denominator']
     enlarged = denominator + notice['ratio_numerator']
     return abs(previous_close * denominator - reference * enlarged) <= krx_tick(reference) * enlarged
@@ -210,33 +237,53 @@ def load_auction_notices(path=NOTICE_FILE):
     notices = data.get('auction_capital_reductions', {})
     if type(notices) is not dict:
         raise ValueError('invalid_krx_auction_capital_reduction_notices')
-    kind = r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/'
     for code, records in notices.items():
         if not re.fullmatch(r'[0-9A-Z]{6}', code) or type(records) is not dict:
             raise ValueError('invalid_krx_auction_notice_identity')
         for day, notice in records.items():
             if (date.fromisoformat(day).isoformat() != day or type(notice) is not dict
-                or notice.get('market') != 'KOSDAQ'
+                or notice.get('market') not in MARKETS
                 or any(type(notice.get(k)) is not int or notice[k] <= 0 for k in (
                     'valuation_krw', 'lower_krw', 'upper_krw', 'shares_before', 'shares_after', 'ratio'))
-                or not notice['lower_krw'] < notice['valuation_krw'] < notice['upper_krw']
-                or notice['ratio'] <= 1
-                or abs(notice['shares_before'] - notice['shares_after'] * notice['ratio']) >= notice['ratio']
-                or not re.fullmatch(kind + r'70793\.htm', notice.get('auction_url', ''))
-                or not re.fullmatch(kind + r'70763\.htm', notice.get('listing_url', ''))):
+                or not notice['lower_krw'] < notice['valuation_krw'] < notice['upper_krw']):
                 raise ValueError('invalid_krx_auction_capital_reduction_notice')
+            if 'split_ratio' in notice:
+                if (type(notice['split_ratio']) is not int or notice['split_ratio'] <= 1
+                        or type(notice.get('shares_cancelled')) is not int
+                        or not 0 <= notice['shares_cancelled'] < notice['shares_before']
+                        or (notice['shares_before'] - notice['shares_cancelled']) * notice['split_ratio']
+                            != notice['shares_after'] * notice['ratio']
+                        or not re.fullmatch(KIND_DOCUMENT + r'11309\.htm',
+                                            notice.get('action_url', ''))):
+                    raise ValueError('invalid_krx_auction_split_notice')
+            elif (notice['market'] != 'KOSDAQ' or notice['ratio'] <= 1
+                    or abs(notice['shares_before'] - notice['shares_after'] * notice['ratio'])
+                        >= notice['ratio']):
+                raise ValueError('invalid_krx_auction_reduction_ratio')
+            auction_doc, listing_doc = (
+                (r'99326\.htm', SYNDICATED_DISCLOSURE) if notice['market'] == 'KOSPI'
+                else (r'70793\.htm', KIND_DOCUMENT + r'70763\.htm|' + SYNDICATED_DISCLOSURE)
+            )
+            if (not re.fullmatch(KIND_DOCUMENT + auction_doc + '|' + SYNDICATED_DISCLOSURE,
+                                 notice.get('auction_url', ''))
+                    or not re.fullmatch(listing_doc, notice.get('listing_url', ''))):
+                raise ValueError('invalid_krx_auction_notice_source')
     return notices
 
 
 def verified_auction_capital_reduction(previous, current, opening, notice):
-    """Confirm a pro-rata reduction and the separately observed auction opening."""
+    """Confirm the share action and the separately observed auction opening."""
+    if notice is None:
+        return False
     previous_close, previous_shares, _ = previous
     _, shares, reference = current
-    return (notice is not None and type(opening) is int and opening == reference
+    split_ratio = notice.get('split_ratio', 1)
+    valuation = notice['valuation_krw']
+    return (type(opening) is int and opening == reference
             and notice['lower_krw'] <= opening <= notice['upper_krw']
             and previous_shares == notice['shares_before'] and shares == notice['shares_after']
-            and abs(previous_close * notice['ratio'] - notice['valuation_krw'])
-                <= krx_tick(notice['valuation_krw']))
+            and abs(previous_close * notice['ratio'] - valuation * split_ratio)
+                <= krx_tick(valuation) * split_ratio)
 
 
 def make_receipt(observations, *, asof, sessions=None, face_notices=None,
@@ -269,7 +316,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
         if verified_auction_capital_reduction(previous, current, opening, auction):
             # Scale by the announced pro-rata exchange ratio. Comparing to
             # the auction open here would erase the opening price movement.
-            links[i] = Fraction(auction['ratio'])
+            links[i] = Fraction(auction['ratio'], auction.get('split_ratio', 1))
             link_counts['kind_auction_capital_reduction_links'] += 1
             continue
         if previous_shares != shares:

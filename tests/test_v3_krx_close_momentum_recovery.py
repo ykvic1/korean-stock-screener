@@ -157,6 +157,42 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(notices['109960']['2026-06-01']['ratio'], 20)
         self.assertEqual(notices['036090']['2026-05-21']['shares_after'], 39464095)
 
+    def test_split_and_reduction_use_the_holder_conversion_ratio(self):
+        sessions = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        day = sessions[60]
+        notices = recovery.load_auction_notices()
+        for code, effective, previous, current, expected in (
+            ('001230', '2026-05-29', (11400, 31800483, 11400), (2050, 155507715, 2545),
+             100 * (2050 / 2280 - 1)),
+            ('052300', '2026-05-22', (1741, 16244128, 1741), (1555, 16244128, 1400),
+             100 * (1555 / 1741 - 1)),
+        ):
+            with self.subTest(code=code):
+                notice = notices[code][effective]
+                close, shares, opening = current
+                prices = [previous] * 60 + [current] + [(close, shares, close)] * 60
+                kwargs = dict(asof=DAY, sessions=sessions, auction_notices={day: notice})
+                outcome, receipt = recovery.make_receipt(prices, **kwargs, auction_openings={day: opening})
+                self.assertEqual(outcome, 'recovered')
+                self.assertAlmostEqual(receipt['prior60_close_change_pct'], expected, places=5)
+                self.assertIsNone(recovery.make_receipt(
+                    prices, **kwargs, auction_openings={day: opening + 1})[1])
+
+    def test_consolidation_with_bonus_checks_corrected_issuance(self):
+        sessions = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        day, listing = sessions[60], sessions[70]
+        notice = {**recovery.load_bonus_notices()['309930']['2026-05-27'], 'listing_date': listing}
+        before, intermediate, final = (notice[k] for k in (
+            'shares_before_consolidation', 'shares_before', 'shares_after'))
+        prices = ([(2210, before, 2210)] * 60 + [(3650, intermediate, 2810)]
+                  + [(3650, intermediate, 3650)] * 9 + [(3650, final, 3650)] * 51)
+        kwargs = dict(asof=DAY, sessions=sessions, bonus_notices={day: notice})
+        outcome, receipt = recovery.make_receipt(prices, **kwargs)
+        self.assertEqual(outcome, 'recovered')
+        self.assertAlmostEqual(receipt['prior60_close_change_pct'], 100 * (3650 / 2810 - 1), places=5)
+        prices[70] = (3650, final + 1, 3650)
+        self.assertIsNone(recovery.make_receipt(prices, **kwargs)[1])
+
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'
         stock = {'code': code, 'market': 'KOSDAQ', 'price': 105, 'price_date': DAY}
