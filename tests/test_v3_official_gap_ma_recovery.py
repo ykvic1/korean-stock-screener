@@ -6,7 +6,7 @@ import pandas as pd
 
 from v3_official_gap_ma_recovery import (
     FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, add_weekly_ma120, repair, source_frame,
-    weekly_position, weekly_rsi,
+    weekly_position, weekly_rsi, recover_weekly_pattern,
 )
 from v3_ma_slope_transition import observe
 from v3_pattern_first_observations import observe_completed_weekly
@@ -86,6 +86,22 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertEqual(weekly_rsi(frame, '2026-11-06'), recovered)
         frame.at[pd.Timestamp('2026-03-02'), 'Close'] = float('nan')
         self.assertIsNone(weekly_rsi(frame, '2026-11-06'))
+
+    def test_weekly_pattern_requires_completed_valid_history_and_matching_local_volume(self):
+        dates = pd.bdate_range(end='2026-11-13', periods=600)
+        close = [100 + i % 22 for i in range(len(dates))]
+        frame = pd.DataFrame(dict(Open=close, High=close, Low=close, Close=close, Volume=100),
+                             index=dates)
+        anchors = {d: tuple(frame.loc[d, list(FIELDS)]) for d in OUTER_ANCHORS}
+        stock = {'price_date': '2026-11-13'}
+        self.assertEqual(recover_weekly_pattern(stock, frame, anchors, '2026-11-13'),
+                         observe_completed_weekly(frame))
+        self.assertIsNone(recover_weekly_pattern(stock, frame, anchors, '2026-11-06'))
+        disagree = dict(anchors)
+        disagree[OUTER_ANCHORS[0]] = (*anchors[OUTER_ANCHORS[0]][:4], 101)
+        self.assertIsNone(recover_weekly_pattern(stock, frame, disagree, '2026-11-13'))
+        frame.loc['2026-07-07', ['Open', 'High', 'Low', 'Close']] = 500
+        self.assertIsNone(recover_weekly_pattern(stock, frame, anchors, '2026-11-13'))
 
     def test_weekly_ma120_only_adds_the_missing_same_week_component(self):
         dates = pd.bdate_range(end='2026-11-12', periods=800)
