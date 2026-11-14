@@ -282,7 +282,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
           revenue_2022_source=None,revenue_2023_comparative=None,
           revenue_2024_comparative=None,operating_comparative_source=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
-          current_source_hashes=None,original_revenue_source=None):
+          current_source_hashes=None,original_revenue_source=None,reviewed_margin_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -298,8 +298,9 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         history,catalog,revenue_2022_source,revenue_2023_comparative,
         revenue_2024_comparative)
     operating_parts,operating_summary=(
-        comparative_margin_parts(catalog,history,operating_comparative_source)
-        if operating_comparative_source is not None
+        comparative_margin_parts(catalog,history,operating_comparative_source,
+                                 reviewed=reviewed_margin_source)
+        if operating_comparative_source is not None or reviewed_margin_source is not None
         else ({},{'provider_calls':0,'verified_2025_comparative_margin_issuers':0,
                   'investment_score_certified':False}))
     added_revenue, added_margin, added_sales, recovered_codes = {}, {}, {}, set()
@@ -480,7 +481,8 @@ def main():
     original_source=read(ORIGINAL_REVENUE_OUTPUT) if (root/ORIGINAL_REVENUE_OUTPUT).exists() else None
     basis_files={'eps_basis_source':'v3-eps-basis-audit.json',
         'eps_prior_research':'v3-eps-prior-original-receipt-research.json',
-        'cashflow_source':'v3-dart-cashflow-reference.json'}
+        'cashflow_source':'v3-dart-cashflow-reference.json',
+        'reviewed_margin_source':'v3-dart-reviewed-operating-margin.json'}
     basis_inputs={key:read(name) if (root/name).exists() else None for key,name in basis_files.items()}
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
