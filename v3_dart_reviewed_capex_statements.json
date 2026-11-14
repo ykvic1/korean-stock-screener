@@ -564,6 +564,51 @@
           "other_investing_cashflow_krw": -12756098941
         }
       }
+    },
+    "093640": {
+      "original_statements": {
+        "2023": {
+          "annual_receipt": "20250418000471",
+          "scope": "CFS",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250418000471&dcmNo=10606733&eleId=25&offset=427282&length=45066&dtd=dart4.xsd",
+          "source_sha256": "d2da4282c2fad78ae1f6980842f44f89951f5d5925a133e50d3177f2c3d787af",
+          "operating_cashflow_krw": -10749948634,
+          "ppe_capex_krw": 18274877459,
+          "intangible_capex_krw": 33001800,
+          "investing_cashflow_krw": -8315553145,
+          "other_investing_cashflow_krw": 9992326114
+        }
+      }
+    },
+    "131970": {
+      "original_statements": {
+        "2023": {
+          "annual_receipt": "20240320000768",
+          "scope": "OFS",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000768&dcmNo=9736023&eleId=25&offset=188115&length=18655&dtd=dart4.xsd",
+          "source_sha256": "26daf46417c58b6ffc2eabe23588529fb532464afb6d5cd408138e004b0e6e28",
+          "operating_cashflow_krw": 210546521706,
+          "ppe_capex_krw": 171848251993,
+          "intangible_capex_krw": 2182603654,
+          "investing_cashflow_krw": -174423883436,
+          "other_investing_cashflow_krw": -393027789
+        }
+      }
+    },
+    "253840": {
+      "original_statements": {
+        "2023": {
+          "annual_receipt": "20240320000938",
+          "scope": "CFS",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000938&dcmNo=9737249&eleId=23&offset=434833&length=27705&dtd=dart4.xsd",
+          "source_sha256": "8d55aa39b9b93b78552c1a3d3540627659d81f94ba9eb02d8c1699bd0b17aed7",
+          "operating_cashflow_krw": -12153244989,
+          "ppe_capex_krw": 5650976694,
+          "intangible_capex_krw": 91427303,
+          "investing_cashflow_krw": 1990206349,
+          "other_investing_cashflow_krw": 7732610346
+        }
+      }
     }
   }
 }
