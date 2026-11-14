@@ -21,8 +21,8 @@
   ],
   "v3_unscored_path_source": {
     "schema": "v3-unscored-price-path-evidence-0.1",
-    "observed_issuer_count": 2351,
-    "unavailable_issuer_count": 92,
+    "observed_issuer_count": 2352,
+    "unavailable_issuer_count": 91,
     "additional_volume_or_momentum_points_authorized": 0,
     "raw_ohlcv_exported": false,
     "source_exchange_and_adjustments_independently_verified": false
@@ -507786,8 +507786,25 @@
       "relative60": -4.5,
       "relative120": -21.1,
       "v3_turnover_multihorizon_shadow": null,
-      "v3_unscored_path_observations": null,
-      "v3_unscored_path_unavailable_reason": "nonpositive_or_invalid_price_volume",
+      "v3_unscored_path_observations": {
+        "asof": "2026-11-13",
+        "complete_post_spike_events_evaluated": 0,
+        "corporate_actions_adjusted_verified": false,
+        "interpretation": "unscored_dated_source_observation_only",
+        "investment_score_certified": false,
+        "market_index_path_verified": false,
+        "new_v3_available_points": 0,
+        "path_window_trading_sessions": 121,
+        "positive_nonoverlapping_five_interval_blocks60": 3,
+        "post_spike_price_hold_with_volume_easing_events": 0,
+        "prior60_close_change_pct": -43.126634,
+        "raw_ohlcv_exported": false,
+        "recent60_close_change_pct": -23.64532,
+        "schema": "v3-unscored-price-path-evidence-0.1",
+        "source_regular_session_verified": false,
+        "up_close_days20": 6
+      },
+      "v3_unscored_path_unavailable_reason": null,
       "v3_ma240_cross_research": {
         "asof": "2026-11-13",
         "certified_investment_points": null,
