@@ -118,6 +118,27 @@ class AnnualComparativeMarginTests(unittest.TestCase):
         self.assertEqual(len(retained),0)
         self.assertEqual(selected,['000000'])
 
+    def test_reviewed_prelisting_comparative_requires_both_anchors(self):
+        catalog, history = fixtures(31)
+        code = '000000'
+        years = history['records'][code]['years']
+        years['2023'] = {}
+        receipt = years['2025']['CFS']['receipt_id']
+        item = {'scope': 'CFS', 'source_receipt_id': receipt,
+                'anchor_2024_receipt_id': years['2024']['CFS']['receipt_id'],
+                'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&dcmNo=1',
+                'source_sha256': 'a' * 64,
+                'annual_comparatives_krw': {
+                    '2023': {'revenue': 300, 'operating_income': -3},
+                    **{y: dict(years[y]['CFS']['values']) for y in ('2024', '2025')}}}
+        reviewed = {'schema': op.REVIEWED_SCHEMA, 'records': {code: item}}
+        parts, summary = op.margin_parts(catalog, history, reviewed=reviewed)
+        self.assertEqual(parts[code]['available'], 3)
+        self.assertEqual(summary['reviewed_annual_margin_issuers'], 1)
+        self.assertFalse(summary['historical_PIT_source_certified'])
+        years['2024']['CFS']['receipt_id'] = '20250319000001'
+        self.assertNotIn(code, op.margin_parts(catalog, history, reviewed=reviewed)[0])
+
 
 if __name__=='__main__':
     unittest.main()

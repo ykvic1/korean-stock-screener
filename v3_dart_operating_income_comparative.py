@@ -30,6 +30,8 @@ ACCOUNT_NAMES = frozenset(('영업이익', '영업이익(손실)'))
 COLUMNS = {'2023':'bfefrmtrm_amount', '2024':'frmtrm_amount',
            '2025':'thstrm_amount'}
 LIMIT = 32
+REVIEWED = 'v3-dart-reviewed-operating-margin.json'
+REVIEWED_SCHEMA = 'v3-dart-reviewed-annual-operating-margin-v1'
 
 
 class OperatingComparativeError(ValueError):
@@ -199,7 +201,35 @@ def plan(catalog,history,prior=None,*,priority=(),limit=LIMIT):
     return expected,retained,selected
 
 
-def margin_parts(catalog,history,supplement=None):
+def reviewed_margin(record, item, day):
+    """Bind reported pre-listing figures to two saved, same-scope annual anchors."""
+    scope = item['scope']
+    figures = item['annual_comparatives_krw']
+    years = record['years']
+    if (scope not in ('CFS', 'OFS') or set(figures) != {'2023', '2024', '2025'}
+            or years.get('2023', {}).get(scope) is not None):
+        return None
+    receipt = item['source_receipt_id']
+    if (not re.fullmatch('[a-f0-9]{64}', item['source_sha256'])
+            or not item['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')):
+        raise OperatingComparativeError('unverified_reviewed_operating_margin_source')
+    for year, key in (('2025', 'source_receipt_id'), ('2024', 'anchor_2024_receipt_id')):
+        saved = years.get(year, {}).get(scope, {})
+        observed = saved.get('values', {})
+        if (not _valid_receipt(item[key], int(year), _day(day))
+                or item[key] != saved.get('receipt_id')
+                or any(observed.get(k) != figures[year][k] for k in ('revenue', 'operating_income'))):
+            return None
+    for value in figures.values():
+        if (set(value) != {'revenue', 'operating_income'}
+                or type(value['revenue']) is not int or not 0 < value['revenue'] <= 10**18
+                or type(value['operating_income']) is not int or abs(value['operating_income']) > 10**18):
+            raise OperatingComparativeError('invalid_reviewed_operating_margin_amounts')
+    margin = sum(100 * v['operating_income'] / v['revenue'] for v in figures.values()) / 3
+    return round(margin, 6) if math.isfinite(margin) and abs(margin) < 1e7 else None
+
+
+def margin_parts(catalog,history,supplement=None,*,reviewed=None):
     """Rebuild three-year margin peer ranks from actual same-scope evidence.
 
     Keep the score allocation (4 personal points -> 3 R1d points) unchanged.
@@ -210,6 +240,11 @@ def margin_parts(catalog,history,supplement=None):
     by_market={r['code']:r['market'] for r in catalog['rows']}
     margins={}
     supplemented=set()
+    if reviewed is not None and (reviewed.get('schema') != REVIEWED_SCHEMA
+                                  or type(reviewed.get('records')) is not dict):
+        raise OperatingComparativeError('invalid_reviewed_operating_margin_registry')
+    reviewed_rows = reviewed['records'] if reviewed is not None else {}
+    reviewed_count = 0
     years=('2023','2024','2025')
     for code,record in history['records'].items():
         if code not in by_market:
@@ -218,6 +253,12 @@ def margin_parts(catalog,history,supplement=None):
         if direct is not None:
             margins[code]=direct
             continue
+        if code in reviewed_rows:
+            restored = reviewed_margin(record, reviewed_rows[code], catalog['date'])
+            if restored is not None:
+                margins[code] = restored
+                reviewed_count += 1
+                continue
         supplement_row=retained.get(code)
         if not supplement_row or supplement_row['status']!='observed':
             continue
@@ -244,6 +285,8 @@ def margin_parts(catalog,history,supplement=None):
     summary={'provider_calls':0,'three_year_actual_operating_margins':len(margins),
              'verified_2025_comparative_margin_issuers':len(supplemented),
              'investment_score_certified':False,'historical_PIT_source_certified':False}
+    if reviewed is not None:
+        summary['reviewed_annual_margin_issuers'] = reviewed_count
     return parts,summary
 
 

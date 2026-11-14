@@ -19,6 +19,7 @@ on:
       - v3_dart_operating_income_comparative.py
       - tests/test_v3_dart_operating_income_comparative.py
       - docs/v3-dart-operating-income-2025-comparative.json
+      - docs/v3-dart-reviewed-operating-margin.json
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
@@ -58,6 +59,7 @@ on:
       - v3_dart_operating_income_comparative.py
       - tests/test_v3_dart_operating_income_comparative.py
       - docs/v3-dart-operating-income-2025-comparative.json
+      - docs/v3-dart-reviewed-operating-margin.json
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
@@ -106,7 +108,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Reconcile the retained issuer ledger in the offline workspace
-        run: python v3_current_observed_scorecard.py --mode write --refresh-derived
+        run: |
+          python v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag
+          python v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+          python v3_unscored_path_coverage.py --daily docs/data.json
+          python v3_current_observed_scorecard.py --mode write --refresh-derived
       - run: |
           python v3_operational_research_score.py
           python v3_operational_evidence_priority.py
