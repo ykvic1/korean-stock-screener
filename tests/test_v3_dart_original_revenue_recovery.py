@@ -1,11 +1,35 @@
 import unittest
 
 from v3_dart_bulk_history import _stable_digest
-from v3_dart_original_revenue_recovery import SCHEMA, review_statement, targets, verified
+from v3_dart_original_revenue_recovery import (
+    REVIEWED_SCHEMA, SCHEMA, overlay, review_statement, targets, verified,
+)
 from v3_dart_revenue_2022 import Revenue2022Error
 
 
 class OriginalRevenueRecoveryTests(unittest.TestCase):
+    def test_reviewed_statement_requires_original_receipt_and_income_anchor(self):
+        day = '2026-11-13'
+        code = '000001'
+        receipt = '20260323001654'
+        catalog = {'date': day, 'listed_total': 1, 'rows': [{'code': code}]}
+        annual = {'receipt_id': receipt, 'values': {'revenue': None, 'operating_income': -10}}
+        history = {'asof': day, 'listed_total': 1, 'fiscal_years': [2025],
+                   'records': {code: {'years': {'2025': {'CFS': annual}}}}}
+        proof = {'receipt_id': receipt, 'operating_income_krw': -10,
+                 'revenue_krw': 100, 'account_name': '영업수익', 'source_sha256': 'a' * 64,
+                 'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&dcmNo=1'}
+        reviewed = {'schema': REVIEWED_SCHEMA, 'records': {f'{code}:2025:CFS': proof}}
+        proposed, codes = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(codes, {code})
+        self.assertEqual(proposed['records'][code]['years']['2025']['CFS']['values']['revenue'], 100)
+        self.assertIsNone(annual['values']['revenue'])
+        annual['values']['operating_income'] = -11
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+        annual['values']['operating_income'] = -10
+        annual['receipt_id'] = '20260324001654'
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+
     def test_receipt_mismatch_is_reused_only_for_the_same_filing(self):
         day = '2026-11-13'
         corp = '00000001'

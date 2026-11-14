@@ -20,6 +20,7 @@ on:
       - tests/test_v3_dart_operating_income_comparative.py
       - docs/v3-dart-operating-income-2025-comparative.json
       - docs/v3-dart-reviewed-operating-margin.json
+      - docs/v3-dart-reviewed-original-revenue.json
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
@@ -60,6 +61,7 @@ on:
       - tests/test_v3_dart_operating_income_comparative.py
       - docs/v3-dart-operating-income-2025-comparative.json
       - docs/v3-dart-reviewed-operating-margin.json
+      - docs/v3-dart-reviewed-original-revenue.json
       - v3_operational_model_diagnostics.py
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py

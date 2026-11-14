@@ -282,7 +282,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
           revenue_2022_source=None,revenue_2023_comparative=None,
           revenue_2024_comparative=None,operating_comparative_source=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
-          current_source_hashes=None,original_revenue_source=None,reviewed_margin_source=None):
+          current_source_hashes=None,original_revenue_source=None,reviewed_margin_source=None,
+          reviewed_revenue_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
@@ -304,8 +305,9 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         else ({},{'provider_calls':0,'verified_2025_comparative_margin_issuers':0,
                   'investment_score_certified':False}))
     added_revenue, added_margin, added_sales, recovered_codes = {}, {}, {}, set()
-    if original_revenue_source is not None and history.get('asof') == day:
-        augmented, recovered_codes = original_revenue_overlay(catalog, history, original_revenue_source)
+    if (original_revenue_source is not None or reviewed_revenue_source is not None) and history.get('asof') == day:
+        augmented, recovered_codes = original_revenue_overlay(
+            catalog, history, original_revenue_source, reviewed=reviewed_revenue_source)
         if recovered_codes:
             # Resolve comparative receipts against the original archive above.
             # Exact original revenues can independently complete the same formulas.
@@ -482,7 +484,8 @@ def main():
     basis_files={'eps_basis_source':'v3-eps-basis-audit.json',
         'eps_prior_research':'v3-eps-prior-original-receipt-research.json',
         'cashflow_source':'v3-dart-cashflow-reference.json',
-        'reviewed_margin_source':'v3-dart-reviewed-operating-margin.json'}
+        'reviewed_margin_source':'v3-dart-reviewed-operating-margin.json',
+        'reviewed_revenue_source':'v3-dart-reviewed-original-revenue.json'}
     basis_inputs={key:read(name) if (root/name).exists() else None for key,name in basis_files.items()}
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):

@@ -19,6 +19,8 @@ from v3_dart_revenue_2022 import (
 OUTPUT = 'v3-dart-original-revenue-recovery.json'
 SCHEMA = 'v3-dart-original-annual-sales-receipt-v1'
 LIMIT = 96
+REVIEWED = 'v3-dart-reviewed-original-revenue.json'
+REVIEWED_SCHEMA = 'v3-dart-reviewed-original-annual-revenue-v1'
 
 
 def choices(catalog, history):
@@ -89,14 +91,44 @@ def review_statement(payload, base, corp, day):
     return row
 
 
-def overlay(catalog, history, source):
-    retained = verified(source, choices(catalog, history), catalog['date'])
+def reviewed_revenues(catalog, history, source, expected):
+    if source is None:
+        return {}
+    if (source.get('schema') != REVIEWED_SCHEMA
+            or type(source.get('records')) is not dict):
+        raise ValueError('invalid_reviewed_original_revenue_registry')
+    amounts = {}
+    for key, entry in source['records'].items():
+        base = expected.get(key)
+        if base is None or entry['receipt_id'] != base['receipt_id']:
+            continue
+        annual = history['records'][base['code']]['years'][str(base['fiscal_year'])][base['scope']]
+        saved_income = annual['values'].get('operating_income')
+        if type(saved_income) is not int or saved_income != entry['operating_income_krw']:
+            continue
+        receipt = base['receipt_id']
+        if (entry['account_name'] not in EXACT_NAMES
+                or type(entry['revenue_krw']) is not int or not 0 < entry['revenue_krw'] <= 10**18
+                or not entry['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+                or len(entry['source_sha256']) != 64
+                or any(ch not in '0123456789abcdef' for ch in entry['source_sha256'])):
+            raise ValueError('invalid_reviewed_original_revenue_statement')
+        amounts[key] = entry['revenue_krw']
+    return amounts
+
+
+def overlay(catalog, history, source, *, reviewed=None):
+    expected = choices(catalog, history)
+    retained = verified(source, expected, catalog['date'])
+    amounts = reviewed_revenues(catalog, history, reviewed, expected)
+    amounts.update({key: entry['revenue_krw'] for key, entry in retained.items()
+                    if entry['status'] == 'observed'})
     result = deepcopy(history)
-    for entry in retained.values():
-        if entry['status'] == 'observed':
-            row = result['records'][entry['code']]['years'][str(entry['fiscal_year'])][entry['scope']]
-            row['values']['revenue'] = entry['revenue_krw']
-    return result, {entry['code'] for entry in retained.values() if entry['status'] == 'observed'}
+    for key, amount in amounts.items():
+        base = expected[key]
+        row = result['records'][base['code']]['years'][str(base['fiscal_year'])][base['scope']]
+        row['values']['revenue'] = amount
+    return result, {expected[key]['code'] for key in amounts}
 
 
 def sales_parts(catalog, history):
