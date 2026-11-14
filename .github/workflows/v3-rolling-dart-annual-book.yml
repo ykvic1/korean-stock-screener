@@ -1,6 +1,10 @@
 name: Rolling OpenDART Annual Book Reference - Current Listed
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - v3_dart_rolling_book_reference.py
   schedule:
     # Eight separated KST weekday windows, max 40 issuers each.
     # UTC Sunday-Thursday late hours correspond to KST Monday-Friday morning.
@@ -30,6 +34,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: korea-stock-screener-publication
@@ -54,6 +59,7 @@ jobs:
           python -m py_compile v3_dart_rolling_book_reference.py
           python -m unittest discover -s tests -p 'test_v3_dart_rolling_book_reference.py' -v
       - name: Enrich source-dated live listed names without touching scores
+        id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           REQUESTED_LIMIT: ${{ inputs.limit }}
@@ -79,8 +85,10 @@ jobs:
           official_path=Path('docs/official.json')
           prior=json.loads(prior_path.read_text(encoding='utf8')) if prior_path.exists() else None
           official=json.loads(official_path.read_text(encoding='utf8')) if official_path.exists() else None
+          bulk_path=Path('docs/v3-dart-bulk-history.json')
+          bulk=json.loads(bulk_path.read_text(encoding='utf8')) if bulk_path.is_file() else None
           quota=int(os.getenv('REQUESTED_LIMIT') or '40')
-          result=write(market,catalog,output=prior_path,prior=prior,official=official,
+          result=write(market,catalog,output=prior_path,prior=prior,official=official,bulk=bulk,
                        key=os.environ.get('DART_API_KEY'),limit=quota)
           if result['asof']!=day or result['market_listed_total']!=census['market_listing_size']:
               raise ValueError('derived_accounts_bad_scope')
@@ -89,7 +97,11 @@ jobs:
                     'raw_dart_account_rows_published'):
               if result[k] is not False:
                   raise ValueError('unearned_financial_certification')
-          print('listed=',result['market_listed_total'],
+          refreshed=result['corrected_annual_receipts_refreshed']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'refreshed={refreshed}\n')
+          print('corrected_annual_receipts_refreshed=',refreshed,
+                'listed=',result['market_listed_total'],
                 'annual_observed=',result['observed_annual_count'],
                 'simple_book_PB_available=',result['pbr_simple_reference_count'],
                 'new_attempts=',result['new_attempts_this_run'],
@@ -103,7 +115,12 @@ jobs:
           git add docs/v3-dart-book-reference.json
           if ! git diff --cached --quiet; then
             git commit -m "Current-listed DART annual equity and simple non-scoring book reference"
+            bulk_sha=$(git rev-parse HEAD:docs/v3-dart-bulk-history.json)
             git pull --rebase origin main
+            if [[ $(git rev-parse HEAD:docs/v3-dart-bulk-history.json) != "$bulk_sha" ]]; then
+              echo 'The bulk annual source changed during collection.'
+              exit 1
+            fi
             python - <<'PY'
           import json
           from pathlib import Path
@@ -126,6 +143,11 @@ jobs:
           PY
             git push origin HEAD:main
           fi
+      - name: Recollect EPS for the newly verified annual receipts
+        if: steps.collect.outputs.refreshed != '' && steps.collect.outputs.refreshed != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-dart-reported-eps.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live
       - name: No original filings or stock history artifact
         if: always()
         run: echo 'Only bounded annual derived fields; no raw OHLCV, score certification, or investment orders.'

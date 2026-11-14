@@ -199,6 +199,37 @@ class RollingCurrentListedDARTTests(unittest.TestCase):
                 mod.write(daily,catalog,output=dest,collector=good,limit=2)
             self.assertEqual(dest.read_bytes(),saved)
 
+    def test_recheck_observed_issuer_only_for_a_dated_same_scope_correction(self):
+        from v3_dart_bulk_history import SCHEMA
+        daily, catalog = fixture()
+        prior = mod.merge(daily, catalog, None, [report("005930")], limit=1)
+        prior["records"][0]["last_attempted_day"] = "2026-10-18"
+        correction = "20261019000001"
+        filing = {"receipt_id": correction}
+        bulk = {"schema": SCHEMA, "asof": DAY, "listed_total": 5,
+                "raw_source_rows_published": False,
+                "records": {"005930": {"years": {"2025": {"OFS": filing}}}}}
+
+        def selected(source):
+            return [r["code"] for r in mod.plan(daily, catalog, prior=prior, bulk=source, limit=1)[3]]
+
+        self.assertEqual(selected(bulk), ["005930"])
+        self.assertEqual(selected({**bulk, "asof": "2026-10-18"}), ["247540"])
+        filing["receipt_id"] = "20261020000001"
+        self.assertEqual(selected(bulk), ["247540"])
+        filing["receipt_id"] = correction
+        bad = mod.merge(daily, catalog, prior, [report("005930", scope="CFS", receipt=correction)],
+                        bulk=bulk, limit=1)
+        self.assertEqual(bad["corrected_annual_receipts_refreshed"], 0)
+        self.assertEqual(bad["records"][0]["annual"], prior["records"][0]["annual"])
+        self.assertEqual(mod.plan(daily, catalog, prior=bad, bulk=bulk, limit=1)[3][0]["code"], "247540")
+
+        good = mod.merge(daily, catalog, prior, [report("005930", receipt=correction)],
+                         bulk=bulk, limit=1)
+        self.assertEqual(good["corrected_annual_receipts_refreshed"], 1)
+        self.assertEqual(good["records"][0]["annual"]["receipt_id"], correction)
+        self.assertEqual(good["observations"][0]["receipt_id"], correction)
+
     def test_full_market_success_triggers_early_bounded_annual_sync(self):
         flow=(Path(__file__).resolve().parent.parent/
               ".github/workflows/v3-rolling-dart-annual-book.yml").read_text(

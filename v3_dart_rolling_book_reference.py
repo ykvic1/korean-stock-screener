@@ -139,8 +139,31 @@ def _inputs(market,catalog):
     return day,members
 
 
-def plan(market,catalog,*,prior=None,official=None,limit=MAX_PER_RUN):
-    """Pick unattempted currently listed names; first best-scored, then rest."""
+def revised_receipts(history, bulk, day, listed_total):
+    """Find current annual corrections independently observed in the bulk feed."""
+    if bulk is None:
+        return {}
+    from v3_dart_bulk_history import SCHEMA as BULK_SCHEMA, _valid_receipt
+    if (not isinstance(bulk, dict) or bulk.get("schema") != BULK_SCHEMA or bulk.get("asof") != day
+            or bulk.get("listed_total") != listed_total or not isinstance(bulk.get("records"), dict)
+            or bulk.get("raw_source_rows_published") is not False):
+        return {}
+    expected = {}
+    cutoff = date.fromisoformat(day)
+    fiscal_year = cutoff.year - 1
+    for code, entry in history.items():
+        annual = entry.get("annual")
+        if not annual or annual["year"] != fiscal_year or entry["last_attempted_day"] == day:
+            continue
+        source = bulk["records"].get(code, {}).get("years", {}).get(str(fiscal_year), {})
+        receipt = source.get(annual["fs_div"], {}).get("receipt_id")
+        if _valid_receipt(receipt, fiscal_year, cutoff) and receipt > annual["receipt_id"]:
+            expected[code] = (fiscal_year, annual["fs_div"], receipt)
+    return expected
+
+
+def plan(market,catalog,*,prior=None,official=None,bulk=None,limit=MAX_PER_RUN):
+    """Refresh known corrections, then select unattempted or unavailable issuers."""
     day,members=_inputs(market,catalog)
     if type(limit) is not int or not 1<=limit<=MAX_PER_RUN:
         raise ValueError("overlarge_dart_request")
@@ -161,7 +184,9 @@ def plan(market,catalog,*,prior=None,official=None,limit=MAX_PER_RUN):
         s["code"] in history,not s["priced"],
         s["price_status"]=="price_source_or_validation_error",
         -(_num(s["score"]) or 0),-(_num(s["coverage_pct"]) or 0),s["code"]))
-    targets=[x for x in ordered if x["code"] not in history][:limit]
+    revisions = revised_receipts(history, bulk, day, len(members))
+    targets = [members[code] for code in sorted(revisions)]
+    targets = (targets + [x for x in ordered if x["code"] not in history])[:limit]
     if not targets:
         # Once all currently listed symbols have been visited, bounded retry
         # for source-unavailable names, oldest previous attempt first.
@@ -171,8 +196,10 @@ def plan(market,catalog,*,prior=None,official=None,limit=MAX_PER_RUN):
     return day,members,history,targets
 
 
-def merge(market,catalog, prior, results, *,official=None,limit=MAX_PER_RUN):
-    day,members,history,targets=plan(market,catalog,prior=prior,official=official,limit=limit)
+def merge(market,catalog, prior, results, *,official=None,bulk=None,limit=MAX_PER_RUN):
+    day,members,history,targets=plan(market,catalog,prior=prior,official=official,bulk=bulk,limit=limit)
+    revisions = revised_receipts(history, bulk, day, len(members))
+    refreshed = 0
     if not isinstance(results,list) or len(results)!=len(targets):
         raise ValueError("dart_batch_results_incomplete")
     expected={x["code"] for x in targets}
@@ -183,6 +210,13 @@ def merge(market,catalog, prior, results, *,official=None,limit=MAX_PER_RUN):
         if code not in expected or code in received:
             raise ValueError("dart_batch_identity_mismatch")
         received.add(code)
+        if code in revisions:
+            annual = account["annual"] or {}
+            basis = tuple(annual.get(key) for key in ("year", "fs_div", "receipt_id"))
+            if basis != revisions[code]:
+                history[code]["last_attempted_day"] = day
+                continue
+            refreshed += 1
         history[code]=account
     observed=[]
     for code,record in sorted(history.items()):
@@ -207,6 +241,7 @@ def merge(market,catalog, prior, results, *,official=None,limit=MAX_PER_RUN):
         "attempted_reference_count":len(history),"observed_annual_count":len(observed),
         "pbr_simple_reference_count":len(reports),
         "new_attempts_this_run":len(targets),
+        "corrected_annual_receipts_refreshed":refreshed,
         "other_listed_without_book_observation":len(members)-len(observed),
         "official_exchange_pbr_verified":False,
         "score_weight_changed":False,"stock_buy_certified":False,
@@ -219,9 +254,9 @@ def merge(market,catalog, prior, results, *,official=None,limit=MAX_PER_RUN):
     }
 
 
-def write(snapshot,catalog, *,output,prior=None,official=None,key=None,
+def write(snapshot,catalog, *,output,prior=None,official=None,bulk=None,key=None,
           collector:Callable|None=None,limit=MAX_PER_RUN):
-    day,members,history,targets=plan(snapshot,catalog,prior=prior,official=official,limit=limit)
+    day,members,history,targets=plan(snapshot,catalog,prior=prior,official=official,bulk=bulk,limit=limit)
     if collector is None:
         from official_data import dart_collect
         collector=dart_collect
@@ -235,7 +270,7 @@ def write(snapshot,catalog, *,output,prior=None,official=None,key=None,
         if not isinstance(batch,list) or len(batch)!=len(targets[idx:idx+20]):
             raise ValueError("dart_partial_batch_without_attribution")
         results.extend(batch)
-    data=merge(snapshot,catalog,prior,results,official=official,limit=limit)
+    data=merge(snapshot,catalog,prior,results,official=official,bulk=bulk,limit=limit)
     path=Path(output)
     path.parent.mkdir(parents=True,exist_ok=True)
     encoded=json.dumps(data,ensure_ascii=False,allow_nan=False,sort_keys=True,separators=(",",":"))
