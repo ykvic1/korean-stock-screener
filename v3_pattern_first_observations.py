@@ -172,7 +172,7 @@ def observe(df):
     return out
 
 
-def observe_completed_weekly(daily):
+def observe_completed_weekly(daily, *, completed_through=None):
     """Independently inspect ONLY fully completed Friday-ending OHLCV weeks.
 
     A Monday-Thursday partial week has artificially low cumulative volume,
@@ -219,6 +219,11 @@ def observe_completed_weekly(daily):
     # Weekend of the most recent daily candle may still be in the future.
     # Drop that partial bin rather than using inflated/deflated week volume.
     latest = daily.index[-1].normalize()
+    if completed_through is not None:
+        boundary = pd.Timestamp(completed_through)
+        if boundary.weekday() != 4 or not latest <= boundary <= latest + pd.Timedelta(days=4):
+            return result
+        latest = boundary
     week = week.loc[week.index <= latest]
     if len(week) < 90:
         return result
