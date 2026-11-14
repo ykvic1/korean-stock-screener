@@ -12,7 +12,6 @@ from official_probe.clients import KRXClient, ProbeError
 from official_probe.validation import _numeric
 from v3_dated_market_roster import DatedRosterError, load_dated_listing
 from v3_fdr_cache_krx_close_corroboration import cache_close_index
-from v3_krx_daily_anomaly_triage import classify_row
 from v3_krx_history_collection import MARKETS, _snapshot_market
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
@@ -51,24 +50,31 @@ def select_targets(market, report, ledger):
     return targets
 
 
-def closes_on(client, market, day, codes):
+def closes_on(client, market, day, codes, *, missing=None):
     rows, raw = client.daily_market(market, day)
     _snapshot_market(rows, raw, market=market, asof=day)
-    found = {}
+    found, rejected = {}, {}
     for row in rows:
         code = row['ISU_CD']
-        if code not in codes or classify_row(row)[0] != 'valid_numeric_observation':
+        if code not in codes:
             continue
+        # This receipt uses close and prior-close continuity only. A missing
+        # open/high/low or volume does not invalidate a reported close.
         try:
             close = _numeric(row.get('TDD_CLSPRC'), 'TDD_CLSPRC', positive=True)
-            change = str(row.get('CMPPREVDD_PRC', '')).strip().replace(',', '')
-            found[code] = (
-                close,
-                _numeric(row.get('LIST_SHRS'), 'LIST_SHRS', positive=True),
-                close-int(change) if re.fullmatch(r'[+-]?[0-9]+', change) else None,
-            )
         except ProbeError:
+            rejected[code] = 'invalid_close'
             continue
+        try:
+            shares = _numeric(row.get('LIST_SHRS'), 'LIST_SHRS', positive=True)
+        except ProbeError:
+            rejected[code] = 'invalid_listed_shares'
+            continue
+        change = str(row.get('CMPPREVDD_PRC', '')).strip().replace(',', '')
+        reference = close-int(change) if re.fullmatch(r'[+-]?[0-9]+', change) else None
+        found[code] = (close, shares, reference)
+    if missing is not None:
+        missing.update(rejected.get(code, 'absent_issuer') for code in codes if code not in found)
     return found
 
 
@@ -137,7 +143,14 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing):
                 counts[f'eligible_{anchors[code]}'] += 1
             if not eligible:
                 return counts, {}, client.requests
-            history = [closes_on(client, exchange, d, eligible) for d in dates[:-1]]
+            history = []
+            for session in dates[:-1]:
+                missing = Counter()
+                history.append(closes_on(client, exchange, session, eligible, missing=missing))
+                for reason, count in missing.items():
+                    counts[f'history_rows_{reason}'] += count
+                if missing:
+                    counts['history_sessions_with_missing_rows'] += 1
             history.append(current)
             receipts = {}
             for code in sorted(eligible):

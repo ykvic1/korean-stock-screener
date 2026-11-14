@@ -1,6 +1,7 @@
 """Dated KRX close anchoring and historical continuity regressions."""
 from types import SimpleNamespace
 import unittest
+from collections import Counter
 from unittest.mock import patch
 
 import pandas as pd
@@ -38,6 +39,23 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
                     recovery.make_receipt(observations[:-1] + [row], asof=DAY),
                     (reason, None),
                 )
+
+    def test_dated_close_survives_unrelated_ohlcv_gaps(self):
+        code = '0008Z0'
+        rows = [
+            {'ISU_CD': code, 'TDD_CLSPRC': '100', 'CMPPREVDD_PRC': '+1',
+             'LIST_SHRS': '1,000', 'TDD_OPNPRC': '0', 'ACC_TRDVOL': '-'},
+            {'ISU_CD': '005930', 'TDD_CLSPRC': '0', 'LIST_SHRS': '1,000'},
+            {'ISU_CD': '000660', 'TDD_CLSPRC': '100', 'LIST_SHRS': '-'},
+        ]
+        client = SimpleNamespace(daily_market=lambda market, day: (rows, b'raw'))
+        missing = Counter()
+        with patch.object(recovery, '_snapshot_market'):
+            found = recovery.closes_on(client, 'KOSDAQ', DAY,
+                                       {code, '005930', '000660', '035720'}, missing=missing)
+        self.assertEqual(found, {code: (100, 1_000, 99)})
+        self.assertEqual(missing, {'invalid_close': 1, 'invalid_listed_shares': 1,
+                                   'absent_issuer': 1})
 
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'
