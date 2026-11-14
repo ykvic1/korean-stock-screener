@@ -193,6 +193,34 @@ class PromotionTests(unittest.TestCase):
 
 
 class ReviewedStatementTests(unittest.TestCase):
+    def test_original_receipt_recovers_one_component_without_fy2025(self):
+        from datetime import date
+        from unittest.mock import patch
+        import v3_dart_reviewed_capex as reviewed
+
+        year = '2024'
+        receipt = PRIOR['annual_receipt_id']
+        item = {'annual_receipt': receipt, 'scope': 'CFS',
+                'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&dcmNo=1',
+                'source_sha256': 'a' * 64, 'operating_cashflow_krw': 100,
+                'ppe_capex_krw': 20, 'intangible_capex_krw': 0,
+                'investing_cashflow_krw': -10, 'other_investing_cashflow_krw': 10}
+        source = {CODE: {'original_statements': {year: item}}}
+        cutoff = date(2026, 11, 13)
+        cash = {'asof': cutoff.isoformat(), 'records': {CODE: {'years': {year: dict(PRIOR)}}}}
+        with patch.object(reviewed, 'statements', return_value=source):
+            updated, added = reviewed.apply(cash)
+            self.assertEqual(added, [(CODE, year)])
+            years = updated['records'][CODE]['years']
+            self.assertEqual(years[year]['free_cashflow_krw'], 80)
+            reviewed.verify(CODE, year, years, cutoff)
+            self.assertEqual(reviewed.apply(updated)[1], [])
+            years[year][reviewed.PROOF]['source_fiscal_year'] = 2025
+            with self.assertRaisesRegex(ValueError, 'proof_mismatch'):
+                reviewed.verify(CODE, year, years, cutoff)
+            cash['records'][CODE]['years'][year]['ppe_capex_krw'] = 21
+            self.assertEqual(reviewed.apply(cash)[1], [])
+
     def test_reviewed_components_require_exact_receipts_cfo_and_subtotal(self):
         from copy import deepcopy
         from datetime import date

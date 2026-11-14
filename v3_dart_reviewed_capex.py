@@ -20,38 +20,54 @@ def statements():
     return data['records']
 
 
+def validate_statement(item, row, year, cutoff, *, scope, receipt, source_year, source):
+    if (scope not in ('OFS', 'CFS')
+            or not _valid_receipt(receipt, source_year, cutoff)
+            or not _valid_receipt(item['annual_receipt'], int(year), cutoff)
+            or not re.fullmatch(r'[a-f0-9]{64}', source['source_sha256'])
+            or not source['source_url'].startswith(
+                f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+            or row['scope'] != scope or row['major_annual_receipt_matched'] is not True
+            or row['annual_receipt_id'] != item['annual_receipt']
+            or type(row['operating_cashflow_krw']) is not int
+            or row['operating_cashflow_krw'] != item['operating_cashflow_krw']
+            or any(type(item[k]) is not int for k in (*PARTS, 'investing_cashflow_krw',
+                                                      'other_investing_cashflow_krw'))
+            or any(not 0 <= item[k] <= 10**18 for k in PARTS)
+            or item['other_investing_cashflow_krw'] - sum(item[k] for k in PARTS)
+                != item['investing_cashflow_krw']):
+        raise ValueError('unverified_reviewed_capex_statement')
+    return {'source_receipt': receipt, 'source_sha256': source['source_sha256']}
+
+
 def reviewed_year(code, year, years, cutoff):
     source = statements()[code]
     item = source['years'][year]
     row = years[year]
     latest = years['2025']
     receipt = source['source_receipt']
-    if (source['scope'] not in ('OFS', 'CFS')
-            or not _valid_receipt(receipt, 2025, cutoff)
-            or not _valid_receipt(item['annual_receipt'], int(year), cutoff)
-            or not re.fullmatch(r'[a-f0-9]{64}', source['source_sha256'])
-            or not source['source_url'].startswith(
-                f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
-            or row['scope'] != source['scope'] or latest['scope'] != source['scope']
-            or row['major_annual_receipt_matched'] is not True
+    if (latest['scope'] != source['scope']
             or latest['major_annual_receipt_matched'] is not True
             or latest['annual_receipt_id'] != receipt
-            or row['annual_receipt_id'] != item['annual_receipt']
-            or type(row['operating_cashflow_krw']) is not int
-            or row['operating_cashflow_krw'] != item['operating_cashflow_krw']
-            or latest['operating_cashflow_krw'] != source['years']['2025']['operating_cashflow_krw']
-            or any(type(item[k]) is not int for k in (*PARTS, 'investing_cashflow_krw',
-                                                      'other_investing_cashflow_krw'))
-            or any(item[k] < 0 for k in PARTS)
-            or item['other_investing_cashflow_krw'] - sum(item[k] for k in PARTS)
-                != item['investing_cashflow_krw']):
+            or latest['operating_cashflow_krw'] != source['years']['2025']['operating_cashflow_krw']):
         raise ValueError('unverified_reviewed_capex_statement')
-    return item, {'source_receipt': receipt, 'source_sha256': source['source_sha256']}
+    return item, validate_statement(item, row, year, cutoff, scope=source['scope'],
+                                    receipt=receipt, source_year=2025, source=source)
+
+
+def original_year(item, row, year, cutoff):
+    proof = validate_statement(item, row, year, cutoff, scope=item['scope'],
+                               receipt=item['annual_receipt'], source_year=int(year), source=item)
+    return {**proof, 'source_fiscal_year': int(year)}
 
 
 def verify(code, year, years, cutoff):
-    item, proof = reviewed_year(code, year, years, cutoff)
     row = years[year]
+    if 'source_fiscal_year' in row[PROOF]:
+        item = statements()[code]['original_statements'][year]
+        proof = original_year(item, row, year, cutoff)
+    else:
+        item, proof = reviewed_year(code, year, years, cutoff)
     if row[PROOF] != proof or any(row[k] != item[k] for k in PARTS):
         raise ValueError('reviewed_capex_amount_or_proof_mismatch')
 
@@ -61,6 +77,13 @@ def restore(row):
             **dict.fromkeys((*PARTS, 'total_capex_krw', 'free_cashflow_krw'))}
 
 
+def apply_statement(row, item, proof):
+    capex = sum(item[k] for k in PARTS)
+    row.update({k: item[k] for k in PARTS}, total_capex_krw=capex,
+               free_cashflow_krw=row['operating_cashflow_krw']-capex)
+    row[PROOF] = proof
+
+
 def apply(cash):
     from datetime import date
     cutoff = date.fromisoformat(cash['asof'])
@@ -68,7 +91,17 @@ def apply(cash):
     added = []
     for code, source in statements().items():
         years = proposed['records'].get(code, {}).get('years', {})
-        if '2025' not in years or years['2025']['annual_receipt_id'] != source['source_receipt']:
+        for year, item in source.get('original_statements', {}).items():
+            row = years.get(year)
+            if (not row or row['annual_receipt_id'] != item['annual_receipt']
+                    or row['free_cashflow_krw'] is not None
+                    or all(row[k] is not None for k in PARTS)
+                    or any(row[k] is not None and row[k] != item[k] for k in PARTS)):
+                continue
+            proof = original_year(item, row, year, cutoff)
+            apply_statement(row, item, proof)
+            added.append((code, year))
+        if not source.get('years') or '2025' not in years or years['2025']['annual_receipt_id'] != source['source_receipt']:
             continue
         for year, expected in source['years'].items():
             row = years.get(year)
@@ -77,9 +110,6 @@ def apply(cash):
                     or any(row[k] is not None for k in PARTS)):
                 continue
             item, proof = reviewed_year(code, year, years, cutoff)
-            capex = sum(item[k] for k in PARTS)
-            row.update({k: item[k] for k in PARTS}, total_capex_krw=capex,
-                       free_cashflow_krw=row['operating_cashflow_krw']-capex)
-            row[PROOF] = proof
+            apply_statement(row, item, proof)
             added.append((code, year))
     return proposed, added
