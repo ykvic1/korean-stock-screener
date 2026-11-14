@@ -157,6 +157,34 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(notices['109960']['2026-06-01']['ratio'], 20)
         self.assertEqual(notices['036090']['2026-05-21']['shares_after'], 39464095)
 
+    def test_kospi_reduction_split_and_consolidation_keep_auction_return(self):
+        dates = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        reduction, split, consolidation = dates[40], dates[61], dates[90]
+        action = recovery.load_auction_notices()['006740']['2026-05-29']
+        faces, _ = recovery.load_face_notices()
+        split_notice = faces['006740']['2026-06-26']
+        consolidation_notice = faces['006740']['2026-08-28']
+        before, reduced, expanded = 56975588, 4747965, 23739825
+        prices = ([(589, before, 589)] * 40 + [(3000, reduced, 3535)]
+                  + [(4000, reduced, 3000)] + [(5550, reduced, 4000)]
+                  + [(5550, reduced, 5550)] * 18 + [(1110, expanded, 1110)]
+                  + [(1052, expanded, 1110)] + [(1052, expanded, 1052)] * 27
+                  + [(5260, reduced, 5260)] * 31)
+        kwargs = dict(asof=DAY, sessions=dates, auction_notices={reduction: action},
+                      auction_openings={reduction: 3535},
+                      face_notices={split: split_notice, consolidation: consolidation_notice})
+        status, receipt = recovery.make_receipt(prices, **kwargs)
+        self.assertEqual(status, 'recovered')
+        for link in ('auction_capital_reduction', 'fixed_face_split', 'fixed_face_consolidation'):
+            self.assertEqual(receipt[f'kind_{link}_links'], 1)
+        self.assertAlmostEqual(receipt['prior60_close_change_pct'], 100 * (5550 / 7068 - 1), places=5)
+        self.assertAlmostEqual(receipt['recent60_close_change_pct'], 100 * (5260 / 5550 - 1), places=5)
+
+        for i, bad in ((40, (2400, reduced, 3535)), (61, (1110, expanded - 1, 1110)),
+                       (61, (1110, expanded, 1111)), (90, (5260, reduced + 1, 5260))):
+            with self.subTest(index=i, bad=bad):
+                self.assertIsNone(recovery.make_receipt(prices[:i] + [bad] + prices[i+1:], **kwargs)[1])
+
     def test_split_and_reduction_use_the_holder_conversion_ratio(self):
         sessions = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
         day = sessions[60]

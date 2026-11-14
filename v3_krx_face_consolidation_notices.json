@@ -293,6 +293,28 @@
         "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000420/20260519001024/99321.htm",
         "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/15/000281/20260515000516/68155.htm"
       }
+    },
+    "006740": {
+      "2026-06-26": {
+        "reference_krw": 1110,
+        "old_face_krw": 500,
+        "new_face_krw": 100,
+        "market": "KOSPI",
+        "listed_shares_before": 4747965,
+        "listed_shares_after": 23739825,
+        "notice_url": "https://kind.krx.co.kr/external/2026/06/25/000515/20260625001288/99322.htm",
+        "listing_notice_url": "https://kind.krx.co.kr/external/2026/06/23/000108/20260623000154/68155.htm"
+      },
+      "2026-08-28": {
+        "reference_krw": 5260,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "market": "KOSPI",
+        "listed_shares_before": 23739825,
+        "listed_shares_after": 4747965,
+        "notice_url": "https://kind.krx.co.kr/external/2026/08/27/000394/20260827001201/99321.htm",
+        "listing_notice_url": "https://kind.krx.co.kr/external/2026/08/25/000071/20260825000124/68155.htm"
+      }
     }
   },
   "bonus_issues": {
@@ -427,6 +449,20 @@
         "auction_url": "https://kind.krx.co.kr/external/2026/05/28/000631/20260528001460/99326.htm",
         "listing_url": "https://stock.mk.co.kr/news/disclosure/template/1033099",
         "action_url": "https://kind.krx.co.kr/external/2026/02/11/001443/20260211003618/11309.htm"
+      }
+    },
+    "006740": {
+      "2026-05-29": {
+        "market": "KOSPI",
+        "valuation_krw": 7070,
+        "lower_krw": 3535,
+        "upper_krw": 10610,
+        "shares_before": 56975588,
+        "shares_after": 4747965,
+        "ratio": 12,
+        "auction_url": "https://kind.krx.co.kr/external/2026/05/28/000613/20260528001461/99328.htm",
+        "listing_url": "https://kind.krx.co.kr/external/2026/05/26/000129/20260526000247/68155.htm",
+        "action_url": "https://kind.krx.co.kr/external/2026/06/01/000428/20260601000718/99667.htm"
       }
     }
   },
