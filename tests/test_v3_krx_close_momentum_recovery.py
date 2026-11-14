@@ -193,6 +193,25 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         prices[70] = (3650, final + 1, 3650)
         self.assertIsNone(recovery.make_receipt(prices, **kwargs)[1])
 
+    def test_verified_trading_resumption_preserves_genuine_price_jump(self):
+        sessions = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        day = sessions[60]
+        notice = recovery.load_resumption_notices()['002210']['2026-07-30']
+        prices = [(973, 1000, 973)] * 60 + [(1800, 1000, 1946)] + [(1800, 1000, 1800)] * 60
+        kwargs = dict(asof=DAY, sessions=sessions, resumption_notices={day: notice},
+                      auction_openings={day: 1946})
+        outcome, receipt = recovery.make_receipt(prices, **kwargs)
+        self.assertEqual(outcome, 'recovered')
+        self.assertEqual(receipt['kind_trading_resumption_links'], 1)
+        self.assertAlmostEqual(receipt['prior60_close_change_pct'], 100 * (1800 / 973 - 1), places=5)
+        for invalid in ((1800, 1001, 1946), (1800, 1000, 1945), (2600, 1000, 1946)):
+            with self.subTest(invalid=invalid):
+                self.assertIsNone(recovery.make_receipt(prices[:60] + [invalid] + prices[61:], **kwargs)[1])
+        prices[90] = (900, 1000, 1800)
+        prices[91] = (1800, 1000, 900)
+        self.assertEqual(recovery.make_receipt(prices, **kwargs),
+                         ('invalid_or_discontinuous_close_history', None))
+
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'
         stock = {'code': code, 'market': 'KOSDAQ', 'price': 105, 'price_date': DAY}

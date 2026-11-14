@@ -110,12 +110,13 @@ def _verified_window_start(close, volume, session_days):
     return len(dates)==2 and 0 < (dates[1]-dates[0]).days <= 10
 
 
-def close_path_facts(closes):
+def close_path_facts(closes, *, verified_jump_indices=()):
     """Calculate the four shared price-only facts for a 121-session path."""
     if len(closes) != 121 or any(not _number(x, positive=True) for x in closes):
         return None
     closes = [float(x) for x in closes]
-    if any(abs(b / a - 1) > .5 for a, b in zip(closes, closes[1:])):
+    if any(abs(b / a - 1) > .5 and i not in verified_jump_indices
+           for i, (a, b) in enumerate(zip(closes, closes[1:]), start=1)):
         return None
     prior = 100 * (closes[60] / closes[0] - 1)
     recent = 100 * (closes[120] / closes[60] - 1)

@@ -429,5 +429,34 @@
         "action_url": "https://kind.krx.co.kr/external/2026/02/11/001443/20260211003618/11309.htm"
       }
     }
+  },
+  "trading_resumptions": {
+    "175250": {
+      "2026-09-03": {
+        "market": "KOSDAQ",
+        "valuation_krw": 2170,
+        "lower_krw": 1085,
+        "upper_krw": 4340,
+        "notice_url": "https://invest.kiwoom.com/inv/disclosure_detail?code=02&date=2026.09.02&keyword=%EC%95%84%EC%9D%B4%ED%81%90%EC%96%B4&seq=00093620&stockCode=&tp=1&type=02"
+      }
+    },
+    "298000": {
+      "2026-06-15": {
+        "market": "KOSPI",
+        "valuation_krw": 38900,
+        "lower_krw": 19450,
+        "upper_krw": 77800,
+        "notice_url": "https://kind.krx.co.kr/external/2026/06/12/001156/20260612002256/99409.htm"
+      }
+    },
+    "002210": {
+      "2026-07-30": {
+        "market": "KOSPI",
+        "valuation_krw": 973,
+        "lower_krw": 486,
+        "upper_krw": 1946,
+        "notice_url": "https://kind.krx.co.kr/external/2026/07/29/001038/20260729002730/99409.htm"
+      }
+    }
   }
 }
