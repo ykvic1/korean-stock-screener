@@ -10,6 +10,9 @@ import re
 
 from official_probe.clients import KRXClient, ProbeError
 from official_probe.validation import _numeric
+from v3_dated_market_roster import DatedRosterError, load_dated_listing
+from v3_fdr_cache_krx_close_corroboration import cache_close_index
+from v3_krx_daily_anomaly_triage import classify_row
 from v3_krx_history_collection import MARKETS, _snapshot_market
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
@@ -54,7 +57,7 @@ def closes_on(client, market, day, codes):
     found = {}
     for row in rows:
         code = row['ISU_CD']
-        if code not in codes:
+        if code not in codes or classify_row(row)[0] != 'valid_numeric_observation':
             continue
         try:
             close = _numeric(row.get('TDD_CLSPRC'), 'TDD_CLSPRC', positive=True)
@@ -77,7 +80,9 @@ def make_receipt(observations, *, asof):
         _, shares, reference_price = current
         if previous_shares != shares and reference_price != previous_close:
             return 'listed_share_change_reference_discontinuous_or_missing', None
-        if reference_price is not None and reference_price != previous_close:
+        if reference_price is None:
+            return 'missing_official_previous_close_reference', None
+        if reference_price != previous_close:
             return 'official_reference_discontinuity', None
     close = [row[0] for row in observations]
     facts = close_path_facts(close)
@@ -87,13 +92,34 @@ def make_receipt(observations, *, asof):
                          'path_window_trading_sessions': SESSIONS, **facts}
 
 
-def run(market, report, ledger, key):
+def close_anchor(stock, official_row, dated_close):
+    """Keep the saved price intact and anchor this independent close path."""
+    if official_row is None:
+        return None
+    official_close = official_row[0]
+    if dated_close == official_close:
+        return 'dated_fdr_krx_match'
+    if stock['price'] == official_close:
+        return 'saved_close_krx_match'
+    return None
+
+
+def run(market, report, ledger, key, *, load_listing=load_dated_listing):
     day = market['date']
     targets = select_targets(market, report, ledger)
     start = (date.fromisoformat(day) - timedelta(days=210)).isoformat()
     dates = candidate_dates(calendar_weekday_candidates(start, day), source='xkrx')['dates'][-SESSIONS:]
     if len(dates) != SESSIONS or dates[-1] != day:
         raise ValueError('invalid_close_momentum_session_window')
+
+    cache, cache_sha = {}, None
+    if targets:
+        try:
+            frame, cache_sha = load_listing(day)
+        except DatedRosterError:
+            pass  # Existing same-close recovery can still run.
+        else:
+            cache = cache_close_index(frame)
 
     def collect(exchange):
         wanted = {code: s for (m, code), s in targets.items() if m == exchange}
@@ -103,9 +129,12 @@ def run(market, report, ledger, key):
         client = RetryingMoneyClient(KRXClient(key))
         try:
             current = closes_on(client, exchange, day, wanted)
-            eligible = {c for c, s in wanted.items()
-                        if c in current and current[c][0] == s['price']}
+            anchors = {code: close_anchor(stock, current.get(code), cache.get((exchange, code)))
+                       for code, stock in wanted.items()}
+            eligible = {code for code, anchor in anchors.items() if anchor is not None}
             counts['current_close_or_basis_unmatched'] = len(wanted) - len(eligible)
+            for code in eligible:
+                counts[f'eligible_{anchors[code]}'] += 1
             if not eligible:
                 return counts, {}, client.requests
             history = [closes_on(client, exchange, d, eligible) for d in dates[:-1]]
@@ -115,7 +144,11 @@ def run(market, report, ledger, key):
                 outcome, receipt = make_receipt([d.get(code) for d in history], asof=day)
                 counts[outcome] += 1
                 if receipt is not None:
-                    receipts[(exchange, code)] = receipt
+                    anchor = anchors[code]
+                    counts[f'recovered_{anchor}'] += 1
+                    if current[code][0] != wanted[code]['price']:
+                        counts['recovered_despite_saved_close_mismatch'] += 1
+                    receipts[(exchange, code)] = {**receipt, 'close_anchor': anchor}
             return counts, receipts, client.requests
         finally:
             client.client.session.close()
@@ -130,6 +163,8 @@ def run(market, report, ledger, key):
                 targets[identity][STOCK_FIELD] = receipt
     return {'asof': day, 'first_source_session': dates[0], 'session_count': SESSIONS,
             'selected': len(targets), 'counts': dict(counts), 'official_requests': calls,
+            'dated_fdr_close_source_sha256': cache_sha,
+            'dated_fdr_close_requests': int(bool(targets)),
             'raw_source_exported': False, 'volume_evidence_used': False,
             'corporate_actions_adjusted_verified': False}
 
