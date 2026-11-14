@@ -6,10 +6,10 @@ import pandas as pd
 
 from v3_official_gap_ma_recovery import (
     FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, add_weekly_ma120, repair, source_frame,
-    weekly_position, weekly_rsi, recover_weekly_pattern,
+    weekly_position, weekly_rsi, recover_daily_pattern, recover_weekly_pattern,
 )
 from v3_ma_slope_transition import observe
-from v3_pattern_first_observations import observe_completed_weekly
+from v3_pattern_first_observations import observe as observe_daily, observe_completed_weekly
 
 DATES = [NEIGHBORS[0], GAP, NEIGHBORS[1]]
 TICKER = '000001.KS'
@@ -102,6 +102,23 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertIsNone(recover_weekly_pattern(stock, frame, disagree, '2026-11-13'))
         frame.loc['2026-07-07', ['Open', 'High', 'Low', 'Close']] = 500
         self.assertIsNone(recover_weekly_pattern(stock, frame, anchors, '2026-11-13'))
+
+    def test_daily_pattern_uses_only_recent_contiguous_anchored_bars(self):
+        dates = pd.bdate_range(end='2026-11-13', periods=240)
+        close = [100 + i % 22 for i in range(len(dates))]
+        frame = pd.DataFrame(dict(Open=close, High=close, Low=close, Close=close, Volume=100),
+                             index=dates)
+        day = '2026-11-13'
+        anchors = {dates[i].date().isoformat(): tuple(frame.iloc[i]) for i in (-120, -40, -1)}
+        stock = {'price_date': day}
+        frame.iloc[3] = float('nan')
+        self.assertEqual(recover_daily_pattern(stock, frame, anchors, day),
+                         observe_daily(frame.iloc[-160:]))
+        self.assertIsNone(recover_daily_pattern(stock, frame, {day: anchors[day]}, day))
+        disagree = dict(anchors, **{day: (*anchors[day][:4], 101)})
+        self.assertIsNone(recover_daily_pattern(stock, frame, disagree, day))
+        frame.iloc[-20] = float('nan')
+        self.assertIsNone(recover_daily_pattern(stock, frame, anchors, day))
 
     def test_weekly_ma120_only_adds_the_missing_same_week_component(self):
         dates = pd.bdate_range(end='2026-11-12', periods=800)
