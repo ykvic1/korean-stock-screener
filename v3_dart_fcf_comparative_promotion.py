@@ -193,7 +193,11 @@ def main():
     if (root / FY2024_OUTPUT).is_file():
         proposed, additional = apply_fy2024(proposed, read(FY2024_OUTPUT))
         codes = sorted(set(codes) | set(additional))
+    from v3_dart_reviewed_capex import apply as apply_reviewed
+    proposed, reviewed = apply_reviewed(proposed)
+    codes = sorted(set(codes) | {code for code, _ in reviewed})
     result = {'eligible_prior_year_issuer_repairs': len(codes),
+              'reviewed_disaggregated_capex_years': len(reviewed),
               'new_three_year_fcf_issuer_completions': sum(
                   all(proposed['records'][code]['years'].get(year, {}).get('free_cashflow_krw') is not None
                       for year in ('2023', '2024', '2025'))
