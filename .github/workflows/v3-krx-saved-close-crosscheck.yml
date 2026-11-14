@@ -23,10 +23,10 @@ on:
       - tests/test_v3_fdr_cache_krx_close_corroboration.py
       - .github/workflows/v3-krx-saved-close-crosscheck.yml
   schedule:
-    # 09:20 KST on weekdays: compare the previous trading day's saved
-    # snapshot after the KRX Open API daily release the following morning.
+    # 09:20 KST Monday-Saturday: include Friday's saved session on
+    # Saturday morning, when the official KRX daily data can be checked.
     # A matching published source digest skips all official API calls.
-    - cron: '20 0 * * 1-5'
+    - cron: '20 0 * * 1-6'
   workflow_dispatch:
     inputs:
       mode:
