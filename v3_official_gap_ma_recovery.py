@@ -206,7 +206,9 @@ def weekly_pattern_window(expected, completed_friday):
     weeks = list(by_week.values())[-WEEKLY_PATTERN_WEEKS:]
     if len(weeks) < WEEKLY_PATTERN_WEEKS:
         raise ValueError('operating_sources_not_aligned')
-    anchor_days = [weeks[index][-1] for index in (0, 29, 59, -1)]
+    # A missing provider bar cannot be an independent comparison anchor.
+    anchor_days = [OUTER_ANCHORS[0] if week[-1] == GAP else week[-1]
+                   for week in (weeks[index] for index in (0, 29, 59, -1))]
     return weeks[0][0], weeks[-1][-1], anchor_days
 
 
