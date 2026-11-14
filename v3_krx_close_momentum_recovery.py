@@ -86,6 +86,13 @@ def valid_face_notice_source(item):
     kind = r'https://kind\.krx\.co\.kr/external/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{6}/[0-9]{14}/'
     if 'kind_url' in item:
         return bool(re.fullmatch(kind + r'70795\.htm', item['kind_url']))
+    if 'listing_notice_url' in item:
+        return (item.get('market') == 'KOSPI'
+                and bool(re.fullmatch(kind + r'68155\.htm', item['listing_notice_url']))
+                and all(type(item.get(k)) is int and item[k] > 0 for k in
+                        ('listed_shares_before', 'listed_shares_after'))
+                and item['listed_shares_before'] > item['listed_shares_after']
+                and 'reference_krw' not in item)
     url = item.get('notice_url', '')
     if item.get('market') == 'KOSPI':
         return bool(re.fullmatch(kind + r'99321\.htm', url)
@@ -107,7 +114,9 @@ def load_face_notices(path=NOTICE_FILE):
         for day, item in records.items():
             if (date.fromisoformat(day).isoformat() != day or type(item) is not dict
                 or any(type(item.get(k)) is not int or item[k] <= 0
-                       for k in ('reference_krw', 'old_face_krw', 'new_face_krw'))
+                       for k in ('old_face_krw', 'new_face_krw'))
+                or ('listing_notice_url' not in item and
+                    (type(item.get('reference_krw')) is not int or item['reference_krw'] <= 0))
                 or item['new_face_krw'] <= item['old_face_krw']
                 or not valid_face_notice_source(item)):
                 raise ValueError('invalid_krx_face_consolidation_notice')
@@ -172,9 +181,16 @@ def verified_face_consolidation(previous, current, notice):
     _, shares, reference = current
     if notice is None or not 0 < previous_close < reference or shares >= previous_shares:
         return False
+    old_face, new_face = notice['old_face_krw'], notice['new_face_krw']
+    if 'listing_notice_url' in notice:
+        # The listing notice names the exact ordinary-share counts. Require
+        # an exact conversion of the preceding close to the observed reference.
+        return (previous_shares == notice['listed_shares_before']
+                and shares == notice['listed_shares_after']
+                and abs(previous_shares * old_face - shares * new_face) < new_face
+                and previous_close * new_face == reference * old_face)
     if reference != notice['reference_krw']:
         return False
-    old_face, new_face = notice['old_face_krw'], notice['new_face_krw']
     # The published post-action count can truncate fractional shares.
     if abs(previous_shares * old_face - shares * new_face) >= new_face:
         return False

@@ -95,6 +95,18 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertFalse(recovery.valid_face_notice_source({**kospi, 'face_evidence_url': ''}))
         self.assertFalse(recovery.valid_face_notice_source({**kosdaq, 'market': 'KOSPI'}))
 
+    def test_exchange_listing_notice_requires_exact_share_counts_and_reference(self):
+        notices, _ = recovery.load_face_notices()
+        notice = notices['004410']['2026-05-21']
+        previous = (158, 394550136, 158)
+        current = (1436, 39455013, 1580)
+        self.assertTrue(recovery.verified_face_consolidation(previous, current, notice))
+        self.assertFalse(recovery.verified_face_consolidation(
+            previous, (1436, 39455013, 1585), notice))
+        self.assertFalse(recovery.verified_face_consolidation(
+            previous, (1436, 39455014, 1580), notice))
+        self.assertFalse(recovery.valid_face_notice_source({**notice, 'market': 'KOSDAQ'}))
+
     def test_bonus_rebases_on_rights_date_only_after_listing_confirmation(self):
         dates = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
         rights, listing = dates[45], dates[63]
