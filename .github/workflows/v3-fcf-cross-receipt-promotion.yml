@@ -5,6 +5,8 @@ on:
       - v3_dart_fcf_comparative_promotion.py
       - v3_dart_fcf_2024_prior_probe.py
       - v3_dart_cashflow_enrichment.py
+      - v3_dart_reviewed_capex.py
+      - v3_dart_reviewed_capex_statements.json
       - tests/test_v3_dart_fcf_comparative_promotion.py
       - .github/workflows/v3-fcf-cross-receipt-promotion.yml
   push:
@@ -13,6 +15,8 @@ on:
       - v3_dart_fcf_comparative_promotion.py
       - v3_dart_fcf_2024_prior_probe.py
       - v3_dart_cashflow_enrichment.py
+      - v3_dart_reviewed_capex.py
+      - v3_dart_reviewed_capex_statements.json
       - .github/workflows/v3-fcf-cross-receipt-promotion.yml
   workflow_dispatch:
   workflow_run:
@@ -61,7 +65,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Promote only independently anchored FY2025 original comparatives
+      - name: Promote receipt-matched CAPEX from verified statements
         run: |
           python v3_dart_fcf_comparative_promotion.py --mode promote
           python v3_dart_cashflow_enrichment.py --mode verify

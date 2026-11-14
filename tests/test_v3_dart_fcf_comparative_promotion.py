@@ -192,5 +192,43 @@ class PromotionTests(unittest.TestCase):
         self.assertEqual(y['2023']['free_cashflow_krw'], 75)
 
 
+class ReviewedStatementTests(unittest.TestCase):
+    def test_reviewed_components_require_exact_receipts_cfo_and_subtotal(self):
+        from copy import deepcopy
+        from datetime import date
+        from unittest.mock import patch
+        import v3_dart_reviewed_capex as reviewed
+
+        code = '079000'
+        cutoff = date(2026, 11, 13)
+        source = reviewed.statements()[code]
+        years = {
+            year: {'scope': source['scope'], 'annual_receipt_id': data['annual_receipt'],
+                   'operating_cashflow_krw': data['operating_cashflow_krw'],
+                   'major_annual_receipt_matched': True,
+                   **dict.fromkeys((*reviewed.PARTS, 'total_capex_krw', 'free_cashflow_krw'))}
+            for year, data in source['years'].items()
+        }
+        cash = {'asof': cutoff.isoformat(), 'records': {code: {'years': years}}}
+        updated, added = reviewed.apply(cash)
+        self.assertEqual(set(added), {(code, year) for year in years})
+        self.assertEqual(reviewed.apply(updated)[1], [])
+        new_years = updated['records'][code]['years']
+        for year in years:
+            reviewed.verify(code, year, new_years, cutoff)
+            self.assertEqual(reviewed.restore(new_years[year]), years[year])
+        new_years['2024']['operating_cashflow_krw'] += 1
+        with self.assertRaisesRegex(ValueError, 'unverified_reviewed_capex'):
+            reviewed.verify(code, '2024', new_years, cutoff)
+        different = deepcopy(cash)
+        different['records'][code]['years']['2025']['annual_receipt_id'] = '20261110000001'
+        self.assertEqual(reviewed.apply(different)[1], [])
+        bad = deepcopy(source)
+        bad['years']['2024']['investing_cashflow_krw'] += 1
+        with patch.object(reviewed, 'statements', return_value={code: bad}):
+            with self.assertRaisesRegex(ValueError, 'unverified_reviewed_capex'):
+                reviewed.apply(cash)
+
+
 if __name__ == '__main__':
     unittest.main()

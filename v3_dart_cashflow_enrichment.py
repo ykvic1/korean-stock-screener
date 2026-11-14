@@ -205,6 +205,11 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
                         raise CashflowError('comparative_source_changed_without_bulk_revision')
                     observation=restore_if_later_receipt_changed(
                         observation,actual_later_receipt=later_receipt)
+            if observation.get('reviewed_disaggregated_capex') is not None:
+                from v3_dart_reviewed_capex import restore
+                latest = major_years.get('2025', {}).get(scope, {})
+                if observation['reviewed_disaggregated_capex']['source_receipt'] != latest.get('receipt_id'):
+                    observation = restore(observation)
             unchanged[year]=observation
         if unchanged:
             current_records[code]={"scope":scope,"years":unchanged}
@@ -417,6 +422,7 @@ def summary(asof,members,records,major_source_hash):
     name_fallback_years=0
     name_fallback_components=0
     later_original_comparative_years=0
+    reviewed_disaggregated_years=0
     for code,r in records.items():
         if code not in members or type(r) is not dict or r.get("scope") not in ("CFS","OFS"):
             raise CashflowError("invalid_cashflow_checkpoint_issuer")
@@ -481,6 +487,13 @@ def summary(asof,members,records,major_source_hash):
                 except (ComparativePromotionError,KeyError,ValueError,TypeError):
                     raise CashflowError('untrusted_cross_receipt_capex_proof') from None
                 later_original_comparative_years+=1
+            if z.get('reviewed_disaggregated_capex') is not None:
+                from v3_dart_reviewed_capex import verify
+                try:
+                    verify(code,y,years,_day(asof))
+                except (KeyError,ValueError,TypeError):
+                    raise CashflowError('untrusted_reviewed_capex_statement') from None
+                reviewed_disaggregated_years+=1
             marker=z.get("account_name_recheck")
             if marker is not None:
                 if (type(marker) is not dict or set(marker)!={
@@ -532,6 +545,9 @@ def summary(asof,members,records,major_source_hash):
     if later_original_comparative_years:
         source+=' plus CFO-matched later-original annual CAPEX comparatives'
         count['later_original_comparative_years']=later_original_comparative_years
+    if reviewed_disaggregated_years:
+        source+=' plus reviewed DART investing cash-flow purchase subtotals'
+        count['reviewed_disaggregated_capex_years']=reviewed_disaggregated_years
     return {"schema":SCHEMA,"asof":asof,"listed_total":len(members),
             "source_major_history_sha256":major_source_hash,
             "source_fiscal_years":list(YEARS),
