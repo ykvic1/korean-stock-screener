@@ -39,7 +39,7 @@
       "industry": 15,
       "momentum": 10
     },
-    "technical_observed_25_count": 2161,
+    "technical_observed_25_count": 2180,
     "candidate_full_six_pillar_count": 0,
     "ranking_without_verified_other_five_pillars": false,
     "legacy_v2_score_and_buy_decision_unchanged": true,
@@ -7522,17 +7522,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 54.56,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": true,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": 2.4651
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -7556,30 +7568,32 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 7.04,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 3,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 12.04,
         "daily_top_pattern": null,
-        "weekly_top_pattern": null,
+        "weekly_top_pattern": {
+          "type": "falling_wedge_candidate",
+          "stage": "geometric_candidate"
+        },
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 12.04,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -18402,17 +18416,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 58.64,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": 3.6668
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -18436,30 +18462,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 3,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 5.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 5.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -58949,17 +58974,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 56.5,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": 47.5206
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -58983,30 +59020,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 0.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 0.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -73654,17 +73690,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 53.18,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -11.8947
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -73688,30 +73736,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 1,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 1.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 1.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -185839,25 +185886,25 @@
       },
       "v3_ma240_cross_unavailable_reason": null,
       "v3_ma_slope_transition": {
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "asof": "2026-11-13",
-        "investment_score_certified": false,
+        "weekly_asof": "2026-11-13",
         "parts": {
           "daily": {
-            "120": 0.0,
-            "20": null,
-            "60": 0.0
+            "20": 0.148484,
+            "60": 0.0,
+            "120": 0.0
           },
           "weekly": {
-            "120": 0.0,
             "20": 0.0,
-            "60": 0.0
+            "60": 0.0,
+            "120": 0.0
           }
         },
-        "raw_ohlcv_exported": false,
-        "schema": "v3-ma-log-slope-transition-provisional-0.1",
-        "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": "2026-11-13"
+        "source_corporate_action_adjusted_verified": false,
+        "raw_ohlcv_exported": false,
+        "investment_score_certified": false
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-13",
@@ -185936,17 +185983,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
-        "patterns": [],
-        "rsi14": null,
-        "rsi30_cross_recent": false,
-        "rsi_bullish_divergence_recent": false,
         "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
+        "patterns": [],
+        "rsi14": 28.24,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true,
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -78.5903
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -185970,14 +186029,14 @@
         },
         "technical_parts": {
           "daily_pattern": 4.9,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 3,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 7.9,
         "daily_top_pattern": {
           "type": "double_bottom",
           "stage": "forming"
@@ -185987,16 +186046,15 @@
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 7.9,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -199979,17 +200037,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 44.34,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -53.3179
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -200013,30 +200083,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 0.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 0.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -212229,17 +212298,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 36.35,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": 3.465
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -212263,30 +212344,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 2,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 3,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 5.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 5.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -271271,17 +271351,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
-        "patterns": [],
-        "rsi14": null,
-        "rsi30_cross_recent": false,
-        "rsi_bullish_divergence_recent": false,
         "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
+        "patterns": [],
+        "rsi14": 34.25,
+        "rsi30_cross_recent": true,
+        "rsi_bullish_divergence_recent": false,
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -42.4796
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -271305,30 +271397,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 2,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 3,
+          "weekly_ma120": 0,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 7.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 7.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -306052,17 +306143,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 43.06,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -9.9164
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -306086,30 +306189,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 1,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 1.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 1.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -321857,17 +321959,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 48.74,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -2.697
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -321891,30 +322005,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 2,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 2.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 2.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -333496,17 +333609,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 25.79,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -42.0399
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -333530,14 +333655,14 @@
         },
         "technical_parts": {
           "daily_pattern": 4.9,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 2,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 6.9,
         "daily_top_pattern": {
           "type": "double_bottom",
           "stage": "forming"
@@ -333547,16 +333672,15 @@
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 6.9,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -370532,17 +370656,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
-        "patterns": [],
-        "rsi14": null,
-        "rsi30_cross_recent": false,
-        "rsi_bullish_divergence_recent": false,
         "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
+        "patterns": [],
+        "rsi14": 25.64,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true,
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -82.3569
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -370566,13 +370702,13 @@
         },
         "technical_parts": {
           "daily_pattern": null,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": null,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 3,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 2,
+        "technical_observed_maximum": 16,
         "technical_research_candidate": null,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
@@ -382715,17 +382851,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
-        "patterns": [],
-        "rsi14": null,
-        "rsi30_cross_recent": false,
-        "rsi_bullish_divergence_recent": false,
         "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
+        "patterns": [],
+        "rsi14": 37.26,
+        "rsi30_cross_recent": true,
+        "rsi_bullish_divergence_recent": false,
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -20.6142
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -382749,30 +382897,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 3,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 3.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 3.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -400924,17 +401071,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 31.01,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -39.4691
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -400958,30 +401117,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 2,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 4.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 4.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -412565,7 +412723,7 @@
           "weekly": {
             "20": 0.0,
             "60": 0.0,
-            "120": null
+            "120": 0.0
           }
         },
         "source_regular_session_verified": false,
@@ -412633,17 +412791,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 33.3,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -33.5025
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -412667,13 +412837,13 @@
         },
         "technical_parts": {
           "daily_pattern": null,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": null,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 2,
+        "technical_observed_maximum": 16,
         "technical_research_candidate": null,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
@@ -418183,17 +418353,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 30.47,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -85.891
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -418217,30 +418399,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 2.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 2.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -423302,17 +423483,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 33.8,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -17.9145
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -423336,30 +423529,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 2,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 2
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 4.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 4.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -449922,17 +450114,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 39.58,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -32.9269
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -449956,30 +450160,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 0.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 0.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -496837,17 +497040,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 39.42,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -35.4773
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -496871,30 +497086,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 0.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 0.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -539176,17 +539390,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
-        "patterns": [],
-        "rsi14": null,
-        "rsi30_cross_recent": false,
-        "rsi_bullish_divergence_recent": false,
         "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
+        "patterns": [],
+        "rsi14": 40.66,
+        "rsi30_cross_recent": false,
+        "rsi_bullish_divergence_recent": true,
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -61.2154
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -539210,14 +539436,14 @@
         },
         "technical_parts": {
           "daily_pattern": 4.9,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 3,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 7.9,
         "daily_top_pattern": {
           "type": "double_bottom",
           "stage": "forming"
@@ -539227,16 +539453,15 @@
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 7.9,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -603764,17 +603989,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
-        "patterns": [],
-        "rsi14": null,
-        "rsi30_cross_recent": false,
-        "rsi_bullish_divergence_recent": false,
         "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
+        "patterns": [],
+        "rsi14": 30.12,
+        "rsi30_cross_recent": true,
+        "rsi_bullish_divergence_recent": false,
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": true,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": null
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -603798,13 +604035,13 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 2,
-          "weekly_rsi": null,
+          "weekly_rsi": 3,
           "weekly_ma120": null,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
+        "technical_observed_maximum": 22,
         "technical_research_candidate": null,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
@@ -608008,17 +608245,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 36.79,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -14.357
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -608042,30 +608291,29 @@
         },
         "technical_parts": {
           "daily_pattern": 0.0,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": 0,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 1,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 11,
-        "technical_research_candidate": null,
+        "technical_observed_maximum": 25,
+        "technical_research_candidate": 1.0,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
         "six_pillar_candidates": {
           "ias": null,
           "financial": null,
           "valuation": null,
-          "technical": null,
+          "technical": 1.0,
           "industry": null,
           "momentum": null
         },
-        "six_pillar_coverage_pct": 0.0,
+        "six_pillar_coverage_pct": 25.0,
         "missing_pillars": [
           "ias",
           "financial",
           "valuation",
-          "technical",
           "industry",
           "momentum"
         ],
@@ -636538,7 +636786,27 @@
       "v3_unscored_path_unavailable_reason": "zero_volume_close_changed_without_trade",
       "v3_ma240_cross_research": null,
       "v3_ma240_cross_unavailable_reason": "zero_volume_close_changed_without_trade",
-      "v3_ma_slope_transition": null,
+      "v3_ma_slope_transition": {
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
+        "asof": "2026-11-13",
+        "weekly_asof": "2026-11-13",
+        "parts": {
+          "daily": {
+            "20": 0.0,
+            "60": 0.0,
+            "120": 0.0
+          },
+          "weekly": {
+            "20": 0.0,
+            "60": 0.0,
+            "120": 0.0
+          }
+        },
+        "source_regular_session_verified": false,
+        "source_corporate_action_adjusted_verified": false,
+        "raw_ohlcv_exported": false,
+        "investment_score_certified": false
+      },
       "v3_breakout_followthrough": {
         "asof": "2026-11-13",
         "confirmation_sessions": 5,
@@ -636599,17 +636867,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 39.64,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -53.1191
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -636633,13 +636913,13 @@
         },
         "technical_parts": {
           "daily_pattern": null,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": null,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 2,
+        "technical_observed_maximum": 16,
         "technical_research_candidate": null,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
@@ -658028,17 +658308,29 @@
         "timeframe": "daily"
       },
       "pattern_weekly_research": {
-        "asof": null,
-        "buy_signal": false,
-        "official_regular_session_verified": false,
+        "schema": "v3-pattern-first-daily-research-0.1",
+        "status": "heuristic_unverified",
+        "timeframe": "weekly",
         "patterns": [],
-        "rsi14": null,
+        "rsi14": 26.11,
         "rsi30_cross_recent": false,
         "rsi_bullish_divergence_recent": false,
-        "schema": "v3-pattern-first-daily-research-0.1",
+        "rsi_bullish_divergence_basis": "confirmed closing-price pivot",
+        "official_regular_session_verified": false,
         "scoring_allowed": false,
-        "status": "insufficient",
-        "timeframe": "weekly"
+        "buy_signal": false,
+        "asof": "2026-11-13",
+        "pattern_geometry": {
+          "status": "heuristic_unvalidated",
+          "falling_wedge_candidate": false,
+          "inverse_head_shoulders_breakout_candidate": false,
+          "triangle_candidate": false,
+          "post_rise_consolidation_candidate": false,
+          "basis": "trailing log-price geometry; fixed thresholds, no pattern win-rate validated"
+        },
+        "source_recent_clean_window_only": false,
+        "completed_week_only": true,
+        "weekly_ma120_gap_pct": -67.1335
       },
       "v3_pattern_integrated": {
         "schema": "v3-pattern-within-six-pillars-research-0.4",
@@ -658062,13 +658354,13 @@
         },
         "technical_parts": {
           "daily_pattern": null,
-          "weekly_pattern": null,
+          "weekly_pattern": 0.0,
           "daily_rsi": null,
-          "weekly_rsi": null,
-          "weekly_ma120": null,
+          "weekly_rsi": 0,
+          "weekly_ma120": 0,
           "volume_confirmation": 0
         },
-        "technical_observed_maximum": 2,
+        "technical_observed_maximum": 16,
         "technical_research_candidate": null,
         "daily_top_pattern": null,
         "weekly_top_pattern": null,
