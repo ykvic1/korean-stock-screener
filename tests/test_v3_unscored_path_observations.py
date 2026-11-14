@@ -18,6 +18,33 @@ def sample():
 
 
 class UnscoredPricePathTests(unittest.TestCase):
+    def test_zero_volume_window_start_needs_observed_previous_traded_close(self):
+        close,volume,days=sample()
+        close=[close[0]]+close
+        volume=[100.]+volume
+        days=[days[0]-timedelta(days=1)]+days
+        ordinary=observe(close,volume,asof=ASOF,session_days=days)
+        volume[1]=0
+        recovered=observe(close,volume,asof=ASOF,session_days=days)
+        self.assertEqual(recovered,ordinary)
+        self.assertEqual(recovered['new_v3_available_points'],0)
+        self.assertFalse(recovered['investment_score_certified'])
+        self.assertIsNone(observe(close[1:],volume[1:],asof=ASOF,session_days=days[1:]))
+        for previous_close,previous_volume,previous_day in (
+                (close[0]+1,100.,days[0]),
+                (close[0],0,days[0]),
+                (float('nan'),100.,days[0]),
+                (close[0],100.,days[1]),
+                (close[0],100.,days[1]-timedelta(days=11))):
+            with self.subTest(previous_close=previous_close,previous_volume=previous_volume,previous_day=previous_day):
+                c=close.copy();v=volume.copy();d=days.copy()
+                c[0]=previous_close;v[0]=previous_volume;d[0]=previous_day
+                self.assertIsNone(observe(c,v,asof=ASOF,session_days=d))
+                self.assertEqual(classify_unavailable(c,v,asof=ASOF,session_days=d),
+                                 'nonpositive_or_invalid_price_volume')
+        volume[-1]=0;close[-1]=close[-2]
+        self.assertIsNone(observe(close,volume,asof=ASOF,session_days=days))
+
     def test_measured_daily_path_never_adds_five_area_points(self):
         close,volume,days=sample()
         out=observe(close,volume,asof=ASOF,session_days=days)

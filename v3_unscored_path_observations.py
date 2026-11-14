@@ -57,7 +57,7 @@ def classify_unavailable(close, volume, *, asof, session_days=None):
     volumes = list(volume[-121:])
     if (any(not _number(x, positive=True) for x in closes)
             or any(not _number(x, positive=False) for x in volumes)
-            or not _number(volumes[0], positive=True)
+            or not _verified_window_start(close, volume, session_days)
             or not _number(volumes[-1], positive=True)):
         return "nonpositive_or_invalid_price_volume"
     closes = [float(x) for x in closes]
@@ -83,6 +83,31 @@ def _number(value,*,positive=False):
     except (TypeError,ValueError,OverflowError):
         return False
     return math.isfinite(number) and (number>0 if positive else number>=0)
+
+
+def _verified_window_start(close, volume, session_days):
+    """An observed no-trade first bar needs the preceding real traded bar.
+
+    Never fill a missing bar or accept an unanchored zero-volume boundary.
+    The most recent bar must still have positive volume, as before.
+    """
+    if _number(volume[-121], positive=True):
+        return True
+    if (len(close) < 122 or not _number(volume[-121])
+            or float(volume[-121]) != 0
+            or not _number(close[-122], positive=True)
+            or not _number(volume[-122], positive=True)
+            or float(close[-122]) != float(close[-121])):
+        return False
+    dates=[]
+    for raw in session_days[-122:-120]:
+        if callable(getattr(raw,'date',None)):
+            dates.append(raw.date())
+        elif type(raw) is date:
+            dates.append(raw)
+        else:
+            return False
+    return len(dates)==2 and 0 < (dates[1]-dates[0]).days <= 10
 
 
 def close_path_facts(closes):
@@ -146,7 +171,7 @@ def observe(close,volume,*,asof,session_days=None):
     closes=list(close[-121:]);volumes=list(volume[-121:])
     if (any(not _number(x,positive=True) for x in closes) or
         any(not _number(v,positive=False) for v in volumes) or
-        not _number(volumes[0],positive=True) or
+        not _verified_window_start(close,volume,session_days) or
         not _number(volumes[-1],positive=True)):
         return None
     closes=[float(x) for x in closes];volumes=[float(v) for v in volumes]
