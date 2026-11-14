@@ -205,10 +205,11 @@ def retained_current_market_cashflow(market,catalog,bulk,prior):
                         raise CashflowError('comparative_source_changed_without_bulk_revision')
                     observation=restore_if_later_receipt_changed(
                         observation,actual_later_receipt=later_receipt)
-            if observation.get('reviewed_disaggregated_capex') is not None:
+            reviewed = observation.get('reviewed_disaggregated_capex')
+            if reviewed is not None and 'source_fiscal_year' not in reviewed:
                 from v3_dart_reviewed_capex import restore
                 latest = major_years.get('2025', {}).get(scope, {})
-                if observation['reviewed_disaggregated_capex']['source_receipt'] != latest.get('receipt_id'):
+                if reviewed['source_receipt'] != latest.get('receipt_id'):
                     observation = restore(observation)
             unchanged[year]=observation
         if unchanged:
