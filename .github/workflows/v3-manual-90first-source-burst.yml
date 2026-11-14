@@ -37,7 +37,7 @@ jobs:
           import os
           from pathlib import Path
           from v3_saved_close_path_recovery import select_targets, RecoveryError
-          from v3_manual_90first_source_backlog import source_queue_counts, should_dispatch
+          from v3_manual_90first_source_backlog import source_queue_counts, cashflow_queue_counts, should_dispatch
           root = Path("docs")
           load = lambda name: json.loads((root / name).read_text(encoding="utf-8"))
           market = load("data.json")
@@ -89,9 +89,15 @@ jobs:
           # backlog. Verify actual same-day saved-source queues before starting
           # two expensive but already-exhausted annual collectors.
           pending = source_queue_counts(root, catalog, score)
+          cash_pending = cashflow_queue_counts(root, catalog, score)
           flags = {
               "price": price_candidates > 0,
-              "cashflow": counts.get("dart_cashflow_capex", 0) > 0,
+              "cashflow": should_dispatch(counts.get("dart_cashflow_capex", 0), cash_pending["reported_capex"]),
+              # This original-file route was absent from the dispatcher.
+              # Start it only with a proven unreviewed near-90 receipt queue.
+              "original_xbrl": (counts.get("dart_cashflow_capex", 0) > 0 and
+                                cash_pending["original_xbrl"] is not None and
+                                cash_pending["original_xbrl"] > 0),
               "money": counts.get("exchange_actual_money_windows", 0) > 0,
               # These are conditional 90-first source families, not certified
               # recoveries. The bounded live collectors independently verify
@@ -115,17 +121,24 @@ jobs:
               "annual_conditional_90first_issuers": counts.get("dart_annual_fundamentals", 0),
               "earnings_conditional_90first_issuers": counts.get("reported_eps_earnings_yield", 0),
               "verified_source_pending_issuers": pending,
+              "verified_cashflow_queued_years_capped_at_worker_budget": cash_pending,
               "zero_pending_skips_only_its_own_collector": True,
               "dispatch": flags, "points_added_by_dispatch": 0,
               "no_missing_source_guessed": True,
           }, sort_keys=True))
           PY
-      - name: Manually start bounded original DART CAPEX recovery
+      - name: Manually start bounded reported DART CAPEX recovery
         if: steps.gaps.outputs.cashflow == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-reported-capex-total.yml/dispatches" -f ref=main -f 'inputs[focus]=sub90' --silent
+      - name: Manually start unreviewed original XBRL recovery near 90
+        if: steps.gaps.outputs.original_xbrl == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-xbrl-cashflow-recovery.yml/dispatches" -f ref=main -f 'inputs[recheck_equivalent_contexts]=false' --silent
       - name: Manually start 90-first exact saved-close path collection
         if: steps.gaps.outputs.price == 'true'
         env:
