@@ -512875,7 +512875,20 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 12,
+        "positive_nonoverlapping_five_interval_blocks60": 3,
+        "prior60_close_change_pct": -25.580079,
+        "recent60_close_change_pct": -35.456274,
+        "kind_auction_capital_reduction_links": 1,
+        "kind_fixed_face_split_links": 1,
+        "kind_fixed_face_consolidation_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 1885,
