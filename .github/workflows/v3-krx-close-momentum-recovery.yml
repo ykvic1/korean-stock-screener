@@ -65,9 +65,11 @@ jobs:
           snapshot_sha=$(git rev-parse HEAD:docs/data.json)
           if ! git diff --quiet -- docs/data.json; then
             python v22_full_universe_audit.py --daily docs/data.json
+            python v3_unscored_path_coverage.py --daily docs/data.json
+            python v3_unscored_path_coverage.py --verify --daily docs/data.json
             echo 'changed=true' >> "$GITHUB_OUTPUT"
           fi
-          git add docs/data.json docs/v3-krx-close-momentum-recovery.json
+          git add docs/data.json docs/v3-unscored-path-coverage.json docs/v3-krx-close-momentum-recovery.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Publish official close-derived 121-session momentum observations'
           git fetch origin main
