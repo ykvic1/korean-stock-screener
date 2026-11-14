@@ -6,6 +6,11 @@ on:
     paths:
       - v3_krx_close_momentum_recovery.py
       - .github/workflows/v3-krx-close-momentum-recovery.yml
+  pull_request:
+    paths:
+      - v3_krx_close_momentum_recovery.py
+      - tests/test_v3_krx_close_momentum_recovery.py
+      - .github/workflows/v3-krx-close-momentum-recovery.yml
   workflow_dispatch:
 
 permissions:
@@ -16,7 +21,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  source_contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt 'exchange-calendars==4.13.1'
+      - run: python -m unittest tests.test_v3_krx_close_momentum_recovery -v
+
   recover:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 24
     permissions:
@@ -40,6 +60,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          snapshot_sha=$(git rev-parse HEAD:docs/data.json)
           if ! git diff --quiet -- docs/data.json; then
             python v22_full_universe_audit.py --daily docs/data.json
             echo 'changed=true' >> "$GITHUB_OUTPUT"
@@ -47,7 +68,12 @@ jobs:
           git add docs/data.json docs/v3-krx-close-momentum-recovery.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Publish official close-derived 121-session momentum observations'
-          git pull --rebase origin main
+          git fetch origin main
+          if [[ $(git rev-parse origin/main:docs/data.json) != "$snapshot_sha" ]]; then
+            echo 'Saved market changed during KRX recovery.' >&2
+            exit 1
+          fi
+          git rebase origin/main
           git push origin HEAD:main
       - name: Refresh the operational scorecard
         if: steps.publish.outputs.changed == 'true'
