@@ -95,6 +95,32 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertFalse(recovery.valid_face_notice_source({**kospi, 'face_evidence_url': ''}))
         self.assertFalse(recovery.valid_face_notice_source({**kosdaq, 'market': 'KOSPI'}))
 
+    def test_bonus_rebases_on_rights_date_only_after_listing_confirmation(self):
+        dates = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        rights, listing = dates[45], dates[63]
+        notice = {'reference_krw': 250, 'ratio_numerator': 1, 'ratio_denominator': 5,
+                  'shares_before': 1000, 'shares_after': 1198, 'listing_date': listing}
+        prices = ([(300, 1000, 300)] * 45 + [(250, 1000, 250)] * 18
+                  + [(250, 1198, 250)] * 58)
+        status, receipt = recovery.make_receipt(
+            prices, asof=DAY, sessions=dates, bonus_notices={rights: notice})
+        self.assertEqual(status, 'recovered')
+        self.assertEqual(receipt['kind_bonus_issue_links'], 1)
+        self.assertEqual(receipt['prior60_close_change_pct'], 0)
+        self.assertEqual(receipt['recent60_close_change_pct'], 0)
+        self.assertEqual(recovered_close_momentum(receipt, DAY), 0)
+        for change in ({'listing_date': dates[62]}, {'shares_after': 1199},
+                       {'ratio_numerator': 2}, {'reference_krw': 245}):
+            with self.subTest(change=change):
+                self.assertEqual(recovery.make_receipt(
+                    prices, asof=DAY, sessions=dates, bonus_notices={rights: {**notice, **change}}),
+                    ('official_reference_discontinuity', None))
+
+    def test_bonus_registry_uses_corrected_listing_date(self):
+        notices = recovery.load_bonus_notices()
+        self.assertEqual(notices['368970']['2026-06-19']['listing_date'], '2026-07-08')
+        self.assertEqual(notices['018620']['2026-06-12']['listing_date'], '2026-07-06')
+
     def test_recovery_leaves_market_price_and_other_evidence_intact(self):
         code = '0008Z0'
         stock = {'code': code, 'market': 'KOSDAQ', 'price': 105, 'price_date': DAY}

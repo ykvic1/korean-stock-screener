@@ -114,6 +114,58 @@ def load_face_notices(path=NOTICE_FILE):
     return data['notices'], sha256(raw).hexdigest()
 
 
+def load_bonus_notices(path=NOTICE_FILE):
+    data = json.loads(path.read_bytes())
+    if data.get('schema') != NOTICE_SCHEMA:
+        raise ValueError('invalid_krx_bonus_issue_notices')
+    notices = data.get('bonus_issues', {})
+    if type(notices) is not dict:
+        raise ValueError('invalid_krx_bonus_issue_notices')
+    for code, records in notices.items():
+        if not re.fullmatch(r'[0-9A-Z]{6}', code) or type(records) is not dict:
+            raise ValueError('invalid_krx_bonus_issue_notice_identity')
+        for day, item in records.items():
+            if (type(item) is not dict or date.fromisoformat(day).isoformat() != day
+                or item.get('market') not in MARKETS
+                or any(type(item.get(k)) is not int or item[k] <= 0 for k in (
+                    'reference_krw', 'ratio_numerator', 'ratio_denominator',
+                    'shares_before', 'shares_after'))
+                or item['shares_after'] <= item['shares_before']
+                or date.fromisoformat(item['listing_date']).isoformat() != item['listing_date']
+                or item['listing_date'] <= day
+                or not re.fullmatch(r'https://kind\.krx\.co\.kr/external/[0-9/]+/70766\.htm',
+                                    item.get('rights_url', ''))
+                or any(not item.get(k, '').startswith('https://') for k in ('ratio_url', 'listing_url'))):
+                raise ValueError('invalid_krx_bonus_issue_notice')
+    return notices
+
+
+def krx_tick(reference):
+    return next(tick for upper, tick in ((2_000, 1), (5_000, 5),
+                (20_000, 10), (50_000, 50), (200_000, 100),
+                (500_000, 500), (float('inf'), 1_000)) if reference < upper)
+
+
+def verified_bonus_issue(observations, sessions, index, notice):
+    """Match the rights-date reference and the separate later share issuance."""
+    previous_close, previous_shares, _ = observations[index - 1]
+    _, rights_shares, reference = observations[index]
+    if (notice is None or reference != notice['reference_krw'] or
+            not 0 < reference < previous_close or
+            previous_shares != notice['shares_before'] or rights_shares != previous_shares):
+        return False
+    listing_date = notice['listing_date']
+    if listing_date not in sessions[index + 1:]:
+        return False
+    listing = sessions.index(listing_date, index + 1)
+    if (observations[listing - 1][1] != previous_shares or
+            observations[listing][1] != notice['shares_after']):
+        return False
+    denominator = notice['ratio_denominator']
+    enlarged = denominator + notice['ratio_numerator']
+    return abs(previous_close * denominator - reference * enlarged) <= krx_tick(reference) * enlarged
+
+
 def verified_face_consolidation(previous, current, notice):
     """Check the announced fixed reference against both sides of the action."""
     previous_close, previous_shares, _ = previous
@@ -127,18 +179,18 @@ def verified_face_consolidation(previous, current, notice):
     if abs(previous_shares * old_face - shares * new_face) >= new_face:
         return False
     # KRX posts a tick-rounded reference on the effective trading date.
-    tick = next(tick for upper, tick in ((2_000, 1), (5_000, 5),
-                (20_000, 10), (50_000, 50), (200_000, 100),
-                (500_000, 500), (float('inf'), 1_000)) if reference < upper)
-    return abs(previous_close * new_face - reference * old_face) <= tick * old_face
+    return abs(previous_close * new_face - reference * old_face) <= krx_tick(reference) * old_face
 
 
-def make_receipt(observations, *, asof, sessions=None, face_notices=None):
+def make_receipt(observations, *, asof, sessions=None, face_notices=None, bonus_notices=None):
     if len(observations) != SESSIONS or any(row is None for row in observations):
         return 'incomplete_close_history', None
-    if face_notices and (sessions is None or len(sessions) != SESSIONS or sessions[-1] != asof):
+    if (face_notices or bonus_notices) and (
+            sessions is None or len(sessions) != SESSIONS or sessions[-1] != asof
+            or list(sessions) != sorted(set(sessions))):
         raise ValueError('invalid_close_momentum_session_window')
     links = {}
+    link_counts = Counter()
     for i, (previous, current) in enumerate(zip(observations, observations[1:]), start=1):
         previous_close, previous_shares, _ = previous
         _, shares, reference = current
@@ -147,6 +199,12 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None):
         notice = face_notices.get(sessions[i]) if face_notices else None
         if reference is not None and verified_face_consolidation(previous, current, notice):
             links[i] = Fraction(reference, previous_close)
+            link_counts['kind_fixed_face_consolidation_links'] += 1
+            continue
+        bonus = bonus_notices.get(sessions[i]) if bonus_notices else None
+        if reference is not None and verified_bonus_issue(observations, sessions, i, bonus):
+            links[i] = Fraction(reference, previous_close)
+            link_counts['kind_bonus_issue_links'] += 1
             continue
         if previous_shares != shares:
             return 'listed_share_change_reference_discontinuous_or_missing', None
@@ -168,8 +226,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None):
         return 'invalid_or_discontinuous_close_history', None
     receipt = {'schema': CLOSE_PATH_SCHEMA, 'asof': asof,
                'path_window_trading_sessions': SESSIONS, **facts}
-    if links:
-        receipt['kind_fixed_face_consolidation_links'] = len(links)
+    receipt.update(link_counts)
     return 'recovered', receipt
 
 
@@ -185,7 +242,8 @@ def close_anchor(stock, official_row, dated_close):
     return None
 
 
-def run(market, report, ledger, key, *, load_listing=load_dated_listing, face_notices=None):
+def run(market, report, ledger, key, *, load_listing=load_dated_listing,
+        face_notices=None, bonus_notices=None):
     day = market['date']
     targets = select_targets(market, report, ledger)
     start = (date.fromisoformat(day) - timedelta(days=210)).isoformat()
@@ -233,12 +291,19 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing, face_no
                     session: notice for session, notice in (face_notices or {}).get(code, {}).items()
                     if notice.get('market', 'KOSDAQ') == exchange
                 }
+                bonus = {
+                    session: notice for session, notice in (bonus_notices or {}).get(code, {}).items()
+                    if notice['market'] == exchange
+                }
                 outcome, receipt = make_receipt([d.get(code) for d in history],
-                                                asof=day, sessions=dates, face_notices=notices)
+                                                asof=day, sessions=dates,
+                                                face_notices=notices, bonus_notices=bonus)
                 counts[outcome] += 1
                 if receipt is not None:
                     if receipt.get('kind_fixed_face_consolidation_links'):
                         counts['recovered_with_kind_face_consolidation'] += 1
+                    if receipt.get('kind_bonus_issue_links'):
+                        counts['recovered_with_kind_bonus_issue'] += 1
                     anchor = anchors[code]
                     counts[f'recovered_{anchor}'] += 1
                     if current[code][0] != wanted[code]['price']:
@@ -276,8 +341,10 @@ def main():
             raise ValueError('unaligned_close_momentum_sources')
     ledger = json.loads(ledger_raw)
     notices, notice_digest = load_face_notices()
+    bonus_notices = load_bonus_notices()
     result = run(market, report, ledger, os.environ.get('KRX_API_KEY', ''),
-                 face_notices=notices)
+                 face_notices=notices, bonus_notices=bonus_notices)
+    result['kind_bonus_issue_notice_count'] = sum(map(len, bonus_notices.values()))
     result['kind_face_consolidation_notice_count'] = sum(map(len, notices.values()))
     result['kind_face_consolidation_notice_sha256'] = notice_digest
     result['input_market_sha256'] = sha256(raw).hexdigest()
