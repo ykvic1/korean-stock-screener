@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from v3_manual_90first_source_backlog import source_queue_counts, should_dispatch
+from v3_manual_90first_source_backlog import source_queue_counts, should_dispatch, cashflow_queue_counts
 
 
 FILES = (
@@ -83,6 +83,52 @@ class ManualSourceBacklogTests(unittest.TestCase):
                         "pending_all_listed_issuers": 0})):
                 counts = source_queue_counts(d, self.catalog, self.operational)
             self.assertEqual(counts, {"annual": None, "profit": None})
+
+
+class CashflowBacklogTests(unittest.TestCase):
+    def check_queue(self, *, api_review=True, original_review=False, available=88, stale=False):
+        catalog={"date":"2026-11-13","listed_total":1}
+        report={"asof":"2026-11-12" if stale else catalog['date'],"listed_total":1,
+                "rows":{"000001":{"available":available,"parts":{
+                    "financial":{"cashflow_fcf_persistence":[0,0]},
+                    "valuation":{"fcf_yield":[0,2.5]}}}}}
+        year={"free_cashflow_krw":None,"operating_cashflow_krw":100,
+              "major_annual_receipt_matched":True}
+        if api_review:year['reported_total_review']={"reason":"no_reported_total"}
+        if original_review:year['original_xbrl_review']={"reason":"no_verified_scope_anchor"}
+        state={"records":{"000001":{"years":{"2024":year}}}}
+        with tempfile.TemporaryDirectory() as d:
+            for name in ('data.json','v3-dart-bulk-history.json',
+                         'v3-dart-cashflow-reference.json','v3-operational-research-comparison.json'):
+                (Path(d)/name).write_text('{}')
+            with patch('v3_dart_cashflow_enrichment.retained_current_market_cashflow',return_value=state), \
+                 patch('v3_dart_cashflow_enrichment.verify_state'), \
+                 patch('v3_dart_xbrl_capex_pilot.operational_gap_priority',return_value={'000001'}):
+                return cashflow_queue_counts(d,catalog,report)
+
+    def test_exhausted_api_does_not_hide_original_file_work(self):
+        self.assertEqual(self.check_queue(),{'reported_capex':0,'original_xbrl':1})
+        self.assertEqual(self.check_queue(api_review=False),{'reported_capex':1,'original_xbrl':1})
+
+    def test_reviewed_originals_are_not_refetched(self):
+        self.assertEqual(self.check_queue(original_review=True),{'reported_capex':0,'original_xbrl':0})
+
+    def test_outside_90_priority_is_not_a_new_broad_original_retry(self):
+        self.assertEqual(self.check_queue(available=94),{'reported_capex':0,'original_xbrl':0})
+        self.assertEqual(self.check_queue(available=80),{'reported_capex':0,'original_xbrl':0})
+
+    def test_stale_missing_or_invalid_sources_are_unknown_not_zero(self):
+        self.assertEqual(self.check_queue(stale=True),{'reported_capex':None,'original_xbrl':None})
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(cashflow_queue_counts(d,{'date':'2026-11-13','listed_total':1},
+                {'asof':'2026-11-13','listed_total':1}),{'reported_capex':None,'original_xbrl':None})
+
+    def test_workflow_dispatches_each_source_from_its_own_queue(self):
+        workflow=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-manual-90first-source-burst.yml').read_text()
+        self.assertIn('cash_pending["reported_capex"]',workflow)
+        self.assertIn("if: steps.gaps.outputs.original_xbrl == 'true'",workflow)
+        self.assertIn('v3-xbrl-cashflow-recovery.yml/dispatches',workflow)
+        self.assertIn("'inputs[recheck_equivalent_contexts]=false'",workflow)
 
 
 if __name__ == "__main__":

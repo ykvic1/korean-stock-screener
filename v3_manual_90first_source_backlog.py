@@ -62,3 +62,44 @@ def should_dispatch(conditional_upper_bound, source_pending):
             type(source_pending) is not int or source_pending < 0):
         raise ValueError("invalid_verified_source_queue_count")
     return conditional_upper_bound > 0 and source_pending != 0
+
+
+def cashflow_queue_counts(root, catalog, operational):
+    """Bounded real sub-90 queues, separately for API totals and original XBRL.
+
+    Counts are capped at each worker's receipt budget (40/32), sufficient to
+    distinguish empty from actionable work. Never substitute score gaps for
+    unreviewed source receipts or treat invalid evidence as an empty queue.
+    """
+    import v3_dart_cashflow_enrichment as cf
+    import v3_dart_xbrl_capex_pilot as xp
+    from v3_dart_reported_capex_total import targets as reported_targets
+    from v3_dart_xbrl_cashflow_recovery import targets as original_targets, cashflow_90_focus
+
+    result = {"reported_capex": None, "original_xbrl": None}
+    if (operational.get("asof") != catalog.get("date") or
+            catalog.get("listed_total") != operational.get("listed_total")):
+        return result
+    try:
+        market = _load(root, "data.json")
+        bulk = _load(root, "v3-dart-bulk-history.json")
+        saved = _load(root, "v3-dart-cashflow-reference.json")
+        comparison = _load(root, "v3-operational-research-comparison.json")
+        state = cf.retained_current_market_cashflow(market, catalog, bulk, saved)
+        cf.verify_state(state, market, catalog, bulk, strict_fingerprint=True)
+        priority = xp.operational_gap_priority(operational, comparison, catalog, bulk)
+        below = {code for code in priority if operational["rows"][code]["available"] < 90}
+        near = cashflow_90_focus(operational, priority)
+    except (OSError, ValueError, TypeError, KeyError):
+        return result
+    try:
+        result["reported_capex"] = len(reported_targets(
+            state, priority, 40, threshold_priority=below, only_sub90=True))
+    except (ValueError, TypeError, KeyError):
+        pass
+    try:
+        result["original_xbrl"] = sum(code in near for code, _, _ in
+            original_targets(state, priority, 32, near_90=near))
+    except (ValueError, TypeError, KeyError):
+        pass
+    return result
