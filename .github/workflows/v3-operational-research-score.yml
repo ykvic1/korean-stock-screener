@@ -41,6 +41,7 @@ on:
   push:
     branches: [main]
     paths:
+      - v3_unscored_path_observations.py
       - v3_verified_eps_basis.py
       - tests/test_v3_verified_eps_basis.py
       - v3_dart_revenue_2023_comparative.py

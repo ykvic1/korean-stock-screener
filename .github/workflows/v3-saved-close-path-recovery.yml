@@ -1,6 +1,10 @@
 name: V3 Same Close 121 Session Path Recovery (90 First)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - v3_unscored_path_observations.py
   workflow_dispatch:
     inputs:
       reconcile_only:
