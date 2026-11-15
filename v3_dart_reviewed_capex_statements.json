@@ -2096,6 +2096,21 @@
           "supporting_comparative_sha256": "814962ca492a56313c0552d53a31e5c1730df37b948f34ba66cce1321513b35f"
         }
       }
+    },
+    "004980": {
+      "original_statements": {
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260318001369",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318001369&dcmNo=11142199&eleId=23&offset=489883&length=68773&dtd=dart4.xsd",
+          "source_sha256": "05d0bfdd1842ab06b49e24421d78a96500a3768a8c4ba2dc29c815333d18857a",
+          "operating_cashflow_krw": 130995296437,
+          "ppe_capex_krw": 52232723405,
+          "intangible_capex_krw": 67404728,
+          "other_investing_cashflow_krw": -16366532334,
+          "investing_cashflow_krw": -68666660467
+        }
+      }
     }
   }
 }

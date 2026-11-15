@@ -158,6 +158,41 @@ def reviewed_annual_scopes(catalog, history, source):
     return restored
 
 
+def reviewed_annual_comparatives(history, source, cutoff):
+    """Read earlier periods from the same-scope annual filing with a saved anchor."""
+    for code, item in (source or {}).get('annual_comparatives', {}).items():
+        years = history['records'].get(code, {}).get('years', {})
+        scope, filing_year = item['scope'], item['filing_year']
+        receipt = item['receipt_id']
+        statement = years.get(filing_year, {}).get(scope, {})
+        if (scope not in ('CFS', 'OFS') or filing_year not in ('2023', '2024')
+                or not _valid_receipt(receipt, int(filing_year), cutoff)
+                or statement.get('receipt_id') != receipt
+                or not item['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+                or not re.fullmatch('[0-9a-f]{64}', item['source_sha256'])):
+            continue
+        figures = item['figures']
+        if (filing_year not in figures or not set(figures) <= {'2022', '2023', filing_year}
+                or any(set(values) != {'revenue', 'operating_income'}
+                       or any(type(value) is not int or abs(value) > 10**18
+                              for value in values.values())
+                       or values['revenue'] <= 0 for values in figures.values())):
+            continue
+        if any(statement['values'].get(key) != value for key, value in figures[filing_year].items()):
+            continue
+        saved_values = {year: years.get(year, {}).get(scope, {}).get('values', {})
+                        for year in figures}
+        if any(saved_values[year].get(key) not in (None, value)
+               for year, values in figures.items() for key, value in values.items()):
+            continue
+        for year, values in figures.items():
+            if year < filing_year and year in years and scope not in years[year]:
+                yield code, year, scope, {
+                    'receipt_id': receipt, 'comparative_filing_year': filing_year,
+                    'ambiguous': [], 'values': values,
+                }
+
+
 def overlay(catalog, history, source, *, reviewed=None):
     expected = choices(catalog, history)
     retained = verified(source, expected, catalog['date'])
@@ -165,7 +200,7 @@ def overlay(catalog, history, source, *, reviewed=None):
     amounts.update({key: entry['revenue_krw'] for key, entry in retained.items()
                     if entry['status'] == 'observed'})
     scopes = reviewed_annual_scopes(catalog, history, reviewed)
-    if not amounts and not scopes:
+    if not amounts and not scopes and not (reviewed or {}).get('annual_comparatives'):
         return history, set()
     result = deepcopy(history)
     for code, (scope, annual) in scopes.items():
@@ -174,7 +209,11 @@ def overlay(catalog, history, source, *, reviewed=None):
         base = expected[key]
         row = result['records'][base['code']]['years'][str(base['fiscal_year'])][base['scope']]
         row['values']['revenue'] = amount
-    return result, {expected[key]['code'] for key in amounts} | set(scopes)
+    comparative_codes = set()
+    for code, year, scope, statement in reviewed_annual_comparatives(result, reviewed, _day(catalog['date'])):
+        result['records'][code]['years'][year][scope] = statement
+        comparative_codes.add(code)
+    return result, {expected[key]['code'] for key in amounts} | set(scopes) | comparative_codes
 
 
 def sales_parts(catalog, history):
