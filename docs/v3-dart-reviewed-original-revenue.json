@@ -296,6 +296,30 @@
       "revenue_krw": 19175152815,
       "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240514000733&dcmNo=9943805&eleId=21&offset=163825&length=98275&dtd=dart4.xsd",
       "source_sha256": "e508a5e5e2e51e0bd78eb53abb6195d3848063b24d1014e919ce585bba4a46fe"
+    },
+    "023760:2023:CFS": {
+      "receipt_id": "20240320000782",
+      "account_name": "매출액",
+      "revenue_krw": 390994509000,
+      "operating_income_krw": 82139916795,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000782&dcmNo=9736193&eleId=22&offset=296082&length=519782&dtd=dart4.xsd",
+      "source_sha256": "80a7504d936e1fef2610bfe97fc8316ac403176c1288aa4f85cc8781dea97664"
+    },
+    "023760:2024:CFS": {
+      "receipt_id": "20250313001128",
+      "account_name": "매출액",
+      "revenue_krw": 467801831000,
+      "operating_income_krw": 96867260498,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250313001128&dcmNo=10403553&eleId=22&offset=389424&length=576388&dtd=dart4.xsd",
+      "source_sha256": "7e9fa12e27b12a9c295ca3fce6dbb6ad3d7c2ff0371f351df744f36b33fe4ab3"
+    },
+    "023760:2025:CFS": {
+      "receipt_id": "20260312000997",
+      "account_name": "매출액",
+      "revenue_krw": 547974731000,
+      "operating_income_krw": 127921709129,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260312000997&dcmNo=11115496&eleId=22&offset=398676&length=580618&dtd=dart4.xsd",
+      "source_sha256": "72ca31739354c89d31e85c98830f582fa16f193fc3589d6bfe9c673839c271f2"
     }
   },
   "annual_scopes": {
@@ -545,6 +569,23 @@
         }
       },
       "filing_year": "2024"
+    },
+    "023760": {
+      "scope": "CFS",
+      "filing_year": "2023",
+      "receipt_id": "20240320000782",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000782&dcmNo=9736193&eleId=22&offset=296082&length=519782&dtd=dart4.xsd",
+      "source_sha256": "80a7504d936e1fef2610bfe97fc8316ac403176c1288aa4f85cc8781dea97664",
+      "figures": {
+        "2023": {
+          "revenue": 390994509000,
+          "operating_income": 82139916795
+        },
+        "2022": {
+          "revenue": 300835850000,
+          "operating_income": 88878740608
+        }
+      }
     }
   }
 }
