@@ -208,11 +208,15 @@ class OperationalScoreTests(unittest.TestCase):
         parts,_=ops.score_issuer(stock,saved,day=end.isoformat())
         self.assertEqual(parts['technical']['ma20_ma60_cross_near_ma240'],{
             'points':0,'available':6,'asof':end.isoformat()})
-        self.assertIsNone(parts['volume']['obv_price_divergence'])
+        self.assertIsNone(parts['volume']['long_horizon_growth'])
+        self.assertEqual(parts['volume']['obv_price_divergence'],{
+            'points':0,'available':4,'asof':end.isoformat()})
         forged={**cross,'certified_investment_points':6}
         stock['v3_ma240_cross_research']=forged
+        stock['divergence']=True
         rejected,_=ops.score_issuer(stock,saved,day=end.isoformat())
         self.assertIsNone(rejected['technical']['ma20_ma60_cross_near_ma240'])
+        self.assertIsNone(rejected['volume']['obv_price_divergence'])
 
     def test_score_first_ranking_and_csv_matches_every_row(self):
         ranked=sorted((r for r in self.report['rows'].values() if r['rank']),key=lambda r:r['rank'])
@@ -324,23 +328,21 @@ class OperationalScoreTests(unittest.TestCase):
             'original_amounts_or_paths_exported':False,
             'intrabucket_boundary_price_sign_known':False,
             'independent_regular_session_verified':False,'investment_score_certified':False}
-        money={'asof':'2026-11-04','r1c_structure':structure}
-        stub={'subpoints':{'sustained_volume':4.9,'obv_price_not_reflected':2.4,
-            'ma20_ma60_cross_near_ma240':None}}
-        stock={'price_date':'2026-11-04','market':'KOSPI'}
+        money={'asof':'2026-11-04','weekly_session_end':'2026-10-30',
+               'points':4.9,'r1c_structure':structure}
+        stock={'price_date':'2026-11-04','market':'KOSPI',
+               'obv_rising':True,'divergence':True,'price60':5}
         saved={'code':'005930','name':'삼성전자','market':'KOSPI'}
-        with patch.object(ops,'volume_observed',return_value=stub),patch.object(ops,'path_preview',return_value=None),\
-             patch.object(ops,'pattern_observed',return_value=None):
-            parts,_=ops.score_issuer(stock,saved,day='2026-11-04',money=money)
-            self.assertEqual(parts['volume']['long_horizon_growth']['points'],4.2)
-            self.assertEqual(parts['volume']['persistence']['points'],3.1)
-            self.assertEqual(parts['volume']['concentration_quality']['points'],1.1)
-            self.assertEqual(parts['volume']['weekly_structure_increment']['points'],.8)
-            self.assertEqual(parts['volume']['obv_price_divergence']['points'],2.4)
-            corrupt=copy.deepcopy(money);corrupt['r1c_structure']['investment_score_certified']=True
-            fallback,_=ops.score_issuer(stock,saved,day='2026-11-04',money=corrupt)
-            self.assertEqual(fallback['volume']['long_horizon_growth']['points'],4.9)
-            self.assertIsNone(fallback['volume']['persistence'])
+        parts,_=ops.score_issuer(stock,saved,day='2026-11-04',money=money)
+        self.assertEqual(parts['volume']['long_horizon_growth']['points'],4.2)
+        self.assertEqual(parts['volume']['persistence']['points'],3.1)
+        self.assertEqual(parts['volume']['concentration_quality']['points'],1.1)
+        self.assertEqual(parts['volume']['weekly_structure_increment']['points'],.8)
+        self.assertEqual(parts['volume']['obv_price_divergence']['points'],4)
+        corrupt=copy.deepcopy(money);corrupt['r1c_structure']['investment_score_certified']=True
+        fallback,_=ops.score_issuer(stock,saved,day='2026-11-04',money=corrupt)
+        self.assertEqual(fallback['volume']['long_horizon_growth']['points'],4.9)
+        self.assertIsNone(fallback['volume']['persistence'])
 
     def test_recovered_weekly_position_fills_only_existing_long_ma_component(self):
         from v3_operational_research_score import score_issuer

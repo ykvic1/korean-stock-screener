@@ -15,6 +15,7 @@ from pathlib import Path
 from v3_actual_money_contract import usable_records, usable_component_records
 from v3_actual_money_structure import COMPONENT_MAX, valid_components
 from v3_volume_participation import observed as volume_observed
+from v3_volume_participation import obv_price_divergence_points
 from v3_pattern_composite_score import _observed as pattern_observed, _weekly_trend
 from v3_path_provisional_factors import MOMENTUM_MAX, preview as path_preview, recovered_close_momentum
 from v3_eps_valuation import valid as valid_eps
@@ -119,7 +120,9 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
                         put('volume',key,score,SPECS['volume'][key],vd)
             else:
                 put('volume','long_horizon_growth',vp['sustained_volume'],6,vd)
-            put('volume','obv_price_divergence',vp['obv_price_not_reflected'],4,day)
+        obv_points=obv_price_divergence_points(stock)
+        if obv_points is not None:
+            put('volume','obv_price_divergence',obv_points,4,day)
         # The 260-session MA20/60 crossing receipt has its own source checks.
         # A different *volume* adapter can be unavailable (e.g. an extreme
         # but finite relative-volume ratio) without invalidating an already
@@ -536,6 +539,7 @@ def main():
                      'v3_dart_revenue_2024_comparative.py',
                      'v3_dart_operating_income_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
+                     'v3_volume_participation.py',
                      'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py',
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',
