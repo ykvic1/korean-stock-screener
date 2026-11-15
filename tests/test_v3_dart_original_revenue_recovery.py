@@ -112,6 +112,17 @@ class OriginalRevenueRecoveryTests(unittest.TestCase):
         self.assertEqual(codes, {code})
         self.assertEqual(proposed['records'][code]['years']['2025']['OFS']['values'], figures['2025'])
         self.assertNotIn('OFS', years['2025'])
+        saved = {'receipt_id': receipt, 'ambiguous': [],
+                 'values': {'assets': 4000, 'revenue': None, 'operating_income': None}}
+        years['2025']['OFS'] = saved
+        proposed, codes = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(codes, {code})
+        self.assertEqual(proposed['records'][code]['years']['2025']['OFS']['values'],
+                         {'assets': 4000, **figures['2025']})
+        self.assertIsNone(saved['values']['operating_income'])
+        saved['values']['operating_income'] = 0
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+        del years['2025']['OFS']
         years['2023']['OFS']['values']['operating_income'] = -1
         self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
         years['2023']['OFS']['values']['operating_income'] = 1
