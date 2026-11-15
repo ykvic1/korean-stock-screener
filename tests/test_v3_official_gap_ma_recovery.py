@@ -8,6 +8,7 @@ from v3_official_gap_ma_recovery import (
     FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, add_weekly_ma120, repair, source_frame,
     weekly_position, weekly_rsi, recover_daily_pattern, recover_weekly_pattern,
     recover_recent_weekly_pattern, weekly_pattern_window,
+    recover_checked_weekly_closes,
 )
 from v3_ma_slope_transition import observe
 from v3_pattern_first_observations import observe as observe_daily, observe_completed_weekly
@@ -26,6 +27,29 @@ def payload():
 
 
 class OfficialGapMARecoveryTests(unittest.TestCase):
+    def test_contiguous_closes_restore_only_windows_with_official_anchors(self):
+        day = '2026-11-13'
+        dates = pd.bdate_range(end=day, periods=810)
+        close = [100 + i % 22 for i in range(len(dates))]
+        frame = pd.DataFrame({'Close': close}, index=dates)
+        expected = [d.date().isoformat() for d in dates]
+        row = {'parts': {'technical': {}}}
+        stock = {'price_date': day, 'price': close[-1]}
+        weeks = frame.Close.resample('W-FRI').last()
+        refs = {weeks.index[-n].date().isoformat(): weeks.iloc[-n]
+                for n in (1, 45, 90, 120, 154)}
+        result = recover_checked_weekly_closes(stock, row, frame, expected, refs, day, day)
+        self.assertEqual(set(result), {'v3_weekly_position_gap_recovery',
+                                       'v3_weekly_rsi_gap_recovery'})
+        earlier = weeks.index[-120].date().isoformat()
+        refs[earlier] += 1
+        result = recover_checked_weekly_closes(stock, row, frame, expected, refs, day, day)
+        self.assertEqual(set(result), {'v3_weekly_rsi_gap_recovery'})
+        self.assertEqual(recover_checked_weekly_closes(
+            stock, row, frame.drop(index=dates[-10]), expected, refs, day, day), {})
+        self.assertEqual(recover_checked_weekly_closes(
+            stock, row, frame, expected, {day: close[-1]}, day, day), {})
+
     def test_official_row_only_replaces_all_null_gap(self):
         original = source_frame(payload(), TICKER, DATES,
                                 {NEIGHBORS[0]: 100., NEIGHBORS[1]: 120.})
