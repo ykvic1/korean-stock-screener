@@ -119,7 +119,7 @@ def reviewed_revenues(catalog, history, source, expected):
 
 
 def reviewed_annual_scopes(catalog, history, source):
-    """Restore a missing FY2025 scope corroborated by two same-scope annuals."""
+    """Restore FY2025 income corroborated by two earlier same-scope annuals."""
     if source is None:
         return {}
     cutoff = _day(catalog['date'])
@@ -131,9 +131,10 @@ def reviewed_annual_scopes(catalog, history, source):
         years = history['records'].get(code, {}).get('years', {})
         scope = item['scope']
         annual = years.get('2025', {})
-        if scope not in ('CFS', 'OFS') or scope in annual:
+        if scope not in ('CFS', 'OFS'):
             continue
         receipt = item['receipt_id']
+        saved_annual = annual.get(scope)
         if (not _valid_receipt(receipt, 2025, cutoff)
                 or not any(row.get('receipt_id') == receipt for row in annual.values())
                 or not item['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
@@ -147,6 +148,14 @@ def reviewed_annual_scopes(catalog, history, source):
                               for value in values.values())
                        or values['revenue'] <= 0 for values in figures.values())):
             continue
+        if saved_annual is not None:
+            existing = saved_annual['values']
+            latest = figures['2025']
+            if (saved_annual.get('receipt_id') != receipt
+                    or set(saved_annual.get('ambiguous', ())) & latest.keys()
+                    or all(existing.get(key) is not None for key in latest)
+                    or any(existing.get(key) not in (None, value) for key, value in latest.items())):
+                continue
         for year, anchor in anchors.items():
             saved = years.get(year, {}).get(scope, {})
             filing_year = int(saved.get('comparative_filing_year', year))
@@ -154,8 +163,9 @@ def reviewed_annual_scopes(catalog, history, source):
                     or any(saved['values'].get(key) != value for key, value in figures[year].items())):
                 break
         else:
-            restored[code] = (scope, {'receipt_id': receipt, 'ambiguous': [],
-                                    'values': figures['2025']})
+            statement = saved_annual or {'receipt_id': receipt, 'ambiguous': [], 'values': {}}
+            restored[code] = (scope, {**statement, 'values': {
+                **statement['values'], **figures['2025']}})
     return restored
 
 
