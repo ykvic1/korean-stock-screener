@@ -71884,7 +71884,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 8,
+        "positive_nonoverlapping_five_interval_blocks60": 5,
+        "prior60_close_change_pct": -29.065421,
+        "recent60_close_change_pct": 18.445323,
+        "kind_fixed_face_consolidation_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 256,
@@ -178412,7 +178423,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 8,
+        "positive_nonoverlapping_five_interval_blocks60": 7,
+        "prior60_close_change_pct": -51.061453,
+        "recent60_close_change_pct": 111.187215,
+        "kind_fixed_face_consolidation_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 641,
@@ -255691,7 +255713,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 9,
+        "positive_nonoverlapping_five_interval_blocks60": 2,
+        "prior60_close_change_pct": -47.012401,
+        "recent60_close_change_pct": 6.808511,
+        "kind_fixed_face_consolidation_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 924,
@@ -487513,7 +487546,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 7,
+        "positive_nonoverlapping_five_interval_blocks60": 4,
+        "prior60_close_change_pct": -52.883895,
+        "recent60_close_change_pct": -32.697403,
+        "kind_fixed_face_consolidation_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 1788,
@@ -603194,7 +603238,18 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_krx_close_momentum_path": {
+        "schema": "v3-krx-official-regular-close-momentum-path-v1",
+        "asof": "2026-11-13",
+        "path_window_trading_sessions": 121,
+        "up_close_days20": 7,
+        "positive_nonoverlapping_five_interval_blocks60": 4,
+        "prior60_close_change_pct": -54.415011,
+        "recent60_close_change_pct": -35.108959,
+        "kind_fixed_face_consolidation_links": 1,
+        "close_anchor": "dated_fdr_krx_match"
+      }
     },
     {
       "rank": 2226,
