@@ -315,6 +315,56 @@
         "notice_url": "https://kind.krx.co.kr/external/2026/08/27/000394/20260827001201/99321.htm",
         "listing_notice_url": "https://kind.krx.co.kr/external/2026/08/25/000071/20260825000124/68155.htm"
       }
+    },
+    "006200": {
+      "2026-05-20": {
+        "reference_krw": 4005,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000426/20260519001020/99321.htm",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/15/001364/20260515002967/68155.htm"
+      }
+    },
+    "024890": {
+      "2026-05-21": {
+        "reference_krw": 4530,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/20/000411/20260520001318/99321.htm",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/18/000290/20260518000407/68155.htm"
+      }
+    },
+    "011090": {
+      "2026-05-20": {
+        "reference_krw": 2140,
+        "old_face_krw": 500,
+        "new_face_krw": 2500,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000421/20260519001025/99321.htm",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/15/000180/20260515000294/68155.htm"
+      }
+    },
+    "002360": {
+      "2026-05-22": {
+        "reference_krw": 3580,
+        "old_face_krw": 500,
+        "new_face_krw": 5000,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/21/000533/20260521001445/99321.htm",
+        "face_evidence_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/468001"
+      }
+    },
+    "032790": {
+      "2026-05-27": {
+        "reference_krw": 1774,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "market": "KOSDAQ",
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/26/000665/20260526001481/70795.htm",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/26/000478/20260526001208/70764.htm"
+      }
     }
   },
   "bonus_issues": {
