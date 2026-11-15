@@ -28,7 +28,8 @@ def window(record, fiscal, asof, revenue_2022_source=None, comparative_2023_sour
         statements=[years.get(str(y),{}).get(scope,{}) for y in fiscal]
         revenues=[s.get('values',{}).get('revenue') for s in statements]
         receipts=[s.get('receipt_id') for s in statements]
-        filing_years=fiscal[:]
+        filing_years=[int(s.get('comparative_filing_year', y))
+                      for y,s in zip(fiscal,statements)]
         supplemented=False
         comparable=False
         comparable_2024=False

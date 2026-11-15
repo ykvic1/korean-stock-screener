@@ -5,9 +5,37 @@ from v3_dart_original_revenue_recovery import (
     REVIEWED_SCHEMA, SCHEMA, overlay, review_statement, targets, verified,
 )
 from v3_dart_revenue_2022 import Revenue2022Error
+from v3_revenue_growth_evidence import window
 
 
 class OriginalRevenueRecoveryTests(unittest.TestCase):
+    def test_earlier_comparatives_use_the_anchor_filing_and_preserve_originals(self):
+        day, code, receipt = '2026-11-13', '000001', '20250321000001'
+        catalog = {'date': day, 'listed_total': 1, 'rows': [{'code': code}]}
+        figures = {str(y): {'revenue': y, 'operating_income': 1} for y in (2022, 2023, 2024)}
+        fiscal = [2022, 2023, 2024, 2025]
+        years = {'2022': {}, '2023': {},
+                 '2024': {'CFS': {'receipt_id': receipt, 'values': figures['2024'].copy()}},
+                 '2025': {'CFS': {'receipt_id': '20260323001654', 'values': {'revenue': 2025}}}}
+        history = {'asof': day, 'listed_total': 1, 'fiscal_years': fiscal,
+                   'records': {code: {'years': years}}}
+        proof = {'scope': 'CFS', 'filing_year': '2024', 'receipt_id': receipt,
+                 'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&eleId=1',
+                 'source_sha256': 'a' * 64, 'figures': figures}
+        reviewed = {'schema': REVIEWED_SCHEMA, 'records': {}, 'annual_comparatives': {code: proof}}
+        proposed, codes = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(codes, {code})
+        record = proposed['records'][code]
+        self.assertEqual(record['years']['2022']['CFS']['comparative_filing_year'], '2024')
+        self.assertEqual(record['years']['2022']['CFS']['receipt_id'], receipt)
+        self.assertIsNotNone(window(record, fiscal, day))
+        self.assertEqual(years['2022'], {})
+        years['2022']['CFS'] = {'receipt_id': '20230324000001', 'values': {'revenue': 11}}
+        proposed, _ = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(proposed['records'][code]['years']['2022'], years['2022'])
+        years['2024']['CFS']['values']['operating_income'] = 2
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+
     def test_reviewed_statement_requires_original_receipt_and_income_anchor(self):
         day = '2026-11-13'
         code = '000001'
