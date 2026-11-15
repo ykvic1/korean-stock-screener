@@ -46,6 +46,12 @@ class ReviewedOrdinaryEPSTests(unittest.TestCase):
             with self.subTest(label=label):
                 self.assertFalse(ordinary_basic_label(label))
 
+    def test_explicit_owner_and_combined_basic_ordinary_rows(self):
+        self.assertTrue(ordinary_basic_label('지배기업 소유주 기본주당이익 (단위:원)'))
+        self.assertTrue(ordinary_basic_label('기본 및 희석 보통주당손익 (단위:원)'))
+        self.assertFalse(ordinary_basic_label('기본 및 희석 우선주당손익 (단위:원)'))
+        self.assertFalse(ordinary_basic_label('지배기업 소유주 기본주당계속영업이익 (단위:원)'))
+
     def test_rejects_different_filing_scope_cfo_or_known_eps(self):
         for object_, key, invalid in (
                 (self.entry, 'scope', 'OFS'), (self.entry, 'basic_eps', [100, -201, 300]),

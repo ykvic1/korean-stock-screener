@@ -8,7 +8,7 @@ from v3_dart_reported_eps import metrics
 OUTPUT = 'v3-dart-reviewed-ordinary-eps.json'
 SCHEMA = 'v3-dart-reviewed-ordinary-eps-v1'
 LABEL = re.compile(
-    r'(?:보통주)?기본(?:(?:및|/)희석)?주당(?:순)?'
+    r'(?:지배기업소유주)?(?:보통주)?기본(?:(?:및|/)희석)?(?:보통)?주당(?:순)?'
     r'(?:이익(?:\(손실\))?|손익|순손실)(?:[,，]?보통주)?'
 )
 WON_PER_SHARE = re.compile(r'\(단위:원(?:/주)?\)')
