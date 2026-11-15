@@ -4044,6 +4044,17 @@
           "intangible_capex_krw": 1342400,
           "other_investing_cashflow_krw": 2963938049,
           "investing_cashflow_krw": -1809365467
+        },
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320000406",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000406&dcmNo=9734158&eleId=23&offset=299157&length=40455&dtd=dart4.xsd",
+          "source_sha256": "3eecdd390602e038172e7aa2527eae2df969badb0663fe806f3a1333a98230a3",
+          "operating_cashflow_krw": 23568816092,
+          "ppe_capex_krw": 4258186769,
+          "intangible_capex_krw": 25016200,
+          "other_investing_cashflow_krw": 946062598,
+          "investing_cashflow_krw": -3337140371
         }
       }
     },
@@ -4571,6 +4582,17 @@
           "intangible_capex_krw": 170164735,
           "other_investing_cashflow_krw": 15053242866,
           "investing_cashflow_krw": 973555861
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260318000903",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318000903&dcmNo=11138725&eleId=23&offset=490723&length=102687&dtd=dart4.xsd",
+          "source_sha256": "6428f92e84c2cfdfd26a7dce021be3202a15a040a117dd77b3ad3e2d798b1111",
+          "operating_cashflow_krw": -15899886728,
+          "ppe_capex_krw": 1261610596,
+          "intangible_capex_krw": 595531543,
+          "other_investing_cashflow_krw": -103085213955,
+          "investing_cashflow_krw": -104942356094
         }
       }
     },
@@ -4764,6 +4786,17 @@
           "intangible_capex_krw": 0,
           "other_investing_cashflow_krw": 744262374,
           "investing_cashflow_krw": 723772790
+        },
+        "2023": {
+          "scope": "OFS",
+          "annual_receipt": "20240320001464",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320001464&dcmNo=9740622&eleId=25&offset=353886&length=19131&dtd=dart4.xsd",
+          "source_sha256": "157ce1beff39b1c2b0693879084fb29bf3dacf7d8c5593a489168c23b8017a11",
+          "operating_cashflow_krw": -11236491652,
+          "ppe_capex_krw": 297142012,
+          "intangible_capex_krw": 2613428,
+          "other_investing_cashflow_krw": 11614396443,
+          "investing_cashflow_krw": 11314641003
         }
       }
     },

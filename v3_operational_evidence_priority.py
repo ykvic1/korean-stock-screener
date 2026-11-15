@@ -7,6 +7,7 @@ from pathlib import Path
 from v3_v30b_release_gate import r1d_public_reconciles, R1D_PART_LIMITS
 
 OUTPUT='v3-operational-evidence-priority.json'
+SHORT_PRICE_HISTORY='catalog_confirmed_insufficient_history'
 
 # These are WORKSTREAM labels, not interchangeable valuation inputs.  The
 # counterfactual counts issuers whose *entire* missing R1d weight lies inside
@@ -63,7 +64,8 @@ def coverage_90_first(queue, *, listed_total, full_100_count):
         below.append(row['code'])
         for family,components in SOURCE_FAMILIES.items():
             potential=sum(g['missing_weight'] for g in row['gaps']
-                          if (g['area'],g['component']) in components)
+                          if g.get('reason') != SHORT_PRICE_HISTORY
+                          and (g['area'],g['component']) in components)
             if available+potential>=90-1e-6:
                 by_family[family].append((row['code'],available,
                     len(row['gaps']),round(90-available,6)))
@@ -94,6 +96,8 @@ def source_family_completion_upper_bounds(queue):
         missing={(gap['area'],gap['component']) for gap in row['gaps']}
         if not missing:
             raise ValueError('empty_source_recovery_gap')
+        if any(gap.get('reason') == SHORT_PRICE_HISTORY for gap in row['gaps']):
+            continue
         for name,components in SOURCE_FAMILIES.items():
             if missing<=components:
                 counts[name]+=1
@@ -113,7 +117,8 @@ def category(area,key,status,queried_capex):
                 else 'cashflow_period_scope_capex')
     if area=='financial':return 'annual_financial_period_scope'
     if area=='valuation':return 'reported_eps_or_valuation_source'
-    if status=='insufficient_history':return 'catalog_confirmed_insufficient_history'
+    if status=='insufficient_history' and (area,key) in SOURCE_FAMILIES['price_chart_windows']:
+        return SHORT_PRICE_HISTORY
     if status=='price_source_or_validation_error':return 'price_source_validation'
     if area=='volume' and key not in ('obv_price_divergence','post_spike_absorption'):
         return 'money_window_or_directional_evidence'
@@ -163,6 +168,7 @@ def build(report,comparison,catalog,legacy_priority=None):
         'incomplete_count':len(queue),'one_missing_component_count':sum(r['missing_components']==1 for r in queue),
         'component_missing_issuer_counts':dict(sorted(counts.items())),
         'reason_component_counts':dict(sorted(reasons.items())),
+        'short_price_history_deferred_components':reasons[SHORT_PRICE_HISTORY],
         'gap_shapes':dict(sorted(shapes.items(),key=lambda x:(-x[1],x[0]))),
         'single_component_queue':[r for r in queue if r['missing_components']==1],
         'coverage_90_first':coverage_90_first(queue,listed_total=audited['listed_total'],
