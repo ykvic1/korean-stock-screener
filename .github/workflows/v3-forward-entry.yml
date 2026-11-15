@@ -1,0 +1,65 @@
+name: V3 Forward KRX Entry Evidence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_forward_entry.py
+      - .github/workflows/v3-forward-entry.yml
+  workflow_run:
+    workflows: [V3 Forward Score Observation Capture]
+    types: [completed]
+  schedule:
+    # 20:45 KST after the entry session, 08:45 KST for late official data.
+    - cron: '45 11 * * 1-5'
+    - cron: '45 23 * * 0-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    concurrency:
+      group: v3-forward-krx-entry-evidence
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Store matched official opening prices privately
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: python v3_forward_entry.py
+      - name: Publish aggregate-only entry state
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z $(git status --porcelain -- ops/forward-entry-status/) ]]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ops/forward-entry-status/
+          git commit -m 'Record forward KRX entry coverage'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase FETCH_HEAD
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          echo '::error::forward_entry_push_retries_exhausted'
+          exit 1
