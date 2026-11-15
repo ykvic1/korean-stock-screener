@@ -52,7 +52,8 @@ def inspect_source_frame(payload, ticker, expected, anchors, *, close_only=False
         data = payload['chart']['result'][0]
         days = [datetime.fromtimestamp(t, KST).date().isoformat() for t in data['timestamp']]
         if close_only:
-            return None, pd.DataFrame({'Close': data['indicators']['quote'][0]['close']},
+            bars = data['indicators']['quote'][0]
+            return None, pd.DataFrame({'Close': bars['close'], 'Volume': bars['volume']},
                                       index=pd.DatetimeIndex(days), dtype=float)
         if days[0] not in expected or days != expected[expected.index(days[0]):]:
             return 'alternative_calendar_mismatch', None
@@ -289,7 +290,7 @@ def add_weekly_ma120(receipt, close, completed_friday):
 def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday,
                                  *, dated_close=None):
     """Use a continuous close series whose older and latest closes agree with KRX."""
-    if frame is None or frame.empty or stock.get('price_date') != day:
+    if frame is None or frame.empty or 'Volume' not in frame or stock.get('price_date') != day:
         return {}
     if not frame.index.is_monotonic_increasing or not frame.index.is_unique:
         return {}
@@ -324,7 +325,12 @@ def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday
         required = sessions[(sessions >= start) & (sessions <= end)]
         tail = close.loc[start:]
         prices = tail.to_numpy()
+        # A carried quote during an entire suspended week is not a completed
+        # trading observation. Volume here is an eligibility check only.
+        volume = history.loc[tail.index, 'Volume']
+        traded = volume.where(np.isfinite(volume) & (volume > 0), 0.).resample('W-FRI').max()
         if (len(required) == 0 or not tail.index.equals(required)
+                or traded.empty or (traded <= 0).any()
                 or tail.index[0].to_period('W-FRI') != start.to_period('W-FRI')
                 or not np.isfinite(prices).all() or (prices <= 0).any()):
             return False

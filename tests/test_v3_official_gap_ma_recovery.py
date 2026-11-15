@@ -31,7 +31,7 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         day = '2026-11-13'
         dates = pd.bdate_range(end=day, periods=810)
         close = [100 + i % 22 for i in range(len(dates))]
-        frame = pd.DataFrame({'Close': close}, index=dates)
+        frame = pd.DataFrame({'Close': close, 'Volume': 100}, index=dates)
         expected = [d.date().isoformat() for d in dates]
         row = {'parts': {'technical': {}}}
         stock = {'price_date': day, 'price': close[-1]}
@@ -95,7 +95,7 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         anchors = {weeks.index[-n].date().isoformat(): weeks.iloc[-n]
                    for n in (1, 24, 45, 54, 90, 94, 120, 154)}
         result = recover_checked_weekly_closes(
-            stock, row, original[['Close']], expected, anchors, day, day)
+            stock, row, original[['Close', 'Volume']], expected, anchors, day, day)
         updates = result['v3_ma_slope_transition']
         self.assertEqual(updates['parts']['weekly']['20'], .4)
         self.assertIsNotNone(updates['parts']['weekly']['60'])
@@ -106,11 +106,18 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         wrong_older_anchor = dict(anchors)
         wrong_older_anchor[weeks.index[-154].date().isoformat()] += 1
         recovered = recover_checked_weekly_closes(
-            stock, row, original[['Close']], expected, wrong_older_anchor, day, day)
+            stock, row, original[['Close', 'Volume']], expected, wrong_older_anchor, day, day)
         self.assertEqual(recovered['v3_ma_slope_transition']['parts']['weekly'],
                          {'20': .4, '60': updates['parts']['weekly']['60'], '120': None})
 
-        new_listing = original.loc[weeks.index[-91]:, ['Close']]
+        suspended = original[['Close', 'Volume']].copy()
+        suspended.loc[weeks.index[-110] - pd.Timedelta(days=4):weeks.index[-110], 'Volume'] = 0
+        recovered = recover_checked_weekly_closes(
+            stock, row, suspended, expected, anchors, day, day)
+        self.assertEqual(recovered['v3_ma_slope_transition']['parts']['weekly'],
+                         {'20': .4, '60': updates['parts']['weekly']['60'], '120': None})
+
+        new_listing = original.loc[weeks.index[-91]:, ['Close', 'Volume']]
         self.assertEqual(recover_checked_weekly_closes(
             stock, row, new_listing, expected, anchors, day, day), {})
 
