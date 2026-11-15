@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import re
 
-from v3_dart_bulk_history import _valid_receipt
+from v3_dart_bulk_history import _valid_receipt, matches_dart_viewer
 
 PROOF = 'reviewed_disaggregated_capex'
 PARTS = ('ppe_capex_krw', 'intangible_capex_krw')
@@ -25,8 +25,7 @@ def validate_statement(item, row, year, cutoff, *, scope, receipt, source_year, 
             or not _valid_receipt(receipt, source_year, cutoff)
             or not _valid_receipt(item['annual_receipt'], int(year), cutoff)
             or not re.fullmatch(r'[a-f0-9]{64}', source['source_sha256'])
-            or not source['source_url'].startswith(
-                f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+            or not matches_dart_viewer(source['source_url'], receipt)
             or row['scope'] != scope or row['major_annual_receipt_matched'] is not True
             or row['annual_receipt_id'] != item['annual_receipt']
             or type(row['operating_cashflow_krw']) is not int
@@ -65,8 +64,7 @@ def original_year(item, row, year, cutoff):
                 or any(type(v) is not int or not 0 <= v < item[k] for k, v in partial.items())):
             raise ValueError('unverified_reviewed_capex_partial_replacement')
     if any(k in item for k in ('superseded_partial_capex', 'supporting_notes_url', 'supporting_notes_sha256')):
-        if (not item.get('supporting_notes_url', '').startswith(
-                    f"https://dart.fss.or.kr/report/viewer.do?rcpNo={item['annual_receipt']}&")
+        if (not matches_dart_viewer(item.get('supporting_notes_url', ''), item['annual_receipt'])
                 or item['supporting_notes_url'] == item['source_url']
                 or not re.fullmatch(r'[a-f0-9]{64}', item.get('supporting_notes_sha256', ''))
                 or item['supporting_notes_sha256'] == item['source_sha256']):

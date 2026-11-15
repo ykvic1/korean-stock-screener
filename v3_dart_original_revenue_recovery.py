@@ -11,7 +11,8 @@ from pathlib import Path
 from time import monotonic
 
 from v3_dart_bulk_history import (
-    _day, _latest_revenue, _mapping, _midrank, _stable_digest, _valid_receipt, write_json,
+    _day, _latest_revenue, _mapping, _midrank, _stable_digest, _valid_receipt,
+    matches_dart_viewer, write_json,
 )
 from v3_dart_revenue_2022 import (
     EXACT_NAMES, IDS, NONSTANDARD, ISSUER_SOURCE_GAP_ERRORS, Revenue2022Error, parse,
@@ -22,6 +23,8 @@ SCHEMA = 'v3-dart-original-annual-sales-receipt-v1'
 LIMIT = 96
 REVIEWED = 'v3-dart-reviewed-original-revenue.json'
 REVIEWED_SCHEMA = 'v3-dart-reviewed-original-annual-revenue-v1'
+REVIEWED_STATEMENT_NAMES = EXACT_NAMES | {'Revenue', 'Sales', 'OperatingRevenue',
+                                          'OperatingRevenue(Sales)'}
 
 
 def choices(catalog, history):
@@ -108,9 +111,9 @@ def reviewed_revenues(catalog, history, source, expected):
         if type(saved_income) is not int or saved_income != entry['operating_income_krw']:
             continue
         receipt = base['receipt_id']
-        if (entry['account_name'] not in EXACT_NAMES
+        if (entry['account_name'] not in REVIEWED_STATEMENT_NAMES
                 or type(entry['revenue_krw']) is not int or not 0 < entry['revenue_krw'] <= 10**18
-                or not entry['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+                or not matches_dart_viewer(entry['source_url'], receipt)
                 or len(entry['source_sha256']) != 64
                 or any(ch not in '0123456789abcdef' for ch in entry['source_sha256'])):
             raise ValueError('invalid_reviewed_original_revenue_statement')

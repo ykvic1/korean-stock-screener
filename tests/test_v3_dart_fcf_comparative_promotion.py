@@ -256,6 +256,13 @@ class ReviewedStatementTests(unittest.TestCase):
             reviewed.verify(CODE, year, years, cutoff)
             years[year][reviewed.PROOF].pop('supporting_notes_sha256')
             reviewed.verify(CODE, year, years, cutoff)
+            english_viewer = 'https://englishdart.fss.or.kr/report/eng/viewer.do'
+            item['supporting_notes_url'] = f'{english_viewer}?rcpNo={receipt}&eleId=2'
+            corroborated, _ = reviewed.apply(cash)
+            reviewed.verify(CODE, year, corroborated['records'][CODE]['years'], cutoff)
+            item['source_url'] = f'{english_viewer}?rcpNo={receipt}&eleId=1'
+            corroborated, _ = reviewed.apply(cash)
+            reviewed.verify(CODE, year, corroborated['records'][CODE]['years'], cutoff)
             item['supporting_notes_url'] = item['source_url'].replace(receipt, '20250317000009')
             with self.assertRaisesRegex(ValueError, 'unverified_reviewed_capex_partial_replacement'):
                 reviewed.apply(cash)

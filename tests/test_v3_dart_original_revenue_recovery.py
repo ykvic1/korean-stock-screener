@@ -86,6 +86,11 @@ class OriginalRevenueRecoveryTests(unittest.TestCase):
         self.assertEqual(codes, {code})
         self.assertEqual(proposed['records'][code]['years']['2025']['CFS']['values']['revenue'], 100)
         self.assertIsNone(annual['values']['revenue'])
+        proof['account_name'] = 'Revenue'
+        proof['source_url'] = f'https://englishdart.fss.or.kr/report/eng/viewer.do?rcpNo={receipt}&dcmNo=1'
+        translated, codes = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(codes, {code})
+        self.assertEqual(translated['records'][code]['years']['2025']['CFS']['values']['revenue'], 100)
         annual['values']['operating_income'] = -11
         self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
         annual['values']['operating_income'] = -10
