@@ -249,6 +249,13 @@ def verified_face_consolidation(previous, current, notice):
     return abs(previous_close * new_face - reference * old_face) <= krx_tick(reference) * old_face
 
 
+def auction_price_ratio(notice):
+    if 'face_values_krw' in notice:
+        _, reduced, consolidated = notice['face_values_krw']
+        return Fraction(consolidated, reduced)
+    return Fraction(notice['ratio'], notice.get('split_ratio', 1))
+
+
 def load_auction_notices(path=NOTICE_FILE):
     data = json.loads(path.read_bytes())
     if data.get('schema') != NOTICE_SCHEMA:
@@ -263,10 +270,27 @@ def load_auction_notices(path=NOTICE_FILE):
             if (date.fromisoformat(day).isoformat() != day or type(notice) is not dict
                 or notice.get('market') not in MARKETS
                 or any(type(notice.get(k)) is not int or notice[k] <= 0 for k in (
-                    'valuation_krw', 'lower_krw', 'upper_krw', 'shares_before', 'shares_after', 'ratio'))
+                    'valuation_krw', 'lower_krw', 'upper_krw', 'shares_before', 'shares_after'))
+                or ('face_values_krw' not in notice
+                    and (type(notice.get('ratio')) is not int or notice['ratio'] <= 0))
                 or not notice['lower_krw'] < notice['valuation_krw'] < notice['upper_krw']):
                 raise ValueError('invalid_krx_auction_capital_reduction_notice')
-            if 'split_ratio' in notice:
+            if 'face_values_krw' in notice:
+                faces = notice['face_values_krw']
+                if (notice['market'] != 'KOSDAQ' or 'split_ratio' in notice
+                        or 'shares_cancelled' in notice or 'ratio' in notice or type(faces) is not list
+                        or len(faces) != 3
+                        or any(type(face) is not int or face <= 0 for face in faces)
+                        or not faces[1] < min(faces[0], faces[2])
+                        or not re.fullmatch(KIND_DOCUMENT + r'11309\.htm',
+                                            notice.get('action_url', ''))):
+                    raise ValueError('invalid_krx_auction_face_reduction_notice')
+                ratio = auction_price_ratio(notice)
+                remainder = (notice['shares_before'] * ratio.denominator
+                             - notice['shares_after'] * ratio.numerator)
+                if not 0 <= remainder < ratio.numerator:
+                    raise ValueError('invalid_krx_auction_face_reduction_ratio')
+            elif 'split_ratio' in notice:
                 if (type(notice['split_ratio']) is not int or notice['split_ratio'] <= 1
                         or type(notice.get('shares_cancelled')) is not int
                         or not 0 <= notice['shares_cancelled'] < notice['shares_before']
@@ -288,6 +312,9 @@ def load_auction_notices(path=NOTICE_FILE):
             elif notice['market'] == 'KOSPI':
                 auction_doc = KIND_DOCUMENT + r'99326\.htm|' + SYNDICATED_DISCLOSURE
                 listing_doc = SYNDICATED_DISCLOSURE
+            elif 'face_values_krw' in notice:
+                auction_doc = KIND_DOCUMENT + r'70793\.htm'
+                listing_doc = KIND_DOCUMENT + r'70764\.htm'
             else:
                 auction_doc = KIND_DOCUMENT + r'70793\.htm|' + SYNDICATED_DISCLOSURE
                 listing_doc = KIND_DOCUMENT + r'70763\.htm|' + SYNDICATED_DISCLOSURE
@@ -303,14 +330,14 @@ def verified_auction_capital_reduction(previous, current, opening, notice):
         return False
     previous_close, previous_shares, _ = previous
     close, shares, reference = current
-    split_ratio = notice.get('split_ratio', 1)
+    ratio = auction_price_ratio(notice)
     valuation = notice['valuation_krw']
     return (type(opening) is int and opening == reference
             and notice['lower_krw'] <= opening <= notice['upper_krw']
             and 100 * abs(close - opening) <= 30 * opening
             and previous_shares == notice['shares_before'] and shares == notice['shares_after']
-            and abs(previous_close * notice['ratio'] - valuation * split_ratio)
-                <= krx_tick(valuation) * split_ratio)
+            and abs(previous_close * ratio.numerator - valuation * ratio.denominator)
+                <= krx_tick(valuation) * ratio.denominator)
 
 
 def load_resumption_notices(path=NOTICE_FILE):
@@ -381,7 +408,7 @@ def make_receipt(observations, *, asof, sessions=None, face_notices=None,
         if verified_auction_capital_reduction(previous, current, opening, auction):
             # Scale by the announced pro-rata exchange ratio. Comparing to
             # the auction open here would erase the opening price movement.
-            links[i] = Fraction(auction['ratio'], auction.get('split_ratio', 1))
+            links[i] = auction_price_ratio(auction)
             verified_jump_indices.add(i)
             link_counts['kind_auction_capital_reduction_links'] += 1
             continue
