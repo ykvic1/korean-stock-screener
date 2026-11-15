@@ -40,7 +40,7 @@ MAX_TARGETS = 350
 WEEKLY_PATTERN_WEEKS = 90
 
 
-def inspect_source_frame(payload, ticker, expected, anchors):
+def inspect_source_frame(payload, ticker, expected, anchors, *, close_only=False):
     closes = yahoo_closes(payload, ticker, sorted(anchors))
     if any(closes.get(day) is None for day in anchors):
         return 'alternative_anchor_unavailable', None
@@ -49,6 +49,9 @@ def inspect_source_frame(payload, ticker, expected, anchors):
     try:
         data = payload['chart']['result'][0]
         days = [datetime.fromtimestamp(t, KST).date().isoformat() for t in data['timestamp']]
+        if close_only:
+            return None, pd.DataFrame({'Close': data['indicators']['quote'][0]['close']},
+                                      index=pd.DatetimeIndex(days), dtype=float)
         if days[0] not in expected or days != expected[expected.index(days[0]):]:
             return 'alternative_calendar_mismatch', None
         bars = data['indicators']['quote'][0]
@@ -273,42 +276,62 @@ def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday
     """Use a continuous close series whose older and latest closes agree with KRX."""
     if frame is None or frame.empty or stock.get('price_date') != day:
         return {}
-    actual = [index.date().isoformat() for index in frame.index]
-    if actual != [session for session in expected if actual[0] <= session <= day]:
+    if not frame.index.is_monotonic_increasing or not frame.index.is_unique:
         return {}
+    sessions = pd.DatetimeIndex(expected)
+    sessions = sessions[sessions <= day]
     official_close = refs.get(day)
-    if (actual[-1] != day or official_close is None
+    if (frame.index[-1] != pd.Timestamp(day) or official_close is None
             or close_anchor(stock, (official_close,), dated_close) is None
             or frame.at[day, 'Close'] != official_close):
         return {}
-    close = frame.loc[:friday, 'Close']
-    weeks = close.resample('W-FRI').last()
+
+    # An earlier calendar discrepancy cannot invalidate a later exact window.
+    count = 0
+    for actual, session in zip(reversed(frame.index), reversed(sessions)):
+        if actual != session:
+            break
+        count += 1
+    if not count:
+        return {}
+    history = frame.iloc[-count:]
+    first_week = history.index[0].to_period('W-FRI')
+    first_session = sessions[sessions >= first_week.start_time][0]
+    if history.index[0] != first_session:
+        history = history.loc[history.index.to_period('W-FRI') > first_week]
+    close = history.loc[:friday, 'Close']
+    if close.empty:
+        return {}
 
     def anchored(window):
-        if len(weeks) < window:
+        end = pd.Timestamp(friday)
+        start = end - pd.Timedelta(weeks=window - 1, days=6)
+        required = sessions[(sessions >= start) & (sessions <= end)]
+        tail = close.loc[start:]
+        prices = tail.to_numpy()
+        if (len(required) == 0 or not tail.index.equals(required)
+                or tail.index[0].to_period('W-FRI') != start.to_period('W-FRI')
+                or not np.isfinite(prices).all() or (prices <= 0).any()):
             return False
-        start = weeks.index[-window] - pd.Timedelta(days=6)
-        end = weeks.index[-1]
         anchors = {session: price for session, price in refs.items()
                    if start <= pd.Timestamp(session) <= end}
         dates = list(map(pd.Timestamp, anchors))
         # Require an older anchor near the start of the actual window, a
         # distinct middle anchor, and the last completed trading session.
         early = start + pd.Timedelta(weeks=16)
-        return (actual[0] <= start.date().isoformat()
-                and any(start <= dt <= early for dt in dates)
+        return (any(start <= dt <= early for dt in dates)
                 and any(early < dt < end - pd.Timedelta(weeks=4) for dt in dates)
-                and not close.empty and close.index[-1].date().isoformat() in anchors
-                and all(session in frame.index and frame.at[session, 'Close'] == price
+                and close.index[-1].date().isoformat() in anchors
+                and all(session in close.index and close.at[session] == price
                         for session, price in anchors.items()))
 
     updates = {}
     if needs_weekly_position(stock, row) and anchored(120):
-        position = weekly_position(frame, day)
+        position = weekly_position(history, day)
         if position is not None:
             updates['v3_weekly_position_gap_recovery'] = position
     if needs_weekly_rsi(stock, row) and anchored(90):
-        if (rsi := weekly_rsi(frame, friday)) is not None:
+        if (rsi := weekly_rsi(history, friday)) is not None:
             updates['v3_weekly_rsi_gap_recovery'] = rsi
     if needs_weekly_ma120(stock, day, friday) and anchored(154):
         prior = stock['v3_ma_slope_transition']
@@ -420,7 +443,8 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
         updates = {}
         if payload is not None:
             ticker = key[1] + ('.KS' if key[0] == 'KOSPI' else '.KQ')
-            frame = source_frame(payload, ticker, expected, {day: official[day]})
+            _, frame = inspect_source_frame(payload, ticker, expected, {day: official[day]},
+                                            close_only=True)
             if frame is not None:
                 updates = recover_checked_weekly_closes(
                     stock, row, frame, expected, official, day, completed_friday,
