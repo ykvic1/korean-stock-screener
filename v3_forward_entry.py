@@ -11,6 +11,7 @@ import re
 import unicodedata
 
 from official_probe.clients import KRXClient, KRXProbeError
+from v3_forward_daily_prices import DailyEvidenceError, collect_daily
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
 from v3_krx_history_collection import MARKETS, HistoryCollectionError, _snapshot_market
@@ -185,11 +186,37 @@ def save_entry(plan, observation, storage, official_openings):
 
 def main():
     now = datetime.now(timezone.utc)
-    client = storage = None
+    @lru_cache(maxsize=1)
+    def storage_and_key():
+        if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
+            raise EntryError('private_destination_unavailable')
+        key = os.getenv('KRX_API_KEY', '').strip()
+        if not key:
+            raise EntryError('krx_key_unavailable')
+        storage = PrivateGitStorage(PRIVATE_REPO, os.getenv('V3_PRIVATE_ARCHIVE_TOKEN', ''))
+        storage.verify_private()
+        return storage, key
 
-    @lru_cache(maxsize=MAX_COHORTS_PER_RUN)
+    @lru_cache(maxsize=1)
+    def official_client():
+        return KRXClient(storage_and_key()[1])
+
+    @lru_cache(maxsize=10)
     def official_openings(day):
-        return read_official_openings(client, day)
+        # Include empty responses in the per-run cache so the two collectors
+        # do not repeat a call while KRX is still publishing a session.
+        try:
+            return read_official_openings(official_client(), day), None
+        except KRXProbeError as error:
+            if error.reason not in ('empty_body', 'empty_market_rows'):
+                raise
+            return None, error
+
+    def official_pair(day):
+        result, error = official_openings(day)
+        if error is not None:
+            raise error
+        return result
 
     OUT.mkdir(parents=True, exist_ok=True)
     # Try new cohorts first and then rotate pending ones by last attempt.
@@ -222,17 +249,8 @@ def main():
         if now < timestamp(plan['regular_close_utc']):
             result = {**plan, 'status': 'waiting_for_session_close'}
         else:
-            if storage is None:
-                if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
-                    raise EntryError('private_destination_unavailable')
-                key = os.getenv('KRX_API_KEY', '').strip()
-                if not key:
-                    raise EntryError('krx_key_unavailable')
-                storage = PrivateGitStorage(PRIVATE_REPO, os.getenv('V3_PRIVATE_ARCHIVE_TOKEN', ''))
-                storage.verify_private()
-                client = KRXClient(key)
             try:
-                result = save_entry(plan, observation, storage, official_openings)
+                result = save_entry(plan, observation, storage_and_key()[0], official_pair)
             except KRXProbeError as error:
                 if error.reason not in ('empty_body', 'empty_market_rows'):
                     raise EntryError('krx_' + error.reason) from None
@@ -241,9 +259,20 @@ def main():
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(result, ensure_ascii=False))
 
+    entry_statuses = []
+    for source in sorted(ARCHIVE.glob('????-??-??.json')):
+        target = OUT / source.name
+        if target.exists():
+            status = json.loads(target.read_bytes())
+            if status['score_observation_sha256'] != sha256(source.read_bytes()).hexdigest():
+                raise EntryError('archived_score_hash_changed')
+            entry_statuses.append(status)
+    collect_daily(entry_statuses, now, lambda: storage_and_key()[0], official_pair)
+
 
 if __name__ == '__main__':
     try:
         main()
-    except (EntryError, HistoryCollectionError, PrivateHistoryError, DerivedSourceError) as error:
+    except (EntryError, DailyEvidenceError, HistoryCollectionError,
+            PrivateHistoryError, DerivedSourceError) as error:
         raise SystemExit(str(error)) from None
