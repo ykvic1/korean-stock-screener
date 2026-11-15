@@ -1029,6 +1029,51 @@
           "operating_income": 5609930561
         }
       }
+    },
+    "446840": {
+      "scope": "OFS",
+      "source_receipt_id": "20260319000737",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319000737&dcmNo=11148936&eleId=23&offset=296960&length=19517&dtd=dart4.xsd",
+      "source_sha256": "8e55ddf17c1e96de9a2979004795726835621d669f6f85e87cd3224c78c34e35",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 11295873816,
+          "operating_income": -6643920486
+        },
+        "2024": {
+          "revenue": 13575700648,
+          "operating_income": -1765184839
+        },
+        "2023": {
+          "revenue": 13761869663,
+          "operating_income": 1641574970
+        }
+      },
+      "reverse_merger": {
+        "historical_source_receipt": "20250611000784",
+        "historical_source_url": "https://kind.krx.co.kr/external/2025/06/11/000251/20250611000784/00591.htm",
+        "historical_source_sha256": "f6a776e5fee809990ed6f61af2c27459726eba0b0bc81b537cd1f18fd019e6c3",
+        "historical_figures": {
+          "2023": {
+            "revenue": 13761869663,
+            "operating_income": 1641574970
+          },
+          "2024": {
+            "revenue": 13575700648,
+            "operating_income": -1765184839
+          }
+        },
+        "legal_predecessor": {
+          "2023": {
+            "receipt_id": "20240319000822",
+            "operating_income": -21291150
+          },
+          "2024": {
+            "receipt_id": "20250320000900",
+            "operating_income": -25657715
+          }
+        }
+      }
     }
   }
 }

@@ -201,22 +201,59 @@ def plan(catalog,history,prior=None,*,priority=(),limit=LIMIT):
     return expected,retained,selected
 
 
+def matches_merger_comparatives(years, item, cutoff):
+    """Bind the accounting predecessor's figures without replacing legal filings."""
+    merger = item['reverse_merger']
+    scope = item['scope']
+    receipt = merger['historical_source_receipt']
+    if not _valid_receipt(receipt, 2024, cutoff) or receipt[:8] >= item['source_receipt_id'][:8]:
+        return False
+    source_date = f'{receipt[:4]}/{receipt[4:6]}/{receipt[6:8]}'
+    if (not re.fullmatch(
+            rf'https://kind\.krx\.co\.kr/external/{source_date}/[0-9]{{6}}/{receipt}/00591\.htm',
+            merger['historical_source_url'])
+            or not re.fullmatch('[a-f0-9]{64}', merger['historical_source_sha256'])
+            or merger['historical_source_sha256'] == item['source_sha256']
+            or set(merger['historical_figures']) != {'2023', '2024'}
+            or set(merger['legal_predecessor']) != {'2023', '2024'}):
+        return False
+    for year in ('2023', '2024'):
+        saved = years.get(year, {}).get(scope, {})
+        legal = merger['legal_predecessor'][year]
+        if (not _valid_receipt(legal['receipt_id'], int(year), cutoff)
+                or legal['receipt_id'] != saved.get('receipt_id')
+                or legal['receipt_id'][:8] >= receipt[:8]
+                or saved.get('values', {}).get('revenue') != 0
+                or legal['operating_income'] != saved['values'].get('operating_income')
+                or merger['historical_figures'][year] != item['annual_comparatives_krw'][year]):
+            return False
+    return True
+
+
 def reviewed_margin(record, item, day):
-    """Bind reported pre-listing figures to two saved, same-scope annual anchors."""
+    """Bind reported historical figures to the saved annual filing and source scope."""
     scope = item['scope']
     figures = item['annual_comparatives_krw']
     years = record['years']
-    if (scope not in ('CFS', 'OFS') or set(figures) != {'2023', '2024', '2025'}
-            or years.get('2023', {}).get(scope) is not None):
+    cutoff = _day(day)
+    if scope not in ('CFS', 'OFS') or set(figures) != {'2023', '2024', '2025'}:
         return None
     receipt = item['source_receipt_id']
     if (not re.fullmatch('[a-f0-9]{64}', item['source_sha256'])
             or not item['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')):
         raise OperatingComparativeError('unverified_reviewed_operating_margin_source')
-    for year, key in (('2025', 'source_receipt_id'), ('2024', 'anchor_2024_receipt_id')):
+    if 'reverse_merger' in item:
+        if not matches_merger_comparatives(years, item, cutoff):
+            return None
+        anchors = (('2025', 'source_receipt_id'),)
+    else:
+        if years.get('2023', {}).get(scope) is not None:
+            return None
+        anchors = (('2025', 'source_receipt_id'), ('2024', 'anchor_2024_receipt_id'))
+    for year, key in anchors:
         saved = years.get(year, {}).get(scope, {})
         observed = saved.get('values', {})
-        if (not _valid_receipt(item[key], int(year), _day(day))
+        if (not _valid_receipt(item[key], int(year), cutoff)
                 or item[key] != saved.get('receipt_id')
                 or any(observed.get(k) != figures[year][k] for k in ('revenue', 'operating_income'))):
             return None
