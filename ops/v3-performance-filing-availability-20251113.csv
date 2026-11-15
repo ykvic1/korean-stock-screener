@@ -1,0 +1,26 @@
+code,name,signal_at_kst,period_end,form,dart_receipt,published_on_kst,status,supersedes_receipt,filing_url,note
+008290,원풍물산,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250331001539,2025-03-31,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250331001539,
+008290,원풍물산,2025-11-13T16:30:00+09:00,2025-06-30,half_year,20250814002613,2025-08-14,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814002613,
+008290,원풍물산,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251114001870,2025-11-14,excluded_after_cutoff,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251114001870,
+008290,원풍물산,2025-11-13T16:30:00+09:00,2024-12-31,annual,20251120000429,2025-11-20,excluded_after_cutoff,20250331001539,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251120000429,Filed financial restatement
+008290,원풍물산,2025-11-13T16:30:00+09:00,2025-06-30,half_year,20251201000564,2025-12-01,excluded_after_cutoff,20250814002613,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251201000564,Comparative FY2024 restated
+008290,원풍물산,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251201000568,2025-12-01,excluded_after_cutoff,20251114001870,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251201000568,Filed financial restatement
+008500,일정실업,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250320001689,2025-03-20,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250320001689,
+008500,일정실업,2025-11-13T16:30:00+09:00,2024-12-31,annual_attachment,20250321000231,2025-03-21,available_attachment,20250320001689,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250321000231,Internal control attachment correction
+008500,일정실업,2025-11-13T16:30:00+09:00,2025-06-30,half_year,20250814004015,2025-08-14,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814004015,
+008500,일정실업,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251114001928,2025-11-14,excluded_after_cutoff,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251114001928,
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250317000899,2025-03-17,superseded_before_cutoff,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250317000899,Original filing
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250320001267,2025-03-20,superseded_before_cutoff,20250317000899,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250320001267,Officer compensation correction
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250711000373,2025-07-11,selected_periodic,20250320001267,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250711000373,
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2025-06-30,half_year,20250814002289,2025-08-14,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814002289,
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2025-09-30,preliminary_earnings_ofs,20251103800234,2025-11-03,available_preliminary,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251103800234,Separate preliminary results
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2025-09-30,preliminary_earnings_cfs,20251103800236,2025-11-03,available_preliminary,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251103800236,Consolidated preliminary results
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251114001427,2025-11-14,excluded_after_cutoff,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251114001427,
+010620,HD현대미포,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251117000181,2025-11-17,excluded_after_cutoff,20251114001427,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251117000181,Filed correction
+012510,더존비즈온,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250317001028,2025-03-17,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250317001028,
+012510,더존비즈온,2025-11-13T16:30:00+09:00,2025-06-30,half_year,20250814003371,2025-08-14,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814003371,
+012510,더존비즈온,2025-11-13T16:30:00+09:00,2025-09-30,preliminary_earnings_cfs,20251110800055,2025-11-10,available_preliminary,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251110800055,Consolidated preliminary results
+012510,더존비즈온,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251114001969,2025-11-14,excluded_after_cutoff,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251114001969,
+084180,수성웹툰,2025-11-13T16:30:00+09:00,2024-12-31,annual,20250319000824,2025-03-19,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250319000824,
+084180,수성웹툰,2025-11-13T16:30:00+09:00,2025-06-30,half_year,20250814001616,2025-08-14,selected_periodic,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20250814001616,
+084180,수성웹툰,2025-11-13T16:30:00+09:00,2025-09-30,third_quarter,20251114000646,2025-11-14,excluded_after_cutoff,,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251114000646,

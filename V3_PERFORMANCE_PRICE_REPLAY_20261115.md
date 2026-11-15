@@ -20,6 +20,8 @@
 
 2026-11-19 수능일에도 16:30 KST 마감 기준을 적용한다. [시장 거래시간 안내](https://02.myasset.com/myasset/customer/notice/CU_0201000_P2.cmd?SEQ=202611131405580000000004&gubun=norNotice)
 
+[같은 5종목의 공시 시점과 재무 원문 대조](V3_PERFORMANCE_FILING_REPLAY_20261116.md)에 당시 공개된 재무 입력을 기록했다.
+
 ## 자료 기준
 
 - 일별 가격은 [후속 대조에 사용한 FinanceData 2025·2026년 자료](V3_PERFORMANCE_DELISTING_FOLLOWUP_20261115.md#일별-자료)와 [2026-11-13 조회본](https://github.com/FinanceData/fdr_krx_data_cache/blob/master/data/listing/krx/2026-11-13.csv)을 사용했다. 11월 13일 조회본 SHA-256은 `842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc`다.
