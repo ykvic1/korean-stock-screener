@@ -281,6 +281,24 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertFalse(ops.can_hold_previous_during_temporal_lag(
             market,catalog,broken,history,previous))
 
+    def test_new_market_day_holds_only_during_verified_annual_history_lag(self):
+        from v3_dart_source_day_preflight import SourceDayGateError
+
+        market, catalog, ledger, history = self.inputs[:4]
+        previous = json.loads((ROOT/'docs'/ops.OUTPUT).read_text())
+        day = date.fromisoformat(catalog['date'])
+        stale = {**history, 'asof': (day-timedelta(days=1)).isoformat()}
+        with self.assertRaisesRegex(ValueError, 'unaligned_operating_comparative_sources'):
+            ops.build(market, catalog, ledger, stale, *self.inputs[4:],
+                      operating_comparative_source={})
+        self.assertTrue(ops.can_hold_previous_during_temporal_lag(
+            market, catalog, ledger, stale, previous))
+        self.assertFalse(ops.can_hold_previous_during_temporal_lag(
+            market, catalog, ledger, history, previous))
+        with self.assertRaises(SourceDayGateError):
+            ops.can_hold_previous_during_temporal_lag(
+                market, catalog, ledger, {**stale, 'schema': 'unknown'}, previous)
+
     def test_prior_receipts_migrate_without_relabeling_legacy_scores(self):
         old=json.loads((ROOT/'docs'/'v3-operational-research-scores.json').read_text())
         self.assertIn(old['version'],ops.COMPATIBLE_PREVIOUS)
