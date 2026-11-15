@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
+from functools import lru_cache
 from hashlib import sha256
 import json
 import os
@@ -215,15 +216,17 @@ def weekly_pattern_window(expected, completed_friday):
     # A missing provider bar cannot be an independent comparison anchor.
     anchor_days = [OUTER_ANCHORS[0] if week[-1] == GAP else week[-1]
                    for week in (weeks[index] for index in (0, 29, 59, -1))]
-    return weeks[0][0], weeks[-1][-1], anchor_days
+    return [session for week in weeks for session in week], anchor_days
 
 
 def recover_recent_weekly_pattern(stock, frame, values, shares, window, friday):
     """Replay the same detector on a clean, independently anchored 90-week suffix."""
-    first, last, anchor_days = window
-    if frame is None or first not in frame.index or last not in frame.index:
+    sessions, anchor_days = window
+    if frame is None or not frame.index.is_monotonic_increasing or not frame.index.is_unique:
         return None
-    tail = frame.loc[first:last]
+    tail = frame.loc[sessions[0]:sessions[-1]]
+    if not tail.index.equals(pd.DatetimeIndex(sessions)):
+        return None
     if any(d not in values or tuple(tail.loc[d, list(FIELDS)]) != values[d]
            for d in anchor_days):
         return None
@@ -405,7 +408,7 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
     weekly_targets = {key: stock for key, stock in targets.items()
                       if needs_weekly_pattern(stock, report['rows'][key[1]])}
     extra_refs = {d: snapshots(client, d, weekly_targets)
-                  for d in recent_week[2] if d not in refs and weekly_targets}
+                  for d in recent_week[1] if d not in refs and weekly_targets}
 
     close_only_targets = {key: stock for key, stock in targets.items()
                           if needs_weekly_position(stock, report['rows'][key[1]])
@@ -428,10 +431,9 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
         else:
             dated_closes = cache_close_index(listing)
 
-    def close_only(key, stock, row, *, payload=None):
+    def close_only(key, stock, row, fallback_frame, *, payload=None):
         if key not in close_only_targets:
             return {}
-        from screener import price_history
         anchors = {d: refs.get(d, close_refs.get(d, {})).get(key)
                    for d in close_only_days | {day, completed_close_day}}
         if not anchors.get(day):
@@ -450,12 +452,8 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
                     stock, row, frame, expected, official, day, completed_friday,
                     dated_close=dated_close)
         # The fallback can add a longer window omitted by the first feed.
-        try:
-            frame = price_history(key[1], first, day)
-        except (requests.RequestException, ValueError):
-            return updates
         fallback = recover_checked_weekly_closes(
-            stock, row, frame, expected, official, day, completed_friday,
+            stock, row, fallback_frame(), expected, official, day, completed_friday,
             dated_close=dated_close)
         return fallback | updates
 
@@ -471,12 +469,19 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
         values = {d: refs[d][key][0] for d in dates if key in refs[d]}
         shares = {d: refs[d][key][1] for d in values}
         ticker = key[1] + ('.KS' if key[0] == 'KOSPI' else '.KQ')
+
+        @lru_cache(maxsize=1)
+        def fallback_frame():
+            from screener import price_history
+
+            try:
+                return price_history(key[1], first, day)
+            except (requests.RequestException, ValueError):
+                return None
+
         payload = fetch(ticker, first, day)
-        if payload is None:
-            updates = close_only(key, stock, row)
-            return ('recovered' if updates else 'alternative_response_unavailable'), updates
         updates = {}
-        if daily_needed:
+        if daily_needed and payload is not None:
             tail_start = expected[-DAILY_CLEAN_TAIL]
             daily_anchors = {d: v for d, v in values.items() if d >= tail_start}
             if day in daily_anchors and len(daily_anchors) >= 3:
@@ -488,29 +493,40 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
                     updates['pattern_research'] = daily
         if weekly_needed:
             weekly_anchors = {d: values.get(d, extra_refs.get(d, {}).get(key, (None, None))[0])
-                              for d in recent_week[2]}
+                              for d in recent_week[1]}
             if all(v is not None for v in weekly_anchors.values()):
                 week_frame = source_frame(payload, ticker, expected,
                                           {d: v[3] for d, v in weekly_anchors.items()} |
                                           {day: current[key][0][3]})
                 weekly = recover_recent_weekly_pattern(stock, week_frame, values | weekly_anchors,
                                                        shares, recent_week, completed_friday)
+                if weekly is None:
+                    frame = fallback_frame()
+                    if (frame is not None and not frame.empty and frame.index.is_unique
+                            and frame.index[-1] == pd.Timestamp(day)
+                            and frame.at[day, 'Close'] == current[key][0][3]
+                            and close_anchor(stock, (current[key][0][3],), dated_closes.get(key)) is not None):
+                        weekly = recover_recent_weekly_pattern(stock, frame, values | weekly_anchors,
+                                                               shares, recent_week, completed_friday)
                 if weekly is not None:
                     updates['pattern_weekly_research'] = weekly
+        if payload is None:
+            updates.update(close_only(key, stock, row, fallback_frame))
+            return ('recovered' if updates else 'alternative_response_unavailable'), updates
         if missing is not None:
-            updates.update(close_only(key, stock, row, payload=payload))
+            updates.update(close_only(key, stock, row, fallback_frame, payload=payload))
             return ('recovered' if updates else 'official_anchor_unavailable'), updates
         reason, frame = inspect_source_frame(payload, ticker, expected,
             {d: values[d][3] for d in close_anchors})
         if reason is not None:
-            updates.update(close_only(key, stock, row, payload=payload))
+            updates.update(close_only(key, stock, row, fallback_frame, payload=payload))
             return ('recovered' if updates else reason), updates
         if GAP not in frame.index or not frame.loc[GAP].isna().all():
-            updates.update(close_only(key, stock, row, payload=payload))
+            updates.update(close_only(key, stock, row, fallback_frame, payload=payload))
             return ('recovered' if updates else 'alternative_gap_not_all_null'), updates
         repaired = repair(frame, values, shares)
         if repaired is None:
-            updates.update(close_only(key, stock, row, payload=payload))
+            updates.update(close_only(key, stock, row, fallback_frame, payload=payload))
             return ('recovered' if updates else 'local_share_basis_or_neighbor_unverified'), updates
         if weekly_needed and 'pattern_weekly_research' not in updates:
             weekly = recover_weekly_pattern(stock, repaired, values, completed_friday)
@@ -551,7 +567,7 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
                 ('v3_weekly_position_gap_recovery', needs_weekly_position(stock, row)),
                 ('v3_weekly_rsi_gap_recovery', needs_weekly_rsi(stock, row)),
                 ('v3_ma_slope_transition', key in long_ma_targets)) if needed):
-            for field, evidence in close_only(key, stock, row, payload=payload).items():
+            for field, evidence in close_only(key, stock, row, fallback_frame, payload=payload).items():
                 updates.setdefault(field, evidence)
         return ('recovered' if updates else 'no_added_observation'), updates
 
@@ -578,7 +594,7 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
             'official_repair_sessions': list(REPAIR_SESSIONS),
             'selected': len(targets), 'counts': dict(counts), 'recovered_fields': dict(recovered),
             'long_ma_comparison_sessions': list(long_ma_refs),
-            'weekly_suffix_comparison_sessions': recent_week[2],
+            'weekly_suffix_comparison_sessions': recent_week[1],
             'continuous_weekly_close_comparison_sessions': sorted(close_only_days),
             'dated_close_anchor_source_sha256': cache_sha,
             'official_requests': 2*(len(dates) + len(long_ma_refs) + len(extra_refs) + len(close_refs)),

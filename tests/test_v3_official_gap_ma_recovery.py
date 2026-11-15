@@ -184,12 +184,14 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         frame = pd.DataFrame(dict(Open=close, High=close, Low=close, Close=close, Volume=100),
                              index=dates)
         window = weekly_pattern_window(days, '2026-11-13')
-        anchors = {d: tuple(frame.loc[d]) for d in window[2]}
+        anchors = {d: tuple(frame.loc[d]) for d in window[1]}
         frame.iloc[0] = float('nan')
         stock = {'price_date': '2026-11-13'}
         result = recover_recent_weekly_pattern(stock, frame, anchors, {}, window, '2026-11-13')
         self.assertEqual(result['asof'], '2026-11-13')
         self.assertTrue(result['source_recent_clean_window_only'])
+        self.assertIsNone(recover_recent_weekly_pattern(
+            stock, frame.drop(index=dates[-10]), anchors, {}, window, '2026-11-13'))
         frame.iloc[-10, frame.columns.get_loc('High')] = 1.
         self.assertIsNone(recover_recent_weekly_pattern(stock, frame, anchors, {}, window, '2026-11-13'))
 
