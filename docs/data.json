@@ -403774,25 +403774,25 @@
       },
       "v3_ma240_cross_unavailable_reason": null,
       "v3_ma_slope_transition": {
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "asof": "2026-11-13",
-        "investment_score_certified": false,
+        "weekly_asof": "2026-11-13",
         "parts": {
           "daily": {
-            "120": 0.0,
             "20": 0.0,
-            "60": 0.0
+            "60": 0.0,
+            "120": 0.0
           },
           "weekly": {
-            "120": null,
             "20": 0.0,
-            "60": 0.0
+            "60": 0.0,
+            "120": 0.0
           }
         },
-        "raw_ohlcv_exported": false,
-        "schema": "v3-ma-log-slope-transition-provisional-0.1",
-        "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": "2026-11-13"
+        "source_corporate_action_adjusted_verified": false,
+        "raw_ohlcv_exported": false,
+        "investment_score_certified": false
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-13",
@@ -562483,25 +562483,25 @@
       },
       "v3_ma240_cross_unavailable_reason": null,
       "v3_ma_slope_transition": {
+        "schema": "v3-ma-log-slope-transition-provisional-0.1",
         "asof": "2026-11-13",
-        "investment_score_certified": false,
+        "weekly_asof": "2026-11-13",
         "parts": {
           "daily": {
-            "120": 0.0,
             "20": 0.0,
-            "60": 0.0
+            "60": 0.0,
+            "120": 0.0
           },
           "weekly": {
-            "120": null,
             "20": 0.0,
-            "60": 0.0
+            "60": 0.0,
+            "120": 0.0
           }
         },
-        "raw_ohlcv_exported": false,
-        "schema": "v3-ma-log-slope-transition-provisional-0.1",
-        "source_corporate_action_adjusted_verified": false,
         "source_regular_session_verified": false,
-        "weekly_asof": "2026-11-13"
+        "source_corporate_action_adjusted_verified": false,
+        "raw_ohlcv_exported": false,
+        "investment_score_certified": false
       },
       "v3_breakout_followthrough": {
         "asof": "2026-11-13",
@@ -636989,7 +636989,11 @@
         "실적·현금흐름 검증 필요",
         "PBR 미확인"
       ],
-      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시"
+      "forecast": "통계 검증 전 — 1·2·3·6·12개월 예측 수익률 미제시",
+      "v3_weekly_position_gap_recovery": {
+        "asof": "2026-11-13",
+        "weekly_ma120_gap_pct": -32.3901
+      }
     },
     {
       "rank": 2355,
