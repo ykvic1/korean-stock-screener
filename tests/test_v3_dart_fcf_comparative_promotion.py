@@ -248,6 +248,17 @@ class ReviewedStatementTests(unittest.TestCase):
             years[year][reviewed.PROOF]['source_fiscal_year'] = 2025
             with self.assertRaisesRegex(ValueError, 'proof_mismatch'):
                 reviewed.verify(CODE, year, years, cutoff)
+            item['supporting_notes_sha256'] = 'b' * 64
+            item['supporting_notes_url'] = item['source_url'] + '&eleId=2'
+            corroborated, _ = reviewed.apply(cash)
+            years = corroborated['records'][CODE]['years']
+            self.assertEqual(years[year][reviewed.PROOF]['supporting_notes_sha256'], 'b' * 64)
+            reviewed.verify(CODE, year, years, cutoff)
+            years[year][reviewed.PROOF].pop('supporting_notes_sha256')
+            reviewed.verify(CODE, year, years, cutoff)
+            item['supporting_notes_url'] = item['source_url'].replace(receipt, '20250317000009')
+            with self.assertRaisesRegex(ValueError, 'unverified_reviewed_capex_partial_replacement'):
+                reviewed.apply(cash)
             cash['records'][CODE]['years'][year]['ppe_capex_krw'] = 21
             self.assertEqual(reviewed.apply(cash)[1], [])
 

@@ -62,8 +62,10 @@ def original_year(item, row, year, cutoff):
         partial = item['superseded_partial_capex']
         if (type(partial) is not dict or len(partial) != 1
                 or not partial.keys() <= set(PARTS)
-                or any(type(v) is not int or not 0 <= v < item[k] for k, v in partial.items())
-                or not item.get('supporting_notes_url', '').startswith(
+                or any(type(v) is not int or not 0 <= v < item[k] for k, v in partial.items())):
+            raise ValueError('unverified_reviewed_capex_partial_replacement')
+    if any(k in item for k in ('superseded_partial_capex', 'supporting_notes_url', 'supporting_notes_sha256')):
+        if (not item.get('supporting_notes_url', '').startswith(
                     f"https://dart.fss.or.kr/report/viewer.do?rcpNo={item['annual_receipt']}&")
                 or item['supporting_notes_url'] == item['source_url']
                 or not re.fullmatch(r'[a-f0-9]{64}', item.get('supporting_notes_sha256', ''))
@@ -80,7 +82,12 @@ def verify(code, year, years, cutoff):
         proof = original_year(item, row, year, cutoff)
     else:
         item, proof = reviewed_year(code, year, years, cutoff)
-    if row[PROOF] != proof or any(row[k] != item[k] for k in PARTS):
+    # Earlier no-replacement observations stored only the statement digest.
+    # The registry notes still undergo identity and digest validation above.
+    compatible_proof = proof
+    if 'superseded_partial_capex' not in item and 'supporting_notes_sha256' not in row[PROOF]:
+        compatible_proof = {key: value for key, value in proof.items() if key != 'supporting_notes_sha256'}
+    if row[PROOF] != compatible_proof or any(row[k] != item[k] for k in PARTS):
         raise ValueError('reviewed_capex_amount_or_proof_mismatch')
 
 
