@@ -417,6 +417,20 @@
     }
   },
   "auction_capital_reductions": {
+    "016600": {
+      "2026-05-29": {
+        "market": "KOSDAQ",
+        "valuation_krw": 3665,
+        "lower_krw": 1832,
+        "upper_krw": 5500,
+        "shares_before": 178247112,
+        "shares_after": 14259768,
+        "face_values_krw": [500, 200, 2500],
+        "auction_url": "https://kind.krx.co.kr/external/2026/05/28/001082/20260528002343/70793.htm",
+        "listing_url": "https://kind.krx.co.kr/external/2026/05/28/001055/20260528002303/70764.htm",
+        "action_url": "https://kind.krx.co.kr/external/2026/03/11/002556/20260311005648/11309.htm"
+      }
+    },
     "109960": {
       "2026-06-01": {
         "market": "KOSDAQ",

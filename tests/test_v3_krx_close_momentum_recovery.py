@@ -157,6 +157,21 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(notices['109960']['2026-06-01']['ratio'], 20)
         self.assertEqual(notices['036090']['2026-05-21']['shares_after'], 39464095)
 
+    def test_face_only_reduction_uses_reduced_face_for_consolidation_at_auction(self):
+        notice = recovery.load_auction_notices()['016600']['2026-05-29']
+        sessions = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
+        auction_day = sessions[60]
+        previous = (293, 178247112, 293)
+        current = (4000, 14259768, 3800)
+        result, receipt = recovery.make_receipt(
+            [previous] * 60 + [current] + [(4000, 14259768, 4000)] * 60,
+            asof=DAY, sessions=sessions, auction_notices={auction_day: notice},
+            auction_openings={auction_day: 3800})
+        self.assertEqual(result, 'recovered')
+        self.assertAlmostEqual(receipt['prior60_close_change_pct'], 9.215, places=3)
+        self.assertFalse(recovery.verified_auction_capital_reduction(
+            previous, current, 3800, {**notice, 'face_values_krw': [500, 500, 2500]}))
+
     def test_kospi_reduction_split_and_consolidation_keep_auction_return(self):
         dates = [d.date().isoformat() for d in pd.bdate_range(end=DAY, periods=121)]
         reduction, split, consolidation = dates[40], dates[61], dates[90]
