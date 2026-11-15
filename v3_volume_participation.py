@@ -44,22 +44,28 @@ def _finite(value):
     return type(value) in (int,float) and math.isfinite(value)
 
 
+def obv_price_divergence_points(stock):
+    """Score the saved OBV/price pair without a participation ratio."""
+    rising=stock.get("obv_rising")
+    divergence=stock.get("divergence")
+    price60=stock.get("price60")
+    if (type(rising) is not bool or type(divergence) is not bool
+        or not _finite(price60) or not -100<=price60<=10000
+        or divergence is not (rising and -12<=price60<=10)):
+        return None
+    return SUBMAX["obv_price_not_reflected"] if divergence else 0
+
+
 def observed(stock, *, asof, market, money=None):
     """Return small derived score, or None if dated input isn't trustworthy."""
     if (not isinstance(stock,dict) or stock.get("price_date")!=asof
         or stock.get("market")!=market):
         return None
     ratio=stock.get("volume_ratio")
-    rising=stock.get("obv_rising")
-    divergence=stock.get("divergence")
     price60=stock.get("price60")
+    lag_score=obv_price_divergence_points(stock)
     if ((money is None and (not _finite(ratio) or not 0<=ratio<=100))
-        or type(rising) is not bool or type(divergence) is not bool
-        or not _finite(price60) or not -100<=price60<=10000):
-        return None
-    # The saved V2.2 divergence is exactly (OBV slope>0 AND price60 in
-    # [-12, 10]). If a malformed/mismatched row violates this, do not score.
-    if divergence is not (rising and -12<=price60<=10):
+        or lag_score is None):
         return None
     # Sustained, not one-session, participation. Excessive 20-day surge
     # earns LESS: panic volume/exhaustion is not evidence of quiet accumulation.
@@ -71,7 +77,6 @@ def observed(stock, *, asof, market, money=None):
     cross=stock.get("v3_ma240_cross_research")
     cross_usable=valid_ma_cross(cross,asof) if cross is not None else False
     cross_score=(6 if cross["qualified"] else 0) if cross_usable else None
-    lag_score=4 if divergence else 0
     risks=[]
     if money is None and ratio>3:
         risks.append("excess_20day_volume_not_accumulation")
