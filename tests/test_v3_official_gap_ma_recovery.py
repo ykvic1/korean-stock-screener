@@ -80,6 +80,40 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         self.assertEqual(recover_checked_weekly_closes(
             stock, row, frame, expected, {day: close[-1]}, day, day), {})
 
+    def test_checked_close_repairs_missing_weekly_periods_without_replacing_saved_values(self):
+        day = '2026-11-13'
+        dates = pd.bdate_range(end=day, periods=810)
+        close = [100. + i % 31 for i in range(len(dates))]
+        original = pd.DataFrame(dict(Open=close, High=close, Low=close, Close=close, Volume=100),
+                                index=dates)
+        receipt = observe(original)
+        receipt['parts']['weekly'].update({'20': .4, '60': None, '120': None})
+        stock = {'price_date': day, 'price': close[-1], 'v3_ma_slope_transition': receipt}
+        row = {'parts': {'technical': {'weekly_rsi': [], 'long_ma_position': []}}}
+        expected = dates.strftime('%Y-%m-%d').tolist()
+        weeks = original.Close.resample('W-FRI').last()
+        anchors = {weeks.index[-n].date().isoformat(): weeks.iloc[-n]
+                   for n in (1, 24, 45, 54, 90, 94, 120, 154)}
+        result = recover_checked_weekly_closes(
+            stock, row, original[['Close']], expected, anchors, day, day)
+        updates = result['v3_ma_slope_transition']
+        self.assertEqual(updates['parts']['weekly']['20'], .4)
+        self.assertIsNotNone(updates['parts']['weekly']['60'])
+        self.assertIsNotNone(updates['parts']['weekly']['120'])
+        self.assertEqual(updates['parts']['daily'], receipt['parts']['daily'])
+        self.assertIsNone(receipt['parts']['weekly']['60'])
+
+        wrong_older_anchor = dict(anchors)
+        wrong_older_anchor[weeks.index[-154].date().isoformat()] += 1
+        recovered = recover_checked_weekly_closes(
+            stock, row, original[['Close']], expected, wrong_older_anchor, day, day)
+        self.assertEqual(recovered['v3_ma_slope_transition']['parts']['weekly'],
+                         {'20': .4, '60': updates['parts']['weekly']['60'], '120': None})
+
+        new_listing = original.loc[weeks.index[-91]:, ['Close']]
+        self.assertEqual(recover_checked_weekly_closes(
+            stock, row, new_listing, expected, anchors, day, day), {})
+
     def test_official_row_only_replaces_all_null_gap(self):
         original = source_frame(payload(), TICKER, DATES,
                                 {NEIGHBORS[0]: 100., NEIGHBORS[1]: 120.})

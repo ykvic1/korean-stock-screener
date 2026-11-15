@@ -24,7 +24,7 @@ from v3_krx_history_collection import MARKETS, _snapshot_market
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
-from v3_krx_close_momentum_recovery import close_anchor
+from v3_krx_close_momentum_recovery import close_anchor, closes_on
 from v3_ma_slope_transition import observe, valid_observation, weekly_points_from_checked_closes
 from v3_pattern_composite_score import _observed, _weekly_trend, compute_candidates
 from v3_pattern_first_observations import (DAILY_CLEAN_TAIL, _clean_ohlcv, observe as observe_daily,
@@ -39,6 +39,7 @@ LONG_MA_ANCHORS = ('2023-12-01', '2024-04-26', '2024-11-29')
 FIELDS = ('Open', 'High', 'Low', 'Close', 'Volume')
 MAX_TARGETS = 350
 WEEKLY_PATTERN_WEEKS = 90
+WEEKLY_SLOPE_WINDOWS = {'20': 54, '60': 94, '120': 154}
 
 
 def inspect_source_frame(payload, ticker, expected, anchors, *, close_only=False):
@@ -255,6 +256,17 @@ def needs_weekly_rsi(stock, row):
             and stock.get('v3_weekly_rsi_gap_recovery') is None)
 
 
+def missing_weekly_slope_periods(stock, day, completed_friday):
+    receipt = stock.get('v3_ma_slope_transition')
+    if not valid_observation(receipt, day):
+        return ()
+    weekly = receipt['parts']['weekly']
+    if weekly is not None and receipt['weekly_asof'] != completed_friday:
+        return ()
+    return tuple(period for period in WEEKLY_SLOPE_WINDOWS
+                 if weekly is None or weekly[period] is None)
+
+
 def needs_weekly_ma120(stock, day, completed_friday):
     receipt = stock.get('v3_ma_slope_transition')
     return (valid_observation(receipt, day)
@@ -336,11 +348,17 @@ def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday
     if needs_weekly_rsi(stock, row) and anchored(90):
         if (rsi := weekly_rsi(history, friday)) is not None:
             updates['v3_weekly_rsi_gap_recovery'] = rsi
-    if needs_weekly_ma120(stock, day, friday) and anchored(154):
-        prior = stock['v3_ma_slope_transition']
-        slope = add_weekly_ma120(prior, close, friday)
-        if slope is not prior:
-            updates['v3_ma_slope_transition'] = slope
+    periods = [period for period in missing_weekly_slope_periods(stock, day, friday)
+               if anchored(WEEKLY_SLOPE_WINDOWS[period])]
+    if periods:
+        checked = weekly_points_from_checked_closes(close, friday)
+        if checked:
+            additions = {period: checked[period] for period in periods if checked[period] is not None}
+            if additions:
+                prior = stock['v3_ma_slope_transition']
+                weekly = prior['parts']['weekly'] or dict.fromkeys(WEEKLY_SLOPE_WINDOWS)
+                updates['v3_ma_slope_transition'] = dict(
+                    prior, weekly_asof=friday, parts=dict(prior['parts'], weekly=weekly | additions))
     return updates
 
 
@@ -400,7 +418,7 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
         or needs_weekly_rsi(stock, report['rows'][key[1]])
         or needs_daily_pattern(stock, report['rows'][key[1]])
         or needs_weekly_pattern(stock, report['rows'][key[1]])
-        or key in long_ma_targets)}
+        or missing_weekly_slope_periods(stock, day, completed_friday))}
     refs = {day: current}
     for d in dates[:-1]:
         refs[d] = snapshots(client, d, targets)
@@ -413,15 +431,24 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
     close_only_targets = {key: stock for key, stock in targets.items()
                           if needs_weekly_position(stock, report['rows'][key[1]])
                           or needs_weekly_rsi(stock, report['rows'][key[1]])
-                          or key in long_ma_targets}
-    # Match closes on the exchange's last session of the 90th, 120th and
-    # 154th completed weeks and on an intervening week.
+                          or missing_weekly_slope_periods(stock, day, completed_friday)}
+    # Select anchors inside each affected window. An intraday value missing
+    # on a no-trade date does not invalidate the independently reported close.
     completed_sessions = pd.DatetimeIndex([d for d in expected if d <= completed_close_day])
     week_closes = pd.Series(completed_sessions, index=completed_sessions).resample('W-FRI').last().dropna()
-    close_only_days = {week_closes.iloc[-n].date().isoformat() for n in (45, 90, 120, 154)
-                       if len(week_closes) >= n}
-    close_refs = {d: snapshots(client, d, close_only_targets)
-                  for d in sorted(close_only_days) if d not in refs and close_only_targets}
+    anchor_weeks = (1, 24, 45, 54, 90, 94, 120, 154)
+    close_only_days = {week_closes.iloc[-n].date().isoformat() for n in anchor_weeks
+                       if len(week_closes) >= n} | {day}
+    close_codes = {exchange: {code for market_name, code in close_only_targets
+                              if market_name == exchange} for exchange in MARKETS}
+    close_refs = {
+        anchor_day: {
+            (exchange, code): observation[0]
+            for exchange, codes in close_codes.items() if codes
+            for code, observation in closes_on(client, exchange, anchor_day, codes).items()
+        }
+        for anchor_day in sorted(close_only_days) if close_only_targets
+    }
     dated_closes, cache_sha = {}, None
     if close_only_targets:
         try:
@@ -434,11 +461,9 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
     def close_only(key, stock, row, fallback_frame, *, payload=None):
         if key not in close_only_targets:
             return {}
-        anchors = {d: refs.get(d, close_refs.get(d, {})).get(key)
-                   for d in close_only_days | {day, completed_close_day}}
-        if not anchors.get(day):
+        official = {d: values[key] for d, values in close_refs.items() if key in values}
+        if day not in official:
             return {}
-        official = {d: record[0][3] for d, record in anchors.items() if record is not None}
         dated_close = dated_closes.get(key)
         if close_anchor(stock, (official[day],), dated_close) is None:
             return {}
@@ -563,12 +588,16 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
             extended = add_weekly_ma120(base, repaired['Close'], completed_friday)
             if extended is not base:
                 updates['v3_ma_slope_transition'] = extended
-        if any(field not in updates for field, needed in (
-                ('v3_weekly_position_gap_recovery', needs_weekly_position(stock, row)),
-                ('v3_weekly_rsi_gap_recovery', needs_weekly_rsi(stock, row)),
-                ('v3_ma_slope_transition', key in long_ma_targets)) if needed):
-            for field, evidence in close_only(key, stock, row, fallback_frame, payload=payload).items():
-                updates.setdefault(field, evidence)
+        slope = updates.get('v3_ma_slope_transition')
+        with_slope = dict(stock, v3_ma_slope_transition=slope) if slope is not None else stock
+        if (missing_weekly_slope_periods(with_slope, day, completed_friday)
+                or (needs_weekly_position(stock, row) and 'v3_weekly_position_gap_recovery' not in updates)
+                or (needs_weekly_rsi(stock, row) and 'v3_weekly_rsi_gap_recovery' not in updates)):
+            for field, evidence in close_only(key, with_slope, row, fallback_frame, payload=payload).items():
+                if field == 'v3_ma_slope_transition':
+                    updates[field] = evidence
+                else:
+                    updates.setdefault(field, evidence)
         return ('recovered' if updates else 'no_added_observation'), updates
 
     counts = Counter()
@@ -597,7 +626,8 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
             'weekly_suffix_comparison_sessions': recent_week[1],
             'continuous_weekly_close_comparison_sessions': sorted(close_only_days),
             'dated_close_anchor_source_sha256': cache_sha,
-            'official_requests': 2*(len(dates) + len(long_ma_refs) + len(extra_refs) + len(close_refs)),
+            'official_requests': (2*(len(dates) + len(long_ma_refs) + len(extra_refs))
+                                  + len(close_refs)*sum(bool(codes) for codes in close_codes.values())),
             'source_history_adjusted_verified': False,
             'volume_score_changed': False, 'raw_source_exported': False}
 
