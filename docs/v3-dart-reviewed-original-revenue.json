@@ -595,5 +595,44 @@
         }
       }
     }
+  },
+  "annual_history_bridges": {
+    "448900": {
+      "scope": "CFS",
+      "receipt_id": "20260320001061",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320001061&dcmNo=11158345&eleId=18&offset=187522&length=26098&dtd=dart4.xsd",
+      "source_sha256": "aebbabb5a00fe51425c7c2e3814bae7082bf0495681e4cdc245a00679415df85",
+      "earlier_receipt_id": "20250321008345",
+      "earlier_source_url": "https://kind.krx.co.kr/external/2025/03/21/002182/20250321008345/11011.htm",
+      "earlier_source_sha256": "68353cb93df9ea75b0b2c4984109c0a05818210b2570001ac301cefc969a2ffb",
+      "latest_figures": {
+        "2025": {
+          "revenue": 36931110519,
+          "operating_income": 1455551263
+        },
+        "2024": {
+          "revenue": 37447247186,
+          "operating_income": 3606809251
+        },
+        "2023": {
+          "revenue": 37963338813,
+          "operating_income": 4272020203
+        }
+      },
+      "earlier_figures": {
+        "2024": {
+          "revenue": 37447247186,
+          "operating_income": 3606809251
+        },
+        "2023": {
+          "revenue": 37963338813,
+          "operating_income": 4272020203
+        },
+        "2022": {
+          "revenue": 35975684539,
+          "operating_income": 2803937478
+        }
+      }
+    }
   }
 }
