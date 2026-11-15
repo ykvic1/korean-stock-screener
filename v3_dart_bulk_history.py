@@ -46,9 +46,15 @@ FIELDS = ("revenue","operating_income","assets","liabilities","equity")
 CODE = re.compile(r"[0-9A-Z]{6}\Z")
 CORP = re.compile(r"[0-9]{8}\Z")
 RECEIPT = re.compile(r"[0-9]{14}\Z")
+DART_VIEWERS = ('https://dart.fss.or.kr/report/viewer.do',
+                'https://englishdart.fss.or.kr/report/eng/viewer.do')
 
 class BulkHistoryError(ValueError):
     """Fixed, non-provider, non-sensitive exceptions."""
+
+
+def matches_dart_viewer(url, receipt):
+    return url.startswith(tuple(f'{viewer}?rcpNo={receipt}&' for viewer in DART_VIEWERS))
 
 
 def _day(raw):
