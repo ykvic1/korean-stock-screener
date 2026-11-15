@@ -208,6 +208,139 @@
       "receipt_id": "20260318000724",
       "scope": "OFS",
       "statement_label": "기본및희석주당이익 (단위 : 원)"
+    },
+    "184230": {
+      "scope": "CFS",
+      "receipt_id": "20260323001335",
+      "operating_cashflow_krw": 14095938677,
+      "basic_eps": [
+        -18,
+        -133,
+        232
+      ],
+      "statement_label": "기본주당순손익(단위:원)(주28)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001335&dcmNo=11167030&eleId=26&offset=320268&length=33673&dtd=dart4.xsd",
+        "sha256": "8c6f26aeb6520f5590fa1865b2607606e5df2f2350c01ec736178aec87f0b9e9"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001335&dcmNo=11167030&eleId=28&offset=451491&length=47159&dtd=dart4.xsd",
+        "sha256": "5a3e58061a4b087f1e7335ede774925a594a28e909910a38bf5aa756e37f2cfb"
+      }
+    },
+    "362320": {
+      "scope": "CFS",
+      "receipt_id": "20260323001562",
+      "operating_cashflow_krw": -21811989227,
+      "basic_eps": [
+        -87,
+        72,
+        93
+      ],
+      "statement_label": "기본및희석주당이익(단위:원)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001562&dcmNo=11168657&eleId=21&offset=328196&length=30132&dtd=dart4.xsd",
+        "sha256": "b8c9212c6112d96947e82b05690d3b51a1f8275090ab4f5c46b15e5352534aff"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001562&dcmNo=11168657&eleId=23&offset=422190&length=52847&dtd=dart4.xsd",
+        "sha256": "cb8c29efa08d10d217b97c30e39c9736dc27dde01abbea7c74e2315997ba9739"
+      }
+    },
+    "429270": {
+      "scope": "OFS",
+      "receipt_id": "20260318000115",
+      "operating_cashflow_krw": -5040951165,
+      "basic_eps": [
+        -1391,
+        -1263,
+        -1723
+      ],
+      "statement_label": "보통주기본및희석주당이익(손실)(단위:원)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318000115&dcmNo=11134669&eleId=23&offset=196556&length=19878&dtd=dart4.xsd",
+        "sha256": "fab36849a4d6559819cec0b87b137790919a2232c85c99077f2e8b79c3b0042f"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318000115&dcmNo=11134669&eleId=25&offset=247496&length=40238&dtd=dart4.xsd",
+        "sha256": "1e9834859d02a1d88c043c0bec040fc495e16403b350fc8018fca873523a58b3"
+      }
+    },
+    "084990": {
+      "scope": "CFS",
+      "receipt_id": "20260320001142",
+      "operating_cashflow_krw": -6898457427,
+      "basic_eps": [
+        -1544,
+        -329,
+        -9
+      ],
+      "statement_label": "기본주당이익(손실)(단위:원)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320001142&dcmNo=11158767&eleId=21&offset=214126&length=28251&dtd=dart4.xsd",
+        "sha256": "5d4cc4646397ec6343fdd1395819f6056c4d47b0e3726a30377392d2aae77252"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320001142&dcmNo=11158767&eleId=23&offset=295993&length=39570&dtd=dart4.xsd",
+        "sha256": "94b49166020796a2631441604ba80ce4c852f945f6ac72e73b703318fe847ec3"
+      }
+    },
+    "032860": {
+      "scope": "OFS",
+      "receipt_id": "20260320001093",
+      "operating_cashflow_krw": -2128493654,
+      "basic_eps": [
+        -131,
+        59,
+        -115
+      ],
+      "statement_label": "보통주기본주당손익(단위:원)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320001093&dcmNo=11158478&eleId=23&offset=213405&length=25925&dtd=dart4.xsd",
+        "sha256": "f02213662c0ac9a8af7f72820ccb4e429cd223c9cd27f9941ddfbbda68b45610"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320001093&dcmNo=11158478&eleId=25&offset=292826&length=39103&dtd=dart4.xsd",
+        "sha256": "c9481ef1a96f1b13fde87df7f3d1c25b5e6684fa743badcf1abf3a1d4c611105"
+      }
+    },
+    "034810": {
+      "scope": "CFS",
+      "receipt_id": "20260323001389",
+      "operating_cashflow_krw": 135612437949,
+      "basic_eps": [
+        -959,
+        188,
+        -775
+      ],
+      "statement_label": "기본및희석보통주당손익(단위:원)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001389&dcmNo=11167358&eleId=21&offset=638423&length=32973&dtd=dart4.xsd",
+        "sha256": "ef46af985c01109dfdef1365020e3c3137d6eeeb967fa44751a444479f55fcc3"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001389&dcmNo=11167358&eleId=23&offset=776062&length=107769&dtd=dart4.xsd",
+        "sha256": "817c6a4af95b1b0a628d4e5a35f10913337a9dbb97827d36fb252f43598751d4"
+      }
+    },
+    "048870": {
+      "scope": "CFS",
+      "receipt_id": "20260319001269",
+      "operating_cashflow_krw": 14777578741,
+      "basic_eps": [
+        28,
+        125,
+        35
+      ],
+      "statement_label": "지배기업소유주기본주당이익(단위:원)",
+      "income_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319001269&dcmNo=11152806&eleId=21&offset=429716&length=42157&dtd=dart4.xsd",
+        "sha256": "88020e2a525432d22f1b431efd328c26aac8f37c90650bea6f1501eaa66b380c"
+      },
+      "cashflow_statement": {
+        "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319001269&dcmNo=11152806&eleId=23&offset=604667&length=52521&dtd=dart4.xsd",
+        "sha256": "746f0b23c60af41c004aa76183c1241b0616e4379a8c580412d5964beecd9789"
+      }
     }
   },
   "schema": "v3-dart-reviewed-ordinary-eps-v1"
