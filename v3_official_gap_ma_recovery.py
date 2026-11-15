@@ -265,6 +265,53 @@ def add_weekly_ma120(receipt, close, completed_friday):
     return dict(receipt, parts=dict(receipt['parts'], weekly=dict(weekly, **{'120': points['120']})))
 
 
+def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday):
+    """Use a continuous close series whose older and latest closes agree with KRX."""
+    if frame is None or frame.empty or stock.get('price_date') != day:
+        return {}
+    actual = [index.date().isoformat() for index in frame.index]
+    if actual != [session for session in expected if actual[0] <= session <= day]:
+        return {}
+    if (actual[-1] != day or day not in refs or refs[day] != stock.get('price')
+            or frame.at[day, 'Close'] != refs[day]):
+        return {}
+    close = frame.loc[:friday, 'Close']
+    weeks = close.resample('W-FRI').last()
+
+    def anchored(window):
+        if len(weeks) < window:
+            return False
+        start = weeks.index[-window] - pd.Timedelta(days=6)
+        end = weeks.index[-1]
+        anchors = {session: price for session, price in refs.items()
+                   if start <= pd.Timestamp(session) <= end}
+        dates = list(map(pd.Timestamp, anchors))
+        # Require an older anchor near the start of the actual window, a
+        # distinct middle anchor, and the last completed trading session.
+        early = start + pd.Timedelta(weeks=16)
+        return (actual[0] <= start.date().isoformat()
+                and any(start <= dt <= early for dt in dates)
+                and any(early < dt < end - pd.Timedelta(weeks=4) for dt in dates)
+                and not close.empty and close.index[-1].date().isoformat() in anchors
+                and all(session in frame.index and frame.at[session, 'Close'] == price
+                        for session, price in anchors.items()))
+
+    updates = {}
+    if needs_weekly_position(stock, row) and anchored(120):
+        position = weekly_position(frame, day)
+        if position is not None:
+            updates['v3_weekly_position_gap_recovery'] = position
+    if needs_weekly_rsi(stock, row) and anchored(90):
+        if (rsi := weekly_rsi(frame, friday)) is not None:
+            updates['v3_weekly_rsi_gap_recovery'] = rsi
+    if needs_weekly_ma120(stock, day, friday) and anchored(154):
+        prior = stock['v3_ma_slope_transition']
+        slope = add_weekly_ma120(prior, close, friday)
+        if slope is not prior:
+            updates['v3_ma_slope_transition'] = slope
+    return updates
+
+
 def needs_weekly_position(stock, row):
     if 'long_ma_position' in row['parts']['technical']:
         return False
@@ -303,7 +350,7 @@ def run(market, priority, report, client):
     candidates = selected(market, priority, report)
     target_day = date.fromisoformat(day)
     completed_friday = (target_day - timedelta(days=(target_day.weekday() - 4) % 7)).isoformat()
-    first = (target_day - timedelta(days=1100)).isoformat()
+    first = (target_day - timedelta(days=1140)).isoformat()
     expected = candidate_dates(calendar_weekday_candidates(first, day), source='xkrx')['dates']
     if day not in expected:
         raise ValueError('operating_sources_not_aligned')
@@ -331,6 +378,35 @@ def run(market, priority, report, client):
     extra_refs = {d: snapshots(client, d, weekly_targets)
                   for d in recent_week[2] if d not in refs and weekly_targets}
 
+    close_only_targets = {key: stock for key, stock in targets.items()
+                          if needs_weekly_position(stock, report['rows'][key[1]])
+                          or needs_weekly_rsi(stock, report['rows'][key[1]])
+                          or key in long_ma_targets}
+    # Match closes on the exchange's last session of the 90th, 120th and
+    # 154th completed weeks and on an intervening week.
+    completed_sessions = pd.DatetimeIndex([d for d in expected if d <= completed_close_day])
+    week_closes = pd.Series(completed_sessions, index=completed_sessions).resample('W-FRI').last().dropna()
+    close_only_days = {week_closes.iloc[-n].date().isoformat() for n in (45, 90, 120, 154)
+                       if len(week_closes) >= n}
+    close_refs = {d: snapshots(client, d, close_only_targets)
+                  for d in sorted(close_only_days) if d not in refs and close_only_targets}
+
+    def close_only(key, stock, row):
+        if key not in close_only_targets:
+            return {}
+        from screener import price_history
+        anchors = {d: refs.get(d, close_refs.get(d, {})).get(key)
+                   for d in close_only_days | {day, completed_close_day}}
+        if not anchors.get(day):
+            return {}
+        try:
+            frame = price_history(key[1], first, day)
+        except (requests.RequestException, ValueError):
+            return {}
+        return recover_checked_weekly_closes(stock, row, frame, expected,
+            {d: record[0][3] for d, record in anchors.items() if record is not None},
+            day, completed_friday)
+
     def examine(item):
         key, stock = item
         missing = next((d for d in dates if key not in refs[d]), None)
@@ -338,14 +414,16 @@ def run(market, priority, report, client):
         daily_needed = needs_daily_pattern(stock, row)
         weekly_needed = key in weekly_targets
         if missing is not None and not (daily_needed or weekly_needed):
-            return ('official_gap_row_unavailable' if missing in REPAIR_SESSIONS
-                    else 'official_anchor_unavailable'), None
+            updates = close_only(key, stock, row)
+            reason = 'official_gap_row_unavailable' if missing in REPAIR_SESSIONS else 'official_anchor_unavailable'
+            return ('recovered' if updates else reason), updates
         values = {d: refs[d][key][0] for d in dates if key in refs[d]}
         shares = {d: refs[d][key][1] for d in values}
         ticker = key[1] + ('.KS' if key[0] == 'KOSPI' else '.KQ')
         payload = fetch(ticker, first, day)
         if payload is None:
-            return 'alternative_response_unavailable', None
+            updates = close_only(key, stock, row)
+            return ('recovered' if updates else 'alternative_response_unavailable'), updates
         updates = {}
         if daily_needed:
             tail_start = expected[-DAILY_CLEAN_TAIL]
@@ -369,15 +447,19 @@ def run(market, priority, report, client):
                 if weekly is not None:
                     updates['pattern_weekly_research'] = weekly
         if missing is not None:
+            updates.update(close_only(key, stock, row))
             return ('recovered' if updates else 'official_anchor_unavailable'), updates
         reason, frame = inspect_source_frame(payload, ticker, expected,
             {d: values[d][3] for d in close_anchors})
         if reason is not None:
+            updates.update(close_only(key, stock, row))
             return ('recovered' if updates else reason), updates
         if GAP not in frame.index or not frame.loc[GAP].isna().all():
+            updates.update(close_only(key, stock, row))
             return ('recovered' if updates else 'alternative_gap_not_all_null'), updates
         repaired = repair(frame, values, shares)
         if repaired is None:
+            updates.update(close_only(key, stock, row))
             return ('recovered' if updates else 'local_share_basis_or_neighbor_unverified'), updates
         if weekly_needed and 'pattern_weekly_research' not in updates:
             weekly = recover_weekly_pattern(stock, repaired, values, completed_friday)
@@ -414,6 +496,12 @@ def run(market, priority, report, client):
             extended = add_weekly_ma120(base, repaired['Close'], completed_friday)
             if extended is not base:
                 updates['v3_ma_slope_transition'] = extended
+        if any(field not in updates for field, needed in (
+                ('v3_weekly_position_gap_recovery', needs_weekly_position(stock, row)),
+                ('v3_weekly_rsi_gap_recovery', needs_weekly_rsi(stock, row)),
+                ('v3_ma_slope_transition', key in long_ma_targets)) if needed):
+            for field, evidence in close_only(key, stock, row).items():
+                updates.setdefault(field, evidence)
         return ('recovered' if updates else 'no_added_observation'), updates
 
     counts = Counter()
@@ -440,7 +528,8 @@ def run(market, priority, report, client):
             'selected': len(targets), 'counts': dict(counts), 'recovered_fields': dict(recovered),
             'long_ma_comparison_sessions': list(long_ma_refs),
             'weekly_suffix_comparison_sessions': recent_week[2],
-            'official_requests': 2*(len(dates) + len(long_ma_refs) + len(extra_refs)),
+            'continuous_weekly_close_comparison_sessions': sorted(close_only_days),
+            'official_requests': 2*(len(dates) + len(long_ma_refs) + len(extra_refs) + len(close_refs)),
             'source_history_adjusted_verified': False,
             'volume_score_changed': False, 'raw_source_exported': False}
 
