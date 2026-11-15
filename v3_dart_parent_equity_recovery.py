@@ -23,6 +23,8 @@ CONTRACT='2025_cfs_total_equity_less_explicit_nci_v1'
 DIRECT_CONTRACT='2025_cfs_reported_parent_equity_v1'
 ORIGINAL_CONTRACT='2025_cfs_original_parent_equity_cfo_anchor_v1'
 BALANCE_SHEET_CONTRACT='2025_cfs_original_balance_sheet_explicit_nci_v1'
+EQUITY_STATEMENT_CONTRACT='2025_cfs_original_reported_parent_equity_v1'
+BALANCE_ANCHORED_CONTRACTS=(BALANCE_SHEET_CONTRACT,EQUITY_STATEMENT_CONTRACT)
 MAX_CAPTURE=12
 MAX_RECORDS=6000
 REVIEW_FILE='v3-dart-parent-equity-reviews.json'
@@ -50,6 +52,13 @@ def _annuals(book):
     return found
 
 
+def _original_statement_url(url, receipt):
+    return type(url) is str and re.fullmatch(
+        rf'https://dart\.fss\.or\.kr/report/viewer\.do\?rcpNo={receipt}'
+        r'&dcmNo=\d+&eleId=\d+&offset=\d+&length=[1-9]\d*&dtd=dart4\.xsd',url
+    ) is not None
+
+
 def verify(saved,catalog,book,cash):
     if (type(saved) is not dict or saved.get('schema')!=SCHEMA
         or saved.get('investment_score_certified') is not False
@@ -71,8 +80,10 @@ def verify(saved,catalog,book,cash):
         contract=proof.get('contract')
         fields={'contract','receipt_id','year','scope','equity_anchor_krw',
                 'explicit_nci_krw','owners_equity_krw','provider_sha256','observed_on','digest'}
-        if contract==BALANCE_SHEET_CONTRACT:
+        if contract in BALANCE_ANCHORED_CONTRACTS:
             fields.update(('source_url','assets_reported_krw','liabilities_anchor_krw'))
+            if contract==EQUITY_STATEMENT_CONTRACT:
+                fields.update(('balance_sheet_url','balance_sheet_sha256'))
         else:
             fields.add('cfo_anchor_krw')
             if contract==ORIGINAL_CONTRACT:
@@ -91,32 +102,43 @@ def verify(saved,catalog,book,cash):
         if (type(annual) is not dict or annual.get('year')!=2025
             or annual.get('fs_div')!='CFS' or annual.get('currency')!='KRW'
             or annual.get('values',{}).get('owners_equity') is not None
-            or contract not in (CONTRACT,DIRECT_CONTRACT,ORIGINAL_CONTRACT,BALANCE_SHEET_CONTRACT)
+            or contract not in (CONTRACT,DIRECT_CONTRACT,ORIGINAL_CONTRACT,*BALANCE_ANCHORED_CONTRACTS)
             or proof['year']!=2025
             or proof['scope']!='CFS'
             or proof['receipt_id']!=annual.get('receipt_id')
-            or type(total) is not int or total!=annual.get('values',{}).get('equity')
+            or type(total) is not int
+            or (total!=annual.get('values',{}).get('equity')
+                and not (contract==EQUITY_STATEMENT_CONTRACT and annual['values'].get('equity') is None))
             or type(owner) is not int or not 0<owner<=10**18
             or (contract in (CONTRACT,BALANCE_SHEET_CONTRACT) and
                 (type(nci) is not int or abs(nci)>10**18 or total-nci!=owner))
             or (contract==DIRECT_CONTRACT and nci is not None)
+            or (contract==EQUITY_STATEMENT_CONTRACT and
+                ((nci is None and owner!=total)
+                 or (nci is not None and (type(nci) is not int or abs(nci)>10**18 or total-nci!=owner))))
             or type(proof['provider_sha256']) is not str
             or not re.fullmatch('[a-f0-9]{64}',proof['provider_sha256'])
             or proof['digest']!=cf.fingerprint({k:v for k,v in proof.items() if k!='digest'})):
             raise ParentEquityRecoveryError('untrusted_parent_equity_recovery')
-        if contract==BALANCE_SHEET_CONTRACT:
+        if contract in BALANCE_ANCHORED_CONTRACTS:
             liabilities=proof['liabilities_anchor_krw']
             assets=proof['assets_reported_krw']
             receipt=proof['receipt_id']
             url=proof['source_url']
             if (not _valid_receipt(receipt,2025,date.fromisoformat(proof['observed_on']))
-                or type(url) is not str or not re.fullmatch(
-                    rf'https://dart\.fss\.or\.kr/report/viewer\.do\?rcpNo={receipt}'
-                    r'&dcmNo=\d+&eleId=\d+&offset=\d+&length=[1-9]\d*&dtd=dart4\.xsd',url)
+                or not _original_statement_url(url,receipt)
                 or type(liabilities) is not int or liabilities!=annual['values'].get('liabilities')
                 or type(assets) is not int or not 0<=liabilities<assets<=10**18
                 or assets!=liabilities+total):
                 raise ParentEquityRecoveryError('untrusted_original_balance_sheet_proof')
+            if contract==EQUITY_STATEMENT_CONTRACT:
+                balance_url=proof['balance_sheet_url']
+                balance_digest=proof['balance_sheet_sha256']
+                if (not _original_statement_url(balance_url,receipt)
+                    or balance_url==url or type(balance_digest) is not str
+                    or not re.fullmatch('[a-f0-9]{64}',balance_digest)
+                    or balance_digest==proof['provider_sha256']):
+                    raise ParentEquityRecoveryError('untrusted_original_equity_statement_proof')
         else:
             anchor=cash.get('records',{}).get(code,{}).get('years',{}).get('2025',{})
             if (anchor.get('major_annual_receipt_matched') is not True
