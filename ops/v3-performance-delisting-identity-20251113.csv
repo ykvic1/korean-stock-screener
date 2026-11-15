@@ -1,0 +1,7 @@
+market,code,anchor_name,kind_name,resolution,exchange_name_effective_on,source_url,secondary_source_url
+KOSPI,003560,IHQ,아이에이치큐,english_name_alias,,https://kind.krx.co.kr/external/2025/08/14/000191/20250814000482/11012.htm,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/408864
+KOSPI,204210,스타에스엠리츠,JK리버스톤리츠,issuer_name_changed,2026-05-19,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/466332,https://financialfilings.com/filings/star-sm-real-estate-investment-trust-incorporated/interim-quarterly-report/2026/42700079/
+KOSDAQ,227100,퀀텀온,프로브잇,issuer_name_changed,,https://kind.krx.co.kr/external/2026/06/19/000994/20260619001367/70631.htm,https://www.k5.co.kr/stock/227100/official_notice
+KOSDAQ,455910,에스케이증권제9호스팩,SK증권제9호스팩,abbreviated_name_alias,,https://kind.krx.co.kr/external/2026/02/13/002085/20260213004306/70769.htm,
+KOSDAQ,457940,에스케이증권제10호스팩,SK증권제10호스팩,abbreviated_name_alias,,https://kind.krx.co.kr/external/2026/03/03/001396/20260303003557/70769.htm,
+KOSDAQ,472230,에스케이증권제11호스팩,SK증권제11호스팩,abbreviated_name_alias,,https://kind.krx.co.kr/external/2026/09/23/000783/20260923001873/70769.htm,https://alphasquare.co.kr/home/stock-issue?code=472230&type=disclosure
