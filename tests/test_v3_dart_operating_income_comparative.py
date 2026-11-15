@@ -38,6 +38,47 @@ def provider(base,op23='3',op24='4',op25='5',**changes):
 
 
 class AnnualComparativeMarginTests(unittest.TestCase):
+    def test_reverse_merger_requires_both_predecessor_receipts_and_matching_figures(self):
+        catalog, history = fixtures(31)
+        code = '000000'
+        record = history['records'][code]
+        years = record['years']
+        latest = years['2025']['CFS']
+        receipt = latest['receipt_id']
+        historical = '20250611000784'
+        figures = {
+            '2023': {'revenue': 300, 'operating_income': 3},
+            '2024': {'revenue': 400, 'operating_income': -4},
+            '2025': dict(latest['values']),
+        }
+        predecessors = {}
+        for year in ('2023', '2024'):
+            saved = years[year]['CFS']
+            saved['values'] = {'revenue': 0, 'operating_income': -1}
+            predecessors[year] = {'receipt_id': saved['receipt_id'], 'operating_income': -1}
+        item = {
+            'scope': 'CFS', 'source_receipt_id': receipt,
+            'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&eleId=1',
+            'source_sha256': 'a' * 64, 'annual_comparatives_krw': figures,
+            'reverse_merger': {
+                'historical_source_receipt': historical,
+                'historical_source_url': (
+                    f'https://kind.krx.co.kr/external/2025/06/11/000251/{historical}/00591.htm'),
+                'historical_source_sha256': 'b' * 64,
+                'historical_figures': {y: figures[y].copy() for y in ('2023', '2024')},
+                'legal_predecessor': predecessors,
+            },
+        }
+        reviewed = {'schema': op.REVIEWED_SCHEMA, 'records': {code: item}}
+        parts, _ = op.margin_parts(catalog, history, reviewed=reviewed)
+        self.assertEqual(parts[code]['available'], 3)
+        self.assertEqual(years['2024']['CFS']['values']['revenue'], 0)
+        item['reverse_merger']['historical_figures']['2023']['revenue'] += 1
+        self.assertIsNone(op.reviewed_margin(record, item, DAY))
+        item['reverse_merger']['historical_figures']['2023']['revenue'] -= 1
+        years['2024']['CFS']['receipt_id'] = '20250318000002'
+        self.assertIsNone(op.reviewed_margin(record, item, DAY))
+
     def test_2025_receipt_and_2023_missing_income_are_real_observations(self):
         catalog,history=fixtures()
         expected=op.expected_sources(catalog,history)
