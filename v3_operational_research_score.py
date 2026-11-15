@@ -434,6 +434,9 @@ def can_hold_previous_during_temporal_lag(market,catalog,ledger,history,previous
     day=catalog['date']
     mismatch=(market['date']!=day or ledger['market_asof']!=day or
               history.get('asof',day)>day)
+    if not mismatch and history.get('asof', day) < day:
+        from v3_dart_source_day_preflight import check
+        mismatch = not check(market, catalog, history, kind='major')['ready']
     return (mismatch and isinstance(previous,dict) and
         previous.get('version') in COMPATIBLE_PREVIOUS and
         previous.get('format')=='compact-parts-v1' and
