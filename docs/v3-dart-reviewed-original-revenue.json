@@ -297,5 +297,79 @@
       "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240514000733&dcmNo=9943805&eleId=21&offset=163825&length=98275&dtd=dart4.xsd",
       "source_sha256": "e508a5e5e2e51e0bd78eb53abb6195d3848063b24d1014e919ce585bba4a46fe"
     }
+  },
+  "annual_scopes": {
+    "361670": {
+      "scope": "OFS",
+      "receipt_id": "20260629000219",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260629000219&dcmNo=11451655&eleId=29&offset=670719&length=19487&dtd=dart4.xsd",
+      "source_sha256": "1a351be1316ffb9639bcdb87cb726450de2702ea4dce88633bfd418797cb45c2",
+      "figures": {
+        "2025": {
+          "revenue": 10975623854,
+          "operating_income": -1670424276
+        },
+        "2024": {
+          "revenue": 12393769268,
+          "operating_income": -3121113350
+        },
+        "2023": {
+          "revenue": 11647345784,
+          "operating_income": -3538918071
+        }
+      },
+      "anchor_receipts": {
+        "2024": "20250314001721",
+        "2023": "20240315000782"
+      }
+    },
+    "234690": {
+      "scope": "OFS",
+      "receipt_id": "20260316001685",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260316001685&dcmNo=11130287&eleId=27&offset=928372&length=19590&dtd=dart4.xsd",
+      "source_sha256": "fd836019daa9824eec8cc3cbee35f39e1c13f6b9f31ce123a9c8c2f3fbd08330",
+      "figures": {
+        "2025": {
+          "revenue": 151875934232,
+          "operating_income": 19337003776
+        },
+        "2024": {
+          "revenue": 127928690890,
+          "operating_income": 14686482981
+        },
+        "2023": {
+          "revenue": 120534664952,
+          "operating_income": 10457190802
+        }
+      },
+      "anchor_receipts": {
+        "2024": "20250317001013",
+        "2023": "20240319000770"
+      }
+    },
+    "011690": {
+      "scope": "OFS",
+      "receipt_id": "20260320000895",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320000895&dcmNo=11157515&eleId=27&offset=991163&length=24101&dtd=dart4.xsd",
+      "source_sha256": "933104f79b7002369d488be5453c648ff010984cc40566c613a297938577016a",
+      "figures": {
+        "2025": {
+          "revenue": 161450311375,
+          "operating_income": -2610797624
+        },
+        "2024": {
+          "revenue": 154513998976,
+          "operating_income": 2885968925
+        },
+        "2023": {
+          "revenue": 136562232242,
+          "operating_income": 3518809822
+        }
+      },
+      "anchor_receipts": {
+        "2024": "20250319001127",
+        "2023": "20240319000565"
+      }
+    }
   }
 }

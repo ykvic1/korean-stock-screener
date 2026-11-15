@@ -6,6 +6,7 @@ from itertools import islice
 import json
 import math
 import os
+import re
 from pathlib import Path
 from time import monotonic
 
@@ -117,18 +118,63 @@ def reviewed_revenues(catalog, history, source, expected):
     return amounts
 
 
+def reviewed_annual_scopes(catalog, history, source):
+    """Restore a missing FY2025 scope corroborated by two same-scope annuals."""
+    if source is None:
+        return {}
+    cutoff = _day(catalog['date'])
+    members = {row['code'] for row in catalog['rows']}
+    restored = {}
+    for code, item in source.get('annual_scopes', {}).items():
+        if code not in members:
+            continue
+        years = history['records'].get(code, {}).get('years', {})
+        scope = item['scope']
+        annual = years.get('2025', {})
+        if scope not in ('CFS', 'OFS') or scope in annual:
+            continue
+        receipt = item['receipt_id']
+        if (not _valid_receipt(receipt, 2025, cutoff)
+                or not any(row.get('receipt_id') == receipt for row in annual.values())
+                or not item['source_url'].startswith(f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+                or not re.fullmatch('[0-9a-f]{64}', item['source_sha256'])):
+            continue
+        figures = item['figures']
+        anchors = item['anchor_receipts']
+        if (set(figures) != {'2023', '2024', '2025'} or set(anchors) != {'2023', '2024'}
+                or any(set(values) != {'revenue', 'operating_income'}
+                       or any(type(value) is not int or abs(value) > 10**18
+                              for value in values.values())
+                       or values['revenue'] <= 0 for values in figures.values())):
+            continue
+        for year, anchor in anchors.items():
+            saved = years.get(year, {}).get(scope, {})
+            if (not _valid_receipt(anchor, int(year), cutoff) or saved.get('receipt_id') != anchor
+                    or any(saved['values'].get(key) != value for key, value in figures[year].items())):
+                break
+        else:
+            restored[code] = (scope, {'receipt_id': receipt, 'ambiguous': [],
+                                    'values': figures['2025']})
+    return restored
+
+
 def overlay(catalog, history, source, *, reviewed=None):
     expected = choices(catalog, history)
     retained = verified(source, expected, catalog['date'])
     amounts = reviewed_revenues(catalog, history, reviewed, expected)
     amounts.update({key: entry['revenue_krw'] for key, entry in retained.items()
                     if entry['status'] == 'observed'})
+    scopes = reviewed_annual_scopes(catalog, history, reviewed)
+    if not amounts and not scopes:
+        return history, set()
     result = deepcopy(history)
+    for code, (scope, annual) in scopes.items():
+        result['records'][code]['years']['2025'][scope] = annual
     for key, amount in amounts.items():
         base = expected[key]
         row = result['records'][base['code']]['years'][str(base['fiscal_year'])][base['scope']]
         row['values']['revenue'] = amount
-    return result, {expected[key]['code'] for key in amounts}
+    return result, {expected[key]['code'] for key in amounts} | set(scopes)
 
 
 def sales_parts(catalog, history):
