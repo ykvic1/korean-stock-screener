@@ -62,6 +62,28 @@ def assess(data, *, assessed=ASSESSMENT):
 
 
 class ForwardReadinessTests(unittest.TestCase):
+    def test_exam_day_requires_actual_regular_close_for_signal_and_outcome(self):
+        cohort, probes = fixture()
+        cohort['signal_date'] = probes['signal_date'] = '2025-11-13'
+        cohort['decision_at_utc'] = '2025-11-13T07:29:59Z'
+        cohort['selection_sha256'] = probes['selection_sha256'] = cohort_selection_digest(cohort)
+        with self.assertRaisesRegex(ForwardAuditError, 'horizon_signal_or_assessment_time_invalid'):
+            assess((cohort, probes))
+        cohort['decision_at_utc'] = '2025-11-13T07:30:00Z'
+        cohort['selection_sha256'] = probes['selection_sha256'] = cohort_selection_digest(cohort)
+        self.assertEqual(assess((cohort, probes))['frozen_cohort_count'], 2)
+
+        cohort['signal_date'] = probes['signal_date'] = '2025-10-13'
+        cohort['decision_at_utc'] = '2025-10-13T06:30:00Z'
+        cohort['selection_sha256'] = probes['selection_sha256'] = cohort_selection_digest(cohort)
+        receipt = close_probe(day='2025-11-13')
+        receipt['retrieved_at_utc'] = '2025-11-13T07:29:59Z'
+        probes['rows'] = [receipt]
+        with self.assertRaisesRegex(ForwardAuditError, 'outcome_retrieved_before_regular_close'):
+            assess((cohort, probes))
+        receipt['retrieved_at_utc'] = '2025-11-13T07:30:00Z'
+        self.assertEqual(assess((cohort, probes))['horizons']['1']['observed_close_unverified'], 1)
+
     def test_frozen_membership_and_decision_cannot_change_under_saved_digest(self):
         for change in ("drop", "replace", "market", "decision"):
             data = fixture()

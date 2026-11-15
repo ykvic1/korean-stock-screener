@@ -7,11 +7,10 @@ credentials are returned. Even all internally matching inputs are NOT scored.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, timezone
 import re
 
-KST = ZoneInfo("Asia/Seoul")
+from v3_krx_regular_close import KST, regular_close_utc
 SESSION = "KRX_REGULAR_0900_1530_ASIA_SEOUL"
 MARKETS = frozenset({"KOSPI", "KOSDAQ"})
 HEX = re.compile(r"^[a-f0-9]{64}$")
@@ -89,10 +88,9 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
     day = _day(asof)
     decision = _when(decision_at_utc)
     decision_kst = decision.astimezone(KST)
-    if decision_kst.date() != day or decision_kst.time() < time(15, 30):
+    regular_close = regular_close_utc(day)
+    if decision_kst.date() != day or decision < regular_close:
         raise PITJoinError("decision_must_be_on_signal_date_after_regular_close")
-    regular_close_utc = datetime.combine(
-        day, time(15, 30), tzinfo=KST).astimezone(timezone.utc)
     if not isinstance(bundle, dict):
         raise PITJoinError("invalid_join_bundle")
     identity = {k: bundle.get(k) for k in ("code", "issuer_id", "market")}
@@ -130,9 +128,8 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
         _digest(price.get("raw_sha256"))
         observed = _when(price.get("observed_at_utc"))
         price_late = observed > decision
-        price_preclose = observed < regular_close_utc
-        # An intraday observation cannot prove that the complete 09:00-15:30
-        # session was captured, even when its date/session label matches.
+        price_preclose = observed < regular_close
+        # An intraday observation cannot establish full-session coverage.
         price_aligned = not price_late and not price_preclose
 
     flow = bundle.get("flow_ledger")
@@ -145,7 +142,7 @@ def join_asof_evidence(bundle, *, asof, decision_at_utc):
             raise PITJoinError("flow_snapshot_wrong_date")
         receipt_at = _when(flow.get("observed_at_utc"))
         flow_late = receipt_at > decision
-        flow_preclose = receipt_at < regular_close_utc
+        flow_preclose = receipt_at < regular_close
         # Let the standalone ledger validate units, numeric missingness, the
         # 20/60/120/250 windows and pension total taxonomy without promotion.
         from v3_ias_flow_ledger import audit_daily_flow, FlowLedgerError
