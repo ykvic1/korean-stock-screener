@@ -58,6 +58,18 @@ def reviewed_year(code, year, years, cutoff):
 def original_year(item, row, year, cutoff):
     proof = validate_statement(item, row, year, cutoff, scope=item['scope'],
                                receipt=item['annual_receipt'], source_year=int(year), source=item)
+    if 'superseded_partial_capex' in item:
+        partial = item['superseded_partial_capex']
+        if (type(partial) is not dict or len(partial) != 1
+                or not partial.keys() <= set(PARTS)
+                or any(type(v) is not int or not 0 <= v < item[k] for k, v in partial.items())
+                or not item.get('supporting_notes_url', '').startswith(
+                    f"https://dart.fss.or.kr/report/viewer.do?rcpNo={item['annual_receipt']}&")
+                or item['supporting_notes_url'] == item['source_url']
+                or not re.fullmatch(r'[a-f0-9]{64}', item.get('supporting_notes_sha256', ''))
+                or item['supporting_notes_sha256'] == item['source_sha256']):
+            raise ValueError('unverified_reviewed_capex_partial_replacement')
+        proof['supporting_notes_sha256'] = item['supporting_notes_sha256']
     return {**proof, 'source_fiscal_year': int(year)}
 
 
@@ -95,8 +107,14 @@ def apply(cash):
             row = years.get(year)
             if (not row or row['annual_receipt_id'] != item['annual_receipt']
                     or row['free_cashflow_krw'] is not None
-                    or all(row[k] is not None for k in PARTS)
-                    or any(row[k] is not None and row[k] != item[k] for k in PARTS)):
+                    or all(row[k] is not None for k in PARTS)):
+                continue
+            replacements = {k: row[k] for k in PARTS if row[k] is not None and row[k] != item[k]}
+            if replacements != item.get('superseded_partial_capex', {}):
+                continue
+            if replacements and any(row.get(k) is not None for k in (
+                    'source_account_name_fallback', 'original_xbrl_proof', 'full_intangible_total',
+                    'reported_capex_total', 'later_original_comparative_proof')):
                 continue
             proof = original_year(item, row, year, cutoff)
             apply_statement(row, item, proof)

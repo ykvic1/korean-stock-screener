@@ -193,6 +193,36 @@ class PromotionTests(unittest.TestCase):
 
 
 class ReviewedStatementTests(unittest.TestCase):
+    def test_same_receipt_notes_can_supersede_only_an_incomplete_component(self):
+        from datetime import date
+        from unittest.mock import patch
+        import v3_dart_reviewed_capex as reviewed
+
+        year = '2024'
+        receipt = PRIOR['annual_receipt_id']
+        prefix = f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&'
+        item = {'annual_receipt': receipt, 'scope': 'CFS',
+                'source_url': prefix + 'eleId=1', 'source_sha256': 'a' * 64,
+                'operating_cashflow_krw': 100, 'ppe_capex_krw': 30,
+                'intangible_capex_krw': 5, 'other_investing_cashflow_krw': 25,
+                'investing_cashflow_krw': -10, 'superseded_partial_capex': {'ppe_capex_krw': 20},
+                'supporting_notes_url': prefix + 'eleId=2',
+                'supporting_notes_sha256': 'b' * 64}
+        cutoff = date(2026, 11, 13)
+        cash = {'asof': cutoff.isoformat(), 'records': {CODE: {'years': {year: dict(PRIOR)}}}}
+        with patch.object(reviewed, 'statements', return_value={CODE: {'original_statements': {year: item}}}):
+            updated, added = reviewed.apply(cash)
+            self.assertEqual(added, [(CODE, year)])
+            years = updated['records'][CODE]['years']
+            self.assertEqual(years[year]['free_cashflow_krw'], 65)
+            reviewed.verify(CODE, year, years, cutoff)
+            self.assertEqual(reviewed.apply(updated)[1], [])
+            item['supporting_notes_url'] = item['source_url']
+            with self.assertRaisesRegex(ValueError, 'unverified_reviewed_capex_partial_replacement'):
+                reviewed.apply(cash)
+            cash['records'][CODE]['years'][year]['ppe_capex_krw'] = 21
+            self.assertEqual(reviewed.apply(cash)[1], [])
+
     def test_original_receipt_recovers_one_component_without_fy2025(self):
         from datetime import date
         from unittest.mock import patch
