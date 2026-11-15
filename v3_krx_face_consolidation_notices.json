@@ -365,6 +365,36 @@
         "kind_url": "https://kind.krx.co.kr/external/2026/05/26/000665/20260526001481/70795.htm",
         "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/26/000478/20260526001208/70764.htm"
       }
+    },
+    "005320": {
+      "2026-05-20": {
+        "reference_krw": 1176,
+        "old_face_krw": 500,
+        "new_face_krw": 1000,
+        "market": "KOSPI",
+        "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000424/20260519001021/99321.htm",
+        "face_evidence_url": "https://stock.mk.co.kr/news/disclosure/template/1023715"
+      }
+    },
+    "140430": {
+      "2026-05-28": {
+        "reference_krw": 3760,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "market": "KOSDAQ",
+        "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/470379",
+        "face_evidence_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/470351"
+      }
+    },
+    "419540": {
+      "2026-05-26": {
+        "reference_krw": 4385,
+        "old_face_krw": 100,
+        "new_face_krw": 500,
+        "market": "KOSDAQ",
+        "kind_url": "https://kind.krx.co.kr/external/2026/05/22/000779/20260522001772/70795.htm",
+        "face_evidence_url": "https://kind.krx.co.kr/external/2026/05/22/000741/20260522001731/70764.htm"
+      }
     }
   },
   "bonus_issues": {
@@ -425,7 +455,11 @@
         "upper_krw": 5500,
         "shares_before": 178247112,
         "shares_after": 14259768,
-        "face_values_krw": [500, 200, 2500],
+        "face_values_krw": [
+          500,
+          200,
+          2500
+        ],
         "auction_url": "https://kind.krx.co.kr/external/2026/05/28/001082/20260528002343/70793.htm",
         "listing_url": "https://kind.krx.co.kr/external/2026/05/28/001055/20260528002303/70764.htm",
         "action_url": "https://kind.krx.co.kr/external/2026/03/11/002556/20260311005648/11309.htm"
