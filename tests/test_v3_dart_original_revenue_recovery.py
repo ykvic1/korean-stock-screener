@@ -30,6 +30,32 @@ class OriginalRevenueRecoveryTests(unittest.TestCase):
         annual['receipt_id'] = '20260324001654'
         self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
 
+    def test_annual_scope_requires_same_latest_receipt_and_both_comparatives(self):
+        day = '2026-11-13'
+        code = '000001'
+        receipt = '20260323001654'
+        catalog = {'date': day, 'listed_total': 1, 'rows': [{'code': code}]}
+        figures = {str(y): {'revenue': y, 'operating_income': 1} for y in (2023, 2024, 2025)}
+        anchors = {'2023': '20240321000001', '2024': '20250321000001'}
+        years = {y: {'OFS': {'receipt_id': r, 'values': figures[y].copy()}}
+                 for y, r in anchors.items()}
+        years['2025'] = {'CFS': {'receipt_id': receipt, 'values': figures['2025'].copy()}}
+        history = {'asof': day, 'listed_total': 1, 'fiscal_years': [2023, 2024, 2025],
+                   'records': {code: {'years': years}}}
+        proof = {'scope': 'OFS', 'receipt_id': receipt,
+                 'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&eleId=1',
+                 'source_sha256': 'a' * 64, 'figures': figures, 'anchor_receipts': anchors}
+        reviewed = {'schema': REVIEWED_SCHEMA, 'records': {}, 'annual_scopes': {code: proof}}
+        proposed, codes = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(codes, {code})
+        self.assertEqual(proposed['records'][code]['years']['2025']['OFS']['values'], figures['2025'])
+        self.assertNotIn('OFS', years['2025'])
+        years['2023']['OFS']['values']['operating_income'] = -1
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+        years['2023']['OFS']['values']['operating_income'] = 1
+        years['2025']['CFS']['receipt_id'] = '20260324001654'
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+
     def test_receipt_mismatch_is_reused_only_for_the_same_filing(self):
         day = '2026-11-13'
         corp = '00000001'
