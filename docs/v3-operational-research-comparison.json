@@ -5,28 +5,28 @@
   "performance_validated": false,
   "top": {
     "50": {
-      "overlap": 36,
-      "new_kospi": 22,
-      "old_kospi": 19
+      "overlap": 34,
+      "new_kospi": 23,
+      "old_kospi": 18
     },
     "100": {
-      "overlap": 65,
-      "new_kospi": 49,
-      "old_kospi": 38
+      "overlap": 67,
+      "new_kospi": 48,
+      "old_kospi": 39
     },
     "200": {
-      "overlap": 138,
+      "overlap": 140,
       "new_kospi": 82,
       "old_kospi": 82
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "ecd3cbd6a71f84a9cf3ce49a10c5ccb78c9e821b2491a95da6079f386a36fc15",
+    "source_digest": "be4e2afa594af16acde63d85bfce3fb266b1116de454548694b55c6358e2beb4",
     "listed_total": 2591,
     "ranked_count": 2572,
-    "available_100_count": 1286,
-    "available_95_count": 1606,
+    "available_100_count": 1295,
+    "available_95_count": 1623,
     "available_90_count": 2207,
     "budgets": {
       "volume": 25,
@@ -43,8 +43,8 @@
   "prior_operational_version": "v3-stable-r1d-operational-research",
   "same_input_prior_ranked_issuers": 2493,
   "prior_top_overlap": {
-    "50": 35,
+    "50": 34,
     "100": 59,
-    "200": 138
+    "200": 137
   }
 }
