@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 from v3_frozen_score_backtest import scored_walkforward, ScoredBacktestError, _date, _instant, KST
+from v3_krx_regular_close import regular_close_utc
 
 WEIGHTS = {"volume":20, "technical":25, "financial":20, "valuation":20, "momentum":15}
 SCHEMA = "v3-five-area-frozen-observed-score-0.1"
@@ -48,7 +49,7 @@ def freeze_observed_row(row, *, issuer_id, frozen_at_utc):
         raise ScoredBacktestError("invalid_five_area_issuer_identity")
     day = _date(row.get("asof"))
     when = _instant(frozen_at_utc).astimezone(KST)
-    if when.date() != day or (when.hour, when.minute) < (15,30):
+    if when.date() != day or when < regular_close_utc(day):
         raise ScoredBacktestError("five_area_freeze_outside_signal_close")
     points, coverage = row.get("factors"), row.get("factor_available")
     if (type(points) is not dict or set(points) != set(WEIGHTS)

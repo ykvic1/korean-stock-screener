@@ -7,7 +7,6 @@ never computed from realized future candles. Assertions are not authentication.
 from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from collections import defaultdict
-from zoneinfo import ZoneInfo
 import math
 
 from v3_walkforward_quality_gate import gated_walkforward, ResearchGateError
@@ -15,8 +14,8 @@ from v3_walkforward_research import HORIZONS, _outcome, WalkForwardError
 from v3_factor_overlap_audit import _spearman
 from v3_all_listed_scorecard import WEIGHTS as FIVE_FACTOR_WEIGHTS
 from v3_all_listed_scorecard import SCHEMA as FIVE_FACTOR_SCORECARD_SCHEMA
+from v3_krx_regular_close import KST, regular_close_utc
 
-KST=ZoneInfo("Asia/Seoul")
 MAX_CASES=120
 FIVE_FACTOR_CONTRACT="five_factor_observed_partial"
 LEGACY_CONTRACT="legacy_full_candidate"
@@ -118,8 +117,7 @@ def scored_walkforward(payloads, *, split_date, embargo_days=252,
         when=_instant(score.get("frozen_at_utc"))
         signal_decision=_instant(case.get("decision_at_utc"))
         if (when>signal_decision or when.astimezone(KST).date()!=signal
-                or when.astimezone(KST).hour<15 or
-                (when.astimezone(KST).hour==15 and when.astimezone(KST).minute<30)):
+                or when < regular_close_utc(signal)):
             raise ScoredBacktestError("score_not_frozen_after_close_before_decision")
         digest=case.get("evidence",{}).get("signal_snapshot_sha256")
         if (type(digest) is not str or len(digest)!=64

@@ -13,6 +13,7 @@ import json
 import re
 
 from v3_frozen_score_backtest import ScoredBacktestError, _date, _instant, KST
+from v3_krx_regular_close import regular_close_utc
 
 R1E_WEIGHTS = {"volume": 25, "technical": 30, "financial": 12.5,
                "valuation": 12.5, "momentum": 20}
@@ -55,7 +56,7 @@ def freeze_r1e_observed_row(row, *, issuer_id, frozen_at_utc):
         raise ScoredBacktestError("invalid_r1e_issuer_identity")
     day = _date(row.get("asof"))
     when = _instant(frozen_at_utc).astimezone(KST)
-    if when.date() != day or (when.hour, when.minute) < (15, 30):
+    if when.date() != day or when < regular_close_utc(day):
         raise ScoredBacktestError("r1e_freeze_outside_signal_close")
     factors, coverage = row.get("factors"), row.get("factor_available")
     if (type(factors) is not dict or set(factors) != set(R1E_WEIGHTS)

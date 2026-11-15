@@ -11,9 +11,10 @@ from __future__ import annotations
 import hashlib
 import json
 import calendar
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import re
-from zoneinfo import ZoneInfo
+
+from v3_krx_regular_close import KST, regular_close_utc
 
 SCHEMA = "v3-pit-forward-horizon-readiness-research-0.1"
 COHORT_SCHEMA = "v3-frozen-current-signal-cohort-unverified-0.1"
@@ -21,7 +22,6 @@ PROBE_SCHEMA = "v3-forward-outcome-structural-probe-unverified-0.1"
 HORIZONS = (1, 2, 3, 6, 12)
 MAX_ISSUERS = 6000
 MAX_SETTLEMENT_LAG_DAYS = 10
-KST = ZoneInfo("Asia/Seoul")
 HEX = re.compile(r"[a-f0-9]{64}\Z")
 CODE = re.compile(r"[0-9]{6}\Z")
 ISSUER = re.compile(r"[0-9]{8}\Z")
@@ -133,7 +133,7 @@ def audit_forward_readiness(cohort, probes, *, assessed_at_utc):
     assessed = _utc(assessed_at_utc)
     _hash(cohort.get("selection_sha256"))
     if (decision.astimezone(KST).date() != signal or
-        decision.astimezone(KST).time() < time(15, 30) or
+        decision < regular_close_utc(signal) or
         assessed < decision):
         raise ForwardAuditError("horizon_signal_or_assessment_time_invalid")
     members = cohort.get("members")
@@ -195,7 +195,7 @@ def audit_forward_readiness(cohort, probes, *, assessed_at_utc):
             day = _day(row.get("observed_date"))
             if not target <= day <= target + timedelta(days=MAX_SETTLEMENT_LAG_DAYS):
                 raise ForwardAuditError("observed_horizon_outside_target_window")
-            if retrieved < datetime.combine(day, time(15, 30), KST).astimezone(timezone.utc):
+            if retrieved < regular_close_utc(day):
                 raise ForwardAuditError("outcome_retrieved_before_regular_close")
         else:
             if set(row) != PROBE_KEYS - {"observed_date"}:
@@ -203,7 +203,7 @@ def audit_forward_readiness(cohort, probes, *, assessed_at_utc):
             day = _day(row.get("delisted_on"))
             if not signal < day <= target:
                 raise ForwardAuditError("delisted_outcome_outside_signal_window")
-            if retrieved < datetime.combine(day, time(15, 30), KST).astimezone(timezone.utc):
+            if retrieved < regular_close_utc(day):
                 raise ForwardAuditError("delisting_observed_before_event")
 
     for n, summary in buckets.items():
