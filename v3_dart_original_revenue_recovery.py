@@ -194,6 +194,50 @@ def reviewed_annual_comparatives(history, source, cutoff):
                 }
 
 
+def reviewed_annual_history(history, source, cutoff):
+    """Recover absent periods from consecutive filings with two exact overlaps."""
+    for code, item in (source or {}).get('annual_history_bridges', {}).items():
+        years = history['records'].get(code, {}).get('years', {})
+        scope = item['scope']
+        receipt, earlier_receipt = item['receipt_id'], item['earlier_receipt_id']
+        current, earlier = item['latest_figures'], item['earlier_figures']
+        anchor = years.get('2025', {}).get(scope, {})
+        source_date = f'{earlier_receipt[:4]}/{earlier_receipt[4:6]}/{earlier_receipt[6:8]}'
+        if (scope not in ('CFS', 'OFS') or anchor.get('receipt_id') != receipt
+                or not _valid_receipt(receipt, 2025, cutoff)
+                or not _valid_receipt(earlier_receipt, 2024, cutoff)
+                or earlier_receipt[:8] >= receipt[:8]
+                or not item['source_url'].startswith(
+                    f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&')
+                or not re.fullmatch(
+                    rf'https://kind\.krx\.co\.kr/external/{source_date}/[0-9]{{6}}/{earlier_receipt}/11011\.htm',
+                    item['earlier_source_url'])
+                or any(not re.fullmatch('[0-9a-f]{64}', item[key])
+                       for key in ('source_sha256', 'earlier_source_sha256'))
+                or item['source_sha256'] == item['earlier_source_sha256']
+                or set(current) != {'2023', '2024', '2025'}
+                or set(earlier) != {'2022', '2023', '2024'}
+                or any(earlier[year] != current[year] for year in ('2023', '2024'))):
+            continue
+        figures = {**earlier, **current}
+        if (any(set(values) != {'revenue', 'operating_income'}
+                or type(values['revenue']) is not int or not 0 < values['revenue'] <= 10**18
+                or type(values['operating_income']) is not int or abs(values['operating_income']) > 10**18
+                for values in figures.values())
+                or any(anchor.get('values', {}).get(key) != value
+                       for key, value in current['2025'].items())
+                or any(years.get(year, {}).get(scope, {}).get('values', {}).get(key)
+                       not in (None, value) for year, values in figures.items()
+                       for key, value in values.items())):
+            continue
+        for year in ('2022', '2023', '2024'):
+            if year in years and scope not in years[year]:
+                yield code, year, scope, {
+                    'receipt_id': earlier_receipt, 'comparative_filing_year': '2024',
+                    'ambiguous': [], 'values': figures[year],
+                }
+
+
 def overlay(catalog, history, source, *, reviewed=None):
     expected = choices(catalog, history)
     retained = verified(source, expected, catalog['date'])
@@ -201,7 +245,7 @@ def overlay(catalog, history, source, *, reviewed=None):
     amounts.update({key: entry['revenue_krw'] for key, entry in retained.items()
                     if entry['status'] == 'observed'})
     if not amounts and not any((reviewed or {}).get(key)
-                               for key in ('annual_scopes', 'annual_comparatives')):
+                               for key in ('annual_scopes', 'annual_comparatives', 'annual_history_bridges')):
         return history, set()
     result = deepcopy(history)
     for key, amount in amounts.items():
@@ -210,6 +254,9 @@ def overlay(catalog, history, source, *, reviewed=None):
         row['values']['revenue'] = amount
     comparative_codes = set()
     for code, year, scope, statement in reviewed_annual_comparatives(result, reviewed, _day(catalog['date'])):
+        result['records'][code]['years'][year][scope] = statement
+        comparative_codes.add(code)
+    for code, year, scope, statement in reviewed_annual_history(result, reviewed, _day(catalog['date'])):
         result['records'][code]['years'][year][scope] = statement
         comparative_codes.add(code)
     scopes = reviewed_annual_scopes(catalog, result, reviewed)

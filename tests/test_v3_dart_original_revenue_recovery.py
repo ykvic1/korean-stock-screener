@@ -9,6 +9,40 @@ from v3_revenue_growth_evidence import window
 
 
 class OriginalRevenueRecoveryTests(unittest.TestCase):
+    def test_consecutive_filings_restore_missing_history_from_two_overlaps(self):
+        day, code = '2026-11-13', '448900'
+        earlier_receipt, receipt = '20250321008345', '20260320001061'
+        fiscal = [2022, 2023, 2024, 2025]
+        figures = {str(y): {'revenue': y, 'operating_income': -1} for y in fiscal}
+        catalog = {'date': day, 'listed_total': 1, 'rows': [{'code': code}]}
+        years = {str(y): {} for y in fiscal}
+        years['2025']['CFS'] = {'receipt_id': receipt, 'values': figures['2025'].copy()}
+        history = {'asof': day, 'listed_total': 1, 'fiscal_years': fiscal,
+                   'records': {code: {'years': years}}}
+        bridge = {
+            'scope': 'CFS', 'receipt_id': receipt, 'source_sha256': 'a' * 64,
+            'source_url': f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&eleId=1',
+            'earlier_receipt_id': earlier_receipt, 'earlier_source_sha256': 'b' * 64,
+            'earlier_source_url': (
+                f'https://kind.krx.co.kr/external/2025/03/21/002182/{earlier_receipt}/11011.htm'),
+            'latest_figures': {y: figures[y].copy() for y in ('2023', '2024', '2025')},
+            'earlier_figures': {y: figures[y].copy() for y in ('2022', '2023', '2024')},
+        }
+        reviewed = {'schema': REVIEWED_SCHEMA, 'records': {},
+                    'annual_history_bridges': {code: bridge}}
+        proposed, codes = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertEqual(codes, {code})
+        recovered = proposed['records'][code]
+        self.assertEqual(window(recovered, fiscal, day)['scope'], 'CFS')
+        self.assertEqual(recovered['years']['2022']['CFS']['comparative_filing_year'], '2024')
+        self.assertEqual(recovered['years']['2024']['CFS']['receipt_id'], earlier_receipt)
+        self.assertEqual(years['2024'], {})
+        bridge['latest_figures']['2023']['operating_income'] -= 1
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+        bridge['latest_figures']['2023']['operating_income'] += 1
+        years['2024']['CFS'] = {'receipt_id': earlier_receipt, 'values': {'revenue': 1}}
+        self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
+
     def test_earlier_comparatives_use_the_anchor_filing_and_preserve_originals(self):
         day, code, receipt = '2026-11-13', '000001', '20250321000001'
         catalog = {'date': day, 'listed_total': 1, 'rows': [{'code': code}]}
