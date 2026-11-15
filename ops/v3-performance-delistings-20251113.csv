@@ -1,0 +1,94 @@
+market,code,anchor_name,kind_name,delisted_on,kind_reason,name_match,current_catalog_code_present,anchor_membership,kind_spac_name
+KOSPI,006390,한일현대시멘트,한일현대시멘트,2025-11-21,해산 사유 발생,true,false,present,false
+KOSPI,102280,쌍방울,쌍방울,2025-11-28,"기업의 계속성, 경영의 투명성 및 기타 공익과 투자자 보호 등을 종합적으로 고려하여 상장폐지 기준에 해당한다고 결정",true,false,present,false
+KOSPI,010620,HD현대미포,HD현대미포,2025-12-15,해산 사유 발생,true,false,present,false
+KOSPI,450140,코오롱모빌리티그룹,코오롱모빌리티그룹,2026-01-07,지주회사(최대주주등)의 완전자회사화 등,true,false,present,false
+KOSPI,003560,IHQ,아이에이치큐,2026-01-15,감사의견 의견거절 2년 계속,false,false,present,false
+KOSPI,033180,KH 필룩스,KH 필룩스,2026-01-15,감사의견 의견거절 2년 계속,true,false,present,false
+KOSPI,010600,웰바이오텍,웰바이오텍,2026-01-26,감사의견 의견거절 2년 계속,true,false,present,false
+KOSPI,042670,HD현대인프라코어,HD현대인프라코어,2026-01-26,해산 사유 발생,true,false,present,false
+KOSPI,001140,국보,국보,2026-01-27,감사의견 의견거절 2년 계속,true,false,present,false
+KOSPI,019440,세아특수강,세아특수강,2026-02-12,지주회사(최대주주등)의 완전자회사화 등,true,false,present,false
+KOSPI,008110,대동전자,대동전자,2026-03-30,감사범위제한으로인한 감사의견한정 2년 계속,true,false,present,false
+KOSPI,138490,코오롱ENP,코오롱ENP,2026-04-16,해산 사유 발생,true,false,present,false
+KOSPI,152550,한국ANKOR유전,한국ANKOR유전,2026-05-04,해산 사유 발생,true,false,present,false
+KOSPI,140910,에이리츠,에이리츠,2026-06-10,"기업의 계속성, 경영의 투명성 및 기타 공익과 투자자 보호 등을 종합적으로 고려하여 상장폐지 기준에 해당한다고 결정",true,false,present,false
+KOSPI,204210,스타에스엠리츠,JK리버스톤리츠,2026-06-12,"기업의 계속성, 경영의 투명성 및 기타 공익과 투자자 보호 등을 종합적으로 고려하여 상장폐지 기준에 해당한다고 결정",false,false,present,false
+KOSPI,008500,일정실업,일정실업,2026-06-30,시가총액 미달,true,false,present,false
+KOSPI,012510,더존비즈온,더존비즈온,2026-07-15,지주회사(최대주주등)의 완전자회사화 등,true,false,present,false
+KOSPI,057050,현대홈쇼핑,현대홈쇼핑,2026-07-20,지주회사(최대주주등)의 완전자회사화 등,true,false,present,false
+KOSPI,031440,신세계푸드,신세계푸드,2026-08-11,지주회사(최대주주등)의 완전자회사화 등,true,false,present,false
+KOSPI,082640,동양생명,동양생명,2026-08-31,지주회사(최대주주등)의 완전자회사화 등,true,false,present,false
+KOSPI,006380,카프로,카프로,2026-09-17,"기업의 계속성, 경영의 투명성 및 기타 공익과 투자자 보호 등을 종합적으로 고려하여 상장폐지 기준에 해당한다고 결정",true,false,present,false
+KOSPI,005030,부산주공,부산주공,2026-10-12,"기업의 계속성, 경영의 투명성 및 기타 공익과 투자자 보호 등을 종합적으로 고려하여 상장폐지 기준에 해당한다고 결정",true,false,present,false
+KOSPI,005110,한창,한창,2026-10-15,감사의견 의견거절 2년 계속,true,false,present,false
+KOSDAQ,448370,,하나27호스팩,2025-11-13,합병상장예비심사신청서 미제출로 관리종목 지정 후 1개월 이내 동 사유 미해소,,false,absent,true
+KOSDAQ,442770,IBKS제21호스팩,IBKS제21호스팩,2025-11-17,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,014200,광림,광림,2025-11-26,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,151910,퓨처코어,퓨처코어,2025-11-26,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,335890,비올,비올,2025-12-10,상장폐지 신청('25.11.06),true,false,present,false
+KOSDAQ,448760,IBKS제22호스팩,IBKS제22호스팩,2025-12-29,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,054630,에이디칩스,에이디칩스,2025-12-30,감사의견 거절(계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,111870,KH 미래물산,KH 미래물산,2026-01-14,감사의견 거절(감사범위 제한),true,false,present,false
+KOSDAQ,174880,장원테크,장원테크,2026-01-14,감사의견 한정(감사범위 제한),true,false,present,false
+KOSDAQ,226360,KH 건설,KH 건설,2026-01-14,감사의견 거절(감사범위 제한),true,false,present,false
+KOSDAQ,448830,미래에셋비전스팩3호,미래에셋비전스팩3호,2026-01-14,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,478780,대신밸런스제18호스팩,대신밸런스제18호스팩,2026-01-14,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,057880,푸른소나무,푸른소나무,2026-01-22,감사의견 거절(감사범위 제한 및 계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,150840,인트로메딕,인트로메딕,2026-01-26,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,208340,파멥신,파멥신,2026-01-27,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,446150,유안타제12호스팩,유안타제12호스팩,2026-01-28,합병상장예비심사청구서 미제출로 관리종목 지정 후 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,455250,KB제25호스팩,KB제25호스팩,2026-01-28,합병상장예비심사신청서 미제출로 관리종목 지정 후 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,450050,하이제8호스팩,하이제8호스팩,2026-01-29,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,454640,하나29호스팩,하나29호스팩,2026-02-04,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,456490,교보14호스팩,교보14호스팩,2026-02-10,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,052670,제일바이오,제일바이오,2026-02-23,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,455910,에스케이증권제9호스팩,SK증권제9호스팩,2026-03-04,합병상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날(2026.1.14)부터 1개월 이내 동 사유 미해소,false,false,present,true
+KOSDAQ,450940,유안타제14호스팩,유안타제14호스팩,2026-03-05,합병상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날(2026.1.20)부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,222810,세토피아,세토피아,2026-03-16,감사의견 거절(계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,457940,에스케이증권제10호스팩,SK증권제10호스팩,2026-03-16,합병상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날(2026.02.04)부터 1개월 이내 동 사유 미해소,false,false,present,true
+KOSDAQ,036180,지더블유바이텍,지더블유바이텍,2026-03-17,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,204630,스튜디오산타클로스,스튜디오산타클로스,2026-03-18,감사의견 한정(감사범위 제한),true,false,present,false
+KOSDAQ,458610,한국제12호스팩,한국제12호스팩,2026-04-03,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,473370,비엔케이제2호스팩,비엔케이제2호스팩,2026-04-03,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,444920,유안타제11호스팩,유안타제11호스팩,2026-04-06,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,455310,한화플러스제4호스팩,한화플러스제4호스팩,2026-04-15,합병상장예비심사신청서 미제출로 관리종목 지정 후 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,457630,대신밸런스제16호스팩,대신밸런스제16호스팩,2026-04-15,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,452670,상상인제4호스팩,상상인제4호스팩,2026-04-21,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,452980,신한제11호스팩,신한제11호스팩,2026-05-07,합병상장예비심사신청서 미제출로 관리종목 지정 후 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,139050,BF랩스,BF랩스,2026-05-08,감사의견 거절(감사범위 제한),true,false,present,false
+KOSDAQ,217620,선샤인푸드,선샤인푸드,2026-05-08,감사의견 거절(감사범위 제한 및 계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,462020,에이치엠씨제6호스팩,에이치엠씨제6호스팩,2026-05-19,상장예비심사 청구서 미제출로 관리종목 지정 후 1개월 이내 동사유 미해소,true,false,present,true
+KOSDAQ,466910,엔에이치스팩30호,엔에이치스팩30호,2026-05-19,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,230980,비유테크놀러지,비유테크놀러지,2026-06-05,감사의견 거절(감사범위 제한 및 계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,464680,KB제27호스팩,KB제27호스팩,2026-06-09,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,451700,엔에이치스팩29호,엔에이치스팩29호,2026-06-10,피흡수합병(스팩소멸합병),true,false,present,true
+KOSDAQ,464440,한국제13호스팩,한국제13호스팩,2026-06-18,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,230360,에코마케팅,에코마케팅,2026-06-30,타법인의 완전자회사로 편입,true,false,present,false
+KOSDAQ,032980,바이온,바이온,2026-07-01,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,101390,아이엠,아이엠,2026-07-01,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,106520,노블엠앤비,노블엠앤비,2026-07-01,감사의견 거절(계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,227100,퀀텀온,프로브잇,2026-07-01,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,false,false,present,false
+KOSDAQ,222160,NPX,NPX,2026-07-07,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,203690,아크솔루션스,아크솔루션스,2026-07-08,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,060240,스타코링크,스타코링크,2026-07-24,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,467930,IBKS제23호스팩,IBKS제23호스팩,2026-07-28,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,469880,하나30호스팩,하나30호스팩,2026-07-31,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,043090,더테크놀로지,더테크놀로지,2026-08-10,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,299900,위지윅스튜디오,위지윅스튜디오,2026-08-18,피흡수합병,true,false,present,false
+KOSDAQ,269620,시스웍,시스웍,2026-08-25,감사의견 거절(계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,471050,대신밸런스제17호스팩,대신밸런스제17호스팩,2026-09-01,합병상장예비심사신청서 미제출로 관리종목 지정 후 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,096610,알에프세미,알에프세미,2026-09-03,감사의견 거절(감사범위 제한 및 계속기업가정 불확실성),true,false,present,false
+KOSDAQ,472220,신영스팩10호,신영스팩10호,2026-09-11,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,121850,코이즈,코이즈,2026-09-14,시가총액 200억원 미달,true,false,present,false
+KOSDAQ,465320,교보15호스팩,교보15호스팩,2026-09-15,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,008290,원풍물산,원풍물산,2026-09-21,시가총액 200억원 미달,true,false,present,false
+KOSDAQ,046070,코다코,코다코,2026-09-21,감사의견 거절(감사범위 제한 및 계속기업 존속능력 불확실성),true,false,present,false
+KOSDAQ,082660,코스나인,코스나인,2026-09-21,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,084180,수성웹툰,수성웹툰,2026-10-01,시가총액 200억원 미달,true,false,present,false
+KOSDAQ,196490,디에이테크놀로지,디에이테크놀로지,2026-10-07,기업의 계속성 및 경영의 투명성 등을 종합적으로 고려하여 상장폐지기준에 해당한다고 결정,true,false,present,false
+KOSDAQ,472230,에스케이증권제11호스팩,SK증권제11호스팩,2026-10-12,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,false,false,present,true
+KOSDAQ,473050,유안타제15호스팩,유안타제15호스팩,2026-10-12,합병상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,469900,하나31호스팩,하나31호스팩,2026-10-13,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
+KOSDAQ,028080,휴맥스홀딩스,휴맥스홀딩스,2026-10-19,피흡수합병,true,false,present,false
+KOSDAQ,475240,하나32호스팩,하나32호스팩,2026-11-02,상장예비심사신청서 미제출 등으로 관리종목으로 지정된 날부터 1개월 이내 동 사유 미해소,true,false,present,true
