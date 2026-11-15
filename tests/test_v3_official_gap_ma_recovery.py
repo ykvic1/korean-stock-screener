@@ -41,6 +41,22 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         result = recover_checked_weekly_closes(stock, row, frame, expected, refs, day, day)
         self.assertEqual(set(result), {'v3_weekly_position_gap_recovery',
                                        'v3_weekly_rsi_gap_recovery'})
+        first_of_120_weeks = weeks.index[-120] - pd.Timedelta(days=4)
+        exact_window = frame.loc[first_of_120_weeks:]
+        recovered = recover_checked_weekly_closes(stock, row, exact_window, expected, refs, day, day)
+        self.assertEqual(set(recovered), set(result))
+        self.assertEqual(recovered['v3_weekly_position_gap_recovery'],
+                         result['v3_weekly_position_gap_recovery'])
+        earlier_gap = frame.drop(index=first_of_120_weeks - pd.Timedelta(days=3))
+        self.assertEqual(recover_checked_weekly_closes(
+            stock, row, earlier_gap, expected, refs, day, day), recovered)
+        partial_first_week = recover_checked_weekly_closes(
+            stock, row, exact_window.iloc[1:], expected, refs, day, day)
+        self.assertEqual(set(partial_first_week), {'v3_weekly_rsi_gap_recovery'})
+        null_close = frame.copy()
+        null_close.loc[dates[-10], 'Close'] = float('nan')
+        self.assertEqual(recover_checked_weekly_closes(
+            stock, row, null_close, expected, refs, day, day), {})
         mismatched = dict(stock, price=stock['price'] + 1)
         self.assertEqual(recover_checked_weekly_closes(
             mismatched, row, frame, expected, refs, day, day), {})
