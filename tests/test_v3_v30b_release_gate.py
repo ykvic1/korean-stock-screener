@@ -168,6 +168,10 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertEqual(gate["r1d_100weight_observed_count"], found["available_100_count"])
         self.assertTrue(gate["five_area_weight_contract_is_legacy_not_r1d"])
         self.assertFalse(gate["gates"]["r1d_observation_all_listed"])
+        self.assertFalse(gate["all_listed_full_coverage_required"])
+        self.assertNotIn("all_listed_observation_incomplete", gate["blocker_codes"])
+        self.assertIn("independent_adjusted_price_and_corporate_actions_unverified",
+                      gate["blocker_codes"])
         self.assertFalse(gate["confirmed_scoring_authorized"])
 
         later_observed = copy.deepcopy(observed)

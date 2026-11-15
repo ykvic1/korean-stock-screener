@@ -911,6 +911,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "published_fcf_issuer_subscore_source": (
             snapshot_valid and fcf_issuer_reconciled is True
             and fcf_source_reconciled is True),
+        # Coverage is reported for both models. Unavailable evidence may stay
+        # missing when the published operational snapshot reconciles.
         "five_area_observation_all_listed": snapshot_valid and full == safe_total,
         "r1d_operational_publication_reconciled": (
             snapshot_valid and r1d_status is not None),
@@ -933,8 +935,6 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "validated_loss_first_stop_target_mfe_mae": False,
     }
     blockers = set(issues)
-    if snapshot_valid and missing_count:
-        blockers.add("all_listed_observation_incomplete")
     if snapshot_valid and r1d_status is not None and not r1d_current:
         blockers.add("r1d_operational_snapshot_lag")
     if dart_counts is None:
@@ -962,6 +962,7 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "five_area_weight_contract_is_legacy_not_r1d": True,
         "r1d_operational_publication_reconciled": r1d_status is not None,
         "r1d_same_market_day_and_roster": r1d_current,
+        "all_listed_full_coverage_required": False,
         "r1d_source_asof": r1d_status["asof"] if r1d_status else None,
         "r1d_100weight_observed_count": (
             r1d_status["available_100_count"] if r1d_status else None),
