@@ -1536,6 +1536,174 @@
           "operating_income": 3083556267
         }
       }
+    },
+    "140430": {
+      "scope": "OFS",
+      "source_receipt_id": "20260323000561",
+      "anchor_2024_receipt_id": "20250321000878",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323000561&dcmNo=11162531&eleId=23&offset=267920&length=18884&dtd=dart4.xsd",
+      "source_sha256": "93c40fd7e8cd90207ce1b6d29da0766e262f96a98a3c11152142d6593319273b",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 27901348150,
+          "operating_income": -536774819
+        },
+        "2024": {
+          "revenue": 31672914120,
+          "operating_income": 1594081524
+        },
+        "2023": {
+          "revenue": 30016297350,
+          "operating_income": 1890297823
+        }
+      }
+    },
+    "188040": {
+      "scope": "CFS",
+      "source_receipt_id": "20260318001675",
+      "anchor_2024_receipt_id": "20250610000262",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318001675&dcmNo=11144910&eleId=21&offset=324579&length=20227&dtd=dart4.xsd",
+      "source_sha256": "5ec11e4f9caec2e3824580cf700b953187a9d6c4aa743efbdbbfa3b78cc4f245",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 70879747598,
+          "operating_income": 830046239
+        },
+        "2024": {
+          "revenue": 73346275464,
+          "operating_income": 5240027576
+        },
+        "2023": {
+          "revenue": 68699069507,
+          "operating_income": 4919170014
+        }
+      }
+    },
+    "444530": {
+      "scope": "OFS",
+      "source_receipt_id": "20260323000047",
+      "anchor_2024_receipt_id": "20250321001745",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323000047&dcmNo=11160724&eleId=23&offset=217974&length=18180&dtd=dart4.xsd",
+      "source_sha256": "41cf723f116325cb2a6100d9d8102375c4702ec02f4dc76e46a89f8627b624d6",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 10404472896,
+          "operating_income": -2664703884
+        },
+        "2024": {
+          "revenue": 7227053902,
+          "operating_income": -142923926
+        },
+        "2023": {
+          "revenue": 4389632354,
+          "operating_income": -1540097008
+        }
+      }
+    },
+    "456160": {
+      "scope": "OFS",
+      "source_receipt_id": "20260318001347",
+      "anchor_2024_receipt_id": "20250320000782",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318001347&dcmNo=11142020&eleId=23&offset=257137&length=21828&dtd=dart4.xsd",
+      "source_sha256": "d88e986d15dc6dd03d5cf42d3da67d4ac75b58cf8783182bd76cb7fd51f9f35e",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 423070926,
+          "operating_income": -12202308190
+        },
+        "2024": {
+          "revenue": 768930985,
+          "operating_income": -10763507974
+        },
+        "2023": {
+          "revenue": 739823074,
+          "operating_income": -13144249117
+        }
+      }
+    },
+    "481070": {
+      "scope": "CFS",
+      "source_receipt_id": "20260323001409",
+      "anchor_2024_receipt_id": "20250402000573",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001409&dcmNo=11167513&eleId=21&offset=284957&length=26270&dtd=dart4.xsd",
+      "source_sha256": "2d20076955ca47ccc6168c7f16e430046bba9747f1431bac1cf3ee4f6176fd2b",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 60009152935,
+          "operating_income": 10081266049
+        },
+        "2024": {
+          "revenue": 44600592198,
+          "operating_income": 12428629791
+        },
+        "2023": {
+          "revenue": 41886214439,
+          "operating_income": 16214791967
+        }
+      }
+    },
+    "287840": {
+      "scope": "OFS",
+      "source_receipt_id": "20260318001392",
+      "anchor_2024_receipt_id": "20250327000702",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318001392&dcmNo=11142408&eleId=23&offset=182685&length=17003&dtd=dart4.xsd",
+      "source_sha256": "9937a51f541cd352cdb17023b38ab2ced5dc5b712b4b10303aa044b62e938387",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 2299122477,
+          "operating_income": -10300409988
+        },
+        "2024": {
+          "revenue": 2905033092,
+          "operating_income": -9790200602
+        },
+        "2023": {
+          "revenue": 1616402538,
+          "operating_income": -17389530381
+        }
+      }
+    },
+    "469750": {
+      "scope": "OFS",
+      "source_receipt_id": "20260522000549",
+      "anchor_2024_receipt_id": "20250320000665",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260522000549&dcmNo=11398112&eleId=25&offset=276356&length=19791&dtd=dart4.xsd",
+      "source_sha256": "bd3f75c39552f3e1f81de345c528135f0a8f706fc2d9ba4a0850271eda2cdb52",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 23001097577,
+          "operating_income": -390839029
+        },
+        "2024": {
+          "revenue": 35170486748,
+          "operating_income": 2385026314
+        },
+        "2023": {
+          "revenue": 23241688823,
+          "operating_income": 2771094857
+        }
+      }
+    },
+    "475040": {
+      "scope": "CFS",
+      "source_receipt_id": "20260331003309",
+      "anchor_2024_receipt_id": "20250415000521",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260331003309&dcmNo=11209702&eleId=21&offset=215869&length=24310&dtd=dart4.xsd",
+      "source_sha256": "34041fdd27f6379ffe908626424e3913120ef3574194e21872be033c53b32e93",
+      "annual_comparatives_krw": {
+        "2025": {
+          "revenue": 18109229713,
+          "operating_income": -58595029759
+        },
+        "2024": {
+          "revenue": 11539392256,
+          "operating_income": -63875179774
+        },
+        "2023": {
+          "revenue": 7171271925,
+          "operating_income": -64903684157
+        }
+      }
     }
   }
 }
