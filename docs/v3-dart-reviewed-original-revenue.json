@@ -320,6 +320,14 @@
       "operating_income_krw": 127921709129,
       "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260312000997&dcmNo=11115496&eleId=22&offset=398676&length=580618&dtd=dart4.xsd",
       "source_sha256": "72ca31739354c89d31e85c98830f582fa16f193fc3589d6bfe9c673839c271f2"
+    },
+    "003690:2025:CFS": {
+      "receipt_id": "20260331003834",
+      "account_name": "영업수익",
+      "revenue_krw": 6704402000000,
+      "operating_income_krw": 470938604768,
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260331003834&dcmNo=11211631&eleId=18&offset=217714&length=33076&dtd=dart4.xsd",
+      "source_sha256": "84e61321d9b491f46f20c4997ff2251fd843555269174fb59f76fa4d0be3876c"
     }
   },
   "annual_scopes": {
