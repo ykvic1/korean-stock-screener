@@ -1,0 +1,149 @@
+code,name,market,available_weight,reason,listed_on,candidate_sessions,kind_halt_reason
+0007J0,인벤테라,KOSDAQ,20.25,insufficient_listing_history,2026-04-02,152,
+0010F0,보원케미칼,KOSDAQ,20.25,insufficient_listing_history,2026-04-03,151,
+0010S0,와이즈플래닛컴퍼니,KOSDAQ,0,insufficient_listing_history,2026-09-23,34,
+0011T0,채비,KOSDAQ,7.25,insufficient_listing_history,2026-04-29,133,
+0013Y0,엠에스바이오,KOSDAQ,0,insufficient_listing_history,2026-10-22,17,
+0015M0,디티에스,KOSDAQ,0,insufficient_listing_history,2026-10-23,16,
+0017J0,세미티에스,KOSDAQ,6.625,insufficient_listing_history,2026-06-10,107,
+0035S0,빅웨이브로보틱스,KOSDAQ,0,insufficient_listing_history,2026-09-29,32,
+0039P0,매드업,KOSDAQ,6.125,insufficient_listing_history,2026-07-01,92,
+0053F0,티앤이코리아,KOSDAQ,0,insufficient_listing_history,2026-10-29,12,
+0088M0,메쥬,KOSDAQ,22.75,insufficient_listing_history,2026-03-26,157,
+0117P0,피스피스스튜디오,KOSDAQ,22.125,insufficient_listing_history,2026-06-08,109,
+0147B0,래블업,KOSDAQ,0,insufficient_listing_history,2026-11-03,9,
+0153R0,바로팜,KOSDAQ,0,insufficient_listing_history,2026-11-11,3,
+0155E0,해치텍,KOSDAQ,15.291667,insufficient_listing_history,2026-08-25,55,
+0156T0,에이치엘지노믹스,KOSDAQ,6.125,insufficient_listing_history,2026-07-24,76,
+0158S0,엘리스,KOSDAQ,0,insufficient_listing_history,2026-10-20,19,
+0161M0,네오사피엔스,KOSDAQ,0,insufficient_listing_history,2026-09-21,36,
+0162D0,동원파츠,KOSDAQ,0,insufficient_listing_history,2026-11-10,4,
+0218L0,네오뷰,KOSDAQ,6.125,insufficient_listing_history,2026-07-27,75,
+0220W0,한화머시너리앤서비스홀딩스,KOSPI,3.125,insufficient_listing_history,2026-08-25,55,
+153890,져스텍,KOSDAQ,6.625,insufficient_listing_history,2026-06-29,94,
+179880,멜콘,KOSDAQ,0,insufficient_listing_history,2026-10-15,22,
+266690,덕산넵코어스,KOSDAQ,19.5,insufficient_listing_history,2026-09-30,31,
+282620,기도산업,KOSDAQ,3.125,insufficient_listing_history,2026-08-21,57,
+288180,케이피항공산업,KOSDAQ,31.625,insufficient_listing_history,2026-05-19,121,
+359410,영광,KOSDAQ,0,insufficient_listing_history,2026-11-02,10,
+365660,레몬헬스케어,KOSDAQ,6.125,insufficient_listing_history,2026-07-06,89,
+386380,스카이랩스,KOSDAQ,3.125,insufficient_listing_history,2026-09-04,47,
+387690,레메디,KOSDAQ,6.125,insufficient_listing_history,2026-07-13,84,
+394420,리센스메디컬,KOSDAQ,22.75,insufficient_listing_history,2026-03-31,154,
+408470,한패스,KOSDAQ,18.583333,insufficient_listing_history,2026-03-25,158,
+417030,니어스랩,KOSDAQ,3.125,insufficient_listing_history,2026-08-24,56,
+420610,인텔리빅스,KOSDAQ,0,insufficient_listing_history,2026-10-30,11,
+439270,크리에이츠,KOSDAQ,0,insufficient_listing_history,2026-10-30,11,
+439960,코스모로보틱스,KOSDAQ,7.25,insufficient_listing_history,2026-05-11,127,
+468670,브릴스,KOSDAQ,0,insufficient_listing_history,2026-10-01,30,
+475040,스트라드비젼,KOSDAQ,28.125,insufficient_listing_history,2026-06-30,93,
+477850,마키나락스,KOSDAQ,6.625,insufficient_listing_history,2026-05-20,120,
+483350,딜리셔스,KOSDAQ,6.125,insufficient_listing_history,2026-08-12,63,
+486510,글로벌테크놀로지,KOSDAQ,0,insufficient_listing_history,2026-09-29,32,
+487400,케이앤에스아이앤씨,KOSDAQ,6.125,insufficient_listing_history,2026-08-13,62,
+487580,폴레드,KOSDAQ,7.25,insufficient_listing_history,2026-05-14,124,
+493410,넥스아이,KOSDAQ,0,insufficient_listing_history,2026-11-12,2,
+495910,이에스티,KOSDAQ,0,insufficient_listing_history,2026-11-04,8,
+950260,인제니아테라퓨틱스(Reg.S),KOSDAQ,3.125,insufficient_listing_history,2026-08-18,60,
+000300,DH오토넥스,KOSPI,20.0,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+001470,삼부토건,KOSPI,16.166667,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+001570,금양,KOSPI,19.5,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+001770,SHD,KOSPI,19.5,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+001840,이화공영,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+002410,범양건영,KOSPI,14.0,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+008600,윌비스,KOSPI,25.0,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+009190,대양금속,KOSPI,28.5,kind_trading_halt_confirmed,,,기타공익과투자자보호
+009310,참엔지니어링,KOSPI,20.0,kind_trading_halt_confirmed,,,기타공익과투자자보호
+009440,KC그린홀딩스,KOSPI,21.666667,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+011000,진원생명과학,KOSPI,25.0,kind_trading_halt_confirmed,,,기타공익과투자자보호
+011810,STX,KOSPI,19.5,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+012340,뉴인텍,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+015020,이스타코,KOSPI,22.0,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+015260,에이엔피,KOSPI,19.5,kind_trading_halt_confirmed,,,기타공익과투자자보호
+016790,현대사료,KOSDAQ,20.333333,kind_trading_halt_confirmed,,,투자자 보호
+017040,광명전기,KOSPI,22.0,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+019490,엑시큐어하이트론,KOSPI,19.5,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+020760,일진디스플,KOSPI,21.666667,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+022220,티케이지애강,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+023440,제이스코홀딩스,KOSDAQ,22.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+025870,신라에스지,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+030350,드래곤플라이,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+031860,디에이치엑스컴퍼니,KOSDAQ,22.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+032580,피델릭스,KOSDAQ,28.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+035290,골드앤에스,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,투자자 보호
+035620,바른손이앤에이,KOSDAQ,16.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+036690,코맥스,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+041590,플래스크,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+043100,알파AI,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+043220,티에스넥스젠,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+044180,KD,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+044380,주연테크,KOSPI,21.666667,kind_trading_halt_confirmed,,,시가총액 미달
+047400,유니온머티리얼,KOSPI,21.666667,kind_trading_halt_confirmed,,,
+049180,셀루메드,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+052770,아이톡시,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+054180,메디콕스,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+058450,한주에이알티,KOSDAQ,22.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+064090,인크레더블버즈,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+065420,에스아이리소스,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+065570,삼영이엔씨,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+066410,버킷스튜디오,KOSDAQ,16.166667,kind_trading_halt_confirmed,,,상장폐지 사유발생
+066790,씨씨에스,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+067770,세진티에스,KOSDAQ,22.0,kind_trading_halt_confirmed,,,투자자 보호
+068240,다원시스,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+068940,셀피글로벌,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+069460,대호에이엘,KOSPI,17.0,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+073190,듀오백,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+073640,테라사이언스,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+074610,이엔플러스,KOSPI,21.666667,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+079970,투비소프트,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+080720,한국유니온제약,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+087260,모바일어플라이언스,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+089150,케이씨티,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+097780,에코볼트,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,"주식의 병합, 분할 등 전자등록 변경, 말소"
+101670,하이드로리튬,KOSDAQ,94.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+106080,케이이엠텍,KOSDAQ,22.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+119650,KC코트렐,KOSPI,21.666667,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+121800,비덴트,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+142760,모아라이프플러스,KOSDAQ,94.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+143210,핸즈코퍼레이션,KOSPI,16.166667,kind_trading_halt_confirmed,,,기타공익과투자자보호및시장관리상
+145210,다이나믹디자인,KOSPI,21.666667,kind_trading_halt_confirmed,,,기타공익과투자자보호
+182400,엔케이젠바이오텍코리아,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+183490,엔지켐생명과학,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+203400,에이비온,KOSDAQ,22.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+206400,베노티앤알,KOSDAQ,25.0,kind_trading_halt_confirmed,,,
+210120,빅텐츠,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+214610,롤링스톤,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,상장폐지 사유발생
+217480,에스디생명공학,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,투자자 보호
+225430,케이엠제약,KOSDAQ,19.5,kind_trading_halt_confirmed,,,투자자 보호
+229000,젠큐릭스,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+234920,자이글,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+241820,피씨엘,KOSDAQ,0,kind_trading_halt_confirmed,,,투자자 보호
+244460,올리패스,KOSDAQ,16.166667,kind_trading_halt_confirmed,,,투자자 보호
+245620,EDGC,KOSDAQ,14.0,kind_trading_halt_confirmed,,,투자자 보호
+246250,에스엘에스바이오,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+246720,아스타,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+258830,세종메디칼,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,투자자 보호
+263050,유틸렉스,KOSDAQ,16.166667,kind_trading_halt_confirmed,,,투자자 보호
+276040,스코넥,KOSDAQ,12.666667,kind_trading_halt_confirmed,,,회생절차개시신청(발행 ELW 포함)
+284620,카이노스메드,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+288330,파라택시스코리아,KOSDAQ,16.0,kind_trading_halt_confirmed,,,투자자 보호
+288980,모아데이타,KOSDAQ,54.7,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+289010,아이스크림에듀,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+291810,핀텔,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+294090,이오플로우,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+304840,타임X AI,KOSDAQ,25.0,kind_trading_halt_confirmed,,,"주식의 병합, 분할 등 전자등록 변경, 말소"
+305090,마이크로디지탈,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+308100,형지글로벌,KOSDAQ,19.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+309710,아이티켐,KOSDAQ,15.5,kind_trading_halt_confirmed,,,상장폐지 사유발생
+312610,에이에프더블류,KOSDAQ,25.0,kind_trading_halt_confirmed,,,투자자 보호
+313760,캐리,KOSDAQ,21.666667,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)
+317240,TS트릴리온,KOSDAQ,93.875,kind_trading_halt_confirmed,,,"주식의 병합, 분할 등 전자등록 변경, 말소"
+340930,성원에너텍,KOSDAQ,22.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+347770,핌스,KOSDAQ,28.5,kind_trading_halt_confirmed,,,"주식의 병합, 분할 등 전자등록 변경, 말소"
+348950,제이알글로벌리츠,KOSPI,19.5,kind_trading_halt_confirmed,,,"감사의견거절(발행ELW, 발행ETN 포함)"
+352770,셀레스트라,KOSDAQ,14.0,kind_trading_halt_confirmed,,,투자자 보호
+377460,큐에이드,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+380540,옵티코어,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장폐지 사유발생
+393970,대진첨단소재,KOSDAQ,16.5,kind_trading_halt_confirmed,,,투자자 보호
+412540,제일엠앤에스,KOSDAQ,13.5,kind_trading_halt_confirmed,,,투자자 보호
+418250,시큐레터,KOSDAQ,25.0,kind_trading_halt_confirmed,,,상장적격성 실질심사 대상(사유발생)

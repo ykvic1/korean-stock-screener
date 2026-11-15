@@ -64,8 +64,7 @@ jobs:
           report_path=Path(os.environ["RUNNER_TEMP"])/"v30b-readiness-aggregate.json"
           lines=[
               "### V3.0b 실제 출시 차단 조건 (읽기 전용)",
-              "기존 DART/KRX 수집과 평일 18:30 스크리닝은 이 작업에서 변경하지 않습니다.",
-              "수집 완료, 배점 관측, 정식 투자점수 인증은 서로 다른 상태입니다.",
+              "확보배점 분포는 관측 지표입니다. 전 종목 100점 확보는 마감 조건에서 제외합니다.",
           ]
           if os.environ.get("GITHUB_EVENT_NAME")=="pull_request":
               lines.append("- PR 모드: 오프라인 회귀 테스트만 수행; 실제 출시 감시는 main 전용")
@@ -88,6 +87,7 @@ jobs:
                       ("r1d_95weight_observed_count","현 운영 R1d 95점 이상 근거 관측"),
                       ("r1d_90weight_observed_count","현 운영 R1d 90점 이상 근거 관측"),
                       ("r1d_same_market_day_and_roster","현 운영 R1d와 가격자료 기준일·종목수 일치"),
+                      ("all_listed_full_coverage_required","전 종목 100점 확보 요구"),
                       ("dart_historical_receipts_completed_months","과거 공시 접수 수집 완료 월"),
                       ("dart_historical_receipts_remaining_months","과거 공시 접수 남은 월"),
                       ("historical_fixed_window_extracted","KRX 연구용 파생 구간 수집"),
