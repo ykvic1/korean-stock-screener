@@ -370,6 +370,78 @@
         "2024": "20250319001127",
         "2023": "20240319000565"
       }
+    },
+    "062040": {
+      "scope": "OFS",
+      "receipt_id": "20260403003697",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260403003697&dcmNo=11254167&eleId=66&offset=2370910&length=43197&dtd=dart4.xsd",
+      "source_sha256": "13c402428dc07896924e9bab5d5cc181975390d2e9de4bd2d4edb1edfe0b2fbd",
+      "figures": {
+        "2025": {
+          "revenue": 501946220880,
+          "operating_income": 179039569523
+        },
+        "2024": {
+          "revenue": 333996550771,
+          "operating_income": 109231906505
+        },
+        "2023": {
+          "revenue": 214537829766,
+          "operating_income": 46604557786
+        }
+      },
+      "anchor_receipts": {
+        "2023": "20250328001583",
+        "2024": "20250328001583"
+      }
+    },
+    "465480": {
+      "scope": "OFS",
+      "receipt_id": "20260319000185",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319000185&dcmNo=11146195&eleId=27&offset=1062675&length=15653&dtd=dart4.xsd",
+      "source_sha256": "8093a13aea29401103f5ce4f7cc419d0be05a4d3dce7cc2eb0cfca10e2e52206",
+      "figures": {
+        "2025": {
+          "revenue": 19025889792,
+          "operating_income": 2398018482
+        },
+        "2024": {
+          "revenue": 19035192738,
+          "operating_income": 3784285683
+        },
+        "2023": {
+          "revenue": 16083457507,
+          "operating_income": 4032584823
+        }
+      },
+      "anchor_receipts": {
+        "2023": "20250321001873",
+        "2024": "20250321001873"
+      }
+    },
+    "478560": {
+      "scope": "OFS",
+      "receipt_id": "20260324000048",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260324000048&dcmNo=11170936&eleId=27&offset=775898&length=19172&dtd=dart4.xsd",
+      "source_sha256": "f7bcdfb9fe3f689f9df53ce0fa4f441746bc5495fc0dfa07de5b61b210bee0f9",
+      "figures": {
+        "2025": {
+          "revenue": 40877659293,
+          "operating_income": 8560224027
+        },
+        "2024": {
+          "revenue": 37685839673,
+          "operating_income": 8298809997
+        },
+        "2023": {
+          "revenue": 35201395775,
+          "operating_income": 8062066318
+        }
+      },
+      "anchor_receipts": {
+        "2023": "20250321001674",
+        "2024": "20250321001674"
+      }
     }
   },
   "annual_comparatives": {
@@ -410,6 +482,69 @@
           "operating_income": 943107592
         }
       }
+    },
+    "062040": {
+      "scope": "OFS",
+      "receipt_id": "20250328001583",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250328001583&dcmNo=10473819&eleId=25&offset=405218&length=42514&dtd=dart4.xsd",
+      "source_sha256": "95505071c47ba74b2eb425c6679fa2bcb838ded2317684fbd86becc7c6225298",
+      "figures": {
+        "2024": {
+          "revenue": 333996550771,
+          "operating_income": 109231906505
+        },
+        "2023": {
+          "revenue": 214537829766,
+          "operating_income": 46604557786
+        },
+        "2022": {
+          "revenue": 107674107439,
+          "operating_income": 12183036623
+        }
+      },
+      "filing_year": "2024"
+    },
+    "465480": {
+      "scope": "OFS",
+      "receipt_id": "20250321001873",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001873&dcmNo=10450575&eleId=23&offset=498256&length=15905&dtd=dart4.xsd",
+      "source_sha256": "729b245ce237c17e5acdfe54abc963bbd099f1387cde3becad715f1721134ba0",
+      "figures": {
+        "2024": {
+          "revenue": 19035192738,
+          "operating_income": 3784285683
+        },
+        "2023": {
+          "revenue": 16083457507,
+          "operating_income": 4032584823
+        },
+        "2022": {
+          "revenue": 14461567129,
+          "operating_income": 2960704348
+        }
+      },
+      "filing_year": "2024"
+    },
+    "478560": {
+      "scope": "OFS",
+      "receipt_id": "20250321001674",
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001674&dcmNo=10449415&eleId=23&offset=233823&length=20031&dtd=dart4.xsd",
+      "source_sha256": "9add5cf5a055b040392a8c75140c26f8e733dab077d2d61d5cf8a3efeb57a7fc",
+      "figures": {
+        "2024": {
+          "revenue": 37685839673,
+          "operating_income": 8298809997
+        },
+        "2023": {
+          "revenue": 35201395775,
+          "operating_income": 8062066318
+        },
+        "2022": {
+          "revenue": 28123553192,
+          "operating_income": 5431531540
+        }
+      },
+      "filing_year": "2024"
     }
   }
 }

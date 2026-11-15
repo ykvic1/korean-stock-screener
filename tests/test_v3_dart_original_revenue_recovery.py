@@ -84,6 +84,35 @@ class OriginalRevenueRecoveryTests(unittest.TestCase):
         years['2025']['CFS']['receipt_id'] = '20260324001654'
         self.assertEqual(overlay(catalog, history, None, reviewed=reviewed)[1], set())
 
+    def test_consecutive_reports_can_anchor_a_missing_latest_scope(self):
+        day, code = '2026-11-13', '000001'
+        r24, r25 = '20250321000001', '20260323001654'
+        catalog = {'date': day, 'listed_total': 1, 'rows': [{'code': code}]}
+        fiscal = [2022, 2023, 2024, 2025]
+        figures = {str(y): {'revenue': y, 'operating_income': -1} for y in fiscal}
+        years = {'2022': {}, '2023': {},
+                 '2024': {'OFS': {'receipt_id': r24, 'values': figures['2024']}},
+                 '2025': {'CFS': {'receipt_id': r25, 'values': figures['2025']}}}
+        history = {'asof': day, 'listed_total': 1, 'fiscal_years': fiscal,
+                   'records': {code: {'years': years}}}
+        prefix = 'https://dart.fss.or.kr/report/viewer.do?rcpNo='
+        comparative = {'scope': 'OFS', 'filing_year': '2024', 'receipt_id': r24,
+                       'source_url': prefix + r24 + '&eleId=1', 'source_sha256': 'a' * 64,
+                       'figures': {y: figures[y] for y in ('2022', '2023', '2024')}}
+        latest = {'scope': 'OFS', 'receipt_id': r25, 'source_url': prefix + r25 + '&eleId=2',
+                  'source_sha256': 'b' * 64, 'anchor_receipts': dict.fromkeys(('2023', '2024'), r24),
+                  'figures': {y: figures[y].copy() for y in ('2023', '2024', '2025')}}
+        reviewed = {'schema': REVIEWED_SCHEMA, 'records': {},
+                    'annual_comparatives': {code: comparative}, 'annual_scopes': {code: latest}}
+        proposed, _ = overlay(catalog, history, None, reviewed=reviewed)
+        record = proposed['records'][code]
+        self.assertEqual(record['years']['2025']['OFS']['receipt_id'], r25)
+        self.assertEqual(window(record, fiscal, day)['scope'], 'OFS')
+        self.assertNotIn('OFS', years['2025'])
+        latest['figures']['2023']['revenue'] += 1
+        rejected, _ = overlay(catalog, history, None, reviewed=reviewed)
+        self.assertNotIn('OFS', rejected['records'][code]['years']['2025'])
+
     def test_receipt_mismatch_is_reused_only_for_the_same_filing(self):
         day = '2026-11-13'
         corp = '00000001'
