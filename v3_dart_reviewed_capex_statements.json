@@ -3630,6 +3630,17 @@
           "intangible_capex_krw": 98000000,
           "other_investing_cashflow_krw": -99505594,
           "investing_cashflow_krw": -406972517
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260227005846",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260227005846&dcmNo=11076591&eleId=23&offset=299640&length=68684&dtd=dart4.xsd",
+          "source_sha256": "5330dd4fad2fab2e8a2c86d09a38faa5fd7d84da7a0c2f3a749d50e8e0e8be45",
+          "operating_cashflow_krw": 2225998392,
+          "ppe_capex_krw": 280684528,
+          "intangible_capex_krw": 49155803,
+          "other_investing_cashflow_krw": 26080310,
+          "investing_cashflow_krw": -303760021
         }
       }
     },
@@ -4595,6 +4606,662 @@
           "intangible_capex_krw": 237019393,
           "other_investing_cashflow_krw": -24785415063,
           "investing_cashflow_krw": -37515296467
+        }
+      }
+    },
+    "263020": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320000606",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000606&dcmNo=9735253&eleId=23&offset=303012&length=42480&dtd=dart4.xsd",
+          "source_sha256": "64d3cf23881962988084f3cd9453aaeea0d3ccaf17626a3e41215f3653638870",
+          "operating_cashflow_krw": 12539294656,
+          "ppe_capex_krw": 945538717,
+          "intangible_capex_krw": 53399545,
+          "other_investing_cashflow_krw": 649669008,
+          "investing_cashflow_krw": -349269254
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250318000499",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000499&dcmNo=10419103&eleId=23&offset=399653&length=74397&dtd=dart4.xsd",
+          "source_sha256": "3411ec88b8c4864bb5ddc146a50d2b55b1f7ea34e0fe02fc379678d1888c1a48",
+          "operating_cashflow_krw": 12340184913,
+          "ppe_capex_krw": 4140314579,
+          "intangible_capex_krw": 170000,
+          "other_investing_cashflow_krw": 1156705282,
+          "investing_cashflow_krw": -2983779297
+        }
+      }
+    },
+    "264450": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320001957",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320001957&dcmNo=9744407&eleId=23&offset=243195&length=38066&dtd=dart4.xsd",
+          "source_sha256": "c51ca34cc92d8a95ea3cbdefe1e5dd8c9a41a3fcda84d6cfcd3dd492de06ae3f",
+          "operating_cashflow_krw": 30460853129,
+          "ppe_capex_krw": 95120000,
+          "intangible_capex_krw": 867579500,
+          "other_investing_cashflow_krw": -39725464118,
+          "investing_cashflow_krw": -40688163618
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250318001071",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318001071&dcmNo=10423178&eleId=23&offset=355206&length=77135&dtd=dart4.xsd",
+          "source_sha256": "8655859958b73103bbbd71c7b43a50c668897500dac95b4084e6bb59d866ab12",
+          "operating_cashflow_krw": 38399557116,
+          "ppe_capex_krw": 169858650,
+          "intangible_capex_krw": 8267000,
+          "other_investing_cashflow_krw": 38785824831,
+          "investing_cashflow_krw": 38607699181
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260310002770",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260310002770&dcmNo=11104348&eleId=23&offset=356518&length=81081&dtd=dart4.xsd",
+          "source_sha256": "b57315385e12d26de4de6247f4fee10248ca8c1a11474da39296962a57b7bf0a",
+          "operating_cashflow_krw": 24539062365,
+          "ppe_capex_krw": 207794560,
+          "intangible_capex_krw": 1400532540,
+          "other_investing_cashflow_krw": -16718977851,
+          "investing_cashflow_krw": -18327304951
+        }
+      }
+    },
+    "273640": {
+      "original_statements": {
+        "2024": {
+          "scope": "OFS",
+          "annual_receipt": "20250319000247",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319000247&dcmNo=10426770&eleId=25&offset=330516&length=38185&dtd=dart4.xsd",
+          "source_sha256": "720ed469db278a6e74098a7d67a746235ca8204c1b627df92410b1ad8133deec",
+          "operating_cashflow_krw": 6787434336,
+          "ppe_capex_krw": 5772751952,
+          "intangible_capex_krw": 3850000,
+          "other_investing_cashflow_krw": 6105343419,
+          "investing_cashflow_krw": 328741467
+        }
+      }
+    },
+    "291650": {
+      "original_statements": {
+        "2024": {
+          "scope": "OFS",
+          "annual_receipt": "20250319000872",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319000872&dcmNo=10429842&eleId=25&offset=439266&length=45483&dtd=dart4.xsd",
+          "source_sha256": "9be72109e4af1f279d3f4e7006335eab3ec22dd92f24291cc320496d4fa1cf02",
+          "operating_cashflow_krw": -5897154981,
+          "ppe_capex_krw": 1079947565,
+          "intangible_capex_krw": 61893305,
+          "other_investing_cashflow_krw": 15306979552,
+          "investing_cashflow_krw": 14165138682
+        },
+        "2025": {
+          "scope": "OFS",
+          "annual_receipt": "20260313001240",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260313001240&dcmNo=11122140&eleId=25&offset=401625&length=47293&dtd=dart4.xsd",
+          "source_sha256": "4ba459b61afcd7916df140696fa3012309a3289725d90eb8df319fbb2b0988d6",
+          "operating_cashflow_krw": -9670487371,
+          "ppe_capex_krw": 20489584,
+          "intangible_capex_krw": 0,
+          "other_investing_cashflow_krw": 744262374,
+          "investing_cashflow_krw": 723772790
+        }
+      }
+    },
+    "293780": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240430001224",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240430001224&dcmNo=9927831&eleId=25&offset=641516&length=22341&dtd=dart4.xsd",
+          "source_sha256": "d1eb7abc5c0248a44d6ec6f90bdd08eaebc5713c462706ecaf5ff75e54c51da7",
+          "operating_cashflow_krw": -14095170838,
+          "ppe_capex_krw": 120790910,
+          "intangible_capex_krw": 46600000,
+          "other_investing_cashflow_krw": -12569806548,
+          "investing_cashflow_krw": -12737197458
+        }
+      }
+    },
+    "298380": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240314001689",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240314001689&dcmNo=9718531&eleId=25&offset=439519&length=23012&dtd=dart4.xsd",
+          "source_sha256": "28ed47ad136057cfb05d74ae9f20d86ba30d4795fc7cf137a0c2fdfcb86a6e6e",
+          "operating_cashflow_krw": -28361974590,
+          "ppe_capex_krw": 5739980657,
+          "intangible_capex_krw": 104407000,
+          "other_investing_cashflow_krw": 35727970133,
+          "investing_cashflow_krw": 29883582476
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250313001013",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250313001013&dcmNo=10402917&eleId=23&offset=463707&length=46610&dtd=dart4.xsd",
+          "source_sha256": "e3454d74bd35de8cabcd8f28e4dafa2fb78c52fc4874514cce3cd7e0af668c32",
+          "operating_cashflow_krw": -69402667056,
+          "ppe_capex_krw": 9023306025,
+          "intangible_capex_krw": 34750000,
+          "other_investing_cashflow_krw": -38116363588,
+          "investing_cashflow_krw": -47174419613
+        }
+      }
+    },
+    "299030": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240422000338",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240422000338&dcmNo=9909926&eleId=25&offset=409289&length=27510&dtd=dart4.xsd",
+          "source_sha256": "9f387c9329a58394a41b5527077b3e487e4b5bc6ea293c7455d770898d023345",
+          "operating_cashflow_krw": 1935722302,
+          "ppe_capex_krw": 2797291735,
+          "intangible_capex_krw": 336693200,
+          "other_investing_cashflow_krw": 3000015264,
+          "investing_cashflow_krw": -133969671
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250814004212",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814004212&dcmNo=10773996&eleId=25&offset=556794&length=53638&dtd=dart4.xsd",
+          "source_sha256": "162cc3b5a0139562d9989b44a0c3fa2735132e1fd2c660857bc8557272b1016b",
+          "operating_cashflow_krw": -36142502783,
+          "ppe_capex_krw": 5604405416,
+          "intangible_capex_krw": 150246804,
+          "other_investing_cashflow_krw": -1327755505,
+          "investing_cashflow_krw": -7082407725
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260814003680",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260814003680&dcmNo=11538069&eleId=25&offset=503586&length=49014&dtd=dart4.xsd",
+          "source_sha256": "e33a2380f5e2c13f6a8f2ee338fefa551700b3984364103db93ae48f6c453dd2",
+          "operating_cashflow_krw": 9973110629,
+          "ppe_capex_krw": 2316429179,
+          "intangible_capex_krw": 40420000,
+          "other_investing_cashflow_krw": -1582599366,
+          "investing_cashflow_krw": -3939448545
+        }
+      }
+    },
+    "300080": {
+      "original_statements": {
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250320000159",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250320000159&dcmNo=10432282&eleId=23&offset=291824&length=38469&dtd=dart4.xsd",
+          "source_sha256": "d3170d7472370794c7ef0c129a158016a80c538b8bc3830698a568bce9c79815",
+          "operating_cashflow_krw": 1394325566,
+          "ppe_capex_krw": 90314565,
+          "intangible_capex_krw": 4813800,
+          "other_investing_cashflow_krw": -166629472,
+          "investing_cashflow_krw": -261757837
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260319000117",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319000117&dcmNo=11146001&eleId=23&offset=327585&length=39795&dtd=dart4.xsd",
+          "source_sha256": "379d90bb1b1a561e91ff2d90c44b6a84dd11a8561deb15da6e412feeaa2030f8",
+          "operating_cashflow_krw": 10006595983,
+          "ppe_capex_krw": 181962866,
+          "intangible_capex_krw": 29322984,
+          "other_investing_cashflow_krw": -4303494927,
+          "investing_cashflow_krw": -4514780777
+        }
+      }
+    },
+    "302550": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320001869",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320001869&dcmNo=9743673&eleId=23&offset=250286&length=48548&dtd=dart4.xsd",
+          "source_sha256": "285726bd1b050056a40c891615623868582ebf4c906995e8dc932a06a09fa9c9",
+          "operating_cashflow_krw": 3498941876,
+          "ppe_capex_krw": 824598670,
+          "intangible_capex_krw": 69368139,
+          "other_investing_cashflow_krw": 21952376057,
+          "investing_cashflow_krw": 21058409248
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250318001367",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318001367&dcmNo=10425259&eleId=23&offset=349642&length=94933&dtd=dart4.xsd",
+          "source_sha256": "4608ab1f8473c70ad58569a6639b104aedc7fc2bc1d972271389d343bc1aec75",
+          "operating_cashflow_krw": 1244524067,
+          "ppe_capex_krw": 585950354,
+          "intangible_capex_krw": 22850000,
+          "other_investing_cashflow_krw": 7080335602,
+          "investing_cashflow_krw": 6471535248
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260626000758",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260626000758&dcmNo=11450789&eleId=25&offset=436093&length=104659&dtd=dart4.xsd",
+          "source_sha256": "ffbe54b50afc99bf8af44ebf169fee3352ab796bc4c592c6dae401c28ee94cce",
+          "operating_cashflow_krw": 2396268167,
+          "ppe_capex_krw": 866758370,
+          "intangible_capex_krw": 2000000,
+          "other_investing_cashflow_krw": 5448405866,
+          "investing_cashflow_krw": 4579647496
+        }
+      }
+    },
+    "317120": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240315000569",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240315000569&dcmNo=9721117&eleId=23&offset=297509&length=18167&dtd=dart4.xsd",
+          "source_sha256": "6df4ea19601adb5baaf6142fee7c2a254054b4450e514b290b2427f323f0320e",
+          "operating_cashflow_krw": -1302209421,
+          "ppe_capex_krw": 179015599,
+          "intangible_capex_krw": 112030669,
+          "other_investing_cashflow_krw": 10280398113,
+          "investing_cashflow_krw": 9989351845
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250317000979",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250317000979&dcmNo=10416789&eleId=23&offset=367959&length=31601&dtd=dart4.xsd",
+          "source_sha256": "afbf98a5750a57ba55f4cfefe0f376337883aed99d1ca3303083ffe3b607641c",
+          "operating_cashflow_krw": -5678238001,
+          "ppe_capex_krw": 125106881,
+          "intangible_capex_krw": 237750986,
+          "other_investing_cashflow_krw": 6213686402,
+          "investing_cashflow_krw": 5850828535
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260318000717",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318000717&dcmNo=11137488&eleId=23&offset=384921&length=32917&dtd=dart4.xsd",
+          "source_sha256": "53d4f41a5a1c3b0fe869e537100f936a75a5a90c17cbc9496bee0e3ed7bc1cc1",
+          "operating_cashflow_krw": -5116841657,
+          "ppe_capex_krw": 9234392,
+          "intangible_capex_krw": 55841700,
+          "other_investing_cashflow_krw": -50038750,
+          "investing_cashflow_krw": -115114842
+        }
+      }
+    },
+    "317400": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240326000881",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240326000881&dcmNo=9766494&eleId=25&offset=601693&length=29774&dtd=dart4.xsd",
+          "source_sha256": "ac3b33921d7e2a1a797eef7e96694b7535977c98a4c5b4c259d2704a35c1c226",
+          "operating_cashflow_krw": 380608479940,
+          "ppe_capex_krw": 815643256,
+          "intangible_capex_krw": 2615426678,
+          "other_investing_cashflow_krw": -93825816052,
+          "investing_cashflow_krw": -97256885986
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250725000507",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250725000507&dcmNo=10736113&eleId=25&offset=606260&length=59276&dtd=dart4.xsd",
+          "source_sha256": "8818b9b71e1c27698572826544d49ad33b1c6642c79436acf8481ed809f84dbf",
+          "operating_cashflow_krw": -89041801852,
+          "ppe_capex_krw": 1268349087,
+          "intangible_capex_krw": 3598415861,
+          "other_investing_cashflow_krw": 130238134731,
+          "investing_cashflow_krw": 125371369783
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260630001001",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260630001001&dcmNo=11456173&eleId=25&offset=567529&length=56023&dtd=dart4.xsd",
+          "source_sha256": "69e693271db7019476a04df0b3437086e2e7acd9141f86403adffd6da83cbde1",
+          "operating_cashflow_krw": 63328065489,
+          "ppe_capex_krw": 1184756859,
+          "intangible_capex_krw": 209550000,
+          "other_investing_cashflow_krw": 44984576221,
+          "investing_cashflow_krw": 43590269362
+        }
+      }
+    },
+    "317850": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240319000402",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240319000402&dcmNo=9729909&eleId=23&offset=279550&length=17925&dtd=dart4.xsd",
+          "source_sha256": "a5cb06254b871775e70200ad3f0b540c85490c61c805ca252841c1d3b763afd2",
+          "operating_cashflow_krw": 1253455912,
+          "ppe_capex_krw": 27344767,
+          "intangible_capex_krw": 20000000,
+          "other_investing_cashflow_krw": 1646275180,
+          "investing_cashflow_krw": 1598930413
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250319000480",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319000480&dcmNo=10427745&eleId=23&offset=332702&length=33418&dtd=dart4.xsd",
+          "source_sha256": "0b24021bdaa41ee9ebe64ce60f0434507bd83aab29c84a0fd005397eab4be1cb",
+          "operating_cashflow_krw": -395052014,
+          "ppe_capex_krw": 61589483,
+          "intangible_capex_krw": 36500000,
+          "other_investing_cashflow_krw": 1530996860,
+          "investing_cashflow_krw": 1432907377
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260319000427",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319000427&dcmNo=11147158&eleId=23&offset=343839&length=35046&dtd=dart4.xsd",
+          "source_sha256": "75081f02bdcf0d71ae28ae54d86863ce9b807fb1494004d8a6a47976a523f3be",
+          "operating_cashflow_krw": 2573054578,
+          "ppe_capex_krw": 5569256209,
+          "intangible_capex_krw": 0,
+          "other_investing_cashflow_krw": 1950113940,
+          "investing_cashflow_krw": -3619142269
+        }
+      }
+    },
+    "322180": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240321000393",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240321000393&dcmNo=9746635&eleId=23&offset=478139&length=28961&dtd=dart4.xsd",
+          "source_sha256": "162e14b90cfa1fa94892b8d231afdd96159d5db967a9df98ed2918237b1daa20",
+          "operating_cashflow_krw": -2315272583,
+          "ppe_capex_krw": 867267706,
+          "intangible_capex_krw": 2646997217,
+          "other_investing_cashflow_krw": 669471382,
+          "investing_cashflow_krw": -2844793541
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250312001153",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250312001153&dcmNo=10399133&eleId=23&offset=599333&length=52364&dtd=dart4.xsd",
+          "source_sha256": "2c8d9d5caa58694edc4ade068c67ab6236d2095effd8493d27f5efa491ef5016",
+          "operating_cashflow_krw": -4315642437,
+          "ppe_capex_krw": 644898598,
+          "intangible_capex_krw": 349884022,
+          "other_investing_cashflow_krw": -2793828316,
+          "investing_cashflow_krw": -3788610936
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260311003536",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260311003536&dcmNo=11107241&eleId=23&offset=549035&length=51530&dtd=dart4.xsd",
+          "source_sha256": "62dca2a296637b24216856c37763adcebbd62b0ce3e2417ec4ff0efa45d5d287",
+          "operating_cashflow_krw": -6865968376,
+          "ppe_capex_krw": 371454907,
+          "intangible_capex_krw": 646151613,
+          "other_investing_cashflow_krw": 1871982721,
+          "investing_cashflow_krw": 854376201
+        }
+      }
+    },
+    "336060": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320000943",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000943&dcmNo=9737276&eleId=23&offset=259231&length=18883&dtd=dart4.xsd",
+          "source_sha256": "022ec81ff25ce67ff4af965365c8af53681f755f879fb466108939a6110de2bd",
+          "operating_cashflow_krw": 4769318747,
+          "ppe_capex_krw": 220929973,
+          "intangible_capex_krw": 100344000,
+          "other_investing_cashflow_krw": -9742701302,
+          "investing_cashflow_krw": -10063975275
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250411000161",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250411000161&dcmNo=10581901&eleId=25&offset=312299&length=38239&dtd=dart4.xsd",
+          "source_sha256": "b9310e00a2e7f93d45c2bbfa070503544a809a6dd08a6f0a27f0a6a8a98ed73e",
+          "operating_cashflow_krw": 5814255805,
+          "ppe_capex_krw": 1178551024,
+          "intangible_capex_krw": 142280000,
+          "other_investing_cashflow_krw": 962558479,
+          "investing_cashflow_krw": -358272545
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260318000548",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260318000548&dcmNo=11136474&eleId=23&offset=296011&length=35552&dtd=dart4.xsd",
+          "source_sha256": "5465e94fa71900b8fdecd4f06a5bd54a053b42b252fe3bd425f9aa4bcc1ae94d",
+          "operating_cashflow_krw": 7635552623,
+          "ppe_capex_krw": 301710919,
+          "intangible_capex_krw": 108400156,
+          "other_investing_cashflow_krw": -7778952309,
+          "investing_cashflow_krw": -8189063384
+        }
+      }
+    },
+    "351330": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240321000730",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240321000730&dcmNo=9747986&eleId=23&offset=235846&length=25600&dtd=dart4.xsd",
+          "source_sha256": "a84d5b06dea1f2dc58267d71ca4c2d7c17304655140f3fda5e0a2f7b8f7f9e6e",
+          "operating_cashflow_krw": 1837711888,
+          "ppe_capex_krw": 1143476450,
+          "intangible_capex_krw": 13285600,
+          "other_investing_cashflow_krw": -1735624440,
+          "investing_cashflow_krw": -2892386490
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250321001652",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001652&dcmNo=10449281&eleId=25&offset=291132&length=44242&dtd=dart4.xsd",
+          "source_sha256": "5be8040961c8ece450222f3027c7e906f594419d79abf7f8bfc5c2d59d567d8a",
+          "operating_cashflow_krw": 8173892002,
+          "ppe_capex_krw": 257759954,
+          "intangible_capex_krw": 1088663400,
+          "other_investing_cashflow_krw": 362656181,
+          "investing_cashflow_krw": -983767173
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260323001123",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001123&dcmNo=11165727&eleId=23&offset=367574&length=43831&dtd=dart4.xsd",
+          "source_sha256": "6e0db1607bc04bdc1401bb4e9c5a9259aada695acd3461384d97bd64e5c68b00",
+          "operating_cashflow_krw": -3720142057,
+          "ppe_capex_krw": 223113391,
+          "intangible_capex_krw": 439198976,
+          "other_investing_cashflow_krw": -9434601970,
+          "investing_cashflow_krw": -10096914337
+        }
+      }
+    },
+    "353590": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320000503",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320000503&dcmNo=9734679&eleId=23&offset=457506&length=23283&dtd=dart4.xsd",
+          "source_sha256": "2d62769ffdd547e0beec51dae34edbc1e547816b97f525ed83ff856f9ba90c06",
+          "operating_cashflow_krw": 1142485560,
+          "ppe_capex_krw": 440089084,
+          "intangible_capex_krw": 772118874,
+          "other_investing_cashflow_krw": 8730205586,
+          "investing_cashflow_krw": 7517997628
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250321000636",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321000636&dcmNo=10444060&eleId=23&offset=546180&length=44795&dtd=dart4.xsd",
+          "source_sha256": "1182d3dd2ce7d8bd0fd178f6301d0d4d6174a3c61240645df20357deeb198a6f",
+          "operating_cashflow_krw": 3067083487,
+          "ppe_capex_krw": 256511000,
+          "intangible_capex_krw": 195454545,
+          "other_investing_cashflow_krw": -2065328488,
+          "investing_cashflow_krw": -2517294033
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260320001402",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260320001402&dcmNo=11160365&eleId=23&offset=555826&length=46078&dtd=dart4.xsd",
+          "source_sha256": "1953d62d60051e0cbadb8eabb80ac863da35bccfecbad795b6f4bcecd13b1b9b",
+          "operating_cashflow_krw": -366167205,
+          "ppe_capex_krw": 400822480,
+          "intangible_capex_krw": 317727273,
+          "other_investing_cashflow_krw": -205650708,
+          "investing_cashflow_krw": -924200461
+        }
+      }
+    },
+    "355150": {
+      "original_statements": {
+        "2024": {
+          "scope": "OFS",
+          "annual_receipt": "20250814002635",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814002635&dcmNo=10768594&eleId=27&offset=364487&length=51273&dtd=dart4.xsd",
+          "source_sha256": "af37b68087cc8974c0f9646c1f23487d6e8adcf13f335cf7feae790c6aa41d32",
+          "operating_cashflow_krw": -1340724937,
+          "ppe_capex_krw": 1033156406,
+          "intangible_capex_krw": 0,
+          "other_investing_cashflow_krw": 45858291,
+          "investing_cashflow_krw": -987298115
+        }
+      }
+    },
+    "359090": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240319000294",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240319000294&dcmNo=9729392&eleId=23&offset=347240&length=21836&dtd=dart4.xsd",
+          "source_sha256": "313c13227b7ea2c42df964e69944ebf0661f110169bd3f19583efc9ed028feba",
+          "operating_cashflow_krw": 3511844858,
+          "ppe_capex_krw": 193073938,
+          "intangible_capex_krw": 25867300,
+          "other_investing_cashflow_krw": -1578296830,
+          "investing_cashflow_krw": -1797238068
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250319000840",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319000840&dcmNo=10429672&eleId=23&offset=448535&length=41914&dtd=dart4.xsd",
+          "source_sha256": "eb6d5881e9c77a28bbe452b8a2599956513c90cc9e1215f05c8748b6a539d2bc",
+          "operating_cashflow_krw": 2839374814,
+          "ppe_capex_krw": 655066697,
+          "intangible_capex_krw": 153954480,
+          "other_investing_cashflow_krw": 2491062720,
+          "investing_cashflow_krw": 1682041543
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260317000826",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260317000826&dcmNo=11133778&eleId=23&offset=455974&length=40041&dtd=dart4.xsd",
+          "source_sha256": "6e0371bb8437d677460c5869da2e4587ab46d279d8d8a67d834269d4a65fdfeb",
+          "operating_cashflow_krw": -3067593585,
+          "ppe_capex_krw": 170534648,
+          "intangible_capex_krw": 124969572,
+          "other_investing_cashflow_krw": -1301571199,
+          "investing_cashflow_krw": -1597075419
+        }
+      }
+    },
+    "375500": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240328001465",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240328001465&dcmNo=9776998&eleId=26&offset=3379099&length=36898&dtd=dart4.xsd",
+          "source_sha256": "4fc88b3f777cb26a4363d1ff692ac755a4b75e7221be50d7003db3697cebda9b",
+          "operating_cashflow_krw": 231329443719,
+          "ppe_capex_krw": 12117734836,
+          "intangible_capex_krw": 4440549214,
+          "other_investing_cashflow_krw": 217893287314,
+          "investing_cashflow_krw": 201335003264
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250814001988",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814001988&dcmNo=10766545&eleId=26&offset=810339&length=73857&dtd=dart4.xsd",
+          "source_sha256": "4aa2c9a8a02bf70369546537f20dee68bd7f618baeef6b5994e4d1647cb890b1",
+          "operating_cashflow_krw": 187869609709,
+          "ppe_capex_krw": 9502372619,
+          "intangible_capex_krw": 2365631610,
+          "other_investing_cashflow_krw": -155271454588,
+          "investing_cashflow_krw": -167139458817
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260814003447",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260814003447&dcmNo=11537157&eleId=26&offset=904095&length=67777&dtd=dart4.xsd",
+          "source_sha256": "7ed5311a32101c284e413e794a322b97e122cbffb8964fa9ccb6b0ca75b6686c",
+          "operating_cashflow_krw": 232139885997,
+          "ppe_capex_krw": 17010847660,
+          "intangible_capex_krw": 6049704545,
+          "other_investing_cashflow_krw": -28703716583,
+          "investing_cashflow_krw": -51764268788
+        }
+      }
+    },
+    "377030": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240315000397",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240315000397&dcmNo=9720319&eleId=23&offset=357481&length=20608&dtd=dart4.xsd",
+          "source_sha256": "0cd49d7230f3a31ad609c5e7a98804c1e076da0549c9bd0595f9352af6ae53d0",
+          "operating_cashflow_krw": -20951325479,
+          "ppe_capex_krw": 393599486,
+          "intangible_capex_krw": 57867184,
+          "other_investing_cashflow_krw": 18224785738,
+          "investing_cashflow_krw": 17773319068
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250317000727",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250317000727&dcmNo=10415006&eleId=23&offset=456296&length=49481&dtd=dart4.xsd",
+          "source_sha256": "c43f2773bb3aedb5ddc25e0498e50f97f3414ac095c98e64e6f160341103f2d2",
+          "operating_cashflow_krw": -16827710488,
+          "ppe_capex_krw": 138384717,
+          "intangible_capex_krw": 21014000,
+          "other_investing_cashflow_krw": 12834331840,
+          "investing_cashflow_krw": 12674933123
+        }
+      }
+    },
+    "377220": {
+      "original_statements": {
+        "2023": {
+          "scope": "CFS",
+          "annual_receipt": "20240320001665",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20240320001665&dcmNo=9742096&eleId=23&offset=270305&length=20376&dtd=dart4.xsd",
+          "source_sha256": "821d8547800b905943434accce80bc659e667f12e7a3e3fc3c65e6c2ed0c2c5c",
+          "operating_cashflow_krw": -20845371230,
+          "ppe_capex_krw": 16655716110,
+          "intangible_capex_krw": 40588366,
+          "other_investing_cashflow_krw": 24024501200,
+          "investing_cashflow_krw": 7328196724
+        },
+        "2024": {
+          "scope": "CFS",
+          "annual_receipt": "20250321001014",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001014&dcmNo=10445930&eleId=23&offset=318144&length=37716&dtd=dart4.xsd",
+          "source_sha256": "20a66771b5fffacfa61c521ab5975a66e98e4493e7e9b49723db9babb189611f",
+          "operating_cashflow_krw": -14699887906,
+          "ppe_capex_krw": 893420613,
+          "intangible_capex_krw": 679022575,
+          "other_investing_cashflow_krw": 4170833874,
+          "investing_cashflow_krw": 2598390686
+        },
+        "2025": {
+          "scope": "CFS",
+          "annual_receipt": "20260323001651",
+          "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260323001651&dcmNo=11169327&eleId=23&offset=316680&length=37264&dtd=dart4.xsd",
+          "source_sha256": "cef4ddaaf4e0e7485e63c2af3b306d7fb8adde3e6c14f4effc4ebcd7d26b1388",
+          "operating_cashflow_krw": -10071951274,
+          "ppe_capex_krw": 1103993150,
+          "intangible_capex_krw": 162805382,
+          "other_investing_cashflow_krw": 3202452773,
+          "investing_cashflow_krw": 1935654241
         }
       }
     }
