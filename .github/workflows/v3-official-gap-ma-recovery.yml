@@ -48,13 +48,17 @@ jobs:
           git add docs/data.json docs/v3-unscored-path-coverage.json docs/v3-official-gap-ma-recovery.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Publish derived chart evidence from KRX gap recovery'
-          git fetch origin main
-          if [[ $(git rev-parse origin/main:docs/data.json) != "$snapshot_sha" ]]; then
-            echo 'Saved market changed during historical gap recovery.'
-            exit 1
-          fi
-          git rebase origin/main
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if [[ $(git rev-parse origin/main:docs/data.json) != "$snapshot_sha" ]]; then
+              echo 'Saved market changed during historical gap recovery.'
+              exit 1
+            fi
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          echo 'Historical gap recovery publication retries exhausted.'
+          exit 1
       - name: Refresh the operational scorecard
         if: steps.publish.outputs.changed == 'true'
         env:
