@@ -41,6 +41,20 @@ class OfficialGapMARecoveryTests(unittest.TestCase):
         result = recover_checked_weekly_closes(stock, row, frame, expected, refs, day, day)
         self.assertEqual(set(result), {'v3_weekly_position_gap_recovery',
                                        'v3_weekly_rsi_gap_recovery'})
+        mismatched = dict(stock, price=stock['price'] + 1)
+        self.assertEqual(recover_checked_weekly_closes(
+            mismatched, row, frame, expected, refs, day, day), {})
+        self.assertEqual(recover_checked_weekly_closes(
+            mismatched, row, frame, expected, refs, day, day,
+            dated_close=close[-1]), result)
+        self.assertEqual(recover_checked_weekly_closes(
+            mismatched, row, frame, expected, refs, day, day,
+            dated_close=mismatched['price']), {})
+        latest_wrong = frame.copy()
+        latest_wrong.loc[day, 'Close'] += 1
+        self.assertEqual(recover_checked_weekly_closes(
+            mismatched, row, latest_wrong, expected, refs, day, day,
+            dated_close=close[-1]), {})
         earlier = weeks.index[-120].date().isoformat()
         refs[earlier] += 1
         result = recover_checked_weekly_closes(stock, row, frame, expected, refs, day, day)

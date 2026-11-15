@@ -15,12 +15,15 @@ import requests
 
 from official_probe.clients import KRXClient
 from official_probe.validation import _numeric
+from v3_dated_market_roster import DatedRosterError, load_dated_listing
+from v3_fdr_cache_krx_close_corroboration import cache_close_index
 from v3_historical_close_source_probe import DATES, KST, YAHOO, yahoo_closes
 from v3_krx_daily_anomaly_triage import PRICE_FIELDS, classify_row
 from v3_krx_history_collection import MARKETS, _snapshot_market
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
+from v3_krx_close_momentum_recovery import close_anchor
 from v3_ma_slope_transition import observe, valid_observation, weekly_points_from_checked_closes
 from v3_pattern_composite_score import _observed, _weekly_trend, compute_candidates
 from v3_pattern_first_observations import (DAILY_CLEAN_TAIL, _clean_ohlcv, observe as observe_daily,
@@ -265,15 +268,18 @@ def add_weekly_ma120(receipt, close, completed_friday):
     return dict(receipt, parts=dict(receipt['parts'], weekly=dict(weekly, **{'120': points['120']})))
 
 
-def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday):
+def recover_checked_weekly_closes(stock, row, frame, expected, refs, day, friday,
+                                 *, dated_close=None):
     """Use a continuous close series whose older and latest closes agree with KRX."""
     if frame is None or frame.empty or stock.get('price_date') != day:
         return {}
     actual = [index.date().isoformat() for index in frame.index]
     if actual != [session for session in expected if actual[0] <= session <= day]:
         return {}
-    if (actual[-1] != day or day not in refs or refs[day] != stock.get('price')
-            or frame.at[day, 'Close'] != refs[day]):
+    official_close = refs.get(day)
+    if (actual[-1] != day or official_close is None
+            or close_anchor(stock, (official_close,), dated_close) is None
+            or frame.at[day, 'Close'] != official_close):
         return {}
     close = frame.loc[:friday, 'Close']
     weeks = close.resample('W-FRI').last()
@@ -345,7 +351,7 @@ def selected(market, priority, report):
     return result
 
 
-def run(market, priority, report, client):
+def run(market, priority, report, client, *, load_listing=load_dated_listing):
     day = market['date']
     candidates = selected(market, priority, report)
     target_day = date.fromisoformat(day)
@@ -390,8 +396,16 @@ def run(market, priority, report, client):
                        if len(week_closes) >= n}
     close_refs = {d: snapshots(client, d, close_only_targets)
                   for d in sorted(close_only_days) if d not in refs and close_only_targets}
+    dated_closes, cache_sha = {}, None
+    if close_only_targets:
+        try:
+            listing, cache_sha = load_listing(day)
+        except DatedRosterError:
+            pass
+        else:
+            dated_closes = cache_close_index(listing)
 
-    def close_only(key, stock, row):
+    def close_only(key, stock, row, *, payload=None):
         if key not in close_only_targets:
             return {}
         from screener import price_history
@@ -399,13 +413,27 @@ def run(market, priority, report, client):
                    for d in close_only_days | {day, completed_close_day}}
         if not anchors.get(day):
             return {}
+        official = {d: record[0][3] for d, record in anchors.items() if record is not None}
+        dated_close = dated_closes.get(key)
+        if close_anchor(stock, (official[day],), dated_close) is None:
+            return {}
+        updates = {}
+        if payload is not None:
+            ticker = key[1] + ('.KS' if key[0] == 'KOSPI' else '.KQ')
+            frame = source_frame(payload, ticker, expected, {day: official[day]})
+            if frame is not None:
+                updates = recover_checked_weekly_closes(
+                    stock, row, frame, expected, official, day, completed_friday,
+                    dated_close=dated_close)
+        # The fallback can add a longer window omitted by the first feed.
         try:
             frame = price_history(key[1], first, day)
         except (requests.RequestException, ValueError):
-            return {}
-        return recover_checked_weekly_closes(stock, row, frame, expected,
-            {d: record[0][3] for d, record in anchors.items() if record is not None},
-            day, completed_friday)
+            return updates
+        fallback = recover_checked_weekly_closes(
+            stock, row, frame, expected, official, day, completed_friday,
+            dated_close=dated_close)
+        return fallback | updates
 
     def examine(item):
         key, stock = item
@@ -413,10 +441,9 @@ def run(market, priority, report, client):
         row = report['rows'][key[1]]
         daily_needed = needs_daily_pattern(stock, row)
         weekly_needed = key in weekly_targets
-        if missing is not None and not (daily_needed or weekly_needed):
-            updates = close_only(key, stock, row)
+        if missing is not None and not (daily_needed or weekly_needed or key in close_only_targets):
             reason = 'official_gap_row_unavailable' if missing in REPAIR_SESSIONS else 'official_anchor_unavailable'
-            return ('recovered' if updates else reason), updates
+            return reason, {}
         values = {d: refs[d][key][0] for d in dates if key in refs[d]}
         shares = {d: refs[d][key][1] for d in values}
         ticker = key[1] + ('.KS' if key[0] == 'KOSPI' else '.KQ')
@@ -447,19 +474,19 @@ def run(market, priority, report, client):
                 if weekly is not None:
                     updates['pattern_weekly_research'] = weekly
         if missing is not None:
-            updates.update(close_only(key, stock, row))
+            updates.update(close_only(key, stock, row, payload=payload))
             return ('recovered' if updates else 'official_anchor_unavailable'), updates
         reason, frame = inspect_source_frame(payload, ticker, expected,
             {d: values[d][3] for d in close_anchors})
         if reason is not None:
-            updates.update(close_only(key, stock, row))
+            updates.update(close_only(key, stock, row, payload=payload))
             return ('recovered' if updates else reason), updates
         if GAP not in frame.index or not frame.loc[GAP].isna().all():
-            updates.update(close_only(key, stock, row))
+            updates.update(close_only(key, stock, row, payload=payload))
             return ('recovered' if updates else 'alternative_gap_not_all_null'), updates
         repaired = repair(frame, values, shares)
         if repaired is None:
-            updates.update(close_only(key, stock, row))
+            updates.update(close_only(key, stock, row, payload=payload))
             return ('recovered' if updates else 'local_share_basis_or_neighbor_unverified'), updates
         if weekly_needed and 'pattern_weekly_research' not in updates:
             weekly = recover_weekly_pattern(stock, repaired, values, completed_friday)
@@ -500,7 +527,7 @@ def run(market, priority, report, client):
                 ('v3_weekly_position_gap_recovery', needs_weekly_position(stock, row)),
                 ('v3_weekly_rsi_gap_recovery', needs_weekly_rsi(stock, row)),
                 ('v3_ma_slope_transition', key in long_ma_targets)) if needed):
-            for field, evidence in close_only(key, stock, row).items():
+            for field, evidence in close_only(key, stock, row, payload=payload).items():
                 updates.setdefault(field, evidence)
         return ('recovered' if updates else 'no_added_observation'), updates
 
@@ -529,6 +556,7 @@ def run(market, priority, report, client):
             'long_ma_comparison_sessions': list(long_ma_refs),
             'weekly_suffix_comparison_sessions': recent_week[2],
             'continuous_weekly_close_comparison_sessions': sorted(close_only_days),
+            'dated_close_anchor_source_sha256': cache_sha,
             'official_requests': 2*(len(dates) + len(long_ma_refs) + len(extra_refs) + len(close_refs)),
             'source_history_adjusted_verified': False,
             'volume_score_changed': False, 'raw_source_exported': False}
