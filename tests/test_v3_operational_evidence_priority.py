@@ -42,6 +42,22 @@ class EvidencePriorityTests(unittest.TestCase):
                          'chart_window_or_adjustment_review')
         self.assertEqual(p.category('financial','cashflow_fcf_persistence','insufficient_history',True),
                          'original_filing_review_no_blind_refetch')
+        self.assertEqual(p.category('volume','weekly_structure_increment','insufficient_history',False),
+                         'money_window_or_directional_evidence')
+
+    def test_short_history_defers_chart_work_but_keeps_verified_data_recovery(self):
+        row = {'code':'000001','available':89,'gaps':[
+            {'area':'technical','component':'long_ma_position','missing_weight':1.8,
+             'reason':p.SHORT_PRICE_HISTORY},
+            {'area':'valuation','component':'fcf_yield','missing_weight':2.5},
+        ]}
+        result = p.coverage_90_first([row], listed_total=1, full_100_count=0)
+        candidates = result['family_conditional_priority_codes']
+        self.assertEqual(candidates['price_chart_windows'], [])
+        self.assertEqual(candidates['dart_cashflow_capex'], ['000001'])
+        self.assertEqual(result['below_90_issuers'], 1)
+        bounds = p.source_family_completion_upper_bounds([dict(row, gaps=row['gaps'][:1])])
+        self.assertEqual(bounds['full_100_if_all_missing_family_facts_became_observed']['price_chart_windows'], 0)
 
     def test_conditional_source_family_upper_bounds_never_count_mixed_gaps(self):
         def row(*pairs):
