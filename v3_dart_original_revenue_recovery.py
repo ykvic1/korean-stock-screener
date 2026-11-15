@@ -149,7 +149,8 @@ def reviewed_annual_scopes(catalog, history, source):
             continue
         for year, anchor in anchors.items():
             saved = years.get(year, {}).get(scope, {})
-            if (not _valid_receipt(anchor, int(year), cutoff) or saved.get('receipt_id') != anchor
+            filing_year = int(saved.get('comparative_filing_year', year))
+            if (not _valid_receipt(anchor, filing_year, cutoff) or saved.get('receipt_id') != anchor
                     or any(saved['values'].get(key) != value for key, value in figures[year].items())):
                 break
         else:
@@ -199,12 +200,10 @@ def overlay(catalog, history, source, *, reviewed=None):
     amounts = reviewed_revenues(catalog, history, reviewed, expected)
     amounts.update({key: entry['revenue_krw'] for key, entry in retained.items()
                     if entry['status'] == 'observed'})
-    scopes = reviewed_annual_scopes(catalog, history, reviewed)
-    if not amounts and not scopes and not (reviewed or {}).get('annual_comparatives'):
+    if not amounts and not any((reviewed or {}).get(key)
+                               for key in ('annual_scopes', 'annual_comparatives')):
         return history, set()
     result = deepcopy(history)
-    for code, (scope, annual) in scopes.items():
-        result['records'][code]['years']['2025'][scope] = annual
     for key, amount in amounts.items():
         base = expected[key]
         row = result['records'][base['code']]['years'][str(base['fiscal_year'])][base['scope']]
@@ -213,6 +212,9 @@ def overlay(catalog, history, source, *, reviewed=None):
     for code, year, scope, statement in reviewed_annual_comparatives(result, reviewed, _day(catalog['date'])):
         result['records'][code]['years'][year][scope] = statement
         comparative_codes.add(code)
+    scopes = reviewed_annual_scopes(catalog, result, reviewed)
+    for code, (scope, annual) in scopes.items():
+        result['records'][code]['years']['2025'][scope] = annual
     return result, {expected[key]['code'] for key in amounts} | set(scopes) | comparative_codes
 
 
