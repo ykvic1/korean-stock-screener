@@ -132,6 +132,38 @@ class ParentEquityRecoveryTests(unittest.TestCase):
                 invalid['digest']=source.cf.fingerprint({k:v for k,v in invalid.items() if k!='digest'})
                 source.verify(forged,catalog,book,cash)
 
+    def test_original_equity_statement_requires_two_sections_and_reconciles_missing_book_equity(self):
+        saved,catalog,book,cash,_,code,annual,_=self.checked()
+        row=saved['records'][code]
+        row.pop('cfo_anchor_krw')
+        values=annual['values']
+        total=values['equity']
+        liabilities=values['liabilities']
+        receipt=annual['receipt_id']
+        prefix=f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&dcmNo=12'
+        suffix='&offset=100&length=200&dtd=dart4.xsd'
+        row.update(contract=source.EQUITY_STATEMENT_CONTRACT,
+                   source_url=prefix+'&eleId=22'+suffix,
+                   balance_sheet_url=prefix+'&eleId=20'+suffix,
+                   balance_sheet_sha256='a'*64, explicit_nci_krw=None,
+                   owners_equity_krw=total, liabilities_anchor_krw=liabilities,
+                   assets_reported_krw=total+liabilities)
+        values['equity']=None
+        row['digest']=source.cf.fingerprint({k:v for k,v in row.items() if k!='digest'})
+        self.assertEqual(source.verify(saved,catalog,book,{'records':{}}),1)
+        for field,value in (
+            ('balance_sheet_url',row['source_url']),
+            ('balance_sheet_sha256',row['provider_sha256']),
+            ('owners_equity_krw',total-1),
+            ('assets_reported_krw',total+liabilities+1),
+        ):
+            with self.subTest(field=field),self.assertRaises(source.ParentEquityRecoveryError):
+                invalid=copy.deepcopy(saved)
+                proof=invalid['records'][code]
+                proof[field]=value
+                proof['digest']=source.cf.fingerprint({k:v for k,v in proof.items() if k!='digest'})
+                source.verify(invalid,catalog,book,cash)
+
 
 
 class ExpandedParentEquityCollectionTests(unittest.TestCase):
