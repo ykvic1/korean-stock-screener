@@ -104,6 +104,34 @@ class ParentEquityRecoveryTests(unittest.TestCase):
         with self.assertRaises(source.ParentEquityRecoveryError):
             source.verify(future,catalog,book,cash)
 
+    def test_original_balance_sheet_replays_without_cashflow_and_requires_exact_assets(self):
+        saved,catalog,book,cash,_,code,annual,nci=self.checked()
+        row=saved['records'][code]
+        row.pop('cfo_anchor_krw')
+        liabilities=annual['values']['liabilities']
+        receipt=annual['receipt_id']
+        row.update(contract=source.BALANCE_SHEET_CONTRACT,
+                   assets_reported_krw=annual['values']['equity']+liabilities,
+                   liabilities_anchor_krw=liabilities,
+                   source_url=f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}'
+                              '&dcmNo=12&eleId=20&offset=100&length=200&dtd=dart4.xsd')
+        row['digest']=source.cf.fingerprint({k:v for k,v in row.items() if k!='digest'})
+        overlaid=source.overlay(book,catalog,saved,{'records':{}})
+        actual=next(r['annual']['values'] for r in overlaid['records'] if r['code']==code)
+        self.assertEqual(actual['owners_equity'],annual['values']['equity']-nci)
+        for field,value in (
+            ('assets_reported_krw',row['assets_reported_krw']+1),
+            ('liabilities_anchor_krw',liabilities+1),
+            ('source_url',row['source_url'].replace(receipt,'20260321000099')),
+            ('explicit_nci_krw',None),
+        ):
+            with self.subTest(field=field),self.assertRaises(source.ParentEquityRecoveryError):
+                forged=copy.deepcopy(saved)
+                invalid=forged['records'][code]
+                invalid[field]=value
+                invalid['digest']=source.cf.fingerprint({k:v for k,v in invalid.items() if k!='digest'})
+                source.verify(forged,catalog,book,cash)
+
 
 
 class ExpandedParentEquityCollectionTests(unittest.TestCase):
