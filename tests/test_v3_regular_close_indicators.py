@@ -3,6 +3,9 @@ from copy import deepcopy
 from hashlib import sha256
 import gzip
 import json
+from pathlib import Path
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -28,6 +31,10 @@ class FakeClient:
 
 
 class RegularCloseIndicatorsTest(unittest.TestCase):
+    def test_operational_import_requires_no_collection_dependencies(self):
+        subprocess.run([sys.executable, '-S', '-c', 'import v3_operational_research_score'],
+                       cwd=Path(__file__).resolve().parents[1], check=True, capture_output=True)
+
     def setUp(self):
         self.days = [d.date().isoformat() for d in pd.bdate_range(end='2026-11-13', periods=200)]
         self.catalog = {'date': self.days[-1], 'rows': [

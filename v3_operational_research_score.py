@@ -33,7 +33,7 @@ from v3_dart_original_revenue_recovery import OUTPUT as ORIGINAL_REVENUE_OUTPUT
 from v3_dart_original_revenue_recovery import overlay as original_revenue_overlay, sales_parts
 from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT, comparative_fcf_parts
 from v3_dart_reviewed_ordinary_eps import OUTPUT as REVIEWED_EPS_OUTPUT, reviewed_eps_parts
-from v3_regular_close_indicators import admitted_rows as regular_close_rows
+from v3_regular_close_contract import admitted_rows as regular_close_rows
 
 VERSION = 'v3-stable-r1e-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
@@ -573,7 +573,7 @@ def main():
                      'v3_dart_revenue_2024_comparative.py',
                      'v3_dart_operating_income_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
-                     'v3_volume_participation.py','v3_regular_close_indicators.py',
+                     'v3_volume_participation.py','v3_regular_close_indicators.py','v3_regular_close_contract.py',
                      'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py',
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',

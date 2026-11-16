@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_regular_close_indicators.py
+      - v3_regular_close_contract.py
       - v3_ma_slope_transition.py
       - v3_pattern_first_observations.py
       - technical_v22.py
