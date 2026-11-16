@@ -1,6 +1,6 @@
 {
   "action_register_sha256": {
-    "continuity_register": "3bd73ba21c58df3290e4db3ed19c8c87282e74de25692e9e2e69b3989986b6a1",
+    "continuity_register": "ff658eb6cbe2a49ee2c082dc68654e170f39cb9f39befa7f302ddb3db7dae423",
     "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
     "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0"
@@ -42,10 +42,10 @@
     },
     "12": {
       "all_observed_securities": {
-        "action_adjusted": 369,
+        "action_adjusted": 390,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1699,
+        "non_delisted_unique": 1720,
         "overlap_superseded": 0,
         "raw_continuous_only": 1330
       },
@@ -58,10 +58,10 @@
         "raw_continuous_only": 21
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 367,
+        "action_adjusted": 388,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1590,
+        "non_delisted_unique": 1611,
         "overlap_superseded": 0,
         "raw_continuous_only": 1223
       }
@@ -94,10 +94,10 @@
     },
     "3": {
       "all_observed_securities": {
-        "action_adjusted": 37,
+        "action_adjusted": 39,
         "delisting_settlement": 17,
         "includes_unlisted_entitlement": 1,
-        "non_delisted_unique": 2195,
+        "non_delisted_unique": 2197,
         "overlap_superseded": 1,
         "raw_continuous_only": 2158
       },
@@ -110,20 +110,20 @@
         "raw_continuous_only": 23
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 37,
+        "action_adjusted": 39,
         "delisting_settlement": 17,
         "includes_unlisted_entitlement": 1,
-        "non_delisted_unique": 2049,
+        "non_delisted_unique": 2051,
         "overlap_superseded": 1,
         "raw_continuous_only": 2012
       }
     },
     "6": {
       "all_observed_securities": {
-        "action_adjusted": 133,
+        "action_adjusted": 145,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1848,
+        "non_delisted_unique": 1860,
         "overlap_superseded": 0,
         "raw_continuous_only": 1715
       },
@@ -136,10 +136,10 @@
         "raw_continuous_only": 21
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 132,
+        "action_adjusted": 144,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1710,
+        "non_delisted_unique": 1722,
         "overlap_superseded": 0,
         "raw_continuous_only": 1578
       }
