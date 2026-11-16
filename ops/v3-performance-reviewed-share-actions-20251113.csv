@@ -1,0 +1,4 @@
+market,code,name,listing_on,action,shares_before,shares_after,new_units,old_units,notice_url
+KOSPI,005320,온타이드,2026-05-20,reverse_split,68375690,34187845,1,2,https://kind.krx.co.kr/external/2026/05/19/000424/20260519001021/99321.htm
+KOSPI,002360,SH에너지화학,2026-05-22,reverse_split,111133730,11113373,1,10,https://kind.krx.co.kr/external/2026/05/21/000533/20260521001445/99321.htm
+KOSPI,001020,페이퍼코리아,2026-05-28,reverse_split,177983313,35596662,1,5,https://kind.krx.co.kr/external/2026/05/27/000526/20260527001284/99321.htm
