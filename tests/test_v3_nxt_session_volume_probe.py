@@ -4,7 +4,7 @@ import json
 import unittest
 
 from v3_nxt_session_volume_probe import (
-    KST, NXTProbeError, aggregate, collect, compare_krx_panel, eligible_day,
+    KST, NXTProbeError, aggregate, collect, compare_krx_panel, compare_market_share, eligible_day,
     fetch_session, quantity, regular_volume_crosscheck, session_observation,
 )
 
@@ -106,6 +106,20 @@ class NXTVolumeProbeTests(unittest.TestCase):
         report=compare_krx_panel(daily,DAY,{('KOSPI','000001'),('KOSPI','000002'),('KOSDAQ','000003')})
         self.assertEqual(report['nxt_identity_join'], {'volume_zero':1,'market_mismatch':1,'absent':1})
         self.assertFalse(report['krx_accumulated_volume_session_scope_verified'])
+
+    def test_market_share_comparison_keeps_both_denominator_hypotheses(self):
+        market_share={'regular_volume':100,'reported_percent':'10.00'}
+        krx_only=compare_market_share(900,market_share)
+        combined=compare_market_share(1000,market_share)
+        self.assertTrue(krx_only['api_plus_nxt_regular_matches'])
+        self.assertFalse(krx_only['api_as_combined_denominator_matches'])
+        self.assertFalse(combined['api_plus_nxt_regular_matches'])
+        self.assertTrue(combined['api_as_combined_denominator_matches'])
+        both=compare_market_share(100000,{'regular_volume':1,'reported_percent':0.0})
+        self.assertTrue(both['api_plus_nxt_regular_matches'])
+        self.assertTrue(both['api_as_combined_denominator_matches'])
+        self.assertFalse(krx_only['same_security_universe_independently_verified'])
+        self.assertEqual(compare_market_share(0,market_share),{'status':'unavailable'})
 
     def test_wrong_day_and_duplicate_are_not_silent_zeroes(self):
         with self.assertRaisesRegex(NXTProbeError,'nxt_row_day_unverified'):

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 import json
 import os
@@ -163,7 +164,7 @@ def fetch_session(session, kind, day):
     return session_observation(session, kind, day)['rows']
 
 
-def regular_volume_crosscheck(session, day, regular):
+def regular_volume_crosscheck(session, day, regular, *, share_capture=None):
     date_key = canonical_day(day)
     try:
         response = session.post(
@@ -191,11 +192,13 @@ def regular_volume_crosscheck(session, day, regular):
             parts = sum(quantity(row.get(f'{period}AccTdQty')) for period in ('pre', 'main', 'aft'))
             active = quantity(row.get('totalIsuCnt'))
             if total or parts or active:
-                totals.append((total, parts, active))
+                totals.append((total, parts, active, row.get('mktShr')))
         if len(totals) != 1:
             raise ValueError()
-        total, parts, active = totals[0]
+        total, parts, active, market_share = totals[0]
         matches = total == parts == sum(regular.values()) and active == sum(v > 0 for v in regular.values())
+        if matches and share_capture is not None:
+            share_capture.update(regular_volume=total, reported_percent=market_share)
         return {'status': 'matched' if matches else 'mismatch', 'aggregate_rows': len(rows),
                 'source_sha256': sha256(response.content).hexdigest()}
     except (ValueError, TypeError, KeyError, NXTProbeError):
@@ -210,13 +213,16 @@ def collect(session, day):
     combined = regular.copy()
     for key, count in closing.items():
         combined[key] = combined.get(key, 0) + count
+    market_share = {}
+    crosscheck = regular_volume_crosscheck(session, day, regular, share_capture=market_share)
     return {
         'regular_market': regular,
         'closing_price': closing,
         'regular_plus_closing': combined,
         'overlap_issuers': len(regular.keys() & closing.keys()),
         'observations': observations,
-        'regular_volume_crosscheck': regular_volume_crosscheck(session, day, regular),
+        'regular_volume_crosscheck': crosscheck,
+        'market_share_inputs': market_share,
     }
 
 
@@ -244,7 +250,32 @@ def aggregate(result, day, universe):
     }
 
 
-def compare_krx_panel(daily_market, day, nxt_keys):
+def compare_market_share(krx_total, market_share):
+    """Compare two aggregate denominator hypotheses with the published share."""
+    try:
+        text = str(market_share.get('reported_percent', ''))
+        if not re.fullmatch(r'[0-9]{1,3}(?:\.[0-9]{1,2})?', text):
+            raise ValueError()
+        reported = Decimal(text)
+        regular = market_share['regular_volume']
+        if not 0 <= reported <= 100 or not 0 < regular or krx_total <= 0:
+            raise ValueError()
+    except (ValueError, KeyError, TypeError, InvalidOperation):
+        return {'status': 'unavailable'}
+    # The data sometimes omit a trailing zero. Allow a one-decimal
+    # rounding interval so apparent precision does not decide the result.
+    tolerance = Decimal('0.05')
+    numerator = Decimal(100 * regular)
+    return {
+        'status': 'compared',
+        'reported_nxt_share_pct': float(reported),
+        'api_plus_nxt_regular_matches': abs(numerator / (krx_total + regular) - reported) <= tolerance,
+        'api_as_combined_denominator_matches': abs(numerator / krx_total - reported) <= tolerance,
+        'same_security_universe_independently_verified': False,
+    }
+
+
+def compare_krx_panel(daily_market, day, nxt_keys, *, market_share=None):
     """Check dated identities and numeric coverage without inferring venue scope."""
     counts, hashes, by_code = {}, {}, {}
     for market in KRX_MARKETS:
@@ -267,8 +298,14 @@ def compare_krx_panel(daily_market, day, nxt_keys):
         state = ('absent' if entry is None else 'market_mismatch' if entry[0] != market else
                  'volume_missing' if entry[1] is None else 'volume_zero' if entry[1] == 0 else 'volume_positive')
         joined[state] += 1
+    total = sum(value for _, value in by_code.values() if value is not None)
+    scope = (compare_market_share(total, market_share) if market_share and not
+             (joined['absent'] or joined['market_mismatch']
+              or any(panel['rows'] != panel['numeric_volume_rows'] for panel in counts.values()))
+             else {'status': 'unavailable'})
     return {'status':'dated_krx_openapi_rows_observed', 'source_sha256':hashes,
             'by_market':counts, 'nxt_identity_join':dict(joined),
+            'market_share_denominator_check':scope,
             'krx_accumulated_volume_session_scope_verified':False}
 
 
@@ -319,7 +356,8 @@ def main(argv=None):
 
             try:
                 nxt_keys = set().union(*(item['rows'] for item in result['observations'].values()))
-                report['krx_panel'] = compare_krx_panel(counted_daily_market, day, nxt_keys)
+                report['krx_panel'] = compare_krx_panel(
+                    counted_daily_market, day, nxt_keys, market_share=result['market_share_inputs'])
             except (KRXProbeError, HistoryCollectionError, NXTProbeError) as exc:
                 report['krx_panel'] = {'status':'unavailable', 'reason':(
                     exc.reason if isinstance(exc, KRXProbeError) else str(exc))}
