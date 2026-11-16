@@ -1,0 +1,94 @@
+{
+  "delisted_issuers": 92,
+  "delisted_with_entry_trade": 45,
+  "entry_session": "2025-11-14",
+  "historical_adjusted_prices_verified": false,
+  "historical_security_type_verified": false,
+  "horizons": {
+    "1": {
+      "delisted_pilot_price_valuations": 16,
+      "delisted_unpriced_or_outside_pilot": 76,
+      "listed_shares_changed_or_missing": 180,
+      "market_or_name_changed": 5,
+      "missing_security_session": 0,
+      "non_delisted_entry_unpriced": 58,
+      "stable_quote_median_observed_adverse_excursion_pct": 7.28,
+      "stable_quote_median_price_change_pct": 0.32,
+      "stable_quote_paths_with_gaps": 6,
+      "stable_quote_valuations": 2418,
+      "valuation_session": "2025-12-15",
+      "valuation_unpriced": 8
+    },
+    "12": {
+      "delisted_pilot_price_valuations": 16,
+      "delisted_unpriced_or_outside_pilot": 76,
+      "listed_shares_changed_or_missing": 1194,
+      "market_or_name_changed": 58,
+      "missing_security_session": 2,
+      "non_delisted_entry_unpriced": 58,
+      "stable_quote_median_observed_adverse_excursion_pct": 30.84,
+      "stable_quote_median_price_change_pct": -18.29,
+      "stable_quote_paths_with_gaps": 41,
+      "stable_quote_valuations": 1330,
+      "valuation_session": "2026-11-13",
+      "valuation_unpriced": 27
+    },
+    "2": {
+      "delisted_pilot_price_valuations": 16,
+      "delisted_unpriced_or_outside_pilot": 76,
+      "listed_shares_changed_or_missing": 322,
+      "market_or_name_changed": 6,
+      "missing_security_session": 1,
+      "non_delisted_entry_unpriced": 58,
+      "stable_quote_median_observed_adverse_excursion_pct": 9.01,
+      "stable_quote_median_price_change_pct": -2.48,
+      "stable_quote_paths_with_gaps": 10,
+      "stable_quote_valuations": 2276,
+      "valuation_session": "2026-01-13",
+      "valuation_unpriced": 6
+    },
+    "3": {
+      "delisted_pilot_price_valuations": 17,
+      "delisted_unpriced_or_outside_pilot": 75,
+      "listed_shares_changed_or_missing": 432,
+      "market_or_name_changed": 10,
+      "missing_security_session": 1,
+      "non_delisted_entry_unpriced": 58,
+      "stable_quote_median_observed_adverse_excursion_pct": 10.0,
+      "stable_quote_median_price_change_pct": 3.7,
+      "stable_quote_paths_with_gaps": 17,
+      "stable_quote_valuations": 2159,
+      "valuation_session": "2026-02-13",
+      "valuation_unpriced": 9
+    },
+    "6": {
+      "delisted_pilot_price_valuations": 16,
+      "delisted_unpriced_or_outside_pilot": 76,
+      "listed_shares_changed_or_missing": 782,
+      "market_or_name_changed": 40,
+      "missing_security_session": 1,
+      "non_delisted_entry_unpriced": 58,
+      "stable_quote_median_observed_adverse_excursion_pct": 12.84,
+      "stable_quote_median_price_change_pct": 2.58,
+      "stable_quote_paths_with_gaps": 26,
+      "stable_quote_valuations": 1715,
+      "valuation_session": "2026-05-13",
+      "valuation_unpriced": 73
+    }
+  },
+  "listed_by_market": {
+    "KOSDAQ": 1803,
+    "KOSPI": 958
+  },
+  "listed_total": 2761,
+  "market_sessions": 244,
+  "non_delisted_with_entry_trade": 2611,
+  "performance_validated": false,
+  "point_in_time_scores_verified": false,
+  "signal_session": "2025-11-13",
+  "source_sha256": {
+    "2025_parquet": "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+    "2026-11-13_csv": "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc",
+    "2026_parquet": "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d"
+  }
+}
