@@ -6,6 +6,7 @@ on:
     paths:
       - v3_regular_close_indicators.py
       - v3_regular_close_contract.py
+      - v3_ma240_cross_research.py
       - v3_ma_slope_transition.py
       - v3_pattern_first_observations.py
       - technical_v22.py
@@ -43,6 +44,7 @@ jobs:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           git rev-parse HEAD:docs/v22-market-catalog.json > /tmp/regular-close-catalog-sha
+          git rev-parse HEAD:v3_regular_close_indicators.py HEAD:v3_regular_close_contract.py HEAD:v3_ma240_cross_research.py HEAD:v3_ma_slope_transition.py HEAD:v3_pattern_first_observations.py HEAD:technical_v22.py > /tmp/regular-close-code-shas
           python v3_regular_close_indicators.py
       - name: Publish source-bound derived indicators and progress
         id: publish
@@ -55,11 +57,15 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/v3-regular-close-indicators.json docs/v3-regular-close-history-progress.json
-          git commit -m 'Publish official close-derived daily RSI and MA transitions'
+          git commit -m 'Publish official close-derived daily RSI and MA observations'
           for attempt in 1 2 3; do
             git fetch origin main
             if [[ $(git rev-parse origin/main:docs/v22-market-catalog.json) != $(cat /tmp/regular-close-catalog-sha) ]]; then
               echo '::error::regular_close_catalog_changed_during_collection'
+              exit 1
+            fi
+            if ! git rev-parse origin/main:v3_regular_close_indicators.py origin/main:v3_regular_close_contract.py origin/main:v3_ma240_cross_research.py origin/main:v3_ma_slope_transition.py origin/main:v3_pattern_first_observations.py origin/main:technical_v22.py | cmp -s /tmp/regular-close-code-shas; then
+              echo '::error::regular_close_implementation_changed_during_collection'
               exit 1
             fi
             git rebase origin/main

@@ -22,6 +22,7 @@ from v3_eps_valuation import valid as valid_eps
 from v3_personal_score_adjustments import profile, rounded, build as legacy_build
 from v3_ma_slope_transition import WEIGHTS as MA_SLOPE_WEIGHTS, valid_observation as valid_ma_slope
 from v3_ma240_cross_research import valid_observation as valid_ma_cross
+from v3_ma240_cross_research import MAX_POINTS as MA240_CROSS_MAX
 from v3_actual_money_structure import valid as valid_money_structure
 from v3_breakout_followthrough import valid as valid_breakout_followthrough
 from v3_dart_reported_eps import plan as reported_eps_plan, EPSError
@@ -355,19 +356,24 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         if close_receipt:
             rsi=close_receipt['daily_rsi']
             if rsi is not None:
-                close_candidates['daily_rsi']={'points':1.2 if rsi['rsi30_cross_recent'] or
+                close_candidates['technical','daily_rsi']={'points':1.2 if rsi['rsi30_cross_recent'] or
                     rsi['rsi_bullish_divergence_recent'] else 0,'available':1.2,'asof':day}
-                parts['technical']['daily_rsi']=close_candidates['daily_rsi']
             turn=close_receipt['daily_ma_turn']
             if turn is not None:
                 old_slope=stock.get('v3_ma_slope_transition') if stock else None
                 old_parts=(old_slope['parts']['daily'] or {}) if old_slope and valid_ma_slope(old_slope,day) else {}
                 combined={**old_parts,**{period:value for period,value in turn.items() if value is not None}}
                 measured={period:value for period,value in combined.items() if value is not None}
-                close_candidates['daily_ma_slope_turn']={
+                close_candidates['momentum','daily_ma_slope_turn']={
                     'points':round(sum(measured.values()),6),
                     'available':sum(MA_SLOPE_WEIGHTS['daily'][period] for period in measured),'asof':day}
-                parts['momentum']['daily_ma_slope_turn']=close_candidates['daily_ma_slope_turn']
+            cross=close_receipt.get('daily_ma240_cross')
+            if cross is not None:
+                close_candidates['technical','ma20_ma60_cross_near_ma240']={
+                    'points':MA240_CROSS_MAX if cross['qualified'] else 0,
+                    'available':MA240_CROSS_MAX,'asof':day}
+            for (area,key),part in close_candidates.items():
+                parts[area][key]=part
         if code in revenue_parts:
             parts['financial']['revenue_growth']=revenue_parts[code]
         # Source-only enhancement. Never overwrite an already observed
@@ -428,8 +434,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             'prior_operational_score':previous_score,'prior_operational_rank':previous_rank,
             'parts':parts,'areas':areas,'rank':None}
         if close_candidates:
-            used=[key for key,candidate in close_candidates.items()
-                  if candidate==parts['technical' if key=='daily_rsi' else 'momentum'][key]]
+            used=[key for (area,key),candidate in close_candidates.items() if candidate==parts[area][key]]
             if used:
                 rows[code]['regular_close_recomputed_parts']=used
                 rows[code]['regular_close_continuous_sessions']=close_receipt['continuous_sessions']
@@ -449,7 +454,9 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         'regular_close_source_summary':{
             'asof':day,'admitted_issuers':len(regular_closes),
             'daily_rsi_recomputed':sum('daily_rsi' in r.get('regular_close_recomputed_parts',[]) for r in rows.values()),
-            'daily_ma_turn_recomputed':sum('daily_ma_slope_turn' in r.get('regular_close_recomputed_parts',[]) for r in rows.values())},
+            'daily_ma_turn_recomputed':sum('daily_ma_slope_turn' in r.get('regular_close_recomputed_parts',[]) for r in rows.values()),
+            'daily_ma240_cross_recomputed':sum('ma20_ma60_cross_near_ma240' in
+                r.get('regular_close_recomputed_parts',[]) for r in rows.values())},
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
                    '독립 돌파확인: 가격 경로 부족 종목 미관측',
                    'MA 전환: 가격 이력 부족 종목 미관측',

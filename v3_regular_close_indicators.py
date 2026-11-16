@@ -23,11 +23,15 @@ from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 from v3_krx_regular_close import regular_close_utc
 from v3_krx_session_candidates import candidate_dates
+from v3_ma240_cross_research import observe as observe_ma240
 from v3_ma_slope_transition import _series_points
 from v3_pattern_first_observations import rsi_observation
-from v3_regular_close_contract import SCHEMA, OUTPUT, SESSIONS, admitted_rows, implementation_digest
+from v3_regular_close_contract import (
+    DAILY_SESSIONS, OUTPUT, SCHEMA, SESSIONS, admitted_rows, implementation_digest,
+)
 
-DAY_SCHEMA = 'v3-private-official-regular-close-day-1'
+LEGACY_DAY_SCHEMA = 'v3-private-official-regular-close-day-1'
+DAY_SCHEMA = 'v3-private-official-regular-close-day-2'
 PROGRESS = Path('docs/v3-regular-close-history-progress.json')
 PRIVATE_REPO = 'ykvic1/korean-stock-private-data'
 MAX_NEW_SESSIONS = 80
@@ -41,35 +45,39 @@ class CloseHistoryError(ValueError):
 
 def history_dates(asof):
     end = date.fromisoformat(asof)
-    days = calendar_weekday_candidates((end - timedelta(days=400)).isoformat(), asof)
+    days = calendar_weekday_candidates((end - timedelta(days=440)).isoformat(), asof)
     selected = candidate_dates(days, source='xkrx')['dates'][-SESSIONS:]
     if len(selected) != SESSIONS or selected[-1] != asof:
         raise CloseHistoryError('invalid_regular_close_history_window')
     return selected
 
 
-def archive_path(day):
-    return f'derived/official-regular-close-history/{day}.json.gz'
+def archive_path(day, *, legacy=False):
+    directory = 'official-regular-close-history' if legacy else 'official-regular-close-history-v2'
+    return f'derived/{directory}/{day}.json.gz'
 
 
-def read_day(blob, day):
+def read_day(blob, day, *, schema=DAY_SCHEMA):
     if blob is None:
         return None
     try:
         with gzip.GzipFile(fileobj=BytesIO(blob)) as stream:
             raw = stream.read(MAX_BYTES + 1)
         data = json.loads(raw)
-        if (len(raw) > MAX_BYTES or data['schema'] != DAY_SCHEMA or data['date'] != day
+        if (len(raw) > MAX_BYTES or data['schema'] != schema or data['date'] != day
                 or set(data['source_sha256']) != set(MARKETS)
                 or any(not SHA.fullmatch(value) for value in data['source_sha256'].values())
                 or not 0 < len(data['rows']) <= 40_000):
             raise ValueError()
         for code, row in data['rows'].items():
-            market, name, close, shares, reference = row
+            market, name, close, shares, reference = row[:5]
             if (not re.fullmatch(r'[0-9A-Z]{6}', code) or market not in MARKETS
                     or not normalized_name(name) or type(close) is not int or close <= 0
                     or type(shares) is not int or shares <= 0
-                    or (reference is not None and (type(reference) is not int or reference <= 0))):
+                    or (reference is not None and (type(reference) is not int or reference <= 0))
+                    or (schema == LEGACY_DAY_SCHEMA and len(row) != 5)
+                    or (schema == DAY_SCHEMA and
+                        (len(row) != 6 or (row[5] is not None and type(row[5]) is not bool)))):
                 raise ValueError()
         if {row[0] for row in data['rows'].values()} != set(MARKETS):
             raise ValueError()
@@ -90,7 +98,10 @@ def observe_market(client, market, day):
         change = str(row.get('CMPPREVDD_PRC', '')).strip().replace(',', '')
         reference = close - int(change) if re.fullmatch(r'[+-]?[0-9]+', change) else None
         reference = reference if reference is not None and reference > 0 else None
-        found[row['ISU_CD']] = [market, name, close, shares, reference]
+        volume = number(row, 'ACC_TRDVOL')
+        # The price-only cross needs a verified traded status, not share volume.
+        traded = volume > 0 if volume is not None else None
+        found[row['ISU_CD']] = [market, name, close, shares, reference, traded]
     return found, stats['source_sha256']
 
 
@@ -122,14 +133,17 @@ def collect(storage, clients, days, *, limit=MAX_NEW_SESSIONS):
 
     def load(day):
         blob, _ = storage.get_content(archive_path(day))
-        return day, read_day(blob, day)
+        if blob is not None:
+            return day, read_day(blob, day)
+        legacy, _ = storage.get_content(archive_path(day, legacy=True))
+        return day, read_day(legacy, day, schema=LEGACY_DAY_SCHEMA)
 
     with ThreadPoolExecutor(max_workers=6) as pool:
         panels = dict(pool.map(load, days))
     added, failures = 0, Counter()
     with ThreadPoolExecutor(max_workers=len(MARKETS)) as pool:
         for day in reversed(days):
-            if panels[day] is not None:
+            if panels[day] is not None and panels[day]['schema'] == DAY_SCHEMA:
                 continue
             if added + sum(failures.values()) >= limit:
                 break
@@ -166,38 +180,51 @@ def continuous_tail(records, member):
         if next_row is not None and (next_row[4] != row[2]
                 or abs(next_row[2] / row[2] - 1) > .5):
             break
-        tail.append(row[2])
+        tail.append(row)
         next_row = row
     return tail[::-1]
 
 
 def build(catalog, catalog_digest, days, panels):
     rows, counts = {}, Counter()
+    trade_status_sessions = sum(panel is not None and panel['schema'] == DAY_SCHEMA
+                          for panel in panels.values())
+    session_days = [date.fromisoformat(day) for day in days]
     for member in catalog['rows']:
         code = member['code']
         records = [panels[day]['rows'].get(code) if panels[day] else None for day in days]
-        closes = continuous_tail(records, member)
-        if not closes:
+        tail = continuous_tail(records, member)
+        if not tail:
             counts['no_current_identity_matched_close'] += 1
             continue
-        n = len(closes)
+        closes = [row[2] for row in tail[-DAILY_SESSIONS:]]
+        n = len(tail)
         ma = {str(period): round(float(np.mean(closes[-period:])), 6) if n >= period else None
               for period in (20, 60, 120)}
         rsi = rsi_observation(np.asarray(closes, dtype=float)) if n >= 90 else None
         turn = _series_points(np.asarray(closes, dtype=float), prior=60, recent=20,
                               hold=5, floor=.0001, frame='daily',
-                              trusted_window=lambda required: n >= required)
+                              trusted_window=lambda required: len(closes) >= required)
+        cross = None
+        if trade_status_sessions == SESSIONS and n == SESSIONS:
+            trade_markers = [int(row[5]) if row[5] is not None else None for row in tail]
+            cross = observe_ma240([row[2] for row in tail], trade_markers,
+                                  asof=catalog['date'], session_days=session_days)
         rows[code] = {'name': member['name'], 'market': member['market'],
                       'continuous_sessions': n, 'moving_averages': ma, 'daily_rsi': rsi,
-                      'daily_ma_turn': turn}
+                      'daily_ma_turn': turn, 'daily_ma240_cross': cross}
         counts['current_close_observed'] += 1
-        counts['full_200_session_continuity'] += n == SESSIONS
+        counts['full_200_session_continuity'] += n >= DAILY_SESSIONS
+        counts['full_260_session_continuity'] += n == SESSIONS
         counts['daily_rsi_recomputed'] += rsi is not None
         counts['daily_ma_turn_recomputed'] += turn is not None
+        counts['daily_ma240_cross_recomputed'] += cross is not None
+        counts['daily_ma240_cross_qualified'] += cross is not None and cross['qualified']
     inputs = {day: panel['source_sha256'] for day, panel in panels.items() if panel is not None}
     return {'schema': SCHEMA, 'asof': catalog['date'], 'source': 'KRX_OFFICIAL_REGULAR_CLOSE',
             'source_catalog_sha256': catalog_digest, 'implementation_sha256': implementation_digest(),
             'requested_sessions': len(days), 'archived_sessions': len(inputs),
+            'trade_status_sessions': trade_status_sessions,
             'session_calendar_source': 'XKRX_WITH_CONFIRMED_CLOSURE_OVERRIDES',
             'official_session_calendar_authenticated': False,
             'source_inputs_sha256': sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest(),
@@ -219,7 +246,7 @@ def main():
     if (prior.get('schema') == SCHEMA and prior.get('asof') == asof
             and prior.get('source_catalog_sha256') == catalog_digest
             and prior.get('implementation_sha256') == implementation_digest()
-            and prior.get('archived_sessions') == SESSIONS):
+            and prior.get('archived_sessions') == prior.get('trade_status_sessions') == SESSIONS):
         print('regular_close_history_already_current')
         return
     if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
@@ -231,9 +258,9 @@ def main():
     panels, added, failures = collect(storage, clients, days)
     report = build(catalog, catalog_digest, days, panels)
     target.write_text(json.dumps(report, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n')
-    progress = {key: report[key] for key in ('asof', 'requested_sessions', 'archived_sessions',
+    progress = {key: report[key] for key in ('asof', 'requested_sessions', 'archived_sessions', 'trade_status_sessions',
                                             'listed_total', 'counts', 'source_inputs_sha256')}
-    progress.update(added_this_run=added, pending_sessions=SESSIONS-report['archived_sessions'],
+    progress.update(added_this_run=added, pending_sessions=SESSIONS-report['trade_status_sessions'],
                     source_requests=sum(client.requests for client in clients.values()), failures=failures)
     PROGRESS.write_text(json.dumps(progress, indent=2) + '\n')
     print(json.dumps(progress))

@@ -36,6 +36,10 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.ok(!note.includes('120'));
  assert.equal(operational.regularCloseMarkup({regular_close_recomputed_parts:['daily_rsi'],
   regular_close_continuous_sessions:20}), '');
+ assert.match(operational.regularCloseMarkup({regular_close_recomputed_parts:['ma20_ma60_cross_near_ma240'],
+  regular_close_continuous_sessions:260}), /20·60일 골든크로스 \/ 240일선/);
+ assert.equal(operational.regularCloseMarkup({regular_close_recomputed_parts:['ma20_ma60_cross_near_ma240'],
+  regular_close_continuous_sessions:259}), '');
 }
 
 // Officially corroborated current closes update displayed risk distances while

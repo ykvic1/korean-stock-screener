@@ -158,13 +158,15 @@ function reconciliationMarkup(v,compact=false){
 function regularCloseMarkup(v){
  if(!Array.isArray(v?.regular_close_recomputed_parts)||
     !Number.isInteger(v.regular_close_continuous_sessions)||
-    v.regular_close_continuous_sessions<90||v.regular_close_continuous_sessions>200)return '';
+    v.regular_close_continuous_sessions<90||v.regular_close_continuous_sessions>260)return '';
  const parts=[];
  if(v.regular_close_recomputed_parts.includes('daily_rsi'))parts.push('일봉 RSI');
  const periods=Array.isArray(v.regular_close_ma_periods)?
   v.regular_close_ma_periods.filter(p=>['20','60','120'].includes(p)):[];
  if(v.regular_close_recomputed_parts.includes('daily_ma_slope_turn')&&periods.length)
   parts.push('일봉 MA 전환 '+periods.join('·')+'일');
+ if(v.regular_close_recomputed_parts.includes('ma20_ma60_cross_near_ma240')&&
+    v.regular_close_continuous_sessions===260)parts.push('20·60일 골든크로스 / 240일선');
  return parts.length?'<p class="u-muted">공식 KRX 종가 재산출 · '+parts.join(' / ')+
   ' · 연속 '+v.regular_close_continuous_sessions+'거래일</p>':'';
 }
