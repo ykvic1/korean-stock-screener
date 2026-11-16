@@ -1,0 +1,659 @@
+{
+  "cash_distributions_included": false,
+  "entry_session": "2025-11-14",
+  "first_share_count_changes": {
+    "decrease": 584,
+    "increase": 610,
+    "missing": 0
+  },
+  "fractional_share_model": true,
+  "horizons": {
+    "1": {
+      "count": 0,
+      "rows": []
+    },
+    "12": {
+      "count": 13,
+      "rows": [
+        {
+          "code": "001020",
+          "observed_adverse_excursion_pct": 49.5252,
+          "price_change_pct": -46.2908,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "002360",
+          "observed_adverse_excursion_pct": 62.8827,
+          "price_change_pct": -5.6122,
+          "unpriced_sessions": 17,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "005320",
+          "observed_adverse_excursion_pct": 40.4762,
+          "price_change_pct": 8.0357,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "023790",
+          "observed_adverse_excursion_pct": 72.8195,
+          "price_change_pct": -65.9353,
+          "unpriced_sessions": 16,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "024890",
+          "observed_adverse_excursion_pct": 67.3777,
+          "price_change_pct": -66.3739,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "027040",
+          "observed_adverse_excursion_pct": 5.291,
+          "price_change_pct": 85.1852,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "043910",
+          "observed_adverse_excursion_pct": 60.2381,
+          "price_change_pct": -57.2222,
+          "unpriced_sessions": 13,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "046390",
+          "observed_adverse_excursion_pct": 56.4403,
+          "price_change_pct": -44.9493,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "088290",
+          "observed_adverse_excursion_pct": 76.6466,
+          "price_change_pct": -63.0267,
+          "unpriced_sessions": 16,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "092220",
+          "observed_adverse_excursion_pct": 44.5783,
+          "price_change_pct": -42.1687,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "131760",
+          "observed_adverse_excursion_pct": 81.2381,
+          "price_change_pct": -80.3333,
+          "unpriced_sessions": 16,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "227950",
+          "observed_adverse_excursion_pct": 52.7595,
+          "price_change_pct": -38.5316,
+          "unpriced_sessions": 16,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "258790",
+          "observed_adverse_excursion_pct": 49.4309,
+          "price_change_pct": 8.9431,
+          "unpriced_sessions": 16,
+          "valuation_session": "2026-11-13"
+        }
+      ]
+    },
+    "2": {
+      "count": 0,
+      "rows": []
+    },
+    "3": {
+      "count": 0,
+      "rows": []
+    },
+    "6": {
+      "count": 0,
+      "rows": []
+    }
+  },
+  "matched_events": [
+    {
+      "action": "reverse_split",
+      "after": 34187845,
+      "before": 68375690,
+      "code": "005320",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "온타이드",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000424/20260519001021/99321.htm",
+      "old_units": 2,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9360627,
+      "before": 46803136,
+      "code": "006200",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "한국전자홀딩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/15/001364/20260515002967/68155.htm",
+      "old_units": 5,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 11998328,
+      "before": 59991641,
+      "code": "011090",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "에넥스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/15/000180/20260515000294/68155.htm",
+      "old_units": 5,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 11339145,
+      "before": 113391457,
+      "code": "043910",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "자연과환경",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000630/20260519001431/70795.htm",
+      "old_units": 10,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 112740587,
+      "before": 1127405871,
+      "code": "078130",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "국일제지",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000559/20260519001152/70795.htm",
+      "old_units": 10,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 40152628,
+      "before": 200763141,
+      "code": "092220",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "KEC",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/15/000281/20260515000516/68155.htm",
+      "old_units": 5,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 4922665,
+      "before": 24613326,
+      "code": "333050",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "이노테나",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000553/20260519001003/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 3509724,
+      "before": 17548623,
+      "code": "417180",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "핑거스토리",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000629/20260519001416/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 39455013,
+      "before": 394550136,
+      "code": "004410",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "서울식품",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/18/000288/20260518000404/68155.htm",
+      "old_units": 10,
+      "session": "2026-05-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 5777858,
+      "before": 28889293,
+      "code": "018620",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "우진비앤지",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/20/000656/20260520001676/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 8249830,
+      "before": 41249152,
+      "code": "024890",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "대원화성",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/18/000290/20260518000407/68155.htm",
+      "old_units": 5,
+      "session": "2026-05-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9705565,
+      "before": 19411130,
+      "code": "065770",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "CS",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/20/000660/20260520001695/70795.htm",
+      "old_units": 2,
+      "session": "2026-05-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 19461489,
+      "before": 38922978,
+      "code": "198940",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "한주라이트메탈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/20/000661/20260520001680/70795.htm",
+      "old_units": 2,
+      "session": "2026-05-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 5121376,
+      "before": 25606882,
+      "code": "225590",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "패션플랫폼",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/20/000662/20260520001701/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 11113373,
+      "before": 111133730,
+      "code": "002360",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "SH에너지화학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/21/000533/20260521001445/99321.htm",
+      "old_units": 10,
+      "session": "2026-05-22"
+    },
+    {
+      "action": "reverse_split",
+      "after": 8686316,
+      "before": 43431583,
+      "code": "131760",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "파인텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/21/000900/20260521002190/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-22"
+    },
+    {
+      "action": "reverse_split",
+      "after": 13368933,
+      "before": 66844667,
+      "code": "193250",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "링크드",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/21/001008/20260521002518/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-22"
+    },
+    {
+      "action": "reverse_split",
+      "after": 13069808,
+      "before": 26139617,
+      "code": "023790",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "동일스틸럭스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000870/20260522001906/70795.htm",
+      "old_units": 2,
+      "session": "2026-05-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 20855881,
+      "before": 104279408,
+      "code": "032680",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "소프트센",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000915/20260522001971/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 17269173,
+      "before": 43172933,
+      "code": "046390",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "삼화네트웍스",
+      "new_units": 2,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000866/20260522001949/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 7884381,
+      "before": 78843818,
+      "code": "115530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "씨엔플러스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000868/20260522001932/70795.htm",
+      "old_units": 10,
+      "session": "2026-05-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 14601636,
+      "before": 73008183,
+      "code": "234100",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "폴라리스세원",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000781/20260522001744/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 4598502,
+      "before": 22992511,
+      "code": "419540",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "비스토스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000741/20260522001731/70764.htm",
+      "old_units": 5,
+      "session": "2026-05-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 25680106,
+      "before": 51360212,
+      "code": "032790",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엠젠솔루션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/26/000478/20260526001208/70764.htm",
+      "old_units": 2,
+      "session": "2026-05-27"
+    },
+    {
+      "action": "reverse_split",
+      "after": 8536899,
+      "before": 85368992,
+      "code": "137940",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "넥스트아이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/26/000625/20260526001444/70795.htm",
+      "old_units": 10,
+      "session": "2026-05-27"
+    },
+    {
+      "action": "reverse_split",
+      "after": 8974830,
+      "before": 44874154,
+      "code": "322780",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "코퍼스코리아",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/26/000667/20260526001472/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-27"
+    },
+    {
+      "action": "reverse_split",
+      "after": 35596662,
+      "before": 177983313,
+      "code": "001020",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "페이퍼코리아",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000526/20260527001284/99321.htm",
+      "old_units": 5,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 13917769,
+      "before": 69588847,
+      "code": "027040",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "서울전자통신",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000766/20260527001623/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9742009,
+      "before": 97420096,
+      "code": "052420",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오성첨단소재",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000764/20260527001631/70795.htm",
+      "old_units": 10,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9048223,
+      "before": 45241115,
+      "code": "061040",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "알에프텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000762/20260527001645/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 7976072,
+      "before": 39880364,
+      "code": "088290",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "이원컴포텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000757/20260527001675/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 19023623,
+      "before": 38047246,
+      "code": "227610",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아우딘퓨쳐스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000759/20260527001669/70795.htm",
+      "old_units": 2,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 34508209,
+      "before": 172541047,
+      "code": "227950",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "엔투텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000754/20260527001698/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 4998256,
+      "before": 24991284,
+      "code": "258790",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "소프트캠프",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000753/20260527001725/70795.htm",
+      "old_units": 5,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 4567833,
+      "before": 9135666,
+      "code": "368970",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오에스피",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/27/000760/20260527001653/70795.htm",
+      "old_units": 2,
+      "session": "2026-05-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 81033287,
+      "before": 162066575,
+      "code": "019550",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "SBI인베스트먼트",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/05/28/000718/20260528001583/70795.htm",
+      "old_units": 2,
+      "session": "2026-05-29"
+    },
+    {
+      "action": "reverse_split",
+      "after": 10945987,
+      "before": 21891975,
+      "code": "065650",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "하이퍼코퍼레이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/06/08/000828/20260608001489/70795.htm",
+      "old_units": 2,
+      "session": "2026-06-09"
+    },
+    {
+      "action": "reverse_split",
+      "after": 13386632,
+      "before": 66933164,
+      "code": "066910",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "손오공",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/06/08/000986/20260608001873/70795.htm",
+      "old_units": 5,
+      "session": "2026-06-09"
+    },
+    {
+      "action": "split",
+      "after": 23739825,
+      "before": 4747965,
+      "code": "006740",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "블루산업개발",
+      "new_units": 5,
+      "notice_url": "https://kind.krx.co.kr/external/2026/06/23/000108/20260623000154/68155.htm",
+      "old_units": 1,
+      "session": "2026-06-26"
+    },
+    {
+      "action": "reverse_split",
+      "after": 4747965,
+      "before": 23739825,
+      "code": "006740",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "블루산업개발",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/08/25/000071/20260825000124/68155.htm",
+      "old_units": 5,
+      "session": "2026-08-28"
+    }
+  ],
+  "official_adjusted_history_verified": false,
+  "performance_validated": false,
+  "register_sha256": {
+    "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
+    "historical_register": "d54c6828772845b6b62f3b3e3e12359424c31b2d82ad6e791fc96449737820a3",
+    "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0"
+  },
+  "signal_session": "2025-11-13",
+  "source_sha256": {
+    "2025_parquet": "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+    "2026-11-13_csv": "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc",
+    "2026_parquet": "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d"
+  }
+}
