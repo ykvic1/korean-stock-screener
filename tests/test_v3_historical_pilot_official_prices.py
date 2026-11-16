@@ -97,6 +97,8 @@ class HistoricalTurnoverTest(unittest.TestCase):
         self.assertEqual(report['sessions'][prices.SIGNAL.isoformat()]['market_wide']['exact_ohlc'], 1)
         self.assertFalse(report['volume_session_equivalence_verified'])
         self.assertFalse(report['performance_validated'])
+        self.assertTrue(report['turnover_numeric_comparison_complete'])
+        self.assertTrue(report['turnover_all_values_matched'])
 
     def test_rate_limit_stops_followup_dates(self):
         with patch.dict(prices.BATCHES, {'two': (prices.SIGNAL, prices.ENTRY)}), \
@@ -115,7 +117,7 @@ class HistoricalTurnoverTest(unittest.TestCase):
             digests = tuple(sha256(p.read_bytes()).hexdigest() for p in paths)
             row = {'Date': datetime.combine(prices.SIGNAL, datetime.min.time()),
                    'Code': '000001', 'Market': 'KOSDAQ GLOBAL', 'Name': 'Historic',
-                   'Volume': 20, 'Amount': 240}
+                   'Volume': 20.0, 'Amount': 240.0}
             batch = SimpleNamespace(to_pylist=lambda: [row])
             table = SimpleNamespace(to_batches=lambda: [batch])
             empty = SimpleNamespace(to_batches=lambda: [])
@@ -130,3 +132,23 @@ class HistoricalTurnoverTest(unittest.TestCase):
             with patch.object(prices, 'SOURCE_DIGESTS', digests):
                 with self.assertRaisesRegex(ValueError, 'historical_public_source_digest_mismatch'):
                     prices.read_turnover_panels(paths, (prices.SIGNAL,))
+
+    def test_exact_float_quantities_keep_integer_precision_boundaries(self):
+        for value in (0.0, 20.0, float(2**53 - 1)):
+            self.assertEqual(prices.public_quantity(value), int(value))
+        for value in (True, False, -1.0, 1.5, float('nan'), float('inf'), float(2**53)):
+            self.assertIsNone(prices.public_quantity(value))
+        self.assertEqual(prices.public_quantity(str(2**60)), 2**60)
+
+    def test_partial_or_mismatched_turnover_never_reports_a_successful_comparison(self):
+        panel = {'000001': ('KOSDAQ', 'Private Issuer', 100, 10, 13, 8, 12, 20)}
+        raw = {'000001': ('KOSDAQ', {
+            **self.quote(), 'LIST_SHRS': '100',
+            'TDD_OPNPRC': '10', 'TDD_HGPRC': '13', 'TDD_LWPRC': '8', 'TDD_CLSPRC': '12'})}
+        for value, complete in ((None, False), (241, True)):
+            with patch.dict(prices.BATCHES, {'single': (prices.SIGNAL,)}), \
+                 patch.object(prices, 'read_official_openings', return_value=(raw, {})):
+                report = prices.audit({prices.SIGNAL: panel}, set(), object(), 'single',
+                    turnover_panels={prices.SIGNAL: {'000001': ('KOSDAQ', 'Private Issuer', 20.0, value)}})
+            self.assertIs(report['turnover_numeric_comparison_complete'], complete)
+            self.assertFalse(report['turnover_all_values_matched'])
