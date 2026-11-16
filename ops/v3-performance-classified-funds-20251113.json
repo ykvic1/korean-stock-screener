@@ -1,0 +1,171 @@
+[
+  {
+    "code": "0030R0",
+    "name": "대신밸류리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "088260",
+    "name": "이리츠코크렙",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "088980",
+    "name": "맥쿼리인프라",
+    "kind": "infrastructure_fund",
+    "source_url": "https://www.mkif.com/en/about-mkif.html"
+  },
+  {
+    "code": "140910",
+    "name": "에이리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "145270",
+    "name": "케이탑리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "152550",
+    "name": "한국ANKOR유전",
+    "kind": "resource_fund",
+    "source_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/458695"
+  },
+  {
+    "code": "204210",
+    "name": "스타에스엠리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "293940",
+    "name": "신한알파리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "330590",
+    "name": "롯데리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "334890",
+    "name": "이지스밸류플러스리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "338100",
+    "name": "NH프라임리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "348950",
+    "name": "제이알글로벌리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "350520",
+    "name": "이지스레지던스리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "357120",
+    "name": "코람코라이프인프라리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm",
+    "rename_source_url": "https://www.paxnet.co.kr/news/357120/disclosureView?articleId=20230915067870&currentPageNo=1&objId=A20230915067870&stockCode=357120"
+  },
+  {
+    "code": "357250",
+    "name": "미래에셋맵스리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "357430",
+    "name": "마스턴프리미어리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "365550",
+    "name": "ESR켄달스퀘어리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "377190",
+    "name": "디앤디플랫폼리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "395400",
+    "name": "SK리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "396690",
+    "name": "미래에셋글로벌리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "400760",
+    "name": "NH올원리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "404990",
+    "name": "신한서부티엔디리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "415640",
+    "name": "KB발해인프라",
+    "kind": "infrastructure_fund",
+    "source_url": "https://kind.krx.co.kr/external/2025/09/10/000514/20250910001294/00637.htm"
+  },
+  {
+    "code": "417310",
+    "name": "코람코더원리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "432320",
+    "name": "KB스타리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "448730",
+    "name": "삼성FN리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "451800",
+    "name": "한화리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  },
+  {
+    "code": "481850",
+    "name": "신한글로벌액티브리츠",
+    "kind": "reit",
+    "source_url": "https://kind.krx.co.kr/external/2025/11/14/003256/20251114007533/11013.htm"
+  }
+]

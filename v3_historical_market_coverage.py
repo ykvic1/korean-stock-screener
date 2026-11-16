@@ -59,7 +59,7 @@ def ledger_rows(root, name):
         return list(csv.DictReader(stream))
 
 
-def summarize(panels, roster, trade_rows, delisting_prices):
+def summarize(panels, roster, trade_rows, delisting_prices, *, stable_codes=None):
     signal = panels[SIGNAL]
     sessions = sorted(session for session in panels if ENTRY <= session <= END)
     require(sessions and sessions[0] == ENTRY and sessions[-1] == END, "historical_market_session_range")
@@ -115,6 +115,8 @@ def summarize(panels, roster, trade_rows, delisting_prices):
                 elif not traded(row):
                     counts["valuation_unpriced"] += 1
                 else:
+                    if stable_codes is not None:
+                        stable_codes.setdefault(str(valuations[session]), set()).add(code)
                     counts["stable_quote_valuations"] += 1
                     counts["stable_quote_paths_with_gaps"] += code in gaps
                     returns.append((row[6] / entry - 1) * 100)

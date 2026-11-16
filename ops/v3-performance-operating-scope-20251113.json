@@ -1,0 +1,193 @@
+{
+  "action_register_sha256": {
+    "continuity_register": "650fbd9e29e9ccc309fbc28b72e01daed5771fa5aa40dc1bb06e5c35b7533b73",
+    "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
+    "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
+    "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0"
+  },
+  "current_control": {
+    "matched_count": 2591,
+    "published_catalog_sha256": "41e82e39460d38091c5eeeefe3d20c72f51a7a36651e810efbaf1dcadde303f4",
+    "session": "2026-11-13"
+  },
+  "fund_register_sha256": "b5c175c69936cf5b42a6ce5dc205a448d7a7c2e712daee4b2c6f162890ca0eef",
+  "historical_adjusted_prices_independently_certified": false,
+  "historical_security_types_independently_certified": false,
+  "horizons": {
+    "1": {
+      "all_observed_securities": {
+        "action_adjusted": 0,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 2418,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 2418
+      },
+      "identified_funds_in_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 1,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 24,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 24
+      },
+      "reproduced_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 2269,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 2269
+      }
+    },
+    "12": {
+      "all_observed_securities": {
+        "action_adjusted": 121,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 1451,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 1330
+      },
+      "identified_funds_in_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 0,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 21,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 21
+      },
+      "reproduced_operating_scope": {
+        "action_adjusted": 119,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 1342,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 1223
+      }
+    },
+    "2": {
+      "all_observed_securities": {
+        "action_adjusted": 0,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 2276,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 2276
+      },
+      "identified_funds_in_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 1,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 23,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 23
+      },
+      "reproduced_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 2129,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 2129
+      }
+    },
+    "3": {
+      "all_observed_securities": {
+        "action_adjusted": 1,
+        "delisting_settlement": 17,
+        "includes_unlisted_entitlement": 1,
+        "non_delisted_unique": 2159,
+        "overlap_superseded": 1,
+        "raw_continuous_only": 2158
+      },
+      "identified_funds_in_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 1,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 23,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 23
+      },
+      "reproduced_operating_scope": {
+        "action_adjusted": 1,
+        "delisting_settlement": 17,
+        "includes_unlisted_entitlement": 1,
+        "non_delisted_unique": 2013,
+        "overlap_superseded": 1,
+        "raw_continuous_only": 2012
+      }
+    },
+    "6": {
+      "all_observed_securities": {
+        "action_adjusted": 21,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 1736,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 1715
+      },
+      "identified_funds_in_operating_scope": {
+        "action_adjusted": 0,
+        "delisting_settlement": 0,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 21,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 21
+      },
+      "reproduced_operating_scope": {
+        "action_adjusted": 20,
+        "delisting_settlement": 16,
+        "includes_unlisted_entitlement": 0,
+        "non_delisted_unique": 1598,
+        "overlap_superseded": 0,
+        "raw_continuous_only": 1578
+      }
+    }
+  },
+  "identified_funds_by_type": {
+    "infrastructure_fund": 2,
+    "reit": 25,
+    "resource_fund": 1
+  },
+  "operating_selector_sha256": "0ea28b1344e665bb39bef9d59393069ac93afd4f202a9a29a5be5180cc4f7ad8",
+  "other_rows_excluded_by_operating_filter": 0,
+  "performance_validated": false,
+  "point_in_time_scores_verified": false,
+  "preferred_name_and_class_excluded_count": 114,
+  "price_source_sha256": {
+    "2025_parquet": "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+    "2026-11-13_csv": "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc",
+    "2026_parquet": "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d"
+  },
+  "scope_counts": {
+    "all_observed_securities": {
+      "by_market": {
+        "KOSDAQ": 1803,
+        "KOSPI": 958
+      },
+      "later_delisted": 92,
+      "listed": 2761,
+      "next_open_observed": 2656
+    },
+    "identified_funds_in_operating_scope": {
+      "by_market": {
+        "KOSPI": 28
+      },
+      "later_delisted": 3,
+      "listed": 28,
+      "next_open_observed": 26
+    },
+    "reproduced_operating_scope": {
+      "by_market": {
+        "KOSDAQ": 1726,
+        "KOSPI": 847
+      },
+      "later_delisted": 59,
+      "listed": 2573,
+      "next_open_observed": 2476
+    }
+  },
+  "signal_session": "2025-11-13",
+  "source_spac_department_excluded_count": 74
+}
