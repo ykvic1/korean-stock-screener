@@ -1,0 +1,17 @@
+{
+  "asof": "2026-11-13",
+  "requested_sessions": 200,
+  "archived_sessions": 80,
+  "listed_total": 2591,
+  "counts": {
+    "current_close_observed": 2591,
+    "full_200_session_continuity": 0,
+    "daily_rsi_recomputed": 0,
+    "daily_ma_turn_recomputed": 0
+  },
+  "source_inputs_sha256": "c4d5bbeeed772e2cc4d6d23501b59564ec359964e8530cb41686a0d2363180a5",
+  "added_this_run": 80,
+  "pending_sessions": 120,
+  "source_requests": 160,
+  "failures": {}
+}
