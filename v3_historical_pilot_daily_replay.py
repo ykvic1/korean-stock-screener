@@ -39,7 +39,7 @@ def source_rows(paths, symbols, last):
                 yield row["Code"], last, [int(row[key]) for key in QUOTE_FIELDS]
 
 
-def retained_bars(inputs, references, settlements, trades, last, share_actions):
+def retained_bars(inputs, references, settlements, trades, last, share_actions, successor_listings):
     source_dates = {}
     for code in references:
         source_dates[code] = ENTRY, day(trades[code]["last_positive_volume_candidate"])
@@ -54,10 +54,14 @@ def retained_bars(inputs, references, settlements, trades, last, share_actions):
     calendars = defaultdict(set)
     action_dates = {(code, day(session)) for (code, listing_on), row in share_actions.items()
                     for session in (listing_on, row["prior_trade_on"])}
+    action_dates.update((row["successor_code"], day(row[key])) for row in successor_listings.values()
+                        for key in ("prior_trade_on", "listing_on"))
     action_shares = {}
     for code, session, values in source_rows(inputs, windows.keys(), last):
         if (code, session) in action_dates and values[-2] is not None and values[-2] > 0:
             require((code, session) not in action_shares, "duplicate_action_trade_bar")
+            require(values[-1] is not None and 0 < values[-1] == int(values[-1]),
+                    "invalid_action_listed_share_count")
             action_shares[code, session] = int(values[-1])
         start, end = windows[code]
         if not start <= session <= end or not values[-2]:
@@ -78,6 +82,10 @@ def retained_bars(inputs, references, settlements, trades, last, share_actions):
         require(action_shares.get((code, day(row["prior_trade_on"]))) == int(row["prior_trade_listed_shares"])
                 and action_shares.get((code, day(session))) == int(row["shares_after_action"]),
                 "historical_action_share_count_mismatch")
+    for row in successor_listings.values():
+        require(all(action_shares.get((row["successor_code"], day(row[session]))) == int(row[count])
+                    for session, count in (("prior_trade_on", "shares_before"), ("listing_on", "shares_after"))),
+                "historical_successor_share_count_mismatch")
     return market, rows
 
 
@@ -162,9 +170,9 @@ def check_replayed_reference(reference, market, trades, low_day, first):
                 "pilot_bar_reference_touch_mismatch")
 
 
-def replay(inputs, references, prices, paths, settlements, trades, adjustments, share_actions):
+def replay(inputs, references, prices, paths, settlements, trades, adjustments, share_actions, successor_listings):
     last = max(day(row["valuation_session"]) for row in prices.values())
-    market, bars = retained_bars(inputs, references, settlements, trades, last, share_actions)
+    market, bars = retained_bars(inputs, references, settlements, trades, last, share_actions, successor_listings)
     holdings = replay_trade_bars(market, bars, references, settlements, trades, adjustments)
     for code, reference in references.items():
         entry = positive(reference["entry_open_krw"])
@@ -179,7 +187,8 @@ def replay(inputs, references, prices, paths, settlements, trades, adjustments, 
             )
         check_replayed_reference(reference, market, mark_bars, low_day, touch_day)
     return {"replayed_source_trade_bars": len(bars), "replayed_market_sessions": len(market),
-            "replayed_horizon_rows": len(prices), "replayed_share_action_transitions": len(share_actions)}
+            "replayed_horizon_rows": len(prices), "replayed_share_action_transitions": len(share_actions),
+            "replayed_successor_listings": len(successor_listings)}
 
 
 def main():

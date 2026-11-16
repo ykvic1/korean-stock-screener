@@ -19,6 +19,9 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
         self.assertEqual(report["methods"]["awaiting_settlement_unpriced"], 2)
         self.assertEqual(report["methods"]["awaiting_final_distribution_unpriced"], 2)
         self.assertEqual(report["pilot_issuers"], 17)
+        self.assertEqual(report["successor_share_delivery_counts"], {
+            "new_shares": 8, "treasury_delivery": 1, "merger_then_consolidation": 1,
+        })
         self.assertEqual(report["horizons"]["3"]["with_value"], 17)
         self.assertEqual(report["horizons"]["6"]["unpriced_final_distributions"], 1)
         self.assertEqual(report["horizons"]["12"]["unpriced_final_distributions"], 1)
@@ -113,6 +116,10 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
 
     def test_detects_workbook_errors_that_arithmetic_alone_would_miss(self):
         cases = (
+            ("successor-listings", {"code": "082640"},
+             {"reported_new_shares": "1"}, "successor_issuance_count_mismatch"),
+            ("successor-listings", {"code": "031440"},
+             {"treatment": "new_shares"}, "successor_issuance_count_mismatch"),
             ("share-adjustments", {"code": "028080"},
              {"intervening_action_url": ""}, "unexplained_share_count_transition"),
             ("share-adjustments", {"code": "121850"},

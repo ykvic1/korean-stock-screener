@@ -136,7 +136,8 @@ jobs:
                   +str(pilot["next_session_traded_non_spac_outside_pilot"]),
                   "- 해당 시점 투자점수 및 가격 원천 독립 검증 미완료",
                   "- 분할·병합 등 변경상장 수량 근거: "
-                  +str(pilot["share_count_corroborated_actions"])+"건",
+                  +str(pilot["share_count_corroborated_actions"])+"건"
+                  +" / 합병·교환 교부 경로: "+str(sum(pilot["successor_share_delivery_counts"].values()))+"건",
                   "- 대조한 현금배당 기록: "+str(pilot["dividend_event_rows"])
                   +"건 / 보유 경로 권리 확인: "+str(pilot["dividend_eligible_events"])
                   +"건 / 전체 배당 이력 검증 미완료",
