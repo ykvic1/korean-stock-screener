@@ -10,7 +10,7 @@ from unittest.mock import patch
 from official_probe.clients import KRXProbeError
 from tests.test_v3_forward_entry import MemoryStore, quote
 from v3_forward_daily_prices import (
-    DailyEvidenceError, collect_daily, completed_sessions, daily_row, save_daily,
+    DailyEvidenceError, collect_daily, completed_sessions, daily_row, official_publish_time, save_daily,
 )
 from v3_forward_entry import timestamp
 
@@ -32,6 +32,23 @@ class ForwardDailyPriceTest(unittest.TestCase):
                 collect_daily(cohort, now, lambda: storage,
                               lambda day: (calls.append(day), pair(day))[1], clock=lambda: now)
         self.assertEqual(calls, ['2026-11-13'])
+
+    def test_official_daily_availability_starts_next_business_day_at_eight(self):
+        self.assertEqual(official_publish_time(date(2026, 11, 13)),
+                         timestamp('2026-11-15T23:00:00+00:00'))
+        self.assertEqual(official_publish_time(date(2026, 7, 16)),
+                         timestamp('2026-07-19T23:00:00+00:00'))
+        cohort = [{'entry_session_candidate': '2026-11-16'}]
+        storage = MemoryStore()
+        before = timestamp('2026-11-16T22:59:59+00:00')
+        at_cutoff = timestamp('2026-11-16T23:00:00+00:00')
+        with TemporaryDirectory() as root, patch('v3_forward_daily_prices.OUT', Path(root)):
+            with patch('builtins.print'), patch(__name__ + '.pair', wraps=pair) as query:
+                collect_daily(cohort, before, lambda: storage, query, clock=lambda: before)
+                query.assert_not_called()
+                self.assertEqual(storage.blobs, {})
+                collect_daily(cohort, at_cutoff, lambda: storage, query, clock=lambda: at_cutoff)
+                query.assert_called_once_with('2026-11-16')
 
     def test_close_cutoff_exam_day_and_observed_holiday_override(self):
         exam = date(2026, 11, 19)
@@ -77,7 +94,7 @@ class ForwardDailyPriceTest(unittest.TestCase):
     def test_missing_earlier_pair_does_not_drop_subsequent_sessions(self):
         storage = MemoryStore()
         cohort = [{'entry_session_candidate': '2026-11-16'}]
-        now = timestamp('2026-11-17T11:45:00+00:00')
+        now = timestamp('2026-11-18T00:05:00+00:00')
         calls = []
 
         def partially_available(day):
@@ -99,7 +116,7 @@ class ForwardDailyPriceTest(unittest.TestCase):
 
     def test_transient_source_failure_retries_without_archiving_partial_market(self):
         cohort = [{'entry_session_candidate': '2026-11-16'}]
-        now = timestamp('2026-11-17T11:45:00+00:00')
+        now = timestamp('2026-11-18T00:05:00+00:00')
         for reason in ('transport_failure', 'http_server_error', 'http_rate_limited'):
             with self.subTest(reason=reason), TemporaryDirectory() as root, patch(
                     'v3_forward_daily_prices.OUT', Path(root)), patch('builtins.print'):

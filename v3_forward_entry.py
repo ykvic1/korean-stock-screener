@@ -13,7 +13,7 @@ from statistics import median
 from official_probe.clients import KRXClient, KRXProbeError
 from v3_forward_daily_prices import (
     DailyEvidenceError, IncompleteOfficialPair, RETRYABLE_KRX_REASONS,
-    collect_daily, pending_official_pair, read_daily,
+    collect_daily, official_publish_time, pending_official_pair, read_daily,
 )
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
@@ -366,6 +366,7 @@ def main():
         raw = source.read_bytes()
         digest = sha256(raw).hexdigest()
         target = OUT / source.name
+        previous = None
         if target.exists():
             previous = json.loads(target.read_bytes())
             if previous['score_observation_sha256'] != digest:
@@ -381,6 +382,12 @@ def main():
             raise EntryError('score_archive_filename_mismatch')
         if now < timestamp(plan['regular_close_utc']):
             result = {**plan, 'status': 'waiting_for_session_close'}
+        elif now < (publish_at := official_publish_time(
+                date.fromisoformat(plan['entry_session_candidate']))):
+            result = {**plan, 'status': 'waiting_for_official_publish_window',
+                      'official_publish_candidate_utc': publish_at.isoformat()}
+            if previous and 'last_source_attempt_at_utc' in previous:
+                result['last_source_attempt_at_utc'] = previous['last_source_attempt_at_utc']
         else:
             try:
                 result = save_entry(plan, observation, storage_and_key()[0], official_pair)

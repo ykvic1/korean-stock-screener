@@ -1,6 +1,7 @@
 """Privately retain one KRX daily price panel per session for all forward cohorts."""
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from functools import lru_cache
 import gzip
 from io import BytesIO
 import json
@@ -91,6 +92,21 @@ def completed_sessions(start, end, now):
                  else calendar.session_close(session).to_pydatetime())
         if close <= now:
             yield day.isoformat()
+
+
+@lru_cache(maxsize=512)
+def official_publish_time(day):
+    """KRX Open API updates at 08:00 KST on the next business day."""
+    # https://openapi.krx.co.kr/contents/OPP/COMM/faq/OPPCOMM004.cmd
+    import exchange_calendars as xc
+
+    first = day + timedelta(days=1)
+    calendar = xc.get_calendar('XKRX')
+    for session in calendar.sessions_in_range(first, day + timedelta(days=14)):
+        publish_day = session.date()
+        if publish_day.isoformat() not in CONFIRMED_KRX_2026_CLOSURES:
+            return datetime.combine(publish_day, time(8), KST).astimezone(timezone.utc)
+    raise DailyEvidenceError('no_official_publish_day_candidate')
 
 
 def daily_summary(evidence, day):
@@ -192,6 +208,8 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
     last_target = _anniversary(max(entries), max(HORIZONS)) + timedelta(days=10)
     pending = []
     for day in completed_sessions(min(signal_days), last_target, now):
+        if now < official_publish_time(date.fromisoformat(day)):
+            continue
         target = OUT / f'{day}.json'
         if target.exists():
             previous = json.loads(target.read_bytes())
