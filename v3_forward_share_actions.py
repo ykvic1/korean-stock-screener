@@ -18,7 +18,7 @@ from v3_krx_derived_5day import _private_new_blob_readback
 
 OUT = Path('ops/forward-share-action-status')
 REGISTER = Path('ops/forward-reviewed-share-actions.csv')
-SCHEMA = 'v3-forward-krx-share-action-review-1'
+SCHEMA = 'v3-forward-krx-share-action-review-2'
 MAX_PAIRS_PER_RUN = 5
 FIELDS = ('market', 'code', 'name', 'listing_on', 'action', 'shares_before',
           'shares_after', 'new_units', 'old_units', 'notice_url')
@@ -89,7 +89,7 @@ def share_transition(previous, current, notice):
     return 'notice_matched'
 
 
-def reconcile(before, after, notices, register_sha):
+def reconcile(before, after, notices, notice_sha):
     earlier, day = before['date'], after['date']
     if earlier >= day:
         raise ShareReviewError('invalid_share_review_date_order')
@@ -123,7 +123,7 @@ def reconcile(before, after, notices, register_sha):
         'status': 'adjacent_share_counts_reviewed',
         'previous_source_sha256': before['source_sha256'],
         'current_source_sha256': after['source_sha256'],
-        'reviewed_notice_register_sha256': register_sha,
+        'reviewed_session_notices_sha256': notice_sha,
         'compared_distinct_codes': sum(counts.values()),
         'states': {state: counts[state] for state in STATES},
         'notice_codes_absent_from_both_panels': unseen_notices,
@@ -145,7 +145,6 @@ def collect_share_reviews(now, get_storage):
         return
     raw = REGISTER.read_bytes()
     notices = reviewed_actions(raw)
-    review_digest = sha256(raw).hexdigest()
     days = [date.fromisoformat(day)
             for day in completed_sessions(min(archived), max(archived), now)]
 
@@ -160,11 +159,17 @@ def collect_share_reviews(now, get_storage):
     for earlier, day in zip(days, days[1:]):
         if earlier not in archived or day not in archived:
             continue
+        session_notices = {key: value for key, value in notices.items()
+                           if key[0] == day.isoformat()}
+        notice_bytes = json.dumps([session_notices[key] for key in sorted(session_notices)],
+                                  sort_keys=True, ensure_ascii=False,
+                                  separators=(',', ':')).encode()
+        review_digest = sha256(notice_bytes).hexdigest()
         target = OUT / f'{day}.json'
         if target.exists():
             previous = json.loads(target.read_bytes())
             if (previous.get('schema') == SCHEMA
-                    and previous.get('reviewed_notice_register_sha256') == review_digest
+                    and previous.get('reviewed_session_notices_sha256') == review_digest
                     and previous.get('previous_session') == earlier.isoformat()
                     and previous.get('previous_source_sha256') == archived[earlier]['source_sha256']
                     and previous.get('current_source_sha256') == archived[day]['source_sha256']):
@@ -172,10 +177,12 @@ def collect_share_reviews(now, get_storage):
         if processed >= MAX_PAIRS_PER_RUN:
             break
         processed += 1
-        public, cases = reconcile(panel(earlier), panel(day), notices, review_digest)
-        path = f'derived/forward-share-actions/{day}/{review_digest}.json'
+        public, cases = reconcile(panel(earlier), panel(day), session_notices, review_digest)
         expected = json.dumps({'summary': public, 'cases': cases},
                               ensure_ascii=False, separators=(',', ':')).encode()
+        # Version the complete result so corrected sources preserve earlier evidence.
+        result_digest = sha256(expected).hexdigest()
+        path = f'derived/forward-share-actions/{day}/{result_digest}.json'
         storage = get_storage()
         old, _ = storage.get_content(path)
         if old is None:
