@@ -39,10 +39,18 @@ jobs:
           curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o pilot-2025.parquet
           curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o pilot-2026.parquet
           curl -fsSL --max-time 30 https://raw.githubusercontent.com/FinanceData/fdr_krx_data_cache/05a17038b3cddf7a6f48105913e46fd37d96a21e/data/listing/krx/2026-11-13.csv -o pilot-2026-11-13.csv
-      - name: Compare official OHLC and historical membership in memory
+      - name: Compare official OHLC, turnover and historical membership in memory
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           PILOT_BATCH: ${{ matrix.batch }}
         run: |
           set -euo pipefail
-          python v3_historical_pilot_official_prices.py --batch "$PILOT_BATCH" "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv"
+          python v3_historical_pilot_official_prices.py --batch "$PILOT_BATCH" "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" | tee "$RUNNER_TEMP/official-comparison-${PILOT_BATCH}.json"
+      - name: Retain aggregate comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-comparison-${{ matrix.batch }}
+          path: ${{ runner.temp }}/official-comparison-${{ matrix.batch }}.json
+          if-no-files-found: ignore
+          retention-days: 90
