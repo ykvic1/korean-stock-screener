@@ -300,6 +300,37 @@ def check_path(path, reference, valuation, previous):
     return bars, gaps, adverse, favorable
 
 
+def successor_listing_counts(rows, exchanges, settlements, share_actions):
+    require(rows.keys() == exchanges, "successor_listing_coverage_mismatch")
+    counts = Counter()
+    for code, row in rows.items():
+        term = settlements[code]
+        successor = row["successor_code"]
+        listing = row["listing_on"]
+        before, after, issued = (int(row[key]) for key in ("shares_before", "shares_after", "reported_new_shares"))
+        cancelled = int(row["cancelled_before_consolidation"])
+        mode = row["treatment"]
+        require(successor == term["successor_code"] and listing == term["settlement_or_share_availability_on"]
+                and ENTRY <= day(row["prior_trade_on"]) < day(listing)
+                and min(before, after) > 0 and row["source_url"].startswith("https://"),
+                "invalid_successor_listing_identity")
+        if mode == "new_shares":
+            require(issued > 0 and cancelled == 0 and before + issued == after, "successor_issuance_count_mismatch")
+        elif mode == "treasury_delivery":
+            require(issued == 0 and cancelled == 0 and before == after, "successor_treasury_count_mismatch")
+        elif mode == "merger_then_consolidation":
+            action = share_actions.get((successor, listing))
+            require(issued > 0 and action and row["prior_trade_on"] == action["prior_trade_on"]
+                    and before == int(action["prior_trade_listed_shares"])
+                    and after == int(action["shares_after_action"])
+                    and cancelled > 0 and before + issued - cancelled == int(action["shares_before_action"]),
+                    "successor_consolidation_count_mismatch")
+        else:
+            raise PilotAuditError("invalid_successor_listing_treatment")
+        counts[mode] += 1
+    return dict(counts)
+
+
 def filing_date(receipt):
     require(re.fullmatch(r"[0-9]{14}", receipt), "invalid_replay_receipt")
     return day(f"{receipt[:4]}-{receipt[4:6]}-{receipt[6:8]}")
@@ -422,7 +453,7 @@ def financial_horizon_summary(replays, horizon):
                 str(median(adverse).quantize(step, rounding=ROUND_HALF_UP)) if adverse else None)}
 
 
-def audit(root=ROOT):
+def audit(root=ROOT, *, daily_replay=None):
     hashes = {}
 
     def load(ledger, *keys):
@@ -445,10 +476,25 @@ def audit(root=ROOT):
     trades = load("delisting-trade-observations", "code")
     settlements = load("delisting-settlement", "code")
     adjustments = defaultdict(list)
-    for (code, listing_on), row in load("share-adjustments", "code", "listing_on").items():
-        require(row["source_url"].startswith("https://") and ENTRY < day(listing_on),
-                "invalid_share_adjustment_evidence")
-        adjustments[code].append((day(listing_on), positive(row["units_multiplier"])))
+    share_actions = load("share-adjustments", "code", "listing_on")
+    for (code, listing_on), row in share_actions.items():
+        listed = day(listing_on)
+        before_trade = day(row["prior_trade_on"])
+        new, old, traded, before, after = (int(row[key]) for key in (
+            "new_units", "old_units", "prior_trade_listed_shares", "shares_before_action", "shares_after_action",
+        ))
+        require(min(new, old, before, after, traded) > 0 and new != old
+                and ENTRY <= before_trade < listed and row["source_url"].startswith("https://")
+                and (before * new) // old == after, "invalid_share_adjustment_evidence")
+        intervening = row["intervening_action_on"]
+        if traded != before:
+            require(intervening and ENTRY < day(intervening) < listed
+                    and row["intervening_action_url"].startswith("https://"),
+                    "unexplained_share_count_transition")
+        else:
+            require(not intervening and not row["intervening_action_url"],
+                    "unexpected_intervening_share_action")
+        adjustments[code].append((listed, Decimal(new) / old))
 
     members = {code for code, row in roster.items() if row["anchor_membership"] == "present"}
     require(references.keys() <= members and settlements.keys() <= members
@@ -478,6 +524,8 @@ def audit(root=ROOT):
     events, dividend_dispositions = dividend_events(dividend_rows, references, settlements, adjustments)
     dividend_replays = {}
     exchanges = {code for code in references if settlements[code]["treatment"] == "stock_exchange"}
+    successor_listings = load("successor-listings", "code")
+    successor_counts = successor_listing_counts(successor_listings, exchanges, settlements, share_actions)
     end = max(day(row["valuation_session"]) for row in prices.values())
     fractions = fractional_cash_terms(
         load("fractional-cash", "code"), load("pre-exchange-fractional-cash", "code"),
@@ -554,8 +602,13 @@ def audit(root=ROOT):
 
     non_spac = {code for code in members if roster[code]["kind_spac_name"] == "false"}
     non_spac_entry_traded = {code for code in non_spac if trades[code]["next_session_status"] == "traded"}
+    replay_summary = (
+        daily_replay(references, prices, paths, settlements, trades, adjustments, share_actions, successor_listings)
+        if daily_replay else {}
+    )
     return {
         "schema": "v3-historical-delisting-pilot-audit-1",
+        **replay_summary,
         "signal_session": SIGNAL.isoformat(),
         "pilot_issuers": len(references),
         "pilot_horizon_rows": len(prices),
@@ -587,6 +640,8 @@ def audit(root=ROOT):
         "horizons": {h: {**dict.fromkeys(TOUCH_STATES, 0), **counts}
                      for h, counts in horizons.items()},
         "ledger_sha256": hashes,
+        "successor_share_delivery_counts": successor_counts,
+        "share_count_corroborated_actions": sum(map(len, adjustments.values())),
         "source_prices_independently_verified": False,
         "point_in_time_scores_verified": False,
         "performance_validated": False,

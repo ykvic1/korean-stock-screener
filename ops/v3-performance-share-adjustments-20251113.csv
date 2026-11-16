@@ -1,6 +1,6 @@
-code,listing_on,units_multiplier,source_url
-008500,2025-12-15,5,https://kind.krx.co.kr/external/2025/12/10/000145/20251210000587/68155.htm
-121850,2025-12-10,0.1,https://kind.krx.co.kr/external/2025/12/05/000503/20251205001328/70763.htm
-008290,2026-05-12,0.5,https://kind.krx.co.kr/external/2026/05/11/000605/20260511001529/70764.htm
-028080,2026-04-30,0.2,https://kind.krx.co.kr/external/2026/04/29/000815/20260429002200/70764.htm
-291230,2026-08-14,0.2,https://kind.krx.co.kr/external/2026/05/27/000393/20260527000944/10081.htm
+code,listing_on,new_units,old_units,prior_trade_on,prior_trade_listed_shares,shares_before_action,shares_after_action,source_url,intervening_action_on,intervening_action_url
+008500,2025-12-15,5,1,2025-11-25,1200000,1200000,6000000,https://kind.krx.co.kr/external/2025/12/10/000145/20251210000587/68155.htm,,
+121850,2025-12-10,1,10,2025-11-14,30614175,30614175,3061417,https://kind.krx.co.kr/external/2025/12/05/000503/20251205001328/70763.htm,,
+008290,2026-05-12,1,2,2026-04-17,40693679,40693679,20346839,https://kind.krx.co.kr/external/2026/05/11/000605/20260511001529/70764.htm,,
+028080,2026-04-30,1,5,2026-04-08,12577506,11439706,2287941,https://kind.krx.co.kr/external/2026/04/29/000815/20260429002200/70764.htm,2026-04-20,https://kind.krx.co.kr/external/2026/04/15/000733/20260415001926/70763.htm
+291230,2026-08-14,1,5,2026-07-24,44095775,120056159,24011231,https://samara.kr/disclosure/20260812900798,2026-07-15,https://financialfilings.com/filings/np-inc/interim-quarterly-report/2026/76135278/
