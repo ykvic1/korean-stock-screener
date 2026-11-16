@@ -11,11 +11,12 @@
     "daily_rsi_recomputed": 2351,
     "daily_ma_turn_recomputed": 2322,
     "daily_ma240_cross_recomputed": 1931,
-    "daily_ma240_cross_qualified": 29
+    "daily_ma240_cross_qualified": 29,
+    "weekly_ma20_turn_recomputed": 1933
   },
   "source_inputs_sha256": "d4226eb2833c3165406dba60558df8d362a831224fe4311fec41bcca78a17587",
-  "added_this_run": 20,
+  "added_this_run": 0,
   "pending_sessions": 0,
-  "source_requests": 40,
+  "source_requests": 0,
   "failures": {}
 }
