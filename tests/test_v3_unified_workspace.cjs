@@ -27,6 +27,17 @@ assert.ok(source.includes('FChart 기준가 · KRX 정규장 미검증'));
 assert.ok(source.includes('FChart 기준가 · '));
 assert.ok(source.includes("'가격 미관측'"));
 
+{
+ const note=operational.regularCloseMarkup({regular_close_recomputed_parts:['daily_rsi','daily_ma_slope_turn'],
+  regular_close_continuous_sessions:160,regular_close_ma_periods:['20','60']});
+ assert.match(note,/공식 KRX 종가 재산출/);
+ assert.match(note,/일봉 RSI/);
+ assert.match(note,/20·60일/);
+ assert.ok(!note.includes('120'));
+ assert.equal(operational.regularCloseMarkup({regular_close_recomputed_parts:['daily_rsi'],
+  regular_close_continuous_sessions:20}), '');
+}
+
 // Officially corroborated current closes update displayed risk distances while
 // the original technical inputs and operational scores retain their provenance.
 {

@@ -19,6 +19,35 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
+    def test_regular_close_factors_replace_only_same_day_rsi_and_ma_turn(self):
+        from hashlib import sha256
+        from v3_regular_close_indicators import SCHEMA, implementation_digest
+        market,catalog = self.inputs[:2]
+        member=next(m for m in catalog['rows'] if any(s['code']==m['code'] for s in market['stocks']))
+        code=member['code']
+        source={'schema':SCHEMA,'asof':catalog['date'],'source':'KRX_OFFICIAL_REGULAR_CLOSE',
+            'source_catalog_sha256':sha256(json.dumps(catalog,ensure_ascii=False,sort_keys=True,
+                separators=(',',':')).encode()).hexdigest(),
+            'implementation_sha256':implementation_digest(),
+            'requested_sessions':200,'archived_sessions':200,'listed_total':len(catalog['rows']),
+            'full_corporate_action_history_certified':False,'performance_validated':False,
+            'rows':{code:{'name':member['name'],'market':member['market'],'continuous_sessions':200,
+                'daily_rsi':{'rsi14':45,'rsi30_cross_recent':True,'rsi_bullish_divergence_recent':False},
+                'daily_ma_turn':{'20':0.0,'60':0.0,'120':0.0}}}}
+        baseline=ops.build(*self.inputs)
+        refreshed=ops.build(*self.inputs,previous=baseline,regular_close_source=source)
+        row=refreshed['rows'][code]
+        self.assertEqual(row['parts']['technical']['daily_rsi'],
+            {'points':1.2,'available':1.2,'asof':catalog['date']})
+        self.assertEqual(row['parts']['momentum']['daily_ma_slope_turn'],
+            {'points':0.0,'available':2.0,'asof':catalog['date']})
+        self.assertIn('daily_rsi',row['regular_close_recomputed_parts'])
+        for area in ('volume','financial','valuation'):
+            self.assertEqual(row['parts'][area],baseline['rows'][code]['parts'][area])
+        self.assertEqual(refreshed['budgets'],baseline['budgets'])
+        stale=ops.build(*self.inputs,regular_close_source={**source,'asof':'2026-11-12'})
+        self.assertNotIn('regular_close_recomputed_parts',stale['rows'][code])
+
     def test_exact_original_revenue_fills_only_missing_sales_factor(self):
         from v3_dart_bulk_history import _stable_digest
         from v3_dart_original_revenue_recovery import SCHEMA, choices
