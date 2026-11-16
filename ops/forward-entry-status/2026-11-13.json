@@ -20,7 +20,7 @@
   "adjusted_entry_prices_certified": false,
   "performance_validated": false,
   "status": "waiting_for_official_paired_response",
-  "last_source_attempt_at_utc": "2026-11-16T10:10:09.244332+00:00",
+  "last_source_attempt_at_utc": "2026-11-16T10:13:31.166201+00:00",
   "unavailable_market": "KOSPI",
   "source_reason": "empty_market_rows"
 }
