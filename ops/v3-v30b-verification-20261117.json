@@ -1,0 +1,261 @@
+{
+  "schema": "v3-v30b-closeout-verification-20261117-v1",
+  "recorded_on_kst": "2026-11-17",
+  "source_commit": "5c44382abeb36880e3ba20cd34f0263fe7fbacea",
+  "source_git_blobs": {
+    "docs/v3-operational-research-scores.csv": "ee2cdc756eb94bec0091d5e9d28167e11d5fef6b",
+    "ops/v3-performance-share-adjustments-20251113.csv": "fe770b640cc8c4c7d11635ae6bbf8cc2f6fb4c6a",
+    "ops/v3-performance-successor-listings-20251113.csv": "4965a7e3e749e9f65150040c9e8f5c45e2131245"
+  },
+  "operational_csv_audit": {
+    "asof": "2026-11-13",
+    "listed_total": 2591,
+    "ranked_count": 2573,
+    "available_weight_bins": [
+      1390,
+      393,
+      445,
+      42,
+      100,
+      55,
+      166
+    ],
+    "unique_code_count": 2591,
+    "issues": [],
+    "provider_calls": 0
+  },
+  "corporate_action_audit": {
+    "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43965654050",
+    "script_commit": "5c44382abeb36880e3ba20cd34f0263fe7fbacea",
+    "event_count": 10,
+    "both_anchors_matched": 10,
+    "unique_session_count": 20,
+    "batches": [
+      {
+        "adjusted_price_history_verified": false,
+        "anchor_outcomes": {
+          "listing_day": {
+            "matched": 2
+          },
+          "prior_trade": {
+            "matched": 2
+          }
+        },
+        "batch": "february_and_april_exchanges",
+        "both_official_anchors_matched": 2,
+        "event_count": 2,
+        "failed_sessions": {},
+        "official_source_sha256": {
+          "2026-02-11": {
+            "KOSDAQ": "978052f5213d6abd886816d840711823e2d522e00c434d335e572d47fe1f8bb4",
+            "KOSPI": "20a94be8ee492db6754fb2380e827ce687c897c64a973afd754deb1ce1b2bc3d"
+          },
+          "2026-02-12": {
+            "KOSDAQ": "c7a159a45d18876cc92b3168b5a8deae366439f9cf719e4ba7f4acbc94b88f52",
+            "KOSPI": "f113504babb8a3b6d393cc9dc7b45fd44ac8df3c92c5a6538fdd5906f1c54ca3"
+          },
+          "2026-04-15": {
+            "KOSDAQ": "cc5dad403ebe643063fa519b5e13199eb6ce6e185c600b6e78eb03815cb979d8",
+            "KOSPI": "58e5308c09c1f4e18a8c3c0e0f1ae2145928482267dd4e17d0a17c625b89021b"
+          },
+          "2026-04-16": {
+            "KOSDAQ": "0f8e728dfea36968366f94c1937740700405054a699e1d54d90f83de55a04a91",
+            "KOSPI": "f6e50e32f01247c96caebc0ed5643eebe8e233ea9ad75f3cecea9d19fed44424"
+          }
+        },
+        "performance_validated": false,
+        "requested_sessions": [
+          "2026-02-11",
+          "2026-02-12",
+          "2026-04-15",
+          "2026-04-16"
+        ],
+        "schema": "v3-historical-corporate-action-price-anchors-v1",
+        "job_id": 133644295108
+      },
+      {
+        "adjusted_price_history_verified": false,
+        "anchor_outcomes": {
+          "listing_day": {
+            "matched": 2
+          },
+          "prior_trade": {
+            "matched": 2
+          }
+        },
+        "batch": "january_exchanges",
+        "both_official_anchors_matched": 2,
+        "event_count": 2,
+        "failed_sessions": {},
+        "official_source_sha256": {
+          "2026-01-06": {
+            "KOSDAQ": "e83aa55602e2a34219a3f5a3a7681b140592add1e6752f475f2503ce09fd7ee4",
+            "KOSPI": "4b1ed2efb5c0110e2d638f7747a64850ed8e9de51523ed004d36f883f57b56d4"
+          },
+          "2026-01-07": {
+            "KOSDAQ": "a94067b4f9d3cf74c47700fc7fa479fc5f909cf19a40b74dbae84147b00f7262",
+            "KOSPI": "ddc98988164698b25d7198e00a9b21a9b38d426110eefd60633f41e40226ed4d"
+          },
+          "2026-01-23": {
+            "KOSDAQ": "7d84fd56ec9cee2383506c32c58d8501cb890f8c039b15a780eb1caf8bf1640b",
+            "KOSPI": "6b921611612d8454d31ca0b313c3607fd3eb51be61e29bfa00e964dfad51c8d6"
+          },
+          "2026-01-26": {
+            "KOSDAQ": "3e4d5b42bf1ca8b71d4f8797005037a42f44852f327fd89c4146f200e638d513",
+            "KOSPI": "25fdeaf1d6af4bfb22b413f88a71f4a4394a25a2d9d45d9a296d8f7001e15d66"
+          }
+        },
+        "performance_validated": false,
+        "requested_sessions": [
+          "2026-01-06",
+          "2026-01-07",
+          "2026-01-23",
+          "2026-01-26"
+        ],
+        "schema": "v3-historical-corporate-action-price-anchors-v1",
+        "job_id": 133644294926
+      },
+      {
+        "adjusted_price_history_verified": false,
+        "anchor_outcomes": {
+          "listing_day": {
+            "matched": 2
+          },
+          "prior_trade": {
+            "matched": 2
+          }
+        },
+        "batch": "july_and_august_exchanges",
+        "both_official_anchors_matched": 2,
+        "event_count": 2,
+        "failed_sessions": {},
+        "official_source_sha256": {
+          "2026-07-16": {
+            "KOSDAQ": "a61908c3ca76447872446d7bdf6575197eb4d3e4d426429d7a9d5ffe69579b01",
+            "KOSPI": "254263e1a6d63b97e06f31474392fa18d6a986d0431e96f22ed6d447319aad86"
+          },
+          "2026-07-20": {
+            "KOSDAQ": "79a3fde72078dfedddfa7f89a76e58bd50aac0e2ec6de92337830c05c244e056",
+            "KOSPI": "f2a84155936340528f8240fac177bf2344aa4e58e0316f1ea4b08a01b89ff4e1"
+          },
+          "2026-08-28": {
+            "KOSDAQ": "ba15ebff26bd77f56c7f9a8fbaca07928c602578d36de150420a2e26e6ac114f",
+            "KOSPI": "9ec59541167a33af3523c87a608ec034435dd4de882b34b04ec1de693b0b891f"
+          },
+          "2026-08-31": {
+            "KOSDAQ": "2900410dbfa52011d904dc8b2bb7573e191d23f497565491e0bd1039a2ab9167",
+            "KOSPI": "061264742eb88879ab2d75871f6fde8f3c00462baccf058c64baebf9fa79483e"
+          }
+        },
+        "performance_validated": false,
+        "requested_sessions": [
+          "2026-07-16",
+          "2026-07-20",
+          "2026-08-28",
+          "2026-08-31"
+        ],
+        "schema": "v3-historical-corporate-action-price-anchors-v1",
+        "job_id": 133644295086
+      },
+      {
+        "adjusted_price_history_verified": false,
+        "anchor_outcomes": {
+          "listing_day": {
+            "matched": 2
+          },
+          "prior_trade": {
+            "matched": 2
+          }
+        },
+        "batch": "split_and_reduction",
+        "both_official_anchors_matched": 2,
+        "event_count": 2,
+        "failed_sessions": {},
+        "official_source_sha256": {
+          "2026-04-08": {
+            "KOSDAQ": "f4120cc926daddd39f3d4b1ff60428fefd364b3e261b923e0ed44ab6a8115b5f",
+            "KOSPI": "c1bef8c169b169782d1e40fbd163fd669e716b48a4d7a8cb02b294fb88e1f554"
+          },
+          "2026-04-17": {
+            "KOSDAQ": "0f455769782b4f0a2f2c5ace73d62830adb4794dea36ae7407c2f91630c60256",
+            "KOSPI": "275f0e07c5b4f1dceb389f55088c4cbd8e0645c7404029aee691bbb9319ea51d"
+          },
+          "2026-04-30": {
+            "KOSDAQ": "48080f5e4af8644c2ef16d6cbe82ac9ac77f318f4455127d4d0e3213b3d789d1",
+            "KOSPI": "7f61788714ac27997b212e7544ba1478239e483cf74af7715a1cd94131c21dcb"
+          },
+          "2026-05-12": {
+            "KOSDAQ": "c885fed3800e13c71280aeaf166134f2cefca50e762812e80d01bdc2d90180a9",
+            "KOSPI": "6444d357eaa7ffac7a1f67dfc23025b3851e835499f0d8cf8c07ef510be25872"
+          }
+        },
+        "performance_validated": false,
+        "requested_sessions": [
+          "2026-04-08",
+          "2026-04-17",
+          "2026-04-30",
+          "2026-05-12"
+        ],
+        "schema": "v3-historical-corporate-action-price-anchors-v1",
+        "job_id": 133644294354
+      },
+      {
+        "adjusted_price_history_verified": false,
+        "anchor_outcomes": {
+          "listing_day": {
+            "matched": 2
+          },
+          "prior_trade": {
+            "matched": 2
+          }
+        },
+        "batch": "treasury_delivery_and_consolidation",
+        "both_official_anchors_matched": 2,
+        "event_count": 2,
+        "failed_sessions": {},
+        "official_source_sha256": {
+          "2026-07-24": {
+            "KOSDAQ": "24a19f73bacdcb96de7ffaf3a319b09846a00d375caf8821cd0a14f98828eb08",
+            "KOSPI": "1629f53bbe9830602bf2aace215047165f91cd1b2bcab45e8c0ad7c55d51c187"
+          },
+          "2026-08-10": {
+            "KOSDAQ": "f9c05178539041e16ec92353b1b52d510be832bebc2106331e0c37ea60af136e",
+            "KOSPI": "b1e6cab9682a54f7ac4dcddbbe99da2328b3125969e44d9551fd69eda47c93c9"
+          },
+          "2026-08-11": {
+            "KOSDAQ": "235a45af7065a483e90ea999e45823cff70eeed5a306962f3a5d3c8ec98197f1",
+            "KOSPI": "fc6d969807231643c38a57e7903771cd66949560bd6c6c10b543cb2926bc3179"
+          },
+          "2026-08-14": {
+            "KOSDAQ": "513fcbaf1509c58c67de40eb2c60a1afa8acd8bad1a89ff809d83e2a51eb3445",
+            "KOSPI": "67f83fc9a0c5dd923bf1869218c57ca53ff4e1aefcda0d415742c1f4bf5da790"
+          }
+        },
+        "performance_validated": false,
+        "requested_sessions": [
+          "2026-07-24",
+          "2026-08-10",
+          "2026-08-11",
+          "2026-08-14"
+        ],
+        "schema": "v3-historical-corporate-action-price-anchors-v1",
+        "job_id": 133644294850
+      }
+    ]
+  },
+  "adjusted_price_history_certified": false,
+  "volume_session_equivalence_certified": false,
+  "historical_pit_scores_verified": false,
+  "performance_validated": false,
+  "investment_score_certified": false,
+  "regular_close_publication_fix": {
+    "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43966384405",
+    "job_id": 133646815816,
+    "head_sha": "b0c3c8d5147bebd7a923cd122276db7229012a89",
+    "merge_commit": "e6dd45d27e850894559436a2e7a51d4a1e4816b5",
+    "conclusion": "success",
+    "matched_test_summary": [
+      "Ran 2586 tests in 205.991s"
+    ]
+  }
+}
