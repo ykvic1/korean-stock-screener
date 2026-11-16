@@ -19,5 +19,6 @@
   "issuer_continuity_certified": false,
   "adjusted_entry_prices_certified": false,
   "performance_validated": false,
-  "status": "waiting_for_session_close"
+  "status": "waiting_for_official_paired_response",
+  "last_source_attempt_at_utc": "2026-11-16T06:39:28.643777+00:00"
 }
