@@ -27,7 +27,8 @@ from v3_ma240_cross_research import observe as observe_ma240
 from v3_ma_slope_transition import _series_points
 from v3_pattern_first_observations import rsi_observation
 from v3_regular_close_contract import (
-    DAILY_SESSIONS, OUTPUT, SCHEMA, SESSIONS, WEEKLY_MA_TURN_WEEKS,
+    DAILY_SESSIONS, MAX_COMPLETED_WEEKS, OUTPUT, SCHEMA, SESSIONS,
+    WEEKLY_MA_TURN_WEEKS, WEEKLY_POSITION_WEEKS, WEEKLY_RSI_WEEKS,
     admitted_rows, implementation_digest, last_completed_friday,
 )
 
@@ -46,9 +47,12 @@ class CloseHistoryError(ValueError):
 
 def history_dates(asof):
     end = date.fromisoformat(asof)
-    days = calendar_weekday_candidates((end - timedelta(days=440)).isoformat(), asof)
-    selected = candidate_dates(days, source='xkrx')['dates'][-SESSIONS:]
-    if len(selected) != SESSIONS or selected[-1] != asof:
+    friday = last_completed_friday(end)
+    # One lead-in week keeps the oldest eligible week fully inside the window.
+    start = friday - timedelta(weeks=MAX_COMPLETED_WEEKS, days=4)
+    days = calendar_weekday_candidates(start.isoformat(), asof)
+    selected = candidate_dates(days, source='xkrx')['dates']
+    if len(selected) < SESSIONS or selected[-1] != asof:
         raise CloseHistoryError('invalid_regular_close_history_window')
     return selected
 
@@ -131,11 +135,14 @@ def store_day(storage, day, data):
 def collect(storage, clients, days, *, limit=MAX_NEW_SESSIONS):
     if not 1 <= limit <= MAX_NEW_SESSIONS:
         raise CloseHistoryError('invalid_regular_close_collection_budget')
+    legacy_days = set(days[-SESSIONS:])
 
     def load(day):
         blob, _ = storage.get_content(archive_path(day))
         if blob is not None:
             return day, read_day(blob, day)
+        if day not in legacy_days:
+            return day, None
         legacy, _ = storage.get_content(archive_path(day, legacy=True))
         return day, read_day(legacy, day, schema=LEGACY_DAY_SCHEMA)
 
@@ -196,10 +203,10 @@ def completed_week_ranges(session_days):
         start, _ = weekly_ranges.get(week_end, (index, index))
         weekly_ranges[week_end] = (start, index + 1)
     # The first archived trading day may start in the middle of a week.
-    return list(weekly_ranges.items())[1:]
+    return list(weekly_ranges.items())[1:][-MAX_COMPLETED_WEEKS:]
 
 
-def weekly_ma20_turn(records, member, weeks, friday):
+def weekly_indicators(records, member, weeks, friday):
     if len(weeks) < WEEKLY_MA_TURN_WEEKS or weeks[-1][0] != friday:
         return None
     tail_end = weeks[-1][1][1]
@@ -219,22 +226,32 @@ def weekly_ma20_turn(records, member, weeks, friday):
         expected -= timedelta(days=7)
     if len(closes) < WEEKLY_MA_TURN_WEEKS:
         return None
-    turn = _series_points(np.asarray(closes[::-1], dtype=float), prior=26, recent=8,
+    values = np.asarray(closes[::-1], dtype=float)
+    n = len(values)
+    turn = _series_points(values, prior=26, recent=8,
                           hold=3, floor=.0005, frame='weekly', trusted_window=lambda _: True)
-    return {'asof': friday.isoformat(), 'continuous_weeks': len(closes), 'points': turn['20']}
+    rsi = rsi_observation(values) if n >= WEEKLY_RSI_WEEKS else None
+    gap = (round(float(100 * (values[-1] / values[-WEEKLY_POSITION_WEEKS:].mean() - 1)), 4)
+           if n >= WEEKLY_POSITION_WEEKS else None)
+    return {'asof': friday.isoformat(), 'continuous_weeks': n, 'ma_turn': turn,
+            'rsi': rsi, 'weekly_ma120_gap_pct': gap}
 
 
 def build(catalog, catalog_digest, days, panels):
     rows, counts = {}, Counter()
     trade_status_sessions = sum(panel is not None and panel['schema'] == DAY_SCHEMA
                           for panel in panels.values())
+    daily_trade_status_sessions = sum(panels[day] is not None and panels[day]['schema'] == DAY_SCHEMA
+                                      for day in days[-SESSIONS:])
     session_days = [date.fromisoformat(day) for day in days]
     friday = last_completed_friday(session_days[-1])
     weeks = completed_week_ranges(session_days)
+    archived_weeks = sum(all(panels[day] is not None and panels[day]['schema'] == DAY_SCHEMA
+                             for day in days[start:end]) for _, (start, end) in weeks)
     for member in catalog['rows']:
         code = member['code']
         records = [panels[day]['rows'].get(code) if panels[day] else None for day in days]
-        tail = continuous_tail(records, member)
+        tail = continuous_tail(records[-SESSIONS:], member)
         if not tail:
             counts['no_current_identity_matched_close'] += 1
             continue
@@ -247,14 +264,14 @@ def build(catalog, catalog_digest, days, panels):
                               hold=5, floor=.0001, frame='daily',
                               trusted_window=lambda required: len(closes) >= required)
         cross = None
-        if trade_status_sessions == SESSIONS and n == SESSIONS:
+        if daily_trade_status_sessions == SESSIONS and n == SESSIONS:
             trade_markers = [int(row[5]) if row[5] is not None else None for row in tail]
             cross = observe_ma240([row[2] for row in tail], trade_markers,
-                                  asof=catalog['date'], session_days=session_days)
-        weekly = weekly_ma20_turn(records, member, weeks, friday)
+                                  asof=catalog['date'], session_days=session_days[-SESSIONS:])
+        weekly = weekly_indicators(records, member, weeks, friday)
         rows[code] = {'name': member['name'], 'market': member['market'],
                       'continuous_sessions': n, 'moving_averages': ma, 'daily_rsi': rsi,
-                      'daily_ma_turn': turn, 'daily_ma240_cross': cross, 'weekly_ma20_turn': weekly}
+                      'daily_ma_turn': turn, 'daily_ma240_cross': cross, 'weekly': weekly}
         counts['current_close_observed'] += 1
         counts['full_200_session_continuity'] += n >= DAILY_SESSIONS
         counts['full_260_session_continuity'] += n == SESSIONS
@@ -262,12 +279,18 @@ def build(catalog, catalog_digest, days, panels):
         counts['daily_ma_turn_recomputed'] += turn is not None
         counts['daily_ma240_cross_recomputed'] += cross is not None
         counts['daily_ma240_cross_qualified'] += cross is not None and cross['qualified']
-        counts['weekly_ma20_turn_recomputed'] += weekly is not None
+        for period in ('20', '60', '120'):
+            counts[f'weekly_ma{period}_turn_recomputed'] += weekly is not None and weekly['ma_turn'][period] is not None
+        counts['weekly_rsi_recomputed'] += weekly is not None and weekly['rsi'] is not None
+        counts['weekly_ma120_position_recomputed'] += weekly is not None and weekly['weekly_ma120_gap_pct'] is not None
     inputs = {day: panel['source_sha256'] for day, panel in panels.items() if panel is not None}
     return {'schema': SCHEMA, 'asof': catalog['date'], 'source': 'KRX_OFFICIAL_REGULAR_CLOSE',
             'source_catalog_sha256': catalog_digest, 'implementation_sha256': implementation_digest(),
             'requested_sessions': len(days), 'archived_sessions': len(inputs),
             'trade_status_sessions': trade_status_sessions,
+            'daily_trade_status_sessions': daily_trade_status_sessions,
+            'requested_completed_weeks': len(weeks),
+            'archived_completed_weeks': archived_weeks,
             'session_calendar_source': 'XKRX_WITH_CONFIRMED_CLOSURE_OVERRIDES',
             'official_session_calendar_authenticated': False,
             'source_inputs_sha256': sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest(),
@@ -286,10 +309,11 @@ def main():
                                       separators=(',', ':')).encode()).hexdigest()
     target = root / OUTPUT
     prior = json.loads(target.read_bytes()) if target.exists() else {}
+    days = history_dates(asof)
     if (prior.get('schema') == SCHEMA and prior.get('asof') == asof
             and prior.get('source_catalog_sha256') == catalog_digest
             and prior.get('implementation_sha256') == implementation_digest()
-            and prior.get('archived_sessions') == prior.get('trade_status_sessions') == SESSIONS):
+            and prior.get('archived_sessions') == prior.get('trade_status_sessions') == len(days)):
         print('regular_close_history_already_current')
         return
     if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
@@ -297,13 +321,14 @@ def main():
     storage = PrivateGitStorage(PRIVATE_REPO, os.getenv('V3_PRIVATE_ARCHIVE_TOKEN', ''))
     storage.verify_private()
     clients = {market: RetryingMoneyClient(KRXClient(os.environ['KRX_API_KEY'])) for market in MARKETS}
-    days = history_dates(asof)
     panels, added, failures = collect(storage, clients, days)
     report = build(catalog, catalog_digest, days, panels)
     target.write_text(json.dumps(report, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n')
     progress = {key: report[key] for key in ('asof', 'requested_sessions', 'archived_sessions', 'trade_status_sessions',
+                                            'daily_trade_status_sessions', 'requested_completed_weeks',
+                                            'archived_completed_weeks',
                                             'listed_total', 'counts', 'source_inputs_sha256')}
-    progress.update(added_this_run=added, pending_sessions=SESSIONS-report['trade_status_sessions'],
+    progress.update(added_this_run=added, pending_sessions=len(days)-report['trade_status_sessions'],
                     source_requests=sum(client.requests for client in clients.values()), failures=failures)
     PROGRESS.write_text(json.dumps(progress, indent=2) + '\n')
     print(json.dumps(progress))

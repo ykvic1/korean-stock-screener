@@ -71,11 +71,17 @@ class OperationalScoreTests(unittest.TestCase):
             'source_regular_session_verified':False,'source_corporate_action_adjusted_verified':False,
             'raw_ohlcv_exported':False,'investment_score_certified':False}
         source=copy.deepcopy(source)
-        source['rows'][code]['weekly_ma20_turn']={'asof':friday,'continuous_weeks':54,'points':.6}
+        source['rows'][code]['weekly']={'asof':friday,'continuous_weeks':154,
+            'ma_turn':{'20':.6,'60':.2,'120':None},
+            'rsi':{'rsi14':45,'rsi30_cross_recent':True,'rsi_bullish_divergence_recent':False},
+            'weekly_ma120_gap_pct':10}
         weekly=ops.build(market,*self.inputs[1:],regular_close_source=source)
         self.assertEqual(weekly['rows'][code]['parts']['momentum']['weekly_ma_slope_turn'],
-                         {'points':2.1,'available':3.0,'asof':friday})
-        self.assertEqual(weekly['rows'][code]['regular_close_continuous_weeks'],54)
+                         {'points':1.9,'available':3.0,'asof':friday})
+        self.assertEqual(weekly['rows'][code]['regular_close_continuous_weeks'],154)
+        self.assertEqual(weekly['rows'][code]['regular_close_weekly_ma_periods'],['20','60'])
+        self.assertEqual(weekly['rows'][code]['parts']['technical']['weekly_rsi']['points'],1.8)
+        self.assertAlmostEqual(weekly['rows'][code]['parts']['technical']['long_ma_position']['points'],1.8)
         self.assertEqual(weekly['regular_close_source_summary']['weekly_ma20_turn_recomputed'],1)
 
     def test_exact_original_revenue_fills_only_missing_sales_factor(self):

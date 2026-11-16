@@ -74,7 +74,7 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
         self.assertEqual(source['counts']['daily_ma240_cross_recomputed'], 2)
 
     def test_weekly_ma20_requires_54_completed_traded_weeks_and_keeps_older_daily_receipts(self):
-        days = [date.fromisoformat(d) for d in history.history_dates('2026-11-13')]
+        days = [date.fromisoformat(d) for d in history.history_dates('2026-11-13')[-history.SESSIONS:]]
         member = self.catalog['rows'][0]
         records = [[member['market'], member['name'], price, 500,
                     self.close[i-1] if i else None, True] for i, price in enumerate(self.close)]
@@ -82,30 +82,59 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
         dates = [*days, days[-1] + timedelta(days=3)]
         records.append([member['market'], member['name'], 500, 500, 500, True])
         weeks = history.completed_week_ranges(dates)
-        receipt = history.weekly_ma20_turn(records, member, weeks, days[-1])
+        receipt = history.weekly_indicators(records, member, weeks, days[-1])
         required = history.WEEKLY_MA_TURN_WEEKS
         self.assertGreaterEqual(receipt['continuous_weeks'], required)
         self.assertEqual(receipt['asof'], days[-1].isoformat())
         expected = _series_points(
             np.asarray([records[end-1][2] for _, (_, end) in weeks], dtype=float),
             prior=26, recent=8, hold=3, floor=.0005, frame='weekly', trusted_window=lambda _: True)
-        self.assertEqual(receipt['points'], expected['20'])
+        self.assertEqual(receipt['ma_turn'], expected)
         self.assertIsNone(expected['60'])
         for marker in (None, False):
             halted = deepcopy(records)
             for bar in halted[slice(*weeks[-2][1])]:
                 bar[5] = marker
-            self.assertIsNone(history.weekly_ma20_turn(halted, member, weeks, days[-1]))
-        self.assertIsNone(history.weekly_ma20_turn(records, member, weeks[-(required-1):], days[-1]))
+            self.assertIsNone(history.weekly_indicators(halted, member, weeks, days[-1]))
+        self.assertIsNone(history.weekly_indicators(records, member, weeks[-(required-1):], days[-1]))
         incomplete = deepcopy(records)
         incomplete[weeks[-required][1][0]] = None
-        self.assertIsNone(history.weekly_ma20_turn(incomplete, member, weeks, days[-1]))
+        self.assertIsNone(history.weekly_indicators(incomplete, member, weeks, days[-1]))
         legacy = deepcopy(history.build(self.catalog, self.digest, self.days, self.panels))
         from v3_regular_close_contract import DAILY_ONLY_SCHEMA, DAILY_ONLY_IMPLEMENTATION
         legacy.update(schema=DAILY_ONLY_SCHEMA, implementation_sha256=DAILY_ONLY_IMPLEMENTATION)
         self.assertEqual(len(history.admitted_rows(legacy, self.catalog)), 2)
-        legacy['rows']['005930']['weekly_ma20_turn'] = receipt
+        legacy['rows']['005930']['weekly'] = receipt
         self.assertNotIn('005930', history.admitted_rows(legacy, self.catalog))
+
+    def test_long_week_windows_enable_each_factor_only_after_required_history(self):
+        days = history.history_dates('2026-11-13')
+        dates = list(map(date.fromisoformat, days))
+        weeks = history.completed_week_ranges(dates)
+        member = self.catalog['rows'][0]
+        records = [[member['market'], member['name'], 1000 + i, 500, 999 + i, True]
+                   for i in range(len(days))]
+        self.assertEqual(len(weeks), 154)
+        for window in (89, 90, 93, 94, 119, 120, 153, 154):
+            with self.subTest(window=window):
+                weekly = history.weekly_indicators(records, member, weeks[-window:], dates[-1])
+                self.assertEqual(weekly['continuous_weeks'], window)
+                self.assertEqual(weekly['rsi'] is not None, window >= 90)
+                self.assertEqual(weekly['ma_turn']['60'] is not None, window >= 94)
+                self.assertEqual(weekly['weekly_ma120_gap_pct'] is not None, window >= 120)
+                self.assertEqual(weekly['ma_turn']['120'] is not None, window >= 154)
+        from v3_regular_close_contract import valid_weekly
+        self.assertTrue(valid_weekly(weekly, days[-1], len(days)))
+        self.assertFalse(valid_weekly({**weekly, 'continuous_weeks': 153}, days[-1], len(days)))
+        self.assertFalse(valid_weekly({**weekly, 'asof': '2026-11-06'}, days[-1], len(days)))
+
+        # Older missing panels never suppress a fully observed recent daily window.
+        panels = {day: self.panels.get(old_day) for day, old_day in
+                  zip(days, [None] * (len(days) - history.SESSIONS) + self.days)}
+        report = history.build(self.catalog, self.digest, days, panels)
+        self.assertEqual(report['counts']['daily_ma240_cross_recomputed'], 2)
+        self.assertEqual(report['counts']['weekly_rsi_recomputed'], 0)
+        self.assertEqual(len(history.admitted_rows(report, self.catalog)), 2)
 
     def test_legacy_days_preserve_daily_scores_until_ma240_trade_evidence_is_complete(self):
         panels = deepcopy(self.panels)
@@ -202,6 +231,6 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
 
     def test_announced_closures_are_excluded_from_the_requested_window(self):
         days = history.history_dates('2026-11-13')
-        self.assertEqual((len(days), days[-1]), (history.SESSIONS, '2026-11-13'))
+        self.assertEqual((len(days), days[-1]), (721, '2026-11-13'))
         self.assertNotIn('2026-06-03', days)
         self.assertNotIn('2026-07-17', days)

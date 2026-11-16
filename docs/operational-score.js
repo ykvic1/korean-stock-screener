@@ -170,9 +170,17 @@ function regularCloseMarkup(v){
    parts.push('20·60일 골든크로스 / 240일선');
   if(parts.length)parts[parts.length-1]+=' · 연속 '+sessions+'거래일';
  }
- if(v.regular_close_recomputed_parts.includes('weekly_ma_slope_turn')&&
-    Number.isInteger(weeks)&&weeks>=54&&weeks<=57&&typeof friday==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(friday))
-  parts.push('20주 이평선 전환 · '+friday+' 기준 · 연속 '+weeks+'주');
+ if(Number.isInteger(weeks)&&weeks>=54&&weeks<=154&&typeof friday==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(friday)){
+  const weekly=[];
+  const required={'20':54,'60':94,'120':154};
+  const periods=(Array.isArray(v.regular_close_weekly_ma_periods)?v.regular_close_weekly_ma_periods:['20'])
+   .filter(p=>typeof p==='string'&&Object.hasOwn(required,p)&&weeks>=required[p]);
+  if(v.regular_close_recomputed_parts.includes('weekly_ma_slope_turn')&&periods.length)
+   weekly.push(periods.join('·')+'주 이평선 전환');
+  if(v.regular_close_recomputed_parts.includes('weekly_rsi')&&weeks>=90)weekly.push('주봉 RSI');
+  if(v.regular_close_recomputed_parts.includes('long_ma_position')&&weeks>=120)weekly.push('120주선 위치');
+  if(weekly.length)parts.push(weekly.join(' / ')+' · '+friday+' 기준 · 연속 '+weeks+'주');
+ }
  return parts.length?'<p class="u-muted">공식 KRX 종가 재산출 · '+parts.join(' / ')+'</p>':'';
 }
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
