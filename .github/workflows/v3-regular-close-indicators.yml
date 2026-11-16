@@ -1,0 +1,88 @@
+name: V3 Official Regular Close Daily Indicators
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_regular_close_indicators.py
+      - v3_regular_close_contract.py
+      - v3_ma_slope_transition.py
+      - v3_pattern_first_observations.py
+      - technical_v22.py
+      - .github/workflows/v3-regular-close-indicators.yml
+  schedule:
+    - cron: '5 20 * * 1-5' # 05:05 KST after the nightly market publication.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-regular-close-indicators
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3' 'pandas>=2,<3' 'exchange-calendars==4.13.1'
+      - name: Retain official prices privately and derive daily indicators
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          git rev-parse HEAD:docs/v22-market-catalog.json > /tmp/regular-close-catalog-sha
+          python v3_regular_close_indicators.py
+      - name: Publish source-bound derived indicators and progress
+        id: publish
+        run: |
+          set -euo pipefail
+          if [[ -z $(git status --porcelain -- docs/v3-regular-close-indicators.json docs/v3-regular-close-history-progress.json) ]]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-regular-close-indicators.json docs/v3-regular-close-history-progress.json
+          git commit -m 'Publish official close-derived daily RSI and MA transitions'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if [[ $(git rev-parse origin/main:docs/v22-market-catalog.json) != $(cat /tmp/regular-close-catalog-sha) ]]; then
+              echo '::error::regular_close_catalog_changed_during_collection'
+              exit 1
+            fi
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo '::error::regular_close_publication_retries_exhausted'
+          exit 1
+      - name: Refresh scores and continue a progressing historical backfill
+        if: steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
+          if python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('docs/v3-regular-close-history-progress.json').read_bytes())
+          raise SystemExit(0 if p['pending_sessions']>0 and p['added_this_run']>0 else 1)
+          PY
+          then
+            gh workflow run v3-regular-close-indicators.yml --repo "$GITHUB_REPOSITORY" --ref main
+          fi

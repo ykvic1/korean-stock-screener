@@ -33,6 +33,7 @@ from v3_dart_original_revenue_recovery import OUTPUT as ORIGINAL_REVENUE_OUTPUT
 from v3_dart_original_revenue_recovery import overlay as original_revenue_overlay, sales_parts
 from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT, comparative_fcf_parts
 from v3_dart_reviewed_ordinary_eps import OUTPUT as REVIEWED_EPS_OUTPUT, reviewed_eps_parts
+from v3_regular_close_contract import admitted_rows as regular_close_rows
 
 VERSION = 'v3-stable-r1e-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
@@ -291,11 +292,13 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
           revenue_2024_comparative=None,operating_comparative_source=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
           current_source_hashes=None,original_revenue_source=None,reviewed_margin_source=None,
-          reviewed_revenue_source=None,reviewed_fcf_source=None,reviewed_eps_source=None):
+          reviewed_revenue_source=None,reviewed_fcf_source=None,reviewed_eps_source=None,
+          regular_close_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
+    regular_closes=regular_close_rows(regular_close_source,catalog)
     money=usable_records(money_source,catalog)
     money_components=usable_component_records(money_source,catalog)
     raw_eps=verified_reported_eps(catalog,annual_book,reported_eps_source,history,
@@ -347,6 +350,24 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             money_components=money_components.get(code),
             eps=personal.get('valuation_overrides',{}).get(code),reported_eps=raw_eps.get(code),
             annual=history.get('records',{}).get(code))
+        close_receipt=regular_closes.get(code)
+        close_candidates={}
+        if close_receipt:
+            rsi=close_receipt['daily_rsi']
+            if rsi is not None:
+                close_candidates['daily_rsi']={'points':1.2 if rsi['rsi30_cross_recent'] or
+                    rsi['rsi_bullish_divergence_recent'] else 0,'available':1.2,'asof':day}
+                parts['technical']['daily_rsi']=close_candidates['daily_rsi']
+            turn=close_receipt['daily_ma_turn']
+            if turn is not None:
+                old_slope=stock.get('v3_ma_slope_transition') if stock else None
+                old_parts=(old_slope['parts']['daily'] or {}) if old_slope and valid_ma_slope(old_slope,day) else {}
+                combined={**old_parts,**{period:value for period,value in turn.items() if value is not None}}
+                measured={period:value for period,value in combined.items() if value is not None}
+                close_candidates['daily_ma_slope_turn']={
+                    'points':round(sum(measured.values()),6),
+                    'available':sum(MA_SLOPE_WEIGHTS['daily'][period] for period in measured),'asof':day}
+                parts['momentum']['daily_ma_slope_turn']=close_candidates['daily_ma_slope_turn']
         if code in revenue_parts:
             parts['financial']['revenue_growth']=revenue_parts[code]
         # Source-only enhancement. Never overwrite an already observed
@@ -406,6 +427,14 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             'legacy_score':legacy[code]['adjusted_score'],'legacy_rank':legacy[code]['personal_rank'],
             'prior_operational_score':previous_score,'prior_operational_rank':previous_rank,
             'parts':parts,'areas':areas,'rank':None}
+        if close_candidates:
+            used=[key for key,candidate in close_candidates.items()
+                  if candidate==parts['technical' if key=='daily_rsi' else 'momentum'][key]]
+            if used:
+                rows[code]['regular_close_recomputed_parts']=used
+                rows[code]['regular_close_continuous_sessions']=close_receipt['continuous_sessions']
+                rows[code]['regular_close_ma_periods']=[period for period,value in
+                    (close_receipt['daily_ma_turn'] or {}).items() if value is not None]
     eligible=sorted((k for k,r in rows.items() if r['score'] is not None),
         key=lambda k:(-rows[k]['score'],-rows[k]['available'],k))
     for rank,k in enumerate(eligible,1):rows[k]['rank']=rank
@@ -417,6 +446,10 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         'revenue_growth_source_summary':revenue_summary,
         'operating_margin_source_summary':operating_summary,
         'eps_basis_source_summary':eps_basis_summary,
+        'regular_close_source_summary':{
+            'asof':day,'admitted_issuers':len(regular_closes),
+            'daily_rsi_recomputed':sum('daily_rsi' in r.get('regular_close_recomputed_parts',[]) for r in rows.values()),
+            'daily_ma_turn_recomputed':sum('daily_ma_slope_turn' in r.get('regular_close_recomputed_parts',[]) for r in rows.values())},
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
                    '독립 돌파확인: 가격 경로 부족 종목 미관측',
                    'MA 전환: 가격 이력 부족 종목 미관측',
@@ -502,7 +535,8 @@ def main():
         'reviewed_margin_source':'v3-dart-reviewed-operating-margin.json',
         'reviewed_revenue_source':'v3-dart-reviewed-original-revenue.json',
         'reviewed_fcf_source':REVIEWED_FCF_OUTPUT,
-        'reviewed_eps_source':REVIEWED_EPS_OUTPUT}
+        'reviewed_eps_source':REVIEWED_EPS_OUTPUT,
+        'regular_close_source':'v3-regular-close-indicators.json'}
     basis_inputs={key:read(name) if (root/name).exists() else None for key,name in basis_files.items()}
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
@@ -539,7 +573,7 @@ def main():
                      'v3_dart_revenue_2024_comparative.py',
                      'v3_dart_operating_income_comparative.py',
                      'v3_verified_eps_basis.py','v3_eps_basis_audit.py','v3_dart_reported_eps.py',
-                     'v3_volume_participation.py',
+                     'v3_volume_participation.py','v3_regular_close_indicators.py','v3_regular_close_contract.py',
                      'v3_dart_eps_prior_receipt_probe.py','v3_ma_slope_transition.py',
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',

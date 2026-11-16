@@ -155,6 +155,19 @@ function reconciliationMarkup(v,compact=false){
   (clamped?'<span class="u-score-clip">0~100점 범위 적용</span>':'')+
   '<strong>최종 '+n(s.final)+'점</strong></div>';
 }
+function regularCloseMarkup(v){
+ if(!Array.isArray(v?.regular_close_recomputed_parts)||
+    !Number.isInteger(v.regular_close_continuous_sessions)||
+    v.regular_close_continuous_sessions<90||v.regular_close_continuous_sessions>200)return '';
+ const parts=[];
+ if(v.regular_close_recomputed_parts.includes('daily_rsi'))parts.push('일봉 RSI');
+ const periods=Array.isArray(v.regular_close_ma_periods)?
+  v.regular_close_ma_periods.filter(p=>['20','60','120'].includes(p)):[];
+ if(v.regular_close_recomputed_parts.includes('daily_ma_slope_turn')&&periods.length)
+  parts.push('일봉 MA 전환 '+periods.join('·')+'일');
+ return parts.length?'<p class="u-muted">공식 KRX 종가 재산출 · '+parts.join(' / ')+
+  ' · 연속 '+v.regular_close_continuous_sessions+'거래일</p>':'';
+}
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
  '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':
  r?.v3_operational_evidence_missing?
@@ -162,7 +175,7 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
  '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
  return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1e':r.v3_operational_version==='v3-stable-r1d-operational-research'?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
-  '</p>'+reconciliationMarkup(v)+
+  '</p>'+reconciliationMarkup(v)+regularCloseMarkup(v)+
   '<p class="u-muted">재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
   (v.risk_warnings.length?'<p class="u-muted">'+v.risk_warnings.map(esc).join(' · ')+'</p>':'')+
   '<p>기존 모델 '+(finite(v.legacy_score)?v.legacy_score.toFixed(1)+'점':'미관측')+' · 신규 '+(v.rank??'—')+'위 / 기존 '+(v.legacy_rank??'—')+'위</p>'+
@@ -181,6 +194,6 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
-const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,markup};
+const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
