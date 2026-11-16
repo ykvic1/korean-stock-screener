@@ -22,6 +22,14 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
                           "v30b_release_ready = true"):
             self.assertNotIn(forbidden,content)
 
+    def test_historical_pilot_runs_without_release_authority(self):
+        content=WORKFLOW.read_text(encoding="utf8")
+        self.assertIn("python v3_historical_performance_pilot_audit.py >",content)
+        self.assertIn("'ops/v3-performance-*-20251113.csv'",content)
+        self.assertIn('pilot.get("performance_validated") is not False',content)
+        self.assertIn('"scheduled_cash_entitlements"',content)
+        self.assertIn('"paths_with_unpriced_sessions"',content)
+
     def test_main_audit_must_fail_closed_and_no_fake_release(self):
         content=WORKFLOW.read_text(encoding="utf8")
         self.assertIn("python v3_v30b_release_gate.py --assert-blocked",content)
