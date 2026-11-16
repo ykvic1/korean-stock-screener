@@ -230,13 +230,26 @@ with sync_playwright() as p:
         page.locator("#detailClose").click()
     # For price/stop visual contract, search a known current-priced issuer.
     # Search is global and independent of the visible top-20 sort window.
-    priced_code = context.request.get(URL + "data.json").json()["stocks"][0]["code"]
+    price_market = context.request.get(URL + "data.json").json()
+    priced_stock = price_market["stocks"][0]
+    priced_code = priced_stock["code"]
     page.locator("#stockSearch").fill(priced_code)
     personal_card = page.locator(f'.u-stock[data-stock="{priced_code}"]')
     personal_card.wait_for(timeout=10000)
-    assert "FChart 기준가 ·" in personal_card.locator(".u-card-price small").inner_text(), (
+    assert any(label in personal_card.locator(".u-card-price small").inner_text()
+               for label in ("FChart 기준가 ·", "KRX 대조 종가 ·")), (
         "known current-priced stock must not be relabeled unpriced"
     )
+    quote_response = context.request.get(URL + "v3-regular-close-prices.json")
+    if quote_response.ok:
+        quote_report = quote_response.json()
+        quote = quote_report.get("rows", {}).get(priced_code)
+        if (quote_report.get("asof") == price_market["date"] and quote
+                and quote.get("analysis_close") == priced_stock["price"]
+                and quote.get("name") == priced_stock["name"]
+                and quote.get("market") == priced_stock["market"]):
+            assert "KRX 대조 종가 ·" in personal_card.locator(".u-card-price small").inner_text()
+            assert personal_card.locator(".u-card-price b").inner_text() == f'{quote["close"]:,.0f}원'
     personal_label = personal_card.locator(".u-card-score > small").last.inner_text()
     assert "개인환산" in personal_label
     first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")

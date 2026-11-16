@@ -15,6 +15,7 @@ from v3_forward_daily_prices import DailyEvidenceError, collect_daily, read_dail
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes
+from v3_regular_close_prices import RegularCloseError, publish_regular_closes
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
 from v3_krx_history_collection import MARKETS, HistoryCollectionError, _snapshot_market
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
@@ -346,6 +347,7 @@ def main():
 
     collect_daily(entry_statuses, now, private_storage, official_pair)
     collect_signal_closes(entry_statuses, now, private_storage)
+    publish_regular_closes(private_storage)
     checked = 0
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
@@ -370,6 +372,6 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (EntryError, DailyEvidenceError, ShareReviewError, SignalCloseError, HistoryCollectionError,
+    except (EntryError, DailyEvidenceError, ShareReviewError, SignalCloseError, RegularCloseError, HistoryCollectionError,
             PrivateHistoryError, DerivedSourceError) as error:
         raise SystemExit(str(error)) from None

@@ -27,6 +27,51 @@ assert.ok(source.includes('FChart 기준가 · KRX 정규장 미검증'));
 assert.ok(source.includes('FChart 기준가 · '));
 assert.ok(source.includes("'가격 미관측'"));
 
+// Officially corroborated current closes update displayed risk distances while
+// the original technical inputs and operational scores retain their provenance.
+{
+ const day='2026-11-13';
+ const r={code:'005930',name:'삼성전자',market:'KOSPI',price:120,price_date:day,
+  stop_line:90,stop_pct:-25,reference_resistance:130,
+  v3_operational:{score:55,available:90},
+  v3_structural_stop_reference:{schema:1,asof:day,unscored_reference_only:true,
+   score_impact:0,reference_line:90,distance_pct:25}};
+ const report={schema:'v3-current-corroborated-regular-closes-1',asof:day,
+  source:'DATED_PUBLIC_FDR_CLOSE_CORROBORATED_WITH_KRX',
+  source_market_sha256:'a'.repeat(64),public_cache_sha256:'b'.repeat(64),
+  official_source_sha256:{KOSPI:'c'.repeat(64),KOSDAQ:'d'.repeat(64)},
+  historical_ohlcv_regular_session_verified:false,score_recalculated:false,
+  requested_count:1,matched_count:1,states:{matched:1},
+  rows:{'005930':{name:r.name,market:r.market,analysis_close:120,close:100}}};
+ const model={date:day,rows:[{r}]};
+ assert.equal(unified.applyRegularClosePrices(model,report),1);
+ assert.equal(unified.displayPrice(r),100);
+ assert.match(unified.priceLabel(r),/KRX 대조 종가/);
+ assert.equal(r.price,120);
+ assert.equal(r.v3_operational.score,55);
+ assert.equal(r.v3_structural_stop_reference.distance_pct,25);
+ assert.equal(unified.currentPriceReferences(r).stopDistance,10);
+ assert.equal(unified.currentPriceReferences(r).targetDistance,30);
+ assert.equal(unified.currentPriceReferences(r).rewardRisk,3);
+ assert.match(unified.structuralStopMarkup(r),/10\.0%/);
+ assert.match(unified.regularCloseReferencesMarkup(r),/3\.00배/);
+ assert.equal(unified.stabilityProfile(r,{earned:55}).stopDistancePct,10);
+ const crossed=structuredClone(r);crossed.v3_regular_close_quote.close=80;
+ assert.match(unified.structuralStopMarkup(crossed),/참고선 이하/);
+ assert.equal(unified.currentPriceReferences(crossed).stopDistance,null);
+ assert.equal(unified.currentPriceReferences(crossed).rewardRisk,null);
+ const fresh=()=>({date:day,rows:[{r:{...r,v3_regular_close_quote:undefined}}]});
+ assert.equal(unified.applyRegularClosePrices(fresh(),{...report,asof:'2026-11-12'}),0);
+ assert.equal(unified.applyRegularClosePrices(fresh(),{...report,rows:{'005930':{
+  ...report.rows['005930'],analysis_close:121}}}),0);
+ assert.equal(unified.applyRegularClosePrices(fresh(),{...report,rows:{'005930':{
+  ...report.rows['005930'],name:'다른회사'}}}),0);
+ assert.equal(unified.applyRegularClosePrices(fresh(),{...report,requested_count:2}),0);
+ const fallback=fresh().rows[0].r;
+ assert.equal(unified.displayPrice(fallback),120);
+ assert.match(unified.priceLabel(fallback,true),/KRX 정규장 미검증/);
+}
+
 // A newly listed alphanumeric KRX ticker must not erase ALL operational scores.
 {
  const report=JSON.parse(fs.readFileSync(path.join(__dirname,
@@ -133,8 +178,8 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261112-stop-sma20-60'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261112-stop-sma20-60'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261116-regular-close'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261116-regular-close'),'classic research route keeps its pinned assets');
  assert.ok(entry.includes('operational-score.js?v=r1e-stop-unscored')&&
   html.includes('operational-score.js?v=r1e-stop-unscored'),
   'both routes must invalidate cached score markup after removing stop adjustments');
@@ -1019,7 +1064,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
  'both screener entry routes must expose one-tap OBV price-lag research filter');
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
-for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile'],[entry,'v30b-20261112-stop-sma20-60','v30b-20261110-score-reconcile']]){
+for(const [page,jsVersion,cssVersion] of [[html,'v30b-20261116-regular-close','v30b-20261110-score-reconcile'],[entry,'v30b-20261116-regular-close','v30b-20261110-score-reconcile']]){
  assert.ok(page.includes('workspace.js?v='+jsVersion)&&
   page.includes('workspace.css?v='+cssVersion)&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
