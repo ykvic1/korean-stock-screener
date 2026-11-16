@@ -1,11 +1,11 @@
 {
   "asof": "2026-11-13",
   "requested_sessions": 721,
-  "archived_sessions": 660,
-  "trade_status_sessions": 660,
+  "archived_sessions": 721,
+  "trade_status_sessions": 721,
   "daily_trade_status_sessions": 260,
   "requested_completed_weeks": 154,
-  "archived_completed_weeks": 141,
+  "archived_completed_weeks": 154,
   "listed_total": 2591,
   "counts": {
     "current_close_observed": 2591,
@@ -17,13 +17,13 @@
     "daily_ma240_cross_qualified": 29,
     "weekly_ma20_turn_recomputed": 1933,
     "weekly_ma60_turn_recomputed": 1755,
-    "weekly_ma120_turn_recomputed": 0,
+    "weekly_ma120_turn_recomputed": 1520,
     "weekly_rsi_recomputed": 1764,
     "weekly_ma120_position_recomputed": 1648
   },
-  "source_inputs_sha256": "27c34871666274756da1b18d459eae255d2dbfcea797a6b4435a056a56e71dbe",
-  "added_this_run": 80,
-  "pending_sessions": 61,
-  "source_requests": 160,
+  "source_inputs_sha256": "eb117f73636310a37638538af6a934db27b7ca472eb747bc58cf5202303c67ba",
+  "added_this_run": 61,
+  "pending_sessions": 0,
+  "source_requests": 122,
   "failures": {}
 }
