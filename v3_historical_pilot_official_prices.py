@@ -70,9 +70,20 @@ def audit(panels, delisted, client, batch):
     anchor = panels[SIGNAL]
     require(delisted <= anchor.keys(), 'delisted_security_outside_pilot_anchor')
     results = {}
+    errors = {}
     for session in sessions:
         public = panels[session]
-        raw, hashes = read_official_openings(client, session.isoformat())
+        try:
+            raw, hashes = read_official_openings(client, session.isoformat())
+        except (KRXProbeError, HistoryCollectionError) as error:
+            reason = error.reason if isinstance(error, KRXProbeError) else str(error)
+            errors[session.isoformat()] = {
+                'reason': reason, 'market': error.market,
+                'market_responses': getattr(error, 'market_responses', None),
+            }
+            if reason in {'http_unauthorized', 'http_forbidden'}:
+                break
+            continue
         official = {code: daily_row(market, row) for code, (market, row) in raw.items()}
         anchor_listed = anchor.keys() & (public.keys() | official.keys())
         results[session.isoformat()] = {
@@ -89,7 +100,9 @@ def audit(panels, delisted, client, batch):
         'entry_session': ENTRY.isoformat(),
         'public_panel_source_sha256': list(SOURCE_DIGESTS),
         'sessions': results,
-        'official_api_requests': 2 * len(sessions),
+        'failed_sessions': errors,
+        'requested_sessions': [d.isoformat() for d in sessions],
+        'maximum_official_api_requests': 2 * len(sessions),
         'adjusted_price_history_verified': False,
         'volume_session_equivalence_verified': False,
         'performance_validated': False,
@@ -107,15 +120,10 @@ def main():
     panels = read_panels(args.sources)
     delisted = {row['code'] for row in ledger_rows(ROOT, 'delistings')
                 if row['anchor_membership'] == 'present'}
-    try:
-        result = audit(panels, delisted, KRXClient(key), args.batch)
-    except (KRXProbeError, HistoryCollectionError) as error:
-        print(json.dumps({'status': 'official_pilot_spotcheck_failed',
-                          'reason': error.reason if isinstance(error, KRXProbeError) else str(error),
-                          'market': getattr(error, 'market', None),
-                          'market_responses': getattr(error, 'market_responses', None)}))
-        raise SystemExit(1) from None
+    result = audit(panels, delisted, KRXClient(key), args.batch)
     print(json.dumps(result, sort_keys=True))
+    if result['failed_sessions']:
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':
