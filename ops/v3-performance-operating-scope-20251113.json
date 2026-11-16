@@ -1,6 +1,6 @@
 {
   "action_register_sha256": {
-    "continuity_register": "91f1bcd5b45dfd8dbce16c9e063239f4ce2efda776d86a6a463415184d922b74",
+    "continuity_register": "50ff41aca85b59798ae1a5793fbe6b68940a8be0c252cb1d82d5690c405ea34c",
     "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
     "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0"
@@ -42,10 +42,10 @@
     },
     "12": {
       "all_observed_securities": {
-        "action_adjusted": 162,
+        "action_adjusted": 243,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1492,
+        "non_delisted_unique": 1573,
         "overlap_superseded": 0,
         "raw_continuous_only": 1330
       },
@@ -58,10 +58,10 @@
         "raw_continuous_only": 21
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 160,
+        "action_adjusted": 241,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1383,
+        "non_delisted_unique": 1464,
         "overlap_superseded": 0,
         "raw_continuous_only": 1223
       }
@@ -120,10 +120,10 @@
     },
     "6": {
       "all_observed_securities": {
-        "action_adjusted": 58,
+        "action_adjusted": 77,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1773,
+        "non_delisted_unique": 1792,
         "overlap_superseded": 0,
         "raw_continuous_only": 1715
       },
@@ -136,10 +136,10 @@
         "raw_continuous_only": 21
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 57,
+        "action_adjusted": 76,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1635,
+        "non_delisted_unique": 1654,
         "overlap_superseded": 0,
         "raw_continuous_only": 1578
       }
