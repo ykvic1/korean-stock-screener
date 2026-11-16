@@ -33,6 +33,26 @@ class DailyEvidenceError(ValueError):
     """Fixed errors allowed in public logs."""
 
 
+class IncompleteOfficialPair(KRXProbeError):
+    """A retryable failure with diagnostics for both market requests."""
+
+    def __init__(self, error, market_responses):
+        super().__init__(error.market, error.reason, error.http_status)
+        self.market_responses = market_responses
+
+
+def pending_official_pair(error, now):
+    status = {
+        'status': 'waiting_for_official_paired_response',
+        'last_source_attempt_at_utc': now.isoformat(),
+        'unavailable_market': error.market,
+        'source_reason': error.reason,
+    }
+    if isinstance(error, IncompleteOfficialPair):
+        status['market_responses'] = error.market_responses
+    return status
+
+
 def number(row, field):
     try:
         return _whole(row.get(field), field)
@@ -193,9 +213,6 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
         except KRXProbeError as error:
             if error.reason not in RETRYABLE_KRX_REASONS:
                 raise DailyEvidenceError('krx_' + error.reason) from None
-            result = {'schema': SCHEMA, 'date': day,
-                      'status': 'waiting_for_official_paired_response',
-                      'last_source_attempt_at_utc': now.isoformat(),
-                      'unavailable_market': error.market, 'source_reason': error.reason}
+            result = {'schema': SCHEMA, 'date': day, **pending_official_pair(error, now)}
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(result, ensure_ascii=False))

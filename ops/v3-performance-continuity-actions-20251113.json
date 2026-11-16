@@ -1338,6 +1338,18 @@
     "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/445888"
   },
   {
+    "code": "105330",
+    "name_before": "케이엔더블유",
+    "name_after": "케이엔더블유",
+    "market": "KOSDAQ",
+    "listed_on": "2026-05-08",
+    "shares_before": 16060028,
+    "shares_after": 16019520,
+    "action": "treasury_cancellation",
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/04/000619/20260504001364/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20260304000906"
+  },
+  {
     "listed_on": "2026-05-11",
     "code": "079430",
     "market": "KOSPI",
@@ -1410,6 +1422,18 @@
     "terms_url": "https://samara.kr/disclosure/20260422900182"
   },
   {
+    "code": "053610",
+    "name_before": "프로텍",
+    "name_after": "프로텍",
+    "market": "KOSDAQ",
+    "listed_on": "2026-05-15",
+    "shares_before": 11000000,
+    "shares_after": 9000000,
+    "action": "treasury_cancellation",
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/12/000733/20260512001664/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/03/05/000459/20260305000995/11309.htm"
+  },
+  {
     "listed_on": "2026-05-15",
     "code": "066570",
     "market": "KOSPI",
@@ -1420,6 +1444,18 @@
     "shares_after": 162884638,
     "notice_url": "https://kind.krx.co.kr/external/2026/05/12/000182/20260512000383/68155.htm",
     "terms_url": "https://kind.krx.co.kr/external/2026/02/12/001271/20260212003157/11309.htm"
+  },
+  {
+    "code": "069080",
+    "name_before": "웹젠",
+    "name_after": "웹젠",
+    "market": "KOSDAQ",
+    "listed_on": "2026-05-15",
+    "shares_before": 34600884,
+    "shares_after": 30966575,
+    "action": "treasury_cancellation",
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/12/000632/20260512001464/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/04/000553/20260407003101/70650.htm"
   },
   {
     "listed_on": "2026-05-15",
@@ -1516,6 +1552,18 @@
     "shares_after": 44140819,
     "notice_url": "https://kind.krx.co.kr/external/2026/05/15/000370/20260515000715/68155.htm",
     "terms_url": "https://samara.kr/disclosure/20260311004192"
+  },
+  {
+    "code": "034810",
+    "name_before": "해성산업",
+    "name_after": "해성산업",
+    "market": "KOSDAQ",
+    "listed_on": "2026-05-20",
+    "shares_before": 32556857,
+    "shares_after": 31580152,
+    "action": "treasury_cancellation",
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/15/002880/20260515006555/70763.htm",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/427802"
   },
   {
     "listed_on": "2026-05-21",

@@ -10,7 +10,8 @@ from v3_forward_entry import (
     EntryError, classify_entry, crosscheck_entry_daily, entry_plan, entry_session_path, first_open_after,
     read_official_openings, save_entry, timestamp,
 )
-from v3_forward_daily_prices import save_daily
+from official_probe.clients import KRXProbeError
+from v3_forward_daily_prices import IncompleteOfficialPair, pending_official_pair, save_daily
 from v3_score_observation_capture import SCHEMA as SCORE_SCHEMA
 
 
@@ -217,6 +218,31 @@ class EntryEvidenceTest(unittest.TestCase):
     def test_two_market_duplicate_rejected(self):
         with self.assertRaisesRegex(EntryError, 'ambiguous_official_market_code'):
             read_official_openings(OfficialPair('005930'), '2026-11-16')
+
+    def test_pending_pair_checks_both_markets_without_saving_partial_rows(self):
+        day = '2026-11-16'
+        for kosdaq_error in (None, 'empty_market_rows'):
+            with self.subTest(kosdaq_error=kosdaq_error):
+                class PartialPair(OfficialPair):
+                    def daily_market(self, market, target_day):
+                        if market == 'KOSPI' or kosdaq_error:
+                            self.markets.append(market)
+                            raise KRXProbeError(market, 'empty_market_rows', 200)
+                        return super().daily_market(market, target_day)
+
+                client, storage = PartialPair(), MemoryStore()
+                with self.assertRaises(IncompleteOfficialPair) as context:
+                    save_daily(day, storage, lambda target: read_official_openings(client, target))
+                self.assertEqual(client.markets, ['KOSPI', 'KOSDAQ'])
+                status = pending_official_pair(context.exception, timestamp('2026-11-16T14:15:00+00:00'))
+                self.assertEqual(status['source_reason'], 'empty_market_rows')
+                self.assertEqual(status['market_responses']['KOSPI']['http_status'], 200)
+                if kosdaq_error:
+                    self.assertEqual(status['market_responses']['KOSDAQ']['reason'], kosdaq_error)
+                else:
+                    self.assertEqual(status['market_responses']['KOSDAQ']['row_count'], 1)
+                self.assertEqual(storage.blobs, {})
+                self.assertNotIn('123456', json.dumps(status))
 
     def test_private_archive_reused_and_summary_has_no_prices(self):
         plan = {'score_asof': '2026-11-13', 'listed_count': 3, 'ranked_count': 2,
