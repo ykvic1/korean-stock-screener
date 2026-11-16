@@ -2863,7 +2863,13 @@ async function load(){
   const operationalLink=root.V3OperationalScore?.attachAllListed(model,responses[22])||
    {linked:0,unpriced:0};
   const tradingLink=root.V3TradingStatus?.attach(model,responses[23]);
-  applyRegularClosePrices(model,responses[24]);
+  const regularCloseLinked=applyRegularClosePrices(model,responses[24]);
+  if($('regularCloseNote')){
+   $('regularCloseNote').hidden=!regularCloseLinked;
+   $('regularCloseNote').textContent=regularCloseLinked?
+    '화면 종가 '+regularCloseLinked.toLocaleString('ko-KR')+
+    '종목 KRX 대조 완료 · 과거 MA·RSI·OBV 및 점수 원천의 정규장 검증 진행 중':'';
+  }
   if($('tradeStatusNote'))$('tradeStatusNote').textContent=tradingLink?
     '상장목록 거래량 0: 거래정지 표시 '+tradingLink.halted+'종목 · 단기(1~2거래일 관측) '+
     tradingLink.short+' · 기간 미확인 '+tradingLink.durationUnknown+

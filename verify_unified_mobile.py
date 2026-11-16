@@ -250,6 +250,7 @@ with sync_playwright() as p:
                 and quote.get("market") == priced_stock["market"]):
             assert "KRX 대조 종가 ·" in personal_card.locator(".u-card-price small").inner_text()
             assert personal_card.locator(".u-card-price b").inner_text() == f'{quote["close"]:,.0f}원'
+            assert "KRX 대조 완료" in page.locator("#regularCloseNote").inner_text()
     personal_label = personal_card.locator(".u-card-score > small").last.inner_text()
     assert "개인환산" in personal_label
     first_normalized = personal_label.split("개인환산 ", 1)[1].removesuffix("점")
