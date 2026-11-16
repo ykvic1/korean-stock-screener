@@ -154,6 +154,22 @@ jobs:
                       "paths_with_dividend_entitlement_unpaid_or_unverified",
                       "price_scenarios_with_fractional_cash_claim",
                   ))+" |")
+              financial=pilot["financial_horizons"]
+              lines.extend((
+                  "",
+                  "- 기준일 이전 연간 재무와 가격 경로 연결: "
+                  +str(len(pilot["financial_replay_inputs"]))+"종목",
+                  "| 개월 | 가격 평가 | 경로 관측 | 가격 변화 중앙값 (%) | 관측 최대 역행폭 중앙값 (%) | 참고선 접촉 | 경로 공백 |",
+                  "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+              ))
+              for h in ("1","2","3","6","12"):
+                  row=financial[h]
+                  lines.append("| "+h+" | "+" | ".join(
+                      "—" if row[key] is None else str(row[key]) for key in (
+                          "with_price_evaluation","with_observed_path","median_price_change_pct",
+                          "median_observed_adverse_excursion_pct","with_reference_touch","with_path_gaps",
+                      )
+                  )+" |")
           except (ValueError, TypeError, KeyError, OSError, UnicodeError):
               lines.append("- 과거 표본 감사 실패. 저장 자료 일치와 계산 내역 확인 필요.")
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(

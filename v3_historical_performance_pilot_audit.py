@@ -7,11 +7,16 @@ from hashlib import sha256
 from io import StringIO
 import json
 from pathlib import Path
+import re
+from statistics import median
 
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
+from v3_krx_regular_close import KST, regular_close_utc
 
 ROOT = Path(__file__).resolve().parent
 SIGNAL = date(2025, 11, 13)
+SIGNAL_AT = regular_close_utc(SIGNAL).astimezone(KST).isoformat()
+ANNUAL_DATES = ("2022-12-31", "2023-12-31", "2024-12-31")
 ENTRY = date(2025, 11, 14)
 # The Friday entry settles two KRX sessions later.
 ENTRY_SETTLEMENT = date(2025, 11, 18)
@@ -295,6 +300,128 @@ def check_path(path, reference, valuation, previous):
     return bars, gaps, adverse, favorable
 
 
+def filing_date(receipt):
+    require(re.fullmatch(r"[0-9]{14}", receipt), "invalid_replay_receipt")
+    return day(f"{receipt[:4]}-{receipt[4:6]}-{receipt[6:8]}")
+
+
+def statement_metrics(statements):
+    margins = []
+    leverage = None
+    for period in ANNUAL_DATES:
+        row = statements.get(period)
+        if row is None:
+            continue
+        assets, liabilities, equity, revenue, earnings = (
+            int(row[field]) if row[field] else None for field in
+            ("assets_krw", "liabilities_krw", "equity_krw", "revenue_krw", "operating_income_krw")
+        )
+        balance = (assets, liabilities, equity)
+        require(all(v is None for v in balance) or (
+            all(v is not None for v in balance) and assets > 0
+            and liabilities >= 0 and assets == liabilities + equity
+        ), "invalid_replay_statement_balance")
+        if assets is not None and period == ANNUAL_DATES[-1]:
+            leverage = Decimal(liabilities) / assets * 100
+        if revenue is not None and revenue > 0 and earnings is not None:
+            margins.append(Decimal(earnings) / revenue * 100)
+    return leverage, sum(margins) / len(ANNUAL_DATES) if len(margins) == len(ANNUAL_DATES) else None
+
+
+def audited_financial_inputs(references, roster, trades, coverage, filings, prior, annual):
+    grouped = defaultdict(dict)
+    prior_codes = {code for code, _ in prior}
+    selected = {}
+    for (code, receipt), filing in filings.items():
+        published = filing_date(receipt)
+        status = filing["status"]
+        require(code in references and references[code]["name"] == filing["name"]
+                and filing["signal_at_kst"] == SIGNAL_AT and day(filing["published_on_kst"]) == published
+                and day(filing["period_end"]) <= published and published != SIGNAL
+                and status in {"excluded_after_cutoff", "selected_periodic", "superseded_before_cutoff",
+                               "available_attachment", "available_preliminary"}
+                and (published > SIGNAL) == (status == "excluded_after_cutoff"),
+                "invalid_replay_filing_time")
+        if status == "selected_periodic":
+            period = filing["period_end"]
+            require((code, period) not in selected, "duplicate_replay_period_receipt")
+            selected[code, period] = receipt
+
+    for (code, receipt), filing in filings.items():
+        previous_receipt = filing["supersedes_receipt"]
+        if previous_receipt:
+            previous = filings.get((code, previous_receipt))
+            require(previous and previous["period_end"] == filing["period_end"]
+                    and previous_receipt < receipt, "invalid_replay_filing_revision")
+    for (code, period), row in prior.items():
+        receipt = row["dart_receipt"]
+        require(selected.get((code, row["filing_period_end"])) == receipt
+                and row["signal_at_kst"] == SIGNAL_AT and period <= row["filing_period_end"],
+                "unselected_replay_statement_receipt")
+        if row["filing_period_end"] == ANNUAL_DATES[-1]:
+            grouped[code][period] = row
+    for (code, period), row in annual.items():
+        if code in references:
+            require(code not in prior_codes, "overlapping_replay_annual_ledgers")
+            require(row["market"] == roster[code]["market"], "replay_financial_identity_mismatch")
+            grouped[code][period] = row
+
+    inputs = {}
+    for code, reference in references.items():
+        summary = coverage[code]
+        statements = grouped[code]
+        receipt = summary["selected_fy2024_receipt"]
+        require(summary["name"] == reference["name"] == roster[code]["anchor_name"]
+                and summary["market"] == roster[code]["market"]
+                and summary["later_delisted_on"] == roster[code]["delisted_on"]
+                and summary["next_session_observation"] == trades[code]["next_session_status"],
+                "replay_financial_identity_mismatch")
+        if not statements:
+            require(summary["review_status"] == "fund_distribution_instrument" and not receipt
+                    and not int(summary["annual_statement_rows"]), "missing_replay_annual_statements")
+            continue
+        require(filing_date(receipt) < SIGNAL and ANNUAL_DATES[-1] in statements
+                and statements.keys() <= set(ANNUAL_DATES)
+                and len(statements) == int(summary["annual_statement_rows"])
+                and summary["review_status"] in {"reviewed_prior_pilot", "reviewed_fy2024"},
+                "invalid_replay_annual_selection")
+        if summary["review_status"] == "reviewed_fy2024":
+            versions = {item: filing_date(item) for item in summary["identified_version_receipts"].split("|")}
+            eligible = [item for item, published in versions.items() if published < SIGNAL]
+            require(eligible and SIGNAL not in versions.values() and receipt == max(eligible),
+                    "invalid_replay_annual_version")
+        scopes = {row["scope"] for row in statements.values()}
+        require(len(scopes) == 1 and scopes <= {"CFS", "OFS"}
+                and all(row["dart_receipt"] == receipt and row["name"] == reference["name"]
+                        and row["statement_url"].startswith("https://")
+                        and re.fullmatch(r"[0-9a-f]{64}", row["source_sha256"])
+                        for row in statements.values()), "invalid_replay_annual_source")
+        metrics = statement_metrics(statements)
+        for key, actual in zip(("fy2024_liabilities_to_assets_pct", "three_year_operating_margin_pct"), metrics):
+            saved = summary[key]
+            require((actual is None and not saved) or (actual is not None and saved
+                    and abs(Decimal(saved) - actual) <= Decimal("0.0000005001")),
+                    "replay_annual_metric_mismatch")
+        inputs[code] = {"annual_receipt": receipt, "scope": next(iter(scopes)),
+                        "liabilities_to_assets_pct": summary["fy2024_liabilities_to_assets_pct"] or None,
+                        "mean_operating_margin_pct": summary["three_year_operating_margin_pct"] or None}
+    return inputs
+
+
+def financial_horizon_summary(replays, horizon):
+    rows = [replay[horizon] for replay in replays.values()]
+    returns = [Decimal(row["price_change_pct"]) for row in rows if row["price_change_pct"] is not None]
+    adverse = [Decimal(row["maximum_adverse_excursion_observed_pct"]) for row in rows]
+    step = Decimal("0.01")
+    return {"with_price_evaluation": len(returns), "with_observed_path": len(adverse),
+            "with_reference_touch": sum(row["reference_touch"] for row in rows),
+            "with_path_gaps": sum(row["path_has_gaps"] for row in rows),
+            "median_price_change_pct": (
+                str(median(returns).quantize(step, rounding=ROUND_HALF_UP)) if returns else None),
+            "median_observed_adverse_excursion_pct": (
+                str(median(adverse).quantize(step, rounding=ROUND_HALF_UP)) if adverse else None)}
+
+
 def audit(root=ROOT):
     hashes = {}
 
@@ -340,6 +467,13 @@ def audit(root=ROOT):
                     and trades[code]["last_positive_volume_candidate"] == end.isoformat(),
                     "liquidation_notice_date_mismatch")
 
+    financial_inputs = audited_financial_inputs(
+        references, roster, trades, load("delisted-financial-coverage", "code"),
+        load("filing-availability", "code", "dart_receipt"),
+        load("financial-statements", "code", "statement_period_end"),
+        load("delisted-annual-statements", "code", "statement_period_end"),
+    )
+    financial_replays = {code: {} for code in financial_inputs}
     dividend_rows = load("cash-dividends", "position_code", "payer_code", "record_on")
     events, dividend_dispositions = dividend_events(dividend_rows, references, settlements, adjustments)
     dividend_replays = {}
@@ -386,6 +520,14 @@ def audit(root=ROOT):
             counts["liquidation_scenarios"] += price["method"] in LIQUIDATION
             counts["paths_with_unpriced_sessions"] += previous[1] > 0
             counts[path["touch_status"]] += 1
+            if code in financial_inputs:
+                financial_replays[code][horizon] = {
+                    "price_change_pct": price["price_change_pct"] or None,
+                    "price_method": price["method"],
+                    "maximum_adverse_excursion_observed_pct": path["maximum_adverse_excursion_observed_pct"],
+                    "reference_touch": path["touch_status"] == TOUCH,
+                    "path_has_gaps": previous[1] > 0,
+                }
             dividend = cash_dividend_replay(price, events.get(code, ()), valuation, entry)
             counts["price_scenarios_with_reported_dividend_cash"] += (
                 "price_scenario_plus_reported_cash_pct" in dividend)
@@ -428,6 +570,9 @@ def audit(root=ROOT):
         "unresolved_distribution_register_issuers": sum(
             row["treatment"] == "distribution_unresolved" for row in settlements.values()
         ),
+        "financial_replay_inputs": financial_inputs,
+        "financial_replays": financial_replays,
+        "financial_horizons": {str(h): financial_horizon_summary(financial_replays, str(h)) for h in HORIZONS},
         "methods": dict(methods),
         "dividend_event_rows": len(dividend_rows),
         "dividend_eligible_events": dividend_dispositions["eligible"],
