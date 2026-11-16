@@ -22,8 +22,8 @@
     "weekly_ma120_position_recomputed": 1648
   },
   "source_inputs_sha256": "eb117f73636310a37638538af6a934db27b7ca472eb747bc58cf5202303c67ba",
-  "added_this_run": 61,
+  "added_this_run": 0,
   "pending_sessions": 0,
-  "source_requests": 122,
+  "source_requests": 0,
   "failures": {}
 }
