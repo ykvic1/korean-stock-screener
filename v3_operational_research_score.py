@@ -372,13 +372,15 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                 close_candidates['technical','ma20_ma60_cross_near_ma240']={
                     'points':MA240_CROSS_MAX if cross['qualified'] else 0,
                     'available':MA240_CROSS_MAX,'asof':day}
-            weekly=close_receipt.get('weekly_ma20_turn')
+            weekly=close_receipt.get('weekly')
             if weekly is not None:
                 old_slope=stock.get('v3_ma_slope_transition') if stock else None
                 checked=old_slope and valid_ma_slope(old_slope,day) and old_slope['weekly_asof']==weekly['asof']
                 old_parts=(old_slope['parts']['weekly'] or {}) if checked else {}
-                measured={period:value for period,value in old_parts.items() if value is not None}
-                measured['20']=weekly['points']
+                official_weekly_periods={period:value for period,value in weekly['ma_turn'].items()
+                                         if value is not None}
+                measured={**{period:value for period,value in old_parts.items() if value is not None},
+                          **official_weekly_periods}
                 candidate={'points':round(sum(measured.values()),6),
                            'available':sum(MA_SLOPE_WEIGHTS['weekly'][period] for period in measured),
                            'asof':weekly['asof']}
@@ -386,6 +388,17 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                 if current is None or (candidate['asof']>=current['asof']
                                        and candidate['available']+1e-6>=current['available']):
                     close_candidates['momentum','weekly_ma_slope_turn']=candidate
+                weekly_rsi=weekly['rsi']
+                if weekly_rsi is not None:
+                    rsi_weight=SPECS['technical']['weekly_rsi']
+                    close_candidates['technical','weekly_rsi']={'points':rsi_weight if
+                        weekly_rsi['rsi30_cross_recent'] or weekly_rsi['rsi_bullish_divergence_recent'] else 0,
+                        'available':rsi_weight,'asof':weekly['asof']}
+                position=_weekly_trend(weekly)
+                if position is not None:
+                    close_candidates['technical','long_ma_position']={
+                        'points':position*.6,'available':SPECS['technical']['long_ma_position'],
+                        'asof':weekly['asof']}
             for (area,key),part in close_candidates.items():
                 parts[area][key]=part
         if code in revenue_parts:
@@ -454,9 +467,11 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                 rows[code]['regular_close_continuous_sessions']=close_receipt['continuous_sessions']
                 rows[code]['regular_close_ma_periods']=[period for period,value in
                     (close_receipt['daily_ma_turn'] or {}).items() if value is not None]
-                if 'weekly_ma_slope_turn' in used:
-                    rows[code]['regular_close_weekly_asof']=close_receipt['weekly_ma20_turn']['asof']
-                    rows[code]['regular_close_continuous_weeks']=close_receipt['weekly_ma20_turn']['continuous_weeks']
+                if {'weekly_ma_slope_turn','weekly_rsi','long_ma_position'}.intersection(used):
+                    rows[code]['regular_close_weekly_asof']=weekly['asof']
+                    rows[code]['regular_close_continuous_weeks']=weekly['continuous_weeks']
+                    if 'weekly_ma_slope_turn' in used:
+                        rows[code]['regular_close_weekly_ma_periods']=list(official_weekly_periods)
     eligible=sorted((k for k,r in rows.items() if r['score'] is not None),
         key=lambda k:(-rows[k]['score'],-rows[k]['available'],k))
     for rank,k in enumerate(eligible,1):rows[k]['rank']=rank
@@ -474,8 +489,12 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             'daily_ma_turn_recomputed':sum('daily_ma_slope_turn' in r.get('regular_close_recomputed_parts',[]) for r in rows.values()),
             'daily_ma240_cross_recomputed':sum('ma20_ma60_cross_near_ma240' in
                 r.get('regular_close_recomputed_parts',[]) for r in rows.values()),
-            'weekly_ma20_turn_recomputed':sum('weekly_ma_slope_turn' in
-                r.get('regular_close_recomputed_parts',[]) for r in rows.values())},
+            **{f'weekly_ma{period}_turn_recomputed':sum(period in r.get('regular_close_weekly_ma_periods',[])
+                for r in rows.values()) for period in MA_SLOPE_WEIGHTS['weekly']},
+            'weekly_rsi_recomputed':sum('weekly_rsi' in r.get('regular_close_recomputed_parts',[])
+                for r in rows.values()),
+            'weekly_ma120_position_recomputed':sum('long_ma_position' in r.get('regular_close_recomputed_parts',[])
+                for r in rows.values())},
         'pending':['거래 세부구조: 기간 미충족 또는 부호 근거 부족 시 종목별 미관측',
                    '독립 돌파확인: 가격 경로 부족 종목 미관측',
                    'MA 전환: 가격 이력 부족 종목 미관측',

@@ -44,6 +44,10 @@ assert.ok(source.includes("'가격 미관측'"));
   regular_close_weekly_asof:'2026-11-13',regular_close_continuous_weeks:54};
  assert.match(operational.regularCloseMarkup(weekly), /20주 이평선 전환 · 2026-11-13 기준 · 연속 54주/);
  assert.equal(operational.regularCloseMarkup({...weekly,regular_close_continuous_weeks:53}), '');
+ const long={...weekly,regular_close_recomputed_parts:['weekly_ma_slope_turn','weekly_rsi','long_ma_position'],
+  regular_close_weekly_ma_periods:['20','60','120'],regular_close_continuous_weeks:120};
+ assert.match(operational.regularCloseMarkup(long),/20·60주 이평선 전환 \/ 주봉 RSI \/ 120주선 위치/);
+ assert.ok(!operational.regularCloseMarkup(long).includes('60·120주 이평선'));
 }
 
 // Officially corroborated current closes update displayed risk distances while
