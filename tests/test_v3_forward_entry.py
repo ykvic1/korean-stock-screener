@@ -1,12 +1,16 @@
 """Regress cutoff timing and the transition to private official evidence."""
-from datetime import date
+from datetime import date, datetime
 import gzip
 import json
 import unittest
+from unittest.mock import patch
 
 from v3_forward_entry import (
-    EntryError, classify_entry, first_open_after, read_official_openings, save_entry, timestamp,
+    EntryError, classify_entry, crosscheck_entry_daily, entry_plan, first_open_after,
+    read_official_openings, save_entry, timestamp,
 )
+from v3_forward_daily_prices import save_daily
+from v3_score_observation_capture import SCHEMA as SCORE_SCHEMA
 
 
 def quote(code='005930', name='삼성전자', day='20261116', opening='50,000', volume='100'):
@@ -40,6 +44,50 @@ class OfficialPair:
 
 
 class EntryEvidenceTest(unittest.TestCase):
+    def test_saved_entry_and_daily_prices_must_match_sources_identity_and_open(self):
+        observation = {
+            'schema': SCORE_SCHEMA, 'score_asof': '2026-11-13',
+            'captured_at_utc': '2026-11-15T23:03:00+00:00',
+            'regular_close_utc': '2026-11-13T06:30:00+00:00',
+            'listed_count': 2, 'ranked_count': 1,
+            'rows': {'005930': ['삼성전자', 'KOSPI', 60, 1],
+                     '123456': ['코스닥', 'KOSDAQ', None, None]},
+        }
+        digest, storage = 'd' * 64, MemoryStore()
+        plan = entry_plan(observation, digest)
+        official = read_official_openings(OfficialPair(), '2026-11-16')
+        now = timestamp('2026-11-16T11:45:00+00:00')
+        with patch('v3_forward_entry.datetime', wraps=datetime) as clock:
+            clock.now.return_value = now
+            save_entry(plan, observation, storage, lambda day: official)
+        self.assertEqual(crosscheck_entry_daily(observation, digest, storage),
+                         {'status': 'waiting_for_daily_archive'})
+        save_daily('2026-11-16', storage, lambda day: official, clock=lambda: now)
+        original = dict(storage.blobs)
+        result = crosscheck_entry_daily(observation, digest, storage)
+        self.assertEqual(result['status'], 'matched')
+        self.assertEqual(result['observed_openings_checked'], 1)
+        self.assertEqual(result['mismatched_openings'], 0)
+        self.assertEqual(storage.blobs, original)
+        self.assertNotIn('005930', json.dumps(result))
+        self.assertNotIn('50000', json.dumps(result))
+        daily_path = 'derived/forward-daily-prices/2026-11-16.json.gz'
+        for field, value in ((1, '다른회사'), (3, 51000)):
+            daily = json.loads(gzip.decompress(original[daily_path]))
+            daily['rows']['005930'][field] = value
+            storage.blobs[daily_path] = gzip.compress(json.dumps(daily).encode())
+            with self.subTest(field=field):
+                result = crosscheck_entry_daily(observation, digest, storage)
+                self.assertEqual(result['status'], 'opening_mismatch')
+                self.assertEqual(result['mismatched_openings'], 1)
+        daily = json.loads(gzip.decompress(original[daily_path]))
+        daily['source_sha256']['KOSPI'] = 'e' * 64
+        storage.blobs[daily_path] = gzip.compress(json.dumps(daily).encode())
+        result = crosscheck_entry_daily(observation, digest, storage)
+        self.assertEqual(result['status'], 'source_mismatch')
+        self.assertEqual(result['mismatched_openings'], 0)
+        self.assertFalse(result['performance_validated'])
+
     def test_late_capture_and_open_boundary(self):
         monday, opening, closing = first_open_after(timestamp('2026-11-15T23:03:26.504597+00:00'))
         self.assertEqual(monday, date(2026, 11, 16))

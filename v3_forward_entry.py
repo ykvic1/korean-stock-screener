@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 
 from official_probe.clients import KRXClient, KRXProbeError
-from v3_forward_daily_prices import DailyEvidenceError, collect_daily
+from v3_forward_daily_prices import DailyEvidenceError, collect_daily, read_daily
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
@@ -178,6 +178,46 @@ def save_entry(plan, observation, storage, official_openings):
     return result
 
 
+def crosscheck_entry_daily(observation, source_digest, storage):
+    """Compare saved entry opens with their independently retained daily panel."""
+    plan = entry_plan(observation, source_digest)
+    path = f"derived/forward-entry/{plan['score_asof']}.json.gz"
+    blob, _ = storage.get_content(path)
+    if blob is None:
+        raise EntryError('private_entry_missing_for_daily_crosscheck')
+    evidence = json.loads(gzip.decompress(blob))
+    entry = public_result(plan, evidence, observation['rows'])
+    daily = read_daily(plan['entry_session_candidate'], storage)
+    if daily is None:
+        return {'status': 'waiting_for_daily_archive'}
+    checked, mismatched = 0, 0
+    for code, (state, price) in evidence['rows'].items():
+        if state != 'official_open_observed':
+            continue
+        checked += 1
+        member = observation['rows'][code]
+        row = daily['rows'].get(code)
+        if (row is None or row[0] != member[1]
+                or normalized_name(row[1]) != normalized_name(member[0])
+                or row[2] != 'traded' or row[3] != price):
+            mismatched += 1
+    same_source = entry['krx_market_source_sha256'] == daily['source_sha256']
+    status = 'matched'
+    if not same_source:
+        status = 'source_mismatch'
+    elif mismatched:
+        status = 'opening_mismatch'
+    elif not checked:
+        status = 'no_observed_openings'
+    return {
+        'status': status, 'observed_openings_checked': checked,
+        'mismatched_openings': mismatched,
+        'entry_source_sha256': entry['krx_market_source_sha256'],
+        'daily_source_sha256': daily['source_sha256'],
+        'corporate_actions_certified': False, 'performance_validated': False,
+    }
+
+
 def main():
     now = datetime.now(timezone.utc)
 
@@ -266,6 +306,23 @@ def main():
         return storage_and_key()[0]
 
     collect_daily(entry_statuses, now, private_storage, official_pair)
+    checked = 0
+    for status in sorted(entry_statuses,
+                         key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
+        if (status['status'] != 'official_openings_archived_privately'
+                or status.get('entry_daily_crosscheck', {}).get('status') == 'matched'):
+            continue
+        if checked >= MAX_COHORTS_PER_RUN:
+            break
+        checked += 1
+        source = ARCHIVE / f"{status['score_asof']}.json"
+        raw = source.read_bytes()
+        status['entry_daily_crosscheck'] = crosscheck_entry_daily(
+            json.loads(raw), sha256(raw).hexdigest(), private_storage())
+        status['last_entry_daily_crosscheck_at_utc'] = now.isoformat()
+        target = OUT / source.name
+        target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        print(json.dumps(status, ensure_ascii=False))
     collect_share_reviews(now, private_storage)
 
 
