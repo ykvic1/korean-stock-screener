@@ -43,7 +43,9 @@ def official_actions(register, face_register, historical_register):
                      "historical_register": sha256(historical_raw).hexdigest()}
 
 
-CONTINUITY_KINDS = {"treasury_cancellation", "third_party_placement", "bond_conversion", "rename"}
+COMBINED_CANCELLATION = "treasury_cancellation_then_reverse_split"
+CONTINUITY_KINDS = {"treasury_cancellation", COMBINED_CANCELLATION,
+                    "third_party_placement", "bond_conversion", "rename"}
 TREASURY_LISTING_COPY = re.compile(
     r"https://(?:spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+"
     r"|stock\.mk\.co\.kr/news/disclosure/template/[0-9]+"
@@ -61,6 +63,7 @@ TREASURY_TERMS_COPY = re.compile(
 SUSPENDED_TREASURY_VALUES = ("resumed_on", "split_shares", "reduction_shares")
 SUSPENDED_TREASURY_SOURCES = ("split_url", "reduction_url", "resume_url")
 SUSPENDED_TREASURY_FIELDS = SUSPENDED_TREASURY_VALUES + SUSPENDED_TREASURY_SOURCES
+COMBINED_CANCELLATION_FIELDS = ("cancelled_shares", "reverse_split_url", "halt_from", "halt_url", "resume_url")
 
 
 def continuity_actions(raw):
@@ -99,6 +102,20 @@ def continuity_actions(raw):
                 **notice, "action": "bonus_ex_rights", "notice_url": notice["rights_url"],
             }
             actions[key] = {**notice, "action": "bonus_listing", "new_units": 1, "old_units": 1}
+        elif action == COMBINED_CANCELLATION:
+            cancelled = notice.get("cancelled_shares")
+            old_units = notice.get("old_units")
+            terms_url = notice.get("terms_url", "")
+            sources = {notice.get(field, "") for field in ("reverse_split_url", "halt_url", "resume_url")}
+            require(type(cancelled) is int and 0 < cancelled < before
+                    and type(old_units) is int and old_units > 1
+                    and before - cancelled == after * old_units
+                    and day(notice["halt_from"]).isoformat() < listed_on
+                    and len(sources | {listing_url, terms_url}) == 5
+                    and all(NOTICE.fullmatch(url) for url in sources)
+                    and (NOTICE.fullmatch(terms_url) or TREASURY_TERMS_COPY.fullmatch(terms_url)),
+                    "invalid_combined_cancellation_chain")
+            actions[key] = {**notice, "new_units": 1}
         else:
             direction = (after > before) - (after < before)
             require((action, direction) in {("rename", 0), ("treasury_cancellation", -1),
@@ -156,6 +173,15 @@ def match_held_units(panels, sessions, index, code, notice):
                 return None
     if not traded(current):
         return None
+    if kind == COMBINED_CANCELLATION:
+        halt = day(notice["halt_from"])
+        if halt not in sessions[1:index]:
+            return None
+        halt_index = sessions.index(halt)
+        if (not traded(panels[sessions[halt_index - 1]].get(code))
+                or any((quote := panels[d].get(code, ()))[:3] != expected_before or quote[-1] != 0
+                       for d in sessions[halt_index:index])):
+            return None
     if kind == "bonus_ex_rights":
         # Require the later listing and stable trade identity throughout the entitlement window.
         listed_on = day(notice["listed_on"])
@@ -221,7 +247,8 @@ def replay(panels, delisted, notices):
                     "action": notice["action"], "notice_url": notice["notice_url"],
                     **{k: notice[k] for k in ("terms_url", "ex_on", "listed_on", "rights_url",
                                              "ex_reference_krw", "eligible_shares",
-                                             *SUSPENDED_TREASURY_FIELDS) if k in notice},
+                                             *SUSPENDED_TREASURY_FIELDS,
+                                             *COMBINED_CANCELLATION_FIELDS) if k in notice},
                 }
     incorporated = set()
     for code in sorted(anchor.keys() - delisted):
