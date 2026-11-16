@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from v3_forward_entry import (
-    EntryError, classify_entry, crosscheck_entry_daily, entry_plan, first_open_after,
+    EntryError, classify_entry, crosscheck_entry_daily, entry_plan, entry_session_path, first_open_after,
     read_official_openings, save_entry, timestamp,
 )
 from v3_forward_daily_prices import save_daily
@@ -68,6 +68,7 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual(result['status'], 'matched')
         self.assertEqual(result['observed_openings_checked'], 1)
         self.assertEqual(result['mismatched_openings'], 0)
+        self.assertEqual(result['entry_session_path']['groups']['all_ranked']['observed_count'], 1)
         self.assertEqual(storage.blobs, original)
         self.assertNotIn('005930', json.dumps(result))
         self.assertNotIn('50000', json.dumps(result))
@@ -80,6 +81,7 @@ class EntryEvidenceTest(unittest.TestCase):
                 result = crosscheck_entry_daily(observation, digest, storage)
                 self.assertEqual(result['status'], 'opening_mismatch')
                 self.assertEqual(result['mismatched_openings'], 1)
+                self.assertNotIn('entry_session_path', result)
         daily = json.loads(gzip.decompress(original[daily_path]))
         daily['source_sha256']['KOSPI'] = 'e' * 64
         storage.blobs[daily_path] = gzip.compress(json.dumps(daily).encode())
@@ -87,6 +89,41 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual(result['status'], 'source_mismatch')
         self.assertEqual(result['mismatched_openings'], 0)
         self.assertFalse(result['performance_validated'])
+        self.assertNotIn('entry_session_path', result)
+
+    def test_entry_session_path_preserves_selected_members_and_empty_groups(self):
+        observation = {'rows': {
+            '005930': ['삼성전자', 'KOSPI', 60, 1],
+            '123456': ['코스닥', 'KOSDAQ', 40, 60],
+            '999998': ['미관측', 'KOSPI', 55, 8],
+            '999999': ['미평가', 'KOSDAQ', None, None],
+        }}
+        entry = {'rows': {
+            '005930': ['official_open_observed', 100],
+            '123456': ['official_open_observed', 200],
+            '999998': ['absent', None], '999999': ['unranked', None],
+        }}
+        daily = {'date': '2026-11-16', 'rows': {
+            '005930': ['KOSPI', '삼성전자', 'traded', 100, 110, 90, 105, 500],
+            '123456': ['KOSDAQ', '코스닥', 'traded', 200, 220, 160, 180, 500],
+        }}
+        result = entry_session_path(observation, entry, daily)
+        top20, top100 = result['groups']['top20'], result['groups']['top100']
+        self.assertEqual((top20['selected_count'], top20['observed_count']), (2, 1))
+        self.assertEqual(top20['missing_entry_counts']['absent'], 1)
+        self.assertEqual(top20['median_close_return_pct'], 5)
+        self.assertEqual((top100['selected_count'], top100['observed_count']), (3, 2))
+        self.assertEqual(top100['worst_low_return_pct'], -20)
+        self.assertEqual(top100['median_low_return_pct'], -15)
+        self.assertEqual(top100['median_high_return_pct'], 10)
+        self.assertEqual(top100['median_close_return_pct'], -2.5)
+        self.assertEqual(top100['negative_close_count'], 1)
+        self.assertNotIn('005930', json.dumps(result))
+        observation['rows']['005930'][3] = 50
+        empty = entry_session_path(observation, entry, daily)['groups']['top20']
+        self.assertEqual((empty['selected_count'], empty['observed_count']), (1, 0))
+        self.assertIsNone(empty['worst_low_return_pct'])
+        self.assertIsNone(empty['median_close_return_pct'])
 
     def test_late_capture_and_open_boundary(self):
         monday, opening, closing = first_open_after(timestamp('2026-11-15T23:03:26.504597+00:00'))

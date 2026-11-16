@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+from statistics import median
 
 from official_probe.clients import KRXClient, KRXProbeError
 from v3_forward_daily_prices import DailyEvidenceError, collect_daily, read_daily
@@ -178,6 +179,40 @@ def save_entry(plan, observation, storage, official_openings):
     return result
 
 
+def entry_session_path(observation, evidence, daily):
+    """Summarize one matched session from its official open, including missing entries."""
+    groups = {}
+    for label, rank_limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
+        selected = [code for code, member in observation['rows'].items()
+                    if member[3] is not None and (rank_limit is None or member[3] <= rank_limit)]
+        low_returns, high_returns, close_returns = [], [], []
+        missing = Counter()
+        for code in selected:
+            state, opening = evidence['rows'][code]
+            if state != 'official_open_observed':
+                missing[state] += 1
+                continue
+            row = daily['rows'][code]
+            low_returns.append(100 * (row[5] / opening - 1))
+            high_returns.append(100 * (row[4] / opening - 1))
+            close_returns.append(100 * (row[6] / opening - 1))
+        groups[label] = {
+            'selected_count': len(selected), 'observed_count': len(close_returns),
+            'missing_entry_counts': {state: missing[state] for state in ROW_STATES
+                                     if state != 'official_open_observed'},
+            'worst_low_return_pct': round(min(low_returns), 4) if low_returns else None,
+            'median_low_return_pct': round(median(low_returns), 4) if low_returns else None,
+            'median_high_return_pct': round(median(high_returns), 4) if high_returns else None,
+            'median_close_return_pct': round(median(close_returns), 4) if close_returns else None,
+            'negative_close_count': sum(value < 0 for value in close_returns),
+        }
+    return {
+        'schema': 'v3-forward-entry-session-path-1', 'session': daily['date'],
+        'basis': 'official_open_to_same_session_ohlc', 'groups': groups,
+        'fees_and_taxes_included': False, 'performance_validated': False,
+    }
+
+
 def crosscheck_entry_daily(observation, source_digest, storage):
     """Compare saved entry opens with their independently retained daily panel."""
     plan = entry_plan(observation, source_digest)
@@ -209,13 +244,16 @@ def crosscheck_entry_daily(observation, source_digest, storage):
         status = 'opening_mismatch'
     elif not checked:
         status = 'no_observed_openings'
-    return {
+    result = {
         'status': status, 'observed_openings_checked': checked,
         'mismatched_openings': mismatched,
         'entry_source_sha256': entry['krx_market_source_sha256'],
         'daily_source_sha256': daily['source_sha256'],
         'corporate_actions_certified': False, 'performance_validated': False,
     }
+    if status == 'matched':
+        result['entry_session_path'] = entry_session_path(observation, evidence, daily)
+    return result
 
 
 def main():
@@ -310,7 +348,8 @@ def main():
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
         if (status['status'] != 'official_openings_archived_privately'
-                or status.get('entry_daily_crosscheck', {}).get('status') == 'matched'):
+                or (status.get('entry_daily_crosscheck', {}).get('status') == 'matched'
+                    and 'entry_session_path' in status['entry_daily_crosscheck'])):
             continue
         if checked >= MAX_COHORTS_PER_RUN:
             break
