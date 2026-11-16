@@ -1,4 +1,5 @@
-"""Lightweight source contract for official-close daily technical observations."""
+"""Lightweight source contract for official-close technical observations."""
+from datetime import date, timedelta
 from hashlib import sha256
 import json
 import math
@@ -9,10 +10,18 @@ from v3_ma240_cross_research import MIN_HISTORY_SESSIONS, valid_observation as v
 
 LEGACY_SCHEMA = 'v3-official-regular-close-daily-indicators-1'
 LEGACY_IMPLEMENTATION = '39208d82ec6498d4d4b3fae06aba9d2b052492239dc15a38673ae0bf082f9187'
-SCHEMA = 'v3-official-regular-close-daily-indicators-2'
+DAILY_ONLY_SCHEMA = 'v3-official-regular-close-daily-indicators-2'
+DAILY_ONLY_IMPLEMENTATION = '6f0982244f019573273212febc941e4c9c47d5d52f1fb3f473038c8dcfe1c205'
+SCHEMA = 'v3-official-regular-close-indicators-3'
 OUTPUT = 'v3-regular-close-indicators.json'
 DAILY_SESSIONS = 200
 SESSIONS = MIN_HISTORY_SESSIONS
+WEEKLY_MA_TURN_WEEKS = 54
+MAX_COMPLETED_WEEKS = 57
+
+
+def last_completed_friday(day):
+    return day - timedelta(days=(day.weekday() - 4) % 7)
 
 
 def implementation_digest():
@@ -27,10 +36,14 @@ def implementation_digest():
 def admitted_rows(source, catalog):
     if not isinstance(source, dict):
         return {}
-    legacy = source.get('schema') == LEGACY_SCHEMA
+    schema = source.get('schema')
+    legacy = schema == LEGACY_SCHEMA
     limit = DAILY_SESSIONS if legacy else SESSIONS
-    digest = LEGACY_IMPLEMENTATION if legacy else implementation_digest()
-    if (source.get('schema') not in (LEGACY_SCHEMA, SCHEMA) or source.get('asof') != catalog['date']
+    previous_digests = {LEGACY_SCHEMA: LEGACY_IMPLEMENTATION, DAILY_ONLY_SCHEMA: DAILY_ONLY_IMPLEMENTATION}
+    if schema not in (*previous_digests, SCHEMA):
+        return {}
+    digest = implementation_digest() if schema == SCHEMA else previous_digests[schema]
+    if (source.get('asof') != catalog['date']
             or source.get('source') != 'KRX_OFFICIAL_REGULAR_CLOSE'
             or source.get('source_catalog_sha256') != sha256(
                 json.dumps(catalog, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -46,6 +59,7 @@ def admitted_rows(source, catalog):
     trade_status_sessions = source.get('trade_status_sessions', 0) if not legacy else 0
     if type(trade_status_sessions) is not int or not 0 <= trade_status_sessions <= source['archived_sessions']:
         return {}
+    friday = last_completed_friday(date.fromisoformat(catalog['date'])).isoformat()
     admitted = {}
     for member in catalog['rows']:
         row = source.get('rows', {}).get(member['code'])
@@ -69,6 +83,16 @@ def admitted_rows(source, catalog):
         cross = row.get('daily_ma240_cross')
         if cross is not None and (legacy or trade_status_sessions != SESSIONS or n < SESSIONS
                                   or not valid_ma240(cross, catalog['date'])):
+            continue
+        weekly = row.get('weekly_ma20_turn')
+        if weekly is not None and (schema != SCHEMA or not isinstance(weekly, dict)
+                or weekly.get('asof') != friday
+                or type(weekly.get('continuous_weeks')) is not int
+                or not WEEKLY_MA_TURN_WEEKS <= weekly['continuous_weeks'] <= min(
+                    trade_status_sessions, MAX_COMPLETED_WEEKS)
+                or type(weekly.get('points')) not in (int, float)
+                or not math.isfinite(weekly['points'])
+                or not 0 <= weekly['points'] <= WEIGHTS['weekly']['20']):
             continue
         admitted[member['code']] = row
     return admitted

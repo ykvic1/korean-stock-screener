@@ -22,11 +22,12 @@ class OperationalScoreTests(unittest.TestCase):
     def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256
         from v3_ma240_cross_research import observe as ma_observe
-        from v3_regular_close_contract import SCHEMA, SESSIONS, implementation_digest
+        from v3_regular_close_contract import SCHEMA, SESSIONS, implementation_digest, last_completed_friday
         market,catalog = self.inputs[:2]
         member=next(m for m in catalog['rows'] if any(s['code']==m['code'] for s in market['stocks']))
         code=member['code']
         day=date.fromisoformat(catalog['date'])
+        friday=last_completed_friday(day).isoformat()
         cross=ma_observe([100]*SESSIONS,[1]*SESSIONS,asof=catalog['date'],
             session_days=[day-timedelta(days=i) for i in range(SESSIONS-1,-1,-1)])
         self.assertIsNotNone(cross)
@@ -57,6 +58,25 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(refreshed['budgets'],baseline['budgets'])
         stale=ops.build(*self.inputs,regular_close_source={**source,'asof':'2026-11-12'})
         self.assertNotIn('regular_close_recomputed_parts',stale['rows'][code])
+
+        # Bind 20-week recalculation to the matching weekly close and retain
+        # independently observed 60/120-week points in the same receipt.
+        market=copy.deepcopy(market)
+        stock=next(s for s in market['stocks'] if s['code']==code)
+        from v3_ma_slope_transition import SCHEMA as MA_SCHEMA
+        stock['price_date']=catalog['date']
+        stock['v3_ma_slope_transition']={
+            'schema':MA_SCHEMA,'asof':catalog['date'],'weekly_asof':friday,
+            'parts':{'daily':None,'weekly':{'20':0,'60':.4,'120':1.1}},
+            'source_regular_session_verified':False,'source_corporate_action_adjusted_verified':False,
+            'raw_ohlcv_exported':False,'investment_score_certified':False}
+        source=copy.deepcopy(source)
+        source['rows'][code]['weekly_ma20_turn']={'asof':friday,'continuous_weeks':54,'points':.6}
+        weekly=ops.build(market,*self.inputs[1:],regular_close_source=source)
+        self.assertEqual(weekly['rows'][code]['parts']['momentum']['weekly_ma_slope_turn'],
+                         {'points':2.1,'available':3.0,'asof':friday})
+        self.assertEqual(weekly['rows'][code]['regular_close_continuous_weeks'],54)
+        self.assertEqual(weekly['regular_close_source_summary']['weekly_ma20_turn_recomputed'],1)
 
     def test_exact_original_revenue_fills_only_missing_sales_factor(self):
         from v3_dart_bulk_history import _stable_digest
