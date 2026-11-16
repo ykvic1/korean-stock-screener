@@ -17,11 +17,16 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
         report = audit()
         self.assertEqual(report["pilot_horizon_rows"], report["pilot_issuers"] * 5)
         self.assertEqual(report["methods"]["awaiting_settlement_unpriced"], 2)
+        self.assertEqual(report["methods"]["awaiting_final_distribution_unpriced"], 2)
+        self.assertEqual(report["pilot_issuers"], 17)
+        self.assertEqual(report["horizons"]["3"]["with_value"], 17)
+        self.assertEqual(report["horizons"]["6"]["unpriced_final_distributions"], 1)
+        self.assertEqual(report["horizons"]["12"]["unpriced_final_distributions"], 1)
         self.assertEqual(report["methods"]["scheduled_cash_entitlement"], 1)
         self.assertEqual(report["methods"]["cash_delivery"], 1)
         self.assertEqual(report["horizons"]["12"]["paths_with_unpriced_sessions"], report["pilot_issuers"])
         self.assertEqual(report["horizons"]["12"]["no_touch_observed"], 0)
-        self.assertEqual(report["next_session_traded_non_spac_outside_pilot"], 1)
+        self.assertEqual(report["next_session_traded_non_spac_outside_pilot"], 0)
         self.assertFalse(report["source_prices_independently_verified"])
         self.assertFalse(report["point_in_time_scores_verified"])
         self.assertFalse(report["performance_validated"])
@@ -44,9 +49,9 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
     def test_fractional_cash_uses_integer_delivery_and_the_disclosed_close(self):
         report = audit()
         replays = report["fractional_cash_replays"]
-        self.assertEqual(report["fractional_cash_terms_issuers"], 8)
-        self.assertEqual(report["fractional_cash_unmodeled_issuers"], ["028080", "299900"])
-        self.assertEqual(report["horizons"]["12"]["price_scenarios_with_fractional_cash_claim"], 8)
+        self.assertEqual(report["fractional_cash_terms_issuers"], 9)
+        self.assertEqual(report["fractional_cash_unmodeled_issuers"], ["299900"])
+        self.assertEqual(report["horizons"]["12"]["price_scenarios_with_fractional_cash_claim"], 9)
         self.assertFalse(report["fractional_cash_payments_verified"])
         self.assertNotIn("2", replays["042670"])
         # 이마트 교환일 종가 83,400원, 100주 × 0.5031313 = 50주 + 단주 0.31313주.
@@ -57,6 +62,18 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
         })
         self.assertEqual(replays["031440"]["12"]["1"]["successor_whole_shares"], 0)
         self.assertEqual(replays["010620"]["1"]["100"]["price_plus_cash_claim_pct"], "2.36")
+        humax = replays["028080"]
+        self.assertNotIn("3", humax)
+        self.assertEqual(humax["6"]["1"]["original_whole_shares"], 0)
+        self.assertEqual(humax["6"]["100"]["original_whole_shares"], 20)
+        self.assertEqual(humax["12"]["1"], {
+            "successor_whole_shares": 0, "cash_claim_krw": "1954.0000",
+            "price_plus_cash_claim_pct": "20.10",
+        })
+        self.assertEqual(humax["12"]["100"], {
+            "successor_whole_shares": 19, "cash_claim_krw": "1552.1601",
+            "price_plus_cash_claim_pct": "-44.69",
+        })
 
     def test_uncertain_share_delivery_is_not_treated_as_a_dividend_entitlement(self):
         settlement = {
@@ -87,8 +104,14 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
              {"close_on": "2026-08-11"}, "invalid_fractional_cash_evidence"),
             ("fractional-cash", {"code": "010620"},
              {"close_krw": "550000"}, "fractional_cash_quote_mismatch"),
-            ("fractional-cash", {"code": "082640"},
-             {"code": "028080"}, "fractional_cash_requires_sequential_settlement"),
+            ("pre-exchange-fractional-cash", {"code": "028080"},
+             {"close_on": "2026-04-11"}, "invalid_pre_exchange_fractional_cash"),
+            ("pre-exchange-fractional-cash", {"code": "028080"},
+             {"quote_code": "115160"}, "invalid_fractional_cash_evidence"),
+            ("delisting-settlement", {"code": "152550"},
+             {"cash_krw_per_old_share": "58"}, "invalid_unpriced_distribution"),
+            ("price-replay", {"code": "152550", "horizon_months": "6"},
+             {"quote_or_cash_krw": "58"}, "invalid_unpriced_settlement"),
             ("fractional-cash", {"code": "082640"},
              {"code": "299900"}, "fractional_cash_requires_sequential_settlement"),
             ("price-replay", {"code": "042670", "horizon_months": "2"},

@@ -17,6 +17,8 @@ ENTRY = date(2025, 11, 14)
 ENTRY_SETTLEMENT = date(2025, 11, 18)
 TAG = "20251113"
 UNPRICED = "awaiting_settlement_unpriced"
+UNRESOLVED_DISTRIBUTION = "awaiting_final_distribution_unpriced"
+UNPRICED_METHODS = {UNPRICED, UNRESOLVED_DISTRIBUTION}
 CASH = {"cash_delivery": "reported_completed", "scheduled_cash_entitlement": "announced"}
 LIQUIDATION = {"liquidation_close_scenario", "last_liquidation_close_then_cash"}
 TOUCH_STATES = ("touch_observed", "no_touch_observed", "no_touch_observed_partial_path")
@@ -138,7 +140,8 @@ def cash_dividend_replay(price, events, valuation, entry):
     return result
 
 
-def fractional_cash_terms(rows, exchange_codes, settlements, adjustments, through):
+def fractional_cash_terms(rows, prior_rows, exchange_codes, settlements, adjustments, through):
+    require(prior_rows.keys() <= rows.keys(), "fractional_cash_prior_without_exchange")
     terms = {}
     for code, row in rows.items():
         require(code in exchange_codes, "fractional_cash_outside_stock_exchange_pilot")
@@ -146,39 +149,61 @@ def fractional_cash_terms(rows, exchange_codes, settlements, adjustments, throug
         event = day(settlement["event_on"])
         listing = day(settlement["settlement_or_share_availability_on"])
         successor = settlement["successor_code"]
-        # Multiple simultaneous or sequential actions need a separate lot-level replay.
-        require(not any(ENTRY < effective <= event for effective, _ in adjustments.get(code, ()))
+        prior = prior_rows.get(code)
+        earlier = [(effective, ratio) for effective, ratio in adjustments.get(code, ())
+                   if ENTRY < effective <= event]
+        # A simultaneous or later successor adjustment requires separate settlement terms.
+        require(len(earlier) == int(prior is not None)
                 and not any(event <= effective <= through
                             for effective, _ in adjustments.get(successor, ())),
                 "fractional_cash_requires_sequential_settlement")
+        stages = []
+        if prior:
+            effective, ratio = earlier[0]
+            require(day(prior["close_on"]) == effective < event and 0 < ratio < 1,
+                    "invalid_pre_exchange_fractional_cash")
+            stages.append(fractional_cash_stage(prior, code, ratio))
         reference_dates = {"listing_close": listing, "exchange_close": event}
         close_on = day(row["close_on"])
-        require(row["successor_code"] == successor
-                and reference_dates.get(row["close_basis"]) == close_on
-                and event <= close_on <= listing
-                and int(row["observed_volume"]) > 0
-                and row["terms_url"].startswith("https://")
-                and row["price_source_url"].startswith("https://"),
+        require(reference_dates.get(row["close_basis"]) == close_on and event <= close_on <= listing,
                 "invalid_fractional_cash_evidence")
-        terms[code] = (close_on, positive(row["close_krw"]),
-                       positive(settlement["shares_per_old_share"]))
+        stages.append(fractional_cash_stage(row, successor, positive(settlement["shares_per_old_share"])))
+        terms[code] = stages
     return terms
 
 
+def fractional_cash_stage(row, quote_code, ratio):
+    require(row["quote_code"] == quote_code and int(row["observed_volume"]) > 0
+            and row["terms_url"].startswith("https://") and row["price_source_url"].startswith("https://"),
+            "invalid_fractional_cash_evidence")
+    return day(row["close_on"]), positive(row["close_krw"]), ratio
+
+
 def fractional_cash_replay(price, terms, valuation, entry):
-    close_on, close, ratio = terms
-    if price["method"] != "stock_delivery_mark" or valuation < close_on:
+    method = price["method"]
+    if method == "stock_delivery_mark":
+        stages = terms
+        shares_field = "successor_whole_shares"
+    elif method == "adjusted_listed_close" and len(terms) > 1:
+        stages = terms[:-1]
+        shares_field = "original_whole_shares"
+    else:
+        return {}
+    if valuation < stages[-1][0]:
         return {}
     quote = positive(price["quote_or_cash_krw"])
-    require(valuation != close_on or quote == close, "fractional_cash_quote_mismatch")
+    require(valuation != stages[-1][0] or quote == stages[-1][1], "fractional_cash_quote_mismatch")
     replay = {}
     for entry_shares in (1, 100):
-        allotted = ratio * entry_shares
-        whole = int(allotted)
-        cash_claim = (allotted - whole) * close
+        whole = entry_shares
+        cash_claim = Decimal(0)
+        for _, close, ratio in stages:
+            allotted = whole * ratio
+            whole = int(allotted)
+            cash_claim += (allotted - whole) * close
         gross_return = ((whole * quote + cash_claim) / (entry * entry_shares) - 1) * 100
         replay[str(entry_shares)] = {
-            "successor_whole_shares": whole,
+            shares_field: whole,
             "cash_claim_krw": str(cash_claim.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)),
             "price_plus_cash_claim_pct": str(
                 gross_return.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
@@ -194,15 +219,19 @@ def check_price(price, settlement, last_trade, adjustments, valuation):
     event = settlement["event_on"]
     available = settlement["settlement_or_share_availability_on"]
 
-    if method == UNPRICED:
-        # Trading can halt before the exchange takes legal effect.
-        require(
-            treatment == "stock_exchange" and day(last_trade) < valuation < day(available)
-            and not any(price[field] for field in (
-                "observation_on", "observed_code", "units_per_entry_share", "quote_or_cash_krw",
-                "value_per_entry_share_krw", "price_change_pct",
-            )), "invalid_unpriced_settlement",
-        )
+    if method in UNPRICED_METHODS:
+        require(not any(price[field] for field in (
+            "observation_on", "observed_code", "units_per_entry_share", "quote_or_cash_krw",
+            "value_per_entry_share_krw", "price_change_pct",
+        )), "invalid_unpriced_settlement")
+        if method == UNPRICED:
+            # Trading can halt before the exchange takes legal effect.
+            require(treatment == "stock_exchange" and day(last_trade) < valuation < day(available),
+                    "invalid_unpriced_settlement")
+        else:
+            require(treatment == "distribution_unresolved" and day(last_trade) < valuation
+                    and not available and not settlement["cash_krw_per_old_share"],
+                    "invalid_unpriced_distribution")
         return
 
     observed = day(price["observation_on"])
@@ -219,7 +248,7 @@ def check_price(price, settlement, last_trade, adjustments, valuation):
         expected = holding_units(adjustments, code, ENTRY, observed)
         require(observed == valuation and observed_code == code
                 and (not event or observed < day(event))
-                and observed < day(settlement["kind_delisted_on"])
+                and observed < day(settlement["kind_delisted_on"]) and observed <= day(last_trade)
                 and units == expected and (method == "listed_close") == (units == 1),
                 "listed_close_mismatch")
     elif method == "stock_delivery_mark":
@@ -316,7 +345,10 @@ def audit(root=ROOT):
     dividend_replays = {}
     exchanges = {code for code in references if settlements[code]["treatment"] == "stock_exchange"}
     end = max(day(row["valuation_session"]) for row in prices.values())
-    fractions = fractional_cash_terms(load("fractional-cash", "code"), exchanges, settlements, adjustments, end)
+    fractions = fractional_cash_terms(
+        load("fractional-cash", "code"), load("pre-exchange-fractional-cash", "code"),
+        exchanges, settlements, adjustments, end,
+    )
     fraction_replays = {}
     horizons = {str(months): Counter() for months in HORIZONS}
     methods = Counter()
@@ -347,8 +379,9 @@ def audit(root=ROOT):
             previous_valuation = valuation
             methods[price["method"]] += 1
             counts = horizons[horizon]
-            counts["with_value"] += price["method"] != UNPRICED
-            counts["unpriced_valuations"] += price["method"] == UNPRICED
+            counts["with_value"] += price["method"] not in UNPRICED_METHODS
+            counts["unpriced_valuations"] += price["method"] in UNPRICED_METHODS
+            counts["unpriced_final_distributions"] += price["method"] == UNRESOLVED_DISTRIBUTION
             counts["scheduled_cash_entitlements"] += price["method"] == "scheduled_cash_entitlement"
             counts["liquidation_scenarios"] += price["method"] in LIQUIDATION
             counts["paths_with_unpriced_sessions"] += previous[1] > 0

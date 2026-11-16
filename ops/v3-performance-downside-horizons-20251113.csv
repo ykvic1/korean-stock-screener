@@ -79,3 +79,8 @@ code,name,horizon_months,valuation_session,eligible_sessions,observed_trade_bars
 450140,코오롱모빌리티그룹,3,2026-02-13,63,49,14,touch_observed,2025-12-12,78.1036,2026-01-12,57.1429,2025-12-08,stock_delivery_mark
 450140,코오롱모빌리티그룹,6,2026-05-13,120,106,14,touch_observed,2025-12-12,78.1036,2026-01-12,57.1429,2025-12-08,stock_delivery_mark
 450140,코오롱모빌리티그룹,12,2026-11-13,244,230,14,touch_observed,2025-12-12,90.4561,2026-11-06,57.1429,2025-12-08,stock_delivery_mark
+152550,한국ANKOR유전,1,2025-12-15,22,22,0,touch_observed,2025-12-09,6.1674,2025-12-15,1.7621,2025-11-14,listed_close
+152550,한국ANKOR유전,2,2026-01-13,40,40,0,touch_observed,2025-12-09,9.2511,2025-12-26,11.4537,2026-01-06,listed_close
+152550,한국ANKOR유전,3,2026-02-13,63,63,0,touch_observed,2025-12-09,25.1101,2026-02-13,11.4537,2026-01-06,listed_close
+152550,한국ANKOR유전,6,2026-05-13,120,111,9,touch_observed,2025-12-09,74.4493,2026-04-28,179.7357,2026-03-09,awaiting_final_distribution_unpriced
+152550,한국ANKOR유전,12,2026-11-13,244,111,133,touch_observed,2025-12-09,74.4493,2026-04-28,179.7357,2026-03-09,awaiting_final_distribution_unpriced
