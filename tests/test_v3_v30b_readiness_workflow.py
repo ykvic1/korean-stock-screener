@@ -32,6 +32,7 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertIn('"price_scenarios_with_reported_dividend_cash"',content)
         self.assertIn('"paths_with_dividend_entitlement_unpaid_or_unverified"',content)
         self.assertIn('"price_scenarios_with_fractional_cash_claim"', content)
+        self.assertIn('"unpriced_final_distributions"', content)
 
     def test_main_audit_must_fail_closed_and_no_fake_release(self):
         content=WORKFLOW.read_text(encoding="utf8")

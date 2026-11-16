@@ -142,13 +142,13 @@ jobs:
                   "- 단주 현금 정산 기준 대조: "+str(pilot["fractional_cash_terms_issuers"])
                   +"종목 / 순차 정산 등 미산출: "+str(len(pilot["fractional_cash_unmodeled_issuers"]))
                   +"종목 / 실제 지급 미확인",
-                  "| 개월 | 평가값 있음 | 평가 불가 | 지급 예정 근거 | 정리매매 가정 | 거래 공백 경로 | 참고선 접촉 | 지급 이력 반영 | 평가일까지 미지급·미확인 | 단주 정산액 가정 |",
-                  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+                  "| 개월 | 평가값 있음 | 평가 불가 | 최종 분배금 미확인 | 지급 예정 근거 | 정리매매 가정 | 거래 공백 경로 | 참고선 접촉 | 지급 이력 반영 | 평가일까지 미지급·미확인 | 단주 정산액 가정 |",
+                  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
               ))
               for h in ("1","2","3","6","12"):
                   counts=pilot["horizons"][h]
                   lines.append("| "+h+" | "+" | ".join(str(counts[key]) for key in (
-                      "with_value","unpriced_valuations","scheduled_cash_entitlements",
+                      "with_value","unpriced_valuations","unpriced_final_distributions","scheduled_cash_entitlements",
                       "liquidation_scenarios","paths_with_unpriced_sessions","touch_observed",
                       "price_scenarios_with_reported_dividend_cash",
                       "paths_with_dividend_entitlement_unpaid_or_unverified",

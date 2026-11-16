@@ -17,7 +17,7 @@ KOSPI,008500,일정실업,2026-06-30,liquidation_trading,,,,,,,https://kind.krx.
 KOSDAQ,121850,코이즈,2026-09-14,liquidation_trading,,,,,,,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/502612,,정리매매 2026-09-03~2026-09-11,2026-09-03,2026-09-11
 KOSDAQ,008290,원풍물산,2026-09-21,liquidation_trading,,,,,,,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/504215,,정리매매 2026-09-10~2026-09-18,2026-09-10,2026-09-18
 KOSDAQ,084180,수성웹툰,2026-10-01,liquidation_trading,,,,,,,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/506329,,정리매매 2026-09-18~2026-09-30,2026-09-18,2026-09-30
-KOSPI,152550,한국ANKOR유전,2026-05-04,distribution_unresolved,,,,,,,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/430391,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/458695,해산에 따른 상장폐지 및 정리매매 미부여 확인. 최종 분배금과 지급일 미확인,,
+KOSPI,152550,한국ANKOR유전,2026-05-04,distribution_unresolved,,,,,,,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/430391,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/458695,해산에 따른 상장폐지 및 정리매매 미부여 확인. 2026-09-05까지의 운용보고서상 청산 진행 중 및 해당 기간 분배금 내역 없음. 최종 분배금과 지급일 미확인. https://kira.koreainvestment.com/bbs/board.php?bo_table=s1_5_4&wr_id=366,,
 KOSPI,102280,쌍방울,2025-11-28,liquidation_trading,,,,,,,https://kind.krx.co.kr/external/2025/11/13/000126/20251113000258/68051.htm,,,2025-11-19,2025-11-27
 KOSDAQ,014200,광림,2025-11-26,liquidation_trading,,,,,,,https://kind.krx.co.kr/external/2025/11/13/000335/20251113000865/70769.htm,,,2025-11-17,2025-11-25
 KOSPI,001140,국보,2026-01-27,liquidation_trading,,,,,,,https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/411128,,,2026-01-16,2026-01-26
