@@ -1289,9 +1289,62 @@ function coverageGroups(model){
  return [...groups.values()].filter(x=>x.count>=2).sort((a,b)=>
   b.total-a.total||b.count-a.count||a.key.localeCompare(b.key));
 }
+function regularCloseQuote(r){
+ const q=r?.v3_regular_close_quote;
+ return q&&q.asof===r.price_date&&q.name===r.name&&q.market===r.market&&
+  q.analysis_close===r.price&&finite(q.close)&&q.close>0?q:null;
+}
+function displayPrice(r){return regularCloseQuote(r)?.close??r?.price;}
+function priceLabel(r,detail=false){
+ if(r?.unpriced_operational_only)return '가격 미관측';
+ if(regularCloseQuote(r))return 'KRX 대조 종가 · '+r.price_date;
+ return detail?'FChart 기준가 · KRX 정규장 미검증':'FChart 기준가 · '+(r?.price_date||'');
+}
+function currentPriceReferences(r){
+ const price=displayPrice(r),stop=r?.stop_line,target=r?.reference_resistance;
+ const stopDistance=finite(price)&&price>0&&finite(stop)&&stop>0&&stop<price?
+  (price-stop)/price*100:null;
+ const targetDistance=finite(price)&&price>0&&finite(target)&&target>price?
+  (target-price)/price*100:null;
+ return {stopDistance,targetDistance,rewardRisk:stopDistance>0&&targetDistance!==null?
+  targetDistance/stopDistance:null};
+}
+function regularCloseReferencesMarkup(r){
+ const quote=regularCloseQuote(r);if(!quote)return '';
+ const refs=currentPriceReferences(r);
+ return '<p class="u-muted">KRX 대조 종가 기준 · 저항 참고선 거리 '+
+  (refs.targetDistance===null?'미산출':refs.targetDistance.toFixed(1)+'%')+
+  ' · 참고 손익비 '+(refs.rewardRisk===null?'미산출':refs.rewardRisk.toFixed(2)+'배')+'</p>'+
+  '<p class="u-muted">차트 계산 기준가 '+won(quote.analysis_close)+
+  ' · MA·RSI·OBV의 과거 정규장 원천 검증 중</p>';
+}
+function applyRegularClosePrices(model,report){
+ if(!model||!Array.isArray(model.rows)||report?.schema!=='v3-current-corroborated-regular-closes-1'||
+    !validDate(report.asof)||report.asof!==model.date||
+    report.source!=='DATED_PUBLIC_FDR_CLOSE_CORROBORATED_WITH_KRX'||
+    report.historical_ohlcv_regular_session_verified!==false||report.score_recalculated!==false||
+    !/^[a-f0-9]{64}$/.test(report.source_market_sha256)||
+    !/^[a-f0-9]{64}$/.test(report.public_cache_sha256)||
+    !['KOSPI','KOSDAQ'].every(m=>/^[a-f0-9]{64}$/.test(report.official_source_sha256?.[m]))||
+    !report.rows||!Number.isInteger(report.matched_count)||report.matched_count<0||
+    !Number.isInteger(report.requested_count)||report.requested_count<report.matched_count||
+    report.requested_count>10000||report.states?.matched!==report.matched_count||
+    Object.values(report.states).some(n=>!Number.isInteger(n)||n<0)||
+    Object.values(report.states).reduce((a,b)=>a+b,0)!==report.requested_count||
+    Object.keys(report.rows).some(code=>!/^[0-9A-Z]{6}$/.test(code))||
+    Object.keys(report.rows).length!==report.matched_count)return 0;
+ let linked=0;
+ for(const {r} of model.rows){
+  const q=report.rows[r.code];
+  if(!q||r.price_date!==report.asof||q.name!==r.name||q.market!==r.market||
+     !finite(q.analysis_close)||q.analysis_close!==r.price||!finite(q.close)||q.close<=0)continue;
+  r.v3_regular_close_quote={...q,asof:report.asof};linked++;
+ }
+ return linked;
+}
 function riskState(x,core){
  const r=x.r;
- const distance=core.stopDistance(r);
+ const distance=regularCloseQuote(r)?currentPriceReferences(r).stopDistance:core.stopDistance(r);
  const reasons=Array.isArray(r.risk_flags)?r.risk_flags.filter(z=>typeof z==='string'):[];
  const hot=core.highRisk(r);
  const unsafe=hot||distance===null||distance<3||distance>15;
@@ -1322,10 +1375,11 @@ function stabilityProfile(r,composite){
  const trading=finite(r?.trading_eok)&&r.trading_eok>=0?r.trading_eok:null;
  const capitalDeduction=cap===null?0:tenths(5*Math.max(0,1-cap/5000));
  const liquidityDeduction=0; // multi-period money enters volume's six points, not a second penalty
- const price=finite(r?.price)&&r.price>0?r.price:null;
+ const shownPrice=displayPrice(r);
+ const price=finite(shownPrice)&&shownPrice>0?shownPrice:null;
  const stop=finite(r?.stop_line)&&r.stop_line>0?r.stop_line:null;
  const pct=price!==null&&stop!==null&&stop<price?100*(price-stop)/price:null;
- const distance=pct!==null&&finite(r?.stop_pct)&&Math.abs(r.stop_pct+pct)<=2?
+ const distance=pct!==null&&(regularCloseQuote(r)||finite(r?.stop_pct)&&Math.abs(r.stop_pct+pct)<=2)?
   Math.round(pct*100)/100:null;
  // Stop distance and technical flags inform risk references only. They are
  // never an additive/deductive score, tie-breaker or earned weight.
@@ -2382,8 +2436,12 @@ function structuralStopMarkup(r){
  }
  const zone=s.lower_volume_zone;
  const pattern=s.pattern_invalidation;
- const accurate=finite(s.reference_line)&&finite(r.price)&&r.price>s.reference_line&&
-  finite(s.distance_pct)&&Math.abs(s.distance_pct-(r.price-s.reference_line)/r.price*100)<.2;
+ const price=displayPrice(r);
+ const distance=finite(price)&&price>0&&finite(s.reference_line)?
+  (price-s.reference_line)/price*100:null;
+ const crossed=regularCloseQuote(r)&&distance!==null&&distance<=0;
+ const accurate=distance!==null&&distance>0&&
+  (regularCloseQuote(r)||finite(s.distance_pct)&&Math.abs(s.distance_pct-distance)<.2);
  const item=(label,value)=>'<div><small>'+label+'</small><strong>'+won(value)+'</strong></div>';
  const zoneLabel=zone&&finite(zone.lower)&&finite(zone.upper)?
   won(zone.lower)+' ~ '+won(zone.upper):'근거 부족';
@@ -2391,8 +2449,8 @@ function structuralStopMarkup(r){
   esc(pattern.pattern)+' · '+won(pattern.price):'유효 패턴 미관측';
  return '<section class="u-stop-reference"><h3>20·60일 구조적 손절 참고선 · 배점 미반영</h3>'+
   '<div class="u-stop-summary"><div><small>구조적 참고선 (매도 주문가 아님)</small><strong>'+
-  (accurate?won(s.reference_line):'미산출')+'</strong></div><div><small>현 종가 대비 하락 거리</small><strong>'+
-  (accurate?s.distance_pct.toFixed(1)+'%':'미산출')+'</strong></div></div>'+
+  (accurate||crossed?won(s.reference_line):'미산출')+'</strong></div><div><small>현 종가 대비 하락 거리</small><strong>'+
+  (crossed?'참고선 이하':accurate?distance.toFixed(1)+'%':'미산출')+'</strong></div></div>'+
   '<div class="u-stop-evidence">'+
   item('20일 이동평균선 (종가)',s.ma20)+item('60일 이동평균선 (종가)',s.ma60)+
   item('20거래일 저점',s.low20)+item('60거래일 저점',s.low60)+
@@ -2409,6 +2467,7 @@ function structuralStopMarkup(r){
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
+Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -2469,7 +2528,7 @@ function renderCompare(){
   const risk=riskState(x,core);
   return '<article class="u-compare-card"><h3>'+esc(names[i])+
    ' <small>'+esc(x.r.code)+' · '+esc(x.r.market)+'</small></h3>'+
-   '<div class="u-compare-kpis"><div><small>FChart 기준가 · '+esc(x.r.price_date)+'</small><b>'+won(x.r.price)+'</b></div>'+
+   '<div class="u-compare-kpis"><div><small>'+esc(priceLabel(x.r))+'</small><b>'+won(displayPrice(x.r))+'</b></div>'+
    '<div><small>개인용 100점 환산 · 미인증</small><b>'+compareNum(c)+'</b></div>'+
    '<div><small>V3 잠정 합계 · 미검증</small><b>'+
    (c.earned===null?'미산출':c.earned.toFixed(1)+'점')+'</b></div>'+
@@ -2562,8 +2621,8 @@ function renderDetails(x){
  (root.V3OperationalScore?root.V3OperationalScore.markup(r):'')+
  '<h3>기존 모델 비교 · 20/25/20/20/15</h3>'+scoreOverviewMarkup(composite,personal100,r,stability)+issuerReadinessMarkup(r)+
  '<div class="u-stability-note"><strong>안정형 보정 '+(stability.score===null?'미산출':stability.score.toFixed(1)+'/100')+'</strong> · V3 관측점수에서 시총 규모 -'+stability.capitalDeduction+'점 · 손절 참고선 배점 미반영 · '+esc(stability.status)+'<small>시총 '+(stability.capitalEok===null?'미확인':eok(stability.capitalEok*1e8))+' · 당일 거래대금 '+(stability.tradingEok===null?'미확인':eok(stability.tradingEok*1e8))+'(정보만 표시·0점 영향) · 자료일 '+esc(stability.asof||'미확인')+' · '+esc(sustainedParticipationNote(r))+' · 거래대금 지속참여 점수는 안정형 추가 보정이 아닌 거래량·OBV 영역에 포함</small></div>'+
- structuralStopMarkup(r)+
- '<div class="u-detail-grid"><div><small>FChart 기준가 · KRX 정규장 미검증</small><strong>'+won(r.price)+'</strong></div>'+
+ structuralStopMarkup(r)+regularCloseReferencesMarkup(r)+
+ '<div class="u-detail-grid"><div><small>'+esc(priceLabel(r,true))+'</small><strong>'+won(displayPrice(r))+'</strong></div>'+
  '<div class="u-factor-unverified"><small>기존 5영역 감점 전 합계 (미검증)</small><strong>'+
  (composite.earned===null?'—':composite.earned.toFixed(1)+' / 100')+
  '</strong><small>산출 가능 배점 '+composite.available+'/100 · 표시일 '+esc(composite.asof)+
@@ -2662,7 +2721,7 @@ function draw(){
    '<div class="u-stock-name"><span class="u-ranked"><b class="u-rank-number" title="현재 조건에서의 표시 순서">'+
    String(i+1).padStart(2,'0')+'</b><strong>'+esc(r.name)+'</strong></span><small>'+
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
-   '<div class="u-card-kpis"><div class="u-card-price"><small>'+(r.unpriced_operational_only?'가격 미관측':'FChart 기준가 · '+esc(r.price_date||model.date))+'</small><b>'+won(r.price)+'</b></div>'+
+   '<div class="u-card-kpis"><div class="u-card-price"><small>'+esc(priceLabel(r))+'</small><b>'+won(displayPrice(r))+'</b></div>'+
    '<div class="u-card-score"><small>'+(sort==='ops'?'신규 운영 R1 · 잠정':sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
    (sort==='ops'?(ops?.score===null||ops?.score===undefined?'—':ops.score.toFixed(1)):sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
     (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
@@ -2753,7 +2812,7 @@ async function load(){
   'v3-dart-cashflow-issuer-evidence.json',
   'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
   'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json',
-  'v3-trading-status.json'];
+  'v3-trading-status.json','v3-regular-close-prices.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2804,6 +2863,13 @@ async function load(){
   const operationalLink=root.V3OperationalScore?.attachAllListed(model,responses[22])||
    {linked:0,unpriced:0};
   const tradingLink=root.V3TradingStatus?.attach(model,responses[23]);
+  const regularCloseLinked=applyRegularClosePrices(model,responses[24]);
+  if($('regularCloseNote')){
+   $('regularCloseNote').hidden=!regularCloseLinked;
+   $('regularCloseNote').textContent=regularCloseLinked?
+    '화면 종가 '+regularCloseLinked.toLocaleString('ko-KR')+
+    '종목 KRX 대조 완료 · 과거 MA·RSI·OBV 및 점수 원천의 정규장 검증 진행 중':'';
+  }
   if($('tradeStatusNote'))$('tradeStatusNote').textContent=tradingLink?
     '상장목록 거래량 0: 거래정지 표시 '+tradingLink.halted+'종목 · 단기(1~2거래일 관측) '+
     tradingLink.short+' · 기간 미확인 '+tradingLink.durationUnknown+
