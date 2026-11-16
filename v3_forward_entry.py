@@ -11,7 +11,7 @@ import re
 from statistics import median
 
 from official_probe.clients import KRXClient, KRXProbeError
-from v3_forward_daily_prices import DailyEvidenceError, collect_daily, read_daily
+from v3_forward_daily_prices import DailyEvidenceError, RETRYABLE_KRX_REASONS, collect_daily, read_daily
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
@@ -320,12 +320,11 @@ def main():
 
     @lru_cache(maxsize=10)
     def official_openings(day):
-        # Include empty responses in the per-run cache so the two collectors
-        # do not repeat a call while KRX is still publishing a session.
+        # Cache retryable responses so both collectors share one attempt per session.
         try:
             return read_official_openings(official_client(), day), None
         except KRXProbeError as error:
-            if error.reason not in ('empty_body', 'empty_market_rows'):
+            if error.reason not in RETRYABLE_KRX_REASONS:
                 raise
             return None, error
 
@@ -369,7 +368,7 @@ def main():
             try:
                 result = save_entry(plan, observation, storage_and_key()[0], official_pair)
             except KRXProbeError as error:
-                if error.reason not in ('empty_body', 'empty_market_rows'):
+                if error.reason not in RETRYABLE_KRX_REASONS:
                     raise EntryError('krx_' + error.reason) from None
                 result = {**plan, 'status': 'waiting_for_official_paired_response',
                           'last_source_attempt_at_utc': now.isoformat(),

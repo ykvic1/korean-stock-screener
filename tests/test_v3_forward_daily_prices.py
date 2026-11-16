@@ -96,3 +96,32 @@ class ForwardDailyPriceTest(unittest.TestCase):
                 collect_daily(cohort, now, lambda: storage, pair, clock=lambda: now)
             completed = json.loads((Path(root) / '2026-11-16.json').read_text())
             self.assertEqual(completed['status'], 'archived_privately')
+
+    def test_transient_source_failure_retries_without_archiving_partial_market(self):
+        cohort = [{'entry_session_candidate': '2026-11-16'}]
+        now = timestamp('2026-11-17T11:45:00+00:00')
+        for reason in ('transport_failure', 'http_server_error', 'http_rate_limited'):
+            with self.subTest(reason=reason), TemporaryDirectory() as root, patch(
+                    'v3_forward_daily_prices.OUT', Path(root)), patch('builtins.print'):
+                storage = MemoryStore()
+
+                def partial(day):
+                    if day == '2026-11-16':
+                        raise KRXProbeError('KOSPI', reason)
+                    return pair(day)
+
+                collect_daily(cohort, now, lambda: storage, partial, clock=lambda: now)
+                pending = Path(root) / '2026-11-16.json'
+                self.assertEqual(json.loads(pending.read_text())['source_reason'], reason)
+                self.assertEqual(len(storage.blobs), 1)
+                collect_daily(cohort, now, lambda: storage, pair, clock=lambda: now)
+                self.assertEqual(json.loads(pending.read_text())['status'], 'archived_privately')
+                self.assertEqual(len(storage.blobs), 2)
+
+        with TemporaryDirectory() as root, patch('v3_forward_daily_prices.OUT', Path(root)):
+            def unauthorized(_day):
+                raise KRXProbeError('KOSPI', 'http_unauthorized')
+
+            with self.assertRaisesRegex(DailyEvidenceError, 'krx_http_unauthorized'):
+                collect_daily(cohort, now, lambda: MemoryStore(), unauthorized, clock=lambda: now)
+            self.assertEqual(list(Path(root).glob('*.json')), [])

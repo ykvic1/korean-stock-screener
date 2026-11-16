@@ -64,6 +64,27 @@ class FourYearAnnualExpansionTests(unittest.TestCase):
         # Remaining small and unpriced firms must not be removed just
         # because the independent 1-year DART cache has not seen them.
 
+    def test_mixed_krx_code_keeps_verified_reports_across_live_batches(self):
+        market, catalog, annual = inputs()
+        code = "3000Z3"
+        market["collection_errors"][0][0] = code
+        catalog["rows"][2]["code"] = code
+        with tempfile.TemporaryDirectory() as root:
+            def collect(targets, *_args, **_kwargs):
+                return [reports(target["code"]) for target in targets]
+
+            output = Path(root) / "first.json"
+            summary = f.write(market, catalog, annual, output=output, key="offline",
+                              collector=collect, limit=5)
+            self.assertEqual(summary["four_year_core_financial_research_observed_count"], 5)
+            prior = json.loads(output.read_text(encoding="utf-8"))
+            self.assertIn(code, [row["code"] for row in prior["records"]])
+            _, _, retained, requested = f.plan(market, catalog, annual, prior=prior)
+            self.assertEqual(retained[code]["observed_fiscal_years"], [2022, 2023, 2024, 2025])
+            self.assertEqual(requested, [])
+        with self.assertRaisesRegex(f.FourYearEvidenceError, "invalid_fouryear_code"):
+            f._record("3000z3", [], DAY)
+
     def test_conservative_adaptive_batch_expands_only_on_real_receipts(self):
         self.assertEqual(f.automatic_daily_limit(None),4)
         self.assertEqual(f.automatic_daily_limit({"schema":f.SCHEMA,
