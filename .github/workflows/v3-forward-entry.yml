@@ -6,6 +6,8 @@ on:
     paths:
       - v3_forward_entry.py
       - v3_forward_daily_prices.py
+      - v3_forward_share_actions.py
+      - ops/forward-reviewed-share-actions.csv
       - .github/workflows/v3-forward-entry.yml
   workflow_run:
     workflows: [V3 Forward Score Observation Capture]
@@ -52,14 +54,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z $(git status --porcelain -- ops/forward-entry-status/ ops/forward-daily-price-status/) ]]; then exit 0; fi
+          if [[ -z $(git status --porcelain -- ops/forward-entry-status/ ops/forward-daily-price-status/ ops/forward-share-action-status/) ]]; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add --all -- ops/forward-entry-status/
           if [[ -d ops/forward-daily-price-status/ ]]; then
             git add --all -- ops/forward-daily-price-status/
           fi
-          git commit -m 'Record forward KRX entry and daily price coverage'
+          if [[ -d ops/forward-share-action-status/ ]]; then
+            git add --all -- ops/forward-share-action-status/
+          fi
+          git commit -m 'Record forward KRX price and share-action coverage'
           for attempt in 1 2 3; do
             git fetch origin main
             git rebase FETCH_HEAD

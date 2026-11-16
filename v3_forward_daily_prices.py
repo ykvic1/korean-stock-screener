@@ -115,20 +115,30 @@ def daily_summary(evidence, day):
     }
 
 
+def read_daily(day, storage):
+    path = f'derived/forward-daily-prices/{day}.json.gz'
+    blob, _ = storage.get_content(path)
+    if blob is None:
+        return None
+    try:
+        with gzip.GzipFile(fileobj=BytesIO(blob)) as stream:
+            raw = stream.read(MAX_PRIVATE_BYTES + 1)
+        if len(raw) > MAX_PRIVATE_BYTES:
+            raise DailyEvidenceError('oversized_private_daily_price_archive')
+        evidence = json.loads(raw)
+        daily_summary(evidence, day)
+        return evidence
+    except DailyEvidenceError:
+        raise
+    except (TypeError, KeyError, OSError, EOFError, ValueError):
+        raise DailyEvidenceError('unreadable_private_daily_price_archive') from None
+
+
 def save_daily(day, storage, official_pair, *, clock=None):
     path = f'derived/forward-daily-prices/{day}.json.gz'
-    old, _ = storage.get_content(path)
+    old = read_daily(day, storage)
     if old is not None:
-        try:
-            with gzip.GzipFile(fileobj=BytesIO(old)) as stream:
-                raw = stream.read(MAX_PRIVATE_BYTES + 1)
-            if len(raw) > MAX_PRIVATE_BYTES:
-                raise DailyEvidenceError('oversized_private_daily_price_archive')
-            return daily_summary(json.loads(raw), day)
-        except (TypeError, KeyError, OSError, EOFError, ValueError) as error:
-            if isinstance(error, DailyEvidenceError):
-                raise
-            raise DailyEvidenceError('unreadable_private_daily_price_archive') from None
+        return daily_summary(old, day)
     observations, hashes = official_pair(day)
     clock = clock or (lambda: datetime.now(timezone.utc))
     evidence = {
