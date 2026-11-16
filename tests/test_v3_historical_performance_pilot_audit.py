@@ -31,6 +31,23 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
         self.assertFalse(report["point_in_time_scores_verified"])
         self.assertFalse(report["performance_validated"])
 
+    def test_financial_replay_links_only_available_annual_inputs_to_horizons(self):
+        report = audit()
+        inputs = report["financial_replay_inputs"]
+        self.assertEqual(len(inputs), 16)
+        self.assertEqual(sum(v["mean_operating_margin_pct"] is not None for v in inputs.values()), 14)
+        self.assertEqual(inputs["008290"]["annual_receipt"], "20250331001539")
+        self.assertEqual(inputs["008290"]["liabilities_to_assets_pct"], "63.557515")
+        self.assertIsNone(inputs["082640"]["mean_operating_margin_pct"])
+        self.assertIsNone(inputs["450140"]["mean_operating_margin_pct"])
+        self.assertNotIn("152550", inputs)
+        self.assertIsNone(report["financial_replays"]["042670"]["2"]["price_change_pct"])
+        self.assertEqual(report["financial_horizons"]["12"], {
+            "with_price_evaluation": 16, "with_observed_path": 16, "with_path_gaps": 16,
+            "with_reference_touch": 13, "median_price_change_pct": "-32.45",
+            "median_observed_adverse_excursion_pct": "35.27",
+        })
+
     def test_dividends_follow_entry_holdings_and_payments(self):
         report = audit()
         replays = report["dividend_replays"]
@@ -96,6 +113,20 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
 
     def test_detects_workbook_errors_that_arithmetic_alone_would_miss(self):
         cases = (
+            ("filing-availability", {"dart_receipt": "20251120000429"},
+             {"published_on_kst": "2025-11-12", "status": "selected_periodic"}, "invalid_replay_filing_time"),
+            ("financial-statements", {"code": "008290", "statement_period_end": "2024-12-31"},
+             {"dart_receipt": "20251120000429"}, "unselected_replay_statement_receipt"),
+            ("delisted-financial-coverage", {"code": "057050"},
+             {"selected_fy2024_receipt": "20250317000550"}, "invalid_replay_annual_version"),
+            ("delisted-financial-coverage", {"code": "057050"},
+             {"identified_version_receipts": "20250829001728|20251113000001"}, "invalid_replay_annual_version"),
+            ("delisted-annual-statements", {"code": "057050", "statement_period_end": "2024-12-31"},
+             {"equity_krw": "0"}, "invalid_replay_statement_balance"),
+            ("delisted-annual-statements", {"code": "057050", "statement_period_end": "2024-12-31"},
+             {"scope": "OFS"}, "invalid_replay_annual_source"),
+            ("delisted-financial-coverage", {"code": "082640"},
+             {"three_year_operating_margin_pct": "0"}, "replay_annual_metric_mismatch"),
             ("cash-dividends", {"payer_code": "316140"},
              {"payment_evidence": "reported_in_payment_history"}, "invalid_dividend_evidence"),
             ("cash-dividends", {"payer_code": "316140"},
