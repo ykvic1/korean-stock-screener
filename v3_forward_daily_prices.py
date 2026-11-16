@@ -191,6 +191,7 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
                 raise DailyEvidenceError('krx_' + error.reason) from None
             result = {'schema': SCHEMA, 'date': day,
                       'status': 'waiting_for_official_paired_response',
-                      'last_source_attempt_at_utc': now.isoformat()}
+                      'last_source_attempt_at_utc': now.isoformat(),
+                      'unavailable_market': error.market, 'source_reason': error.reason}
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(result, ensure_ascii=False))

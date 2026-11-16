@@ -1,5 +1,6 @@
 """Regress cutoff timing and the transition to private official evidence."""
 from datetime import date, datetime
+from hashlib import sha256
 import gzip
 import json
 import unittest
@@ -124,6 +125,66 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual((empty['selected_count'], empty['observed_count']), (1, 0))
         self.assertIsNone(empty['worst_low_return_pct'])
         self.assertIsNone(empty['median_close_return_pct'])
+
+    def test_structural_reference_counts_use_matched_signal_price_and_share_basis(self):
+        signal = {'rows': {
+            str(i): ['KOSPI', f'종목{i}', 'traded', 100, 115, 95, 110, 500]
+            for i in range(6)
+        }}
+        daily = {'date': '2026-11-16', 'rows': {
+            str(i): ['KOSPI', f'종목{i}', 'traded', 100, 115, 90, 105, 500]
+            for i in range(6)
+        }}
+        daily['rows']['3'][-1] = 1000
+        observation = {'rows': {
+            str(i): [f'종목{i}', 'KOSPI', 55, i+1, 90, '2026-11-13', '2026-11-13', reference]
+            for i, reference in enumerate((100, 90, 89, 100, 100, None))
+        }}
+        entry = {'rows': {code: ['official_open_observed', 100] for code in daily['rows']}}
+        cases = {code: {'state': 'matched'} for code in daily['rows']}
+        cases['4']['state'] = 'close_mismatch'
+        result = entry_session_path(observation, entry, daily, signal=signal, signal_cases=cases)
+        counts = result['groups']['all_ranked']['structural_reference_counts']
+        self.assertEqual(len(counts), 6)
+        self.assertEqual(list(counts.values()), [1] * 6)
+        self.assertEqual(sum(counts.values()), result['groups']['all_ranked']['observed_count'])
+        self.assertNotIn('structural_reference_counts',
+                         entry_session_path(observation, entry, daily)['groups']['all_ranked'])
+
+    def test_reference_review_waits_for_frozen_basis_then_adds_contact_counts(self):
+        market = json.dumps({'date':'2026-11-13','stocks':[
+            {'code':'005930','name':'삼성전자','market':'KOSPI','price_date':'2026-11-13','price':51000}
+        ]}).encode()
+        observation = {
+            'schema':SCORE_SCHEMA, 'score_asof':'2026-11-13',
+            'captured_at_utc':'2026-11-15T23:03:00+00:00',
+            'regular_close_utc':'2026-11-13T06:30:00+00:00',
+            'source_market_sha256':sha256(market).hexdigest(), 'listed_count':2, 'ranked_count':1,
+            'rows':{'005930':['삼성전자','KOSPI',60,1,80,'2026-11-13','2026-11-13',49000],
+                    '123456':['코스닥','KOSDAQ',None,None]},
+        }
+        digest, storage = 'd'*64, MemoryStore()
+        plan = entry_plan(observation, digest)
+        def pair(day):
+            rows, hashes = read_official_openings(OfficialPair(), '2026-11-16')
+            return {code:(market, {**row, 'BAS_DD':day.replace('-',''), 'LIST_SHRS':'500000'})
+                    for code,(market,row) in rows.items()}, hashes
+        now = timestamp('2026-11-16T11:45:00+00:00')
+        with patch('v3_forward_entry.datetime', wraps=datetime) as clock:
+            clock.now.return_value = now
+            save_entry(plan, observation, storage, pair)
+        save_daily('2026-11-16', storage, pair, clock=lambda:now)
+        waiting = crosscheck_entry_daily(observation, digest, storage, review_reference=True)
+        self.assertEqual(waiting['structural_reference_status'], 'waiting_for_signal_price_basis')
+        self.assertEqual(waiting['entry_session_path']['groups']['top20']['observed_count'],1)
+        save_daily('2026-11-13', storage, pair, clock=lambda:now)
+        with patch('v3_forward_entry.frozen_market', return_value=market):
+            checked = crosscheck_entry_daily(observation, digest, storage, review_reference=True)
+        self.assertEqual(checked['structural_reference_status'],'compared')
+        self.assertFalse(checked['structural_reference_basis']['stop_execution_validated'])
+        self.assertEqual(checked['entry_session_path']['groups']['top20']
+                         ['structural_reference_counts']['intraday_reference_touched'],1)
+        self.assertNotIn('49000',json.dumps(checked))
 
     def test_late_capture_and_open_boundary(self):
         monday, opening, closing = first_open_after(timestamp('2026-11-15T23:03:26.504597+00:00'))
