@@ -42,6 +42,30 @@
     "rights_url": "https://kind.krx.co.kr/external/2026/02/06/002199/20260206006909/70766.htm"
   },
   {
+    "listed_on": "2026-03-06",
+    "code": "277880",
+    "market": "KOSDAQ",
+    "name_before": "티에스아이",
+    "name_after": "티에스아이",
+    "action": "treasury_cancellation",
+    "shares_before": 20206248,
+    "shares_after": 19843212,
+    "notice_url": "https://kind.krx.co.kr/external/2026/03/03/000727/20260303002288/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/02/000817/20251217000988/71131.htm"
+  },
+  {
+    "listed_on": "2026-03-09",
+    "code": "236200",
+    "market": "KOSDAQ",
+    "name_before": "슈프리마",
+    "name_after": "슈프리마",
+    "action": "treasury_cancellation",
+    "shares_before": 7257273,
+    "shares_after": 6974311,
+    "notice_url": "https://kind.krx.co.kr/external/2026/03/04/001672/20260304003770/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/01/28/000313/20260127000607/71131.htm"
+  },
+  {
     "listed_on": "2026-03-11",
     "code": "021240",
     "market": "KOSPI",
@@ -76,6 +100,18 @@
     "shares_after": 76458180,
     "notice_url": "https://kind.krx.co.kr/external/2026/03/09/000141/20260309000305/68155.htm",
     "terms_url": "https://www.awakeplus.co.kr/data/view/20260206802679"
+  },
+  {
+    "listed_on": "2026-03-12",
+    "code": "142210",
+    "market": "KOSDAQ",
+    "name_before": "유니트론텍",
+    "name_after": "유니트론텍",
+    "action": "treasury_cancellation",
+    "shares_before": 21010071,
+    "shares_after": 20751403,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/433932",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/09/000335/20260202006098/71131.htm"
   },
   {
     "listed_on": "2026-03-16",
@@ -114,6 +150,18 @@
     "terms_url": "https://samara.kr/disclosure/20260211801559"
   },
   {
+    "listed_on": "2026-03-18",
+    "code": "048470",
+    "market": "KOSDAQ",
+    "name_before": "대동스틸",
+    "name_after": "대동스틸",
+    "action": "treasury_cancellation",
+    "shares_before": 10000000,
+    "shares_after": 9650000,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/438203",
+    "terms_url": "https://kind.krx.co.kr/external/2026/01/15/000369/20260115000518/71131.htm"
+  },
+  {
     "listed_on": "2026-03-20",
     "code": "036830",
     "market": "KOSDAQ",
@@ -124,6 +172,30 @@
     "shares_after": 20503981,
     "notice_url": "https://kind.krx.co.kr/external/2026/03/17/000886/20260317003367/70763.htm",
     "terms_url": "https://kind.krx.co.kr/external/2026/02/24/001392/20260224001536/71131.htm"
+  },
+  {
+    "listed_on": "2026-03-20",
+    "code": "155650",
+    "market": "KOSDAQ",
+    "name_before": "와이엠씨",
+    "name_after": "와이엠씨",
+    "action": "treasury_cancellation",
+    "shares_before": 19474358,
+    "shares_after": 18974358,
+    "notice_url": "https://kind.krx.co.kr/external/2026/03/17/000943/20260317003564/70763.htm",
+    "terms_url": "https://www.awakeplus.co.kr/data/view/20260225900139"
+  },
+  {
+    "listed_on": "2026-03-23",
+    "code": "033310",
+    "market": "KOSDAQ",
+    "name_before": "엠투엔",
+    "name_after": "엠투엔",
+    "action": "treasury_cancellation",
+    "shares_before": 40342231,
+    "shares_after": 39972456,
+    "notice_url": "https://kind.krx.co.kr/external/2026/03/18/001971/20260318009069/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/17/000378/20260417000923/11332.htm"
   },
   {
     "listed_on": "2026-03-23",
@@ -144,6 +216,30 @@
     "rights_url": "https://kind.krx.co.kr/external/2026/02/19/000712/20260219002038/70766.htm"
   },
   {
+    "listed_on": "2026-03-26",
+    "code": "042420",
+    "market": "KOSDAQ",
+    "name_before": "네오위즈홀딩스",
+    "name_after": "네오위즈홀딩스",
+    "action": "treasury_cancellation",
+    "shares_before": 8366283,
+    "shares_after": 8142283,
+    "notice_url": "https://kind.krx.co.kr/external/2026/03/23/002524/20260323010634/70763.htm",
+    "terms_url": "https://cdn.financialreports.eu/financialreports/media/filings/15154/2026/RNS/15154_rns_2026-03-05_59970152-e6a1-4775-98f1-1d67bcd118b8.html"
+  },
+  {
+    "listed_on": "2026-03-27",
+    "code": "033240",
+    "market": "KOSPI",
+    "name_before": "자화전자",
+    "name_after": "자화전자",
+    "action": "treasury_cancellation",
+    "shares_before": 21756636,
+    "shares_after": 21605502,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/444472",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/25/000367/20260212000525/61131.htm"
+  },
+  {
     "listed_on": "2026-03-31",
     "code": "017390",
     "market": "KOSPI",
@@ -156,6 +252,54 @@
     "terms_url": "https://samara.kr/disclosure/20260814001913"
   },
   {
+    "listed_on": "2026-03-31",
+    "code": "059210",
+    "market": "KOSDAQ",
+    "name_before": "메타바이오메드",
+    "name_after": "메타바이오메드",
+    "action": "treasury_cancellation",
+    "shares_before": 28094301,
+    "shares_after": 27171445,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/445905",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/20/000226/20260220000601/71131.htm"
+  },
+  {
+    "listed_on": "2026-04-03",
+    "code": "045100",
+    "market": "KOSDAQ",
+    "name_before": "한양이엔지",
+    "name_after": "한양이엔지",
+    "action": "treasury_cancellation",
+    "shares_before": 18000000,
+    "shares_after": 17500000,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/449290",
+    "terms_url": "https://samara.kr/disclosure/20261113000901"
+  },
+  {
+    "listed_on": "2026-04-07",
+    "code": "039420",
+    "market": "KOSDAQ",
+    "name_before": "케이엘넷",
+    "name_after": "케이엘넷",
+    "action": "treasury_cancellation",
+    "shares_before": 24154730,
+    "shares_after": 22946994,
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/02/001075/20260402002379/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20260814000872"
+  },
+  {
+    "listed_on": "2026-04-08",
+    "code": "039840",
+    "market": "KOSDAQ",
+    "name_before": "디오",
+    "name_after": "디오",
+    "action": "treasury_cancellation",
+    "shares_before": 14375087,
+    "shares_after": 13415828,
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/03/001217/20260403002399/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/23/000342/20260222000032/71131.htm"
+  },
+  {
     "listed_on": "2026-04-10",
     "code": "005490",
     "market": "KOSPI",
@@ -166,6 +310,18 @@
     "shares_after": 79241527,
     "notice_url": "https://kind.krx.co.kr/external/2026/04/07/000161/20260407000302/68155.htm",
     "terms_url": "https://samara.kr/disclosure/20260219800589"
+  },
+  {
+    "listed_on": "2026-04-13",
+    "code": "008060",
+    "market": "KOSPI",
+    "name_before": "대덕",
+    "name_after": "대덕",
+    "action": "treasury_cancellation",
+    "shares_before": 33890150,
+    "shares_after": 31287098,
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/08/000437/20260408001212/68155.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/15/002093/20260515004636/11013.htm"
   },
   {
     "listed_on": "2026-04-13",
@@ -252,6 +408,18 @@
     "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/446521"
   },
   {
+    "listed_on": "2026-04-16",
+    "code": "052300",
+    "market": "KOSDAQ",
+    "name_before": "오션인더블유",
+    "name_after": "오션인더블유",
+    "action": "treasury_cancellation",
+    "shares_before": 16865143,
+    "shares_after": 16244128,
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/13/000791/20260413002144/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/03/16/001570/20260311005296/71131.htm"
+  },
+  {
     "listed_on": "2026-04-17",
     "code": "000810",
     "market": "KOSPI",
@@ -300,6 +468,18 @@
     "terms_url": "https://www.awakeplus.co.kr/data/view/20260310800902"
   },
   {
+    "listed_on": "2026-04-20",
+    "code": "241520",
+    "market": "KOSDAQ",
+    "name_before": "DSC인베스트먼트",
+    "name_after": "DSC인베스트먼트",
+    "action": "treasury_cancellation",
+    "shares_before": 27000000,
+    "shares_after": 26600000,
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/15/000533/20260415001484/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/03/001248/20260403002455/00636.htm"
+  },
+  {
     "listed_on": "2026-04-21",
     "code": "004690",
     "market": "KOSPI",
@@ -334,6 +514,18 @@
     "shares_after": 85248250,
     "notice_url": "https://kind.krx.co.kr/external/2026/04/20/000150/20260420000432/68155.htm",
     "terms_url": "https://kind.krx.co.kr/external/2026/03/20/001742/20260320003772/61131.htm"
+  },
+  {
+    "listed_on": "2026-04-23",
+    "code": "052790",
+    "market": "KOSDAQ",
+    "name_before": "액토즈소프트",
+    "name_after": "액토즈소프트",
+    "action": "treasury_cancellation",
+    "shares_before": 11330638,
+    "shares_after": 10924547,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/456881",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/439415"
   },
   {
     "listed_on": "2026-04-23",
@@ -420,6 +612,42 @@
     "terms_url": "https://cdn.financialreports.eu/processed/html/3302/33020230.html"
   },
   {
+    "listed_on": "2026-04-30",
+    "code": "038460",
+    "market": "KOSDAQ",
+    "name_before": "바이오스마트",
+    "name_after": "바이오스마트",
+    "action": "treasury_cancellation",
+    "shares_before": 26164438,
+    "shares_after": 25274542,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/459232",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/441570"
+  },
+  {
+    "listed_on": "2026-04-30",
+    "code": "060260",
+    "market": "KOSDAQ",
+    "name_before": "뉴보텍",
+    "name_after": "뉴보텍",
+    "action": "treasury_cancellation",
+    "shares_before": 13512009,
+    "shares_after": 13342356,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/459140",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/02/000427/20260330003397/71131.htm"
+  },
+  {
+    "listed_on": "2026-04-30",
+    "code": "063440",
+    "market": "KOSDAQ",
+    "name_before": "SM Life Design",
+    "name_after": "SM Life Design",
+    "action": "treasury_cancellation",
+    "shares_before": 46029154,
+    "shares_after": 45319364,
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/27/000746/20260427001900/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/13/000908/20260406002215/71131.htm"
+  },
+  {
     "listed_on": "2026-05-04",
     "code": "006140",
     "market": "KOSDAQ",
@@ -480,6 +708,30 @@
     "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/428055"
   },
   {
+    "listed_on": "2026-05-13",
+    "code": "033200",
+    "market": "KOSDAQ",
+    "name_before": "모아텍",
+    "name_after": "모아텍",
+    "action": "treasury_cancellation",
+    "shares_before": 14331185,
+    "shares_after": 9204529,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/08/000965/20260508002298/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20261113000575"
+  },
+  {
+    "listed_on": "2026-05-14",
+    "code": "093520",
+    "market": "KOSDAQ",
+    "name_before": "매커스",
+    "name_after": "매커스",
+    "action": "treasury_cancellation",
+    "shares_before": 14163092,
+    "shares_after": 11901837,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/11/000561/20260511001431/70763.htm",
+    "terms_url": "https://cdn.financialreports.eu/financialreports/media/filings/15818/2026/RNS/15818_rns_2026-04-27_f7ede057-d928-4b86-beeb-272e309873d5.html"
+  },
+  {
     "listed_on": "2026-05-15",
     "code": "005290",
     "market": "KOSDAQ",
@@ -516,6 +768,18 @@
     "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/459889"
   },
   {
+    "listed_on": "2026-05-15",
+    "code": "950130",
+    "market": "KOSDAQ",
+    "name_before": "엑세스바이오",
+    "name_after": "엑세스바이오",
+    "action": "treasury_cancellation",
+    "shares_before": 37727832,
+    "shares_after": 35173834,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/465190",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/15/001873/20260515004158/11013.htm"
+  },
+  {
     "listed_on": "2026-05-18",
     "code": "023000",
     "market": "KOSPI",
@@ -526,6 +790,270 @@
     "shares_after": 39739956,
     "notice_url": "https://kind.krx.co.kr/external/2026/05/13/000159/20260513000231/68155.htm",
     "terms_url": "https://kind.krx.co.kr/external/2026/02/09/000783/20260202005429/61131.htm"
+  },
+  {
+    "listed_on": "2026-05-19",
+    "code": "002380",
+    "market": "KOSPI",
+    "name_before": "KCC",
+    "name_after": "KCC",
+    "action": "treasury_cancellation",
+    "shares_before": 8886471,
+    "shares_after": 8592896,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/14/000345/20260514000734/68155.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/22/000227/20260331001587/61131.htm"
+  },
+  {
+    "listed_on": "2026-05-19",
+    "code": "040910",
+    "market": "KOSDAQ",
+    "name_before": "아이씨디",
+    "name_after": "아이씨디",
+    "action": "treasury_cancellation",
+    "shares_before": 18574275,
+    "shares_after": 18174275,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/14/001162/20260514002539/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20260814002631"
+  },
+  {
+    "listed_on": "2026-05-22",
+    "code": "001790",
+    "market": "KOSPI",
+    "name_before": "대한제당",
+    "name_after": "대한제당",
+    "action": "treasury_cancellation",
+    "shares_before": 89696580,
+    "shares_after": 86241915,
+    "notice_url": "https://invest.kiwoom.com/inv/disclosure_detail?code=01&date=2026.05.19&keyword=%EB%8C%80%ED%95%9C%EC%A0%9C%EB%8B%B9&seq=00058716&stockCode=&tp=1&type=02",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/457158"
+  },
+  {
+    "listed_on": "2026-05-22",
+    "code": "084870",
+    "market": "KOSPI",
+    "name_before": "TBH글로벌",
+    "name_after": "TBH글로벌",
+    "action": "treasury_cancellation",
+    "shares_before": 20856819,
+    "shares_after": 20458256,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/19/000221/20260519000569/68155.htm",
+    "terms_url": "https://etp.nhqv.com/publicannounce/202615936"
+  },
+  {
+    "listed_on": "2026-05-22",
+    "code": "439260",
+    "market": "KOSPI",
+    "name_before": "대한조선",
+    "name_after": "대한조선",
+    "action": "treasury_cancellation",
+    "shares_before": 38526312,
+    "shares_after": 38088730,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/467970",
+    "terms_url": "https://samara.kr/disclosure/20260428800321"
+  },
+  {
+    "listed_on": "2026-05-26",
+    "code": "090850",
+    "market": "KOSDAQ",
+    "name_before": "현대이지웰",
+    "name_after": "현대이지웰",
+    "action": "treasury_cancellation",
+    "shares_before": 23746361,
+    "shares_after": 22477903,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/20/000701/20260520001831/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/11/000414/20260204000740/71131.htm"
+  },
+  {
+    "listed_on": "2026-05-27",
+    "code": "041440",
+    "market": "KOSDAQ",
+    "name_before": "현대에버다임",
+    "name_after": "현대에버다임",
+    "action": "treasury_cancellation",
+    "shares_before": 17915944,
+    "shares_after": 17841712,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/468907",
+    "terms_url": "https://samara.kr/disclosure/20260814001780"
+  },
+  {
+    "listed_on": "2026-05-27",
+    "code": "042000",
+    "market": "KOSDAQ",
+    "name_before": "카페24",
+    "name_after": "카페24",
+    "action": "treasury_cancellation",
+    "shares_before": 24253054,
+    "shares_after": 24178169,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/468828",
+    "terms_url": "https://kind.krx.co.kr/external/2026/03/23/001214/20260318005148/71131.htm"
+  },
+  {
+    "listed_on": "2026-05-28",
+    "code": "032640",
+    "market": "KOSPI",
+    "name_before": "LG유플러스",
+    "name_after": "LG유플러스",
+    "action": "treasury_cancellation",
+    "shares_before": 429828355,
+    "shares_after": 424427732,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/469367",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/30/000974/20260430002459/61131.htm"
+  },
+  {
+    "listed_on": "2026-05-28",
+    "code": "060150",
+    "market": "KOSDAQ",
+    "name_before": "인선이엔티",
+    "name_after": "인선이엔티",
+    "action": "treasury_cancellation",
+    "shares_before": 46563612,
+    "shares_after": 45563612,
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000753/20260522001748/70763.htm",
+    "terms_url": "https://www.awakeplus.co.kr/data/view/20260424900300"
+  },
+  {
+    "listed_on": "2026-05-28",
+    "code": "111110",
+    "market": "KOSPI",
+    "name_before": "호전실업",
+    "name_after": "호전실업",
+    "action": "treasury_cancellation",
+    "shares_before": 9376000,
+    "shares_after": 9066000,
+    "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1032215",
+    "terms_url": "https://cdn.financialreports.eu/processed/html/3564/35646917.html"
+  },
+  {
+    "listed_on": "2026-05-28",
+    "code": "114810",
+    "market": "KOSDAQ",
+    "name_before": "한솔아이원스",
+    "name_after": "한솔아이원스",
+    "action": "treasury_cancellation",
+    "shares_before": 28593174,
+    "shares_after": 28143174,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/469391",
+    "terms_url": "https://samara.kr/disclosure/20260513000357"
+  },
+  {
+    "listed_on": "2026-05-29",
+    "code": "042510",
+    "market": "KOSDAQ",
+    "name_before": "라온시큐어",
+    "name_after": "라온시큐어",
+    "action": "treasury_cancellation",
+    "shares_before": 11205174,
+    "shares_after": 11105828,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/469802",
+    "terms_url": "https://kind.krx.co.kr/external/2026/04/29/000392/20260429000768/71131.htm"
+  },
+  {
+    "listed_on": "2026-05-29",
+    "code": "078930",
+    "market": "KOSPI",
+    "name_before": "GS",
+    "name_after": "GS",
+    "action": "treasury_cancellation",
+    "shares_before": 92915378,
+    "shares_after": 92895495,
+    "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1033071",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/464130"
+  },
+  {
+    "listed_on": "2026-05-29",
+    "code": "430690",
+    "market": "KOSDAQ",
+    "name_before": "한싹",
+    "name_after": "한싹",
+    "action": "treasury_cancellation",
+    "shares_before": 10895327,
+    "shares_after": 10895304,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/469747",
+    "terms_url": "https://samara.kr/disclosure/20261116000196"
+  },
+  {
+    "listed_on": "2026-06-05",
+    "code": "017480",
+    "market": "KOSDAQ",
+    "name_before": "삼현철강",
+    "name_after": "삼현철강",
+    "action": "treasury_cancellation",
+    "shares_before": 15702890,
+    "shares_after": 15442890,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/471909",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/465115"
+  },
+  {
+    "listed_on": "2026-06-09",
+    "code": "078070",
+    "market": "KOSDAQ",
+    "name_before": "유비쿼스홀딩스",
+    "name_after": "유비쿼스홀딩스",
+    "action": "treasury_cancellation",
+    "shares_before": 17604772,
+    "shares_after": 17058843,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/04/000695/20260604001808/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/13/000419/20260508002094/71131.htm"
+  },
+  {
+    "listed_on": "2026-06-10",
+    "code": "085910",
+    "market": "KOSDAQ",
+    "name_before": "네오티스",
+    "name_after": "네오티스",
+    "action": "treasury_cancellation",
+    "shares_before": 13934818,
+    "shares_after": 13794818,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/05/000570/20260605001399/70763.htm",
+    "terms_url": "https://www.awakeplus.co.kr/data/view/20260512900483"
+  },
+  {
+    "listed_on": "2026-06-11",
+    "code": "083500",
+    "market": "KOSDAQ",
+    "name_before": "에프엔에스테크",
+    "name_after": "에프엔에스테크",
+    "action": "treasury_cancellation",
+    "shares_before": 8575722,
+    "shares_after": 8306377,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/473977",
+    "terms_url": "https://www.awakeplus.co.kr/data/view/20260519900619"
+  },
+  {
+    "listed_on": "2026-06-12",
+    "code": "003550",
+    "market": "KOSPI",
+    "name_before": "LG",
+    "name_after": "LG",
+    "action": "treasury_cancellation",
+    "shares_before": 154221585,
+    "shares_after": 151192004,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/09/000151/20260609000245/68155.htm",
+    "terms_url": "https://samara.kr/disclosure/20260522800934"
+  },
+  {
+    "listed_on": "2026-06-12",
+    "code": "065510",
+    "market": "KOSDAQ",
+    "name_before": "휴비츠",
+    "name_after": "휴비츠",
+    "action": "treasury_cancellation",
+    "shares_before": 11485863,
+    "shares_after": 10877895,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/09/000803/20260609001847/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/14/000945/20260508002888/71131.htm"
+  },
+  {
+    "listed_on": "2026-06-12",
+    "code": "177830",
+    "market": "KOSDAQ",
+    "name_before": "파버나인",
+    "name_after": "파버나인",
+    "action": "treasury_cancellation",
+    "shares_before": 13493951,
+    "shares_after": 11325993,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/474471",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/467856"
   },
   {
     "listed_on": "2026-06-17",
@@ -540,6 +1068,42 @@
     "terms_url": "https://kind.krx.co.kr/external/2026/05/28/000170/20260520000680/61131.htm"
   },
   {
+    "listed_on": "2026-06-18",
+    "code": "330350",
+    "market": "KOSDAQ",
+    "name_before": "위더스제약",
+    "name_after": "위더스제약",
+    "action": "treasury_cancellation",
+    "shares_before": 13202139,
+    "shares_after": 13199680,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/15/000570/20260615001233/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20260814002090"
+  },
+  {
+    "listed_on": "2026-06-22",
+    "code": "413630",
+    "market": "KOSDAQ",
+    "name_before": "씨피시스템",
+    "name_after": "씨피시스템",
+    "action": "treasury_cancellation",
+    "shares_before": 36436626,
+    "shares_after": 36436605,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/477390",
+    "terms_url": "https://www.awakeplus.co.kr/data/view/20260529900799"
+  },
+  {
+    "listed_on": "2026-06-29",
+    "code": "098460",
+    "market": "KOSDAQ",
+    "name_before": "고영",
+    "name_after": "고영",
+    "action": "treasury_cancellation",
+    "shares_before": 68654755,
+    "shares_after": 68204213,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/24/000712/20260624001718/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/13/000966/20260508001009/71131.htm"
+  },
+  {
     "listed_on": "2026-06-30",
     "code": "419540",
     "market": "KOSDAQ",
@@ -549,6 +1113,66 @@
     "shares_before": 4598502,
     "shares_after": 5958253,
     "notice_url": "https://kind.krx.co.kr/external/2026/06/29/001173/20260629002368/70791.htm"
+  },
+  {
+    "listed_on": "2026-07-01",
+    "code": "114840",
+    "market": "KOSDAQ",
+    "name_before": "아이패밀리에스씨",
+    "name_after": "아이패밀리에스씨",
+    "action": "treasury_cancellation",
+    "shares_before": 17319900,
+    "shares_after": 16681385,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/26/000686/20260626001448/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/11/000339/20260602000287/71131.htm"
+  },
+  {
+    "listed_on": "2026-07-02",
+    "code": "000220",
+    "market": "KOSPI",
+    "name_before": "유유제약",
+    "name_after": "유유제약",
+    "action": "treasury_cancellation",
+    "shares_before": 17032351,
+    "shares_after": 15747462,
+    "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1069713",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/08/000505/20260521000288/61131.htm"
+  },
+  {
+    "listed_on": "2026-07-02",
+    "code": "100790",
+    "market": "KOSDAQ",
+    "name_before": "미래에셋벤처투자",
+    "name_after": "미래에셋벤처투자",
+    "action": "treasury_cancellation",
+    "shares_before": 53124634,
+    "shares_after": 53120578,
+    "notice_url": "https://kind.krx.co.kr/external/2026/06/29/000829/20260629001803/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/27/000683/20260521000334/71131.htm"
+  },
+  {
+    "listed_on": "2026-07-03",
+    "code": "271560",
+    "market": "KOSPI",
+    "name_before": "오리온",
+    "name_after": "오리온",
+    "action": "treasury_cancellation",
+    "shares_before": 39536132,
+    "shares_after": 39528788,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/482516",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/16/000302/20260616000652/61131.htm"
+  },
+  {
+    "listed_on": "2026-07-06",
+    "code": "007680",
+    "market": "KOSDAQ",
+    "name_before": "대원",
+    "name_after": "대원",
+    "action": "treasury_cancellation",
+    "shares_before": 13446474,
+    "shares_after": 13222738,
+    "notice_url": "https://kind.krx.co.kr/external/2026/07/01/000667/20260701001806/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20261001000561"
   },
   {
     "listed_on": "2026-07-06",
@@ -569,6 +1193,42 @@
     "rights_url": "https://kind.krx.co.kr/external/2026/06/11/000840/20260611001254/70766.htm"
   },
   {
+    "listed_on": "2026-07-08",
+    "code": "137080",
+    "market": "KOSDAQ",
+    "name_before": "나래나노텍",
+    "name_after": "나래나노텍",
+    "action": "treasury_cancellation",
+    "shares_before": 11059422,
+    "shares_after": 10709949,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/483888",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/16/000419/20260611001293/71131.htm"
+  },
+  {
+    "listed_on": "2026-07-10",
+    "code": "075130",
+    "market": "KOSDAQ",
+    "name_before": "플랜티넷",
+    "name_after": "플랜티넷",
+    "action": "treasury_cancellation",
+    "shares_before": 16622320,
+    "shares_after": 16122320,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/484804",
+    "terms_url": "https://samara.kr/disclosure/20260814002197"
+  },
+  {
+    "listed_on": "2026-07-13",
+    "code": "086980",
+    "market": "KOSDAQ",
+    "name_before": "쇼박스",
+    "name_after": "쇼박스",
+    "action": "treasury_cancellation",
+    "shares_before": 62638000,
+    "shares_after": 62438000,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/485197",
+    "terms_url": "https://samara.kr/disclosure/20260814002673"
+  },
+  {
     "listed_on": "2026-07-14",
     "code": "198940",
     "market": "KOSDAQ",
@@ -578,6 +1238,90 @@
     "shares_before": 19461489,
     "shares_after": 19909760,
     "notice_url": "https://kind.krx.co.kr/external/2026/07/09/000438/20260709001175/70791.htm"
+  },
+  {
+    "listed_on": "2026-07-15",
+    "code": "036670",
+    "market": "KOSDAQ",
+    "name_before": "삼양케이씨아이",
+    "name_after": "삼양케이씨아이",
+    "action": "treasury_cancellation",
+    "shares_before": 11270000,
+    "shares_after": 10760200,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/485995",
+    "terms_url": "https://cdn.financialreports.eu/financialreports/media/filings/16702/2026/RNS/16702_rns_2026-03-19_5c9f76a1-2bf2-41b2-8ec4-411a2e14fce1.html"
+  },
+  {
+    "listed_on": "2026-07-20",
+    "code": "060540",
+    "market": "KOSDAQ",
+    "name_before": "에스에이티",
+    "name_after": "에스에이티",
+    "action": "treasury_cancellation",
+    "shares_before": 26133306,
+    "shares_after": 26132934,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/486917",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/15/000738/20260615000466/71131.htm"
+  },
+  {
+    "listed_on": "2026-07-21",
+    "code": "017890",
+    "market": "KOSDAQ",
+    "name_before": "한국알콜",
+    "name_after": "한국알콜",
+    "action": "treasury_cancellation",
+    "shares_before": 21273506,
+    "shares_after": 20673506,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/487282",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/477014"
+  },
+  {
+    "listed_on": "2026-07-22",
+    "code": "088910",
+    "market": "KOSDAQ",
+    "name_before": "동우팜투테이블",
+    "name_after": "동우팜투테이블",
+    "action": "treasury_cancellation",
+    "shares_before": 25831764,
+    "shares_after": 25721764,
+    "notice_url": "https://kind.krx.co.kr/external/2026/07/16/000651/20260716001579/70763.htm",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/482968"
+  },
+  {
+    "listed_on": "2026-07-28",
+    "code": "489460",
+    "market": "KOSDAQ",
+    "name_before": "바이오비쥬",
+    "name_after": "바이오비쥬",
+    "action": "treasury_cancellation",
+    "shares_before": 15044430,
+    "shares_after": 14753287,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/489637",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/483349"
+  },
+  {
+    "listed_on": "2026-07-29",
+    "code": "002840",
+    "market": "KOSPI",
+    "name_before": "미원상사",
+    "name_after": "미원상사",
+    "action": "treasury_cancellation",
+    "shares_before": 4750000,
+    "shares_after": 4500000,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/490096",
+    "terms_url": "https://samara.kr/disclosure/20260916000284"
+  },
+  {
+    "listed_on": "2026-07-29",
+    "code": "045510",
+    "market": "KOSDAQ",
+    "name_before": "정원엔시스",
+    "name_after": "정원엔시스",
+    "action": "treasury_cancellation",
+    "shares_before": 32209292,
+    "shares_after": 31479957,
+    "notice_url": "https://kind.krx.co.kr/external/2026/07/24/000586/20260724001298/70763.htm",
+    "terms_url": "https://samara.kr/disclosure/20260622900281"
   },
   {
     "listed_on": "2026-07-29",
@@ -610,6 +1354,18 @@
   },
   {
     "listed_on": "2026-07-30",
+    "code": "079960",
+    "market": "KOSDAQ",
+    "name_before": "동양이엔피",
+    "name_after": "동양이엔피",
+    "action": "treasury_cancellation",
+    "shares_before": 7860000,
+    "shares_after": 7551658,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/490430",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/478766"
+  },
+  {
+    "listed_on": "2026-07-30",
     "code": "137940",
     "market": "KOSDAQ",
     "name_before": "넥스트아이",
@@ -621,6 +1377,42 @@
   },
   {
     "listed_on": "2026-08-05",
+    "code": "002820",
+    "market": "KOSPI",
+    "name_before": "SUN&L",
+    "name_after": "SUN&L",
+    "action": "treasury_cancellation",
+    "shares_before": 12607989,
+    "shares_after": 12063204,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/493255",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/484648"
+  },
+  {
+    "listed_on": "2026-08-05",
+    "code": "003920",
+    "market": "KOSPI",
+    "name_before": "남양유업",
+    "name_after": "남양유업",
+    "action": "treasury_cancellation",
+    "shares_before": 6000000,
+    "shares_after": 5673447,
+    "notice_url": "https://kind.krx.co.kr/external/2026/07/31/000236/20260731000415/68155.htm",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/487297"
+  },
+  {
+    "listed_on": "2026-08-05",
+    "code": "270870",
+    "market": "KOSDAQ",
+    "name_before": "뉴트리",
+    "name_after": "뉴트리",
+    "action": "treasury_cancellation",
+    "shares_before": 9200224,
+    "shares_after": 8994846,
+    "notice_url": "https://kind.krx.co.kr/external/2026/07/31/000841/20260731001665/70763.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/09/000385/20260220003234/71131.htm"
+  },
+  {
+    "listed_on": "2026-08-05",
     "code": "417180",
     "market": "KOSDAQ",
     "name_before": "핑거스토리",
@@ -629,6 +1421,18 @@
     "shares_before": 3509724,
     "shares_after": 4309215,
     "notice_url": "https://kind.krx.co.kr/external/2026/08/04/000901/20260804001818/70791.htm"
+  },
+  {
+    "listed_on": "2026-08-11",
+    "code": "306040",
+    "market": "KOSDAQ",
+    "name_before": "에스제이그룹",
+    "name_after": "에스제이그룹",
+    "action": "treasury_cancellation",
+    "shares_before": 9865828,
+    "shares_after": 9287044,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/495214",
+    "terms_url": "https://samara.kr/disclosure/20260715900337"
   },
   {
     "listed_on": "2026-08-14",
@@ -660,6 +1464,90 @@
     "notice_url": "https://kind.krx.co.kr/external/2026/08/13/001475/20260813003871/70791.htm"
   },
   {
+    "listed_on": "2026-08-14",
+    "code": "182360",
+    "market": "KOSDAQ",
+    "name_before": "큐브엔터",
+    "name_after": "큐브엔터",
+    "action": "treasury_cancellation",
+    "shares_before": 15549849,
+    "shares_after": 15544586,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/496386",
+    "terms_url": "https://kind.krx.co.kr/external/2026/07/23/000609/20260710001785/71131.htm"
+  },
+  {
+    "listed_on": "2026-08-18",
+    "code": "065690",
+    "market": "KOSDAQ",
+    "name_before": "파커스",
+    "name_after": "파커스",
+    "action": "treasury_cancellation",
+    "shares_before": 14049331,
+    "shares_after": 12014507,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/496910",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/485072"
+  },
+  {
+    "listed_on": "2026-08-20",
+    "code": "028100",
+    "market": "KOSPI",
+    "name_before": "동아지질",
+    "name_after": "동아지질",
+    "action": "treasury_cancellation",
+    "shares_before": 13389502,
+    "shares_after": 11222117,
+    "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1117714",
+    "terms_url": "https://samara.kr/disclosure/20260723800410"
+  },
+  {
+    "listed_on": "2026-09-04",
+    "code": "200130",
+    "market": "KOSDAQ",
+    "name_before": "콜마비앤에이치",
+    "name_after": "콜마비앤에이치",
+    "action": "treasury_cancellation",
+    "shares_before": 29415558,
+    "shares_after": 28775558,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/502560",
+    "terms_url": "https://samara.kr/disclosure/20260812900588"
+  },
+  {
+    "listed_on": "2026-09-07",
+    "code": "040160",
+    "market": "KOSDAQ",
+    "name_before": "누리플렉스",
+    "name_after": "누리플렉스",
+    "action": "treasury_cancellation",
+    "shares_before": 12055535,
+    "shares_after": 11883351,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/502783",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/24/000438/20260209000901/71131.htm"
+  },
+  {
+    "listed_on": "2026-09-08",
+    "code": "041190",
+    "market": "KOSDAQ",
+    "name_before": "우리기술투자",
+    "name_after": "우리기술투자",
+    "action": "treasury_cancellation",
+    "shares_before": 84000000,
+    "shares_after": 79800000,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/503110",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/497839"
+  },
+  {
+    "listed_on": "2026-09-08",
+    "code": "302430",
+    "market": "KOSDAQ",
+    "name_before": "이노메트리",
+    "name_after": "이노메트리",
+    "action": "treasury_cancellation",
+    "shares_before": 9833208,
+    "shares_after": 9803208,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/503128",
+    "terms_url": "https://samara.kr/disclosure/20260813900512"
+  },
+  {
     "listed_on": "2026-09-09",
     "code": "019550",
     "market": "KOSDAQ",
@@ -672,6 +1560,54 @@
     "terms_url": "https://kind.krx.co.kr/external/2026/08/20/000545/20260818000394/71131.htm"
   },
   {
+    "listed_on": "2026-09-10",
+    "code": "010780",
+    "market": "KOSPI",
+    "name_before": "아이에스동서",
+    "name_after": "아이에스동서",
+    "action": "treasury_cancellation",
+    "shares_before": 30186976,
+    "shares_after": 29724668,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/503841",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/497792"
+  },
+  {
+    "listed_on": "2026-09-11",
+    "code": "096530",
+    "market": "KOSDAQ",
+    "name_before": "씨젠",
+    "name_after": "씨젠",
+    "action": "treasury_cancellation",
+    "shares_before": 52225994,
+    "shares_after": 46734402,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/504066",
+    "terms_url": "https://samara.kr/disclosure/20260812900663"
+  },
+  {
+    "listed_on": "2026-09-14",
+    "code": "089600",
+    "market": "KOSDAQ",
+    "name_before": "KT나스미디어",
+    "name_after": "KT나스미디어",
+    "action": "treasury_cancellation",
+    "shares_before": 11568163,
+    "shares_after": 11406560,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/504463",
+    "terms_url": "https://www.awakeplus.co.kr/data/view/20260806900482"
+  },
+  {
+    "listed_on": "2026-09-15",
+    "code": "180640",
+    "market": "KOSPI",
+    "name_before": "한진칼",
+    "name_after": "한진칼",
+    "action": "treasury_cancellation",
+    "shares_before": 66762279,
+    "shares_after": 66762275,
+    "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1138382",
+    "terms_url": "https://samara.kr/disclosure/20260813801225"
+  },
+  {
     "listed_on": "2026-09-15",
     "code": "417180",
     "market": "KOSDAQ",
@@ -681,6 +1617,54 @@
     "shares_before": 4309215,
     "shares_after": 5714889,
     "notice_url": "https://kind.krx.co.kr/external/2026/09/14/000559/20260914001480/70791.htm"
+  },
+  {
+    "listed_on": "2026-09-16",
+    "code": "217270",
+    "market": "KOSDAQ",
+    "name_before": "넵튠",
+    "name_after": "넵튠",
+    "action": "treasury_cancellation",
+    "shares_before": 46735643,
+    "shares_after": 45654357,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/505067",
+    "terms_url": "https://samara.kr/disclosure/20261113000977"
+  },
+  {
+    "listed_on": "2026-09-18",
+    "code": "078520",
+    "market": "KOSPI",
+    "name_before": "에이블씨엔씨",
+    "name_after": "에이블씨엔씨",
+    "action": "treasury_cancellation",
+    "shares_before": 26014161,
+    "shares_after": 24963426,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/505942",
+    "terms_url": "https://samara.kr/disclosure/20260813801221"
+  },
+  {
+    "listed_on": "2026-09-23",
+    "code": "384470",
+    "market": "KOSDAQ",
+    "name_before": "코어라인소프트",
+    "name_after": "코어라인소프트",
+    "action": "treasury_cancellation",
+    "shares_before": 17946692,
+    "shares_after": 17946333,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/506971",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/499505"
+  },
+  {
+    "listed_on": "2026-10-01",
+    "code": "100840",
+    "market": "KOSPI",
+    "name_before": "SNT에너지",
+    "name_after": "SNT에너지",
+    "action": "treasury_cancellation",
+    "shares_before": 20680783,
+    "shares_after": 19761108,
+    "notice_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/508335",
+    "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/502750"
   },
   {
     "listed_on": "2026-10-02",
