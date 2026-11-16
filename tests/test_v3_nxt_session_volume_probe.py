@@ -1,10 +1,13 @@
-"""NXT must aggregate its two disjoint sessions, never substitute for KRX."""
+"""Regress the dated exchange-session coverage audit."""
+from datetime import datetime
 import json
 import unittest
 
 from v3_nxt_session_volume_probe import (
-    NXTProbeError, collect, fetch_session, quantity,
+    KST, NXTProbeError, aggregate, collect, compare_krx_panel, eligible_day,
+    fetch_session, quantity, session_observation,
 )
+from tests.test_v3_forward_entry import quote
 
 
 DAY = '2026-11-11'
@@ -26,11 +29,12 @@ class Response:
 
 
 class Session:
-    def __init__(self, regular, closing):
+    def __init__(self, regular, closing, basket=()):
         self.calls=[]
         self.responses = [Response({'records':len(regular), 'brdinfoTimeList':regular,
                                     'setTime':DAY+' 20:05'}),
-                          Response({'records':len(closing), 'brdinfoEndList':closing})]
+                          Response({'records':len(closing), 'brdinfoEndList':closing}),
+                          Response({'records':len(basket), 'bltdinfoList':list(basket)})]
 
     def post(self, url, **kwargs):
         self.calls.append((url,kwargs['data']['scAggDd'],kwargs['data']['pageUnit']))
@@ -46,8 +50,46 @@ class NXTVolumeProbeTests(unittest.TestCase):
             ('KOSPI','0008Z0'):1070,('KOSDAQ','000002'):200,
             ('KOSPI','000003'):30})
         self.assertEqual(result['overlap_issuers'],1)
-        self.assertEqual(len(s.calls),2)
+        self.assertEqual(len(s.calls),3)
         self.assertTrue(all(day=='20261111' and count==10000 for _,day,count in s.calls))
+        report=aggregate(result,DAY,None)
+        self.assertEqual(report['sessions']['basket']['status'],'empty_undated_response')
+        self.assertIsNone(report['regular_plus_closing_issuers_in_saved_universe'])
+        self.assertFalse(report['combined_krx_nxt_volume_verified'])
+        self.assertNotIn('0008Z0',json.dumps(report))
+
+    def test_basket_uses_segment_volume_and_rejects_mismatched_day_or_incomplete_count(self):
+        basket={**row('000001','200'),'bltdAccTdQty':'30'}
+        session=Session([],[],[basket])
+        session.responses=session.responses[-1:]
+        item=session_observation(session,'basket',DAY)
+        self.assertEqual(item['rows'],{('KOSPI','000001'):30})
+        for extra, message in (({'aggDd':'20261112'},'nxt_row_day_unverified'), ({},'nxt_incomplete_market_rows')):
+            with self.subTest(extra=extra):
+                session=Session([],[],[{**basket,**extra}])
+                session.responses=session.responses[-1:]
+                if not extra:
+                    session.responses[0].payload['totalCnt']=2
+                with self.assertRaisesRegex(NXTProbeError,message):
+                    session_observation(session,'basket',DAY)
+
+    def test_historical_override_and_aftermarket_cutoff(self):
+        friday='2026-11-13'
+        eligible_day(friday, datetime(2026,11,16,5,10,tzinfo=KST),False)
+        eligible_day(friday, datetime(2026,11,16,21,0,tzinfo=KST),True)
+        with self.assertRaisesRegex(NXTProbeError,'nxt_session_not_complete'):
+            eligible_day('2026-11-16', datetime(2026,11,16,20,59,tzinfo=KST),True)
+        with self.assertRaisesRegex(NXTProbeError,'saved_market_day_too_old'):
+            eligible_day(friday, datetime(2026,11,25,5,10,tzinfo=KST),False)
+
+    def test_krx_observed_coverage_preserves_mismatched_and_unavailable_rows(self):
+        def daily(market, day):
+            code, volume = ('000001','0') if market=='KOSPI' else ('000002','100')
+            rows=[quote(code=code,day=day.replace('-',''),volume=volume)]
+            return rows,json.dumps({'OutBlock_1':rows}).encode()
+        report=compare_krx_panel(daily,DAY,{('KOSPI','000001'),('KOSPI','000002'),('KOSDAQ','000003')})
+        self.assertEqual(report['nxt_identity_join'], {'volume_zero':1,'market_mismatch':1,'absent':1})
+        self.assertFalse(report['krx_accumulated_volume_session_scope_verified'])
 
     def test_wrong_day_and_duplicate_are_not_silent_zeroes(self):
         with self.assertRaisesRegex(NXTProbeError,'nxt_row_day_unverified'):
