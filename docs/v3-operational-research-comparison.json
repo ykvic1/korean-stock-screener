@@ -6,7 +6,7 @@
   "top": {
     "50": {
       "overlap": 33,
-      "new_kospi": 23,
+      "new_kospi": 24,
       "old_kospi": 18
     },
     "100": {
@@ -15,14 +15,14 @@
       "old_kospi": 39
     },
     "200": {
-      "overlap": 141,
+      "overlap": 139,
       "new_kospi": 80,
       "old_kospi": 83
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "1e901af8f9db660b3f0c897d7ee96bbfa924b8ff38d04bd52e39926aca3e6a9a",
+    "source_digest": "300066d9adccfac572b3902d5911cd47d236f1bf62345c68cfdc14fb0618de08",
     "listed_total": 2591,
     "ranked_count": 2573,
     "available_100_count": 1390,
@@ -43,8 +43,8 @@
   "prior_operational_version": "v3-stable-r1d-operational-research",
   "same_input_prior_ranked_issuers": 2493,
   "prior_top_overlap": {
-    "50": 34,
+    "50": 33,
     "100": 60,
-    "200": 136
+    "200": 135
   }
 }
