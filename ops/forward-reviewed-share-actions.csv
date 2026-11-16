@@ -1,0 +1,5 @@
+market,code,name,listing_on,action,shares_before,shares_after,new_units,old_units,notice_url
+KOSPI,008500,일정실업,2025-12-15,split,1200000,6000000,5,1,https://kind.krx.co.kr/external/2025/12/10/000145/20251210000587/68155.htm
+KOSDAQ,121850,코이즈,2025-12-10,capital_reduction,30614175,3061417,1,10,https://kind.krx.co.kr/external/2025/12/05/000503/20251205001328/70763.htm
+KOSDAQ,028080,휴맥스홀딩스,2026-04-30,reverse_split,11439706,2287941,1,5,https://kind.krx.co.kr/external/2026/04/29/000815/20260429002200/70764.htm
+KOSDAQ,008290,원풍물산,2026-05-12,reverse_split,40693679,20346839,1,2,https://kind.krx.co.kr/external/2026/05/11/000605/20260511001529/70764.htm
