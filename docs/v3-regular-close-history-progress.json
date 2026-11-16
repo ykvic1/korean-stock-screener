@@ -1,17 +1,17 @@
 {
   "asof": "2026-11-13",
   "requested_sessions": 200,
-  "archived_sessions": 160,
+  "archived_sessions": 200,
   "listed_total": 2591,
   "counts": {
     "current_close_observed": 2591,
-    "full_200_session_continuity": 0,
+    "full_200_session_continuity": 2075,
     "daily_rsi_recomputed": 2351,
     "daily_ma_turn_recomputed": 2322
   },
-  "source_inputs_sha256": "afbccf534ad4dbee28e0544216c9168eb8c66aca0690772f21b87e192d1d22c2",
-  "added_this_run": 80,
-  "pending_sessions": 40,
-  "source_requests": 160,
+  "source_inputs_sha256": "9a08325c0797cd93142dd650c9e1bcf00a7be3849d718c4e1fc8485b090fe22e",
+  "added_this_run": 40,
+  "pending_sessions": 0,
+  "source_requests": 80,
   "failures": {}
 }
