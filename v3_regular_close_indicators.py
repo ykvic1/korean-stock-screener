@@ -14,7 +14,7 @@ import time
 import numpy as np
 
 from official_probe.clients import KRXClient, KRXProbeError
-from v3_forward_daily_prices import number
+from v3_forward_daily_prices import number, official_publish_time
 from v3_forward_share_actions import normalized_name
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
 from v3_krx_history_collection import MARKETS, HistoryCollectionError, _snapshot_market
@@ -303,8 +303,17 @@ def main():
     root = Path('docs')
     catalog = json.loads((root / 'v22-market-catalog.json').read_bytes())
     asof = catalog['date']
-    if regular_close_utc(date.fromisoformat(asof)) > datetime.now(timezone.utc):
+    now = datetime.now(timezone.utc)
+    source_day = date.fromisoformat(asof)
+    if regular_close_utc(source_day) > now:
         raise CloseHistoryError('regular_close_history_asof_not_complete')
+    publish_at = official_publish_time(source_day)
+    if now < publish_at:
+        print(json.dumps({'status': 'waiting_for_official_publish_window',
+                          'asof': asof,
+                          'official_publish_candidate_utc': publish_at.isoformat(),
+                          'source_requests': 0, 'published_indicators_changed': False}))
+        return
     catalog_digest = sha256(json.dumps(catalog, ensure_ascii=False, sort_keys=True,
                                       separators=(',', ':')).encode()).hexdigest()
     target = root / OUTPUT
