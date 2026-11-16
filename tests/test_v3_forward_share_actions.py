@@ -96,8 +96,71 @@ class ForwardShareActionTest(unittest.TestCase):
                 publish(gap)
                 collect_share_reviews(now, lambda: storage)
                 self.assertEqual(reader.call_count, 3)
+
                 states = json.loads((out / f'{gap}.json').read_bytes())['states']
                 self.assertEqual(states['notice_matched'], 1)
                 self.assertEqual(len(storage.blobs), 2)
                 collect_share_reviews(now, lambda: storage)
                 self.assertEqual(reader.call_count, 3)
+
+    def test_pipeline_versions_only_changed_session_inputs_and_reuses_saved_results(self):
+        early, gap, late = '2025-12-12', '2025-12-15', '2025-12-16'
+        panels = {early: panel(early), gap: panel(gap, 6000000), late: panel(late, 6000000)}
+        storage = MemoryStore()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            daily, out, register = root / 'daily', root / 'review', root / 'notices.csv'
+            daily.mkdir()
+            register.write_bytes(self.raw)
+
+            def publish(day):
+                (daily / f'{day}.json').write_text(json.dumps({
+                    'status': 'archived_privately', 'schema': DAILY_SCHEMA, 'date': day,
+                    'source_sha256': panels[day]['source_sha256'],
+                }))
+
+            for day in panels:
+                publish(day)
+            with (patch('v3_forward_share_actions.OUT', out),
+                  patch('v3_forward_share_actions.DAILY_STATUS', daily),
+                  patch('v3_forward_share_actions.REGISTER', register),
+                  patch('v3_forward_share_actions.read_daily', side_effect=lambda day, _: panels[day]) as reader,
+                  patch('builtins.print')):
+                now = timestamp('2025-12-16T11:45:00+00:00')
+                collect_share_reviews(now, lambda: storage)
+                original_blobs = dict(storage.blobs)
+                original_status = {day: (out / f'{day}.json').read_bytes() for day in (gap, late)}
+                self.assertEqual(len(original_blobs), 2)
+
+                # Remove unrelated dates and change CSV line endings without reprocessing.
+                rows = self.raw.decode().splitlines()
+                session_rows = [line for line in rows[1:] if ',2025-12-15,' in line]
+                register.write_bytes(('\r\n'.join([rows[0], *session_rows]) + '\r\n').encode())
+                reader.reset_mock()
+                collect_share_reviews(now, lambda: storage)
+                reader.assert_not_called()
+
+                # Removing the relevant notice changes only its session's evidence.
+                register.write_text(rows[0] + '\n')
+                collect_share_reviews(now, lambda: storage)
+                self.assertEqual(len(storage.blobs), 3)
+                self.assertEqual((out / f'{late}.json').read_bytes(), original_status[late])
+                states = json.loads((out / f'{gap}.json').read_bytes())['states']
+                self.assertEqual(states['change_needs_notice'], 1)
+
+                # A source correction creates a new version for each adjacent pair.
+                panels[gap]['source_sha256'] = {'KOSPI': 'c' * 64, 'KOSDAQ': 'b' * 64}
+                publish(gap)
+                collect_share_reviews(now, lambda: storage)
+                self.assertEqual(len(storage.blobs), 5)
+                for path, blob in original_blobs.items():
+                    self.assertEqual(storage.blobs[path], blob)
+                reader.reset_mock()
+                collect_share_reviews(now, lambda: storage)
+                reader.assert_not_called()
+
+                # Lost public status after a private write recovers without overwriting.
+                (out / f'{gap}.json').unlink()
+                collect_share_reviews(now, lambda: storage)
+                self.assertEqual(len(storage.blobs), 5)
+                self.assertTrue((out / f'{gap}.json').exists())
