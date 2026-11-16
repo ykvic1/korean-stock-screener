@@ -19,21 +19,27 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
-    def test_regular_close_factors_replace_only_same_day_rsi_and_ma_turn(self):
+    def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256
-        from v3_regular_close_indicators import SCHEMA, implementation_digest
+        from v3_ma240_cross_research import observe as ma_observe
+        from v3_regular_close_contract import SCHEMA, SESSIONS, implementation_digest
         market,catalog = self.inputs[:2]
         member=next(m for m in catalog['rows'] if any(s['code']==m['code'] for s in market['stocks']))
         code=member['code']
+        day=date.fromisoformat(catalog['date'])
+        cross=ma_observe([100]*SESSIONS,[1]*SESSIONS,asof=catalog['date'],
+            session_days=[day-timedelta(days=i) for i in range(SESSIONS-1,-1,-1)])
+        self.assertIsNotNone(cross)
         source={'schema':SCHEMA,'asof':catalog['date'],'source':'KRX_OFFICIAL_REGULAR_CLOSE',
             'source_catalog_sha256':sha256(json.dumps(catalog,ensure_ascii=False,sort_keys=True,
                 separators=(',',':')).encode()).hexdigest(),
             'implementation_sha256':implementation_digest(),
-            'requested_sessions':200,'archived_sessions':200,'listed_total':len(catalog['rows']),
+            'requested_sessions':SESSIONS,'archived_sessions':SESSIONS,'trade_status_sessions':SESSIONS,
+            'listed_total':len(catalog['rows']),
             'full_corporate_action_history_certified':False,'performance_validated':False,
-            'rows':{code:{'name':member['name'],'market':member['market'],'continuous_sessions':200,
+            'rows':{code:{'name':member['name'],'market':member['market'],'continuous_sessions':SESSIONS,
                 'daily_rsi':{'rsi14':45,'rsi30_cross_recent':True,'rsi_bullish_divergence_recent':False},
-                'daily_ma_turn':{'20':0.0,'60':0.0,'120':0.0}}}}
+                'daily_ma_turn':{'20':0.0,'60':0.0,'120':0.0},'daily_ma240_cross':cross}}}
         baseline=ops.build(*self.inputs)
         refreshed=ops.build(*self.inputs,previous=baseline,regular_close_source=source)
         row=refreshed['rows'][code]
@@ -42,6 +48,10 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(row['parts']['momentum']['daily_ma_slope_turn'],
             {'points':0.0,'available':2.0,'asof':catalog['date']})
         self.assertIn('daily_rsi',row['regular_close_recomputed_parts'])
+        key='ma20_ma60_cross_near_ma240'
+        self.assertEqual(row['parts']['technical'][key],{'points':0,'available':6,'asof':catalog['date']})
+        self.assertIn(key,row['regular_close_recomputed_parts'])
+        self.assertEqual(refreshed['regular_close_source_summary']['daily_ma240_cross_recomputed'],1)
         for area in ('volume','financial','valuation'):
             self.assertEqual(row['parts'][area],baseline['rows'][code]['parts'][area])
         self.assertEqual(refreshed['budgets'],baseline['budgets'])

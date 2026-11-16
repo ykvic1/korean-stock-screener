@@ -15,6 +15,7 @@ import pandas as pd
 from tests.test_v3_forward_entry import MemoryStore, quote
 import v3_regular_close_indicators as history
 from v3_pattern_first_observations import rsi_observation
+from v3_ma240_cross_research import observe as observe_ma240
 from v3_ma_slope_transition import _series_points
 
 
@@ -36,35 +37,75 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
                        cwd=Path(__file__).resolve().parents[1], check=True, capture_output=True)
 
     def setUp(self):
-        self.days = [d.date().isoformat() for d in pd.bdate_range(end='2026-11-13', periods=200)]
+        self.days = [d.date().isoformat() for d in pd.bdate_range(end='2026-11-13', periods=history.SESSIONS)]
         self.catalog = {'date': self.days[-1], 'rows': [
             {'code': '005930', 'name': '삼성전자', 'market': 'KOSPI'},
             {'code': '123456', 'name': '코스닥', 'market': 'KOSDAQ'},
         ]}
         self.digest = sha256(json.dumps(self.catalog, ensure_ascii=False, sort_keys=True,
                                        separators=(',', ':')).encode()).hexdigest()
-        self.close = [int(value) for value in np.r_[np.linspace(220, 90, 180), np.linspace(92, 130, 20)]]
+        self.close = [int(value) for value in np.r_[np.linspace(220, 90, 240), np.linspace(92, 170, 20)]]
         self.panels = {}
         for i, day in enumerate(self.days):
             self.panels[day] = {'schema': history.DAY_SCHEMA, 'date': day,
                 'source_sha256': {'KOSPI': 'a' * 64, 'KOSDAQ': 'b' * 64},
                 'rows': {'005930': ['KOSPI', '삼성전자', self.close[i], 500,
-                                    self.close[i-1] if i else None],
+                                    self.close[i-1] if i else None, True],
                          '123456': ['KOSDAQ', '코스닥', self.close[i] * 2, 500,
-                                    self.close[i-1] * 2 if i else None]}}
+                                    self.close[i-1] * 2 if i else None, True]}}
 
     def test_ma_rsi_and_turn_reuse_the_existing_formulas(self):
         source = history.build(self.catalog, self.digest, self.days, self.panels)
         row = source['rows']['005930']
-        self.assertEqual(row['continuous_sessions'], 200)
+        self.assertEqual(row['continuous_sessions'], history.SESSIONS)
         self.assertEqual(row['moving_averages']['20'], round(float(np.mean(self.close[-20:])), 6))
-        self.assertEqual(row['daily_rsi'], rsi_observation(np.asarray(self.close, dtype=float)))
+        self.assertEqual(row['daily_rsi'], rsi_observation(np.asarray(self.close[-200:], dtype=float)))
         self.assertEqual(row['daily_ma_turn'], _series_points(
             np.asarray(self.close, dtype=float), prior=60, recent=20, hold=5,
             floor=.0001, frame='daily', trusted_window=lambda required: True))
         self.assertEqual(len(history.admitted_rows(source, self.catalog)), 2)
         self.assertNotIn('close_series', json.dumps(source))
         self.assertEqual(source['counts']['full_200_session_continuity'], 2)
+        expected = observe_ma240(self.close, [1] * history.SESSIONS, asof=self.days[-1],
+                                 session_days=list(pd.to_datetime(self.days)))
+        self.assertIsNotNone(expected)
+        self.assertEqual(row['daily_ma240_cross'], expected)
+        self.assertEqual(source['counts']['daily_ma240_cross_recomputed'], 2)
+
+    def test_legacy_days_preserve_daily_scores_until_ma240_trade_evidence_is_complete(self):
+        panels = deepcopy(self.panels)
+        first = panels[self.days[0]]
+        first['schema'] = history.LEGACY_DAY_SCHEMA
+        for row in first['rows'].values():
+            row.pop()
+        partial = history.build(self.catalog, self.digest, self.days, panels)
+        self.assertEqual(partial['trade_status_sessions'], history.SESSIONS - 1)
+        self.assertIsNotNone(partial['rows']['005930']['daily_ma_turn'])
+        self.assertIsNone(partial['rows']['005930']['daily_ma240_cross'])
+        for marker in (None, False):
+            with self.subTest(marker=marker):
+                suspended = deepcopy(self.panels)
+                suspended[self.days[-1]]['rows']['005930'][5] = marker
+                report = history.build(self.catalog, self.digest, self.days, suspended)
+                self.assertIsNone(report['rows']['005930']['daily_ma240_cross'])
+                self.assertIsNotNone(report['rows']['123456']['daily_ma240_cross'])
+
+    def test_migration_reads_legacy_day_and_stores_trade_status_at_a_new_path(self):
+        storage = MemoryStore()
+        clients = {market: FakeClient(market) for market in history.MARKETS}
+        day = self.days[-1]
+        old = deepcopy(self.panels[day])
+        old['schema'] = history.LEGACY_DAY_SCHEMA
+        for row in old['rows'].values():
+            row.pop()
+        old_path = history.archive_path(day, legacy=True)
+        old_blob = gzip.compress(json.dumps(old).encode())
+        storage.blobs[old_path] = old_blob
+        with patch('builtins.print'):
+            panels, added, failures = history.collect(storage, clients, [day])
+        self.assertEqual((added, failures), (1, {}))
+        self.assertIs(panels[day]['rows']['005930'][5], True)
+        self.assertEqual(storage.blobs[old_path], old_blob)
 
     def test_missing_session_or_unresolved_price_basis_is_never_bridged(self):
         for cause in ('missing', 'reference', 'identity'):
@@ -84,6 +125,7 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
                 self.assertIsNone(row['moving_averages']['60'])
                 self.assertIsNone(row['daily_rsi'])
                 self.assertIsNone(row['daily_ma_turn'])
+            self.assertIsNone(row['daily_ma240_cross'])
 
     def test_forged_source_scope_or_unearned_periods_are_rejected(self):
         source = history.build(self.catalog, self.digest, self.days, self.panels)
@@ -94,6 +136,7 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
             lambda row: row.update(continuous_sessions=90),
             lambda row: row['daily_ma_turn'].update({'120': 1.0}),
             lambda row: row['daily_rsi'].update(rsi14=float('nan')),
+            lambda row: row['daily_ma240_cross'].update(qualified='true'),
         ):
             changed = deepcopy(source)
             mutation(changed['rows']['005930'])
@@ -124,6 +167,6 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
 
     def test_announced_closures_are_excluded_from_the_requested_window(self):
         days = history.history_dates('2026-11-13')
-        self.assertEqual((len(days), days[-1]), (200, '2026-11-13'))
+        self.assertEqual((len(days), days[-1]), (history.SESSIONS, '2026-11-13'))
         self.assertNotIn('2026-06-03', days)
         self.assertNotIn('2026-07-17', days)
