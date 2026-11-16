@@ -161,11 +161,13 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
     if not entry_statuses:
         return
     entries = [date.fromisoformat(item['entry_session_candidate']) for item in entry_statuses]
+    signal_days = [date.fromisoformat(item.get('score_asof', item['entry_session_candidate']))
+                   for item in entry_statuses]
     # Keep collecting through the target-session selection margin used by the
     # forward horizon audit, including when the anniversary falls on a holiday.
     last_target = _anniversary(max(entries), max(HORIZONS)) + timedelta(days=10)
     pending = []
-    for day in completed_sessions(min(entries), last_target, now):
+    for day in completed_sessions(min(signal_days), last_target, now):
         target = OUT / f'{day}.json'
         if target.exists():
             previous = json.loads(target.read_bytes())

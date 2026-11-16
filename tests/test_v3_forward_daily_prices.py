@@ -23,6 +23,16 @@ def pair(day):
 
 
 class ForwardDailyPriceTest(unittest.TestCase):
+    def test_signal_session_is_collected_before_the_entry_session_closes(self):
+        storage, calls = MemoryStore(), []
+        cohort = [{'score_asof': '2026-11-13', 'entry_session_candidate': '2026-11-16'}]
+        now = timestamp('2026-11-16T01:30:00+00:00')
+        with TemporaryDirectory() as root, patch('v3_forward_daily_prices.OUT', Path(root)):
+            with patch('builtins.print'):
+                collect_daily(cohort, now, lambda: storage,
+                              lambda day: (calls.append(day), pair(day))[1], clock=lambda: now)
+        self.assertEqual(calls, ['2026-11-13'])
+
     def test_close_cutoff_exam_day_and_observed_holiday_override(self):
         exam = date(2026, 11, 19)
         self.assertEqual(list(completed_sessions(
