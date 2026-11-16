@@ -1,15 +1,18 @@
 """Compare the pinned historical pilot with official KRX rows, in memory only."""
 import argparse
 from collections import Counter
+import csv
+from datetime import datetime, time
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
 
 from official_probe.clients import KRXClient, KRXProbeError
-from v3_forward_daily_prices import daily_row
+from v3_forward_daily_prices import daily_row, number
 from v3_forward_entry import read_official_openings
 from v3_forward_share_actions import normalized_name
-from v3_historical_market_coverage import END, ENTRY, ROOT, SIGNAL, day, ledger_rows, read_panels, require, traded
+from v3_historical_market_coverage import END, ENTRY, ROOT, SIGNAL, MARKETS, day, ledger_rows, read_panels, require, traded
 from v3_historical_pilot_daily_replay import SOURCE_DIGESTS
 from v3_krx_history_collection import HistoryCollectionError, validate_dates
 
@@ -64,7 +67,86 @@ def compare_market(public, official, codes):
     return {**counts, 'different_price_by_field': difference}
 
 
-def audit(panels, delisted, client, batch):
+
+TURNOVER_FIELDS = {'volume': 'ACC_TRDVOL', 'amount': 'ACC_TRDVAL'}
+
+
+def read_turnover_panels(paths, sessions):
+    """Read only pinned turnover fields; retain issuer rows in memory."""
+    for path, digest in zip(paths, SOURCE_DIGESTS, strict=True):
+        require(sha256(path.read_bytes()).hexdigest() == digest,
+                'historical_public_source_digest_mismatch')
+    import pyarrow.parquet as pq
+
+    sessions = set(sessions)
+    panels = {session: {} for session in sessions}
+
+    def add(session, row):
+        if session not in panels or row['Market'] not in MARKETS:
+            return
+        code = row['Code']
+        require(code and code not in panels[session], 'duplicate_turnover_market_security')
+        values = []
+        for key in ('Volume', 'Amount'):
+            value = row[key]
+            if isinstance(value, str):
+                value = int(value) if value.isascii() and value.isdigit() else None
+            values.append(value if type(value) is int and value >= 0 else None)
+        panels[session][code] = (MARKETS[row['Market']], row['Name'], *values)
+
+    columns = ['Date', 'Code', 'Market', 'Name', 'Volume', 'Amount']
+    for path in paths[:2]:
+        table = pq.read_table(path, columns=columns, filters=[
+            ('Date', 'in', [datetime.combine(session, time.min) for session in sorted(sessions)]),
+            ('Market', 'in', list(MARKETS)),
+        ])
+        for batch in table.to_batches():
+            for row in batch.to_pylist():
+                add(row['Date'].date(), row)
+    require(END not in sessions or not panels[END], 'duplicate_turnover_market_endpoint')
+    with paths[2].open(encoding='utf-8-sig', newline='') as stream:
+        for row in csv.DictReader(stream):
+            add(END, row)
+    return panels
+
+
+def compare_turnover(public, official):
+    """Count exact quantities and KRW amounts without exporting values or codes."""
+    counts = Counter(dict(scope=len(public.keys() | official.keys()),
+                          absent_from_public=len(official.keys() - public.keys()),
+                          absent_from_official=len(public.keys() - official.keys()),
+                          identity_mismatch=0, exact_volume_and_amount=0))
+    fields = {key: Counter(dict(compared=0, matched=0, mismatched=0,
+                               public_unavailable=0, official_unavailable=0,
+                               both_zero=0)) for key in TURNOVER_FIELDS}
+    for code in public.keys() & official.keys():
+        market, row = official[code]
+        p = public[code]
+        if market != p[0] or normalized_name(row.get('ISU_NM', '')) != normalized_name(p[1]):
+            counts['identity_mismatch'] += 1
+            continue
+        exact = True
+        for index, (key, source_field) in enumerate(TURNOVER_FIELDS.items(), 2):
+            value = p[index]
+            lhs = value if type(value) is int and value >= 0 else None
+            rhs = number(row, source_field)
+            f = fields[key]
+            f['public_unavailable'] += lhs is None
+            f['official_unavailable'] += rhs is None
+            if lhs is None or rhs is None:
+                exact = False
+                continue
+            f['compared'] += 1
+            f['matched'] += lhs == rhs
+            f['mismatched'] += lhs != rhs
+            f['both_zero'] += lhs == rhs == 0
+            exact = exact and lhs == rhs
+        counts['exact_volume_and_amount'] += exact
+    return {**counts, 'fields': fields,
+            'numeric_equivalence_is_not_session_certification': True}
+
+
+def audit(panels, delisted, client, batch, *, turnover_panels=None):
     sessions = BATCHES[batch]
     validate_dates([d.isoformat() for d in sessions])
     anchor = panels[SIGNAL]
@@ -81,13 +163,15 @@ def audit(panels, delisted, client, batch):
                 'reason': reason, 'market': error.market,
                 'market_responses': getattr(error, 'market_responses', None),
             }
-            if reason in {'http_unauthorized', 'http_forbidden'}:
+            if reason in {'http_unauthorized', 'http_forbidden', 'http_rate_limited'}:
                 break
             continue
         official = {code: daily_row(market, row) for code, (market, row) in raw.items()}
         anchor_listed = anchor.keys() & (public.keys() | official.keys())
         results[session.isoformat()] = {
             'official_source_sha256': hashes,
+            'turnover': (compare_turnover(turnover_panels[session], raw)
+                         if turnover_panels is not None else None),
             'market_wide': compare_market(public, official, public.keys() | official.keys()),
             'present_pilot_anchor_issuers': compare_market(public, official, anchor_listed),
             'pilot_anchor_absent_from_both': len(anchor.keys() - anchor_listed),
@@ -120,7 +204,8 @@ def main():
     panels = read_panels(args.sources)
     delisted = {row['code'] for row in ledger_rows(ROOT, 'delistings')
                 if row['anchor_membership'] == 'present'}
-    result = audit(panels, delisted, KRXClient(key), args.batch)
+    turnover = read_turnover_panels(args.sources, BATCHES[args.batch])
+    result = audit(panels, delisted, KRXClient(key), args.batch, turnover_panels=turnover)
     print(json.dumps(result, sort_keys=True))
     if result['failed_sessions']:
         raise SystemExit(1)
