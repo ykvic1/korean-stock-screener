@@ -29,6 +29,8 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertIn('pilot.get("performance_validated") is not False',content)
         self.assertIn('"scheduled_cash_entitlements"',content)
         self.assertIn('"paths_with_unpriced_sessions"',content)
+        self.assertIn('"price_scenarios_with_reported_dividend_cash"',content)
+        self.assertIn('"paths_with_dividend_entitlement_unpaid_or_unverified"',content)
 
     def test_main_audit_must_fail_closed_and_no_fake_release(self):
         content=WORKFLOW.read_text(encoding="utf8")

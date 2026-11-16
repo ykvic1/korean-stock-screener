@@ -1,0 +1,17 @@
+position_code,payer_code,record_on,payment_on,krw_per_payer_share,payment_evidence,terms_url,payment_url
+010620,329180,2026-02-27,2026-04-09,3990,reported_in_payment_history,https://kind.krx.co.kr/external/2026/02/06/001203/20260206004058/61500.htm,https://kr.investing.com/equities/hyundai-heavy-industries-co-dividends
+010620,329180,2026-08-13,2026-08-31,6090,reported_in_payment_history,https://kind.krx.co.kr/external/2026/07/29/000527/20260729001186/61500.htm,https://kr.investing.com/equities/hyundai-heavy-industries-co-dividends
+012510,012510,2026-02-27,2026-04-24,640,reported_in_payment_history,https://kind.krx.co.kr/common/disclsviewer.do?acptno=20260204000094,https://koreadividend.kr/KR7012510004
+019440,019440,2026-03-27,2026-04-24,930,scheduled,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260211801533,
+019440,058650,2026-03-27,2026-04-23,4300,reported_in_payment_history,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260210800960,https://kr.investing.com/equities/seah-holdings-dividends
+031440,031440,2026-04-01,2026-04-16,900,reported_in_payment_history,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260211801072,https://kr.investing.com/equities/shinsegae-food-dividends
+042670,267270,2026-02-27,2026-04-24,550,reported_in_payment_history,https://kind.krx.co.kr/external/2026/05/29/001688/20260529002696/99667.htm,https://www.knowingasset.com/app/calculator/dividend/267270
+057050,057050,2026-04-03,2026-04-24,2800,reported_in_payment_history,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260211800453,https://kr.investing.com/equities/hd-home-shoppi-dividends
+057050,005440,2026-04-03,2026-04-30,235,reported_in_payment_history,https://ehyundai.com/newPortal/group/HLDS/FI000220.do?locale=ko,https://mydividend.kr/stock/005440
+057050,005440,2026-09-30,2026-10-30,65,reported_in_payment_history,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260929800148,https://mydividend.kr/stock/005440
+082640,316140,2026-11-10,2026-11-30,220,scheduled,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023800653,
+138490,138490,2025-12-31,2026-03-31,200,reported_in_payment_history,https://kolonenp.com/bbs/board.php?bo_table=notice&wr_id=80,https://kr.investing.com/equities/kolon-plastics-dividends
+138490,120110,2026-03-13,2026-04-29,700,reported_in_payment_history,https://kind.krx.co.kr/external/2026/06/01/000258/20260529001768/99667.htm,https://mydividend.kr/stock/120110
+138490,120110,2026-08-21,2026-09-04,900,reported_in_payment_history,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260806800577,https://mydividend.kr/stock/120110
+230360,230360,2025-09-30,2025-10-28,620,reported_in_payment_history,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20251001900785,https://koreadividend.kr/KR7230360000
+450140,002020,2026-03-13,2026-04-06,550,reported_in_payment_history,https://kind.krx.co.kr/external/2026/02/26/001601/20260223002542/61500.htm,https://mydividend.kr/stock/002020

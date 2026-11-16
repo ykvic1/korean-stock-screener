@@ -1,11 +1,15 @@
 """Saved delisting pilot audit, including known pricing and path gaps."""
 import csv
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 import shutil
 from tempfile import TemporaryDirectory
 import unittest
 
-from v3_historical_performance_pilot_audit import ROOT, TAG, PilotAuditError, audit
+from v3_historical_performance_pilot_audit import (
+    ROOT, TAG, PilotAuditError, audit, cash_dividend_replay, dividend_units,
+)
 
 
 class HistoricalPerformancePilotAuditTests(unittest.TestCase):
@@ -22,8 +26,46 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
         self.assertFalse(report["point_in_time_scores_verified"])
         self.assertFalse(report["performance_validated"])
 
+    def test_dividends_follow_entry_holdings_and_payments(self):
+        report = audit()
+        replays = report["dividend_replays"]
+        self.assertEqual(report["dividend_event_rows"], 16)
+        self.assertEqual(report["dividend_eligible_events"], 12)
+        self.assertEqual(report["dividend_events_outside_holding"], 4)
+        self.assertEqual(report["horizons"]["12"]["price_scenarios_with_reported_dividend_cash"], 8)
+        self.assertFalse(report["dividend_coverage_complete"])
+        self.assertNotIn("230360", replays)
+        self.assertEqual(replays["082640"]["12"], {"entitled_cash_unverified_at_evaluation": 1})
+        self.assertEqual(replays["138490"]["2"], {"entitled_cash_unverified_at_evaluation": 1})
+        self.assertEqual(replays["057050"]["6"]["reported_cash_krw_per_entry_share"], "2800.0000")
+        self.assertEqual(replays["057050"]["12"]["reported_cash_krw_per_entry_share"], "3213.2118")
+        self.assertEqual(replays["010620"]["12"]["price_scenario_plus_reported_cash_pct"], "-47.78")
+
+    def test_uncertain_share_delivery_is_not_treated_as_a_dividend_entitlement(self):
+        settlement = {
+            "successor_code": "000002", "event_on": "2025-12-01",
+            "settlement_or_share_availability_on": "2025-12-15",
+            "shares_per_old_share": "0.4", "treatment": "stock_exchange",
+        }
+        self.assertEqual(dividend_units("000001", "000001", date(2025, 11, 17), settlement, {}),
+                         Decimal(0))
+        self.assertIsNone(dividend_units("000001", "000002", date(2025, 12, 10), settlement, {}))
+        self.assertEqual(dividend_units("000001", "000002", date(2025, 12, 16), settlement, {}),
+                         Decimal("0.4"))
+
+    def test_reported_cash_does_not_create_a_missing_terminal_valuation(self):
+        events = [(date(2025, 12, 1), date(2025, 12, 10), "reported_in_payment_history", Decimal(2))]
+        result = cash_dividend_replay({"value_per_entry_share_krw": ""}, events, date(2025, 12, 15),
+                                      Decimal(100))
+        self.assertEqual(result["reported_cash_krw_per_entry_share"], "2.0000")
+        self.assertNotIn("price_scenario_plus_reported_cash_pct", result)
+
     def test_detects_workbook_errors_that_arithmetic_alone_would_miss(self):
         cases = (
+            ("cash-dividends", {"payer_code": "316140"},
+             {"payment_evidence": "reported_in_payment_history"}, "invalid_dividend_evidence"),
+            ("cash-dividends", {"payer_code": "316140"},
+             {"payer_code": "000000"}, "dividend_payer_mismatch"),
             ("price-replay", {"code": "042670", "horizon_months": "2"},
              {"quote_or_cash_krw": "0"}, "invalid_unpriced_settlement"),
             ("price-replay", {"code": "010620", "horizon_months": "1"},

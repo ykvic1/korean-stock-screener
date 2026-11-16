@@ -2,7 +2,7 @@
 import csv
 from collections import Counter, defaultdict
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from hashlib import sha256
 from io import StringIO
 import json
@@ -13,6 +13,8 @@ from v3_forward_horizon_readiness import HORIZONS, _anniversary
 ROOT = Path(__file__).resolve().parent
 SIGNAL = date(2025, 11, 13)
 ENTRY = date(2025, 11, 14)
+# The Friday entry settles two KRX sessions later.
+ENTRY_SETTLEMENT = date(2025, 11, 18)
 TAG = "20251113"
 UNPRICED = "awaiting_settlement_unpriced"
 CASH = {"cash_delivery": "reported_completed", "scheduled_cash_entitlement": "announced"}
@@ -41,6 +43,99 @@ def positive(value):
     number = Decimal(value)
     require(number.is_finite() and number > 0, "invalid_positive_value")
     return number
+
+
+def holding_units(adjustments, symbol, after, through):
+    units = Decimal(1)
+    for effective, factor in adjustments.get(symbol, []):
+        if after < effective <= through:
+            units *= factor
+    return units
+
+
+def exchanged_units(adjustments, code, settlement, through):
+    event = day(settlement["event_on"])
+    return (holding_units(adjustments, code, ENTRY, event)
+            * positive(settlement["shares_per_old_share"])
+            * holding_units(adjustments, settlement["successor_code"], event, through))
+
+
+def dividend_units(code, payer, record, settlement, adjustments):
+    """Apply the public terms to a continuous proportional holding."""
+    successor = settlement["successor_code"]
+    require(payer == code or (successor and payer == successor), "dividend_payer_mismatch")
+    if record < ENTRY_SETTLEMENT:
+        return Decimal(0)
+
+    event = settlement["event_on"]
+    if payer == code:
+        if event and record > day(event):
+            return Decimal(0)
+        if event and record == day(event):
+            return None
+        if settlement["treatment"] == "liquidation_trading":
+            if record >= day(settlement["kind_delisted_on"]):
+                return Decimal(0)
+            if record >= day(settlement["liquidation_last_on"]):
+                return None
+        return holding_units(adjustments, code, ENTRY, record)
+
+    if record < day(event):
+        return Decimal(0)
+    # A record date between legal exchange and trading availability needs
+    # the allotment/record-date evidence for that particular exchange.
+    if record <= day(settlement["settlement_or_share_availability_on"]):
+        return None
+    return exchanged_units(adjustments, code, settlement, record)
+
+
+def dividend_events(rows, references, settlements, adjustments):
+    result = defaultdict(list)
+    dispositions = Counter()
+    for (code, payer, record_on), row in rows.items():
+        record, payment = day(record_on), day(row["payment_on"])
+        status = row["payment_evidence"]
+        require(code in references and record < payment
+                and row["terms_url"].startswith("https://")
+                and ((status == "reported_in_payment_history" and row["payment_url"].startswith("https://"))
+                     or (status == "scheduled" and not row["payment_url"])),
+                "invalid_dividend_evidence")
+        amount = positive(row["krw_per_payer_share"])
+        units = dividend_units(code, payer, record, settlements[code], adjustments)
+        if units is None:
+            dispositions["ownership_unverified"] += 1
+        elif units == 0:
+            dispositions["outside_holding"] += 1
+        else:
+            dispositions["eligible"] += 1
+            result[code].append((record, payment, status, amount * units))
+    return result, dispositions
+
+
+def cash_dividend_replay(price, events, valuation, entry):
+    paid = Decimal(0)
+    awaiting = 0
+    for record, payment, status, amount in events:
+        if record > valuation:
+            continue
+        if payment <= valuation and status == "reported_in_payment_history":
+            paid += amount
+        else:
+            awaiting += 1
+    result = {"entitled_cash_unverified_at_evaluation": awaiting}
+    if not paid:
+        return result
+    result["reported_cash_krw_per_entry_share"] = str(
+        paid.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
+    # A missing terminal value cannot turn into a cash-only performance row.
+    if not price["value_per_entry_share_krw"]:
+        return result
+    # Recompute from the retained units and quote, before the stored display rounding.
+    terminal = positive(price["units_per_entry_share"]) * positive(price["quote_or_cash_krw"])
+    gross_return = ((terminal + paid) / entry - 1) * 100
+    result["price_scenario_plus_reported_cash_pct"] = str(
+        gross_return.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    return result
 
 
 def check_price(price, settlement, last_trade, adjustments, valuation):
@@ -72,15 +167,8 @@ def check_price(price, settlement, last_trade, adjustments, valuation):
             and abs(Decimal(price["price_change_pct"]) - price_change) <= Decimal("0.005"),
             "value_or_return_mismatch")
 
-    def holding_units(symbol, after, through):
-        result = Decimal(1)
-        for effective, factor in adjustments.get(symbol, []):
-            if after < effective <= through:
-                result *= factor
-        return result
-
     if method in CLOSE:
-        expected = holding_units(code, ENTRY, observed)
+        expected = holding_units(adjustments, code, ENTRY, observed)
         require(observed == valuation and observed_code == code
                 and (not event or observed < day(event))
                 and observed < day(settlement["kind_delisted_on"])
@@ -90,14 +178,12 @@ def check_price(price, settlement, last_trade, adjustments, valuation):
         require(treatment == "stock_exchange" and observed_code == settlement["successor_code"]
                 and observed == valuation and day(event) <= day(available) <= observed,
                 "stock_delivery_date_or_identity_mismatch")
-        expected = (holding_units(code, ENTRY, day(event))
-                    * positive(settlement["shares_per_old_share"])
-                    * holding_units(observed_code, day(event), observed))
+        expected = exchanged_units(adjustments, code, settlement, observed)
         require(units == expected, "stock_delivery_ratio_mismatch")
     elif method in CASH:
         require(treatment == "cash_exchange" and not observed_code
                 and observed == day(available) and day(event) <= observed
-                and units == holding_units(code, ENTRY, day(event))
+                and units == holding_units(adjustments, code, ENTRY, day(event))
                 and quote == positive(settlement["cash_krw_per_old_share"])
                 and settlement["settlement_date_evidence"] == CASH[method],
                 "cash_payment_evidence_mismatch")
@@ -105,7 +191,7 @@ def check_price(price, settlement, last_trade, adjustments, valuation):
         require(treatment == "liquidation_trading" and observed_code == code
                 and observed < day(settlement["kind_delisted_on"]) <= valuation
                 and price["observation_on"] == last_trade == settlement["liquidation_last_on"]
-                and units == holding_units(code, ENTRY, observed), "liquidation_scenario_mismatch")
+                and units == holding_units(adjustments, code, ENTRY, observed), "liquidation_scenario_mismatch")
     else:
         raise PilotAuditError("unknown_price_method")
 
@@ -177,6 +263,9 @@ def audit(root=ROOT):
                     and trades[code]["last_positive_volume_candidate"] == end.isoformat(),
                     "liquidation_notice_date_mismatch")
 
+    dividend_rows = load("cash-dividends", "position_code", "payer_code", "record_on")
+    events, dividend_dispositions = dividend_events(dividend_rows, references, settlements, adjustments)
+    dividend_replays = {}
     horizons = {str(months): Counter() for months in HORIZONS}
     methods = Counter()
     valuations = {}
@@ -212,6 +301,13 @@ def audit(root=ROOT):
             counts["liquidation_scenarios"] += price["method"] in LIQUIDATION
             counts["paths_with_unpriced_sessions"] += previous[1] > 0
             counts[path["touch_status"]] += 1
+            dividend = cash_dividend_replay(price, events.get(code, ()), valuation, entry)
+            counts["price_scenarios_with_reported_dividend_cash"] += (
+                "price_scenario_plus_reported_cash_pct" in dividend)
+            counts["paths_with_dividend_entitlement_unpaid_or_unverified"] += (
+                dividend["entitled_cash_unverified_at_evaluation"] > 0)
+            if "reported_cash_krw_per_entry_share" in dividend or dividend["entitled_cash_unverified_at_evaluation"]:
+                dividend_replays.setdefault(code, {})[horizon] = dividend
 
         low = positive(reference["lowest_observed_value_krw"])
         require(ENTRY <= day(reference["lowest_observed_value_on"]) <= previous_valuation
@@ -244,6 +340,12 @@ def audit(root=ROOT):
             row["treatment"] == "distribution_unresolved" for row in settlements.values()
         ),
         "methods": dict(methods),
+        "dividend_event_rows": len(dividend_rows),
+        "dividend_eligible_events": dividend_dispositions["eligible"],
+        "dividend_events_outside_holding": dividend_dispositions["outside_holding"],
+        "dividend_events_ownership_unverified": dividend_dispositions["ownership_unverified"],
+        "dividend_replays": dividend_replays,
+        "dividend_coverage_complete": False,
         "horizons": {h: {**dict.fromkeys(TOUCH_STATES, 0), **counts}
                      for h, counts in horizons.items()},
         "ledger_sha256": hashes,
