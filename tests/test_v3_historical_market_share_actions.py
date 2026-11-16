@@ -5,6 +5,7 @@ import unittest
 
 from v3_historical_market_coverage import END, ENTRY, SIGNAL, day
 from v3_historical_market_share_actions import CALENDAR_CODES, continuity_actions, replay
+from v3_historical_performance_pilot_audit import PilotAuditError
 
 
 def quote(shares, price):
@@ -19,6 +20,31 @@ def split(new, old):
 
 
 class HistoricalShareActionTests(unittest.TestCase):
+    def test_treasury_cancellation_mirrors_require_separate_terms_and_preserve_units(self):
+        december = day("2025-12-15")
+        sessions = (SIGNAL, ENTRY, december, day("2026-01-13"), day("2026-02-13"),
+                    day("2026-05-13"), END)
+        panels = {s: dict.fromkeys((*CALENDAR_CODES, "000001"), quote(100, 100)) for s in sessions}
+        for session in sessions[2:]:
+            panels[session]["000001"] = quote(75, 90)
+        terms = dict(
+            code="000001", market="KOSPI", name_before="company", name_after="company",
+            action="treasury_cancellation", shares_before=100, shares_after=75,
+            notice_url="https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/123",
+            terms_url="https://samara.kr/disclosure/20251202900001", listed_on=str(december),
+        )
+        notices = continuity_actions(json.dumps([terms]).encode())
+        holding, = replay(panels, set(), notices)["horizons"]["12"]["rows"]
+        self.assertEqual(holding["tradable_units_per_entry_share"], "1")
+        self.assertEqual(holding["price_change_pct"], -10)
+        self.assertEqual(holding["observed_adverse_excursion_pct"], 10)
+
+        for bad_url in (terms["notice_url"], "https://example.com/terms"):
+            with self.assertRaisesRegex(PilotAuditError, "missing_treasury_cancellation_terms"):
+                continuity_actions(json.dumps([{**terms, "terms_url": bad_url}]).encode())
+        with self.assertRaisesRegex(PilotAuditError, "invalid_continuity_notice"):
+            continuity_actions(json.dumps([{**terms, "action": "bond_conversion"}]).encode())
+
     def test_entry_units_and_later_split_and_unverified_break(self):
         december = day("2025-12-15")
         january = day("2026-01-13")

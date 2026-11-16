@@ -44,6 +44,19 @@ def official_actions(register, face_register, historical_register):
 
 
 CONTINUITY_KINDS = {"treasury_cancellation", "third_party_placement", "bond_conversion", "rename"}
+TREASURY_LISTING_COPY = re.compile(
+    r"https://(?:spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+"
+    r"|stock\.mk\.co\.kr/news/disclosure/template/[0-9]+"
+    r"|invest\.kiwoom\.com/inv/disclosure_detail\?[^\s#]+)\Z"
+)
+TREASURY_TERMS_COPY = re.compile(
+    r"https://(?:spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+"
+    r"|samara\.kr/disclosure/[0-9]{14}"
+    r"|cdn\.financialreports\.eu/(?:financialreports/media/filings|processed/html)/[A-Za-z0-9/_-]+\.html"
+    r"|www\.awakeplus\.co\.kr/data/view/[0-9]{14}"
+    r"|etp\.nhqv\.com/publicannounce/[0-9]+"
+    r"|www\.samsung\.com/sec/ir/stock-information/listing-info/)\Z"
+)
 
 
 def continuity_actions(raw):
@@ -53,11 +66,16 @@ def continuity_actions(raw):
         action = notice["action"]
         code = notice["code"]
         before, after = notice["shares_before"], notice["shares_after"]
+        listing_url = notice["notice_url"]
+        treasury = action == "treasury_cancellation"
+        listing_source = NOTICE.fullmatch(listing_url) or (
+            treasury and TREASURY_LISTING_COPY.fullmatch(listing_url)
+        )
         require(re.fullmatch(r"[0-9A-Z]{6}", code) and notice["market"] in MARKETS.values()
                 and all(type(n) is int and n > 0 for n in (before, after))
                 and all(isinstance(notice[k], str) and notice[k].strip()
                         for k in ("name_before", "name_after"))
-                and NOTICE.fullmatch(notice["notice_url"]), "invalid_continuity_notice")
+                and listing_source, "invalid_continuity_notice")
         require((notice["name_before"] != notice["name_after"]) == (action == "rename"),
                 "invalid_continuity_notice_names")
         listed_on = day(notice["listed_on"]).isoformat()
@@ -82,8 +100,10 @@ def continuity_actions(raw):
             require((action, direction) in {("rename", 0), ("treasury_cancellation", -1),
                                             ("third_party_placement", 1), ("bond_conversion", 1)},
                     "invalid_continuity_notice_kind")
-            if action == "treasury_cancellation":
-                require(NOTICE.fullmatch(notice["terms_url"]), "missing_treasury_cancellation_terms")
+            if treasury:
+                terms_url = notice.get("terms_url", "")
+                require(terms_url != listing_url and (NOTICE.fullmatch(terms_url)
+                        or TREASURY_TERMS_COPY.fullmatch(terms_url)), "missing_treasury_cancellation_terms")
             actions[key] = {**notice, "new_units": 1, "old_units": 1}
     return actions
 
