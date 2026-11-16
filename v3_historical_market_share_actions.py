@@ -45,7 +45,7 @@ def official_actions(register, face_register, historical_register):
 
 COMBINED_CANCELLATION = "treasury_cancellation_then_reverse_split"
 CONTINUITY_KINDS = {"treasury_cancellation", COMBINED_CANCELLATION,
-                    "third_party_placement", "bond_conversion", "rename"}
+                    "third_party_placement", "bond_conversion", "option_exercise", "rename"}
 TREASURY_LISTING_COPY = re.compile(
     r"https://(?:spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+"
     r"|stock\.mk\.co\.kr/news/disclosure/template/[0-9]+"
@@ -119,7 +119,8 @@ def continuity_actions(raw):
         else:
             direction = (after > before) - (after < before)
             require((action, direction) in {("rename", 0), ("treasury_cancellation", -1),
-                                            ("third_party_placement", 1), ("bond_conversion", 1)},
+                                            ("third_party_placement", 1), ("bond_conversion", 1),
+                                            ("option_exercise", 1)},
                     "invalid_continuity_notice_kind")
             if treasury:
                 terms_url = notice.get("terms_url", "")
