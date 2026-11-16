@@ -244,11 +244,7 @@ def replay(panels, delisted, notices):
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("sources", nargs=3, type=Path, metavar="SOURCE")
-    parser.add_argument("--verify", type=Path, help="Compare the recomputed report with a saved JSON file.")
-    args = parser.parse_args()
+def load_replay(panels):
     delisted = {r["code"] for r in ledger_rows(ROOT, "delistings") if r["anchor_membership"] == "present"}
     historical = ROOT / "ops" / f"v3-performance-reviewed-share-actions-{TAG}.csv"
     notices, digests = official_actions(ROOT / REGISTER, NOTICE_FILE, historical)
@@ -256,8 +252,17 @@ def main():
     continuity = continuity_actions(raw)
     require(not notices.keys() & continuity.keys(), "duplicate_market_transition")
     digests["continuity_register"] = sha256(raw).hexdigest()
-    report = replay(read_panels(args.sources), delisted, {**notices, **continuity})
+    report = replay(panels, delisted, {**notices, **continuity})
     report["register_sha256"] = digests
+    return report
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("sources", nargs=3, type=Path, metavar="SOURCE")
+    parser.add_argument("--verify", type=Path, help="Compare the recomputed report with a saved JSON file.")
+    args = parser.parse_args()
+    report = load_replay(read_panels(args.sources))
     if args.verify is not None:
         require(report == json.loads(args.verify.read_text(encoding="utf-8")), "share_action_report_mismatch")
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
