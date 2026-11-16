@@ -1,6 +1,7 @@
 """Privately retain one KRX daily price panel per session for all forward cohorts."""
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from functools import lru_cache
 import gzip
 from io import BytesIO
 import json
@@ -31,6 +32,26 @@ CODE = re.compile(r'[A-Z0-9]{6}\Z')
 
 class DailyEvidenceError(ValueError):
     """Fixed errors allowed in public logs."""
+
+
+class IncompleteOfficialPair(KRXProbeError):
+    """A retryable failure with diagnostics for both market requests."""
+
+    def __init__(self, error, market_responses):
+        super().__init__(error.market, error.reason, error.http_status)
+        self.market_responses = market_responses
+
+
+def pending_official_pair(error, now):
+    status = {
+        'status': 'waiting_for_official_paired_response',
+        'last_source_attempt_at_utc': now.isoformat(),
+        'unavailable_market': error.market,
+        'source_reason': error.reason,
+    }
+    if isinstance(error, IncompleteOfficialPair):
+        status['market_responses'] = error.market_responses
+    return status
 
 
 def number(row, field):
@@ -71,6 +92,21 @@ def completed_sessions(start, end, now):
                  else calendar.session_close(session).to_pydatetime())
         if close <= now:
             yield day.isoformat()
+
+
+@lru_cache(maxsize=512)
+def official_publish_time(day):
+    """KRX Open API updates at 08:00 KST on the next business day."""
+    # https://openapi.krx.co.kr/contents/OPP/COMM/faq/OPPCOMM004.cmd
+    import exchange_calendars as xc
+
+    first = day + timedelta(days=1)
+    calendar = xc.get_calendar('XKRX')
+    for session in calendar.sessions_in_range(first, day + timedelta(days=14)):
+        publish_day = session.date()
+        if publish_day.isoformat() not in CONFIRMED_KRX_2026_CLOSURES:
+            return datetime.combine(publish_day, time(8), KST).astimezone(timezone.utc)
+    raise DailyEvidenceError('no_official_publish_day_candidate')
 
 
 def daily_summary(evidence, day):
@@ -172,6 +208,8 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
     last_target = _anniversary(max(entries), max(HORIZONS)) + timedelta(days=10)
     pending = []
     for day in completed_sessions(min(signal_days), last_target, now):
+        if now < official_publish_time(date.fromisoformat(day)):
+            continue
         target = OUT / f'{day}.json'
         if target.exists():
             previous = json.loads(target.read_bytes())
@@ -193,9 +231,6 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
         except KRXProbeError as error:
             if error.reason not in RETRYABLE_KRX_REASONS:
                 raise DailyEvidenceError('krx_' + error.reason) from None
-            result = {'schema': SCHEMA, 'date': day,
-                      'status': 'waiting_for_official_paired_response',
-                      'last_source_attempt_at_utc': now.isoformat(),
-                      'unavailable_market': error.market, 'source_reason': error.reason}
+            result = {'schema': SCHEMA, 'date': day, **pending_official_pair(error, now)}
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(result, ensure_ascii=False))

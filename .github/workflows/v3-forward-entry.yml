@@ -15,7 +15,7 @@ on:
     workflows: [V3 Forward Score Observation Capture]
     types: [completed]
   schedule:
-    # 20:45 KST after the entry session, 08:45 KST for late official data.
+    # 08:45 KST after KRX publishes. 20:45 KST retries older gaps.
     - cron: '45 11 * * 1-5'
     - cron: '45 23 * * 0-5'
   workflow_dispatch:

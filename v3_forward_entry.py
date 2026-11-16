@@ -11,7 +11,10 @@ import re
 from statistics import median
 
 from official_probe.clients import KRXClient, KRXProbeError
-from v3_forward_daily_prices import DailyEvidenceError, RETRYABLE_KRX_REASONS, collect_daily, read_daily
+from v3_forward_daily_prices import (
+    DailyEvidenceError, IncompleteOfficialPair, RETRYABLE_KRX_REASONS,
+    collect_daily, official_publish_time, pending_official_pair, read_daily,
+)
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
@@ -102,15 +105,29 @@ def entry_plan(observation, source_digest):
 def read_official_openings(client, day):
     observed = {}
     hashes = {}
+    market_responses = {}
+    first_unavailable = None
     for market in MARKETS:
-        rows, raw = client.daily_market(market, day)
+        try:
+            rows, raw = client.daily_market(market, day)
+        except KRXProbeError as error:
+            if error.reason not in RETRYABLE_KRX_REASONS:
+                raise
+            market_responses[market] = {'status': 'unavailable', 'reason': error.reason,
+                                        'http_status': error.http_status}
+            if first_unavailable is None:
+                first_unavailable = error
+            continue
         stats = _snapshot_market(rows, raw, market=market, asof=day)
         hashes[market] = stats['source_sha256']
+        market_responses[market] = {'status': 'validated', 'row_count': len(rows), 'http_status': 200}
         for row in rows:
             code = row['ISU_CD']
             if code in observed:
                 raise EntryError('ambiguous_official_market_code')
             observed[code] = (market, row)
+    if first_unavailable is not None:
+        raise IncompleteOfficialPair(first_unavailable, market_responses) from None
     return observed, hashes
 
 
@@ -349,6 +366,7 @@ def main():
         raw = source.read_bytes()
         digest = sha256(raw).hexdigest()
         target = OUT / source.name
+        previous = None
         if target.exists():
             previous = json.loads(target.read_bytes())
             if previous['score_observation_sha256'] != digest:
@@ -364,15 +382,19 @@ def main():
             raise EntryError('score_archive_filename_mismatch')
         if now < timestamp(plan['regular_close_utc']):
             result = {**plan, 'status': 'waiting_for_session_close'}
+        elif now < (publish_at := official_publish_time(
+                date.fromisoformat(plan['entry_session_candidate']))):
+            result = {**plan, 'status': 'waiting_for_official_publish_window',
+                      'official_publish_candidate_utc': publish_at.isoformat()}
+            if previous and 'last_source_attempt_at_utc' in previous:
+                result['last_source_attempt_at_utc'] = previous['last_source_attempt_at_utc']
         else:
             try:
                 result = save_entry(plan, observation, storage_and_key()[0], official_pair)
             except KRXProbeError as error:
                 if error.reason not in RETRYABLE_KRX_REASONS:
                     raise EntryError('krx_' + error.reason) from None
-                result = {**plan, 'status': 'waiting_for_official_paired_response',
-                          'last_source_attempt_at_utc': now.isoformat(),
-                          'unavailable_market': error.market, 'source_reason': error.reason}
+                result = {**plan, **pending_official_pair(error, now)}
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(result, ensure_ascii=False))
 
