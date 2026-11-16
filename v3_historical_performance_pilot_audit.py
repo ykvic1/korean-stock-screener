@@ -138,6 +138,54 @@ def cash_dividend_replay(price, events, valuation, entry):
     return result
 
 
+def fractional_cash_terms(rows, exchange_codes, settlements, adjustments, through):
+    terms = {}
+    for code, row in rows.items():
+        require(code in exchange_codes, "fractional_cash_outside_stock_exchange_pilot")
+        settlement = settlements[code]
+        event = day(settlement["event_on"])
+        listing = day(settlement["settlement_or_share_availability_on"])
+        successor = settlement["successor_code"]
+        # Multiple simultaneous or sequential actions need a separate lot-level replay.
+        require(not any(ENTRY < effective <= event for effective, _ in adjustments.get(code, ()))
+                and not any(event <= effective <= through
+                            for effective, _ in adjustments.get(successor, ())),
+                "fractional_cash_requires_sequential_settlement")
+        reference_dates = {"listing_close": listing, "exchange_close": event}
+        close_on = day(row["close_on"])
+        require(row["successor_code"] == successor
+                and reference_dates.get(row["close_basis"]) == close_on
+                and event <= close_on <= listing
+                and int(row["observed_volume"]) > 0
+                and row["terms_url"].startswith("https://")
+                and row["price_source_url"].startswith("https://"),
+                "invalid_fractional_cash_evidence")
+        terms[code] = (close_on, positive(row["close_krw"]),
+                       positive(settlement["shares_per_old_share"]))
+    return terms
+
+
+def fractional_cash_replay(price, terms, valuation, entry):
+    close_on, close, ratio = terms
+    if price["method"] != "stock_delivery_mark" or valuation < close_on:
+        return {}
+    quote = positive(price["quote_or_cash_krw"])
+    require(valuation != close_on or quote == close, "fractional_cash_quote_mismatch")
+    replay = {}
+    for entry_shares in (1, 100):
+        allotted = ratio * entry_shares
+        whole = int(allotted)
+        cash_claim = (allotted - whole) * close
+        gross_return = ((whole * quote + cash_claim) / (entry * entry_shares) - 1) * 100
+        replay[str(entry_shares)] = {
+            "successor_whole_shares": whole,
+            "cash_claim_krw": str(cash_claim.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)),
+            "price_plus_cash_claim_pct": str(
+                gross_return.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
+        }
+    return replay
+
+
 def check_price(price, settlement, last_trade, adjustments, valuation):
     method = price["method"]
     code = price["code"]
@@ -266,6 +314,10 @@ def audit(root=ROOT):
     dividend_rows = load("cash-dividends", "position_code", "payer_code", "record_on")
     events, dividend_dispositions = dividend_events(dividend_rows, references, settlements, adjustments)
     dividend_replays = {}
+    exchanges = {code for code in references if settlements[code]["treatment"] == "stock_exchange"}
+    end = max(day(row["valuation_session"]) for row in prices.values())
+    fractions = fractional_cash_terms(load("fractional-cash", "code"), exchanges, settlements, adjustments, end)
+    fraction_replays = {}
     horizons = {str(months): Counter() for months in HORIZONS}
     methods = Counter()
     valuations = {}
@@ -308,6 +360,10 @@ def audit(root=ROOT):
                 dividend["entitled_cash_unverified_at_evaluation"] > 0)
             if "reported_cash_krw_per_entry_share" in dividend or dividend["entitled_cash_unverified_at_evaluation"]:
                 dividend_replays.setdefault(code, {})[horizon] = dividend
+            fraction = fractional_cash_replay(price, fractions[code], valuation, entry) if code in fractions else {}
+            counts["price_scenarios_with_fractional_cash_claim"] += bool(fraction)
+            if fraction:
+                fraction_replays.setdefault(code, {})[horizon] = fraction
 
         low = positive(reference["lowest_observed_value_krw"])
         require(ENTRY <= day(reference["lowest_observed_value_on"]) <= previous_valuation
@@ -346,6 +402,10 @@ def audit(root=ROOT):
         "dividend_events_ownership_unverified": dividend_dispositions["ownership_unverified"],
         "dividend_replays": dividend_replays,
         "dividend_coverage_complete": False,
+        "fractional_cash_terms_issuers": len(fractions),
+        "fractional_cash_unmodeled_issuers": sorted(exchanges - fractions.keys()),
+        "fractional_cash_replays": fraction_replays,
+        "fractional_cash_payments_verified": False,
         "horizons": {h: {**dict.fromkeys(TOUCH_STATES, 0), **counts}
                      for h, counts in horizons.items()},
         "ledger_sha256": hashes,
