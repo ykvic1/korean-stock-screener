@@ -40,6 +40,10 @@ assert.ok(source.includes("'가격 미관측'"));
   regular_close_continuous_sessions:260}), /20·60일 골든크로스 \/ 240일선/);
  assert.equal(operational.regularCloseMarkup({regular_close_recomputed_parts:['ma20_ma60_cross_near_ma240'],
   regular_close_continuous_sessions:259}), '');
+ const weekly={regular_close_recomputed_parts:['weekly_ma_slope_turn'],
+  regular_close_weekly_asof:'2026-11-13',regular_close_continuous_weeks:54};
+ assert.match(operational.regularCloseMarkup(weekly), /20주 이평선 전환 · 2026-11-13 기준 · 연속 54주/);
+ assert.equal(operational.regularCloseMarkup({...weekly,regular_close_continuous_weeks:53}), '');
 }
 
 // Officially corroborated current closes update displayed risk distances while

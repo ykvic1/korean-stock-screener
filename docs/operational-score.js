@@ -156,19 +156,24 @@ function reconciliationMarkup(v,compact=false){
   '<strong>최종 '+n(s.final)+'점</strong></div>';
 }
 function regularCloseMarkup(v){
- if(!Array.isArray(v?.regular_close_recomputed_parts)||
-    !Number.isInteger(v.regular_close_continuous_sessions)||
-    v.regular_close_continuous_sessions<90||v.regular_close_continuous_sessions>260)return '';
+ if(!Array.isArray(v?.regular_close_recomputed_parts))return '';
+ const {regular_close_continuous_sessions:sessions,regular_close_continuous_weeks:weeks,
+  regular_close_weekly_asof:friday}=v;
  const parts=[];
- if(v.regular_close_recomputed_parts.includes('daily_rsi'))parts.push('일봉 RSI');
- const periods=Array.isArray(v.regular_close_ma_periods)?
-  v.regular_close_ma_periods.filter(p=>['20','60','120'].includes(p)):[];
- if(v.regular_close_recomputed_parts.includes('daily_ma_slope_turn')&&periods.length)
-  parts.push('일봉 MA 전환 '+periods.join('·')+'일');
- if(v.regular_close_recomputed_parts.includes('ma20_ma60_cross_near_ma240')&&
-    v.regular_close_continuous_sessions===260)parts.push('20·60일 골든크로스 / 240일선');
- return parts.length?'<p class="u-muted">공식 KRX 종가 재산출 · '+parts.join(' / ')+
-  ' · 연속 '+v.regular_close_continuous_sessions+'거래일</p>':'';
+ if(Number.isInteger(sessions)&&sessions>=90&&sessions<=260){
+  if(v.regular_close_recomputed_parts.includes('daily_rsi'))parts.push('일봉 RSI');
+  const periods=Array.isArray(v.regular_close_ma_periods)?
+   v.regular_close_ma_periods.filter(p=>['20','60','120'].includes(p)):[];
+  if(v.regular_close_recomputed_parts.includes('daily_ma_slope_turn')&&periods.length)
+   parts.push('일봉 MA 전환 '+periods.join('·')+'일');
+  if(v.regular_close_recomputed_parts.includes('ma20_ma60_cross_near_ma240')&&sessions===260)
+   parts.push('20·60일 골든크로스 / 240일선');
+  if(parts.length)parts[parts.length-1]+=' · 연속 '+sessions+'거래일';
+ }
+ if(v.regular_close_recomputed_parts.includes('weekly_ma_slope_turn')&&
+    Number.isInteger(weeks)&&weeks>=54&&weeks<=57&&typeof friday==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(friday))
+  parts.push('20주 이평선 전환 · '+friday+' 기준 · 연속 '+weeks+'주');
+ return parts.length?'<p class="u-muted">공식 KRX 종가 재산출 · '+parts.join(' / ')+'</p>':'';
 }
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
  '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':

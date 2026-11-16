@@ -1,4 +1,4 @@
-"""Retain official close history privately and rebuild price-only daily factors."""
+"""Retain official close history privately and rebuild price-only factors."""
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date, datetime, timedelta, timezone
@@ -27,7 +27,8 @@ from v3_ma240_cross_research import observe as observe_ma240
 from v3_ma_slope_transition import _series_points
 from v3_pattern_first_observations import rsi_observation
 from v3_regular_close_contract import (
-    DAILY_SESSIONS, OUTPUT, SCHEMA, SESSIONS, admitted_rows, implementation_digest,
+    DAILY_SESSIONS, OUTPUT, SCHEMA, SESSIONS, WEEKLY_MA_TURN_WEEKS,
+    admitted_rows, implementation_digest, last_completed_friday,
 )
 
 LEGACY_DAY_SCHEMA = 'v3-private-official-regular-close-day-1'
@@ -185,11 +186,51 @@ def continuous_tail(records, member):
     return tail[::-1]
 
 
+def completed_week_ranges(session_days):
+    friday = last_completed_friday(session_days[-1])
+    weekly_ranges = {}
+    for index, day in enumerate(session_days):
+        week_end = day + timedelta(days=(4 - day.weekday()) % 7)
+        if week_end > friday:
+            break
+        start, _ = weekly_ranges.get(week_end, (index, index))
+        weekly_ranges[week_end] = (start, index + 1)
+    # The first archived trading day may start in the middle of a week.
+    return list(weekly_ranges.items())[1:]
+
+
+def weekly_ma20_turn(records, member, weeks, friday):
+    if len(weeks) < WEEKLY_MA_TURN_WEEKS or weeks[-1][0] != friday:
+        return None
+    tail_end = weeks[-1][1][1]
+    tail_start = tail_end - len(continuous_tail(records[:tail_end], member))
+    closes = []
+    expected = friday
+    for week_end, (start, end) in reversed(weeks):
+        if week_end != expected or start < tail_start:
+            break
+        bars = records[start:end]
+        if any(len(row) < 6 or row[5] is None for row in bars) or not any(row[5] for row in bars):
+            break
+        if any(row[5] is False and index > tail_start and row[2] != records[index - 1][2]
+               for index, row in enumerate(bars, start)):
+            break
+        closes.append(bars[-1][2])
+        expected -= timedelta(days=7)
+    if len(closes) < WEEKLY_MA_TURN_WEEKS:
+        return None
+    turn = _series_points(np.asarray(closes[::-1], dtype=float), prior=26, recent=8,
+                          hold=3, floor=.0005, frame='weekly', trusted_window=lambda _: True)
+    return {'asof': friday.isoformat(), 'continuous_weeks': len(closes), 'points': turn['20']}
+
+
 def build(catalog, catalog_digest, days, panels):
     rows, counts = {}, Counter()
     trade_status_sessions = sum(panel is not None and panel['schema'] == DAY_SCHEMA
                           for panel in panels.values())
     session_days = [date.fromisoformat(day) for day in days]
+    friday = last_completed_friday(session_days[-1])
+    weeks = completed_week_ranges(session_days)
     for member in catalog['rows']:
         code = member['code']
         records = [panels[day]['rows'].get(code) if panels[day] else None for day in days]
@@ -210,9 +251,10 @@ def build(catalog, catalog_digest, days, panels):
             trade_markers = [int(row[5]) if row[5] is not None else None for row in tail]
             cross = observe_ma240([row[2] for row in tail], trade_markers,
                                   asof=catalog['date'], session_days=session_days)
+        weekly = weekly_ma20_turn(records, member, weeks, friday)
         rows[code] = {'name': member['name'], 'market': member['market'],
                       'continuous_sessions': n, 'moving_averages': ma, 'daily_rsi': rsi,
-                      'daily_ma_turn': turn, 'daily_ma240_cross': cross}
+                      'daily_ma_turn': turn, 'daily_ma240_cross': cross, 'weekly_ma20_turn': weekly}
         counts['current_close_observed'] += 1
         counts['full_200_session_continuity'] += n >= DAILY_SESSIONS
         counts['full_260_session_continuity'] += n == SESSIONS
@@ -220,6 +262,7 @@ def build(catalog, catalog_digest, days, panels):
         counts['daily_ma_turn_recomputed'] += turn is not None
         counts['daily_ma240_cross_recomputed'] += cross is not None
         counts['daily_ma240_cross_qualified'] += cross is not None and cross['qualified']
+        counts['weekly_ma20_turn_recomputed'] += weekly is not None
     inputs = {day: panel['source_sha256'] for day, panel in panels.items() if panel is not None}
     return {'schema': SCHEMA, 'asof': catalog['date'], 'source': 'KRX_OFFICIAL_REGULAR_CLOSE',
             'source_catalog_sha256': catalog_digest, 'implementation_sha256': implementation_digest(),

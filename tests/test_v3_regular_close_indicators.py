@@ -1,5 +1,6 @@
 """Regress private history reuse, source continuity and unchanged factor arithmetic."""
 from copy import deepcopy
+from datetime import date, timedelta
 from hashlib import sha256
 import gzip
 import json
@@ -71,6 +72,40 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
         self.assertIsNotNone(expected)
         self.assertEqual(row['daily_ma240_cross'], expected)
         self.assertEqual(source['counts']['daily_ma240_cross_recomputed'], 2)
+
+    def test_weekly_ma20_requires_54_completed_traded_weeks_and_keeps_older_daily_receipts(self):
+        days = [date.fromisoformat(d) for d in history.history_dates('2026-11-13')]
+        member = self.catalog['rows'][0]
+        records = [[member['market'], member['name'], price, 500,
+                    self.close[i-1] if i else None, True] for i, price in enumerate(self.close)]
+        # The Monday close must have no effect on the completed Friday week.
+        dates = [*days, days[-1] + timedelta(days=3)]
+        records.append([member['market'], member['name'], 500, 500, 500, True])
+        weeks = history.completed_week_ranges(dates)
+        receipt = history.weekly_ma20_turn(records, member, weeks, days[-1])
+        required = history.WEEKLY_MA_TURN_WEEKS
+        self.assertGreaterEqual(receipt['continuous_weeks'], required)
+        self.assertEqual(receipt['asof'], days[-1].isoformat())
+        expected = _series_points(
+            np.asarray([records[end-1][2] for _, (_, end) in weeks], dtype=float),
+            prior=26, recent=8, hold=3, floor=.0005, frame='weekly', trusted_window=lambda _: True)
+        self.assertEqual(receipt['points'], expected['20'])
+        self.assertIsNone(expected['60'])
+        for marker in (None, False):
+            halted = deepcopy(records)
+            for bar in halted[slice(*weeks[-2][1])]:
+                bar[5] = marker
+            self.assertIsNone(history.weekly_ma20_turn(halted, member, weeks, days[-1]))
+        self.assertIsNone(history.weekly_ma20_turn(records, member, weeks[-(required-1):], days[-1]))
+        incomplete = deepcopy(records)
+        incomplete[weeks[-required][1][0]] = None
+        self.assertIsNone(history.weekly_ma20_turn(incomplete, member, weeks, days[-1]))
+        legacy = deepcopy(history.build(self.catalog, self.digest, self.days, self.panels))
+        from v3_regular_close_contract import DAILY_ONLY_SCHEMA, DAILY_ONLY_IMPLEMENTATION
+        legacy.update(schema=DAILY_ONLY_SCHEMA, implementation_sha256=DAILY_ONLY_IMPLEMENTATION)
+        self.assertEqual(len(history.admitted_rows(legacy, self.catalog)), 2)
+        legacy['rows']['005930']['weekly_ma20_turn'] = receipt
+        self.assertNotIn('005930', history.admitted_rows(legacy, self.catalog))
 
     def test_legacy_days_preserve_daily_scores_until_ma240_trade_evidence_is_complete(self):
         panels = deepcopy(self.panels)
