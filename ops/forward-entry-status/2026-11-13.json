@@ -19,8 +19,7 @@
   "issuer_continuity_certified": false,
   "adjusted_entry_prices_certified": false,
   "performance_validated": false,
-  "status": "waiting_for_official_paired_response",
-  "last_source_attempt_at_utc": "2026-11-16T14:02:28.399983+00:00",
-  "unavailable_market": "KOSPI",
-  "source_reason": "empty_market_rows"
+  "status": "waiting_for_official_publish_window",
+  "official_publish_candidate_utc": "2026-11-16T23:00:00+00:00",
+  "last_source_attempt_at_utc": "2026-11-16T14:02:28.399983+00:00"
 }
