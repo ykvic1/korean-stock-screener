@@ -113,6 +113,10 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
 
     def test_detects_workbook_errors_that_arithmetic_alone_would_miss(self):
         cases = (
+            ("share-adjustments", {"code": "028080"},
+             {"intervening_action_url": ""}, "unexplained_share_count_transition"),
+            ("share-adjustments", {"code": "121850"},
+             {"shares_after_action": "3061418"}, "invalid_share_adjustment_evidence"),
             ("filing-availability", {"dart_receipt": "20251120000429"},
              {"published_on_kst": "2025-11-12", "status": "selected_periodic"}, "invalid_replay_filing_time"),
             ("financial-statements", {"code": "008290", "statement_period_end": "2024-12-31"},
