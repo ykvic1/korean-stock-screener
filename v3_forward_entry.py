@@ -14,7 +14,7 @@ from official_probe.clients import KRXClient, KRXProbeError
 from v3_forward_daily_prices import DailyEvidenceError, collect_daily, read_daily
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
-from v3_forward_signal_close import SignalCloseError, collect_signal_closes
+from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
 from v3_regular_close_prices import RegularCloseError, publish_regular_closes
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
 from v3_krx_history_collection import MARKETS, HistoryCollectionError, _snapshot_market
@@ -22,7 +22,7 @@ from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryErro
 from v3_krx_regular_close import ANNOUNCED_CLOSES, KST, regular_close_utc
 from v3_krx_session_candidates import CONFIRMED_KRX_2026_CLOSURES
 from v3_krx_private_daily import IngestError, _whole
-from v3_score_observation_capture import ARCHIVE, SCHEMA as SCORE_SCHEMA
+from v3_score_observation_capture import ARCHIVE, SCHEMA as SCORE_SCHEMA, positive
 
 OUT = Path('ops/forward-entry-status')
 PRIVATE_REPO = 'ykvic1/korean-stock-private-data'
@@ -31,6 +31,8 @@ ROW_STATES = ('unranked', 'absent', 'identity_unresolved', 'not_traded',
               'open_unavailable', 'official_open_observed')
 MAX_COHORTS_PER_RUN = 5
 SHA = re.compile(r"[a-f0-9]{64}\Z")
+REFERENCE_STATES = ('reference_unavailable', 'signal_basis_unmatched', 'share_basis_unresolved',
+                    'open_at_or_below_reference', 'intraday_reference_touched', 'reference_not_touched')
 
 
 class EntryError(ValueError):
@@ -181,7 +183,23 @@ def save_entry(plan, observation, storage, official_openings):
     return result
 
 
-def entry_session_path(observation, evidence, daily):
+def entry_stop_state(member, opening, entry_row, signal_row, signal_state):
+    """Compare a frozen structural reference on the same observed price basis."""
+    reference = member[7] if len(member) > 7 else None
+    if not positive(reference):
+        return 'reference_unavailable'
+    if signal_state != 'matched' or signal_row is None or reference >= signal_row[6]:
+        return 'signal_basis_unmatched'
+    if signal_row[-1] is None or signal_row[-1] != entry_row[-1]:
+        return 'share_basis_unresolved'
+    if opening <= reference:
+        return 'open_at_or_below_reference'
+    if entry_row[5] <= reference:
+        return 'intraday_reference_touched'
+    return 'reference_not_touched'
+
+
+def entry_session_path(observation, evidence, daily, *, signal=None, signal_cases=None):
     """Summarize one matched session from its official open, including missing entries."""
     groups = {}
     for label, rank_limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
@@ -189,12 +207,16 @@ def entry_session_path(observation, evidence, daily):
                     if member[3] is not None and (rank_limit is None or member[3] <= rank_limit)]
         low_returns, high_returns, close_returns = [], [], []
         missing = Counter()
+        stops = Counter()
         for code in selected:
             state, opening = evidence['rows'][code]
             if state != 'official_open_observed':
                 missing[state] += 1
                 continue
             row = daily['rows'][code]
+            if signal is not None:
+                stops[entry_stop_state(observation['rows'][code], opening, row,
+                                       signal['rows'].get(code), signal_cases[code]['state'])] += 1
             low_returns.append(100 * (row[5] / opening - 1))
             high_returns.append(100 * (row[4] / opening - 1))
             close_returns.append(100 * (row[6] / opening - 1))
@@ -208,14 +230,16 @@ def entry_session_path(observation, evidence, daily):
             'median_close_return_pct': round(median(close_returns), 4) if close_returns else None,
             'negative_close_count': sum(value < 0 for value in close_returns),
         }
+        if signal is not None:
+            groups[label]['structural_reference_counts'] = {state: stops[state] for state in REFERENCE_STATES}
     return {
-        'schema': 'v3-forward-entry-session-path-1', 'session': daily['date'],
+        'schema': 'v3-forward-entry-session-path-2', 'session': daily['date'],
         'basis': 'official_open_to_same_session_ohlc', 'groups': groups,
         'fees_and_taxes_included': False, 'performance_validated': False,
     }
 
 
-def crosscheck_entry_daily(observation, source_digest, storage):
+def crosscheck_entry_daily(observation, source_digest, storage, *, review_reference=False):
     """Compare saved entry opens with their independently retained daily panel."""
     plan = entry_plan(observation, source_digest)
     path = f"derived/forward-entry/{plan['score_asof']}.json.gz"
@@ -254,7 +278,25 @@ def crosscheck_entry_daily(observation, source_digest, storage):
         'corporate_actions_certified': False, 'performance_validated': False,
     }
     if status == 'matched':
-        result['entry_session_path'] = entry_session_path(observation, evidence, daily)
+        signal = None
+        signal_cases = None
+        if review_reference:
+            signal = read_daily(plan['score_asof'], storage)
+            market = frozen_market(observation) if signal is not None else None
+            if market is None:
+                result['structural_reference_status'] = 'waiting_for_signal_price_basis'
+                signal = None
+            else:
+                _, signal_cases = compare_closes(observation, market, signal)
+                result['structural_reference_status'] = 'compared'
+                result['structural_reference_basis'] = {
+                    'signal_published_market_sha256': observation['source_market_sha256'],
+                    'signal_krx_source_sha256': signal['source_sha256'],
+                    'corporate_actions_certified': False,
+                    'stop_execution_validated': False,
+                }
+        result['entry_session_path'] = entry_session_path(
+            observation, evidence, daily, signal=signal, signal_cases=signal_cases)
     return result
 
 
@@ -330,7 +372,8 @@ def main():
                 if error.reason not in ('empty_body', 'empty_market_rows'):
                     raise EntryError('krx_' + error.reason) from None
                 result = {**plan, 'status': 'waiting_for_official_paired_response',
-                          'last_source_attempt_at_utc': now.isoformat()}
+                          'last_source_attempt_at_utc': now.isoformat(),
+                          'unavailable_market': error.market, 'source_reason': error.reason}
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(result, ensure_ascii=False))
 
@@ -352,8 +395,7 @@ def main():
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
         if (status['status'] != 'official_openings_archived_privately'
-                or (status.get('entry_daily_crosscheck', {}).get('status') == 'matched'
-                    and 'entry_session_path' in status['entry_daily_crosscheck'])):
+                or status.get('entry_daily_crosscheck', {}).get('structural_reference_status') == 'compared'):
             continue
         if checked >= MAX_COHORTS_PER_RUN:
             break
@@ -361,7 +403,7 @@ def main():
         source = ARCHIVE / f"{status['score_asof']}.json"
         raw = source.read_bytes()
         status['entry_daily_crosscheck'] = crosscheck_entry_daily(
-            json.loads(raw), sha256(raw).hexdigest(), private_storage())
+            json.loads(raw), sha256(raw).hexdigest(), private_storage(), review_reference=True)
         status['last_entry_daily_crosscheck_at_utc'] = now.isoformat()
         target = OUT / source.name
         target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
