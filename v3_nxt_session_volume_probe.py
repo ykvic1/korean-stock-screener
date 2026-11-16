@@ -163,6 +163,45 @@ def fetch_session(session, kind, day):
     return session_observation(session, kind, day)['rows']
 
 
+def regular_volume_crosscheck(session, day, regular):
+    date_key = canonical_day(day)
+    try:
+        response = session.post(
+            HOST + 'dailyInfo/dailyInfoList.do',
+            data={'scBeginDe': date_key, 'scEndDe': date_key, 'pageUnit': 20, 'pageIndex': 1},
+            headers={'X-Requested-With': 'XMLHttpRequest',
+                     'Referer': HOST + 'menu/transactionStatusDaily/menuList.do'},
+            timeout=(8, 30), allow_redirects=False,
+        )
+    except requests.RequestException:
+        return {'status': 'unavailable', 'reason': 'nxt_aggregate_transport_failure'}
+    try:
+        if response.status_code != 200 or not 0 < len(response.content) <= 1_000_000:
+            raise ValueError()
+        envelope = response.json()
+        rows = envelope['dailyInfoList']
+        if (not isinstance(rows, list) or not 1 <= len(rows) <= 20
+                or quantity(envelope['records']) != len(rows)
+                or quantity(envelope['total']) != 1 or quantity(envelope['page']) != 1
+                or any(not isinstance(row, dict) or row.get('aggDd') != date_key for row in rows)):
+            raise ValueError()
+        totals = []
+        for row in rows:
+            total = quantity(row.get('totalAccTdQty'))
+            parts = sum(quantity(row.get(f'{period}AccTdQty')) for period in ('pre', 'main', 'aft'))
+            active = quantity(row.get('totalIsuCnt'))
+            if total or parts or active:
+                totals.append((total, parts, active))
+        if len(totals) != 1:
+            raise ValueError()
+        total, parts, active = totals[0]
+        matches = total == parts == sum(regular.values()) and active == sum(v > 0 for v in regular.values())
+        return {'status': 'matched' if matches else 'mismatch', 'aggregate_rows': len(rows),
+                'source_sha256': sha256(response.content).hexdigest()}
+    except (ValueError, TypeError, KeyError, NXTProbeError):
+        return {'status': 'unavailable', 'reason': 'nxt_aggregate_schema_or_date_unverified'}
+
+
 def collect(session, day):
     """Retain session observations independently so overlaps stay auditable."""
     observations = {kind: session_observation(session, kind, day) for kind in ENDPOINTS}
@@ -177,6 +216,7 @@ def collect(session, day):
         'regular_plus_closing': combined,
         'overlap_issuers': len(regular.keys() & closing.keys()),
         'observations': observations,
+        'regular_volume_crosscheck': regular_volume_crosscheck(session, day, regular),
     }
 
 
@@ -185,7 +225,7 @@ def aggregate(result, day, universe):
     merged = result['regular_plus_closing']
     return {
         'status':'nxt_components_observed_no_score_change', 'asof':day,
-        'source':SOURCE, 'provider_calls':len(observations),
+        'source':SOURCE, 'provider_calls':len(observations)+1,
         'regular_issuer_count':len(result['regular_market']),
         'closing_issuer_count':len(result['closing_price']),
         'overlap_issuer_count':result['overlap_issuers'],
@@ -195,6 +235,7 @@ def aggregate(result, day, universe):
         'sessions':{kind: {'status':item['status'], 'issuer_count':len(item['rows']),
                            'source_sha256':item['sha256']}
                     for kind,item in observations.items()},
+        'regular_volume_crosscheck':result['regular_volume_crosscheck'],
         'krx_venue_volume_verified':False,
         'combined_krx_nxt_volume_verified':False,
         'other_nxt_sessions_included_verified':False,
