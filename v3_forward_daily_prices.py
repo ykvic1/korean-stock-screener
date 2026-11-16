@@ -20,6 +20,10 @@ SCHEMA = 'v3-forward-krx-daily-price-evidence-1'
 ROW_FIELDS = ('market', 'name', 'status', 'open', 'high', 'low', 'close', 'listed_shares')
 ROW_STATES = ('traded', 'no_reported_volume', 'price_unavailable')
 MAX_SESSIONS_PER_RUN = 5
+RETRYABLE_KRX_REASONS = frozenset((
+    'empty_body', 'empty_market_rows', 'transport_failure',
+    'http_server_error', 'http_rate_limited',
+))
 MAX_PRIVATE_BYTES = 2_000_000
 SHA = re.compile(r'[a-f0-9]{64}\Z')
 CODE = re.compile(r'[A-Z0-9]{6}\Z')
@@ -187,7 +191,7 @@ def collect_daily(entry_statuses, now, get_storage, official_pair, *, clock=None
         try:
             result = save_daily(day, storage, official_pair, clock=clock)
         except KRXProbeError as error:
-            if error.reason not in ('empty_body', 'empty_market_rows'):
+            if error.reason not in RETRYABLE_KRX_REASONS:
                 raise DailyEvidenceError('krx_' + error.reason) from None
             result = {'schema': SCHEMA, 'date': day,
                       'status': 'waiting_for_official_paired_response',

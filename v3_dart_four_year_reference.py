@@ -13,7 +13,7 @@ import json
 import math
 import re
 
-from v3_dart_rolling_book_reference import _inputs
+from v3_dart_rolling_book_reference import CODE, _inputs
 
 SCHEMA = "v3-four-year-dart-financial-evidence-0.1"
 MAX_COMPANIES = 12
@@ -37,7 +37,6 @@ def automatic_daily_limit(prior):
 
 FIELDS = ("revenue", "operating_income", "operating_cashflow",
           "liabilities", "equity", "owners_equity", "owners_profit")
-CODE = re.compile(r"[0-9]{6}\Z")
 RECEIPT = re.compile(r"[0-9]{14}\Z")
 
 
