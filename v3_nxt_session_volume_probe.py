@@ -1,28 +1,29 @@
-"""Read-only NXT session-volume probe; never exports issuer-level volume.
-
-NXT regular-market (pre/main/after) and closing-price trading are distinct
-venue sessions. KRX venue volume is NOT included in either response. This
-probe only validates the NXT component of the requested KRX+NXT full-day
-volume, and never substitutes it for the screener's public volume or scores.
-"""
+"""Audit NXT session coverage without exporting issuer-level volume."""
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta
+from collections import Counter
+from datetime import date, datetime
+from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import re
-from zoneinfo import ZoneInfo
 
 import requests
 
+from official_probe.clients import KRXClient, KRXProbeError
+from v3_aftermarket_cutoff import KST, NXT_START, target_policy
+from v3_forward_daily_prices import number
+from v3_krx_history_collection import MARKETS as KRX_MARKETS, HistoryCollectionError, _snapshot_market
 
-NXT_LAUNCH = '2025-03-04'
+NXT_LAUNCH = NXT_START.isoformat()
 SOURCE = 'NXT_SESSION_VOLUMES_UNVERIFIED_FOR_SCORE'
 HOST = 'https://nextrade.co.kr/'
 ENDPOINTS = {
-    'regular_market': ('brdinfoTime/brdinfoTimeList.do', 'brdinfoTimeList'),
-    'closing_price': ('brdinfoEnd/brdinfoEndList.do', 'brdinfoEndList'),
+    'regular_market': ('brdinfoTime/brdinfoTimeList.do', 'brdinfoTimeList', 'Main'),
+    'closing_price': ('brdinfoEnd/brdinfoEndList.do', 'brdinfoEndList', 'Closing'),
+    'basket': ('bltdinfo/bltdinfoList.do', 'bltdinfoList', 'Basket'),
 }
 MARKETS = {'STK': 'KOSPI', 'KSQ': 'KOSDAQ'}
 
@@ -87,19 +88,22 @@ def canonical_day(day):
     return day.replace('-', '')
 
 
-def fetch_session(session, kind, day):
-    """Return validated private (market, code) -> quantity, not public data."""
+def session_observation(session, kind, day):
+    """Validate a dated full page and retain a digest without publishing raw rows."""
     date_key = canonical_day(day)
     if kind not in ENDPOINTS or day < NXT_LAUNCH:
         raise NXTProbeError('nxt_session_not_applicable')
-    endpoint, list_key = ENDPOINTS[kind]
+    endpoint, list_key, screen = ENDPOINTS[kind]
+    data = {'scAggDd': date_key, 'scMktId': '', 'searchKeyword': '',
+            'pageUnit': 10000, 'pageIndex': 1}
+    if kind == 'basket':
+        data['scSecuGroup'] = 'STOCK'
     try:
         response = session.post(
             HOST + endpoint,
-            data={'scAggDd': date_key, 'scMktId': '', 'searchKeyword': '',
-                  'pageUnit': 10000, 'pageIndex': 1},
+            data=data,
             headers={'X-Requested-With': 'XMLHttpRequest',
-                     'Referer': HOST + 'menu/transactionStatusMain/menuList.do'},
+                     'Referer': HOST + f'menu/transactionStatus{screen}/menuList.do'},
             timeout=(8, 30), allow_redirects=False,
         )
     except requests.RequestException:
@@ -117,10 +121,21 @@ def fetch_session(session, kind, day):
     rows = envelope[list_key]
     try:
         records = quantity(envelope.get('records'))
+        total = quantity(envelope.get('totalCnt', records))
+        pages = quantity(envelope.get('total', 1))
+        page = quantity(envelope.get('page', 1))
     except NXTProbeError:
         raise NXTProbeError('nxt_schema_invalid') from None
-    if not 0 < records <= 5000 or len(rows) != records:
+    if (not 0 <= records <= 5000 or len(rows) != records or total != records
+            or page != 1 or pages not in ((0, 1) if records == 0 else (1,))):
         raise NXTProbeError('nxt_incomplete_market_rows')
+    digest = sha256(response.content).hexdigest()
+    if not records:
+        if kind == 'regular_market':
+            raise NXTProbeError('nxt_incomplete_market_rows')
+        # The empty envelope observed on the official site has no response
+        # date. It cannot distinguish a true zero day from unavailable rows.
+        return {'rows': {}, 'sha256': digest, 'status': 'empty_undated_response'}
     if kind == 'regular_market':
         set_time = envelope.get('setTime', '')
         if (not isinstance(set_time, str) or not set_time.startswith(day)
@@ -140,32 +155,141 @@ def fetch_session(session, kind, day):
         key = (market, code[1:])
         if key in observed:
             raise NXTProbeError('nxt_duplicate_market_identity')
-        observed[key] = quantity(row.get('accTdQty'))
-    return observed
+        observed[key] = quantity(row.get('bltdAccTdQty' if kind == 'basket' else 'accTdQty'))
+    return {'rows': observed, 'sha256': digest, 'status': 'dated_rows_observed'}
+
+
+def fetch_session(session, kind, day):
+    return session_observation(session, kind, day)['rows']
+
+
+def regular_volume_crosscheck(session, day, regular):
+    date_key = canonical_day(day)
+    try:
+        response = session.post(
+            HOST + 'dailyInfo/dailyInfoList.do',
+            data={'scBeginDe': date_key, 'scEndDe': date_key, 'pageUnit': 20, 'pageIndex': 1},
+            headers={'X-Requested-With': 'XMLHttpRequest',
+                     'Referer': HOST + 'menu/transactionStatusDaily/menuList.do'},
+            timeout=(8, 30), allow_redirects=False,
+        )
+    except requests.RequestException:
+        return {'status': 'unavailable', 'reason': 'nxt_aggregate_transport_failure'}
+    try:
+        if response.status_code != 200 or not 0 < len(response.content) <= 1_000_000:
+            raise ValueError()
+        envelope = response.json()
+        rows = envelope['dailyInfoList']
+        if (not isinstance(rows, list) or not 1 <= len(rows) <= 20
+                or quantity(envelope['records']) != len(rows)
+                or quantity(envelope['total']) != 1 or quantity(envelope['page']) != 1
+                or any(not isinstance(row, dict) or row.get('aggDd') != date_key for row in rows)):
+            raise ValueError()
+        totals = []
+        for row in rows:
+            total = quantity(row.get('totalAccTdQty'))
+            parts = sum(quantity(row.get(f'{period}AccTdQty')) for period in ('pre', 'main', 'aft'))
+            active = quantity(row.get('totalIsuCnt'))
+            if total or parts or active:
+                totals.append((total, parts, active))
+        if len(totals) != 1:
+            raise ValueError()
+        total, parts, active = totals[0]
+        matches = total == parts == sum(regular.values()) and active == sum(v > 0 for v in regular.values())
+        return {'status': 'matched' if matches else 'mismatch', 'aggregate_rows': len(rows),
+                'source_sha256': sha256(response.content).hexdigest()}
+    except (ValueError, TypeError, KeyError, NXTProbeError):
+        return {'status': 'unavailable', 'reason': 'nxt_aggregate_schema_or_date_unverified'}
 
 
 def collect(session, day):
-    """Join disjoint NXT sessions in memory, without claiming KRX coverage."""
-    regular = fetch_session(session, 'regular_market', day)
-    closing = fetch_session(session, 'closing_price', day)
+    """Retain session observations independently so overlaps stay auditable."""
+    observations = {kind: session_observation(session, kind, day) for kind in ENDPOINTS}
+    regular = observations['regular_market']['rows']
+    closing = observations['closing_price']['rows']
     combined = regular.copy()
     for key, count in closing.items():
         combined[key] = combined.get(key, 0) + count
     return {
         'regular_market': regular,
         'closing_price': closing,
-    'regular_plus_closing': combined,
+        'regular_plus_closing': combined,
         'overlap_issuers': len(regular.keys() & closing.keys()),
+        'observations': observations,
+        'regular_volume_crosscheck': regular_volume_crosscheck(session, day, regular),
     }
+
+
+def aggregate(result, day, universe):
+    observations = result['observations']
+    merged = result['regular_plus_closing']
+    return {
+        'status':'nxt_components_observed_no_score_change', 'asof':day,
+        'source':SOURCE, 'provider_calls':len(observations)+1,
+        'regular_issuer_count':len(result['regular_market']),
+        'closing_issuer_count':len(result['closing_price']),
+        'overlap_issuer_count':result['overlap_issuers'],
+        'regular_plus_closing_issuer_count':len(merged),
+        'regular_plus_closing_issuers_in_saved_universe':(
+            len(merged.keys() & universe) if universe is not None else None),
+        'sessions':{kind: {'status':item['status'], 'issuer_count':len(item['rows']),
+                           'source_sha256':item['sha256']}
+                    for kind,item in observations.items()},
+        'regular_volume_crosscheck':result['regular_volume_crosscheck'],
+        'krx_venue_volume_verified':False,
+        'combined_krx_nxt_volume_verified':False,
+        'other_nxt_sessions_included_verified':False,
+        'original_nxt_volume_values_exported':False,
+        'score_points_added':0,
+    }
+
+
+def compare_krx_panel(daily_market, day, nxt_keys):
+    """Check dated identities and numeric coverage without inferring venue scope."""
+    counts, hashes, by_code = {}, {}, {}
+    for market in KRX_MARKETS:
+        rows, raw = daily_market(market, day)
+        stats = _snapshot_market(rows, raw, market=market, asof=day)
+        hashes[market] = stats['source_sha256']
+        counts[market] = Counter()
+        for row in rows:
+            code = row['ISU_CD']
+            if code in by_code:
+                raise NXTProbeError('krx_duplicate_market_identity')
+            volume = number(row, 'ACC_TRDVOL')
+            counts[market]['rows'] += 1
+            counts[market]['numeric_volume_rows'] += volume is not None
+            counts[market]['zero_volume_rows'] += volume == 0
+            by_code[code] = market, volume
+    joined = Counter()
+    for market, code in sorted(nxt_keys):
+        entry = by_code.get(code)
+        state = ('absent' if entry is None else 'market_mismatch' if entry[0] != market else
+                 'volume_missing' if entry[1] is None else 'volume_zero' if entry[1] == 0 else 'volume_positive')
+        joined[state] += 1
+    return {'status':'dated_krx_openapi_rows_observed', 'source_sha256':hashes,
+            'by_market':counts, 'nxt_identity_join':dict(joined),
+            'krx_accumulated_volume_session_scope_verified':False}
+
+
+def eligible_day(day, now, explicitly_requested):
+    session_day = date.fromisoformat(day)
+    if (session_day > now.date() or (session_day == now.date() and
+            not target_policy(day, now=now)['complete_session_by_clock'])):
+        raise NXTProbeError('nxt_session_not_complete')
+    if not explicitly_requested and (now.date() - session_day).days > 7:
+        raise NXTProbeError('saved_market_day_too_old')
 
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--mode', choices=('dry-run', 'live'), default='dry-run')
     p.add_argument('--docs', type=Path, default=Path('docs'))
+    p.add_argument('--asof', help='Completed NXT trading day (YYYY-MM-DD)')
+    p.add_argument('--compare-krx', action='store_true', help='Audit the authenticated KRX panel')
     args = p.parse_args(argv)
     saved = json.loads((args.docs/'data.json').read_text(encoding='utf-8'))
-    day = saved.get('date')
+    day = args.asof or saved.get('date')
     canonical_day(day)
     if day < NXT_LAUNCH:
         print(json.dumps({'status':'not_applicable_before_nxt', 'asof':day,
@@ -175,29 +299,34 @@ def main(argv=None):
         print(json.dumps({'status':'dry_run', 'asof':day, 'provider_calls':0,
                           'score_points_added':0}))
         return
-    # Must probe yesterday's *saved* trading day, not today's live snapshot.
-    yesterday = (datetime.now(ZoneInfo('Asia/Seoul')).date()-timedelta(days=1)).isoformat()
-    if day != yesterday:
-        raise NXTProbeError('saved_market_not_previous_calendar_day')
-    result = collect(requests.Session(), day)
+    eligible_day(day, datetime.now(KST), args.asof is not None)
+    with requests.Session() as session:
+        result = collect(session, day)
     universe = {(s['market'],s['code']) for s in saved.get('stocks', [])
                 if isinstance(s,dict) and s.get('market') in ('KOSPI','KOSDAQ')
                 and isinstance(s.get('code'),str)}
-    merged = result['regular_plus_closing']
-    print(json.dumps({
-        'status':'nxt_components_observed_no_score_change', 'asof':day,
-        'source':SOURCE, 'provider_calls':2,
-        'regular_issuer_count':len(result['regular_market']),
-        'closing_issuer_count':len(result['closing_price']),
-        'overlap_issuer_count':result['overlap_issuers'],
-        'regular_plus_closing_issuer_count':len(merged),
-        'regular_plus_closing_issuers_in_saved_universe':len(merged.keys() & universe),
-        'krx_venue_volume_verified':False,
-        'combined_krx_nxt_volume_verified':False,
-        'other_nxt_sessions_included_verified':False,
-        'original_nxt_volume_values_exported':False,
-        'score_points_added':0,
-    },sort_keys=True))
+    report = aggregate(result, day, universe if saved.get('date') == day else None)
+    if args.compare_krx:
+        key = os.getenv('KRX_API_KEY', '').strip()
+        if key:
+            panel_calls = 0
+            client = KRXClient(key)
+
+            def counted_daily_market(market, day):
+                nonlocal panel_calls
+                panel_calls += 1
+                return client.daily_market(market, day)
+
+            try:
+                nxt_keys = set().union(*(item['rows'] for item in result['observations'].values()))
+                report['krx_panel'] = compare_krx_panel(counted_daily_market, day, nxt_keys)
+            except (KRXProbeError, HistoryCollectionError, NXTProbeError) as exc:
+                report['krx_panel'] = {'status':'unavailable', 'reason':(
+                    exc.reason if isinstance(exc, KRXProbeError) else str(exc))}
+            report['provider_calls'] += panel_calls
+        else:
+            report['krx_panel'] = {'status':'unavailable', 'reason':'krx_key_unavailable'}
+    print(json.dumps(report, sort_keys=True))
 
 
 if __name__ == '__main__':
@@ -210,7 +339,7 @@ if __name__ == '__main__':
             'nxt_invalid_json','nxt_schema_invalid','nxt_incomplete_market_rows',
             'nxt_postclose_snapshot_unverified','nxt_row_day_unverified',
             'nxt_row_identity_invalid','nxt_duplicate_market_identity',
-            'saved_market_not_previous_calendar_day',
+            'nxt_session_not_complete','saved_market_day_too_old','krx_duplicate_market_identity',
         ))
         reason = str(exc) if isinstance(exc, NXTProbeError) and str(exc) in allowed else 'nxt_probe_not_verified'
         report={'status':'blocked','reason':reason,'score_points_added':0}
