@@ -1,0 +1,939 @@
+{
+  "schema": "v3-historical-turnover-corroboration-20261117-v1",
+  "recorded_on_kst": "2026-11-17",
+  "code_revision": "80920787a990a905cb9090809b0034f1e7d1b49e",
+  "ci": {
+    "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43972398245",
+    "head_sha": "4b1407a8d0014e38099bf40e6fb1a06f3857de9d",
+    "python_tests": 2594,
+    "conclusion": "success"
+  },
+  "live_run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43973116625",
+  "summary": {
+    "sessions": 9,
+    "rows": 24923,
+    "volume_matched": 24923,
+    "amount_matched": 24923,
+    "volume_mismatched": 0,
+    "amount_mismatched": 0,
+    "both_zero": 1015,
+    "unavailable": 0,
+    "identity_mismatch": 0
+  },
+  "initial_run": {
+    "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43971916588",
+    "numeric_comparison_was_incomplete": true,
+    "endpoint_rows_matched": 2770,
+    "historical_rows_classified_unavailable_due_to_reader_type": 22153,
+    "resolved_by_exact_integral_float_reader": true
+  },
+  "source_scope": {
+    "primary_reference": "https://data.krx.co.kr/contents/MDC/EASY/main/MDCEASY002.jsp",
+    "primary_note_applies_to_website_statistics": true,
+    "website_note_is_not_independent_api_session_scope_proof": true,
+    "regular_0900_1530_volume_verified": false,
+    "regular_0900_1530_turnover_verified": false,
+    "adjusted_path_certified": false,
+    "point_in_time_scores_verified": false,
+    "performance_validated": false
+  },
+  "operational_coverage": {
+    "asof": "2026-11-13",
+    "listed_total": 2591,
+    "weight_bin_order": [
+      "100",
+      "95_to_less_than_100",
+      "90_to_less_than_95",
+      "80_to_less_than_90",
+      "70_to_less_than_80",
+      "60_to_less_than_70",
+      "less_than_60"
+    ],
+    "counts": [
+      1390,
+      393,
+      445,
+      42,
+      100,
+      55,
+      166
+    ],
+    "delta_from_prior_verification": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "points_added_by_this_audit": 0
+  },
+  "batches": [
+    {
+      "job_id": 133670125884,
+      "adjusted_price_history_verified": false,
+      "batch": "anchor",
+      "entry_session": "2025-11-14",
+      "failed_sessions": {},
+      "maximum_official_api_requests": 10,
+      "performance_validated": false,
+      "public_panel_source_sha256": [
+        "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+        "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d",
+        "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc"
+      ],
+      "requested_sessions": [
+        "2025-11-13",
+        "2025-11-14",
+        "2026-01-13",
+        "2026-05-13",
+        "2026-11-13"
+      ],
+      "schema": "v3-historical-pilot-official-prices-v1",
+      "sessions": {
+        "2025-11-13": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 45,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 47,
+            "positive_trade_on_both": 45,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2658,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 103,
+            "positive_trade_on_both": 2658,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2761
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "10cadfa8a814986da88b6b28437676ab6e655754b772682264760170c5fa7d45",
+            "KOSPI": "04cc7728b2395d9caa74f77a5ec741aace2155d7f792f58bdf78ab7435b1f85a"
+          },
+          "pilot_anchor_absent_from_both": 0,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2658,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 103,
+            "positive_trade_on_both": 2658,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2761
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2761,
+            "fields": {
+              "amount": {
+                "both_zero": 103,
+                "compared": 2761,
+                "matched": 2761,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 103,
+                "compared": 2761,
+                "matched": 2761,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2761
+          }
+        },
+        "2025-11-14": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 45,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 47,
+            "positive_trade_on_both": 45,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2657,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 105,
+            "positive_trade_on_both": 2657,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2762
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "5af14cc5e095280fbf544da041b8831aadeebc2d7472e45d211a7772207e927c",
+            "KOSPI": "a46e02fea26befc97b66d619c49b2717b7f2a3cbafe8d2481177e72e5a793dd9"
+          },
+          "pilot_anchor_absent_from_both": 0,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2656,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 105,
+            "positive_trade_on_both": 2656,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2761
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2762,
+            "fields": {
+              "amount": {
+                "both_zero": 105,
+                "compared": 2762,
+                "matched": 2762,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 105,
+                "compared": 2762,
+                "matched": 2762,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2762
+          }
+        },
+        "2026-01-13": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 10,
+            "absent_from_public": 10,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 46,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 36,
+            "positive_trade_on_both": 46,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2691,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 95,
+            "positive_trade_on_both": 2691,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2786
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "c801afa8354b00df9744fa606adca0e13202cca3e1b31b4ef28fd70635902177",
+            "KOSPI": "50dc6570c58da0a26f9f6ce5b6be26873d1077d6dbb0627f1cfba1d0ef9b0185"
+          },
+          "pilot_anchor_absent_from_both": 11,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2655,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 95,
+            "positive_trade_on_both": 2655,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2750
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2786,
+            "fields": {
+              "amount": {
+                "both_zero": 95,
+                "compared": 2786,
+                "matched": 2786,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 95,
+                "compared": 2786,
+                "matched": 2786,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2786
+          }
+        },
+        "2026-05-13": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 48,
+            "absent_from_public": 48,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 23,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 21,
+            "positive_trade_on_both": 23,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2580,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 189,
+            "positive_trade_on_both": 2580,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2769
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "8671be4de0f6b5eb1dc6d43f91be999688da14bff8cb0a0137e6f5a739736902",
+            "KOSPI": "9dc1f87470c4f5f4ab9deb0c353470406ae8236f1d22fdc9b11934f715d4c521"
+          },
+          "pilot_anchor_absent_from_both": 49,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2523,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 189,
+            "positive_trade_on_both": 2523,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2712
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2769,
+            "fields": {
+              "amount": {
+                "both_zero": 189,
+                "compared": 2769,
+                "matched": 2769,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 189,
+                "compared": 2769,
+                "matched": 2769,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2769
+          }
+        },
+        "2026-11-13": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 92,
+            "absent_from_public": 92,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 0,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 0,
+            "positive_trade_on_both": 0,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2663,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 107,
+            "positive_trade_on_both": 2663,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2770
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "866fd08b5e4885689feb87c3447962f876623fbafa954877e9f205bd8f9cbc4e",
+            "KOSPI": "b7bf95c830d62120b2f9a4190a6eff51efaefeac8ccf020c9e6cd663da7ecd05"
+          },
+          "pilot_anchor_absent_from_both": 98,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2556,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 107,
+            "positive_trade_on_both": 2556,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2663
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2770,
+            "fields": {
+              "amount": {
+                "both_zero": 107,
+                "compared": 2770,
+                "matched": 2770,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 107,
+                "compared": 2770,
+                "matched": 2770,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2770
+          }
+        }
+      },
+      "signal_session": "2025-11-13",
+      "turnover_all_values_matched": true,
+      "turnover_numeric_comparison_complete": true,
+      "volume_session_equivalence_verified": false
+    },
+    {
+      "job_id": 133670126198,
+      "adjusted_price_history_verified": false,
+      "batch": "remaining",
+      "entry_session": "2025-11-14",
+      "failed_sessions": {},
+      "maximum_official_api_requests": 8,
+      "performance_validated": false,
+      "public_panel_source_sha256": [
+        "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+        "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d",
+        "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc"
+      ],
+      "requested_sessions": [
+        "2025-12-15",
+        "2026-02-13",
+        "2026-09-14",
+        "2026-10-19"
+      ],
+      "schema": "v3-historical-pilot-official-prices-v1",
+      "sessions": {
+        "2025-12-15": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 7,
+            "absent_from_public": 7,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 41,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 44,
+            "positive_trade_on_both": 41,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2675,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 104,
+            "positive_trade_on_both": 2675,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2779
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "e790714af9e5b23b8e033e60b65a04ab7a76087564d1b44fe1f0267544bb6ff1",
+            "KOSPI": "1e1fc54689d9602cb35a3116eb9c9a30c9284b83d72c3a9da42ec7714ea3e9bb"
+          },
+          "pilot_anchor_absent_from_both": 7,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2650,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 104,
+            "positive_trade_on_both": 2650,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2754
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2779,
+            "fields": {
+              "amount": {
+                "both_zero": 104,
+                "compared": 2779,
+                "matched": 2779,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 104,
+                "compared": 2779,
+                "matched": 2779,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2779
+          }
+        },
+        "2026-02-13": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 29,
+            "absent_from_public": 29,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 37,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 26,
+            "positive_trade_on_both": 37,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2685,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 86,
+            "positive_trade_on_both": 2685,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2771
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "75518d851d20cc1f050ef9901c4cb6fa31c56fb89b964fceda67cb2b95df0b9e",
+            "KOSPI": "e8b6ae500c69fa059d5a271adf7c7e270de421b478679428b079224a13a025bd"
+          },
+          "pilot_anchor_absent_from_both": 30,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2645,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 86,
+            "positive_trade_on_both": 2645,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2731
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2771,
+            "fields": {
+              "amount": {
+                "both_zero": 86,
+                "compared": 2771,
+                "matched": 2771,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 86,
+                "compared": 2771,
+                "matched": 2771,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2771
+          }
+        },
+        "2026-09-14": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 78,
+            "absent_from_public": 78,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 11,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 3,
+            "positive_trade_on_both": 11,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2653,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 111,
+            "positive_trade_on_both": 2653,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2764
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "b6347d742b5d052c5d7e865c00e4f99614c06afda6be8f39a963b961eba1eaff",
+            "KOSPI": "0eb141c7779d0ad23ac7b7ebd855bb37e671abe296c45329201eb73fea918b14"
+          },
+          "pilot_anchor_absent_from_both": 79,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2572,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 110,
+            "positive_trade_on_both": 2572,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2682
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2764,
+            "fields": {
+              "amount": {
+                "both_zero": 111,
+                "compared": 2764,
+                "matched": 2764,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 111,
+                "compared": 2764,
+                "matched": 2764,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2764
+          }
+        },
+        "2026-10-19": {
+          "later_delisted_pilot_issuers": {
+            "absent_from_official": 91,
+            "absent_from_public": 91,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 1,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 0,
+            "positive_trade_on_both": 1,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 92
+          },
+          "market_wide": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2646,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 115,
+            "positive_trade_on_both": 2646,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2761
+          },
+          "official_source_sha256": {
+            "KOSDAQ": "ba0bcae00599d62a6ca27649bd130ff5349f12a9af0b451b556675278e86238f",
+            "KOSPI": "d520345d448c6604ff6bf26c19017b6c65a44b9db0929c19ed9f58cda18b8d54"
+          },
+          "pilot_anchor_absent_from_both": 92,
+          "present_pilot_anchor_issuers": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "different_price_by_field": {
+              "close": 0,
+              "high": 0,
+              "low": 0,
+              "open": 0
+            },
+            "exact_ohlc": 2555,
+            "identity_mismatch": 0,
+            "listed_share_mismatch": 0,
+            "listed_shares_unavailable": 0,
+            "no_positive_trade_on_either": 114,
+            "positive_trade_on_both": 2555,
+            "positive_trade_on_official_only": 0,
+            "positive_trade_on_public_only": 0,
+            "scope": 2669
+          },
+          "turnover": {
+            "absent_from_official": 0,
+            "absent_from_public": 0,
+            "exact_volume_and_amount": 2761,
+            "fields": {
+              "amount": {
+                "both_zero": 115,
+                "compared": 2761,
+                "matched": 2761,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              },
+              "volume": {
+                "both_zero": 115,
+                "compared": 2761,
+                "matched": 2761,
+                "mismatched": 0,
+                "official_unavailable": 0,
+                "public_unavailable": 0
+              }
+            },
+            "identity_mismatch": 0,
+            "numeric_equivalence_is_not_session_certification": true,
+            "scope": 2761
+          }
+        }
+      },
+      "signal_session": "2025-11-13",
+      "turnover_all_values_matched": true,
+      "turnover_numeric_comparison_complete": true,
+      "volume_session_equivalence_verified": false
+    }
+  ]
+}
