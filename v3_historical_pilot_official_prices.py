@@ -5,6 +5,7 @@ import csv
 from datetime import datetime, time
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 
@@ -71,6 +72,19 @@ def compare_market(public, official, codes):
 TURNOVER_FIELDS = {'volume': 'ACC_TRDVOL', 'amount': 'ACC_TRDVAL'}
 
 
+
+def public_quantity(value):
+    """Accept exact whole quantities, never rounded or unsafe float values."""
+    if type(value) is int:
+        return value if value >= 0 else None
+    if type(value) is float:
+        return (int(value) if math.isfinite(value) and value.is_integer()
+                and 0 <= value <= 2**53 - 1 else None)
+    if isinstance(value, str) and value.isascii() and value.isdigit():
+        return int(value)
+    return None
+
+
 def read_turnover_panels(paths, sessions):
     """Read only pinned turnover fields; retain issuer rows in memory."""
     for path, digest in zip(paths, SOURCE_DIGESTS, strict=True):
@@ -89,9 +103,7 @@ def read_turnover_panels(paths, sessions):
         values = []
         for key in ('Volume', 'Amount'):
             value = row[key]
-            if isinstance(value, str):
-                value = int(value) if value.isascii() and value.isdigit() else None
-            values.append(value if type(value) is int and value >= 0 else None)
+            values.append(public_quantity(value))
         panels[session][code] = (MARKETS[row['Market']], row['Name'], *values)
 
     columns = ['Date', 'Code', 'Market', 'Name', 'Volume', 'Amount']
@@ -127,8 +139,7 @@ def compare_turnover(public, official):
             continue
         exact = True
         for index, (key, source_field) in enumerate(TURNOVER_FIELDS.items(), 2):
-            value = p[index]
-            lhs = value if type(value) is int and value >= 0 else None
+            lhs = public_quantity(p[index])
             rhs = number(row, source_field)
             f = fields[key]
             f['public_unavailable'] += lhs is None
@@ -177,7 +188,18 @@ def audit(panels, delisted, client, batch, *, turnover_panels=None):
             'pilot_anchor_absent_from_both': len(anchor.keys() - anchor_listed),
             'later_delisted_pilot_issuers': compare_market(public, official, delisted),
         }
+    turnover = [item['turnover'] for item in results.values()]
+    turnover_complete = (
+        turnover_panels is not None and len(turnover) == len(sessions)
+        and all(item is not None and item['scope'] > 0
+                and all(field['compared'] == item['scope'] for field in item['fields'].values())
+                for item in turnover))
+    turnover_matched = (turnover_complete and all(
+        all(field['matched'] == item['scope'] for field in item['fields'].values())
+        for item in turnover))
     return {
+        'turnover_numeric_comparison_complete': turnover_complete,
+        'turnover_all_values_matched': turnover_matched,
         'schema': SCHEMA,
         'batch': batch,
         'signal_session': SIGNAL.isoformat(),
@@ -207,7 +229,7 @@ def main():
     turnover = read_turnover_panels(args.sources, BATCHES[args.batch])
     result = audit(panels, delisted, KRXClient(key), args.batch, turnover_panels=turnover)
     print(json.dumps(result, sort_keys=True))
-    if result['failed_sessions']:
+    if result['failed_sessions'] or not result['turnover_all_values_matched']:
         raise SystemExit(1)
 
 
