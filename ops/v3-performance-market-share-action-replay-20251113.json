@@ -2477,7 +2477,7 @@
       "notice_url": "https://invest.kiwoom.com/inv/disclosure_detail?code=01&date=2026.03.26&keyword=%EC%84%9C%EC%9A%B8%EA%B0%80%EC%8A%A4&seq=00036790&stockCode=&tp=&type=02",
       "old_units": 1,
       "session": "2026-03-31",
-      "terms_url": "https://kind.krx.co.kr/external/2026/02/04/000751/20260204002228/11333.htm"
+      "terms_url": "https://samara.kr/disclosure/20260814001913"
     },
     {
       "action": "treasury_cancellation",
@@ -4976,7 +4976,7 @@
   "official_adjusted_history_verified": false,
   "performance_validated": false,
   "register_sha256": {
-    "continuity_register": "b86de5278dc1240e881e71ea41246b890b1a67aefcfdd1af9b3b438dae985878",
+    "continuity_register": "91f1bcd5b45dfd8dbce16c9e063239f4ce2efda776d86a6a463415184d922b74",
     "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
     "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0"
