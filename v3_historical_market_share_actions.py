@@ -51,12 +51,16 @@ TREASURY_LISTING_COPY = re.compile(
 )
 TREASURY_TERMS_COPY = re.compile(
     r"https://(?:spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+"
+    r"|stock\.mk\.co\.kr/news/disclosure/template/[0-9]+"
     r"|samara\.kr/disclosure/[0-9]{14}"
     r"|cdn\.financialreports\.eu/(?:financialreports/media/filings|processed/html)/[A-Za-z0-9/_-]+\.html"
     r"|www\.awakeplus\.co\.kr/data/view/[0-9]{14}"
     r"|etp\.nhqv\.com/publicannounce/[0-9]+"
     r"|www\.samsung\.com/sec/ir/stock-information/listing-info/)\Z"
 )
+SUSPENDED_TREASURY_VALUES = ("resumed_on", "split_shares", "reduction_shares")
+SUSPENDED_TREASURY_SOURCES = ("split_url", "reduction_url", "resume_url")
+SUSPENDED_TREASURY_FIELDS = SUSPENDED_TREASURY_VALUES + SUSPENDED_TREASURY_SOURCES
 
 
 def continuity_actions(raw):
@@ -104,6 +108,21 @@ def continuity_actions(raw):
                 terms_url = notice.get("terms_url", "")
                 require(terms_url != listing_url and (NOTICE.fullmatch(terms_url)
                         or TREASURY_TERMS_COPY.fullmatch(terms_url)), "missing_treasury_cancellation_terms")
+            if any(field in notice for field in SUSPENDED_TREASURY_FIELDS):
+                require(treasury and all(field in notice for field in SUSPENDED_TREASURY_FIELDS),
+                        "invalid_suspended_treasury_chain")
+                resume = notice["resumed_on"]
+                split_shares = notice.get("split_shares")
+                reduction = notice.get("reduction_shares")
+                chain_urls = {notice.get(field, "") for field in SUSPENDED_TREASURY_SOURCES}
+                require(day(resume).isoformat() > listed_on
+                        and type(split_shares) is int and split_shares > after
+                        and split_shares % after == 0
+                        and type(reduction) is int and split_shares - reduction == after
+                        and len(chain_urls) == len(SUSPENDED_TREASURY_SOURCES)
+                        and all(NOTICE.fullmatch(url) for url in chain_urls)
+                        and not chain_urls & {listing_url, terms_url},
+                        "invalid_suspended_treasury_chain")
             actions[key] = {**notice, "new_units": 1, "old_units": 1}
     return actions
 
@@ -118,8 +137,24 @@ def match_held_units(panels, sessions, index, code, notice):
     market = notice["market"]
     expected_before = market, notice["name_before"], before
     expected_after = market, notice["name_after"], after if kind != "bonus_ex_rights" else before
-    if (not previous or not traded(current) or previous[:3] != expected_before
-            or current[:3] != expected_after):
+    if (not previous or not current or previous[:3] != expected_before or current[:3] != expected_after):
+        return None
+    if "resumed_on" in notice:
+        resumed = day(notice["resumed_on"])
+        if previous[-1] != 0:
+            return None
+        if resumed not in sessions[index + 1:]:
+            return None
+        for pending_session in sessions[index:]:
+            quote = panels[pending_session].get(code)
+            if not quote or quote[:3] != expected_after:
+                return None
+            if pending_session == resumed:
+                return Fraction(1) if traded(quote) else None
+            # A suspended quote can retain a stale close. Require explicit zero volume.
+            if quote[-1] != 0:
+                return None
+    if not traded(current):
         return None
     if kind == "bonus_ex_rights":
         # Require the later listing and stable trade identity throughout the entitlement window.
@@ -185,7 +220,8 @@ def replay(panels, delisted, notices):
                     "new_units": ratio.numerator, "old_units": ratio.denominator,
                     "action": notice["action"], "notice_url": notice["notice_url"],
                     **{k: notice[k] for k in ("terms_url", "ex_on", "listed_on", "rights_url",
-                                             "ex_reference_krw", "eligible_shares") if k in notice},
+                                             "ex_reference_krw", "eligible_shares",
+                                             *SUSPENDED_TREASURY_FIELDS) if k in notice},
                 }
     incorporated = set()
     for code in sorted(anchor.keys() - delisted):

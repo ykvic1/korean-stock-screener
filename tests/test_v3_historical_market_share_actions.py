@@ -20,6 +20,48 @@ def split(new, old):
 
 
 class HistoricalShareActionTests(unittest.TestCase):
+    def test_treasury_cancellation_during_halt_preserves_gaps_with_a_matched_resumption(self):
+        halted_from = day("2025-12-12")
+        cancellation = day("2025-12-15")
+        halted_through = day("2026-01-13")
+        resumed = day("2026-02-13")
+        sessions = (SIGNAL, ENTRY, halted_from, cancellation, halted_through, resumed,
+                    day("2026-05-13"), END)
+        code = "000001"
+        panels = {session: dict.fromkeys((*CALENDAR_CODES, code), quote(100, 100)) for session in sessions}
+        suspended_quote = ("KOSPI", "company", 75, 0, 0, 0, 100, 0)
+        panels[halted_from][code] = ("KOSPI", "company", 100, 0, 0, 0, 100, 0)
+        for session in (cancellation, halted_through):
+            panels[session][code] = suspended_quote
+        for session in sessions[5:]:
+            panels[session][code] = quote(75, 90)
+        prefix = "https://kind.krx.co.kr/external/2025/12/12/000001/20251212000001/"
+        treasury = dict(code=code, market="KOSPI", name_before="company", name_after="company",
+                        action="treasury_cancellation", shares_before=100, shares_after=75,
+                        notice_url=prefix + "70763.htm", terms_url=prefix + "71131.htm",
+                        listed_on=str(cancellation), resumed_on=str(resumed), split_shares=750,
+                        reduction_shares=675, split_url=prefix + "70764.htm",
+                        reduction_url=prefix + "70650.htm", resume_url=prefix + "70799.htm")
+        notices = continuity_actions(json.dumps([treasury]).encode())
+        by_horizon = replay(panels, set(), notices)["horizons"]
+        self.assertEqual(by_horizon["1"]["rows"], [])
+        self.assertEqual(by_horizon["2"]["rows"], [])
+        holding, = by_horizon["12"]["rows"]
+        self.assertEqual(holding["unpriced_sessions"], 3)
+        self.assertEqual(holding["price_change_pct"], -10)
+        self.assertEqual(holding["observed_adverse_excursion_pct"], 10)
+        self.assertEqual(holding["tradable_units_per_entry_share"], "1")
+
+        with self.assertRaisesRegex(PilotAuditError, "invalid_suspended_treasury_chain"):
+            continuity_actions(json.dumps([{**treasury, "reduction_shares": 674}]).encode())
+        for session, invalid in ((halted_through, quote(75, 90)), (resumed, quote(76, 90)),
+                                 (resumed, suspended_quote)):
+            with self.subTest(session=session, quote=invalid):
+                original = panels[session][code]
+                panels[session][code] = invalid
+                self.assertEqual(replay(panels, set(), notices)["horizons"]["12"]["rows"], [])
+                panels[session][code] = original
+
     def test_treasury_cancellation_mirrors_require_separate_terms_and_preserve_units(self):
         december = day("2025-12-15")
         sessions = (SIGNAL, ENTRY, december, day("2026-01-13"), day("2026-02-13"),
