@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_forward_entry.py
+      - v3_forward_price_replay.py
       - v3_forward_observed_readiness.py
       - v3_forward_daily_prices.py
       - v3_forward_share_actions.py

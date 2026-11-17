@@ -16,6 +16,7 @@ from v3_forward_daily_prices import (
     collect_daily, official_publish_time, pending_official_pair, read_daily,
 )
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
+from v3_forward_price_replay import replay_price_path
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
 from v3_regular_close_prices import RegularCloseError, publish_regular_closes
@@ -234,9 +235,13 @@ def entry_session_path(observation, evidence, daily, *, signal=None, signal_case
             if signal is not None:
                 stops[entry_stop_state(observation['rows'][code], opening, row,
                                        signal['rows'].get(code), signal_cases[code]['state'])] += 1
-            low_returns.append(100 * (row[5] / opening - 1))
-            high_returns.append(100 * (row[4] / opening - 1))
-            close_returns.append(100 * (row[6] / opening - 1))
+            path = replay_price_path(code, [daily['date']], {daily['date']: row},
+                                     entry_open=opening, notices={})
+            if path['status'] != 'observed_price_path':
+                raise EntryError('entry_path_mismatch_after_crosscheck')
+            low_returns.append(path['mae_pct'])
+            high_returns.append(path['mfe_pct'])
+            close_returns.append(path['terminal_return_pct'])
         groups[label] = {
             'selected_count': len(selected), 'observed_count': len(close_returns),
             'missing_entry_counts': {state: missing[state] for state in ROW_STATES
