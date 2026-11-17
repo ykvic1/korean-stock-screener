@@ -9,7 +9,7 @@
   "fractional_share_model": true,
   "horizons": {
     "1": {
-      "count": 24,
+      "count": 25,
       "rows": [
         {
           "code": "000270",
@@ -232,6 +232,16 @@
           "valuation_session": "2025-12-15"
         },
         {
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 48.4444,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2025-12-15"
+        },
+        {
           "code": "457550",
           "observed_adverse_excursion_pct": 10.9865,
           "price_change_pct": 0.0,
@@ -254,7 +264,7 @@
       ]
     },
     "12": {
-      "count": 447,
+      "count": 453,
       "rows": [
         {
           "code": "000180",
@@ -1150,6 +1160,16 @@
           "code": "014190",
           "observed_adverse_excursion_pct": 34.4307,
           "price_change_pct": -25.9259,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "014470",
+          "observed_adverse_excursion_pct": 46.4286,
+          "price_change_pct": -26.7857,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -2327,6 +2347,16 @@
           "valuation_session": "2026-11-13"
         },
         {
+          "code": "058110",
+          "observed_adverse_excursion_pct": 38.7456,
+          "price_change_pct": -30.3996,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
           "code": "058400",
           "observed_adverse_excursion_pct": 38.5953,
           "price_change_pct": -16.4117,
@@ -3057,6 +3087,16 @@
           "valuation_session": "2026-11-13"
         },
         {
+          "code": "105560",
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": 20.3634,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
           "code": "105840",
           "observed_adverse_excursion_pct": 45.8165,
           "price_change_pct": -40.9582,
@@ -3357,6 +3397,16 @@
           "valuation_session": "2026-11-13"
         },
         {
+          "code": "145720",
+          "observed_adverse_excursion_pct": 38.3803,
+          "price_change_pct": -34.5951,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
           "code": "148150",
           "observed_adverse_excursion_pct": 50.9506,
           "price_change_pct": -37.8327,
@@ -3390,6 +3440,16 @@
           "code": "158430",
           "observed_adverse_excursion_pct": 50.0,
           "price_change_pct": -30.0,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "161580",
+          "observed_adverse_excursion_pct": 56.8854,
+          "price_change_pct": -41.9355,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -4507,6 +4567,16 @@
           "valuation_session": "2026-11-13"
         },
         {
+          "code": "445680",
+          "observed_adverse_excursion_pct": 53.1111,
+          "price_change_pct": -31.2593,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
           "code": "448710",
           "observed_adverse_excursion_pct": 50.7101,
           "price_change_pct": -45.6213,
@@ -4729,7 +4799,7 @@
       ]
     },
     "2": {
-      "count": 37,
+      "count": 38,
       "rows": [
         {
           "code": "000270",
@@ -5082,6 +5152,16 @@
           "valuation_session": "2026-01-13"
         },
         {
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 45.7778,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-01-13"
+        },
+        {
           "code": "457550",
           "observed_adverse_excursion_pct": 10.9865,
           "price_change_pct": -0.4484,
@@ -5104,7 +5184,7 @@
       ]
     },
     "3": {
-      "count": 62,
+      "count": 64,
       "rows": [
         {
           "code": "000270",
@@ -5360,6 +5440,16 @@
           "code": "101670",
           "observed_adverse_excursion_pct": 12.3039,
           "price_change_pct": 10.5392,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        {
+          "code": "105560",
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": 27.1007,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -5657,6 +5747,16 @@
           "valuation_session": "2026-02-13"
         },
         {
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 66.6667,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        {
           "code": "448710",
           "observed_adverse_excursion_pct": 7.9882,
           "price_change_pct": 9.8225,
@@ -5729,7 +5829,7 @@
       ]
     },
     "6": {
-      "count": 182,
+      "count": 186,
       "rows": [
         {
           "code": "000180",
@@ -5755,6 +5855,16 @@
           "code": "000810",
           "observed_adverse_excursion_pct": 17.1937,
           "price_change_pct": -1.581,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        },
+        {
+          "code": "000880",
+          "observed_adverse_excursion_pct": 12.3025,
+          "price_change_pct": 58.8036,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -6822,6 +6932,16 @@
           "valuation_session": "2026-05-13"
         },
         {
+          "code": "105560",
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": 15.0643,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        },
+        {
           "code": "112290",
           "observed_adverse_excursion_pct": 11.1007,
           "price_change_pct": 38.7354,
@@ -6965,6 +7085,16 @@
           "code": "143240",
           "observed_adverse_excursion_pct": 6.124,
           "price_change_pct": 19.4922,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        },
+        {
+          "code": "145720",
+          "observed_adverse_excursion_pct": 24.1197,
+          "price_change_pct": -6.338,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -7405,6 +7535,16 @@
           "code": "445090",
           "observed_adverse_excursion_pct": 17.8322,
           "price_change_pct": 5.7692,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        },
+        {
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 37.037,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -7860,6 +8000,20 @@
       "old_units": 1,
       "session": "2025-12-12",
       "terms_url": "https://kind.krx.co.kr/external/2025/11/24/000235/20251104000582/71131.htm"
+    },
+    {
+      "action": "option_exercise",
+      "after": 17119833,
+      "before": 17086041,
+      "code": "445680",
+      "incorporated_into_path": true,
+      "listed_on": "2025-12-12",
+      "market": "KOSDAQ",
+      "name": "큐리옥스바이오시스템즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2025/12/09/000541/20251209001769/70791.htm",
+      "old_units": 1,
+      "session": "2025-12-12"
     },
     {
       "action": "option_exercise",
@@ -8374,6 +8528,21 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 372850455,
+      "before": 381462103,
+      "code": "105560",
+      "incorporated_into_path": true,
+      "listed_on": "2026-02-05",
+      "market": "KOSPI",
+      "name": "KB금융",
+      "new_units": 1,
+      "notice_url": "https://invest.kiwoom.com/inv/disclosure_detail?code=01&date=2026.02.02&keyword=KB%EA%B8%88%EC%9C%B5&seq=00008752&stockCode=&tp=1&type=02",
+      "old_units": 1,
+      "session": "2026-02-05",
+      "terms_url": "https://samara.kr/disclosure/20261006000411"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 15210000,
       "before": 15470000,
       "code": "037350",
@@ -8496,6 +8665,21 @@
       "rights_url": "https://kind.krx.co.kr/external/2026/02/19/000712/20260219002038/70766.htm",
       "session": "2026-02-20",
       "terms_url": "https://kind.krx.co.kr/external/2026/02/04/000330/20260204001096/11307.htm"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 10253850,
+      "before": 11068830,
+      "code": "145720",
+      "incorporated_into_path": true,
+      "listed_on": "2026-02-26",
+      "market": "KOSPI",
+      "name": "덴티움",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/02/23/000207/20260223000596/68155.htm",
+      "old_units": 1,
+      "session": "2026-02-26",
+      "terms_url": "https://kind.krx.co.kr/external/2026/05/15/002614/20260515005930/11013.htm"
     },
     {
       "action": "option_exercise",
@@ -8887,6 +9071,21 @@
       "rights_url": "https://kind.krx.co.kr/external/2026/02/19/000712/20260219002038/70766.htm",
       "session": "2026-03-23",
       "terms_url": "https://kind.krx.co.kr/external/2026/02/04/000330/20260204001096/11307.htm"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 8623891,
+      "before": 10253850,
+      "code": "145720",
+      "incorporated_into_path": true,
+      "listed_on": "2026-03-25",
+      "market": "KOSPI",
+      "name": "덴티움",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/03/20/000276/20260320001008/68155.htm",
+      "old_units": 1,
+      "session": "2026-03-25",
+      "terms_url": "https://kind.krx.co.kr/external/2026/05/15/002614/20260515005930/11013.htm"
     },
     {
       "action": "option_exercise",
@@ -9626,6 +9825,35 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/04/17/000886/20260417002190/70791.htm",
       "old_units": 1,
       "session": "2026-04-22"
+    },
+    {
+      "action": "option_exercise",
+      "after": 17203255,
+      "before": 17119833,
+      "code": "445680",
+      "incorporated_into_path": true,
+      "listed_on": "2026-04-22",
+      "market": "KOSDAQ",
+      "name": "큐리옥스바이오시스템즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/04/17/000881/20260417002187/70791.htm",
+      "old_units": 1,
+      "session": "2026-04-22"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 70507919,
+      "before": 74958735,
+      "code": "000880",
+      "incorporated_into_path": true,
+      "listed_on": "2026-04-23",
+      "market": "KOSPI",
+      "name": "한화",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/04/20/000174/20260420000528/68155.htm",
+      "old_units": 1,
+      "session": "2026-04-23",
+      "terms_url": "https://kind.krx.co.kr/external/2026/05/14/001476/20260514003206/10085.htm"
     },
     {
       "action": "treasury_cancellation",
@@ -11567,6 +11795,21 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 354687734,
+      "before": 372850455,
+      "code": "105560",
+      "incorporated_into_path": true,
+      "listed_on": "2026-06-09",
+      "market": "KOSPI",
+      "name": "KB금융",
+      "new_units": 1,
+      "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1041946",
+      "old_units": 1,
+      "session": "2026-06-09",
+      "terms_url": "https://samara.kr/disclosure/20261006000411"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 13794818,
       "before": 13934818,
       "code": "085910",
@@ -13022,6 +13265,20 @@
       "session": "2026-08-25"
     },
     {
+      "action": "option_exercise",
+      "after": 17211487,
+      "before": 17203255,
+      "code": "445680",
+      "incorporated_into_path": true,
+      "listed_on": "2026-08-25",
+      "market": "KOSDAQ",
+      "name": "큐리옥스바이오시스템즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/08/20/000662/20260820001458/70791.htm",
+      "old_units": 1,
+      "session": "2026-08-25"
+    },
+    {
       "action": "reverse_split",
       "after": 17145663,
       "before": 85728319,
@@ -13363,6 +13620,21 @@
       "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/497792"
     },
     {
+      "action": "treasury_cancellation",
+      "after": 57049640,
+      "before": 60052260,
+      "code": "014470",
+      "incorporated_into_path": true,
+      "listed_on": "2026-09-10",
+      "market": "KOSDAQ",
+      "name": "부방",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/09/07/000497/20260907001246/70763.htm",
+      "old_units": 1,
+      "session": "2026-09-10",
+      "terms_url": "https://kind.krx.co.kr/external/2026/08/04/000146/20260731000864/71131.htm"
+    },
+    {
       "action": "reverse_split",
       "after": 9713495,
       "before": 19426990,
@@ -13504,6 +13776,20 @@
       "old_units": 1,
       "session": "2026-09-16",
       "terms_url": "https://samara.kr/disclosure/20261113000977"
+    },
+    {
+      "action": "option_exercise",
+      "after": 17224699,
+      "before": 17211487,
+      "code": "445680",
+      "incorporated_into_path": true,
+      "listed_on": "2026-09-17",
+      "market": "KOSDAQ",
+      "name": "큐리옥스바이오시스템즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/09/14/000472/20260914001301/70791.htm",
+      "old_units": 1,
+      "session": "2026-09-17"
     },
     {
       "action": "treasury_cancellation",
@@ -13862,6 +14148,21 @@
       "session": "2026-10-07"
     },
     {
+      "action": "treasury_cancellation",
+      "after": 53666481,
+      "before": 57049640,
+      "code": "014470",
+      "incorporated_into_path": true,
+      "listed_on": "2026-10-08",
+      "market": "KOSDAQ",
+      "name": "부방",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/10/02/001003/20261002002315/70763.htm",
+      "old_units": 1,
+      "session": "2026-10-08",
+      "terms_url": "https://kind.krx.co.kr/external/2026/09/02/000094/20260901001662/71131.htm"
+    },
+    {
       "action": "rename",
       "after": 112740587,
       "before": 112740587,
@@ -14016,6 +14317,34 @@
       "old_units": 1,
       "session": "2026-10-15",
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260918900394"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 16613030,
+      "before": 16050530,
+      "code": "058110",
+      "incorporated_into_path": true,
+      "listed_on": "2026-10-16",
+      "market": "KOSDAQ",
+      "name": "멕아이씨에스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/10/15/000752/20261015001811/70791.htm",
+      "old_units": 1,
+      "session": "2026-10-16"
+    },
+    {
+      "action": "option_exercise",
+      "after": 23445247,
+      "before": 23442247,
+      "code": "161580",
+      "incorporated_into_path": true,
+      "listed_on": "2026-10-16",
+      "market": "KOSDAQ",
+      "name": "필옵틱스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/10/13/000463/20261013001200/70791.htm",
+      "old_units": 1,
+      "session": "2026-10-16"
     },
     {
       "action": "treasury_cancellation",
@@ -14322,6 +14651,21 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 16237254,
+      "before": 16613030,
+      "code": "058110",
+      "incorporated_into_path": true,
+      "listed_on": "2026-10-30",
+      "market": "KOSDAQ",
+      "name": "멕아이씨에스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/external/2026/10/27/000463/20261027001182/70763.htm",
+      "old_units": 1,
+      "session": "2026-10-30",
+      "terms_url": "https://kind.krx.co.kr/external/2026/09/14/000633/20260913000003/71131.htm"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 27018702,
       "before": 27595819,
       "code": "139480",
@@ -14529,7 +14873,7 @@
   "official_adjusted_history_verified": false,
   "performance_validated": false,
   "register_sha256": {
-    "continuity_register": "b2c094b0b4982fc837e24696e8e3193c0d21c5b6f8d267e2e8e2959b57a5b165",
+    "continuity_register": "d21858d8040f4f5b4818180231c4dcf825a9af636e16a2b49dd902ab696d0a02",
     "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
     "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0"

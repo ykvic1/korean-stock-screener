@@ -14,138 +14,139 @@
   "outcome_coverage": {
     "complete_three_parts": {
       "1": {
-        "adverse_path_observed": 1851,
+        "adverse_path_observed": 1852,
         "cohort_size": 2041,
         "entry_open_observed": 1955,
-        "median_observed_adverse_excursion_pct": 7.1518,
-        "median_price_change_pct": 0.5373,
-        "priced": 1851,
+        "median_observed_adverse_excursion_pct": 7.1473,
+        "median_price_change_pct": 0.5505,
+        "priced": 1852,
         "priced_by_basis": {
           "continuous_raw_quote": 1819,
           "delisting_case_replay": 14,
-          "reviewed_share_action": 18
+          "reviewed_share_action": 19
         },
         "priced_path_with_unpriced_sessions": 5
       },
       "12": {
-        "adverse_path_observed": 1431,
+        "adverse_path_observed": 1436,
         "cohort_size": 2041,
         "entry_open_observed": 1955,
-        "median_observed_adverse_excursion_pct": 31.8127,
-        "median_price_change_pct": -19.5277,
-        "priced": 1431,
+        "median_observed_adverse_excursion_pct": 31.9647,
+        "median_price_change_pct": -19.6078,
+        "priced": 1436,
         "priced_by_basis": {
           "continuous_raw_quote": 1050,
           "delisting_case_replay": 14,
-          "reviewed_share_action": 367
+          "reviewed_share_action": 372
         },
         "priced_path_with_unpriced_sessions": 136
       },
       "2": {
-        "adverse_path_observed": 1770,
+        "adverse_path_observed": 1771,
         "cohort_size": 2041,
         "entry_open_observed": 1955,
-        "median_observed_adverse_excursion_pct": 9.1385,
-        "median_price_change_pct": -2.6639,
-        "priced": 1769,
+        "median_observed_adverse_excursion_pct": 9.1195,
+        "median_price_change_pct": -2.6577,
+        "priced": 1770,
         "priced_by_basis": {
           "continuous_raw_quote": 1730,
           "delisting_case_replay": 13,
-          "reviewed_share_action": 26
+          "reviewed_share_action": 27
         },
         "priced_path_with_unpriced_sessions": 5
       },
       "3": {
-        "adverse_path_observed": 1715,
+        "adverse_path_observed": 1716,
         "cohort_size": 2041,
         "entry_open_observed": 1955,
-        "median_observed_adverse_excursion_pct": 10.2222,
-        "median_price_change_pct": 4.2316,
-        "priced": 1715,
+        "median_observed_adverse_excursion_pct": 10.2168,
+        "median_price_change_pct": 4.237,
+        "priced": 1716,
         "priced_by_basis": {
           "continuous_raw_quote": 1658,
           "delisting_case_replay": 14,
-          "reviewed_share_action": 43
+          "reviewed_share_action": 44
         },
         "priced_path_with_unpriced_sessions": 13
       },
       "6": {
-        "adverse_path_observed": 1491,
+        "adverse_path_observed": 1494,
         "cohort_size": 2041,
         "entry_open_observed": 1955,
-        "median_observed_adverse_excursion_pct": 12.9652,
-        "median_price_change_pct": 4.2593,
-        "priced": 1491,
+        "median_observed_adverse_excursion_pct": 12.9604,
+        "median_price_change_pct": 4.2645,
+        "priced": 1494,
         "priced_by_basis": {
           "continuous_raw_quote": 1338,
           "delisting_case_replay": 14,
-          "reviewed_share_action": 139
+          "reviewed_share_action": 142
         },
         "priced_path_with_unpriced_sessions": 38
       }
     },
     "restored_original_statements": {
       "1": {
-        "adverse_path_observed": 38,
+        "adverse_path_observed": 39,
         "cohort_size": 51,
         "entry_open_observed": 43,
-        "median_observed_adverse_excursion_pct": 9.5556,
-        "median_price_change_pct": -0.525,
-        "priced": 38,
+        "median_observed_adverse_excursion_pct": 9.3633,
+        "median_price_change_pct": -0.1901,
+        "priced": 39,
         "priced_by_basis": {
-          "continuous_raw_quote": 38
-        },
-        "priced_path_with_unpriced_sessions": 0
-      },
-      "12": {
-        "adverse_path_observed": 24,
-        "cohort_size": 51,
-        "entry_open_observed": 43,
-        "median_observed_adverse_excursion_pct": 35.5528,
-        "median_price_change_pct": -20.6709,
-        "priced": 24,
-        "priced_by_basis": {
-          "continuous_raw_quote": 13,
-          "reviewed_share_action": 11
-        },
-        "priced_path_with_unpriced_sessions": 3
-      },
-      "2": {
-        "adverse_path_observed": 34,
-        "cohort_size": 51,
-        "entry_open_observed": 43,
-        "median_observed_adverse_excursion_pct": 11.6378,
-        "median_price_change_pct": -5.9826,
-        "priced": 34,
-        "priced_by_basis": {
-          "continuous_raw_quote": 33,
+          "continuous_raw_quote": 38,
           "reviewed_share_action": 1
         },
         "priced_path_with_unpriced_sessions": 0
       },
+      "12": {
+        "adverse_path_observed": 30,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 38.1956,
+        "median_price_change_pct": -26.4843,
+        "priced": 30,
+        "priced_by_basis": {
+          "continuous_raw_quote": 13,
+          "reviewed_share_action": 17
+        },
+        "priced_path_with_unpriced_sessions": 3
+      },
+      "2": {
+        "adverse_path_observed": 35,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 11.5108,
+        "median_price_change_pct": -5.8939,
+        "priced": 35,
+        "priced_by_basis": {
+          "continuous_raw_quote": 33,
+          "reviewed_share_action": 2
+        },
+        "priced_path_with_unpriced_sessions": 0
+      },
       "3": {
-        "adverse_path_observed": 32,
+        "adverse_path_observed": 34,
         "cohort_size": 51,
         "entry_open_observed": 43,
         "median_observed_adverse_excursion_pct": 12.3032,
-        "median_price_change_pct": 3.7254,
-        "priced": 32,
+        "median_price_change_pct": 4.9992,
+        "priced": 34,
         "priced_by_basis": {
           "continuous_raw_quote": 28,
-          "reviewed_share_action": 4
+          "reviewed_share_action": 6
         },
         "priced_path_with_unpriced_sessions": 0
       },
       "6": {
-        "adverse_path_observed": 29,
+        "adverse_path_observed": 33,
         "cohort_size": 51,
         "entry_open_observed": 43,
-        "median_observed_adverse_excursion_pct": 18.4008,
-        "median_price_change_pct": 1.6842,
-        "priced": 29,
+        "median_observed_adverse_excursion_pct": 17.3859,
+        "median_price_change_pct": 2.0548,
+        "priced": 33,
         "priced_by_basis": {
           "continuous_raw_quote": 20,
-          "reviewed_share_action": 9
+          "reviewed_share_action": 13
         },
         "priced_path_with_unpriced_sessions": 2
       }
@@ -321,6 +322,17 @@
           "price_change_pct": 32.9571,
           "unpriced_sessions": 0,
           "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "000880",
+          "observed_adverse_excursion_pct": 12.3025,
+          "price_change_pct": 58.8036,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
         }
       }
     },
@@ -1248,6 +1260,17 @@
           "price_change_pct": 4.2857,
           "unpriced_sessions": 0,
           "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "014470",
+          "observed_adverse_excursion_pct": 46.4286,
+          "price_change_pct": -26.7857,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
         },
         "2": {
           "observed_adverse_excursion_pct": 8.7143,
@@ -2403,6 +2426,17 @@
           "unpriced_sessions": 0,
           "valuation_session": "2025-12-15"
         },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "058110",
+          "observed_adverse_excursion_pct": 38.7456,
+          "price_change_pct": -30.3996,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
         "2": {
           "observed_adverse_excursion_pct": 9.4082,
           "price_change_pct": -6.7274,
@@ -3155,11 +3189,44 @@
           "unpriced_sessions": 0,
           "valuation_session": "2025-12-15"
         },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "105560",
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": 20.3634,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
         "2": {
           "observed_adverse_excursion_pct": 12.3391,
           "price_change_pct": -2.7252,
           "unpriced_sessions": 0,
           "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "reviewed_share_action",
+          "code": "105560",
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": 27.1007,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "105560",
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": 15.0643,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
         }
       }
     },
@@ -3581,6 +3648,17 @@
           "unpriced_sessions": 0,
           "valuation_session": "2025-12-15"
         },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "145720",
+          "observed_adverse_excursion_pct": 38.3803,
+          "price_change_pct": -34.5951,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
         "2": {
           "observed_adverse_excursion_pct": 24.1197,
           "price_change_pct": -17.6056,
@@ -3592,6 +3670,17 @@
           "price_change_pct": -13.0282,
           "unpriced_sessions": 0,
           "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "145720",
+          "observed_adverse_excursion_pct": 24.1197,
+          "price_change_pct": -6.338,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
         }
       }
     },
@@ -3770,6 +3859,17 @@
           "price_change_pct": 5.7842,
           "unpriced_sessions": 0,
           "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "161580",
+          "observed_adverse_excursion_pct": 56.8854,
+          "price_change_pct": -41.9355,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
         },
         "2": {
           "observed_adverse_excursion_pct": 15.3504,
@@ -4953,7 +5053,63 @@
           "same_market_peers": 1532
         }
       },
-      "price_paths": {}
+      "price_paths": {
+        "1": {
+          "basis": "reviewed_share_action",
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 48.4444,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "445680",
+          "observed_adverse_excursion_pct": 53.1111,
+          "price_change_pct": -31.2593,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "reviewed_share_action",
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 45.7778,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "reviewed_share_action",
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 66.6667,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "445680",
+          "observed_adverse_excursion_pct": 3.2593,
+          "price_change_pct": 37.037,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
     },
     "450140": {
       "available_points": 5.5,
@@ -5133,7 +5289,7 @@
   "source_sha256": {
     "bulk_financial_reference": "991b4765f806932fe810d7a21aa7565809517e925da5d7c8d7c99ea462d23a8c",
     "classified_funds": "b5c175c69936cf5b42a6ce5dc205a448d7a7c2e712daee4b2c6f162890ca0eef",
-    "continuity_register": "b2c094b0b4982fc837e24696e8e3193c0d21c5b6f8d267e2e8e2959b57a5b165",
+    "continuity_register": "d21858d8040f4f5b4818180231c4dcf825a9af636e16a2b49dd902ab696d0a02",
     "delisted-annual-statements": "39d49d0ee8e788fc63e35d451ca552e589179762945ca48798eef17968987212",
     "delisted-financial-coverage": "7e2c236dba90c256e1aa52d1f5ec8b4a558ba73d320ebded525bc6d8b63f1c5f",
     "delisting-trade-observations": "11bcb13beac6e86dfcf5931c9db96713a968b486fa2c9c0bd80f7a229d49b0c9",
@@ -5143,7 +5299,7 @@
     "financial-statements": "bc2ef1204f8b99cb28a336adddf77ece51552c4c5d9806cb3cd4e388d3930ee0",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
     "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0",
-    "operating_scope": "b0519e0542c3450019f09f4f53b916cc6d802d35bde38eba789046b9ab3861a5",
+    "operating_scope": "4741f05ea36896e7da0943c891f7ac71ce2340ec7b66371e2091ac20c761c167",
     "price-replay": "37af44f7f6ecbde62be36b97e7a3c80bbd98662f6d0fa700e9bf47846683e9a2",
     "price_inputs": [
       "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
