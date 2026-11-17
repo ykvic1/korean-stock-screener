@@ -34,6 +34,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 # Isolated from ingestion: the independent price-replay publisher owns the
 # exact input; this job only writes its own two derived scorecard outputs.
@@ -80,6 +81,7 @@ jobs:
           # exact-day digest. The date gate defers until that happens.
           python v3_all_listed_scorecard.py --mode write
       - name: Publish current-listed score CSV and source-readiness summary only
+        id: publication
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.date_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
@@ -118,6 +120,7 @@ jobs:
               python v3_all_listed_scorecard.py --mode verify
               if git push origin HEAD:main; then
                 echo "scorecard_source_reconciled"
+                echo "changed=true" >> "$GITHUB_OUTPUT"
                 break
               fi
               if [[ "$attempt" == 3 ]]; then
@@ -126,6 +129,11 @@ jobs:
               fi
             done
           fi
+      - name: Recheck release blockers on the updated publication
+        if: steps.publication.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-v30b-readiness-audit.yml --repo "$GITHUB_REPOSITORY" --ref main
       - name: Read-only consistency check (manual)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' && steps.date_gate.outputs.ready == 'true' }}
         run: |

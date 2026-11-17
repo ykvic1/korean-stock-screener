@@ -230,16 +230,11 @@ class RollingCurrentListedDARTTests(unittest.TestCase):
         self.assertEqual(good["records"][0]["annual"]["receipt_id"], correction)
         self.assertEqual(good["observations"][0]["receipt_id"], correction)
 
-    def test_full_market_success_triggers_early_bounded_annual_sync(self):
+    def test_annual_sync_is_bounded_for_dispatch_and_schedule(self):
         flow=(Path(__file__).resolve().parent.parent/
               ".github/workflows/v3-rolling-dart-annual-book.yml").read_text(
                   encoding="utf8")
-        self.assertIn("workflow_run:",flow)
-        self.assertIn("- Full-Market 100-Stock Batches",flow)
-        self.assertIn("types: [completed]",flow)
-        self.assertIn("workflow_run.conclusion == 'success'",flow)
-        self.assertIn("workflow_run.head_branch == 'main'",flow)
-        self.assertIn("workflow_run.head_repository.full_name == github.repository",flow)
+        self.assertIn("workflow_dispatch:",flow)
         self.assertIn("group: korea-stock-screener-publication",flow)
         self.assertIn("limit=quota",flow)
         self.assertIn("cron: '17 12 * * 1-5'",flow)

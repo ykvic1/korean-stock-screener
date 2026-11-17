@@ -15,6 +15,8 @@ on:
       - .github/workflows/v3-v30b-readiness-audit.yml
       - docs/v3-current-observed-all-listed-summary.json
       - docs/v3-all-listed-scorecard-summary.json
+      - v3_all_listed_scorecard.py
+      - .github/workflows/v3-all-listed-scorecard.yml
       - docs/v3-dart-historical-receipt-progress.json
       - docs/v3-krx-derived-backfill-progress.json
   pull_request:

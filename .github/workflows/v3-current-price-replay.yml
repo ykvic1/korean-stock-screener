@@ -13,7 +13,6 @@ on:
   # for interrupted or missed workflow_run events, not 48 hourly polls.
   workflow_run:
     workflows:
-      - Full-Market 100-Stock Batches
       - Korean Stock Screener v2
       - V3 Missing Price MA Source Completion
     types: [completed]
@@ -56,7 +55,7 @@ jobs:
         # Source code is covered by change-triggered Quant CI. Keep the
         # explicit manual check without rerunning unchanged unit tests after
         # every ordinary market-data push.
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_v3_current_price_replay.py' -v

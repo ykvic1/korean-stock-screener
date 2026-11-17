@@ -133,6 +133,8 @@ jobs:
 
   combine:
     needs: [prepare, analyze]
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     # An isolated 100-stock worker can fail without discarding all successful
     # batch results. Account for missing whole jobs as UNATTEMPTED, not zero.
     if: ${{ always() && needs.prepare.result == 'success' }}
@@ -194,6 +196,7 @@ jobs:
           python v3_unscored_path_coverage.py --daily docs/data.json --output docs/v3-unscored-path-coverage.json
           python v3_unscored_path_coverage.py --verify --daily docs/data.json --output docs/v3-unscored-path-coverage.json
       - name: Publish ONE final v2 Pages/Excel snapshot after complete union
+        id: publish
         if: ${{ github.event_name == 'schedule' || inputs.mode == 'publish' }}
         shell: bash
         run: |
@@ -205,6 +208,7 @@ jobs:
             git commit -m "Full-market batch-derived v2 screen"
             git pull --rebase origin main
             git push origin HEAD:main
+            echo "published=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Keep only final derived Excel and failure audit after requested publication
         if: ${{ always() && (github.event_name == 'schedule' || inputs.mode == 'publish') }}
@@ -216,3 +220,32 @@ jobs:
             logs/
           if-no-files-found: warn
           retention-days: 30
+
+  dispatch-close-followups:
+    needs: combine
+    if: needs.combine.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - workflow: v3-rolling-dart-annual-book.yml
+          - workflow: v3-regular-close-indicators.yml
+          - workflow: v3-current-price-replay.yml
+            mode: write
+    steps:
+      # A catchup dispatch can already be at the workflow_run chain limit.
+      # Use explicit dispatches after the census has been pushed to main.
+      - name: Start saved-census followup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FOLLOWUP: ${{ matrix.workflow }}
+          MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "$MODE" ]]; then args+=(-f "mode=$MODE"); fi
+          gh workflow run "$FOLLOWUP" --repo "$GITHUB_REPOSITORY" --ref main "${args[@]}"

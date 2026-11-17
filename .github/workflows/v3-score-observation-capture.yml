@@ -11,9 +11,6 @@ on:
     paths:
       - v3_score_observation_capture.py
       - .github/workflows/v3-score-observation-capture.yml
-  workflow_run:
-    workflows: [V3 Operational Research Score R1d (Saved Sources Only)]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -33,12 +30,7 @@ jobs:
       - run: python -m unittest discover -s tests -p 'test_v3_score_observation_capture.py' -v
 
   capture:
-    if: >-
-      ${{ github.event_name != 'pull_request' &&
-          (github.event_name != 'workflow_run' ||
-           (github.event.workflow_run.conclusion == 'success' &&
-            github.event.workflow_run.head_branch == 'main' &&
-            github.event.workflow_run.head_repository.full_name == github.repository)) }}
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
