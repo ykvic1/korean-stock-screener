@@ -1,0 +1,57 @@
+{
+  "adjusted_price_history_verified": false,
+  "from": "2025-11-13",
+  "intraday_ohlc_path_verified": false,
+  "market_sessions_expected": 245,
+  "new_market_api_calls": 0,
+  "official_sessions_compared": 245,
+  "official_sessions_missing": [],
+  "performance_validated": false,
+  "pilot_originating_issues": 17,
+  "point_in_time_scores_verified": false,
+  "public_inputs_sha256": [
+    "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+    "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d",
+    "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc"
+  ],
+  "schema": "v3-historical-close-archive-audit-v1",
+  "through": "2026-11-13",
+  "totals": {
+    "market": {
+      "both_rows_missing": 0,
+      "close_mismatch": 0,
+      "exact_close": 678572,
+      "exact_listed_shares": 678572,
+      "identity_mismatch": 0,
+      "mismatch_listed_shares": 0,
+      "official_row_missing": 0,
+      "public_close_unavailable": 0,
+      "public_row_missing": 0,
+      "public_shares_unavailable": 0,
+      "rows": 678572,
+      "same_trade_status": 678572,
+      "trade_status_mismatch": 0,
+      "trade_status_unavailable": 0
+    },
+    "pilot": {
+      "both_rows_missing": 0,
+      "close_mismatch": 0,
+      "exact_close": 3478,
+      "exact_listed_shares": 3478,
+      "identity_mismatch": 0,
+      "mismatch_listed_shares": 0,
+      "official_row_missing": 0,
+      "public_close_unavailable": 0,
+      "public_row_missing": 0,
+      "public_shares_unavailable": 0,
+      "rows": 3478,
+      "same_trade_status": 3478,
+      "trade_status_mismatch": 0,
+      "trade_status_unavailable": 0
+    }
+  },
+  "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44005440077",
+  "audit_commit": "2dfa7889a5fe6ee43ecf6fc86d97689184665f16",
+  "artifact_id": 14294865453,
+  "artifact_zip_sha256": "7b1d5b6dfeaf5f2506a8e40760578568e294c8986f33be94e72d171e86dbe3a0"
+}
