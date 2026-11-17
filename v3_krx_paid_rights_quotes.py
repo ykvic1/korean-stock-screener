@@ -8,7 +8,7 @@ import re
 from sys import argv
 
 import requests
-from official_probe.clients import KRX_BASE, KRXProbeError, ProbeError, _get, _json
+from official_probe.clients import KRX_BASE, KRXClient, KRXProbeError, ProbeError, _get, _json
 
 ROUTE = "sto/sr_bydd_trd"
 ISSUES = {
@@ -57,6 +57,12 @@ def fetch(key):
         report["attempts"] = [{"status": "provider_key_unavailable"}]
         return report
     with requests.Session() as http:
+        try:
+            common, _ = KRXClient(key, session=http).daily_market("KOSDAQ", "2026-04-07")
+        except KRXProbeError as exc:
+            report["ordinary_kosdaq_control"] = {"status": exc.reason, "http_status": exc.http_status}
+        else:
+            report["ordinary_kosdaq_control"] = {"status": "received", "row_count": len(common)}
         for day, subject in ISSUES.items():
             attempt = {"session": day, "rights_isin": subject[2]}
             try:
@@ -78,5 +84,6 @@ def fetch(key):
 if __name__ == "__main__":
     result = fetch(os.environ.get("KRX_API_KEY", ""))
     Path(argv[1]).write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf8")
+    print("ordinary_kosdaq_control", result.get("ordinary_kosdaq_control", {}))
     for attempt in result["attempts"]:
         print(attempt["session"] if "session" in attempt else "-", attempt["status"], attempt.get("http_status", ""))
