@@ -31,6 +31,9 @@ on:
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
       - tests/test_v3_operational_evidence_priority.py
+      - v3_operational_publication_audit.py
+      - scripts/audit_operational_publication.cjs
+      - tests/test_v3_operational_publication_audit.py
       - v3_operational_research_score.py
       - v3_price_outcome_triage.py
       - tests/test_v3_price_outcome_triage.py
@@ -78,6 +81,9 @@ on:
       - tests/test_v3_operational_model_diagnostics.py
       - v3_operational_evidence_priority.py
       - tests/test_v3_operational_evidence_priority.py
+      - v3_operational_publication_audit.py
+      - scripts/audit_operational_publication.cjs
+      - tests/test_v3_operational_publication_audit.py
       - v3_operational_research_score.py
       - v3_price_outcome_triage.py
       - tests/test_v3_price_outcome_triage.py
@@ -137,6 +143,7 @@ jobs:
           python v3_price_outcome_triage.py --mode verify
           python v3_trading_status.py --mode write
           python v3_trading_status.py --mode verify
+          python v3_operational_publication_audit.py
       - run: |
           node --check docs/operational-score.js
           node tests/test_v3_trading_status.cjs
@@ -187,6 +194,7 @@ jobs:
           python v3_price_outcome_triage.py --mode verify
           python v3_trading_status.py --mode write
           python v3_trading_status.py --mode verify
+          python v3_operational_publication_audit.py
       - name: Publish parallel model and append versioned observations
         id: publish_scores
         if: steps.recompute.outputs.waiting != 'true'
@@ -213,6 +221,7 @@ jobs:
             python v3_price_outcome_triage.py --mode verify
             python v3_trading_status.py --mode write
             python v3_trading_status.py --mode verify
+            python v3_operational_publication_audit.py
             git add docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/v3-operational-evidence-priority.json docs/v3-operational-model-diagnostics.json docs/v3-price-outcome-triage.json docs/v3-trading-status.json docs/score-history/
             if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             if git push origin HEAD:main; then

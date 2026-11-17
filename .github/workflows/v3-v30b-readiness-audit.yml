@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - v3_v30b_release_gate.py
+      - v3_operational_publication_audit.py
+      - scripts/audit_operational_publication.cjs
+      - tests/test_v3_operational_publication_audit.py
       - v3_forward_horizon_readiness.py
       - v3_historical_performance_pilot_audit.py
       - tests/test_v3_historical_performance_pilot_audit.py
@@ -23,6 +26,9 @@ on:
     branches: [main]
     paths:
       - v3_v30b_release_gate.py
+      - v3_operational_publication_audit.py
+      - scripts/audit_operational_publication.cjs
+      - tests/test_v3_operational_publication_audit.py
       - v3_forward_horizon_readiness.py
       - v3_historical_performance_pilot_audit.py
       - tests/test_v3_historical_performance_pilot_audit.py
@@ -64,6 +70,19 @@ jobs:
           # Exit 2 on public summary/source inconsistency, 3 on accidental
           # certification. Do NOT hide either with "|| true".
           python v3_v30b_release_gate.py --assert-blocked > "$RUNNER_TEMP/v30b-readiness-aggregate.json"
+      - name: Reconcile operational CSV and actual Pages detail attachment
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          set -euo pipefail
+          python v3_operational_publication_audit.py --out "$RUNNER_TEMP/v30b-operational-publication.json"
+      - name: Retain operational acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v30b-operational-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/v30b-operational-publication.json
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Reconcile saved historical delisting pilot
         if: ${{ !cancelled() }}
         run: |

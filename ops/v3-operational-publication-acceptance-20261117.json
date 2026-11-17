@@ -1,0 +1,64 @@
+{
+  "schema": "v3-operational-publication-acceptance-1",
+  "asof": "2026-11-16",
+  "publication_coherent": true,
+  "checks": {
+    "score_parts_totals_ranks_and_roster": true,
+    "same_market_day": true,
+    "every_operational_csv_cell": true,
+    "priced_issuer_identity": true,
+    "collection_reason_schema": true,
+    "all_unpriced_issuers_explained": true,
+    "examined_entire_roster": true,
+    "zero_volume_display_retained": true,
+    "pages_attachment_and_details": true
+  },
+  "listed_total": 2592,
+  "priced_count": 2443,
+  "unpriced_count": 149,
+  "unexplained_unpriced_count": 0,
+  "available_weight_distribution": {
+    "100": 1393,
+    "95_to_under_100": 393,
+    "90_to_under_95": 442,
+    "80_to_under_90": 42,
+    "70_to_under_80": 100,
+    "60_to_under_70": 56,
+    "under_60": 166
+  },
+  "zero_volume_reference_count": 102,
+  "unpriced_zero_volume_count": 102,
+  "unpriced_history_exclusion_count": 47,
+  "collection_error_count": 106,
+  "zero_volume_price_guard_count": 102,
+  "other_collection_error_count": 4,
+  "collection_error_stage_counts": {
+    "가격이력": 102,
+    "기관·외국인 수급": 4
+  },
+  "pages": {
+    "status": "coherent",
+    "linked": 2592,
+    "unpriced": 149,
+    "ranked": 2573,
+    "unobserved": 19,
+    "detail_rows_checked": 2592
+  },
+  "file_sha256": {
+    "data.json": "8631137d34b81d14f5f44c5666a25208c89a7ee5a25f028dfc4a975197df2942",
+    "v22-market-catalog.json": "09ac7084f47927a65ae1b36f88b6d00eae487a81382ed0fd5f35489835605987",
+    "v3-operational-research-scores.json": "2ff088dc56419daa93719619ff686b303fe7af4cf3ff85a2c4e81002fbfebb72",
+    "v3-operational-research-scores.csv": "80fd58f5a686bb4ceb383f59ecc0e00a8364c5610faacbcfacbe7df7f8da2306",
+    "v3-operational-research-comparison.json": "8ea57fbcaf8796bb8244df125c692474eedac970063cb8691fed729b27c59d35",
+    "v3-trading-status.json": "d967f973486b0a77eb4e310837cf19b9065e47382ae288b40c4283a3f470d8e4"
+  },
+  "operational_acceptance_complete": false,
+  "remaining_acceptance_evidence": [
+    "KRX_regular_only_volume_turnover_and_OBV_source_scope",
+    "actual_failed_refresh_preserves_previous_publication"
+  ],
+  "investment_score_certified": false,
+  "performance_validated": false,
+  "provider_calls": 0,
+  "read_only": true
+}
