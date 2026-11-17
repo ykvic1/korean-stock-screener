@@ -237,6 +237,26 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
-const api={VERSION,BUDGET,validSessionScope,sessionScopeMarkup,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
+function collectionStatus(record,currentDay){
+ const bands=['100','95_to_under_100','90_to_under_95','80_to_under_90','70_to_under_80','60_to_under_70','under_60'];
+ if(!record||record.schema!=='v3-initial-data-collection-closeout-1'||
+   record.status!=='complete_with_missing_data_excluded'||!isDay(record.asof)||
+   !isDay(currentDay)||record.asof>currentDay||
+   record.initial_data_collection_complete!==true||record.missing_data_excluded_from_completion!==true||
+   record.all_listed_100_weight_required!==false||record.missing_values_filled_or_weights_normalized!==false||
+   record.daily_refresh_continues!==true||record.investment_score_certified!==false||
+   record.performance_validated!==false||record.v30b_release_ready!==false||
+   !Number.isInteger(record.listed_total)||record.listed_total<1||
+   !record.available_weight_distribution||Object.keys(record.available_weight_distribution).length!==bands.length||
+   !bands.every(k=>Number.isInteger(record.available_weight_distribution[k])&&record.available_weight_distribution[k]>=0)||
+   bands.reduce((n,k)=>n+record.available_weight_distribution[k],0)!==record.listed_total||
+   !['publication_coherent','available_fcf_sources_attempted','historical_receipt_collection_complete','fixed_krx_window_extracted']
+     .every(k=>record.checks?.[k]===true)||
+   record.source_eligible_unfetched_fcf_company_years!==0||record.historical_receipt_completed_months!==120||
+   record.fixed_krx_completed_windows!==490||record.fixed_krx_target_windows!==490)return null;
+ return '초기 데이터 수집 완료 (결측 제외) · 마감 기준 '+record.asof+
+   ' · 일일 자동 갱신 계속 · 정식 검증 진행 중';
+}
+const api={collectionStatus,VERSION,BUDGET,validSessionScope,sessionScopeMarkup,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

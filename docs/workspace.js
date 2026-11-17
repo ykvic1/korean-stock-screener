@@ -2895,7 +2895,7 @@ async function load(){
   'v3-dart-cashflow-issuer-evidence.json',
   'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
   'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json',
-  'v3-trading-status.json','v3-regular-close-prices.json'];
+  'v3-trading-status.json','v3-regular-close-prices.json','v3-data-collection-closeout.json'];
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
@@ -2959,6 +2959,9 @@ async function load(){
     ' · 정지 사유는 공식 공시 별도 확인 필요 · 전종목 배점 분모 유지':
     '거래정지 표시자료 미연결 또는 기준일 불일치 · 거래량 0만으로 기간·사유 추정하지 않음';
   if(sort==='ops'&&!operationalLink.linked){sort='stable';if($('sort'))$('sort').value=sort;}
+  if($('dataCollectionStatus'))$('dataCollectionStatus').textContent=
+    root.V3OperationalScore?.collectionStatus(responses[25],model.date)||
+    '초기 데이터 수집 마감 근거 확인 대기 · 결측은 점수로 채우지 않습니다.';
   if($('operationalModelNote'))$('operationalModelNote').textContent=operationalLink.linked?
     (model.operationalVersion?.includes('r1e')?'R1e 잠정 운영모델(손절 미반영)':'R1d 과거 잠정 운영모델(손절 가감점 포함)')+' · 25/30/12.5/12.5/20 · '+operationalLink.linked+
     '종목 연결 (가격 미관측 '+operationalLink.unpriced+'종목 포함) · 미관측 가점은 보류 · 기존 모델 비교 가능':

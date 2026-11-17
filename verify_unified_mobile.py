@@ -168,6 +168,10 @@ with sync_playwright() as p:
     assert desktop_grid["secondLeft"] > desktop_grid["firstLeft"] + 300, desktop_grid
     assert desktop_grid["firstWidth"] > 450 and not desktop_grid["overflow"], desktop_grid
     page.set_viewport_size({"width": 390, "height": 844})
+    collection_status = page.locator("#dataCollectionStatus").inner_text()
+    assert "초기 데이터 수집 완료 (결측 제외)" in collection_status
+    assert "일일 자동 갱신 계속" in collection_status
+    assert "정식 검증 진행 중" in collection_status
     assert page.locator("#sort").input_value() == "ops", "default sort must use provisional R1 operational points"
     operational = context.request.get(URL + "v3-operational-research-scores.json").json()
     first_card = page.locator(".u-stock").first
