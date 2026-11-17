@@ -1,0 +1,60 @@
+name: V3.0b Historical Annual Disclosure Recovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_historical_annual_receipt_recovery.py
+      - .github/workflows/v3-historical-annual-receipt-recovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v30b-historical-annual-receipt-recovery
+  cancel-in-progress: false
+
+jobs:
+  version-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'pyarrow>=20,<27' 'pandas>=2,<3'
+      - name: Download pinned historical cohort inputs
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o historical-prices.parquet
+          base=https://raw.githubusercontent.com/ykvic1/korean-stock-screener/62ec75bd9769a7e4102a56d1f323176c10156e95/docs
+          curl -fsSL --max-time 45 "$base/v3-dart-bulk-history.json" -o historical-financial-pin.json
+          curl -fsSL --max-time 30 "$base/v22-market-catalog.json" -o historical-catalog-pin.json
+      - name: Identify and validate pre-cutoff body versions from OpenDART
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          temp="$RUNNER_TEMP"
+          python v3_historical_annual_receipt_recovery.py --live "$temp/historical-prices.parquet" "$temp/historical-financial-pin.json" "$temp/historical-catalog-pin.json" > "$temp/historical-annual-receipt-recovery.json"
+      - name: Report recovery counts
+        if: always()
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/historical-annual-receipt-recovery.json"
+          if [[ ! -s "$result" ]]; then exit 0; fi
+          jq 'del(.records)' "$result" >> "$GITHUB_STEP_SUMMARY"
+          jq -c 'del(.records)' "$result"
+      - name: Retain dated receipt identities and archive hashes only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-annual-receipt-recovery
+          path: ${{ runner.temp }}/historical-annual-receipt-recovery.json
+          if-no-files-found: ignore
+          retention-days: 90
