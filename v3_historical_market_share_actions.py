@@ -44,8 +44,15 @@ def official_actions(register, face_register, historical_register):
 
 
 COMBINED_CANCELLATION = "treasury_cancellation_then_reverse_split"
-CONTINUITY_KINDS = {"treasury_cancellation", COMBINED_CANCELLATION,
-                    "third_party_placement", "bond_conversion", "option_exercise", "rename"}
+SPIN_OFF = "spin_off"
+SHARE_COUNT_INCREASES = {"third_party_placement", "bond_conversion", "option_exercise",
+                         "preferred_to_common", "public_offering"}
+CONTINUITY_KINDS = SHARE_COUNT_INCREASES | {"treasury_cancellation", COMBINED_CANCELLATION,
+                                          SPIN_OFF, "rename"}
+SPIN_OFF_LISTING = re.compile(
+    r"https://kind\.krx\.co\.kr/corpgeneral/stockissuelist\.do\?bzProcsNo=(\d{14})"
+    r"&contnId=\1&forward=searchStockIssueDetail&method=searchStockIssueDetail\Z"
+)
 TREASURY_LISTING_COPY = re.compile(
     r"https://(?:spn\.stockplus\.com/news/api/v1/disclosure_views/koscom/[0-9]+"
     r"|stock\.mk\.co\.kr/news/disclosure/template/[0-9]+"
@@ -64,6 +71,25 @@ SUSPENDED_TREASURY_VALUES = ("resumed_on", "split_shares", "reduction_shares")
 SUSPENDED_TREASURY_SOURCES = ("split_url", "reduction_url", "resume_url")
 SUSPENDED_TREASURY_FIELDS = SUSPENDED_TREASURY_VALUES + SUSPENDED_TREASURY_SOURCES
 COMBINED_CANCELLATION_FIELDS = ("cancelled_shares", "reverse_split_url", "halt_from", "halt_url", "resume_url")
+SPIN_OFF_FIELDS = ("halt_from", "halt_url", "child_listing_url", "child_code", "child_name",
+                   "child_shares", "child_new_units", "child_old_units")
+
+
+def validate_spin_off(notice):
+    before, after = notice["shares_before"], notice["shares_after"]
+    parent_new, parent_old = notice["new_units"], notice["old_units"]
+    sources = [notice[field] for field in ("terms_url", "halt_url", "child_listing_url")]
+    positive = (parent_new, parent_old, notice["child_new_units"], notice["child_old_units"],
+                notice["child_shares"])
+    require(all(type(n) is int and n > 0 for n in positive)
+            and 0 < after < before and parent_new < parent_old
+            and before * parent_new // parent_old == after
+            and re.fullmatch(r"[0-9A-Z]{6}", notice["child_code"])
+            and notice["child_code"] != notice["code"]
+            and isinstance(notice["child_name"], str) and notice["child_name"].strip()
+            and day(notice["halt_from"]) < day(notice["listed_on"])
+            and len(set(sources + [notice["notice_url"]])) == 4
+            and all(NOTICE.fullmatch(url) for url in sources), "invalid_spin_off_terms")
 
 
 def continuity_actions(raw):
@@ -75,9 +101,9 @@ def continuity_actions(raw):
         before, after = notice["shares_before"], notice["shares_after"]
         listing_url = notice["notice_url"]
         treasury = action == "treasury_cancellation"
-        listing_source = NOTICE.fullmatch(listing_url) or (
-            treasury and TREASURY_LISTING_COPY.fullmatch(listing_url)
-        )
+        listing_source = (NOTICE.fullmatch(listing_url)
+                          or treasury and TREASURY_LISTING_COPY.fullmatch(listing_url)
+                          or action == SPIN_OFF and SPIN_OFF_LISTING.fullmatch(listing_url))
         require(re.fullmatch(r"[0-9A-Z]{6}", code) and notice["market"] in MARKETS.values()
                 and all(type(n) is int and n > 0 for n in (before, after))
                 and all(isinstance(notice[k], str) and notice[k].strip()
@@ -102,6 +128,9 @@ def continuity_actions(raw):
                 **notice, "action": "bonus_ex_rights", "notice_url": notice["rights_url"],
             }
             actions[key] = {**notice, "action": "bonus_listing", "new_units": 1, "old_units": 1}
+        elif action == SPIN_OFF:
+            validate_spin_off(notice)
+            actions[key] = notice
         elif action == COMBINED_CANCELLATION:
             cancelled = notice.get("cancelled_shares")
             old_units = notice.get("old_units")
@@ -118,14 +147,17 @@ def continuity_actions(raw):
             actions[key] = {**notice, "new_units": 1}
         else:
             direction = (after > before) - (after < before)
-            require((action, direction) in {("rename", 0), ("treasury_cancellation", -1),
-                                            ("third_party_placement", 1), ("bond_conversion", 1),
-                                            ("option_exercise", 1)},
+            require((action in SHARE_COUNT_INCREASES and direction == 1)
+                    or (action, direction) in {("rename", 0), ("treasury_cancellation", -1)},
                     "invalid_continuity_notice_kind")
             if treasury:
                 terms_url = notice.get("terms_url", "")
                 require(terms_url != listing_url and (NOTICE.fullmatch(terms_url)
                         or TREASURY_TERMS_COPY.fullmatch(terms_url)), "missing_treasury_cancellation_terms")
+            if action == "public_offering":
+                terms_url = notice.get("terms_url", "")
+                require(terms_url != listing_url and NOTICE.fullmatch(terms_url)
+                        and notice.get("existing_holder_rights") is False, "unreviewed_public_offering_terms")
             if any(field in notice for field in SUSPENDED_TREASURY_FIELDS):
                 require(treasury and all(field in notice for field in SUSPENDED_TREASURY_FIELDS),
                         "invalid_suspended_treasury_chain")
@@ -143,6 +175,16 @@ def continuity_actions(raw):
                         "invalid_suspended_treasury_chain")
             actions[key] = {**notice, "new_units": 1, "old_units": 1}
     return actions
+
+
+def suspension_matches(panels, sessions, index, code, notice, expected_before):
+    halt = day(notice["halt_from"])
+    if halt not in sessions[1:index]:
+        return False
+    halt_index = sessions.index(halt)
+    return (traded(panels[sessions[halt_index - 1]].get(code))
+            and all((quote := panels[session].get(code, ()))[:3] == expected_before and quote[-1] == 0
+                    for session in sessions[halt_index:index]))
 
 
 def match_held_units(panels, sessions, index, code, notice):
@@ -174,14 +216,14 @@ def match_held_units(panels, sessions, index, code, notice):
                 return None
     if not traded(current):
         return None
-    if kind == COMBINED_CANCELLATION:
-        halt = day(notice["halt_from"])
-        if halt not in sessions[1:index]:
+    if kind in {COMBINED_CANCELLATION, SPIN_OFF}:
+        if not suspension_matches(panels, sessions, index, code, notice, expected_before):
             return None
-        halt_index = sessions.index(halt)
-        if (not traded(panels[sessions[halt_index - 1]].get(code))
-                or any((quote := panels[d].get(code, ()))[:3] != expected_before or quote[-1] != 0
-                       for d in sessions[halt_index:index])):
+    if kind == SPIN_OFF:
+        child_code = notice["child_code"]
+        child = panels[session].get(child_code)
+        if (not traded(child) or child[:3] != (market, notice["child_name"], notice["child_shares"])
+                or any(child_code in panels[s] for s in sessions[:index])):
             return None
     if kind == "bonus_ex_rights":
         # Require the later listing and stable trade identity throughout the entitlement window.
@@ -249,7 +291,8 @@ def replay(panels, delisted, notices):
                     **{k: notice[k] for k in ("terms_url", "ex_on", "listed_on", "rights_url",
                                              "ex_reference_krw", "eligible_shares",
                                              *SUSPENDED_TREASURY_FIELDS,
-                                             *COMBINED_CANCELLATION_FIELDS) if k in notice},
+                                             *COMBINED_CANCELLATION_FIELDS, *SPIN_OFF_FIELDS,
+                                             "existing_holder_rights") if k in notice},
                 }
     incorporated = set()
     for code in sorted(anchor.keys() - delisted):
@@ -265,6 +308,8 @@ def replay(panels, delisted, notices):
         buyer_without_entitlement = False
         entitlement_sessions = 0
         seen_share_change = False
+        child_event = None
+        child_units = Fraction(0)
         for session in sessions[1:]:
             row = panels[session].get(code)
             if row is None or row[0] != last[0]:
@@ -285,6 +330,11 @@ def replay(panels, delisted, notices):
                 kind = event["action"]
                 if kind == "bonus_listing" and not (pending_units or buyer_without_entitlement):
                     break
+                if kind == SPIN_OFF:
+                    if child_event or pending_units:
+                        break
+                    child_event = event
+                    child_units = units * Fraction(event["child_new_units"], event["child_old_units"])
                 incorporated.add(key)
                 matched = True
                 if kind == "bonus_ex_rights":
@@ -299,18 +349,35 @@ def replay(panels, delisted, notices):
                     units *= Fraction(event["new_units"], event["old_units"])
             if pending_units:
                 entitlement_sessions += 1
-            if traded(row):
-                low = min(low, Fraction(int(row[5])) * units)
+            child = None
+            if child_event:
+                child = panels[session].get(child_event["child_code"])
+                identity = child_event["market"], child_event["child_name"], child_event["child_shares"]
+                if not child or child[:3] != identity:
+                    break
+            if traded(row) and (child_event is None or traded(child)):
+                if child_event is None:
+                    low = min(low, Fraction(int(row[5])) * units)
                 if session in valuations and matched:
                     close = Fraction(int(row[6])) * units
+                    extra = {}
+                    adverse = round(float((1 - low / int(entry[3])) * 100), 4)
+                    if child_event:
+                        close += int(child[6]) * child_units
+                        # The two intraday lows need not occur at the same time.
+                        adverse = None
+                        extra = {"child_code": child_event["child_code"],
+                                 "child_units_per_entry_share": str(child_units),
+                                 "valuation_basis": "proportional_spin_off_close"}
                     horizons[str(valuations[session])].append({
                         "code": code, "valuation_session": session.isoformat(),
                         "price_change_pct": round(float((close / int(entry[3]) - 1) * 100), 4),
-                        "observed_adverse_excursion_pct": round(float((1 - low / int(entry[3])) * 100), 4),
+                        "observed_adverse_excursion_pct": adverse,
                         "unpriced_sessions": path_gaps,
                         "unlisted_entitlement_sessions": entitlement_sessions,
                         "valuation_includes_unlisted_entitlement": bool(pending_units),
                         "tradable_units_per_entry_share": str(units - pending_units),
+                        **extra,
                     })
             else:
                 path_gaps += 1
