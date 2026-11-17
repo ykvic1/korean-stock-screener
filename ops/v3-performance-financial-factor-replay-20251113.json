@@ -1,0 +1,5091 @@
+{
+  "cash_dividend_and_trading_cost_net_return_verified": false,
+  "complete_three_part_issuers": 2041,
+  "entry_session": "2025-11-14",
+  "existing_operating_scope_identified_funds": 28,
+  "financial_input_counts": {
+    "dated_bulk_reference": 2272,
+    "restored_original_statements": 51,
+    "reviewed_later_delisted_statements": 56
+  },
+  "historical_scope_count": 2573,
+  "historical_security_types_independently_certified": false,
+  "intraday_market_path_independently_verified": false,
+  "outcome_coverage": {
+    "complete_three_parts": {
+      "1": {
+        "adverse_path_observed": 1851,
+        "cohort_size": 2041,
+        "entry_open_observed": 1955,
+        "median_observed_adverse_excursion_pct": 7.1518,
+        "median_price_change_pct": 0.5373,
+        "priced": 1851,
+        "priced_by_basis": {
+          "continuous_raw_quote": 1819,
+          "delisting_case_replay": 14,
+          "reviewed_share_action": 18
+        },
+        "priced_path_with_unpriced_sessions": 5
+      },
+      "12": {
+        "adverse_path_observed": 1429,
+        "cohort_size": 2041,
+        "entry_open_observed": 1955,
+        "median_observed_adverse_excursion_pct": 31.8127,
+        "median_price_change_pct": -19.5277,
+        "priced": 1429,
+        "priced_by_basis": {
+          "continuous_raw_quote": 1050,
+          "delisting_case_replay": 14,
+          "reviewed_share_action": 365
+        },
+        "priced_path_with_unpriced_sessions": 136
+      },
+      "2": {
+        "adverse_path_observed": 1770,
+        "cohort_size": 2041,
+        "entry_open_observed": 1955,
+        "median_observed_adverse_excursion_pct": 9.1385,
+        "median_price_change_pct": -2.6639,
+        "priced": 1769,
+        "priced_by_basis": {
+          "continuous_raw_quote": 1730,
+          "delisting_case_replay": 13,
+          "reviewed_share_action": 26
+        },
+        "priced_path_with_unpriced_sessions": 5
+      },
+      "3": {
+        "adverse_path_observed": 1714,
+        "cohort_size": 2041,
+        "entry_open_observed": 1955,
+        "median_observed_adverse_excursion_pct": 10.2168,
+        "median_price_change_pct": 4.2312,
+        "priced": 1714,
+        "priced_by_basis": {
+          "continuous_raw_quote": 1658,
+          "delisting_case_replay": 14,
+          "reviewed_share_action": 42
+        },
+        "priced_path_with_unpriced_sessions": 13
+      },
+      "6": {
+        "adverse_path_observed": 1488,
+        "cohort_size": 2041,
+        "entry_open_observed": 1955,
+        "median_observed_adverse_excursion_pct": 12.9604,
+        "median_price_change_pct": 4.2588,
+        "priced": 1488,
+        "priced_by_basis": {
+          "continuous_raw_quote": 1338,
+          "delisting_case_replay": 14,
+          "reviewed_share_action": 136
+        },
+        "priced_path_with_unpriced_sessions": 38
+      }
+    },
+    "restored_original_statements": {
+      "1": {
+        "adverse_path_observed": 38,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 9.5556,
+        "median_price_change_pct": -0.525,
+        "priced": 38,
+        "priced_by_basis": {
+          "continuous_raw_quote": 38
+        },
+        "priced_path_with_unpriced_sessions": 0
+      },
+      "12": {
+        "adverse_path_observed": 22,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 35.5528,
+        "median_price_change_pct": -20.6709,
+        "priced": 22,
+        "priced_by_basis": {
+          "continuous_raw_quote": 13,
+          "reviewed_share_action": 9
+        },
+        "priced_path_with_unpriced_sessions": 3
+      },
+      "2": {
+        "adverse_path_observed": 34,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 11.6378,
+        "median_price_change_pct": -5.9826,
+        "priced": 34,
+        "priced_by_basis": {
+          "continuous_raw_quote": 33,
+          "reviewed_share_action": 1
+        },
+        "priced_path_with_unpriced_sessions": 0
+      },
+      "3": {
+        "adverse_path_observed": 31,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 12.3025,
+        "median_price_change_pct": 3.4173,
+        "priced": 31,
+        "priced_by_basis": {
+          "continuous_raw_quote": 28,
+          "reviewed_share_action": 3
+        },
+        "priced_path_with_unpriced_sessions": 0
+      },
+      "6": {
+        "adverse_path_observed": 26,
+        "cohort_size": 51,
+        "entry_open_observed": 43,
+        "median_observed_adverse_excursion_pct": 17.8933,
+        "median_price_change_pct": 1.5254,
+        "priced": 26,
+        "priced_by_basis": {
+          "continuous_raw_quote": 20,
+          "reviewed_share_action": 6
+        },
+        "priced_path_with_unpriced_sessions": 2
+      }
+    },
+    "reviewed_later_delisted_statements": {
+      "1": {
+        "adverse_path_observed": 16,
+        "cohort_size": 56,
+        "entry_open_observed": 16,
+        "median_observed_adverse_excursion_pct": 7.992,
+        "median_price_change_pct": 0.0,
+        "priced": 15,
+        "priced_by_basis": {
+          "delisting_case_replay": 15
+        },
+        "priced_path_with_unpriced_sessions": 3
+      },
+      "12": {
+        "adverse_path_observed": 16,
+        "cohort_size": 56,
+        "entry_open_observed": 16,
+        "median_observed_adverse_excursion_pct": 35.2737,
+        "median_price_change_pct": -32.45,
+        "priced": 16,
+        "priced_by_basis": {
+          "delisting_case_replay": 16
+        },
+        "priced_path_with_unpriced_sessions": 16
+      },
+      "2": {
+        "adverse_path_observed": 16,
+        "cohort_size": 56,
+        "entry_open_observed": 16,
+        "median_observed_adverse_excursion_pct": 10.165,
+        "median_price_change_pct": -1.2,
+        "priced": 15,
+        "priced_by_basis": {
+          "delisting_case_replay": 15
+        },
+        "priced_path_with_unpriced_sessions": 4
+      },
+      "3": {
+        "adverse_path_observed": 16,
+        "cohort_size": 56,
+        "entry_open_observed": 16,
+        "median_observed_adverse_excursion_pct": 10.165,
+        "median_price_change_pct": 2.585,
+        "priced": 16,
+        "priced_by_basis": {
+          "delisting_case_replay": 16
+        },
+        "priced_path_with_unpriced_sessions": 6
+      },
+      "6": {
+        "adverse_path_observed": 16,
+        "cohort_size": 56,
+        "entry_open_observed": 16,
+        "median_observed_adverse_excursion_pct": 13.5816,
+        "median_price_change_pct": 22.295,
+        "priced": 16,
+        "priced_by_basis": {
+          "delisting_case_replay": 16
+        },
+        "priced_path_with_unpriced_sessions": 9
+      }
+    }
+  },
+  "part_weights": {
+    "balance_sheet_strength": 3,
+    "operating_growth_margin": 3,
+    "sales_to_cap": 2.5
+  },
+  "parts_replayed_counts": {
+    "dated_bulk_reference": {
+      "balance_sheet_strength": 2265,
+      "operating_growth_margin": 1944,
+      "sales_to_cap": 2201
+    },
+    "operating_scope": {
+      "balance_sheet_strength": 2367,
+      "operating_growth_margin": 2046,
+      "sales_to_cap": 2305
+    },
+    "restored_original_statements": {
+      "balance_sheet_strength": 50,
+      "operating_growth_margin": 49,
+      "sales_to_cap": 49
+    },
+    "reviewed_later_delisted_statements": {
+      "balance_sheet_strength": 52,
+      "operating_growth_margin": 53,
+      "sales_to_cap": 55
+    }
+  },
+  "performance_validated": false,
+  "point_in_time_scores_verified": false,
+  "provider_calls": 0,
+  "receipt_dated_bulk_values_independently_version_verified": false,
+  "rows": {
+    "000300": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "DH오토넥스",
+      "observed_points": 1.165167,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 60.397607,
+          "points": 0.918022,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -41.681182,
+          "points": 0.061181,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.19872052,
+          "points": 0.185964,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "000880": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "한화",
+      "observed_points": 4.194025,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 84.303187,
+          "points": 0.208385,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 4.5126,
+          "points": 1.736287,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 8.21201515,
+          "points": 2.249353,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 12.3025,
+          "price_change_pct": -8.2393,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 12.3025,
+          "price_change_pct": 15.6885,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 12.3025,
+          "price_change_pct": 32.9571,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        }
+      }
+    },
+    "000950": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "전방",
+      "observed_points": 3.519217,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 14.353496,
+          "points": 2.769086,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -25.740197,
+          "points": 0.082279,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.92078254,
+          "points": 0.667852,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 7.0845,
+          "price_change_pct": 13.7602,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 38.0109,
+          "price_change_pct": -16.2125,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 7.0845,
+          "price_change_pct": -3.6785,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 7.0845,
+          "price_change_pct": 9.1281,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 19.7548,
+          "price_change_pct": -19.6185,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "001140": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "국보",
+      "observed_points": 1.072697,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 86.986797,
+          "points": 0.170839,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -20.581168,
+          "points": 0.094937,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.21473724,
+          "points": 0.806921,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "002210": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "동성제약",
+      "observed_points": 2.712641,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 63.677672,
+          "points": 0.722779,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -3.366537,
+          "points": 0.377637,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 3.41488685,
+          "points": 1.612225,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "003350": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "한국화장품제조",
+      "observed_points": 5.280428,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 32.085595,
+          "points": 2.175845,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 9.42049,
+          "points": 2.533755,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.73610774,
+          "points": 0.570828,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 5.684,
+          "price_change_pct": -5.0096,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "003350",
+          "observed_adverse_excursion_pct": 34.9711,
+          "price_change_pct": 12.2351,
+          "tradable_units_per_entry_share": "5",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 5,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 9.9229,
+          "price_change_pct": -7.7071,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 11.2717,
+          "price_change_pct": 0.9634,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "003350",
+          "observed_adverse_excursion_pct": 18.4008,
+          "price_change_pct": -9.8266,
+          "tradable_units_per_entry_share": "5",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 5,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "003560": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "IHQ",
+      "observed_points": 2.667412,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 29.137515,
+          "points": 2.273467,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -46.301954,
+          "points": 0.052742,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.42549979,
+          "points": 0.341203,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "005030": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "부산주공",
+      "observed_points": 2.696367,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 92.941493,
+          "points": 0.031915,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 0.263408,
+          "points": 0.635021,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 5.56381162,
+          "points": 2.029431,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "005110": {
+      "available_points": 5.5,
+      "market": "KOSPI",
+      "name": "한창",
+      "observed_points": 0.124375,
+      "parts": {
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -117.247013,
+          "points": 0.006329,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.11671415,
+          "points": 0.118046,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "006360": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "GS건설",
+      "observed_points": 3.46416,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 71.42594,
+          "points": 0.45995,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 1.282291,
+          "points": 0.774262,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 7.91942436,
+          "points": 2.229948,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 3.3952,
+          "price_change_pct": 4.9337,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 3.3952,
+          "price_change_pct": 65.7825,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 3.3952,
+          "price_change_pct": -0.7427,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 3.3952,
+          "price_change_pct": 16.4456,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 3.3952,
+          "price_change_pct": 76.1273,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "006380": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "카프로",
+      "observed_points": 0.756022,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 63.130768,
+          "points": 0.749061,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -179.582717,
+          "points": 0.00211,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.0114343,
+          "points": 0.004851,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "006390": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "한일현대시멘트",
+      "observed_points": 4.855266,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 52.391128,
+          "points": 1.31602,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 10.794003,
+          "points": 2.622363,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.47480696,
+          "points": 0.916883,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "007330": {
+      "available_points": 3,
+      "market": "KOSDAQ",
+      "name": "푸른저축은행",
+      "observed_points": 0.106187,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 76.277688,
+          "points": 0.106187,
+          "same_market_peers": 1568
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 3.8606,
+          "price_change_pct": 2.6365,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 11.3936,
+          "price_change_pct": -6.5913,
+          "unpriced_sessions": 30,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 11.3936,
+          "price_change_pct": -6.3089,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 11.3936,
+          "price_change_pct": 11.4878,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 11.3936,
+          "price_change_pct": 8.9454,
+          "unpriced_sessions": 30,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "008290": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "원풍물산",
+      "observed_points": 2.571934,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 63.557515,
+          "points": 0.36639,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -9.269131,
+          "points": 0.670786,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.11227514,
+          "points": 1.534758,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 10.3586,
+          "price_change_pct": -6.57,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "liquidation_close_scenario",
+          "observed_adverse_excursion_pct": 98.008,
+          "price_change_pct": -98.01,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 13.3466,
+          "price_change_pct": -10.96,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 18.1275,
+          "price_change_pct": -18.13,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 41.8327,
+          "price_change_pct": -33.47,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "008500": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "일정실업",
+      "observed_points": 1.634721,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 81.644619,
+          "points": 0.238423,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -6.010079,
+          "points": 0.259494,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.9334783,
+          "points": 1.136804,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 18.1333,
+          "price_change_pct": -15.2,
+          "unpriced_sessions": 13,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "liquidation_close_scenario",
+          "observed_adverse_excursion_pct": 87.6267,
+          "price_change_pct": -83.36,
+          "unpriced_sessions": 17,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 25.6,
+          "price_change_pct": -11.87,
+          "unpriced_sessions": 13,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 25.6,
+          "price_change_pct": -17.47,
+          "unpriced_sessions": 13,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 41.2,
+          "price_change_pct": -36.8,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "010130": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "고려아연",
+      "observed_points": 4.104932,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 48.652905,
+          "points": 1.484981,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 6.998493,
+          "points": 2.217299,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.51925565,
+          "points": 0.402652,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 8.6473,
+          "price_change_pct": 36.3014,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        }
+      }
+    },
+    "010600": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "웰바이오텍",
+      "observed_points": 3.289224,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 36.82147,
+          "points": 2.036921,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -6.749114,
+          "points": 0.238396,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.68104639,
+          "points": 1.013907,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "010620": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "HD현대미포",
+      "observed_points": 1.856753,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 58.769123,
+          "points": 0.985607,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -1.602755,
+          "points": 0.462025,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.51981556,
+          "points": 0.409121,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 2.0595,
+          "price_change_pct": 2.36,
+          "unpriced_sessions": 12,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 53.8353,
+          "price_change_pct": -49.66,
+          "unpriced_sessions": 12,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 7.5778,
+          "price_change_pct": 19.82,
+          "unpriced_sessions": 12,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 7.5778,
+          "price_change_pct": 0.87,
+          "unpriced_sessions": 12,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 20.489,
+          "price_change_pct": 36.17,
+          "unpriced_sessions": 12,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "012510": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "더존비즈온",
+      "observed_points": 4.604133,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 46.528807,
+          "points": 1.597622,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 19.568653,
+          "points": 2.875528,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.14269523,
+          "points": 0.130983,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 6.1404,
+          "price_change_pct": -5.15,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "cash_delivery",
+          "observed_adverse_excursion_pct": 11.2939,
+          "price_change_pct": 31.58,
+          "unpriced_sessions": 13,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 11.2939,
+          "price_change_pct": -0.22,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 11.2939,
+          "price_change_pct": -2.74,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 11.2939,
+          "price_change_pct": 30.59,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "013890": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "지누스",
+      "observed_points": 4.357872,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 43.570887,
+          "points": 1.766583,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 2.329369,
+          "points": 1.06962,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 3.10726918,
+          "points": 1.521669,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 12.7547,
+          "price_change_pct": -10.4151,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 12.7547,
+          "price_change_pct": -8.0,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 13.434,
+          "price_change_pct": -4.4528,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 24.3019,
+          "price_change_pct": -14.3396,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "014200": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "광림",
+      "observed_points": 6.66625,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 8.09627,
+          "points": 2.817284,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 9.043242,
+          "points": 2.387641,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.00959224,
+          "points": 1.461325,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "014470": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "부방",
+      "observed_points": 4.490493,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 46.803676,
+          "points": 0.988201,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 0.522259,
+          "points": 1.234831,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 4.12673136,
+          "points": 2.267461,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 8.0,
+          "price_change_pct": 4.2857,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 8.7143,
+          "price_change_pct": -6.0714,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 9.5,
+          "price_change_pct": -0.8571,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 10.2143,
+          "price_change_pct": -8.7857,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "014970": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "삼륭물산",
+      "observed_points": 3.77726,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 47.637322,
+          "points": 0.94611,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 2.073583,
+          "points": 1.477528,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.8564946,
+          "points": 1.353622,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 5.5409,
+          "price_change_pct": 8.1794,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "014970",
+          "observed_adverse_excursion_pct": 57.5858,
+          "price_change_pct": -50.9235,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 7.6517,
+          "price_change_pct": -7.3879,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 13.5884,
+          "price_change_pct": -7.5198,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "014970",
+          "observed_adverse_excursion_pct": 28.8918,
+          "price_change_pct": -12.2691,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "018880": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "한온시스템",
+      "observed_points": 3.14144,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 71.763962,
+          "points": 0.441176,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 2.328866,
+          "points": 1.0654,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 3.49485447,
+          "points": 1.634864,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 17.3494,
+          "price_change_pct": -14.2169,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        }
+      }
+    },
+    "019440": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "세아특수강",
+      "observed_points": 4.557187,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 50.183195,
+          "points": 1.406133,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 1.945726,
+          "points": 0.959915,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 7.39312587,
+          "points": 2.191139,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 3.5176,
+          "price_change_pct": 1.26,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 11.028,
+          "price_change_pct": 4.82,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 3.5176,
+          "price_change_pct": 7.73,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 3.5176,
+          "price_change_pct": 29.31,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 3.5176,
+          "price_change_pct": 27.87,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "025950": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "동신건설",
+      "observed_points": 5.374191,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 12.3582,
+          "points": 2.608737,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 3.743016,
+          "points": 1.738202,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.55629217,
+          "points": 1.027252,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 8.7671,
+          "price_change_pct": 30.4795,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 47.6027,
+          "price_change_pct": -41.8493,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 8.7671,
+          "price_change_pct": 25.2055,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 8.7671,
+          "price_change_pct": 27.3973,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 8.7671,
+          "price_change_pct": 2.0548,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "026960": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "동서",
+      "observed_points": 5.586038,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 3.915923,
+          "points": 2.975594,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 8.357479,
+          "points": 2.453587,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.176696,
+          "points": 0.156857,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 2.8777,
+          "price_change_pct": 1.9784,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 19.6043,
+          "price_change_pct": -0.7194,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 11.5108,
+          "price_change_pct": -8.2734,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 11.5108,
+          "price_change_pct": 3.4173,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 13.3094,
+          "price_change_pct": -12.5899,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "028080": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "휴맥스홀딩스",
+      "observed_points": 3.939885,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 75.536569,
+          "points": 0.121493,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 1.086847,
+          "points": 1.322472,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 26.51842775,
+          "points": 2.49592,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.7443,
+          "price_change_pct": -4.67,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 48.3098,
+          "price_change_pct": -44.8,
+          "unpriced_sessions": 27,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.7443,
+          "price_change_pct": 5.29,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.7443,
+          "price_change_pct": 4.3,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 14.1979,
+          "price_change_pct": -4.86,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "031440": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "신세계푸드",
+      "observed_points": 3.818791,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 64.795876,
+          "points": 0.662704,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 1.528559,
+          "points": 0.829114,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 9.89600803,
+          "points": 2.326973,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 8.2397,
+          "price_change_pct": 19.35,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 22.2376,
+          "price_change_pct": -20.1,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 8.2397,
+          "price_change_pct": 17.85,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 8.2397,
+          "price_change_pct": 19.73,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 8.2397,
+          "price_change_pct": 28.84,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "032980": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "바이온",
+      "observed_points": 2.429429,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 67.99455,
+          "points": 0.253507,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -47.590044,
+          "points": 0.234832,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.99333684,
+          "points": 1.94109,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "033180": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "KH 필룩스",
+      "observed_points": 2.229664,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 53.568064,
+          "points": 1.244681,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -8.644255,
+          "points": 0.187764,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.20217148,
+          "points": 0.797219,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "035610": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "솔본",
+      "observed_points": 6.106602,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 16.144866,
+          "points": 2.43463,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 7.00952,
+          "points": 2.158427,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.08592767,
+          "points": 1.513545,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 15.1665,
+          "price_change_pct": -9.7411,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 22.1948,
+          "price_change_pct": 24.5376,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 15.1665,
+          "price_change_pct": -10.6042,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 15.1665,
+          "price_change_pct": -3.4525,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 17.3859,
+          "price_change_pct": -10.3576,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "036180": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "지더블유바이텍",
+      "observed_points": 2.74661,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 38.886502,
+          "points": 1.370855,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -24.249488,
+          "points": 0.405618,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.52056579,
+          "points": 0.970137,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "037030": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "파워넷",
+      "observed_points": 5.057387,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 45.741914,
+          "points": 1.041773,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 3.550822,
+          "points": 1.708989,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 4.75609691,
+          "points": 2.306625,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 9.3633,
+          "price_change_pct": 2.2472,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 9.3633,
+          "price_change_pct": -0.7491,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 9.3633,
+          "price_change_pct": 10.4869,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        }
+      }
+    },
+    "037330": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "인지디스플레",
+      "observed_points": 4.527481,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 55.204997,
+          "points": 0.639987,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 1.871792,
+          "points": 1.425843,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 11.94214851,
+          "points": 2.461651,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 8.0702,
+          "price_change_pct": -1.6842,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "037330",
+          "observed_adverse_excursion_pct": 60.7719,
+          "price_change_pct": -58.7368,
+          "tradable_units_per_entry_share": "1/5",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 20,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 8.0702,
+          "price_change_pct": 0.9825,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 8.0702,
+          "price_change_pct": 2.5263,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 8.7719,
+          "price_change_pct": 1.6842,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "037350": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "성도이엔지",
+      "observed_points": 4.425924,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 55.993147,
+          "points": 0.613202,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 1.279685,
+          "points": 1.349438,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 12.14588771,
+          "points": 2.463284,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 2.0716,
+          "price_change_pct": 21.6573,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "037350",
+          "observed_adverse_excursion_pct": 2.0716,
+          "price_change_pct": 15.2542,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 2.0716,
+          "price_change_pct": 15.4426,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "reviewed_share_action",
+          "code": "037350",
+          "observed_adverse_excursion_pct": 2.0716,
+          "price_change_pct": 36.9115,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "037350",
+          "observed_adverse_excursion_pct": 2.0716,
+          "price_change_pct": 110.3578,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "042670": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "HD현대인프라코어",
+      "observed_points": 4.212354,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 56.913003,
+          "points": 1.094493,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 6.814881,
+          "points": 2.175106,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.54725485,
+          "points": 0.942755,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 5.423,
+          "price_change_pct": 23.07,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 10.9996,
+          "price_change_pct": 9.05,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "awaiting_settlement_unpriced",
+          "observed_adverse_excursion_pct": 5.423,
+          "price_change_pct": null,
+          "unpriced_sessions": 10,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 5.423,
+          "price_change_pct": 65.22,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 5.423,
+          "price_change_pct": 110.36,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "043090": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "더테크놀로지",
+      "observed_points": 3.959889,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 29.039507,
+          "points": 1.818559,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -89.521747,
+          "points": 0.15618,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 2.1952255,
+          "points": 1.98515,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "046070": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "코다코",
+      "observed_points": 2.390125,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 96.385808,
+          "points": 0.004783,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -11.566722,
+          "points": 0.594382,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.57934846,
+          "points": 1.79096,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "052670": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "제일바이오",
+      "observed_points": 3.699284,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 11.12171,
+          "points": 2.662309,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -12.618597,
+          "points": 0.562921,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.22954578,
+          "points": 0.474054,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "054630": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "에이디칩스",
+      "observed_points": 1.201803,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 87.093025,
+          "points": 0.041135,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -58.250224,
+          "points": 0.210113,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.50999214,
+          "points": 0.950555,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "057050": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "현대홈쇼핑",
+      "observed_points": 5.956449,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 25.885806,
+          "points": 2.374843,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 3.848461,
+          "points": 1.529536,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 5.69365,
+          "points": 2.05207,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 3.9216,
+          "price_change_pct": -0.18,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 7.8431,
+          "price_change_pct": 21.02,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.8431,
+          "price_change_pct": -7.49,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.8431,
+          "price_change_pct": 41.35,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.8431,
+          "price_change_pct": 51.16,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "057880": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "푸른소나무",
+      "observed_points": 0.251703,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 76.552023,
+          "points": 0.10236,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -233.659279,
+          "points": 0.086517,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.01692799,
+          "points": 0.062826,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "058110": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "멕아이씨에스",
+      "observed_points": 2.524063,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 33.961467,
+          "points": 1.58514,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -64.753013,
+          "points": 0.198877,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.36662827,
+          "points": 0.740046,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 3.1361,
+          "price_change_pct": -0.8599,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 9.4082,
+          "price_change_pct": -6.7274,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 9.4082,
+          "price_change_pct": -7.4355,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 24.8356,
+          "price_change_pct": 34.0415,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "060240": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "스타코링크",
+      "observed_points": 1.969378,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 74.063819,
+          "points": 0.146365,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -53.056017,
+          "points": 0.221348,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.1901689,
+          "points": 1.601665,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "065660": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "안트로젠",
+      "observed_points": 3.23256,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 5.05421,
+          "points": 2.937819,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -67.556328,
+          "points": 0.194382,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.03283715,
+          "points": 0.100359,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 5.2133,
+          "price_change_pct": 74.8815,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 41.4692,
+          "price_change_pct": -35.4976,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 5.2133,
+          "price_change_pct": 101.6588,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 5.2133,
+          "price_change_pct": 77.2512,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 5.2133,
+          "price_change_pct": 50.9479,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "068100": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "케이웨더",
+      "observed_points": 3.487995,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 29.713309,
+          "points": 1.7956,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -7.960431,
+          "points": 0.71573,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.52447034,
+          "points": 0.976665,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 9.7479,
+          "price_change_pct": 1.6807,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "068100",
+          "observed_adverse_excursion_pct": 36.1345,
+          "price_change_pct": -24.7059,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 9.7479,
+          "price_change_pct": 6.8908,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 9.7479,
+          "price_change_pct": 4.0336,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "068100",
+          "observed_adverse_excursion_pct": 22.6891,
+          "price_change_pct": -19.1597,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "068290": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "삼성출판사",
+      "observed_points": 3.405846,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 15.429004,
+          "points": 2.754067,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -2.129563,
+          "points": 0.436708,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.22841153,
+          "points": 0.215071,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 33.4286,
+          "price_change_pct": -32.5714,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 68.5714,
+          "price_change_pct": -65.4286,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 42.9143,
+          "price_change_pct": -41.7143,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 42.9143,
+          "price_change_pct": -39.7714,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 56.0571,
+          "price_change_pct": -56.0571,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "068790": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "DMS",
+      "observed_points": 6.35464,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 25.986042,
+          "points": 1.97162,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 18.239975,
+          "points": 2.81236,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.1381016,
+          "points": 1.57066,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "071200": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "인피니트헬스케어",
+      "observed_points": 5.848765,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 22.189485,
+          "points": 2.145727,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 10.379532,
+          "points": 2.46854,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.71046364,
+          "points": 1.234498,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "082640": {
+      "available_points": 3,
+      "market": "KOSPI",
+      "name": "동양생명",
+      "observed_points": 0.013142,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 94.307226,
+          "points": 0.013142,
+          "same_market_peers": 799
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 7.0783,
+          "price_change_pct": 0.75,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 9.0361,
+          "price_change_pct": 23.4,
+          "unpriced_sessions": 15,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 9.0361,
+          "price_change_pct": -1.2,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 9.0361,
+          "price_change_pct": 10.24,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 9.0361,
+          "price_change_pct": 16.72,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "082660": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "코스나인",
+      "observed_points": 1.767971,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 43.420127,
+          "points": 1.164222,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -79.488395,
+          "points": 0.178651,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.20376869,
+          "points": 0.425098,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "084180": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "수성웹툰",
+      "observed_points": 3.461665,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 44.278435,
+          "points": 1.12787,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -6.208365,
+          "points": 0.769663,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.13305054,
+          "points": 1.564132,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 12.3881,
+          "price_change_pct": 0.0,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "liquidation_close_scenario",
+          "observed_adverse_excursion_pct": 96.8657,
+          "price_change_pct": -93.73,
+          "unpriced_sessions": 1,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 17.3134,
+          "price_change_pct": -15.37,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 55.2239,
+          "price_change_pct": -53.13,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 70.4179,
+          "price_change_pct": -68.27,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "092040": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "아미코젠",
+      "observed_points": 3.008457,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 58.162536,
+          "points": 0.540497,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -2.057074,
+          "points": 1.003371,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.01139675,
+          "points": 1.464589,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 19.4805,
+          "price_change_pct": -13.1494,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 47.8247,
+          "price_change_pct": -44.3182,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 54.8701,
+          "price_change_pct": -46.7208,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        }
+      }
+    },
+    "096530": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "씨젠",
+      "observed_points": 4.649844,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 18.568518,
+          "points": 2.296875,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 3.620539,
+          "points": 1.71573,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.30863452,
+          "points": 0.637239,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 5.8939,
+          "price_change_pct": -3.5363,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "096530",
+          "observed_adverse_excursion_pct": 14.7348,
+          "price_change_pct": -3.1434,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 9.6267,
+          "price_change_pct": -5.8939,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 9.6267,
+          "price_change_pct": 7.6621,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 14.7348,
+          "price_change_pct": 9.6267,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "096610": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "알에프세미",
+      "observed_points": 2.163859,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 47.226892,
+          "points": 0.967156,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -35.354061,
+          "points": 0.3,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.4732609,
+          "points": 0.896703,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "101390": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "아이엠",
+      "observed_points": 3.470477,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 80.91429,
+          "points": 0.075574,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -3.619851,
+          "points": 0.902247,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 24.52418908,
+          "points": 2.492656,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "101670": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "하이드로리튬",
+      "observed_points": 3.190421,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 11.198927,
+          "points": 2.656569,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -28.84528,
+          "points": 0.358427,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.07202154,
+          "points": 0.175425,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 3.9216,
+          "price_change_pct": 8.0882,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 11.7647,
+          "price_change_pct": -0.9804,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        }
+      }
+    },
+    "102280": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "쌍방울",
+      "observed_points": 3.937509,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 20.118349,
+          "points": 2.555068,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -0.493439,
+          "points": 0.546413,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.30228116,
+          "points": 0.836028,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "105560": {
+      "available_points": 3,
+      "market": "KOSPI",
+      "name": "KB금융",
+      "observed_points": 0.054443,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 92.107207,
+          "points": 0.054443,
+          "same_market_peers": 799
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": -5.4504,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 12.3391,
+          "price_change_pct": -2.7252,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        }
+      }
+    },
+    "106520": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "노블엠앤비",
+      "observed_points": 0.704064,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 82.54386,
+          "points": 0.064094,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -141.555563,
+          "points": 0.120225,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.24703113,
+          "points": 0.519745,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "111870": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "KH 미래물산",
+      "observed_points": 2.894059,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 17.763453,
+          "points": 2.350447,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -62.712723,
+          "points": 0.203371,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.16249873,
+          "points": 0.340241,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "115180": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "큐리언트",
+      "observed_points": 2.927018,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 8.214535,
+          "points": 2.811543,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -293.592061,
+          "points": 0.082022,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.00923033,
+          "points": 0.033453,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "119650": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "KC코트렐",
+      "observed_points": 2.285367,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 70.999738,
+          "points": 0.474969,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -7.956417,
+          "points": 0.204641,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 3.38425638,
+          "points": 1.605757,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "121850": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "코이즈",
+      "observed_points": 2.415177,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 57.274035,
+          "points": 0.574936,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -38.216166,
+          "points": 0.284269,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.12878769,
+          "points": 1.555972,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 16.0,
+          "price_change_pct": -14.67,
+          "unpriced_sessions": 17,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "last_liquidation_close_then_cash",
+          "observed_adverse_excursion_pct": 97.75,
+          "price_change_pct": -97.75,
+          "unpriced_sessions": 18,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 40.8333,
+          "price_change_pct": -30.08,
+          "unpriced_sessions": 17,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 47.0,
+          "price_change_pct": -46.17,
+          "unpriced_sessions": 17,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "adjusted_listed_close",
+          "observed_adverse_excursion_pct": 69.7333,
+          "price_change_pct": -61.58,
+          "unpriced_sessions": 17,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "138490": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "코오롱ENP",
+      "observed_points": 5.865797,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 21.344415,
+          "points": 2.502503,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 8.159412,
+          "points": 2.436709,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.50000112,
+          "points": 0.926585,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 12.9652,
+          "price_change_pct": 0.72,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 21.6518,
+          "price_change_pct": -15.31,
+          "unpriced_sessions": 13,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 12.9652,
+          "price_change_pct": 6.48,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 12.9652,
+          "price_change_pct": 41.18,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 12.9652,
+          "price_change_pct": 97.48,
+          "unpriced_sessions": 13,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "139050": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "BF랩스",
+      "observed_points": 2.501665,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 48.740775,
+          "points": 0.909757,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -28.826423,
+          "points": 0.360674,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.7092691,
+          "points": 1.231234,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "140910": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "에이리츠",
+      "observed_points": 1.031278,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 63.471581,
+          "points": 0.730288,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -108.708244,
+          "points": 0.014768,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.32393624,
+          "points": 0.286222,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {}
+    },
+    "144960": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "뉴파워프라즈마",
+      "observed_points": 4.399767,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 58.043671,
+          "points": 0.546237,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 4.950577,
+          "points": 1.897753,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 2.07274876,
+          "points": 1.955777,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 17.3684,
+          "price_change_pct": -13.0702,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 17.3684,
+          "price_change_pct": 149.4737,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 17.3684,
+          "price_change_pct": 5.9649,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 17.3684,
+          "price_change_pct": 5.9649,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 17.3684,
+          "price_change_pct": 95.614,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "145720": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "덴티움",
+      "observed_points": 5.43313,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 38.116314,
+          "points": 1.99562,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 31.548211,
+          "points": 2.934599,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.64298148,
+          "points": 0.502911,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 14.7887,
+          "price_change_pct": -14.6127,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 24.1197,
+          "price_change_pct": -17.6056,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 24.1197,
+          "price_change_pct": -13.0282,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        }
+      }
+    },
+    "148150": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "세경하이테크",
+      "observed_points": 6.015929,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 27.898788,
+          "points": 1.887437,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 8.261576,
+          "points": 2.3,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.67909332,
+          "points": 1.828492,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 9.2205,
+          "price_change_pct": -0.1901,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "148150",
+          "observed_adverse_excursion_pct": 50.9506,
+          "price_change_pct": -37.8327,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "reviewed_share_action",
+          "code": "148150",
+          "observed_adverse_excursion_pct": 9.3156,
+          "price_change_pct": -6.9392,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "reviewed_share_action",
+          "code": "148150",
+          "observed_adverse_excursion_pct": 15.7795,
+          "price_change_pct": -4.5627,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "148150",
+          "observed_adverse_excursion_pct": 27.0913,
+          "price_change_pct": -17.4905,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "150840": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "인트로메딕",
+      "observed_points": 1.536745,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 45.480608,
+          "points": 1.058993,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -28.895733,
+          "points": 0.356179,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.04127929,
+          "points": 0.121573,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "151910": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "퓨처코어",
+      "observed_points": 2.707841,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 59.43592,
+          "points": 0.490753,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 0.874387,
+          "points": 1.291011,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.49355336,
+          "points": 0.926077,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "161580": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "필옵틱스",
+      "observed_points": 3.974527,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 37.652412,
+          "points": 1.412947,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 4.242875,
+          "points": 1.810112,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.37356386,
+          "points": 0.751468,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 15.3504,
+          "price_change_pct": 5.7842,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 15.3504,
+          "price_change_pct": -7.564,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 15.3504,
+          "price_change_pct": 7.7864,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        }
+      }
+    },
+    "168330": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "내츄럴엔도텍",
+      "observed_points": 3.169156,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 19.411436,
+          "points": 2.273916,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -33.041446,
+          "points": 0.313484,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.28327123,
+          "points": 0.581756,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 16.4634,
+          "price_change_pct": 31.0976,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 32.1951,
+          "price_change_pct": -14.6341,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 16.4634,
+          "price_change_pct": 19.5122,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 16.4634,
+          "price_change_pct": 21.3415,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 20.4065,
+          "price_change_pct": -2.6423,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "174880": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "장원테크",
+      "observed_points": 5.87334,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 17.522396,
+          "points": 2.369579,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -0.535598,
+          "points": 1.126966,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 6.43465552,
+          "points": 2.376795,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "179900": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "유티아이",
+      "observed_points": 0.971998,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 53.590439,
+          "points": 0.710778,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -96.1251,
+          "points": 0.149438,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.03732067,
+          "points": 0.111782,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 7.5697,
+          "price_change_pct": 1.992,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        }
+      }
+    },
+    "187790": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "나노",
+      "observed_points": 2.871959,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 64.423997,
+          "points": 0.343431,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -0.53297,
+          "points": 1.129213,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.91930636,
+          "points": 1.399315,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 20.1939,
+          "price_change_pct": 24.5557,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 40.1616,
+          "price_change_pct": -37.609,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 20.1939,
+          "price_change_pct": 14.0549,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 20.1939,
+          "price_change_pct": 29.2407,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 20.1939,
+          "price_change_pct": 96.769,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "188260": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "세니젠",
+      "observed_points": 3.558445,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 38.732937,
+          "points": 1.374681,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -21.624797,
+          "points": 0.430337,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.51326702,
+          "points": 1.753427,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 11.7084,
+          "price_change_pct": -7.0615,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 17.9954,
+          "price_change_pct": -10.6606,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 21.6401,
+          "price_change_pct": -19.2711,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 38.9066,
+          "price_change_pct": 1.3667,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "196490": {
+      "available_points": 5.5,
+      "market": "KOSDAQ",
+      "name": "디에이테크놀로지",
+      "observed_points": 1.848748,
+      "parts": {
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -45.030721,
+          "points": 0.24382,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.19433441,
+          "points": 1.604928,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "203690": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "아크솔루션스",
+      "observed_points": 1.842133,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 57.503222,
+          "points": 0.567284,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -19.709719,
+          "points": 0.448315,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.43193511,
+          "points": 0.826534,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "204630": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "스튜디오산타클로스",
+      "observed_points": 1.551656,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 50.965537,
+          "points": 0.821747,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -167.184196,
+          "points": 0.108989,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.3011063,
+          "points": 0.62092,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "208340": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "파멥신",
+      "observed_points": 2.679322,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 12.153562,
+          "points": 2.61639,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -9205.062536,
+          "points": 0.00337,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.01662008,
+          "points": 0.059562,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "217620": {
+      "available_points": 5.5,
+      "market": "KOSDAQ",
+      "name": "선샤인푸드",
+      "observed_points": 2.213915,
+      "parts": {
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -13.10985,
+          "points": 0.540449,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.31185854,
+          "points": 1.673466,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "222160": {
+      "available_points": 5.5,
+      "market": "KOSDAQ",
+      "name": "NPX",
+      "observed_points": 3.071656,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 7.851748,
+          "points": 2.83259,
+          "same_market_peers": 1568
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.10425314,
+          "points": 0.239066,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "222810": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "세토피아",
+      "observed_points": 1.741558,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 92.377576,
+          "points": 0.00861,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -12.75869,
+          "points": 0.553933,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.67499998,
+          "points": 1.179015,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "224060": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "더코디",
+      "observed_points": 2.5125,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 72.291071,
+          "points": 0.176977,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -35.790616,
+          "points": 0.293258,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 2.40091041,
+          "points": 2.042265,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 6.8392,
+          "price_change_pct": -0.1848,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 32.976,
+          "price_change_pct": -16.6359,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 11.2754,
+          "price_change_pct": 10.3512,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 11.2754,
+          "price_change_pct": 76.1553,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 11.2754,
+          "price_change_pct": 115.1571,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "226360": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "KH 건설",
+      "observed_points": 3.704733,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 25.066939,
+          "points": 2.023278,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -6.269667,
+          "points": 0.765169,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.48621473,
+          "points": 0.916286,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "227100": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "퀀텀온",
+      "observed_points": 2.454762,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 90.672698,
+          "points": 0.010523,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -92.714859,
+          "points": 0.153932,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 4.53146418,
+          "points": 2.290307,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "230360": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "에코마케팅",
+      "observed_points": 5.97412,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 30.044705,
+          "points": 1.776466,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 14.970426,
+          "points": 2.713483,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.03438742,
+          "points": 1.484171,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 5.8348,
+          "price_change_pct": 0.36,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "scheduled_cash_entitlement",
+          "observed_adverse_excursion_pct": 5.8348,
+          "price_change_pct": 43.63,
+          "unpriced_sessions": 20,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 5.8348,
+          "price_change_pct": 42.82,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 5.8348,
+          "price_change_pct": 42.82,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 5.8348,
+          "price_change_pct": 43.72,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "230980": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "비유테크놀러지",
+      "observed_points": 0.934113,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 83.570673,
+          "points": 0.050701,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -79.426365,
+          "points": 0.180899,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.33906495,
+          "points": 0.702513,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "245620": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "EDGC",
+      "observed_points": 1.438443,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 96.736796,
+          "points": 0.00287,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -20.651146,
+          "points": 0.439326,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.5323977,
+          "points": 0.996247,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "258610": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "케일럼",
+      "observed_points": 3.951225,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 48.176314,
+          "points": 0.932716,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -2.045778,
+          "points": 1.005618,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 2.30552544,
+          "points": 2.012891,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 12.7673,
+          "price_change_pct": -5.3459,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        }
+      }
+    },
+    "269620": {
+      "available_points": 5.5,
+      "market": "KOSDAQ",
+      "name": "시스웍",
+      "observed_points": 0.819779,
+      "parts": {
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -11.707307,
+          "points": 0.592135,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.09738203,
+          "points": 0.227644,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "282720": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "금양그린파워",
+      "observed_points": 4.164046,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 41.836257,
+          "points": 1.250319,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 0.04468,
+          "points": 1.183146,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 1.44036798,
+          "points": 1.730581,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 18.234,
+          "price_change_pct": -15.0754,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "observed_adverse_excursion_pct": 55.4917,
+          "price_change_pct": -33.6683,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 28.9304,
+          "price_change_pct": -25.6999,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 30.0072,
+          "price_change_pct": -12.85,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 30.0072,
+          "price_change_pct": -8.3274,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "294090": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "이오플로우",
+      "observed_points": 0.273895,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 90.524519,
+          "points": 0.012436,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -773.703308,
+          "points": 0.037079,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.09625273,
+          "points": 0.22438,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "299170": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "더블유에스아이",
+      "observed_points": 4.401511,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 46.44262,
+          "points": 1.009247,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 11.311084,
+          "points": 2.531461,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.45085987,
+          "points": 0.860803,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "299900": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "위지윅스튜디오",
+      "observed_points": 2.935347,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 40.85404,
+          "points": 1.282844,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -14.791137,
+          "points": 0.504494,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.64327229,
+          "points": 1.148009,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 10.2069,
+          "price_change_pct": -3.86,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 72.1379,
+          "price_change_pct": -64.95,
+          "unpriced_sessions": 24,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 21.7931,
+          "price_change_pct": -17.1,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 30.7586,
+          "price_change_pct": -29.1,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "listed_close",
+          "observed_adverse_excursion_pct": 51.0345,
+          "price_change_pct": -49.93,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "328130": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "루닛",
+      "observed_points": 0.629159,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 62.104449,
+          "points": 0.406569,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -219.50892,
+          "points": 0.097753,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.0466711,
+          "points": 0.124837,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "335890": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "비올",
+      "observed_points": 5.936548,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 9.422944,
+          "points": 2.742666,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 51.98415,
+          "points": 2.998876,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.07969048,
+          "points": 0.195006,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "336370": {
+      "available_points": 8.5,
+      "market": "KOSPI",
+      "name": "솔루스첨단소재",
+      "observed_points": 2.282885,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 47.510521,
+          "points": 1.552566,
+          "same_market_peers": 799
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -12.818277,
+          "points": 0.149789,
+          "same_market_peers": 711
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.74121883,
+          "points": 0.58053,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 25.0237,
+          "price_change_pct": -24.0758,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "336370",
+          "observed_adverse_excursion_pct": 49.4787,
+          "price_change_pct": -37.9147,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 34.7867,
+          "price_change_pct": -31.09,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "observed_adverse_excursion_pct": 34.7867,
+          "price_change_pct": -14.6919,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "observed_adverse_excursion_pct": 34.7867,
+          "price_change_pct": 7.5829,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "348370": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "엔켐",
+      "observed_points": 1.769136,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 58.576555,
+          "points": 0.523278,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -4.711416,
+          "points": 0.837079,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.19513022,
+          "points": 0.408779,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 34.3713,
+          "price_change_pct": -18.4431,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 34.3713,
+          "price_change_pct": -20.3593,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        }
+      }
+    },
+    "412540": {
+      "available_points": 5.5,
+      "market": "KOSDAQ",
+      "name": "제일엠앤에스",
+      "observed_points": 2.632204,
+      "parts": {
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -15.970142,
+          "points": 0.488764,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 3.0529904,
+          "points": 2.14344,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "445680": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "큐리옥스바이오시스템즈",
+      "observed_points": 1.845823,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 31.069889,
+          "points": 1.724809,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -201.649248,
+          "points": 0.102248,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.00393122,
+          "points": 0.018766,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    },
+    "450140": {
+      "available_points": 5.5,
+      "market": "KOSPI",
+      "name": "코오롱모빌리티그룹",
+      "observed_points": 1.900168,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 73.697771,
+          "points": 0.362328,
+          "same_market_peers": 799
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 3.16070129,
+          "points": 1.53784,
+          "same_market_peers": 773
+        }
+      },
+      "price_paths": {
+        "1": {
+          "basis": "delisting_case_replay",
+          "method": "awaiting_settlement_unpriced",
+          "observed_adverse_excursion_pct": 38.3503,
+          "price_change_pct": null,
+          "unpriced_sessions": 1,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 90.4561,
+          "price_change_pct": -89.96,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 78.1036,
+          "price_change_pct": -77.35,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 78.1036,
+          "price_change_pct": -66.92,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "delisting_case_replay",
+          "method": "stock_delivery_mark",
+          "observed_adverse_excursion_pct": 78.1036,
+          "price_change_pct": -63.49,
+          "unpriced_sessions": 14,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "460470": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "아이빔테크놀로지",
+      "observed_points": 2.98188,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 10.354189,
+          "points": 2.689094,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -144.828215,
+          "points": 0.11573,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 0.07401071,
+          "points": 0.177056,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {
+        "1": {
+          "observed_adverse_excursion_pct": 15.4574,
+          "price_change_pct": -3.47,
+          "unpriced_sessions": 0,
+          "valuation_session": "2025-12-15"
+        },
+        "12": {
+          "basis": "reviewed_share_action",
+          "code": "460470",
+          "observed_adverse_excursion_pct": 32.1767,
+          "price_change_pct": -26.183,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        "2": {
+          "observed_adverse_excursion_pct": 15.4574,
+          "price_change_pct": -5.5205,
+          "unpriced_sessions": 0,
+          "valuation_session": "2026-01-13"
+        },
+        "3": {
+          "basis": "reviewed_share_action",
+          "code": "460470",
+          "observed_adverse_excursion_pct": 15.4574,
+          "price_change_pct": -0.3155,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-02-13"
+        },
+        "6": {
+          "basis": "reviewed_share_action",
+          "code": "460470",
+          "observed_adverse_excursion_pct": 15.4574,
+          "price_change_pct": 27.918,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-05-13"
+        }
+      }
+    },
+    "462350": {
+      "available_points": 8.5,
+      "market": "KOSDAQ",
+      "name": "이노스페이스",
+      "observed_points": 2.191671,
+      "parts": {
+        "balance_sheet_strength": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": 20.974692,
+          "points": 2.189732,
+          "same_market_peers": 1568
+        },
+        "operating_growth_margin": {
+          "asof": "2025-11-13",
+          "available": 3,
+          "input": -79382.335763,
+          "points": 0.001123,
+          "same_market_peers": 1335
+        },
+        "sales_to_cap": {
+          "asof": "2025-11-13",
+          "available": 2.5,
+          "input": 8.79e-05,
+          "points": 0.000816,
+          "same_market_peers": 1532
+        }
+      },
+      "price_paths": {}
+    }
+  },
+  "schema": "v3-historical-financial-factor-replay-v1",
+  "score_model": "v3-stable-r1e-operational-research",
+  "signal_market_cap_reconciled_count": 2573,
+  "signal_session": "2025-11-13",
+  "source_sha256": {
+    "bulk_financial_reference": "991b4765f806932fe810d7a21aa7565809517e925da5d7c8d7c99ea462d23a8c",
+    "classified_funds": "b5c175c69936cf5b42a6ce5dc205a448d7a7c2e712daee4b2c6f162890ca0eef",
+    "continuity_register": "55a408ebeaf799665fa0affa8b4a30b164e6b0336627cbfcdb4040f0820f4fc9",
+    "delisted-annual-statements": "39d49d0ee8e788fc63e35d451ca552e589179762945ca48798eef17968987212",
+    "delisted-financial-coverage": "7e2c236dba90c256e1aa52d1f5ec8b4a558ba73d320ebded525bc6d8b63f1c5f",
+    "delisting-trade-observations": "11bcb13beac6e86dfcf5931c9db96713a968b486fa2c9c0bd80f7a229d49b0c9",
+    "delistings": "dd2389edd11769ab9fba7e01abe6664cb8a65007c1f5e6ff4282a90d4b385dca",
+    "downside-horizons": "1590c235360a778f340bb4796dbfcf7876bde296cd22c695fcdb989a77630779",
+    "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
+    "financial-statements": "bc2ef1204f8b99cb28a336adddf77ece51552c4c5d9806cb3cd4e388d3930ee0",
+    "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
+    "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0",
+    "operating_scope": "44a5b6de1f17de1f80b18d75a8e7db4a99ab0a88fa2eddda81ebfe6c7c927611",
+    "price-replay": "37af44f7f6ecbde62be36b97e7a3c80bbd98662f6d0fa700e9bf47846683e9a2",
+    "price_inputs": [
+      "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+      "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d",
+      "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc"
+    ],
+    "receipts": "437003c9228ef4e81c0f421a6b0a7efc2acb229435baa670fde6be889a29085b",
+    "reference_catalog": "41e82e39460d38091c5eeeefe3d20c72f51a7a36651e810efbaf1dcadde303f4",
+    "restored_statements": "25445410c6c14cb737bbb040b8c35612bb27b80be8bf0fbe8eb9f71674ce5184"
+  }
+}
