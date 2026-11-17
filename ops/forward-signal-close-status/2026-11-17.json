@@ -1,0 +1,26 @@
+{
+  "schema": "v3-forward-signal-close-comparison-1",
+  "score_asof": "2026-11-17",
+  "status": "compared",
+  "source_market_sha256": "f67ac810d463f0e1460f101bc0e35680f49ded8b9f20630bff1a3bed71fe9c8b",
+  "official_source_sha256": {
+    "KOSPI": "6138c479ff3b57debd122a42235078d3b9c68bc1df3d23fd804226ec9549dae8",
+    "KOSDAQ": "f716bd217368b86ff7909b0e626c58d71379c983fa832a6513398cadacd38957"
+  },
+  "compared_count": 2591,
+  "states": {
+    "matched": 375,
+    "close_mismatch": 2066,
+    "published_row_absent": 150,
+    "published_price_unavailable": 0,
+    "published_price_stale": 0,
+    "official_row_absent": 0,
+    "identity_unresolved": 0,
+    "no_reported_volume": 0,
+    "official_price_unavailable": 0
+  },
+  "all_ohlcv_regular_session_certified": false,
+  "performance_validated": false,
+  "score_observation_sha256": "4d27fa85b2fbeccbfe72b3b1123d96dfc151b64ec5f5e073bfa8be9e45635e51",
+  "evidence_sha256": "e4df4f065fe03b9710b2baa29c247b150742fcacf4630ac136027873fd63a227"
+}
