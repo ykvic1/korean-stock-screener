@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261110-score-reconcile">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261117-historical-price">
 <script src="v3-ranking.js?v=alnum-20261112" defer></script>
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
 <script src="operational-score.js?v=r1e-stop-unscored-alnum-session-scope-20261117&amp;source=regular-close-weekly-history" defer></script>
 <script src="v3-trading-status.js?v=20261110-halt-display-alnum-20261112" defer></script>
-<script src="workspace.js?v=v30b-20261116-regular-close" defer></script>
+<script src="workspace.js?v=v30b-20261117-historical-price" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -92,7 +92,12 @@
   <p id="compareStatus" class="u-compare-status" role="status" aria-live="polite">정확한 종목명이나 6자리 코드를 입력하면 두 종목을 비교할 수 있습니다. 종목 상세의 ‘비교에 담기’도 사용할 수 있어요.</p>
   <div id="compareResults" hidden></div>
  </details>
- <details class="u-research-panel" id="researchPanel"><summary><strong>데이터 수집 · 검증 현황</strong><span>KRX · DART · 업종 · 확보율 상세</span></summary><div class="u-research-body"><details class="u-intro" id="marketSummary">
+ <details class="u-research-panel" id="researchPanel"><summary><strong>데이터 수집 · 검증 현황</strong><span>KRX · DART · 과거 수익률 검증</span></summary><div class="u-research-body">
+ <details class="u-intro u-history" id="historicalPriceCoverage">
+  <summary class="u-intro-top"><span class="u-section-heading">과거 가격수익률 산출 현황</span><span class="u-history-value" aria-live="polite">12개월 표본 확인</span></summary>
+  <div class="u-history-body"><p class="u-source">자료 확인 중</p></div>
+ </details>
+ <details class="u-intro" id="marketSummary">
   <summary class="u-intro-top"><span class="u-section-heading" id="sourceTitle">오늘의 시장 관찰 <small>자세히 보기</small></span>
   <span id="state" class="u-state" role="status" aria-live="polite">데이터 연결 중…</span></summary>
   <div class="u-stats">

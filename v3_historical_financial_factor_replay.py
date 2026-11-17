@@ -12,6 +12,7 @@ from statistics import median
 import sys
 
 from v3_dart_bulk_history import SCHEMA as HISTORY_SCHEMA, _valid_receipt, research_parts
+from v3_forward_horizon_readiness import _anniversary
 from v3_historical_annual_receipt_recovery import PIN_DAY, PINNED_HASHES
 from v3_historical_performance_pilot_audit import audit as audit_delisting_pilot
 from v3_historical_pilot_daily_replay import SOURCE_DIGESTS
@@ -234,7 +235,38 @@ def summarize_outcomes(codes, outcomes, entry):
     return summary
 
 
-def build(paths, financial_path, current_path):
+def public_price_paths(catalog, panels, outcomes, summary):
+    """Project the fixed historical cohort onto a small, price-only Pages feed."""
+    sessions = sorted(session for session in panels if session >= ENTRY)
+    valuations = {str(h): next(s for s in sessions if s >= _anniversary(SIGNAL, h)).isoformat()
+                  for h in HORIZONS}
+    rows = {}
+    for member in catalog["rows"]:
+        code = member["code"]
+        paths = {}
+        for period, bucket in outcomes.items():
+            result = bucket.get(code)
+            if result is None:
+                continue
+            require(result["valuation_session"] == valuations[period], "public_price_path_date_mismatch")
+            paths[period] = [result["price_change_pct"], result["observed_adverse_excursion_pct"],
+                             result["unpriced_sessions"], result.get("basis"),
+                             bool(result.get("valuation_includes_unlisted_entitlement"))]
+        rows[code] = {
+            "name": member["name"], "market": member["market"],
+            "entry_observed": traded(panels[ENTRY].get(code)), "paths": paths,
+        }
+    return {
+        "schema": "v3-historical-price-paths-1",
+        "signal_session": SIGNAL.isoformat(), "entry_session": ENTRY.isoformat(),
+        "valuations": valuations, "cohort_size": summary["12"]["cohort_size"],
+        "priced": {period: summary[period]["priced"] for period in valuations},
+        "path_columns": ["price_pct", "downside_pct", "unpriced_sessions", "basis", "unlisted_entitlement"],
+        "rows": rows, "performance_validated": False,
+    }
+
+
+def build(paths, financial_path, current_path, *, price_paths_out=None):
     bulk, bulk_sha = content(financial_path)
     current, current_sha = content(current_path)
     require((bulk_sha, current_sha) == PINNED_HASHES[1:] and bulk["asof"] == current["date"] == PIN_DAY,
@@ -275,7 +307,9 @@ def build(paths, financial_path, current_path):
             "available_points": sum(v["available"] for v in observed.values()),
             "price_paths": {period: rows[code] for period, rows in outcomes.items() if code in rows},
         }
-    return {
+    outcome_coverage = {key: summarize_outcomes(codes, outcomes, panels[ENTRY])
+                        for key, codes in groups.items() if key != "dated_bulk_reference"}
+    result = {
         "schema": SCHEMA, "score_model": VERSION, "signal_session": SIGNAL.isoformat(),
         "entry_session": ENTRY.isoformat(), "historical_scope_count": len(cohort),
         "existing_operating_scope_identified_funds": len(funds),
@@ -294,8 +328,7 @@ def build(paths, financial_path, current_path):
                                   for key, codes in {"operating_scope": cohort, **sources}.items()},
         "part_weights": {name: SPECS[area][name] for name, (area, _) in PARTS.items()},
         "complete_three_part_issuers": len(full),
-        "outcome_coverage": {key: summarize_outcomes(codes, outcomes, panels[ENTRY]) for key, codes in groups.items()
-                             if key != "dated_bulk_reference"},
+        "outcome_coverage": outcome_coverage,
         "rows": records,
         "receipt_dated_bulk_values_independently_version_verified": False,
         "historical_security_types_independently_certified": False,
@@ -304,6 +337,11 @@ def build(paths, financial_path, current_path):
         "point_in_time_scores_verified": False, "performance_validated": False,
         "provider_calls": 0,
     }
+    if price_paths_out is not None:
+        public = public_price_paths(catalog, panels, outcomes, outcome_coverage["complete_three_parts"])
+        price_paths_out.write_text(json.dumps(public, ensure_ascii=False, sort_keys=True,
+                                             allow_nan=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    return result
 
 
 def main():
@@ -311,8 +349,9 @@ def main():
     parser.add_argument("sources", nargs=3, type=Path)
     parser.add_argument("financial", type=Path)
     parser.add_argument("catalog", type=Path)
+    parser.add_argument("--price-paths-out", type=Path, help="write the Pages research view JSON")
     args = parser.parse_args()
-    print(json.dumps(build(args.sources, args.financial, args.catalog),
+    print(json.dumps(build(args.sources, args.financial, args.catalog, price_paths_out=args.price_paths_out),
                      ensure_ascii=False, sort_keys=True, allow_nan=False))
 
 

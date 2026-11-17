@@ -185,6 +185,45 @@ with sync_playwright() as p:
     assert "거래 구조 12점은 완성된 장기 거래대금" in page.locator(".u-operational-detail").inner_text()
     assert not page.evaluate("document.documentElement.scrollWidth > innerWidth"), "operational detail must fit mobile viewport"
     page.locator("#detailClose").click()
+    historical = context.request.get(URL + "v3-historical-price-paths-20251113.json").json()
+    assert historical["performance_validated"] is False
+    search = page.locator("#stockSearch")
+    search.fill("005930")
+    page.locator('[data-stock="005930"]').click()
+    price_path = page.locator("#detailHistoricalPrice")
+    price_path.locator("summary").click()
+    price_path.locator("tbody tr").last.wait_for()
+    assert price_path.locator("tbody tr").count() == 5
+    samsung = historical["rows"]["005930"]["paths"]["12"]
+    assert price_path.locator(".u-history-value").inner_text() == f"{samsung[0]:+.1f}%"
+    last = price_path.locator("tbody tr").last
+    assert historical["valuations"]["12"] in last.inner_text()
+    assert last.locator("td").last.inner_text() == f"{-samsung[1]:+.1f}%"
+    assert "현금배당·거래비용을 제외한 과거 연구값" in price_path.inner_text()
+    page.set_viewport_size({"width": 320, "height": 844})
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "price history must fit narrow mobile"
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.locator("#detailClose").click()
+    missing = next(code for code, row in historical["rows"].items()
+                   if row["entry_observed"] and (row["paths"].get("12") or [None])[0] is None
+                   and (operational["rows"].get(code, {}).get("name"),
+                        operational["rows"].get(code, {}).get("market")) == (row["name"], row["market"]))
+    search.fill(missing)
+    page.locator(f'[data-stock="{missing}"]').click()
+    price_path.locator("summary").click()
+    price_path.locator("tbody tr").last.wait_for()
+    assert price_path.locator(".u-history-value").inner_text() == "12개월 미산출"
+    assert price_path.locator("tbody tr").last.locator("td").first.inner_text() == "미산출"
+    page.locator("#detailClose").click()
+    search.fill("")
+    page.locator("#researchPanel > summary").click()
+    coverage = page.locator("#historicalPriceCoverage")
+    coverage.locator("summary").click()
+    coverage.locator("tbody tr").last.wait_for()
+    assert coverage.locator(".u-history-value").inner_text() == (
+        f'{historical["priced"]["12"]:,} / {historical["cohort_size"]:,}종목'
+    )
+    page.locator("#researchPanel > summary").click()
     # The existing comparison paths remain available and independently tested.
     page.locator("#advancedFilters > summary").click()
     page.locator("#sort").select_option("stable")
