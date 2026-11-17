@@ -1,9 +1,11 @@
 """Preserve archive gaps and distinguish waiting from replay readiness."""
 from datetime import date, datetime, timezone
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from v3_forward_observed_readiness import horizon_readiness
+from v3_forward_observed_readiness import build, horizon_readiness, share_review_coverage
+from v3_forward_share_actions import STATES
 
 
 class ObservedReadinessTests(unittest.TestCase):
@@ -13,14 +15,14 @@ class ObservedReadinessTests(unittest.TestCase):
         now = datetime(2026, 12, 17, tzinfo=timezone.utc)
         with patch('v3_forward_observed_readiness.official_publish_time',
                    side_effect=lambda day: datetime.combine(day, datetime.min.time(), timezone.utc)):
-            result = horizon_readiness(start, target, [start, missing, target], archived, now, True)
+            result = horizon_readiness(start, target, [start, missing, target], archived, now, True, {})
             self.assertEqual(result['status'], 'daily_archive_gaps')
             self.assertEqual(result['first_missing_due_session'], missing.isoformat())
             self.assertEqual(result['archived_session_count'], 2)
             archived[missing.isoformat()] = {}
-            result = horizon_readiness(start, target, [start, missing, target], archived, now, True)
+            result = horizon_readiness(start, target, [start, missing, target], archived, now, True, {})
             self.assertEqual(result['status'], 'daily_archive_ready_for_path_replay')
-            result = horizon_readiness(start, target, [start, missing, target], archived, now, False)
+            result = horizon_readiness(start, target, [start, missing, target], archived, now, False, {})
             self.assertEqual(result['status'], 'waiting_for_matched_entry')
 
     def test_closed_target_can_still_be_waiting_for_official_data(self):
@@ -28,9 +30,28 @@ class ObservedReadinessTests(unittest.TestCase):
         now = datetime(2026, 12, 16, 10, tzinfo=timezone.utc)
         with patch('v3_forward_observed_readiness.official_publish_time',
                    side_effect=lambda day: datetime(day.year, day.month, day.day, 23, tzinfo=timezone.utc)):
-            result = horizon_readiness(start, target, [start, target], {}, now, True)
+            result = horizon_readiness(start, target, [start, target], {}, now, True, {})
             self.assertEqual(result['status'], 'waiting_for_official_publication')
             self.assertEqual(result['due_session_count'], 1)
-            result = horizon_readiness(start, target, [start], {}, now, True)
+            result = horizon_readiness(start, target, [start], {}, now, True, {})
             self.assertEqual(result['status'], 'waiting_for_target_session')
             self.assertEqual(result['first_missing_due_session'], start.isoformat())
+
+    def test_reconcile_real_entry_transition_and_missing_later_pair(self):
+        with patch('v3_forward_observed_readiness.official_publish_time',
+                   side_effect=lambda day: datetime.combine(day, datetime.min.time(), timezone.utc)):
+            report = build(Path(__file__).resolve().parents[1], datetime(2026, 11, 17, tzinfo=timezone.utc))
+        cohort = report['cohorts']['2026-11-13']
+        boundary = cohort['entry_share_action_review']
+        self.assertEqual(boundary['previous_session_candidate'], '2026-11-13')
+        self.assertTrue(boundary['source_linked'])
+        self.assertGreater(boundary['market_transition_counts']['unchanged_share_count'], 0)
+        self.assertFalse(report['full_corporate_action_history_certified'])
+
+        days = [date(2026, 11, n) for n in (16, 17, 18)]
+        counts = dict.fromkeys(STATES, 0)
+        counts['change_needs_notice'] = 2
+        review = share_review_coverage(days, {('2026-11-17', '2026-11-18'): counts})
+        self.assertEqual(review['source_linked_review_count'], 1)
+        self.assertEqual(review['first_missing_review_session'], '2026-11-17')
+        self.assertEqual(review['unresolved_market_code_transitions_in_linked_reviews'], 2)
