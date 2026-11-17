@@ -1,6 +1,7 @@
 {
-  "id": "20261110-90point-fullmarket-retry-01",
-  "asof": "2026-11-09",
+  "id": "20261117-completed-close-20261116-01",
+  "asof": "2026-11-16",
   "workflow": "full-market-batches.yml",
-  "mode": "publish"
+  "mode": "publish",
+  "restore_schedule": true
 }
