@@ -29,13 +29,16 @@ class PostPublicationReplayTests(unittest.TestCase):
 
     def test_missing_score_capture_retries_on_an_aligned_unchanged_replay(self):
         scores = (WORKFLOWS / "v3-operational-research-score.yml").read_text()
-        capture = scores.split("Start first forward capture for the aligned score date", 1)[1]
+        capture = scores.split("Check for a missing forward capture on the aligned score date", 1)[1]
         self.assertIn("steps.publish_scores.outcome == 'success'", capture)
         self.assertIn("steps.recompute.outputs.waiting != 'true'", capture)
         self.assertIn("steps.publish_scores.outputs.waiting != 'true'", capture)
         self.assertNotIn("steps.publish_scores.outputs.changed", capture)
         self.assertLess(capture.index('ops/forward-score-observations/$day.json'),
                         capture.index("gh workflow run v3-score-observation-capture.yml"))
+        self.assertIn("needs.publish.outputs.capture_required == 'true'", capture)
+        self.assertIn("actions: read", scores.split("  dispatch-forward-capture:", 1)[0])
+        self.assertIn("actions: write", scores.split("  dispatch-forward-capture:", 1)[1])
         target = (WORKFLOWS / "v3-score-observation-capture.yml").read_text()
         self.assertIn("workflow_dispatch:", target)
         self.assertNotIn("workflow_run:", target)
