@@ -194,6 +194,8 @@ def join_outcomes(panels):
               stable_outcomes=stable)
     adjusted = load_replay(panels)
     for period, bucket in adjusted["horizons"].items():
+        for code in adjusted["unpriced_paid_rights_codes_by_horizon"][period]:
+            stable[period].pop(code, None)
         for row in bucket["rows"]:
             code = row["code"]
             # A reviewed transition supersedes a raw continuous mark, e.g. ex-rights.

@@ -20,6 +20,59 @@ def split(new, old):
 
 
 class HistoricalShareActionTests(unittest.TestCase):
+    def test_paid_rights_eligibility_uses_open_entry_on_ex_date(self):
+        early_listing, later_ex, later_listing = map(day, ("2026-01-13", "2026-03-18", "2026-05-15"))
+        sessions = (SIGNAL, ENTRY, day("2025-12-15"), early_listing, day("2026-02-13"),
+                    later_ex, day("2026-05-13"), later_listing, END)
+        detached, entitled = "000001", "000002"
+        panels = {s: dict.fromkeys((*CALENDAR_CODES, detached, entitled), quote(100, 100)) for s in sessions}
+        for s in sessions[3:]:
+            panels[s][detached] = quote(120, 100)
+        for s in sessions[7:]:
+            panels[s][entitled] = quote(120, 90)
+        prefix = "https://kind.krx.co.kr/external/2025/11/13/000001/20251113000001/"
+        terms = dict(code=detached, action="paid_rights_issue", market="KOSPI", name_before="company",
+                     name_after="company", shares_before=100, shares_after=120, ex_on=str(ENTRY),
+                     listed_on=str(early_listing), notice_url=prefix + "68154.htm",
+                     rights_url=prefix + "99301.htm", terms_url=prefix + "11306.htm")
+        second = dict(terms, code=entitled, ex_on=str(later_ex), listed_on=str(later_listing))
+        report = replay(panels, set(), continuity_actions(json.dumps([terms, second]).encode()))
+        holding, = report["horizons"]["12"]["rows"]
+        self.assertEqual((holding["code"], holding["tradable_units_per_entry_share"], holding["price_change_pct"]),
+                         (detached, "1", 0))
+        withheld = report["unpriced_paid_rights_codes_by_horizon"]
+        self.assertEqual(withheld["3"], [])
+        self.assertEqual((withheld["6"], withheld["12"]), ([entitled], [entitled]))
+
+    def test_bonus_path_accepts_a_paid_listing_only_for_already_detached_rights(self):
+        bonus_ex, paid_on, bonus_on = map(day, ("2025-11-20", "2025-11-28", "2025-12-11"))
+        sessions = (SIGNAL, ENTRY, bonus_ex, paid_on, bonus_on, day("2025-12-15"),
+                    day("2026-01-13"), day("2026-02-13"), day("2026-05-13"), END)
+        code = "000001"
+        panels = {d: dict.fromkeys((*CALENDAR_CODES, code), quote(100, 120)) for d in sessions}
+        panels[bonus_ex][code] = quote(100, 80)
+        panels[paid_on][code] = quote(120, 80)
+        for d in sessions[4:]:
+            panels[d][code] = quote(180, 80)
+        prefix = "https://kind.krx.co.kr/external/2025/11/13/000001/20251113000001/"
+        bonus = dict(code=code, action="bonus_issue", market="KOSPI", name_before="company",
+                     name_after="company", shares_before=120, shares_after=180, ex_on=str(bonus_ex),
+                     paid_listing_on=str(paid_on), listed_on=str(bonus_on), eligible_shares=120,
+                     ex_reference_krw=80, new_units=3, old_units=2,
+                     notice_url=prefix + "70791.htm", rights_url=prefix + "70766.htm",
+                     terms_url=prefix + "11308.htm")
+        paid = dict(code=code, action="paid_rights_issue", market="KOSPI", name_before="company",
+                    name_after="company", shares_before=100, shares_after=120, ex_on=str(SIGNAL),
+                    listed_on=str(paid_on), notice_url=prefix + "68154.htm", rights_url=prefix + "99301.htm",
+                    terms_url=prefix + "11306.htm")
+        notices = continuity_actions(json.dumps([bonus, paid]).encode())
+        holding, = replay(panels, set(), notices)["horizons"]["12"]["rows"]
+        self.assertEqual((holding["price_change_pct"], holding["tradable_units_per_entry_share"]), (0, "3/2"))
+        with self.assertRaisesRegex(PilotAuditError, "invalid_bonus_intervening_paid_listing"):
+            continuity_actions(json.dumps([bonus, {**paid, "ex_on": "2025-11-19"}]).encode())
+        panels[paid_on][code] = quote(121, 80)
+        self.assertEqual(replay(panels, set(), notices)["horizons"]["12"]["rows"], [])
+
     def test_spin_off_marks_both_securities_and_leaves_intraday_adverse_unknown(self):
         halt = day("2026-07-30")
         listed = day("2026-08-25")

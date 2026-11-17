@@ -86,6 +86,8 @@ def build(paths, current_catalog):
     raw_report = summarize(panels, roster, ledger_rows(ROOT, "delisting-trade-observations"),
                            prices, stable_codes=stable)
     adjusted = load_replay(panels)
+    for horizon, codes in adjusted["unpriced_paid_rights_codes_by_horizon"].items():
+        stable[horizon].difference_update(codes)
     instrument_file = ROOT / "ops" / f"v3-performance-classified-funds-{TAG}.json"
     fund_raw = instrument_file.read_bytes()
     funds = json.loads(fund_raw)
