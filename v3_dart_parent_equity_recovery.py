@@ -40,6 +40,30 @@ REVIEW_REASONS=frozenset(('verified_reported_parent_equity','no_annual_statement
 class ParentEquityRecoveryError(ValueError):pass
 
 
+def priority_ready(report, comparison, catalog, book, cash):
+    """Defer a bounded close rollover; never collect against old priorities."""
+    from v3_dart_rolling_book_reference import SCHEMA as BOOK_SCHEMA
+    if (pilot.r1d_public_reconciles(report, comparison, catalog) is None
+        or book.get('schema') != BOOK_SCHEMA
+        or book.get('historical_point_in_time_verified') is not False
+        or book.get('official_exchange_pbr_verified') is not False
+        or cash.get('schema') != cf.SCHEMA
+        or cash.get('historical_PIT_certified') is not False
+        or cash.get('raw_dart_rows_published') is not False):
+        raise ParentEquityRecoveryError('untrusted_parent_equity_priority')
+    try:
+        today = date.fromisoformat(catalog['date'])
+        days = [date.fromisoformat(x['asof']) for x in (report, book, cash)]
+        if (today.isoformat() != catalog['date'] or any(
+            d.isoformat() != x['asof'] or d.year != today.year or
+            not 0 <= (today-d).days <= 10
+            for d, x in zip(days, (report, book, cash)))):
+            raise ValueError()
+    except (KeyError, TypeError, ValueError):
+        raise ParentEquityRecoveryError('invalid_parent_equity_priority_date') from None
+    return all(day == today for day in days)
+
+
 def _annuals(book):
     records=book.get('records')
     if type(records) is not list or len(records)>6000:
@@ -284,6 +308,17 @@ def main():
     if a.mode=='verify':
         print(json.dumps({'verified_recoveries':verify(saved,catalog,book,cash),
             'source_reviews':verify_reviews(reviews,catalog),'provider_calls':0}));return
+    verify(saved,catalog,book,cash);verify_reviews(reviews,catalog)
+    ready=priority_ready(report,comparison,catalog,book,cash)
+    if os.getenv('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf8') as out:
+            out.write('ready='+str(ready).lower()+'\n')
+    if not ready:
+        print(json.dumps({'status':'waiting_same_day_parent_equity_priority',
+            'market_asof':catalog['date'],'score_asof':report['asof'],
+            'book_asof':book['asof'],'cashflow_asof':cash['asof'],
+            'provider_calls':0,'reviewed':0,'new_recoveries':0,'remaining':None,
+            'queue_evaluated':False,'previous_evidence_preserved':True}));return
     queue,eligible,needed=pending(report,comparison,catalog,book,cash,saved,reviews)
     output={'selected':min(MAX_CAPTURE,len(queue)),'remaining':len(queue),'eligible':eligible,
         'pbr_missing_issuers':needed,'verified_recoveries':len(saved['records']),
