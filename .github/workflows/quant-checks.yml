@@ -44,6 +44,8 @@ jobs:
           else
             echo 'quant_ci_legacy_five_area_deferred_for_verified_source_day_lag'
           fi
+      - name: Reconcile saved forward score and price archive checkpoints
+        run: python v3_forward_observed_readiness.py > /tmp/v3-forward-observed-readiness.json
       - name: Full Python regression once before integration
         run: python -m unittest discover -s tests -v
       - run: python -m py_compile screener.py quant_engine.py quant_fetch_history.py quant_excel.py official_data.py publish_quant.py recommendation_engine.py
