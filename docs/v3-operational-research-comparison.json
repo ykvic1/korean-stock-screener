@@ -2,6 +2,20 @@
   "asof": "2026-11-13",
   "version": "v3-stable-r1e-operational-research",
   "same_input_common_issuers": 2443,
+  "session_scope": {
+    "schema": "v3-operational-session-scope-1",
+    "price_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "volume_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "turnover_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "price_observation": "PER_COMPONENT_OFFICIAL_CLOSE_WHERE_AVAILABLE",
+    "volume_observation": "UNVERIFIED",
+    "turnover_observation": "UNVERIFIED",
+    "obv_observation": "UNVERIFIED",
+    "legacy_volume_target": "KRX_NXT_ALL_SESSION_VOLUME_TO_2000",
+    "legacy_volume_target_matches_operational": false,
+    "regular_only_market_history_verified": false,
+    "numeric_agreement_proves_session": false
+  },
   "performance_validated": false,
   "top": {
     "50": {
@@ -22,7 +36,7 @@
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "c0f2b6637928f989b28897eb434ed73d860227e1dcb89a1ac4cf7025dc48e3ec",
+    "source_digest": "74724cae6cae0d0a38717fa2cde07086c52efef9d5e954560b8ba4f774b1a18f",
     "listed_total": 2591,
     "ranked_count": 2573,
     "available_100_count": 1390,
