@@ -246,19 +246,21 @@ class AllListedScorecardTests(unittest.TestCase):
         by_code={r["code"]:r for r in rows}
         self.assertEqual(report["industry_current_company_source_status"],
                          "verified_current_company_classification_only")
+        current_markets = {row["code"]: row["market"] for row in catalog["rows"]}
+        expected_codes = {code: row["industry_code"] for code, row in industry["records"].items()
+                          if current_markets.get(code) == row["market"]}
         self.assertEqual(report["industry_code_source_observed"],
-                         industry["observed_industry_codes"])
+                         sum(value is not None for value in expected_codes.values()))
         self.assertGreater(report["industry_code_source_observed"],0)
         self.assertTrue(report["industry_excluded_from_score_budget"])
         self.assertNotIn("industry",report["provisional_numeric_issuer_counts"])
-        for code,value in industry["records"].items():
-            self.assertEqual(by_code[code]["dart_current_industry_code"],
-                             value["industry_code"])
-            self.assertNotIn("industry",by_code[code]["factors"])
+        for code, row in by_code.items():
+            self.assertEqual(row["dart_current_industry_code"], expected_codes.get(code))
+            self.assertNotIn("industry", row["factors"])
         csv_rows=list(csv.DictReader(StringIO(m.to_csv(
             rows,report).lstrip("\ufeff"))))
         self.assertIn("DART_현재업종코드_산업점수아님",csv_rows[0])
-        first=industry["records"].keys().__iter__().__next__()
+        first=next(code for code, value in expected_codes.items() if value is not None)
         self.assertEqual(next(r for r in csv_rows if r["종목코드"]==first)
                          ["DART_현재업종코드_산업점수아님"],
                          industry["records"][first]["industry_code"])

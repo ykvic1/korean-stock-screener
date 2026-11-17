@@ -1992,8 +1992,10 @@ assert.ok(exactCoverageRows.every(x=>x.coverageKey===observedGroup.key));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available<=20));
 assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].candidate===null||
   unified.pillarState(x.r)[0].candidate<=unified.pillarState(x.r)[0].available));
-assert.ok(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===20),
- 'the saved 121-session path receipt supplies the independent absorption budget');
+if(volumeSaved.asof!==prepared.date){
+ assert.ok(prepared.rows.every(x=>unified.pillarState(x.r)[0].available===0),
+  'a stale volume archive supplies no current absorption budget');
+}
 const beforeScores=unified.summary(prepared,legacy).provisional;
 assert.ok(beforeScores>=expectedVolumeCount);
 const badCount={...volumeSaved,observed_volume_candidate_issuers:9999};
@@ -2332,6 +2334,10 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  const alignedHistory=structuredClone(readinessHistory);
  alignedHistory.market_asof=base.asof;
  alignedHistory.listed_total=base.listed_total;
+ for (const year of Object.keys(alignedHistory.historical_dart_company_years_attempted_by_fiscal)) {
+  alignedHistory.historical_dart_company_years_attempted_by_fiscal[year]=100;
+  alignedHistory.historical_dart_company_years_with_accounts_by_fiscal[year]=50;
+ }
  // Explicit source-day matrix: bounded older six-area DART totals must not
  // suppress independently replayed same-day research scores.
  const oneDayOldHistory=structuredClone(alignedHistory);

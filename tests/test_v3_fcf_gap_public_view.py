@@ -29,7 +29,8 @@ class FcfGapPublicViewTests(unittest.TestCase):
             # Safe day rollover: old cashflow snapshot is not a current
             # investment input and must never be displayed as up to date.
             self.assertLess(gap["asof"], current["asof"])
-            self.assertLessEqual(gap["listed_issuer_count"], current["listed_total"])
+            # A delisting can make the current census smaller than its predecessor.
+            self.assertGreater(gap["listed_issuer_count"], 0)
         else:
             self.assertEqual(gap["listed_issuer_count"], current["listed_total"])
         depth = gap["three_year_issuer_depth"]
