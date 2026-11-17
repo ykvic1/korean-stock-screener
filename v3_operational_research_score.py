@@ -35,6 +35,7 @@ from v3_dart_original_revenue_recovery import overlay as original_revenue_overla
 from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT, comparative_fcf_parts
 from v3_dart_reviewed_ordinary_eps import OUTPUT as REVIEWED_EPS_OUTPUT, reviewed_eps_parts
 from v3_regular_close_contract import admitted_rows as regular_close_rows
+from session_policy import REQUIRED_SESSION, required_volume_session
 
 VERSION = 'v3-stable-r1e-operational-research'
 COMPATIBLE_PREVIOUS = ('v3-stable-r1a-operational-research',
@@ -53,6 +54,26 @@ SPECS = {
  'momentum': {'existing_momentum':15,'daily_ma_slope_turn':2,'weekly_ma_slope_turn':3}}
 BUDGET = {k:round(sum(v.values()),6) for k,v in SPECS.items()}
 assert BUDGET == {'volume':25,'technical':30,'financial':12.5,'valuation':12.5,'momentum':20}
+
+
+
+def session_scope(asof):
+    """Describe operational targets separately from unverified source coverage."""
+    legacy_volume_target = required_volume_session(asof)
+    return {
+        'schema': 'v3-operational-session-scope-1',
+        'price_target': REQUIRED_SESSION,
+        'volume_target': REQUIRED_SESSION,
+        'turnover_target': REQUIRED_SESSION,
+        'price_observation': 'PER_COMPONENT_OFFICIAL_CLOSE_WHERE_AVAILABLE',
+        'volume_observation': 'UNVERIFIED',
+        'turnover_observation': 'UNVERIFIED',
+        'obv_observation': 'UNVERIFIED',
+        'legacy_volume_target': legacy_volume_target,
+        'legacy_volume_target_matches_operational': legacy_volume_target == REQUIRED_SESSION,
+        'regular_only_market_history_verified': False,
+        'numeric_agreement_proves_session': False,
+    }
 
 
 def finite(x):
@@ -477,6 +498,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
     for rank,k in enumerate(eligible,1):rows[k]['rank']=rank
     return {'version':VERSION,'asof':day,'budgets':BUDGET,'status':'provisional_operational',
         'prior_operational_version':prior_version,
+        'session_scope':session_scope(day),
         'investment_score_certified':False,'performance_validated':False,'provider_calls':0,
         'missing_is_not_zero':True,'unobserved_weight_not_normalized':True,'listed_total':len(rows),
         'risk_scope':'observed_lower_bound_not_complete_solvency_review',
@@ -623,7 +645,7 @@ def main():
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',
                      'v3_dart_reviewed_fcf_comparative.py','v3_dart_cashflow_factor_preview.py',
-                     'v3_dart_reviewed_ordinary_eps.py')}
+                     'v3_dart_reviewed_ordinary_eps.py','session_policy.py','v3_aftermarket_cutoff.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
         sort_keys=True,separators=(',',':')).encode()).hexdigest()
@@ -639,6 +661,7 @@ def main():
     common=[(k,r) for k,r in report['rows'].items() if r['rank'] is not None and r['legacy_rank'] is not None]
     new=sorted(common,key=lambda x:x[1]['rank']);old=sorted(common,key=lambda x:x[1]['legacy_rank'])
     comparison={'asof':report['asof'],'version':VERSION,'same_input_common_issuers':len(common),
+        'session_scope':report['session_scope'],
         'performance_validated':False,'top':{str(n):{'overlap':len({k for k,_ in new[:n]} & {k for k,_ in old[:n]}),
         'new_kospi':sum(r['market']=='KOSPI' for _,r in new[:n]),'old_kospi':sum(r['market']=='KOSPI' for _,r in old[:n])}
         for n in (50,100,200)},

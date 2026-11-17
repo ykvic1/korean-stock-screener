@@ -19,6 +19,27 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class OperationalScoreTests(unittest.TestCase):
+
+    def test_session_scope_reports_conflicting_targets_without_certifying_sources(self):
+        scope=ops.session_scope('2026-11-13')
+        self.assertEqual(scope['price_target'],'KRX_REGULAR_0900_1530_ASIA_SEOUL')
+        self.assertEqual(scope['volume_target'],scope['price_target'])
+        self.assertEqual(scope['turnover_target'],scope['price_target'])
+        self.assertFalse(scope['legacy_volume_target_matches_operational'])
+        for field in ('volume_observation','turnover_observation','obv_observation'):
+            self.assertEqual(scope[field],'UNVERIFIED')
+        self.assertFalse(scope['regular_only_market_history_verified'])
+        self.assertFalse(scope['numeric_agreement_proves_session'])
+        self.assertTrue(ops.session_scope('2025-03-03')['legacy_volume_target_matches_operational'])
+        with self.assertRaises(ValueError):ops.session_scope('2026-02-30')
+
+    def test_scope_annotations_leave_all_scores_ranks_and_csv_values_unchanged(self):
+        baseline=ops.build(*self.inputs)
+        with patch.object(ops,'session_scope',return_value={}):
+            without=ops.build(*self.inputs)
+        self.assertEqual(baseline['rows'],without['rows'])
+        self.assertEqual(ops.to_csv(baseline),ops.to_csv(without))
+
     def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256
         from v3_ma240_cross_research import observe as ma_observe
@@ -489,6 +510,35 @@ class OperationalScoreTests(unittest.TestCase):
         script="""
 const fs=require('fs'),ops=require('./docs/operational-score.js');
 const report=JSON.parse(fs.readFileSync('docs/v3-operational-research-scores.json'));
+
+const scope={schema:'v3-operational-session-scope-1',
+ price_target:'KRX_REGULAR_0900_1530_ASIA_SEOUL',
+ volume_target:'KRX_REGULAR_0900_1530_ASIA_SEOUL',
+ turnover_target:'KRX_REGULAR_0900_1530_ASIA_SEOUL',
+ price_observation:'PER_COMPONENT_OFFICIAL_CLOSE_WHERE_AVAILABLE',
+ volume_observation:'UNVERIFIED',turnover_observation:'UNVERIFIED',obv_observation:'UNVERIFIED',
+ legacy_volume_target:'KRX_NXT_ALL_SESSION_VOLUME_TO_2000',
+ legacy_volume_target_matches_operational:false,
+ regular_only_market_history_verified:false,numeric_agreement_proves_session:false};
+if(!ops.validSessionScope(scope))throw Error('valid source scope rejected');
+for(const [key,value] of [['volume_observation','KRX_REGULAR_0900_1530_ASIA_SEOUL'],
+ ['regular_only_market_history_verified',true],['numeric_agreement_proves_session',true],
+ ['legacy_volume_target_matches_operational',true]]){
+ const forged={...scope,[key]:value};
+ if(ops.validSessionScope(forged))throw Error('forged source certification accepted');
+ const broken={...report,session_scope:forged};
+ const model={rows:Object.entries(report.rows).map(([code,v])=>({r:{code,name:v.name,market:v.market}})),date:report.asof};
+ if(ops.attach(model,broken)!==0)throw Error('forged scope attached to current scores');
+}
+const unverified=ops.sessionScopeMarkup({v3_operational:{regular_close_recomputed_parts:[]}});
+if(!unverified.includes('거래량·거래대금·OBV의 09:00~15:30 전용 집계 범위는 미확인')||
+   unverified.includes('가격 지표·기간만 공식'))throw Error('unverified session scope hidden');
+const priceOnly=ops.sessionScopeMarkup({v3_operational:{
+ regular_close_recomputed_parts:['daily_rsi'],regular_close_continuous_sessions:200}});
+if(!priceOnly.includes('가격 지표·기간만 공식')||
+   !priceOnly.includes('거래량·거래대금·OBV의 09:00~15:30 전용 집계 범위는 미확인'))
+ throw Error('price-only receipt promoted to market-wide session proof');
+
 const rows=Object.entries(report.rows).map(([code,v])=>({r:{code,name:v.name,market:v.market}}));
 if(ops.attach({rows,date:report.asof},report)!==rows.length)throw Error('attachment');
 const sorted=rows.filter(x=>x.r.v3_operational.score!==null).sort(ops.compare);
