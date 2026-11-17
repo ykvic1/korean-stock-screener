@@ -120,7 +120,7 @@ class ObservedIndustryEarningsSampleTests(unittest.TestCase):
         # data the annual collector may already have caught up, so simply
         # relabeling its asof would not test an actual roster mismatch.
         lagged_bulk["records"].pop(next(iter(lagged_bulk["records"])))
-        lagged_bulk["listed_total"]-=1
+        lagged_bulk["listed_total"]=catalog["listed_total"]-1
         lagged_bulk["attempted_company_count"]-=1
         current_bulk=copy.deepcopy(self.bulk)
         current_bulk["asof"]=new_day
