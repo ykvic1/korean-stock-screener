@@ -48,7 +48,7 @@ SPIN_OFF = "spin_off"
 PAID_RIGHTS_LISTING = "paid_rights_listing_without_entitlement"
 PAID_RIGHTS_UNPRICED = "paid_rights_entitlement_unpriced"
 SHARE_COUNT_INCREASES = {"third_party_placement", "bond_conversion", "option_exercise",
-                         "preferred_to_common", "public_offering"}
+                         "preferred_to_common", "public_offering", "bond_warrant_exercise"}
 CONTINUITY_KINDS = SHARE_COUNT_INCREASES | {"treasury_cancellation", COMBINED_CANCELLATION,
                                           SPIN_OFF, PAID_RIGHTS_LISTING, "rename"}
 SPIN_OFF_LISTING = re.compile(
