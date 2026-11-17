@@ -138,13 +138,13 @@ class DualEvidenceWatchTests(unittest.TestCase):
                 self.assertIsNone(row["market_relative60_median_sample_pct"])
                 self.assertNotEqual(row["observed_state"], "dual_evidence_watch")
         altered = copy.deepcopy(p)
-        index = next(i for i, row in enumerate(altered["groups"])
-                     if row["early_rotation_research_state"]
-                        == "early_relative_recovery_watch")
-        altered["groups"][index]["early_rotation_research_state"] = (
+        row = altered["groups"][0]
+        watch = "early_relative_recovery_watch"
+        row["early_rotation_research_state"] = (
             "no_early_recovery_pattern_observed"
+            if row["early_rotation_research_state"] == watch else watch
         )
-        with self.assertRaises(CrossSourceError):
+        with self.assertRaisesRegex(CrossSourceError, "inconsistent_upstream_early_recovery_state"):
             build(e, altered)
 
     def test_saved_file_verify_mode_tamper_detected(self):
