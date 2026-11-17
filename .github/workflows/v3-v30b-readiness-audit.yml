@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_v30b_release_gate.py
+      - v3_data_collection_closeout.py
+      - docs/v3-data-collection-closeout.json
       - v3_operational_publication_audit.py
       - scripts/audit_operational_publication.cjs
       - tests/test_v3_operational_publication_audit.py
@@ -26,6 +28,8 @@ on:
     branches: [main]
     paths:
       - v3_v30b_release_gate.py
+      - v3_data_collection_closeout.py
+      - docs/v3-data-collection-closeout.json
       - v3_operational_publication_audit.py
       - scripts/audit_operational_publication.cjs
       - tests/test_v3_operational_publication_audit.py
@@ -122,6 +126,9 @@ jobs:
                       ("r1d_90weight_observed_count","현 운영 R1d 90점 이상 근거 관측"),
                       ("r1d_same_market_day_and_roster","현 운영 R1d와 가격자료 기준일·종목수 일치"),
                       ("all_listed_full_coverage_required","전 종목 100점 확보 요구"),
+                      ("initial_data_collection_complete","결측 제외 초기 데이터 수집 완료"),
+                      ("data_collection_closeout_asof","초기 데이터 수집 마감 기준일"),
+                      ("daily_data_refresh_continues","일일 데이터 갱신 유지"),
                       ("dart_historical_receipts_completed_months","과거 공시 접수 수집 완료 월"),
                       ("dart_historical_receipts_remaining_months","과거 공시 접수 남은 월"),
                       ("historical_fixed_window_extracted","KRX 연구용 파생 구간 수집"),

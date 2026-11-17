@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261117-historical-price">
+<link rel="stylesheet" href="workspace.css?v=v30b-20261117-collection-closeout">
 <script src="v3-ranking.js?v=alnum-20261112" defer></script>
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
-<script src="operational-score.js?v=r1e-stop-unscored-alnum-session-scope-20261117&amp;source=regular-close-weekly-history" defer></script>
+<script src="operational-score.js?v=r1e-stop-unscored-alnum-session-scope-20261117-closeout&amp;source=regular-close-weekly-history" defer></script>
 <script src="v3-trading-status.js?v=20261110-halt-display-alnum-20261112" defer></script>
-<script src="workspace.js?v=v30b-20261117-historical-price" defer></script>
+<script src="workspace.js?v=v30b-20261117-collection-closeout" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -42,6 +42,7 @@
   <details class="u-live-disclaimer"><summary>자료 검증 안내</summary><p id="liveProgressNotice" class="u-live-updates-note" role="status" aria-live="polite">공개 집계의 기준일과 확보 상태를 확인 중입니다. 정식 투자점수는 아직 인증되지 않았습니다.</p></details>
  </section>
 <p id="krxCloseAlert" class="u-krx-price-alert" role="status" aria-live="polite">가격 원천 검증 중 · 네이버 FChart 일봉과 KRX 일별 종가의 불일치가 관측됐으나 원인은 미확인입니다. 정규장 종가·거래량과 동일하다고 보장되지 않습니다. <a href="v3-krx-saved-close-crosscheck.json">공식 KRX 대조 집계</a></p>
+<p id="dataCollectionStatus" class="u-research-note" role="status">초기 데이터 수집 마감 상태 확인 중</p>
 <p id="operationalModelNote" class="u-research-note">R1 잠정 운영모델 연결 중</p>
 <p id="regularCloseNote" class="u-research-note" role="status" hidden></p>
 <p id="tradeStatusNote" class="u-research-note">거래정지 여부 자료 확인 중</p>

@@ -738,7 +738,8 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
                  fcf_preview: Any = None,
                  fcf_cashflow_gap: Any = None,
                  operational_r1d: Any = None,
-                 operational_comparison: Any = None) -> dict:
+                 operational_comparison: Any = None,
+                 collection_closeout: Any = None) -> dict:
     """Measure validated coverage and fail closed on independent certification.
 
     The optional proof argument is intentionally ignored: unverified assertions
@@ -899,6 +900,9 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
            and s.get("full_six_pillar_certified_count") == 0,
            issues, "unsupported_public_certification_claim")
 
+    from v3_data_collection_closeout import valid as valid_collection_closeout
+    collection_closed = valid_collection_closeout(collection_closeout, asof) if _valid_iso_day(asof) else False
+
     snapshot_valid = not issues
     full = dist.get(100, 0) if snapshot_valid and dist is not None else None
     counts = validated_area_counts if snapshot_valid else None
@@ -963,6 +967,10 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "r1d_operational_publication_reconciled": r1d_status is not None,
         "r1d_same_market_day_and_roster": r1d_current,
         "all_listed_full_coverage_required": False,
+        "initial_data_collection_complete": collection_closed,
+        "data_collection_closeout_asof": collection_closeout.get("asof") if collection_closed else None,
+        "missing_data_excluded_from_collection_completion": True,
+        "daily_data_refresh_continues": True,
         "r1d_source_asof": r1d_status["asof"] if r1d_status else None,
         "r1d_100weight_observed_count": (
             r1d_status["available_100_count"] if r1d_status else None),
@@ -1053,6 +1061,8 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-operational-research-scores.json")
     p.add_argument("--r1d-comparison", type=Path,
                    default=ROOT / "docs/v3-operational-research-comparison.json")
+    p.add_argument("--collection-closeout", type=Path,
+                   default=ROOT / "docs/v3-data-collection-closeout.json")
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
@@ -1065,7 +1075,9 @@ def main(argv: list[str] | None = None) -> dict:
                           fcf_preview=_read_public_json(a.fcf_preview),
                           fcf_cashflow_gap=_read_public_json(a.fcf_gap),
                           operational_r1d=_read_operational_json(a.r1d_report),
-                          operational_comparison=_read_public_json(a.r1d_comparison))
+                          operational_comparison=_read_public_json(a.r1d_comparison),
+                          collection_closeout=(_read_public_json(a.collection_closeout)
+                              if a.collection_closeout.is_file() else None))
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
