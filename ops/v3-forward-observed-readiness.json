@@ -7,6 +7,20 @@
       "ranked_count": 2572,
       "entry_session_candidate": "2026-11-16",
       "matched_opening_count": 2471,
+      "entry_share_action_review": {
+        "previous_session_candidate": "2026-11-13",
+        "source_linked": true,
+        "market_transition_counts": {
+          "unchanged_share_count": 2766,
+          "share_count_unavailable": 0,
+          "identity_changed": 0,
+          "first_seen": 1,
+          "absent": 0,
+          "change_needs_notice": 4,
+          "notice_mismatch": 0,
+          "notice_matched": 0
+        }
+      },
       "horizons": {
         "1": {
           "target_date": "2026-12-16",
@@ -14,7 +28,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 1,
           "archived_session_count": 1,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "2": {
           "target_date": "2027-01-16",
@@ -22,7 +42,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 1,
           "archived_session_count": 1,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "3": {
           "target_date": "2027-02-16",
@@ -30,7 +56,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 1,
           "archived_session_count": 1,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "6": {
           "target_date": "2027-05-16",
@@ -38,7 +70,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 1,
           "archived_session_count": 1,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "12": {
           "target_date": "2027-11-16",
@@ -46,7 +84,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 1,
           "archived_session_count": 1,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         }
       }
     },
@@ -55,6 +99,11 @@
       "ranked_count": 2573,
       "entry_session_candidate": "2026-11-18",
       "matched_opening_count": null,
+      "entry_share_action_review": {
+        "previous_session_candidate": "2026-11-17",
+        "source_linked": false,
+        "market_transition_counts": null
+      },
       "horizons": {
         "1": {
           "target_date": "2026-12-18",
@@ -62,7 +111,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 0,
           "archived_session_count": 0,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "2": {
           "target_date": "2027-01-18",
@@ -70,7 +125,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 0,
           "archived_session_count": 0,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "3": {
           "target_date": "2027-02-18",
@@ -78,7 +139,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 0,
           "archived_session_count": 0,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "6": {
           "target_date": "2027-05-18",
@@ -86,7 +153,13 @@
           "status": "waiting_for_target_session",
           "due_session_count": 0,
           "archived_session_count": 0,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         },
         "12": {
           "target_date": "2027-11-18",
@@ -94,11 +167,18 @@
           "status": "waiting_for_target_session",
           "due_session_count": 0,
           "archived_session_count": 0,
-          "first_missing_due_session": null
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          }
         }
       }
     }
   },
+  "full_corporate_action_history_certified": false,
   "performance_validated": false,
   "provider_calls": 0
 }
