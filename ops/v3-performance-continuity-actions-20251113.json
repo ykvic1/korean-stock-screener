@@ -4058,5 +4058,61 @@
     "shares_after": 23664507,
     "notice_url": "https://stock.mk.co.kr/news/disclosure/template/1185369",
     "terms_url": "https://samara.kr/disclosure/20261022800652"
+  },
+  {
+    "code": "013890",
+    "name_before": "지누스",
+    "name_after": "지누스",
+    "market": "KOSPI",
+    "listed_on": "2026-05-15",
+    "shares_before": 22254576,
+    "shares_after": 21925813,
+    "action": "treasury_cancellation",
+    "notice_url": "https://kind.krx.co.kr/external/2026/05/12/000161/20260512000320/68151.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/05/15/000883/20260515001885/11013.htm"
+  },
+  {
+    "code": "037030",
+    "name_before": "파워넷",
+    "name_after": "파워넷",
+    "market": "KOSDAQ",
+    "listed_on": "2026-03-05",
+    "shares_before": 25199918,
+    "shares_after": 25512992,
+    "action": "bond_conversion",
+    "notice_url": "https://kind.krx.co.kr/external/2026/02/27/001883/20260227003842/70791.htm"
+  },
+  {
+    "code": "101670",
+    "name_before": "하이드로리튬",
+    "name_after": "하이드로리튬",
+    "market": "KOSDAQ",
+    "listed_on": "2026-01-29",
+    "shares_before": 54169970,
+    "shares_after": 56498284,
+    "action": "third_party_placement",
+    "notice_url": "https://kind.krx.co.kr/external/2026/01/28/000863/20260128002469/70791.htm"
+  },
+  {
+    "code": "101670",
+    "name_before": "하이드로리튬",
+    "name_after": "하이드로리튬",
+    "market": "KOSDAQ",
+    "listed_on": "2026-03-23",
+    "shares_before": 56498284,
+    "shares_after": 56777187,
+    "action": "third_party_placement",
+    "notice_url": "https://kind.krx.co.kr/external/2026/03/20/001040/20260320003961/70791.htm"
+  },
+  {
+    "code": "161580",
+    "name_before": "필옵틱스",
+    "name_after": "필옵틱스",
+    "market": "KOSDAQ",
+    "listed_on": "2026-04-10",
+    "shares_before": 23402747,
+    "shares_after": 23442247,
+    "action": "option_exercise",
+    "notice_url": "https://kind.krx.co.kr/external/2026/04/07/000727/20260407001934/70791.htm"
   }
 ]
