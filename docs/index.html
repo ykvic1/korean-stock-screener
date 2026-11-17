@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#10263c">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
 <title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
-<link rel="stylesheet" href="workspace.css?v=v30b-20261117-collection-closeout">
+<link rel="stylesheet" href="workspace.css?v=v30b-stock-detail-dialog">
 <script src="v3-ranking.js?v=alnum-20261112" defer></script>
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
 <script src="operational-score.js?v=r1e-stop-unscored-alnum-session-scope-20261117-closeout&amp;source=regular-close-weekly-history" defer></script>
 <script src="v3-trading-status.js?v=20261110-halt-display-alnum-20261112" defer></script>
-<script src="workspace.js?v=v30b-20261117-collection-closeout" defer></script>
+<script src="workspace.js?v=v30b-stock-detail-dialog" defer></script>
 <script src="v3-krx-progress.js" defer></script>
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
@@ -79,9 +79,20 @@
   <div class="u-content">
    <div class="u-list-area"><div id="stockList" class="u-stock-list"><div class="u-empty">시장 분석 데이터를 확인하고 있습니다.</div></div>
     <button id="more" type="button" hidden>다음 20종목 보기</button></div>
-   <aside id="detail" class="u-detail" aria-label="선택 종목 심층 분석" hidden></aside>
   </div>
  </section>
+ <dialog id="detail" class="u-detail" aria-labelledby="detailTitle">
+  <header class="u-detail-top">
+   <div><h2 id="detailTitle" tabindex="-1"></h2><p id="detailIdentity"></p></div>
+   <div class="u-detail-nav" role="group" aria-label="종목 상세 이동">
+    <button id="detailPrevious" type="button" aria-label="이전 종목">‹ 이전</button>
+    <span id="detailPosition" role="status"></span>
+    <button id="detailNext" type="button" aria-label="다음 종목">다음 ›</button>
+    <button id="detailClose" type="button" aria-label="분석 닫기">닫기</button>
+   </div>
+  </header>
+  <div id="detailBody" class="u-detail-body"></div>
+ </dialog>
  <details class="u-compare" id="stockCompare" aria-label="종목 2개 비교">
   <summary class="u-compare-toggle"><strong>종목 2개 비교</strong><span>필요할 때 펼치기 · 개인 연구용</span></summary>
   <form id="compareForm" class="u-compare-form">
