@@ -4,7 +4,9 @@ import json
 import unittest
 
 from v3_historical_market_coverage import END, ENTRY, SIGNAL, day
-from v3_historical_market_share_actions import CALENDAR_CODES, continuity_actions, replay
+from v3_historical_market_share_actions import (
+    CALENDAR_CODES, continuity_actions, replay, successor_issuance_actions,
+)
 from v3_historical_performance_pilot_audit import PilotAuditError
 
 
@@ -283,6 +285,28 @@ class HistoricalShareActionTests(unittest.TestCase):
         self.assertEqual(broken["horizons"]["1"]["rows"], [])
         self.assertEqual(broken["horizons"]["12"]["rows"], [])
 
+    def test_bonus_ex_reference_excludes_treasury_only_from_the_allotment(self):
+        ex_on, listed_on = map(day, ("2025-12-15", "2026-01-13"))
+        sessions = (SIGNAL, ENTRY, ex_on, listed_on, day("2026-02-13"), day("2026-05-13"), END)
+        code = "000001"
+        panels = {s: dict.fromkeys((*CALENDAR_CODES, code), quote(100, 9900)) for s in sessions}
+        panels[ex_on][code] = quote(100, 5500)
+        for session in sessions[3:]:
+            panels[session][code] = quote(180, 5500)
+        prefix = "https://kind.krx.co.kr/external/2025/12/12/000001/20251212000001/"
+        terms = dict(code=code, market="KOSPI", name_before="company", name_after="company",
+                     action="bonus_issue", shares_before=100, shares_after=180, eligible_shares=80,
+                     notice_url=prefix+"68154.htm", rights_url=prefix+"70766.htm", terms_url=prefix+"11307.htm",
+                     listed_on=str(listed_on), ex_on=str(ex_on), new_units=2, old_units=1,
+                     ex_reference_krw=5500)
+        notices = continuity_actions(json.dumps([terms]).encode())
+        report = replay(panels, set(), notices)
+        holding, = report["horizons"]["12"]["rows"]
+        self.assertEqual(holding["tradable_units_per_entry_share"], "2")
+        terms["ex_reference_krw"] = 4950
+        wrong = continuity_actions(json.dumps([terms]).encode())
+        self.assertEqual(replay(panels, set(), wrong)["horizons"]["12"]["rows"], [])
+
     def test_rename_and_placement_preserve_units_only_when_both_sides_match(self):
         renaming = day("2025-12-15")
         placement = day("2026-01-13")
@@ -305,6 +329,39 @@ class HistoricalShareActionTests(unittest.TestCase):
         second["shares_after"] = 151
         result = replay(panels, set(), continuity_actions(json.dumps([first, second]).encode()))
         self.assertEqual(result["horizons"]["12"]["rows"], [])
+
+    def test_successor_issuance_preserves_existing_acquirer_units(self):
+        listing = day("2026-01-13")
+        prior = day("2025-12-15")
+        sessions = (SIGNAL, ENTRY, prior, listing, day("2026-02-13"), day("2026-05-13"), END)
+        old_code, code = "000002", "000001"
+        panels = {s: dict.fromkeys((*CALENDAR_CODES, code), quote(100, 100)) for s in sessions}
+        for session in sessions[3:]:
+            panels[session][code] = quote(130, 90)
+        listing_url = "https://kind.krx.co.kr/external/2026/01/09/000001/20260109000001/68154.htm"
+        rows = [dict(code=old_code, successor_code=code, listing_on=str(listing),
+                     prior_trade_on=str(prior), shares_before="100", shares_after="130",
+                     reported_new_shares="30", cancelled_before_consolidation="0",
+                     treatment="new_shares", source_url=listing_url)]
+        terms = [dict(code=old_code, successor_code=code, treatment="stock_exchange",
+                      settlement_or_share_availability_on=str(listing),
+                      term_source_url=listing_url.replace("68154.htm", "11347.htm"))]
+        notices = successor_issuance_actions(panels, rows, terms)
+        report = replay(panels, {old_code}, notices)
+        holding, = report["horizons"]["12"]["rows"]
+        self.assertEqual((holding["code"], holding["tradable_units_per_entry_share"],
+                          holding["price_change_pct"]), (code, "1", -10))
+        event, = report["matched_events"]
+        self.assertEqual(event["exchanged_code"], old_code)
+        manual = {**notices[str(listing), code], "code": code, "listed_on": str(listing),
+                  "existing_holder_rights": False}
+        self.assertEqual(continuity_actions(json.dumps([manual]).encode())[str(listing), code]["new_units"], 1)
+        with self.assertRaisesRegex(PilotAuditError, "unreviewed_successor_issuance"):
+            continuity_actions(json.dumps([{**manual, "existing_holder_rights": True}]).encode())
+        panels[listing][code] = quote(131, 90)
+        self.assertEqual(replay(panels, {old_code}, notices)["horizons"]["12"]["rows"], [])
+        with self.assertRaisesRegex(PilotAuditError, "invalid_successor_listing_identity"):
+            successor_issuance_actions(panels, rows, [{**terms[0], "successor_code": "000003"}])
 
     def test_bond_warrant_exercise_keeps_common_holder_units(self):
         listing = day("2026-01-13")
