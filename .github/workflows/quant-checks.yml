@@ -24,9 +24,12 @@ jobs:
           python v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
           python v3_unscored_path_coverage.py --daily docs/data.json
           python v3_current_observed_scorecard.py --mode write --refresh-derived
-          python v3_operational_research_score.py
-          python v3_operational_evidence_priority.py
-          python v3_operational_model_diagnostics.py
+          result=$(python v3_operational_research_score.py)
+          echo "$result"
+          if [[ $(jq -r '.status // empty' <<< "$result") != waiting_for_aligned_daily_sources ]]; then
+            python v3_operational_evidence_priority.py
+            python v3_operational_model_diagnostics.py
+          fi
           # The saved all-listed scorecard may lag the independent price
           # replay following a new close. Rebuild both in this ephemeral CI
           # checkout before asserting exact issuer/CSV release-gate joins.
