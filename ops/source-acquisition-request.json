@@ -1,6 +1,6 @@
 {
-  "id": "20261118-completed-close-20261117-01",
+  "id": "20261118-replay-aligned-close-20261117-01",
   "asof": "2026-11-17",
-  "workflow": "full-market-batches.yml",
-  "mode": "publish"
+  "workflow": "v3-current-observed-scorecard.yml",
+  "mode": "write"
 }
