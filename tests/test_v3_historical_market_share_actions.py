@@ -306,6 +306,27 @@ class HistoricalShareActionTests(unittest.TestCase):
         result = replay(panels, set(), continuity_actions(json.dumps([first, second]).encode()))
         self.assertEqual(result["horizons"]["12"]["rows"], [])
 
+    def test_bond_warrant_exercise_keeps_common_holder_units(self):
+        listing = day("2026-01-13")
+        sessions = (SIGNAL, ENTRY, day("2025-12-15"), listing,
+                    day("2026-02-13"), day("2026-05-13"), END)
+        code = "317870"
+        panels = {s: dict.fromkeys((*CALENDAR_CODES, code), quote(100, 100)) for s in sessions}
+        for session in sessions[3:]:
+            panels[session][code] = quote(125, 95)
+        listing_notice = "https://kind.krx.co.kr/external/2026/01/09/000001/20260109000001/70791.htm"
+        terms = dict(code=code, action="bond_warrant_exercise", market="KOSPI",
+                     name_before="company", name_after="company", shares_before=100,
+                     shares_after=125, listed_on=str(listing), notice_url=listing_notice)
+        notices = continuity_actions(json.dumps([terms]).encode())
+        report = replay(panels, set(), notices)
+        holding, = report["horizons"]["12"]["rows"]
+        self.assertEqual((holding["tradable_units_per_entry_share"], holding["price_change_pct"]),
+                         ("1", -5))
+        self.assertEqual(report["unpriced_paid_rights_codes_by_horizon"]["12"], [])
+        panels[listing][code] = quote(126, 95)
+        self.assertEqual(replay(panels, set(), notices)["horizons"]["12"]["rows"], [])
+
     def test_verified_offering_and_preferred_conversion_do_not_change_common_holdings(self):
         date = "2025-12-15"
         code = "000001"
