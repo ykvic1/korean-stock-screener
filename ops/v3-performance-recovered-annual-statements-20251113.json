@@ -1,0 +1,3880 @@
+{
+  "schema": "v3-recovered-prior-annual-primary-statements-v1",
+  "signal_market_date": "2025-11-13",
+  "receipt_ledger_sha256": "437003c9228ef4e81c0f421a6b0a7efc2acb229435baa670fde6be889a29085b",
+  "restored_primary_statement_count": 51,
+  "target_count": 51,
+  "metric_counts": {
+    "assets": 51,
+    "liabilities": 51,
+    "equity": 51,
+    "revenue": 49,
+    "operating_income": 51
+  },
+  "comparative_metric_counts": {
+    "2022": {
+      "assets": 51,
+      "liabilities": 51,
+      "equity": 51,
+      "revenue": 49,
+      "operating_income": 51
+    },
+    "2023": {
+      "assets": 51,
+      "liabilities": 51,
+      "equity": 51,
+      "revenue": 49,
+      "operating_income": 51
+    },
+    "2024": {
+      "assets": 51,
+      "liabilities": 51,
+      "equity": 51,
+      "revenue": 49,
+      "operating_income": 51
+    }
+  },
+  "complete_three_year_operating_margin_inputs": 49,
+  "later_values_differ_beyond_display_unit_count": 22,
+  "point_in_time_scores_verified": false,
+  "performance_validated": false,
+  "records": {
+    "000300": {
+      "name": "DH오토넥스",
+      "receipt": "20250604000001",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 66061636175,
+        "liabilities": 39899647221,
+        "equity": 26161988954,
+        "revenue": 32380378302,
+        "operating_income": -8564101590
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 543210276853,
+          "liabilities": 431957816260,
+          "equity": 111252460593,
+          "revenue": 50206345165,
+          "operating_income": -3650120030
+        },
+        "2023": {
+          "assets": 74273121353,
+          "liabilities": 202256217483,
+          "equity": -127983096130,
+          "revenue": 32790275265,
+          "operating_income": -29945679316
+        },
+        "2024": {
+          "assets": 66061636175,
+          "liabilities": 39899647221,
+          "equity": 26161988954,
+          "revenue": 32380378302,
+          "operating_income": -8564101590
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250604000001&dcmNo=10674284&eleId=21&offset=756618&length=274177&dtd=dart4.xsd",
+      "source_sha256": "6638ca8deea3bfa331f98a45a24770283d2a0204ed1ecefdd50c2da67639caa5",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20260619000548",
+      "public_body_displayed_on": "2025-06-04",
+      "later_different_values_krw": {},
+      "public_earlier_page_sha256": "7f83aea2706b666dae0ff98808ab84944cbc673cad35b517c36669f33b46cb8f",
+      "public_later_page_sha256": "086e79ad3e7168890ceeba8d56186d5cf09547084c72034e1cc3848c2421026e",
+      "opendart_listing_hold": "official_receipt_identity_or_format_unresolved"
+    },
+    "000880": {
+      "name": "한화",
+      "receipt": "20250331003821",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 252036985000000,
+        "liabilities": 212475211000000,
+        "equity": 39561774000000,
+        "revenue": 55646829000000,
+        "operating_income": 2416109000000
+      },
+      "reported_units": {
+        "assets": "백만원",
+        "liabilities": "백만원",
+        "equity": "백만원",
+        "revenue": "백만원",
+        "operating_income": "백만원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 196976926000000,
+          "liabilities": 163801018000000,
+          "equity": 33175908000000,
+          "revenue": 50886731000000,
+          "operating_income": 2369638000000
+        },
+        "2023": {
+          "assets": 209738149000000,
+          "liabilities": 176539410000000,
+          "equity": 33198739000000,
+          "revenue": 53134813000000,
+          "operating_income": 2411920000000
+        },
+        "2024": {
+          "assets": 252036985000000,
+          "liabilities": 212475211000000,
+          "equity": 39561774000000,
+          "revenue": 55646829000000,
+          "operating_income": 2416109000000
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "백만원",
+          "liabilities": "백만원",
+          "equity": "백만원",
+          "revenue": "백만원",
+          "operating_income": "백만원"
+        },
+        "2023": {
+          "assets": "백만원",
+          "liabilities": "백만원",
+          "equity": "백만원",
+          "revenue": "백만원",
+          "operating_income": "백만원"
+        },
+        "2024": {
+          "assets": "백만원",
+          "liabilities": "백만원",
+          "equity": "백만원",
+          "revenue": "백만원",
+          "operating_income": "백만원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250331003821&dcmNo=10489749&eleId=26&offset=2217820&length=326599&dtd=dart4.xsd",
+      "source_sha256": "a73f1bcd93a81b1fe7a46fa8501641ce4d00a02d7ecbfb137085a3d08c451f80",
+      "latest_retained_receipt": "20251218000270",
+      "public_body_displayed_on": "2025-03-31",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "47e846746ebd9b6aeea467f47d29eeb34cd954cbf2bf956941cce0994b2c65c1"
+    },
+    "000950": {
+      "name": "전방",
+      "receipt": "20250814001278",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 231974001581,
+        "liabilities": 33296379985,
+        "equity": 198677621596,
+        "revenue": 57235842614,
+        "operating_income": -8482983755
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 304781348634,
+          "liabilities": 94123353220,
+          "equity": 210657995414,
+          "revenue": 124914049101,
+          "operating_income": -35045943284
+        },
+        "2023": {
+          "assets": 236979137636,
+          "liabilities": 47159660314,
+          "equity": 189819477322,
+          "revenue": 94772410649,
+          "operating_income": -32548106506
+        },
+        "2024": {
+          "assets": 231974001581,
+          "liabilities": 33296379985,
+          "equity": 198677621596,
+          "revenue": 57235842614,
+          "operating_income": -8482983755
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814001278&dcmNo=10764444&eleId=21&offset=224330&length=165506&dtd=dart4.xsd",
+      "source_sha256": "242f32c59607a11c6cfa5fc870a899d70fe6e341a861d93fde5bfd1f65b899d2",
+      "latest_retained_receipt": "20260602000444",
+      "public_body_displayed_on": "2025-08-14",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "b94b3b0a217e6c0d648e5ffdfa3d9720ef1f5a1d95d65b2a838364e52f6a5447"
+    },
+    "002210": {
+      "name": "동성제약",
+      "receipt": "20250321001375",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 151912649154,
+        "liabilities": 96734438882,
+        "equity": 55178210272,
+        "revenue": 88448234133,
+        "operating_income": -6593303196
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 107702060968,
+          "liabilities": 64892797809,
+          "equity": 42809263159,
+          "revenue": 93328194834,
+          "operating_income": -3096985196
+        },
+        "2023": {
+          "assets": 114973284037,
+          "liabilities": 75170970298,
+          "equity": 39802313739,
+          "revenue": 88593588700,
+          "operating_income": 596402805
+        },
+        "2024": {
+          "assets": 151912649154,
+          "liabilities": 96734438882,
+          "equity": 55178210272,
+          "revenue": 88448234133,
+          "operating_income": -6593303196
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001375&dcmNo=10447857&eleId=21&offset=213628&length=161635&dtd=dart4.xsd",
+      "source_sha256": "a8e496778ead0a0d2752350e6f83b2e73a8d6ebd333d79cf5cb3e2724e19dbfe",
+      "latest_retained_receipt": "20260506000539",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {
+        "assets": 140668093773,
+        "liabilities": 96700571202,
+        "equity": 43967522571,
+        "operating_income": -5731935846
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "98ada076256cd123ba8a25e8aa26660d153edd9aafb9e4c9a7e4ce45d6310cbb"
+    },
+    "003350": {
+      "name": "한국화장품제조",
+      "receipt": "20250814003121",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 109277355532,
+        "liabilities": 35062289728,
+        "equity": 74215065804,
+        "revenue": 167469221700,
+        "operating_income": 26545200453
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 82665926104,
+          "liabilities": 35421546715,
+          "equity": 47244379389,
+          "revenue": 103876968519,
+          "operating_income": 4318000672
+        },
+        "2023": {
+          "assets": 89173514797,
+          "liabilities": 36551560496,
+          "equity": 52621954301,
+          "revenue": 109337763369,
+          "operating_income": 9024560440
+        },
+        "2024": {
+          "assets": 109277355532,
+          "liabilities": 35062289728,
+          "equity": 74215065804,
+          "revenue": 167469221700,
+          "operating_income": 26545200453
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814003121&dcmNo=10770268&eleId=23&offset=175429&length=159480&dtd=dart4.xsd",
+      "source_sha256": "000214d9dda33858be68a7922091ff44e6db2a1fb33b64fb1c761ca5d7e8fd93",
+      "latest_retained_receipt": "20260813000484",
+      "public_body_displayed_on": "2025-08-14",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "9c14d1ba75402ab1383c4fa6cf3b5eb1f6fa491d3510068a990f8fd679934555"
+    },
+    "006360": {
+      "name": "GS건설",
+      "receipt": "20250813000906",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 17803293924556,
+        "liabilities": 12716169965113,
+        "equity": 5087123959443,
+        "revenue": 12863811468386,
+        "operating_income": 285954335787
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 16946616696898,
+          "liabilities": 11590413888307,
+          "equity": 5356202808591,
+          "revenue": 12299196214752,
+          "operating_income": 554834830515
+        },
+        "2023": {
+          "assets": 17707298538013,
+          "liabilities": 12822138677201,
+          "equity": 4885159860812,
+          "revenue": 13436684904471,
+          "operating_income": -387945401071
+        },
+        "2024": {
+          "assets": 17803293924556,
+          "liabilities": 12716169965113,
+          "equity": 5087123959443,
+          "revenue": 12863811468386,
+          "operating_income": 285954335787
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250813000906&dcmNo=10759782&eleId=21&offset=730496&length=234404&dtd=dart4.xsd",
+      "source_sha256": "6169e2b6899659ee2844826ddaca6ec97ba6a11ccbfe88b8e877f7d9c51ccbfc",
+      "latest_retained_receipt": "20260701000540",
+      "public_body_displayed_on": "2025-08-13",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "adcacde5218cd6b12f43a1500eb49bcac36e3f97cbdf19daae1423c68ddd09a9"
+    },
+    "007330": {
+      "name": "푸른저축은행",
+      "receipt": "20250318000957",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 1326086747256,
+        "liabilities": 1011508317071,
+        "equity": 314578430185,
+        "operating_income": 6848148975
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 1408747122384,
+          "liabilities": 1099346254004,
+          "equity": 309400868380,
+          "operating_income": 26263414902
+        },
+        "2023": {
+          "assets": 1431647694242,
+          "liabilities": 1116620223410,
+          "equity": 315027470832,
+          "operating_income": 9031441461
+        },
+        "2024": {
+          "assets": 1326086747256,
+          "liabilities": 1011508317071,
+          "equity": 314578430185,
+          "operating_income": 6848148975
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000957&dcmNo=10422275&eleId=19&offset=158191&length=194845&dtd=dart4.xsd",
+      "source_sha256": "9ab35f50391dda797d4a6254cdad493a03953fa721b4c72903ed378d4e087a12",
+      "latest_retained_receipt": "20260407002922",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {
+        "assets": 1325242935137,
+        "liabilities": 1017688463958,
+        "equity": 307554471179,
+        "operating_income": 6847926442
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "9ec4d027492fce56edb7cfb0fe29deada2f8de1c659d0ba378172b1223800c82"
+    },
+    "010130": {
+      "name": "고려아연",
+      "receipt": "20250331003521",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 14792322181548,
+        "liabilities": 7196894404555,
+        "equity": 7595427776993,
+        "revenue": 12052918410249,
+        "operating_income": 723472208523
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 12097918358974,
+          "liabilities": 2866186242426,
+          "equity": 9231732116548,
+          "revenue": 11219358600107,
+          "operating_income": 919171130822
+        },
+        "2023": {
+          "assets": 12046071311650,
+          "liabilities": 2404068442780,
+          "equity": 9642002868870,
+          "revenue": 9704521343024,
+          "operating_income": 659935424598
+        },
+        "2024": {
+          "assets": 14792322181548,
+          "liabilities": 7196894404555,
+          "equity": 7595427776993,
+          "revenue": 12052918410249,
+          "operating_income": 723472208523
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250331003521&dcmNo=10488631&eleId=21&offset=846094&length=357392&dtd=dart4.xsd",
+      "source_sha256": "78a30b392828ab2a7437f0adaeb7e99e413c976b82d9d6408f8a42a77924c932",
+      "latest_retained_receipt": "20260813001711",
+      "public_body_displayed_on": "2025-03-31",
+      "later_different_values_krw": {
+        "assets": 14602501706413,
+        "equity": 7405607301858
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "b4013005f43442d791e67f39a37cbefc74fcfbe0c368b03f124631a0ba3d0927"
+    },
+    "013890": {
+      "name": "지누스",
+      "receipt": "20250909000072",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 1192228577713,
+        "liabilities": 519464564797,
+        "equity": 672764012916,
+        "revenue": 920399251687,
+        "operating_income": -5445946393
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 1114820890870,
+          "liabilities": 488663623143,
+          "equity": 626157267727,
+          "revenue": 1159605660284,
+          "operating_income": 65560502229
+        },
+        "2023": {
+          "assets": 1041398859450,
+          "liabilities": 415635288230,
+          "equity": 625763571220,
+          "revenue": 952282926124,
+          "operating_income": 18342039200
+        },
+        "2024": {
+          "assets": 1192228577713,
+          "liabilities": 519464564797,
+          "equity": 672764012916,
+          "revenue": 920399251687,
+          "operating_income": -5445946393
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250909000072&dcmNo=10803791&eleId=21&offset=212386&length=205587&dtd=dart4.xsd",
+      "source_sha256": "4bfd50479463810432c6e6d22eaf8916794f671de531695eddb15f3fe065a19d",
+      "latest_retained_receipt": "20260206000326",
+      "public_body_displayed_on": "2025-09-09",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "1371095de39d4f5b17ecb569c1aea7933db693338caf8ace534e72632cfa57fc"
+    },
+    "014470": {
+      "name": "부방",
+      "receipt": "20250320001612",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 317267769482,
+        "liabilities": 148492977426,
+        "equity": 168774792056,
+        "revenue": 348186460187,
+        "operating_income": 4873277070
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 368520353532,
+          "liabilities": 183838660440,
+          "equity": 184681693092,
+          "revenue": 338458898642,
+          "operating_income": 915792675
+        },
+        "2023": {
+          "assets": 299873288165,
+          "liabilities": 142502944671,
+          "equity": 157370343494,
+          "revenue": 331046894011,
+          "operating_income": -342355688
+        },
+        "2024": {
+          "assets": 317267769482,
+          "liabilities": 148492977426,
+          "equity": 168774792056,
+          "revenue": 348186460187,
+          "operating_income": 4873277070
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250320001612&dcmNo=10440806&eleId=19&offset=223897&length=183077&dtd=dart4.xsd",
+      "source_sha256": "a022fd5f13775bfe9430fbcc33215aa040c7fc500dc6d86c48675d5a8832ba19",
+      "latest_retained_receipt": "20260814004301",
+      "public_body_displayed_on": "2025-03-20",
+      "later_different_values_krw": {
+        "revenue": 336461943123
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "35fb1b148421a381888c379c6aa3c016658ea3186e41c939cfc28b6be6cbcb1c"
+    },
+    "014970": {
+      "name": "삼륭물산",
+      "receipt": "20250320000980",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 98684088137,
+        "liabilities": 47010456513,
+        "equity": 51673631624,
+        "revenue": 94049530822,
+        "operating_income": 5786457572
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 112471091464,
+          "liabilities": 52856987862,
+          "equity": 59614103602,
+          "revenue": 90280280019,
+          "operating_income": -1171753276
+        },
+        "2023": {
+          "assets": 104708757325,
+          "liabilities": 44514987516,
+          "equity": 60193769809,
+          "revenue": 86280033374,
+          "operating_income": 1178662628
+        },
+        "2024": {
+          "assets": 98684088137,
+          "liabilities": 47010456513,
+          "equity": 51673631624,
+          "revenue": 94049530822,
+          "operating_income": 5786457572
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250320000980&dcmNo=10436493&eleId=19&offset=206371&length=163673&dtd=dart4.xsd",
+      "source_sha256": "81cc1ceb437dd5475cce9076e3e5bc0aab2b2e97eda51c12364b4be695248937",
+      "latest_retained_receipt": "20260317000903",
+      "public_body_displayed_on": "2025-03-20",
+      "later_different_values_krw": {
+        "assets": 98958483256,
+        "equity": 51948026743
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "454460c583ed6849f21257cbcd73ce05926f7846470804b9c355955fc8bf52d6"
+    },
+    "018880": {
+      "name": "한온시스템",
+      "receipt": "20250321001829",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 10620252377496,
+        "liabilities": 7621513909130,
+        "equity": 2998738468366,
+        "revenue": 9998723268169,
+        "operating_income": 95537353794
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 9098783327544,
+          "liabilities": 6728917210972,
+          "equity": 2369866116572,
+          "revenue": 8601532657935,
+          "operating_income": 262585873943
+        },
+        "2023": {
+          "assets": 9244404434130,
+          "liabilities": 6735917853522,
+          "equity": 2508486580608,
+          "revenue": 9521628335626,
+          "operating_income": 283584782861
+        },
+        "2024": {
+          "assets": 10620252377496,
+          "liabilities": 7621513909130,
+          "equity": 2998738468366,
+          "revenue": 9998723268169,
+          "operating_income": 95537353794
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001829&dcmNo=10450288&eleId=19&offset=359435&length=242097&dtd=dart4.xsd",
+      "source_sha256": "4eec4965125f00d26af1db5667a02d8fd81a5a3b72e118d97ad29ab36912f01b",
+      "latest_retained_receipt": "20260318000466",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "b80d13013dbd094175436ea9d0d1b9a302e1c36508a3badbadfc49a90c0e5db2"
+    },
+    "025950": {
+      "name": "동신건설",
+      "receipt": "20250319001068",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 112636041341,
+        "liabilities": 13919787688,
+        "equity": 98716253653,
+        "revenue": 68971328816,
+        "operating_income": 585892436
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 113286670980,
+          "liabilities": 23709113847,
+          "equity": 89577557133,
+          "revenue": 50301558593,
+          "operating_income": 1366400188
+        },
+        "2023": {
+          "assets": 117893491447,
+          "liabilities": 21195938366,
+          "equity": 96697553081,
+          "revenue": 82743779233,
+          "operating_income": 6340785950
+        },
+        "2024": {
+          "assets": 112636041341,
+          "liabilities": 13919787688,
+          "equity": 98716253653,
+          "revenue": 68971328816,
+          "operating_income": 585892436
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319001068&dcmNo=10431246&eleId=21&offset=112827&length=139330&dtd=dart4.xsd",
+      "source_sha256": "d4dcd57842d27b48a1cac52183e974192ca5514d69c49fad656c9ed9da2c4643",
+      "latest_retained_receipt": "20260812000353",
+      "public_body_displayed_on": "2025-03-19",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "517569c6eb049496f2224e20192f73e491fa46de7b59a605b79646ee1de45a08"
+    },
+    "026960": {
+      "name": "동서",
+      "receipt": "20250313000532",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 1779146551075,
+        "liabilities": 69670001190,
+        "equity": 1709476549885,
+        "revenue": 488860392545,
+        "operating_income": 44476967156
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 1627852719302,
+          "liabilities": 82302460449,
+          "equity": 1545550258853,
+          "revenue": 556486608719,
+          "operating_income": 39175078067
+        },
+        "2023": {
+          "assets": 1694019807604,
+          "liabilities": 71145079813,
+          "equity": 1622874727791,
+          "revenue": 489695541569,
+          "operating_income": 43752486840
+        },
+        "2024": {
+          "assets": 1779146551075,
+          "liabilities": 69670001190,
+          "equity": 1709476549885,
+          "revenue": 488860392545,
+          "operating_income": 44476967156
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250313000532&dcmNo=10400798&eleId=19&offset=170225&length=173986&dtd=dart4.xsd",
+      "source_sha256": "d5a1380a0ad2ecf67fe52f8860c433f2a6b3c3010dbe2e13939eaf91a13298d4",
+      "latest_retained_receipt": "20251210000195",
+      "public_body_displayed_on": "2025-03-13",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "8b6d9868382c2346e47f6dc693c2e511e030cf48c757ea046abd89f4edc87a42"
+    },
+    "035610": {
+      "name": "솔본",
+      "receipt": "20250702000570",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 351354141871,
+        "liabilities": 56725656760,
+        "equity": 294628485111,
+        "revenue": 121901155445,
+        "operating_income": 27340583130
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 220671725870,
+          "liabilities": 38247330896,
+          "equity": 182424394974,
+          "revenue": 93816087048,
+          "operating_income": -26845562593
+        },
+        "2023": {
+          "assets": 275835991994,
+          "liabilities": 44854893682,
+          "equity": 230981098312,
+          "revenue": 119839807807,
+          "operating_income": 32614607065
+        },
+        "2024": {
+          "assets": 351354141871,
+          "liabilities": 56725656760,
+          "equity": 294628485111,
+          "revenue": 121901155445,
+          "operating_income": 27340583130
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250702000570&dcmNo=10710520&eleId=21&offset=296160&length=199119&dtd=dart4.xsd",
+      "source_sha256": "ac9d40f5db61b2094e97e9d456d305c8a69df28b697747c5260eb7337f1af096",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20260320001033",
+      "public_body_displayed_on": "2025-07-02",
+      "later_different_values_krw": {
+        "assets": 340724414992,
+        "liabilities": 55579006088,
+        "equity": 285145408904,
+        "revenue": 116081151319,
+        "operating_income": 21174221428
+      },
+      "public_earlier_page_sha256": "bc8ba4e3290b53d86fbe28f5e06f25f43dff9791334fa0dc596bbff71d057f7f",
+      "public_later_page_sha256": "c06e8b329bfc73b769176e9460057e4e1376b28e3a56c43f9de815e71538bb81",
+      "opendart_listing_hold": "original_chain_unresolved"
+    },
+    "037030": {
+      "name": "파워넷",
+      "receipt": "20250331003965",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 477573896926,
+        "liabilities": 218451441114,
+        "equity": 259122455812,
+        "revenue": 323004514377,
+        "operating_income": 13330171624
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 142228993464,
+          "liabilities": 51178308480,
+          "equity": 91050684984,
+          "revenue": 211087434269,
+          "operating_income": 5672049840
+        },
+        "2023": {
+          "assets": 148314213402,
+          "liabilities": 54646534512,
+          "equity": 93667678890,
+          "revenue": 186158775836,
+          "operating_income": 7145653724
+        },
+        "2024": {
+          "assets": 477573896926,
+          "liabilities": 218451441114,
+          "equity": 259122455812,
+          "revenue": 323004514377,
+          "operating_income": 13330171624
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250331003965&dcmNo=10490303&eleId=21&offset=301872&length=199117&dtd=dart4.xsd",
+      "source_sha256": "79ed17181b8ebe23c4731e71b05d7cc488fac432ef677fb129b0f915cfa8fffb",
+      "latest_retained_receipt": "20260212001707",
+      "public_body_displayed_on": "2025-03-31",
+      "later_different_values_krw": {
+        "assets": 479966825260,
+        "liabilities": 215908844232,
+        "equity": 264057981028,
+        "revenue": 322684545519,
+        "operating_income": 13304929564
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "c42be9c6256afeef144b3c064682ce93404db387e1dfe1c30c717b782e22254a"
+    },
+    "037330": {
+      "name": "인지디스플레",
+      "receipt": "20250407004260",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 501040123888,
+        "liabilities": 276599185791,
+        "equity": 224440938097,
+        "revenue": 732669239767,
+        "operating_income": 9668073956
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 482525979169,
+          "liabilities": 272330217332,
+          "equity": 210195761837,
+          "revenue": 700955627901,
+          "operating_income": 18609241225
+        },
+        "2023": {
+          "assets": 487997800064,
+          "liabilities": 264523732780,
+          "equity": 223474067284,
+          "revenue": 687269080649,
+          "operating_income": 11277861780
+        },
+        "2024": {
+          "assets": 501040123888,
+          "liabilities": 276599185791,
+          "equity": 224440938097,
+          "revenue": 732669239767,
+          "operating_income": 9668073956
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250407004260&dcmNo=10552318&eleId=21&offset=181646&length=188850&dtd=dart4.xsd",
+      "source_sha256": "2505280b8737dc43884a66e945c388af64d5a5f6764f1a0b97c52d50a9cc45c3",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20260323000016",
+      "public_body_displayed_on": "2025-04-07",
+      "later_different_values_krw": {
+        "assets": 484213635716,
+        "liabilities": 282546920953,
+        "equity": 201666714763,
+        "operating_income": 10929198494
+      },
+      "public_earlier_page_sha256": "7fe1d15e1b905da93c6d9cda385ac6163f6043767a94d089d4e0cdb5c3a36c7b",
+      "public_later_page_sha256": "098eea682f01158a00ab9048a463c4161928100142a2c5cd514d5f70af68f70d",
+      "opendart_listing_hold": "original_chain_unresolved"
+    },
+    "037350": {
+      "name": "성도이엔지",
+      "receipt": "20250814001118",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 666090425493,
+        "liabilities": 372964991363,
+        "equity": 293125434130,
+        "revenue": 999611416620,
+        "operating_income": 27296131094
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 501600998338,
+          "liabilities": 245392537392,
+          "equity": 256208460946,
+          "revenue": 705803485232,
+          "operating_income": -4985258685
+        },
+        "2023": {
+          "assets": 645551062822,
+          "liabilities": 384127509314,
+          "equity": 261423553508,
+          "revenue": 678599013645,
+          "operating_income": 12314577967
+        },
+        "2024": {
+          "assets": 666090425493,
+          "liabilities": 372964991363,
+          "equity": 293125434130,
+          "revenue": 999611416620,
+          "operating_income": 27296131094
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814001118&dcmNo=10764010&eleId=21&offset=212060&length=209644&dtd=dart4.xsd",
+      "source_sha256": "a625ad02dd4a7f38735bbda242a635504a40a8644c3524e30cab37fcb0351377",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20260311003961",
+      "public_body_displayed_on": "2025-08-14",
+      "later_different_values_krw": {
+        "liabilities": 423656611377,
+        "equity": 242433814116
+      },
+      "public_earlier_page_sha256": "db8a3c4349c0903b35b92e1f28d59b1a372d9994ae79accffa836cd8b2f4dd5a",
+      "public_later_page_sha256": "d89762271963c1c993aea14d320f75b8102948553405dcad602a5c6a8d56b0e9",
+      "opendart_listing_hold": "original_chain_unresolved"
+    },
+    "058110": {
+      "name": "멕아이씨에스",
+      "receipt": "20250317000001",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 59449795128,
+        "liabilities": 20190022303,
+        "equity": 39259772825,
+        "revenue": 11369004636,
+        "operating_income": -9492066504
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 86759212485,
+          "liabilities": 18875263805,
+          "equity": 67883948680,
+          "revenue": 28753861806,
+          "operating_income": -1768562776
+        },
+        "2023": {
+          "assets": 68684126003,
+          "liabilities": 18874170940,
+          "equity": 49809955063,
+          "revenue": 13261391997,
+          "operating_income": -13873749795
+        },
+        "2024": {
+          "assets": 59449795128,
+          "liabilities": 20190022303,
+          "equity": 39259772825,
+          "revenue": 11369004636,
+          "operating_income": -9492066504
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250317000001&dcmNo=10411809&eleId=19&offset=181035&length=179820&dtd=dart4.xsd",
+      "source_sha256": "9fe7a929401fa5947c64ccd653e37b0ebdb403625030a64a90c40888e0d5629e",
+      "latest_retained_receipt": "20260316001368",
+      "public_body_displayed_on": "2025-03-17",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "dd8dc6a3e566e0dad8249e1872ee21c577a1555b7ba927298d6ff0026d27c8a1"
+    },
+    "065660": {
+      "name": "안트로젠",
+      "receipt": "20250313000775",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 116078467157,
+        "liabilities": 5866850030,
+        "equity": 110211617127,
+        "revenue": 6932864586,
+        "operating_income": -3749940513
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 124132713131,
+          "liabilities": 17341328248,
+          "equity": 106791384883,
+          "revenue": 6591010796,
+          "operating_income": -4648213293
+        },
+        "2023": {
+          "assets": 149431676947,
+          "liabilities": 19986739890,
+          "equity": 129444937057,
+          "revenue": 6500249535,
+          "operating_income": -5073842629
+        },
+        "2024": {
+          "assets": 116078467157,
+          "liabilities": 5866850030,
+          "equity": 110211617127,
+          "revenue": 6932864586,
+          "operating_income": -3749940513
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250313000775&dcmNo=10401873&eleId=21&offset=204199&length=152572&dtd=dart4.xsd",
+      "source_sha256": "b36db7c1a185868425f00bd2555f52cd5bc3a77bb2765283a3e964d6ce04efaf",
+      "latest_retained_receipt": "20251222000455",
+      "public_body_displayed_on": "2025-03-13",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "a94d984dab5fa618214a3ebaa819a23fb41e53ace012b1c24966ab6d141147a1"
+    },
+    "068100": {
+      "name": "케이웨더",
+      "receipt": "20250324000428",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 18828687407,
+        "liabilities": 5594625993,
+        "equity": 13234061414,
+        "revenue": 15586967912,
+        "operating_income": -2062350246
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 16138093729,
+          "liabilities": 5340536518,
+          "equity": 10797557211,
+          "revenue": 17398754684,
+          "operating_income": 768643625
+        },
+        "2023": {
+          "assets": 14781460238,
+          "liabilities": 6353744128,
+          "equity": 8427716110,
+          "revenue": 16384768271,
+          "operating_income": -2468833010
+        },
+        "2024": {
+          "assets": 18828687407,
+          "liabilities": 5594625993,
+          "equity": 13234061414,
+          "revenue": 15586967912,
+          "operating_income": -2062350246
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250324000428&dcmNo=10453400&eleId=21&offset=273701&length=137428&dtd=dart4.xsd",
+      "source_sha256": "7a049984bdbcc6e07ea0b7a5423497410dde2a4fc820ccb5c47c7f09a2b426ec",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20260127000445",
+      "public_body_displayed_on": "2025-03-24",
+      "later_different_values_krw": {},
+      "public_earlier_page_sha256": "93876ee4d072e751a27ca25b9a3da7ead70d211ca133add185549f7a4f5741f6",
+      "public_later_page_sha256": "7b7ae1e55fd47964ed755da99d759f1dc1976d5cf8b23bbbecb4bff63298c076",
+      "opendart_listing_hold": "missing_retained_receipt_in_official_list"
+    },
+    "068290": {
+      "name": "삼성출판사",
+      "receipt": "20250320000853",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 208565174070,
+        "liabilities": 32179528826,
+        "equity": 176385645244,
+        "revenue": 40565887090,
+        "operating_income": -181381974
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 211487637576,
+          "liabilities": 35896218317,
+          "equity": 175591419259,
+          "revenue": 44923919266,
+          "operating_income": -1259376548
+        },
+        "2023": {
+          "assets": 196570540338,
+          "liabilities": 30442277508,
+          "equity": 166128262830,
+          "revenue": 41805582644,
+          "operating_income": -1311944874
+        },
+        "2024": {
+          "assets": 208565174070,
+          "liabilities": 32179528826,
+          "equity": 176385645244,
+          "revenue": 40565887090,
+          "operating_income": -181381974
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250320000853&dcmNo=10435594&eleId=21&offset=114322&length=172013&dtd=dart4.xsd",
+      "source_sha256": "b36948f07005657f7129405272f4ce02031e2e9ce65675d6b7046bb7f64e8887",
+      "latest_retained_receipt": "20251114002511",
+      "public_body_displayed_on": "2025-03-20",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "dc6386c07bfc1c0f5252417480fe6251e6a53d494cfa8bd6ddc490d4439423b0"
+    },
+    "068790": {
+      "name": "DMS",
+      "receipt": "20250814000207",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 523087247075,
+        "liabilities": 135929671420,
+        "equity": 387157575655,
+        "revenue": 170646371497,
+        "operating_income": 34561812061
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 426333982059,
+          "liabilities": 96104848580,
+          "equity": 330229133479,
+          "revenue": 317047865401,
+          "operating_income": 53542181519
+        },
+        "2023": {
+          "assets": 471382645775,
+          "liabilities": 115113614308,
+          "equity": 356269031467,
+          "revenue": 164525351844,
+          "operating_income": 28921463099
+        },
+        "2024": {
+          "assets": 523087247075,
+          "liabilities": 135929671420,
+          "equity": 387157575655,
+          "revenue": 170646371497,
+          "operating_income": 34561812061
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814000207&dcmNo=10762200&eleId=21&offset=219920&length=224203&dtd=dart4.xsd",
+      "source_sha256": "fed30fe4ad2dcb28b38622de8692867354a2e873f2f2c91402244e5c223cc5cb",
+      "latest_retained_receipt": "20260119000186",
+      "public_body_displayed_on": "2025-08-14",
+      "later_different_values_krw": {
+        "assets": 528759815454,
+        "liabilities": 164519989897,
+        "equity": 364239825557,
+        "revenue": 167787547562,
+        "operating_income": 30645330986
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "23b816c1a6cd3e25975af19092ed85518454124c09d0d0ee5a96361abfbad607"
+    },
+    "071200": {
+      "name": "인피니트헬스케어",
+      "receipt": "20250319000613",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 232448732162,
+        "liabilities": 51579175711,
+        "equity": 180869556451,
+        "revenue": 101570186804,
+        "operating_income": 13890615801
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 149508094345,
+          "liabilities": 34671015122,
+          "equity": 114837079223,
+          "revenue": 86132840180,
+          "operating_income": 8587581947
+        },
+        "2023": {
+          "assets": 174926843343,
+          "liabilities": 40917220103,
+          "equity": 134009623240,
+          "revenue": 88475636540,
+          "operating_income": 6629088828
+        },
+        "2024": {
+          "assets": 232448732162,
+          "liabilities": 51579175711,
+          "equity": 180869556451,
+          "revenue": 101570186804,
+          "operating_income": 13890615801
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319000613&dcmNo=10428332&eleId=19&offset=255955&length=218301&dtd=dart4.xsd",
+      "source_sha256": "1b7bbc9ee8dfae548b97d4a3522818edd8a82520619e8bfcdcfdc9fa35afc382",
+      "latest_retained_receipt": "20260320001108",
+      "public_body_displayed_on": "2025-03-19",
+      "later_different_values_krw": {
+        "assets": 221819005283,
+        "liabilities": 50432525039,
+        "equity": 171386480244,
+        "revenue": 95750182678,
+        "operating_income": 7724254099
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "0680a598057af0c2ea925a62e413923d2bf2d0d119e56a308fcb439af8526631"
+    },
+    "092040": {
+      "name": "아미코젠",
+      "receipt": "20250319001076",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 294226893885,
+        "liabilities": 171129822267,
+        "equity": 123097071618,
+        "revenue": 173604673969,
+        "operating_income": -7051211028
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 429651956812,
+          "liabilities": 259874018775,
+          "equity": 169777938037,
+          "revenue": 144295727345,
+          "operating_income": -4899462026
+        },
+        "2023": {
+          "assets": 467098010439,
+          "liabilities": 248124178136,
+          "equity": 218973832303,
+          "revenue": 159904289100,
+          "operating_income": 2056140831
+        },
+        "2024": {
+          "assets": 294226893885,
+          "liabilities": 171129822267,
+          "equity": 123097071618,
+          "revenue": 173604673969,
+          "operating_income": -7051211028
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319001076&dcmNo=10431309&eleId=19&offset=374091&length=245325&dtd=dart4.xsd",
+      "source_sha256": "3113518862fa89051e4b4d78152e8118fb314deddbee85bc1aa44b1d0309cef9",
+      "latest_retained_receipt": "20260430001525",
+      "public_body_displayed_on": "2025-03-19",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "c84cc61a2c6a645272fc9c3b3c9521089f08b68e97a297f6a68ea33c463b5ea3"
+    },
+    "096530": {
+      "name": "씨젠",
+      "receipt": "20250320001595",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 1205279005666,
+        "liabilities": 223802444305,
+        "equity": 981476561361,
+        "revenue": 414251733221,
+        "operating_income": -16479248127
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 1390777557476,
+          "liabilities": 240498582648,
+          "equity": 1150278974828,
+          "revenue": 853561091243,
+          "operating_income": 196492262649
+        },
+        "2023": {
+          "assets": 1251451913635,
+          "liabilities": 221052938078,
+          "equity": 1030398975557,
+          "revenue": 367375048980,
+          "operating_income": -30053478765
+        },
+        "2024": {
+          "assets": 1205279005666,
+          "liabilities": 223802444305,
+          "equity": 981476561361,
+          "revenue": 414251733221,
+          "operating_income": -16479248127
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250320001595&dcmNo=10440681&eleId=19&offset=223832&length=241266&dtd=dart4.xsd",
+      "source_sha256": "3043de8f17c97286e409526a88b980865268a47ed854f080ae145c8f509a7c38",
+      "latest_retained_receipt": "20260515001029",
+      "public_body_displayed_on": "2025-03-20",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "975bb9d4461fa054bf3b7ac741f21762f2ee40d16f734455640be26aa6475dc3"
+    },
+    "101670": {
+      "name": "하이드로리튬",
+      "receipt": "20250321001315",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 94025288164,
+        "liabilities": 10529823753,
+        "equity": 83495464411,
+        "revenue": 8466048297,
+        "operating_income": 9146041466
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 140475703772,
+          "liabilities": 85286898841,
+          "equity": 55188804931,
+          "revenue": 8492131009,
+          "operating_income": -3213350403
+        },
+        "2023": {
+          "assets": 102181314445,
+          "liabilities": 33232750974,
+          "equity": 68948563471,
+          "revenue": 22859151303,
+          "operating_income": -35826848486
+        },
+        "2024": {
+          "assets": 94025288164,
+          "liabilities": 10529823753,
+          "equity": 83495464411,
+          "revenue": 8466048297,
+          "operating_income": 9146041466
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001315&dcmNo=10447523&eleId=21&offset=224040&length=166526&dtd=dart4.xsd",
+      "source_sha256": "3455c0603ebdf7329e65c3b9afc9e1cbb982cd8c81132b7448f08e337978dfd2",
+      "latest_retained_receipt": "20260415000503",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "e0f0287069f9675b0ba09b7fcd1079be86fa271b15ad389efc49c21d9ea2047f"
+    },
+    "105560": {
+      "name": "KB금융",
+      "receipt": "20250526000370",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 757845532000000,
+        "liabilities": 698030351000000,
+        "equity": 59815181000000,
+        "operating_income": 8045261000000
+      },
+      "reported_units": {
+        "assets": "백만원",
+        "liabilities": "백만원",
+        "equity": "백만원",
+        "operating_income": "백만원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 688653482000000,
+          "liabilities": 634850225000000,
+          "equity": 53803257000000,
+          "operating_income": 5234394000000
+        },
+        "2023": {
+          "assets": 715725416000000,
+          "liabilities": 657089226000000,
+          "equity": 58636190000000,
+          "operating_income": 6385021000000
+        },
+        "2024": {
+          "assets": 757845532000000,
+          "liabilities": 698030351000000,
+          "equity": 59815181000000,
+          "operating_income": 8045261000000
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "백만원",
+          "liabilities": "백만원",
+          "equity": "백만원",
+          "operating_income": "백만원"
+        },
+        "2023": {
+          "assets": "백만원",
+          "liabilities": "백만원",
+          "equity": "백만원",
+          "operating_income": "백만원"
+        },
+        "2024": {
+          "assets": "백만원",
+          "liabilities": "백만원",
+          "equity": "백만원",
+          "operating_income": "백만원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250526000370&dcmNo=10659374&eleId=19&offset=2227030&length=475383&dtd=dart4.xsd",
+      "source_sha256": "0067c2ace1e4c3fcecea43863bca654567c54eee341394cc6802fa7aa1fbc9e7",
+      "latest_retained_receipt": "20260324000822",
+      "public_body_displayed_on": "2025-05-26",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "94933326c939659a9767a4352eaa32d3fb80b7993f3617874979a147f10437e4"
+    },
+    "115180": {
+      "name": "큐리언트",
+      "receipt": "20250318000248",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 65572921275,
+        "liabilities": 5386510821,
+        "equity": 60186410454,
+        "revenue": 9179834444,
+        "operating_income": -27477790640
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 38411664413,
+          "liabilities": 3275403934,
+          "equity": 35136260479,
+          "revenue": 8468552823,
+          "operating_income": -27474716001
+        },
+        "2023": {
+          "assets": 52504569222,
+          "liabilities": 2612112693,
+          "equity": 49892456529,
+          "revenue": 9031807070,
+          "operating_income": -23213207544
+        },
+        "2024": {
+          "assets": 65572921275,
+          "liabilities": 5386510821,
+          "equity": 60186410454,
+          "revenue": 9179834444,
+          "operating_income": -27477790640
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000248&dcmNo=10418008&eleId=19&offset=366987&length=238611&dtd=dart4.xsd",
+      "source_sha256": "6eecd8026e0abe553ddb48c9c2c03839a2eb56ee50e7dea0b884cb9e6da48a32",
+      "latest_retained_receipt": "20260318001602",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {
+        "assets": 58070561569,
+        "equity": 52684050748
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "3e4570dea2488743dd1619f186d03e63a7e82cf65aee294493fe992f0999ff11"
+    },
+    "119650": {
+      "name": "KC코트렐",
+      "receipt": "20250814002924",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 294063763220,
+        "equity": 85279262119,
+        "liabilities": 208784501101,
+        "revenue": 341075218924,
+        "operating_income": -69612175500
+      },
+      "reported_units": {
+        "assets": "원",
+        "equity": "원",
+        "liabilities": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 323473720683,
+          "equity": 56754683717,
+          "liabilities": 266719036966,
+          "revenue": 416037295531,
+          "operating_income": 5148621664
+        },
+        "2023": {
+          "assets": 414426220424,
+          "equity": 41449077749,
+          "liabilities": 372977142675,
+          "revenue": 431728138471,
+          "operating_income": -20278978957
+        },
+        "2024": {
+          "assets": 294063763220,
+          "equity": 85279262119,
+          "liabilities": 208784501101,
+          "revenue": 341075218924,
+          "operating_income": -69612175500
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "equity": "원",
+          "liabilities": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "equity": "원",
+          "liabilities": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "equity": "원",
+          "liabilities": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814002924&dcmNo=10769642&eleId=21&offset=255013&length=394053&dtd=dart4.xsd",
+      "source_sha256": "9b91d144ada0d563cf6f18de5dc3e134af0d0d9f9c471be798c5f242a8e1dbd7",
+      "latest_retained_receipt": "20260423000742",
+      "public_body_displayed_on": "2025-08-14",
+      "later_different_values_krw": {
+        "assets": 250009556459,
+        "equity": 54861936138,
+        "liabilities": 195147620321,
+        "revenue": 340939801353,
+        "operating_income": -67819541777
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "ef06e993eef87359ab8bc4f691e6cd67e427e9027e8318362e9a93513bdd5627"
+    },
+    "144960": {
+      "name": "뉴파워프라즈마",
+      "receipt": "20250324000690",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 941514591848,
+        "liabilities": 546489631646,
+        "equity": 395024960202,
+        "revenue": 519836396500,
+        "operating_income": 32547316598
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 633279705357,
+          "liabilities": 367372870549,
+          "equity": 265906834808,
+          "revenue": 352878764242,
+          "operating_income": 14124593851
+        },
+        "2023": {
+          "assets": 673625027298,
+          "liabilities": 396425001392,
+          "equity": 277200025906,
+          "revenue": 350666770950,
+          "operating_income": 16088546345
+        },
+        "2024": {
+          "assets": 941514591848,
+          "liabilities": 546489631646,
+          "equity": 395024960202,
+          "revenue": 519836396500,
+          "operating_income": 32547316598
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250324000690&dcmNo=10454373&eleId=21&offset=226667&length=299717&dtd=dart4.xsd",
+      "source_sha256": "fa73fec9c8825587ff18dee602638d99c92193af19d86b3b6e92f4fc823ca734",
+      "latest_retained_receipt": "20251230000521",
+      "public_body_displayed_on": "2025-03-24",
+      "later_different_values_krw": {
+        "assets": 941823497922,
+        "liabilities": 562213510657,
+        "equity": 379609987265,
+        "operating_income": 26128372234
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "b39e44aa70a1dc181fb9bcb40358f9bf9199a6575769b2629a2bdc35bb2cd758"
+    },
+    "145720": {
+      "name": "덴티움",
+      "receipt": "20250321000457",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 894428873103,
+        "liabilities": 340923315720,
+        "equity": 553505557383,
+        "revenue": 407807117931,
+        "operating_income": 98497363463
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 674583964552,
+          "liabilities": 301420236208,
+          "equity": 373163728344,
+          "revenue": 355865975045,
+          "operating_income": 125702600219
+        },
+        "2023": {
+          "assets": 773770340890,
+          "liabilities": 309896958480,
+          "equity": 463873382410,
+          "revenue": 393188581139,
+          "operating_income": 138279256798
+        },
+        "2024": {
+          "assets": 894428873103,
+          "liabilities": 340923315720,
+          "equity": 553505557383,
+          "revenue": 407807117931,
+          "operating_income": 98497363463
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321000457&dcmNo=10443240&eleId=19&offset=272110&length=215381&dtd=dart4.xsd",
+      "source_sha256": "5dfea729e045df2da68cb50eafaafbb89aa7076a04da60a503afe2d60db7b584",
+      "latest_retained_receipt": "20260928000348",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "70c5ae97bcaaab5f0124a752f09434e32de9da1c9ad07d34ca3668799e82fa48"
+    },
+    "148150": {
+      "name": "세경하이테크",
+      "receipt": "20250318000536",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 344987582774,
+        "liabilities": 96247353640,
+        "equity": 248740229134,
+        "revenue": 320333197014,
+        "operating_income": 31495713182
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 208799817269,
+          "liabilities": 34614022468,
+          "equity": 174185794801,
+          "revenue": 260647147230,
+          "operating_income": 7998634087
+        },
+        "2023": {
+          "assets": 304280443576,
+          "liabilities": 102386579989,
+          "equity": 201893863587,
+          "revenue": 304477120594,
+          "operating_income": 36183441126
+        },
+        "2024": {
+          "assets": 344987582774,
+          "liabilities": 96247353640,
+          "equity": 248740229134,
+          "revenue": 320333197014,
+          "operating_income": 31495713182
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000536&dcmNo=10419331&eleId=19&offset=232217&length=295895&dtd=dart4.xsd",
+      "source_sha256": "39a66ab212d17a4bbe72c046b07f6635450bcda2c97b6160ad7f07e967e24077",
+      "latest_retained_receipt": "20260227005450",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {
+        "liabilities": 138281345528,
+        "equity": 206706237246
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "458456048baff7b43df87865ab72f73e8340abb38c576ffb1b22b3df2342c8c0"
+    },
+    "161580": {
+      "name": "필옵틱스",
+      "receipt": "20250317000978",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 382748068787,
+        "liabilities": 144113878461,
+        "equity": 238634190326,
+        "revenue": 410893768511,
+        "operating_income": 13796035047
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 323348556067,
+          "liabilities": 221952500970,
+          "equity": 101396055097,
+          "revenue": 303987727889,
+          "operating_income": 18085152488
+        },
+        "2023": {
+          "assets": 450911369941,
+          "liabilities": 219004933670,
+          "equity": 231906436271,
+          "revenue": 300001066109,
+          "operating_income": 10265296884
+        },
+        "2024": {
+          "assets": 382748068787,
+          "liabilities": 144113878461,
+          "equity": 238634190326,
+          "revenue": 410893768511,
+          "operating_income": 13796035047
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250317000978&dcmNo=10416780&eleId=19&offset=206663&length=227366&dtd=dart4.xsd",
+      "source_sha256": "b43b515d3a276f48c5a6e0ae155c383dad51dede61e28bfcd14d9c81a3cc7f83",
+      "latest_retained_receipt": "20260324000566",
+      "public_body_displayed_on": "2025-03-17",
+      "later_different_values_krw": {
+        "liabilities": 183263878461,
+        "equity": 199484190326
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "4e9aed2408057417fe15b41832624d5cf6795ccab398dbc363c45ee1ec3b4c89"
+    },
+    "168330": {
+      "name": "내츄럴엔도텍",
+      "receipt": "20250317000636",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 33337564389,
+        "liabilities": 6471299968,
+        "equity": 26866264421,
+        "revenue": 22263243100,
+        "operating_income": -3768292469
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 39809207502,
+          "liabilities": 3229212581,
+          "equity": 36579994921,
+          "revenue": 13950826981,
+          "operating_income": -8437324446
+        },
+        "2023": {
+          "assets": 37202965729,
+          "liabilities": 6259978794,
+          "equity": 30942986935,
+          "revenue": 18790261455,
+          "operating_income": -4081101947
+        },
+        "2024": {
+          "assets": 33337564389,
+          "liabilities": 6471299968,
+          "equity": 26866264421,
+          "revenue": 22263243100,
+          "operating_income": -3768292469
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250317000636&dcmNo=10414398&eleId=19&offset=199517&length=143643&dtd=dart4.xsd",
+      "source_sha256": "e12f57017a0444971e5a6604ecbeb1e320e8515f950290b32a94a495c606023e",
+      "latest_retained_receipt": "20251125000703",
+      "public_body_displayed_on": "2025-03-17",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "3f35ed238f87c698c00d77019c204e9364171cdaa8ad17d155b2ac040730d61d"
+    },
+    "179900": {
+      "name": "유티아이",
+      "receipt": "20250321001588",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 160639757471,
+        "liabilities": 86087550491,
+        "equity": 74552206980,
+        "revenue": 18560210791,
+        "operating_income": -32244174319
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 115275081672,
+          "liabilities": 67969344530,
+          "equity": 47305737142,
+          "revenue": 36443362536,
+          "operating_income": -4640515978
+        },
+        "2023": {
+          "assets": 100826589268,
+          "liabilities": 83611367761,
+          "equity": 17215221507,
+          "revenue": 19361163288,
+          "operating_income": -19731810602
+        },
+        "2024": {
+          "assets": 160639757471,
+          "liabilities": 86087550491,
+          "equity": 74552206980,
+          "revenue": 18560210791,
+          "operating_income": -32244174319
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001588&dcmNo=10449032&eleId=19&offset=210948&length=222099&dtd=dart4.xsd",
+      "source_sha256": "473d7e0482d3f7b0f19991fe9a6b51829af697729227c3ef12b5278524a1dae1",
+      "latest_retained_receipt": "20251219000171",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "341e2f56f8840e7d9232012bd841b31fe97a2a712e46ba33c0e2cea079624249"
+    },
+    "187790": {
+      "name": "나노",
+      "receipt": "20250320000703",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 86329058759,
+        "liabilities": 55616629999,
+        "equity": 30712428760,
+        "revenue": 88600534688,
+        "operating_income": 1657604767
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 69924737798,
+          "liabilities": 61498112252,
+          "equity": 8426625546,
+          "revenue": 66804959543,
+          "operating_income": -3548846665
+        },
+        "2023": {
+          "assets": 67785020185,
+          "liabilities": 59447260938,
+          "equity": 8337759247,
+          "revenue": 88076437797,
+          "operating_income": 1622778490
+        },
+        "2024": {
+          "assets": 86329058759,
+          "liabilities": 55616629999,
+          "equity": 30712428760,
+          "revenue": 88600534688,
+          "operating_income": 1657604767
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250320000703&dcmNo=10434658&eleId=19&offset=276102&length=180568&dtd=dart4.xsd",
+      "source_sha256": "3780dfc0af34fae6c1bbdb235c9fbf7a304c4f8133a5fda72a601293d9e34748",
+      "latest_retained_receipt": "20260429001036",
+      "public_body_displayed_on": "2025-03-20",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "11030e7e8d5d6d852e7c0651e92ad93108ee611128de08e3648101bef1695044"
+    },
+    "188260": {
+      "name": "세니젠",
+      "receipt": "20250318000621",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 16641923499,
+        "liabilities": 6445905697,
+        "equity": 10196017802,
+        "revenue": 24010238528,
+        "operating_income": -5103604573
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 15634988732,
+          "liabilities": 28558702905,
+          "equity": -12923714173,
+          "revenue": 26757764411,
+          "operating_income": -4082410663
+        },
+        "2023": {
+          "assets": 21448446875,
+          "liabilities": 7581258418,
+          "equity": 13867188457,
+          "revenue": 22268480095,
+          "operating_income": -6315679376
+        },
+        "2024": {
+          "assets": 16641923499,
+          "liabilities": 6445905697,
+          "equity": 10196017802,
+          "revenue": 24010238528,
+          "operating_income": -5103604573
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000621&dcmNo=10419828&eleId=21&offset=443122&length=210597&dtd=dart4.xsd",
+      "source_sha256": "e0abcb9ade5385893e4c3724a373731d1229472c74e2d3aa193afb74d5b2ee93",
+      "latest_retained_receipt": "20260130000588",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {
+        "assets": 14685636692,
+        "equity": 8239730995,
+        "revenue": 15427879108,
+        "operating_income": -5874575015
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "6f000df42a4c7796bcf4fa938edf38e240a903a5cd1943127240f98c2197a2e3"
+    },
+    "224060": {
+      "name": "더코디",
+      "receipt": "20250814002937",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 94050804397,
+        "liabilities": 67990333367,
+        "equity": 26060471030,
+        "revenue": 33516116341,
+        "operating_income": -3707153690
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 93638491363,
+          "liabilities": 55669858825,
+          "equity": 37968632538,
+          "revenue": 20111858404,
+          "operating_income": -9020440627
+        },
+        "2023": {
+          "assets": 99393118971,
+          "liabilities": 67221878409,
+          "equity": 32171240562,
+          "revenue": 20212268116,
+          "operating_income": -10401169534
+        },
+        "2024": {
+          "assets": 94050804397,
+          "liabilities": 67990333367,
+          "equity": 26060471030,
+          "revenue": 33516116341,
+          "operating_income": -3707153690
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250814002937&dcmNo=10769686&eleId=21&offset=382798&length=288982&dtd=dart4.xsd",
+      "source_sha256": "9580817d7d8c1cf2a334741f6b9d2227efea8a7379bf7697436d0dd013b57294",
+      "latest_retained_receipt": "20251119000036",
+      "public_body_displayed_on": "2025-08-14",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "1eb143c595066ae76b0476a6ae1443e68c9a9dd665f7210edfe36ca989f4aec6"
+    },
+    "245620": {
+      "name": "EDGC",
+      "receipt": "20250327001232",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 134882008735,
+        "liabilities": 130480533738,
+        "equity": 4401474997,
+        "revenue": 30599552361,
+        "operating_income": -12628990177
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 192010586607,
+          "liabilities": 159175170219,
+          "equity": 32835416388,
+          "revenue": 94243692888,
+          "operating_income": -9520183120
+        },
+        "2023": {
+          "assets": 173518949380,
+          "liabilities": 134407497088,
+          "equity": 39111452292,
+          "revenue": 88456744573,
+          "operating_income": -9358686426
+        },
+        "2024": {
+          "assets": 134882008735,
+          "liabilities": 130480533738,
+          "equity": 4401474997,
+          "revenue": 30599552361,
+          "operating_income": -12628990177
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250327001232&dcmNo=10468414&eleId=19&offset=523903&length=215136&dtd=dart4.xsd",
+      "source_sha256": "fbc9a5e3e0afd163b3c0c562ef7c4d787e747fe3ea31c20757a5b108eb5ca349",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20260407003648",
+      "public_body_displayed_on": "2025-03-27",
+      "later_different_values_krw": {
+        "assets": 86084352797,
+        "liabilities": 130354354331,
+        "equity": -44270001534,
+        "revenue": 30941997176,
+        "operating_income": -12631473944
+      },
+      "public_earlier_page_sha256": "70a3171840b952379326edc7c3cece965b08818b8a15ada567c4d9a3580b5474",
+      "public_later_page_sha256": "ca8a3f4d920861d8e61719494d263b73439c78899d873ecfbb7a162e2c325647",
+      "opendart_listing_hold": "official_receipt_identity_or_format_unresolved"
+    },
+    "258610": {
+      "name": "케일럼",
+      "receipt": "20250318000202",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 86794060336,
+        "liabilities": 41814179270,
+        "equity": 44979881066,
+        "revenue": 97331264354,
+        "operating_income": 3218070818
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 128870240531,
+          "liabilities": 67370329459,
+          "equity": 61499911072,
+          "revenue": 77842947816,
+          "operating_income": -3292083621
+        },
+        "2023": {
+          "assets": 88722470736,
+          "liabilities": 63272356944,
+          "equity": 25450113792,
+          "revenue": 84547280407,
+          "operating_income": -4408723587
+        },
+        "2024": {
+          "assets": 86794060336,
+          "liabilities": 41814179270,
+          "equity": 44979881066,
+          "revenue": 97331264354,
+          "operating_income": 3218070818
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000202&dcmNo=10417810&eleId=19&offset=422377&length=201098&dtd=dart4.xsd",
+      "source_sha256": "282fd30f0ebc713f7935520564686e3b41a26c2dca3ec711f593e1ca3cdf393f",
+      "latest_retained_receipt": "20260225003751",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {
+        "assets": 90050932024,
+        "liabilities": 42494865453,
+        "equity": 47556066571,
+        "operating_income": 2774801050
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "9a7966c6ee4bc244345b089cd068a0827dc2760326ca93caa7459f52be121573"
+    },
+    "282720": {
+      "name": "금양그린파워",
+      "receipt": "20250321001729",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 161592905482,
+        "liabilities": 67604423315,
+        "equity": 93988482167,
+        "revenue": 243169597848,
+        "operating_income": -17128386918
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 118349207402,
+          "liabilities": 57691200244,
+          "equity": 60658007158,
+          "revenue": 230598444583,
+          "operating_income": 10709399057
+        },
+        "2023": {
+          "assets": 184767847984,
+          "liabilities": 76946934881,
+          "equity": 107820913103,
+          "revenue": 238857679141,
+          "operating_income": 6051854924
+        },
+        "2024": {
+          "assets": 161592905482,
+          "liabilities": 67604423315,
+          "equity": 93988482167,
+          "revenue": 243169597848,
+          "operating_income": -17128386918
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001729&dcmNo=10449701&eleId=19&offset=350320&length=225733&dtd=dart4.xsd",
+      "source_sha256": "333ee02b96842314ac334837727df1b9d5c7a3a88bea59b6423821ef8c423fc5",
+      "latest_retained_receipt": "20260121000417",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "51ba897bb7753d3af0a6a20cc31056582053425c1860945c050471b356c11728"
+    },
+    "294090": {
+      "name": "이오플로우",
+      "receipt": "20250331002328",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 57592868626,
+        "liabilities": 52135667463,
+        "equity": 5457201163,
+        "revenue": 5030925027,
+        "operating_income": -61009582100
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 152250433083,
+          "liabilities": 53522475510,
+          "equity": 98727957573,
+          "revenue": 6707876186,
+          "operating_income": -34275183079
+        },
+        "2023": {
+          "assets": 80687645682,
+          "liabilities": 21812465624,
+          "equity": 58875180058,
+          "revenue": 6589217470,
+          "operating_income": -39367250537
+        },
+        "2024": {
+          "assets": 57592868626,
+          "liabilities": 52135667463,
+          "equity": 5457201163,
+          "revenue": 5030925027,
+          "operating_income": -61009582100
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250331002328&dcmNo=10484444&eleId=21&offset=277820&length=320573&dtd=dart4.xsd",
+      "source_sha256": "51777a5b56d33a085800d7a282a375bd3a92fd7bf385b17d078e69349d5fde8d",
+      "latest_retained_receipt": "20260930000004",
+      "public_body_displayed_on": "2025-03-31",
+      "later_different_values_krw": {
+        "assets": 45728610320,
+        "liabilities": 68155000675,
+        "equity": -22426390355,
+        "revenue": 5241463027,
+        "operating_income": -73501716282
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "5414b773dee455bcf59db9d5c0ab9c663f03d545acd3aba486acfeb0bf7a7473"
+    },
+    "299170": {
+      "name": "더블유에스아이",
+      "receipt": "20250331004312",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 85398580898,
+        "liabilities": 39661338317,
+        "equity": 45737242581,
+        "revenue": 40411341295,
+        "operating_income": 3850124651
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 57464653508,
+          "liabilities": 19380322964,
+          "equity": 38084330544,
+          "revenue": 27128845288,
+          "operating_income": 3684173156
+        },
+        "2023": {
+          "assets": 60529068552,
+          "liabilities": 20192691021,
+          "equity": 40336377531,
+          "revenue": 30877345387,
+          "operating_income": 3342668803
+        },
+        "2024": {
+          "assets": 85398580898,
+          "liabilities": 39661338317,
+          "equity": 45737242581,
+          "revenue": 40411341295,
+          "operating_income": 3850124651
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250331004312&dcmNo=10491644&eleId=21&offset=369406&length=157128&dtd=dart4.xsd",
+      "source_sha256": "5d1c3d754554d68b36bf215d6debd63dc5639c67d72f754c848ae87bfe5d5c7f",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20251211000468",
+      "public_body_displayed_on": "2025-03-31",
+      "later_different_values_krw": {},
+      "public_earlier_page_sha256": "cb69b409d2e81feaff40b3fb22b1a1898dd49bcabb52880b37861130645cd538",
+      "public_later_page_sha256": "77e572f53822424b84dd0f6e41c63007a6ad499ad4a93bac64ae0be8d3690030",
+      "opendart_listing_hold": "missing_retained_receipt_in_official_list"
+    },
+    "328130": {
+      "name": "루닛",
+      "receipt": "20250319001118",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 435040757949,
+        "liabilities": 270179666779,
+        "equity": 164861091170,
+        "revenue": 54179663335,
+        "operating_income": -67672567880
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 97153074707,
+          "liabilities": 28243417093,
+          "equity": 68909657614,
+          "revenue": 13865732451,
+          "operating_income": -50650984769
+        },
+        "2023": {
+          "assets": 267920700163,
+          "liabilities": 32811193379,
+          "equity": 235109506784,
+          "revenue": 25080238712,
+          "operating_income": -42216718386
+        },
+        "2024": {
+          "assets": 435040757949,
+          "liabilities": 270179666779,
+          "equity": 164861091170,
+          "revenue": 54179663335,
+          "operating_income": -67672567880
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319001118&dcmNo=10431555&eleId=19&offset=285221&length=182105&dtd=dart4.xsd",
+      "source_sha256": "7b8306ff33b4369181797e434657f06d77b5a8c8fbf893b5b44b030b91455898",
+      "latest_retained_receipt": "20260310002847",
+      "public_body_displayed_on": "2025-03-19",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "30e751d52bf995a01ce552eb7eda54c138c1da570aae07989c1b0568b81198ab"
+    },
+    "336370": {
+      "name": "솔루스첨단소재",
+      "receipt": "20250319000924",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 2079395108546,
+        "liabilities": 987931457327,
+        "equity": 1091463651219,
+        "revenue": 570949198601,
+        "operating_income": -54418745322
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 1461040406251,
+          "liabilities": 542937434917,
+          "equity": 918102971334,
+          "revenue": 418285694715,
+          "operating_income": -49673692019
+        },
+        "2023": {
+          "assets": 1706722451080,
+          "liabilities": 648534252541,
+          "equity": 1058188198539,
+          "revenue": 429422392943,
+          "operating_income": -73207987858
+        },
+        "2024": {
+          "assets": 2079395108546,
+          "liabilities": 987931457327,
+          "equity": 1091463651219,
+          "revenue": 570949198601,
+          "operating_income": -54418745322
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250319000924&dcmNo=10430192&eleId=19&offset=242018&length=266132&dtd=dart4.xsd",
+      "source_sha256": "197f9c21659151ac724ffd4a551bb8491dd5ee2bddc042a04585edf0c1fe7005",
+      "latest_retained_receipt": "20251121000498",
+      "public_body_displayed_on": "2025-03-19",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "d3ad08e8f5caa146bbc10476fcc6c663ee3ce2f19cb6e559fc0bc2d0788ee6db"
+    },
+    "348370": {
+      "name": "엔켐",
+      "receipt": "20250324000916",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 1126929828670,
+        "liabilities": 660116672267,
+        "equity": 466813156403,
+        "revenue": 365708579550,
+        "operating_income": -65334940249
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 680249505789,
+          "liabilities": 386892153320,
+          "equity": 293357352469,
+          "revenue": 509792825335,
+          "operating_income": 15362754193
+        },
+        "2023": {
+          "assets": 862895279401,
+          "liabilities": 576446644100,
+          "equity": 286448635301,
+          "revenue": 424691399327,
+          "operating_income": 3047263237
+        },
+        "2024": {
+          "assets": 1126929828670,
+          "liabilities": 660116672267,
+          "equity": 466813156403,
+          "revenue": 365708579550,
+          "operating_income": -65334940249
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250324000916&dcmNo=10455215&eleId=21&offset=465585&length=241210&dtd=dart4.xsd",
+      "source_sha256": "17ce9de4688895702ae1ba76cf43e294d2a7402c48b0fca992823319c4ecf7a6",
+      "latest_retained_receipt": "20260326001039",
+      "public_body_displayed_on": "2025-03-24",
+      "later_different_values_krw": {
+        "assets": 1159847136746,
+        "liabilities": 675004911778,
+        "equity": 484842224968,
+        "operating_income": -50403019697
+      },
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "45d156d54c8b76c9880c4cbb1bd8ac542a4bc54e885e2d6ae628d63cdb8523e3"
+    },
+    "412540": {
+      "name": "제일엠앤에스",
+      "receipt": "20250407002516",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 323358429639,
+        "liabilities": 342334702797,
+        "equity": -18976273158,
+        "revenue": 247486444077,
+        "operating_income": -129616247330
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 108754798726,
+          "liabilities": 80288579304,
+          "equity": 28466219422,
+          "revenue": 61862086125,
+          "operating_income": 1998865397
+        },
+        "2023": {
+          "assets": 221399084933,
+          "liabilities": 171716870848,
+          "equity": 49682214085,
+          "revenue": 143172829242,
+          "operating_income": 1763146035
+        },
+        "2024": {
+          "assets": 323358429639,
+          "liabilities": 342334702797,
+          "equity": -18976273158,
+          "revenue": 247486444077,
+          "operating_income": -129616247330
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250407002516&dcmNo=10546521&eleId=19&offset=231402&length=159753&dtd=dart4.xsd",
+      "source_sha256": "9a74a3ec099455df20cf6d842ba7b9fc4f3015f039951880f38845b01c6bfb77",
+      "receipt_verification_source": "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY",
+      "latest_retained_receipt": "20261029000321",
+      "public_body_displayed_on": "2025-04-07",
+      "later_different_values_krw": {
+        "assets": 476205807798,
+        "liabilities": 496050734409,
+        "equity": -19844926611,
+        "revenue": 149488935612,
+        "operating_income": -87813977555
+      },
+      "public_earlier_page_sha256": "baddc4afbfe1b9602b29d85104914258bb44c137c5f0ba6fde7e7ee2add25645",
+      "public_later_page_sha256": "7353aa8c66381ecd44d3f2ec3eb4ec4b5e24089471a4c7b8b2e0742e7df8c717",
+      "opendart_listing_hold": "official_receipt_identity_or_format_unresolved"
+    },
+    "445680": {
+      "name": "큐리옥스바이오시스템즈",
+      "receipt": "20250321001533",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 70560573877,
+        "liabilities": 21923091988,
+        "equity": 48637481889,
+        "revenue": 4587636523,
+        "operating_income": -13377807751
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 48627491595,
+          "liabilities": 4766714313,
+          "equity": 43860777282,
+          "revenue": 7236977820,
+          "operating_income": -11421000114
+        },
+        "2023": {
+          "assets": 57797993647,
+          "liabilities": 4914538411,
+          "equity": 52883455236,
+          "revenue": 6787910936,
+          "operating_income": -10557074113
+        },
+        "2024": {
+          "assets": 70560573877,
+          "liabilities": 21923091988,
+          "equity": 48637481889,
+          "revenue": 4587636523,
+          "operating_income": -13377807751
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250321001533&dcmNo=10448735&eleId=19&offset=215804&length=182892&dtd=dart4.xsd",
+      "source_sha256": "465cdccdfce427a44f3650fcda3f6b4e70fb94d25aecdce687828ffd53a0c624",
+      "latest_retained_receipt": "20261001000607",
+      "public_body_displayed_on": "2025-03-21",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "a8a52f5a2cdd052a9230ad4d08ccfa96ce9b155c2846829aa896c46582b117ff"
+    },
+    "460470": {
+      "name": "아이빔테크놀로지",
+      "receipt": "20250318000769",
+      "fiscal_month": "2024-12",
+      "scope": "OFS",
+      "values_krw": {
+        "assets": 34886682434,
+        "liabilities": 3612233016,
+        "equity": 31274449418,
+        "revenue": 3564282688,
+        "operating_income": -4309493276
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 19146558071,
+          "liabilities": 39161947617,
+          "equity": -20015389546,
+          "revenue": 1337894447,
+          "operating_income": -3330678562
+        },
+        "2023": {
+          "assets": 16531123554,
+          "liabilities": 3713812974,
+          "equity": 12817310580,
+          "revenue": 4495088983,
+          "operating_income": -2905069801
+        },
+        "2024": {
+          "assets": 34886682434,
+          "liabilities": 3612233016,
+          "equity": 31274449418,
+          "revenue": 3564282688,
+          "operating_income": -4309493276
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318000769&dcmNo=10420846&eleId=21&offset=396488&length=136692&dtd=dart4.xsd",
+      "source_sha256": "6daddf94d6a7bb8c40b5cf25cb040ee33941a630afdf562baef7e6953fa11fc3",
+      "latest_retained_receipt": "20260122000363",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "def510393c4cf68007a0ad7d4f5c69f9097d1d6016c4b75a28f415ce4d43da0c"
+    },
+    "462350": {
+      "name": "이노스페이스",
+      "receipt": "20250318001041",
+      "fiscal_month": "2024-12",
+      "scope": "CFS",
+      "values_krw": {
+        "assets": 55913913275,
+        "liabilities": 11727770859,
+        "equity": 44186142416,
+        "revenue": 14708000,
+        "operating_income": -32904435579
+      },
+      "reported_units": {
+        "assets": "원",
+        "liabilities": "원",
+        "equity": "원",
+        "revenue": "원",
+        "operating_income": "원"
+      },
+      "comparative_values_krw": {
+        "2022": {
+          "assets": 23511504817,
+          "liabilities": 107327201556,
+          "equity": -83815696739,
+          "revenue": 342201581,
+          "operating_income": -25822444575
+        },
+        "2023": {
+          "assets": 24041387612,
+          "liabilities": 4217878610,
+          "equity": 19823509002,
+          "revenue": 231425455,
+          "operating_income": -15929213281
+        },
+        "2024": {
+          "assets": 55913913275,
+          "liabilities": 11727770859,
+          "equity": 44186142416,
+          "revenue": 14708000,
+          "operating_income": -32904435579
+        }
+      },
+      "comparative_reported_units": {
+        "2022": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2023": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        },
+        "2024": {
+          "assets": "원",
+          "liabilities": "원",
+          "equity": "원",
+          "revenue": "원",
+          "operating_income": "원"
+        }
+      },
+      "source_url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20250318001041&dcmNo=10422944&eleId=19&offset=298317&length=196265&dtd=dart4.xsd",
+      "source_sha256": "6c98d9c6d7a94d5eed699f3116a8e34d7061ebaa43e31aec60189231838b3bc8",
+      "latest_retained_receipt": "20260731000726",
+      "public_body_displayed_on": "2025-03-18",
+      "later_different_values_krw": {},
+      "receipt_verification_source": "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT",
+      "public_later_page_sha256": "4c9037c9de01fa1235b9d3094f6ca6f585f4553fdc0e0314ff704e03c87fc41f"
+    }
+  },
+  "pending": {},
+  "opendart_workflow_run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44017099648",
+  "opendart_workflow_archive_sha256": "5540f0dd06a3632f217189f4cb11e36abf9d019f53d9c1e1aac3602469bbfc8f",
+  "receipt_verification_counts": {
+    "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY": 8,
+    "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT": 43
+  },
+  "missing_curr_year_primary_revenue_codes": [
+    "007330",
+    "105560"
+  ]
+}
