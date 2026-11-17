@@ -45,10 +45,12 @@ def official_actions(register, face_register, historical_register):
 
 COMBINED_CANCELLATION = "treasury_cancellation_then_reverse_split"
 SPIN_OFF = "spin_off"
+PAID_RIGHTS_LISTING = "paid_rights_listing_without_entitlement"
+PAID_RIGHTS_UNPRICED = "paid_rights_entitlement_unpriced"
 SHARE_COUNT_INCREASES = {"third_party_placement", "bond_conversion", "option_exercise",
                          "preferred_to_common", "public_offering"}
 CONTINUITY_KINDS = SHARE_COUNT_INCREASES | {"treasury_cancellation", COMBINED_CANCELLATION,
-                                          SPIN_OFF, "rename"}
+                                          SPIN_OFF, PAID_RIGHTS_LISTING, "rename"}
 SPIN_OFF_LISTING = re.compile(
     r"https://kind\.krx\.co\.kr/corpgeneral/stockissuelist\.do\?bzProcsNo=(\d{14})"
     r"&contnId=\1&forward=searchStockIssueDetail&method=searchStockIssueDetail\Z"
@@ -128,6 +130,19 @@ def continuity_actions(raw):
                 **notice, "action": "bonus_ex_rights", "notice_url": notice["rights_url"],
             }
             actions[key] = {**notice, "action": "bonus_listing", "new_units": 1, "old_units": 1}
+        elif action == "paid_rights_issue":
+            ex_on = day(notice["ex_on"])
+            rights_url, terms_url = notice["rights_url"], notice["terms_url"]
+            require(ex_on < day(listed_on) and 0 < before < after
+                    and len({listing_url, rights_url, terms_url}) == 3
+                    and NOTICE.fullmatch(rights_url) and NOTICE.fullmatch(terms_url),
+                    "invalid_paid_rights_terms")
+            if ex_on > ENTRY:
+                ex_key = ex_on.isoformat(), code
+                require(ex_key not in actions, "duplicate_paid_rights_session")
+                actions[ex_key] = {**notice, "action": PAID_RIGHTS_UNPRICED}
+            else:
+                actions[key] = {**notice, "action": PAID_RIGHTS_LISTING, "new_units": 1, "old_units": 1}
         elif action == SPIN_OFF:
             validate_spin_off(notice)
             actions[key] = notice
@@ -174,6 +189,16 @@ def continuity_actions(raw):
                         and not chain_urls & {listing_url, terms_url},
                         "invalid_suspended_treasury_chain")
             actions[key] = {**notice, "new_units": 1, "old_units": 1}
+    for (session, code), notice in actions.items():
+        if notice["action"] != "bonus_ex_rights" or "paid_listing_on" not in notice:
+            continue
+        paid_on = day(notice["paid_listing_on"]).isoformat()
+        paid = actions.get((paid_on, code))
+        require(session < paid_on < notice["listed_on"] and paid is not None
+                and paid["action"] == PAID_RIGHTS_LISTING and paid["shares_after"] == notice["shares_before"]
+                and all(paid[k] == notice[k] for k in ("market", "name_before", "name_after")),
+                "invalid_bonus_intervening_paid_listing")
+        notice["ex_shares"] = paid["shares_before"]
     return actions
 
 
@@ -195,6 +220,8 @@ def match_held_units(panels, sessions, index, code, notice):
         return matched_ratio(previous, current, notice)
     before, after = notice["shares_before"], notice["shares_after"]
     market = notice["market"]
+    if kind == "bonus_ex_rights":
+        before = notice.get("ex_shares", before)
     expected_before = market, notice["name_before"], before
     expected_after = market, notice["name_after"], after if kind != "bonus_ex_rights" else before
     if (not previous or not current or previous[:3] != expected_before or current[:3] != expected_after):
@@ -231,10 +258,16 @@ def match_held_units(panels, sessions, index, code, notice):
         if listed_on not in sessions[index + 1:] or not traded(previous):
             return None
         listed = panels[listed_on].get(code)
+        paid_on = day(notice["paid_listing_on"]) if "paid_listing_on" in notice else listed_on
         if (not traded(listed) or listed[:3] != (market, notice["name_after"], after)
-                or any(panels[s].get(code, ())[:3] != expected_before
-                       for s in sessions[index:] if s < listed_on)):
+                or paid_on not in sessions or not traded(panels[paid_on].get(code))):
             return None
+        for s in sessions[index:]:
+            if s >= listed_on:
+                break
+            shares = before if s < paid_on else notice["shares_before"]
+            if panels[s].get(code, ())[:3] != (market, notice["name_before"], shares):
+                return None
         expected_reference = Fraction(int(previous[6]) * notice["old_units"], notice["new_units"])
         reference = notice["ex_reference_krw"]
         if reference >= previous[6] or abs(reference - expected_reference) >= krx_tick(reference):
@@ -270,15 +303,21 @@ def replay(panels, delisted, notices):
     require(len(valuations) == len(HORIZONS), "overlapping_share_action_horizons")
 
     by_session = {}
+    rights_cutoffs = {}
     for (session, code), notice in notices.items():
-        by_session.setdefault(day(session), {})[code] = notice
+        session = day(session)
+        by_session.setdefault(session, {})[code] = notice
+        if notice["action"] == PAID_RIGHTS_UNPRICED and code not in delisted and traded(panels[ENTRY].get(code)):
+            require(session in sessions, "paid_rights_ex_date_outside_session_range")
+            rights_cutoffs[code] = min(session, rights_cutoffs.get(code, session))
     first_changes = Counter()
     horizons = {str(h): [] for h in HORIZONS}
     anchor = panels[SIGNAL]
     observed = {}
     for index, session in enumerate(sessions[1:], 1):
         for code, notice in by_session.get(session, {}).items():
-            if code in delisted or code not in anchor or not traded(panels[ENTRY].get(code)):
+            if (notice["action"] == PAID_RIGHTS_UNPRICED or code in delisted
+                    or code not in anchor or not traded(panels[ENTRY].get(code))):
                 continue
             last, row = panels[sessions[index - 1]].get(code), panels[session].get(code)
             ratio = match_held_units(panels, sessions, index, code, notice)
@@ -292,7 +331,7 @@ def replay(panels, delisted, notices):
                                              "ex_reference_krw", "eligible_shares",
                                              *SUSPENDED_TREASURY_FIELDS,
                                              *COMBINED_CANCELLATION_FIELDS, *SPIN_OFF_FIELDS,
-                                             "existing_holder_rights") if k in notice},
+                                             "existing_holder_rights", "paid_listing_on", "ex_shares") if k in notice},
                 }
     incorporated = set()
     for code in sorted(anchor.keys() - delisted):
@@ -311,6 +350,8 @@ def replay(panels, delisted, notices):
         child_event = None
         child_units = Fraction(0)
         for session in sessions[1:]:
+            if rights_cutoffs.get(code) == session:
+                break
             row = panels[session].get(code)
             if row is None or row[0] != last[0]:
                 break
@@ -389,6 +430,10 @@ def replay(panels, delisted, notices):
         "matched_events": [{**event, "incorporated_into_path": key in incorporated}
                            for key, event in sorted(observed.items())],
         "horizons": {key: {"count": len(rows), "rows": rows} for key, rows in horizons.items()},
+        "unpriced_paid_rights_codes_by_horizon": {
+            str(h): sorted(code for code, ex_on in rights_cutoffs.items() if ex_on <= session)
+            for session, h in valuations.items()
+        },
         "fractional_share_model": True, "cash_distributions_included": False,
         "unlisted_entitlement_valuation": "same_session_common_share_quote",
         "official_adjusted_history_verified": False, "performance_validated": False,
