@@ -84,6 +84,25 @@ class SavedCloseSourceTests(unittest.TestCase):
                          'after_aftermarket')
         self.assertEqual(capture_window('bad-time'),'unknown')
 
+    def test_capture_window_compares_the_kst_date_to_the_trade_date(self):
+        market = saved()
+        market['generated_kst'] = '2026-11-11 10:09 KST'
+        market['stocks'][0]['price_feed_observed_at_kst'] = '2026-11-10 14:50:00 KST'
+        market['stocks'][1]['price_feed_observed_at_kst'] = '2026-11-11 09:05:00 KST'
+        market['stocks'][2]['price_feed_observed_at_kst'] = '2026-11-09 21:00:00 KST'
+        report = check(market, [], [], Provider(), snapshot_sha256='f'*64)
+        exposure = report['capture_time_exposure']
+        counts = exposure['individual_quote_windows']
+        self.assertEqual(exposure['snapshot_published_window'], 'after_trade_date')
+        self.assertEqual(counts['regular_market']['exact_close'], 1)
+        self.assertEqual(counts['after_trade_date']['different_close'], 1)
+        self.assertEqual(counts['before_trade_date']['exact_close'], 1)
+        self.assertEqual(capture_window('2026-11-11 02:30 KST', trade_day=DAY),
+                         'after_trade_date')
+        self.assertTrue(current_report(report, digest='f'*64, day=DAY))
+        counts['after_trade_date']['different_close'] = 0
+        self.assertFalse(current_report(report, digest='f'*64, day=DAY))
+
     def test_claim_of_regular_session_from_fchart_is_rejected(self):
         market=saved()
         market.update({'price_feed':'NAVER_FCHART_DAY_UNVERIFIED_SESSION',
