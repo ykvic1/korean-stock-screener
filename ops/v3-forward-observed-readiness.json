@@ -1,0 +1,104 @@
+{
+  "schema": "v3-forward-observed-archive-readiness-1",
+  "calendar_is_candidate_only": true,
+  "cohorts": {
+    "2026-11-13": {
+      "score_observation_sha256": "58f1d23ff4a07ecf5e2c31d84cbb32ad95ac0f67a2b36ef6523c1817dbaeee27",
+      "ranked_count": 2572,
+      "entry_session_candidate": "2026-11-16",
+      "matched_opening_count": 2471,
+      "horizons": {
+        "1": {
+          "target_date": "2026-12-16",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 1,
+          "archived_session_count": 1,
+          "first_missing_due_session": null
+        },
+        "2": {
+          "target_date": "2027-01-16",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 1,
+          "archived_session_count": 1,
+          "first_missing_due_session": null
+        },
+        "3": {
+          "target_date": "2027-02-16",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 1,
+          "archived_session_count": 1,
+          "first_missing_due_session": null
+        },
+        "6": {
+          "target_date": "2027-05-16",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 1,
+          "archived_session_count": 1,
+          "first_missing_due_session": null
+        },
+        "12": {
+          "target_date": "2027-11-16",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 1,
+          "archived_session_count": 1,
+          "first_missing_due_session": null
+        }
+      }
+    },
+    "2026-11-16": {
+      "score_observation_sha256": "eda2fcd2dbaad69a0680d7c4ba892351963d5bdae6fb7fc971cd1f2d81ed48ad",
+      "ranked_count": 2573,
+      "entry_session_candidate": "2026-11-18",
+      "matched_opening_count": null,
+      "horizons": {
+        "1": {
+          "target_date": "2026-12-18",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null
+        },
+        "2": {
+          "target_date": "2027-01-18",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null
+        },
+        "3": {
+          "target_date": "2027-02-18",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null
+        },
+        "6": {
+          "target_date": "2027-05-18",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null
+        },
+        "12": {
+          "target_date": "2027-11-18",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null
+        }
+      }
+    }
+  },
+  "performance_validated": false,
+  "provider_calls": 0
+}

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_forward_entry.py
+      - v3_forward_observed_readiness.py
       - v3_forward_daily_prices.py
       - v3_forward_share_actions.py
       - v3_forward_signal_close.py
@@ -52,14 +53,16 @@ jobs:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: python v3_forward_entry.py
+      - name: Reconcile observed archive coverage for all five horizons
+        run: python v3_forward_observed_readiness.py --write
       - name: Publish aggregate-only entry and daily coverage
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z $(git status --porcelain -- ops/forward-entry-status/ ops/forward-daily-price-status/ ops/forward-share-action-status/ ops/forward-signal-close-status/ docs/v3-regular-close-prices.json) ]]; then exit 0; fi
+          if [[ -z $(git status --porcelain -- ops/forward-entry-status/ ops/forward-daily-price-status/ ops/forward-share-action-status/ ops/forward-signal-close-status/ ops/v3-forward-observed-readiness.json docs/v3-regular-close-prices.json) ]]; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add --all -- ops/forward-entry-status/
+          git add --all -- ops/forward-entry-status/ ops/v3-forward-observed-readiness.json
           if [[ -d ops/forward-daily-price-status/ ]]; then
             git add --all -- ops/forward-daily-price-status/
           fi
