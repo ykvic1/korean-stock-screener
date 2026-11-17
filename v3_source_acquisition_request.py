@@ -14,6 +14,9 @@ ALLOWED = {
     'v3-operational-research-score.yml': 'replay',
     'v3-ma240-source-completion.yml': 'recover',
     'v3-retained-name-recovery.yml': 'recover',
+    'v3-rolling-dart-annual-book.yml': 'collect',
+    'v3-dart-bulk-four-year.yml': 'collect',
+    'v3-regular-close-indicators.yml': 'derive',
 }
 
 
@@ -63,6 +66,8 @@ def prepare(request, catalog, repository, *, now=None):
         command += ['-f', 'mode=' + request['mode']]
     if full_market:
         command += ['-f', 'asof=' + request['asof']]
+    elif workflow == 'v3-dart-bulk-four-year.yml':
+        command += ['-f', 'mode=live', '-f', 'groups=3']
     return command, {
         'requested': workflow, 'asof': request['asof'], 'request_id': request['id'],
         'previous_catalog_asof': catalog['date'],

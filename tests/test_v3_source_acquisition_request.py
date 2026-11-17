@@ -47,6 +47,32 @@ class SourceAcquisitionRequestTest(unittest.TestCase):
             prepare(dict(self.request, workflow='v3-operational-research-score.yml', mode='replay'),
                     self.catalog, 'owner/repo', now=self.now)
 
+    def test_only_missing_downstream_jobs_can_be_requested_at_saved_census_day(self):
+        for workflow, mode in (
+            ('v3-rolling-dart-annual-book.yml', 'collect'),
+            ('v3-dart-bulk-four-year.yml', 'collect'),
+            ('v3-regular-close-indicators.yml', 'derive'),
+        ):
+            with self.subTest(workflow=workflow):
+                request = dict(self.request, asof=self.catalog['date'],
+                               workflow=workflow, mode=mode)
+                command, report = prepare(request, self.catalog, 'owner/repo', now=self.now)
+                self.assertEqual(command[3], workflow)
+                self.assertFalse(report['new_session_requested'])
+                self.assertFalse(report['collection_completed'])
+                self.assertEqual(report['points_added_by_dispatch'], 0)
+                if workflow == 'v3-dart-bulk-four-year.yml':
+                    self.assertEqual(command[-4:], ['-f', 'mode=live', '-f', 'groups=3'])
+                else:
+                    self.assertNotIn('-f', command)
+                for invalid in (dict(request, asof='2026-11-16'),
+                                dict(request, restore_schedule=True),
+                                dict(request, mode='publish')):
+                    run = Mock()
+                    with self.assertRaises(SourceRequestError):
+                        execute(invalid, self.catalog, 'owner/repo', now=self.now, run=run)
+                    run.assert_not_called()
+
     def test_invalid_operations_dates_and_clock_are_rejected(self):
         for change in ({'workflow': 'unlisted.yml'}, {'mode': 'audit'},
                        {'asof': '2026-02-30'}, {'asof': '2026-11-6'},
