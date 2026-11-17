@@ -11,6 +11,7 @@ from pathlib import Path
 from v3_forward_share_actions import NOTICE, REGISTER, reviewed_actions, share_transition
 from v3_historical_market_coverage import END, ENTRY, HORIZONS, MARKETS, ROOT, SIGNAL, TAG
 from v3_historical_market_coverage import _anniversary, day, ledger_rows, read_panels, require, traded
+from v3_historical_performance_pilot_audit import successor_listing_counts
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_krx_close_momentum_recovery import NOTICE_FILE, krx_tick, load_face_notices
 
@@ -45,10 +46,11 @@ def official_actions(register, face_register, historical_register):
 
 COMBINED_CANCELLATION = "treasury_cancellation_then_reverse_split"
 SPIN_OFF = "spin_off"
+SUCCESSOR_ISSUANCE = "successor_share_issuance"
 PAID_RIGHTS_LISTING = "paid_rights_listing_without_entitlement"
 PAID_RIGHTS_UNPRICED = "paid_rights_entitlement_unpriced"
 SHARE_COUNT_INCREASES = {"third_party_placement", "bond_conversion", "option_exercise",
-                         "preferred_to_common", "public_offering", "bond_warrant_exercise"}
+                         "preferred_to_common", "public_offering", "bond_warrant_exercise", SUCCESSOR_ISSUANCE}
 CONTINUITY_KINDS = SHARE_COUNT_INCREASES | {"treasury_cancellation", COMBINED_CANCELLATION,
                                           SPIN_OFF, PAID_RIGHTS_LISTING, "rename"}
 SPIN_OFF_LISTING = re.compile(
@@ -173,6 +175,12 @@ def continuity_actions(raw):
                 terms_url = notice.get("terms_url", "")
                 require(terms_url != listing_url and NOTICE.fullmatch(terms_url)
                         and notice.get("existing_holder_rights") is False, "unreviewed_public_offering_terms")
+            if action == SUCCESSOR_ISSUANCE:
+                terms_url = notice.get("terms_url", "")
+                exchanged = notice.get("exchanged_code", "")
+                require(terms_url != listing_url and NOTICE.fullmatch(terms_url)
+                        and re.fullmatch(r"[0-9A-Z]{6}", exchanged) and exchanged != code
+                        and notice.get("existing_holder_rights") is False, "unreviewed_successor_issuance")
             if any(field in notice for field in SUSPENDED_TREASURY_FIELDS):
                 require(treasury and all(field in notice for field in SUSPENDED_TREASURY_FIELDS),
                         "invalid_suspended_treasury_chain")
@@ -268,7 +276,9 @@ def match_held_units(panels, sessions, index, code, notice):
             shares = before if s < paid_on else notice["shares_before"]
             if panels[s].get(code, ())[:3] != (market, notice["name_before"], shares):
                 return None
-        expected_reference = Fraction(int(previous[6]) * notice["old_units"], notice["new_units"])
+        # Compare the issued shares used in the bonus terms, including any
+        # previously issued shares that are still awaiting their listing.
+        expected_reference = Fraction(int(previous[6]) * notice["shares_before"], after)
         reference = notice["ex_reference_krw"]
         if reference >= previous[6] or abs(reference - expected_reference) >= krx_tick(reference):
             return None
@@ -331,7 +341,8 @@ def replay(panels, delisted, notices):
                                              "ex_reference_krw", "eligible_shares",
                                              *SUSPENDED_TREASURY_FIELDS,
                                              *COMBINED_CANCELLATION_FIELDS, *SPIN_OFF_FIELDS,
-                                             "existing_holder_rights", "paid_listing_on", "ex_shares") if k in notice},
+                                             "existing_holder_rights", "paid_listing_on", "ex_shares",
+                                             "exchanged_code") if k in notice},
                 }
     incorporated = set()
     for code in sorted(anchor.keys() - delisted):
@@ -440,6 +451,43 @@ def replay(panels, delisted, notices):
     }
 
 
+def successor_issuance_actions(panels, listings, settlements):
+    """Apply acquired shareholders’ new-share delivery to the existing issuer's share count."""
+    terms = {row["code"]: row for row in settlements if row["treatment"] == "stock_exchange"}
+    rows = [row for row in listings if row["treatment"] == "new_shares"]
+    by_acquired = {row["code"]: row for row in rows}
+    require(len(by_acquired) == len(rows) and by_acquired.keys() <= terms.keys(),
+            "unmatched_successor_issuance_terms")
+    successor_listing_counts(by_acquired, by_acquired.keys(), terms, {})
+    sessions = sorted(panels)
+    adjacent = dict(zip(sessions[1:], sessions[:-1], strict=True))
+    actions = {}
+    for row in rows:
+        acquired = row["code"]
+        code = row["successor_code"]
+        terms_url = terms[acquired]["term_source_url"]
+        require(re.fullmatch(r"[0-9A-Z]{6}", code) and code != acquired
+                and terms_url.startswith("https://"), "invalid_successor_issuance_terms")
+        listed = day(row["listing_on"])
+        prior = day(row["prior_trade_on"])
+        if adjacent.get(listed) != prior:
+            continue
+        previous = panels[prior].get(code)
+        current = panels[listed].get(code)
+        if not traded(previous) or not traded(current) or previous[:2] != current[:2]:
+            continue
+        market, name = current[:2]
+        key = row["listing_on"], code
+        require(key not in actions, "duplicate_successor_issuance")
+        actions[key] = {
+            "action": SUCCESSOR_ISSUANCE, "market": market, "name_before": name,
+            "name_after": name, "shares_before": int(row["shares_before"]),
+            "shares_after": int(row["shares_after"]), "new_units": 1, "old_units": 1,
+            "notice_url": row["source_url"], "terms_url": terms_url, "exchanged_code": acquired,
+        }
+    return actions
+
+
 def load_replay(panels):
     delisted = {r["code"] for r in ledger_rows(ROOT, "delistings") if r["anchor_membership"] == "present"}
     historical = ROOT / "ops" / f"v3-performance-reviewed-share-actions-{TAG}.csv"
@@ -448,7 +496,13 @@ def load_replay(panels):
     continuity = continuity_actions(raw)
     require(not notices.keys() & continuity.keys(), "duplicate_market_transition")
     digests["continuity_register"] = sha256(raw).hexdigest()
-    report = replay(panels, delisted, {**notices, **continuity})
+    ledgers = ("successor-listings", "delisting-settlement")
+    issuance = successor_issuance_actions(panels, *(ledger_rows(ROOT, name) for name in ledgers))
+    require(not (notices.keys() | continuity.keys()) & issuance.keys(), "duplicate_successor_market_transition")
+    for name in ledgers:
+        path = ROOT / "ops" / f"v3-performance-{name}-{TAG}.csv"
+        digests[name.replace("-", "_") + "_register"] = sha256(path.read_bytes()).hexdigest()
+    report = replay(panels, delisted, {**notices, **continuity, **issuance})
     report["register_sha256"] = digests
     return report
 
