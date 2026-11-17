@@ -1,6 +1,6 @@
 {
   "action_register_sha256": {
-    "continuity_register": "2d6c453d84c678e773eb4133514bda7d47447bc3d69ed92a949c0442b4636406",
+    "continuity_register": "e558c3a00739b6dcd66ffbcfcd5cabaa1c67486040c822c06e2bc2f54d0118f0",
     "delisting_settlement_register": "9afca4773f58a06731a380becb71bd526ee23259b47fcbaf01249db4baebb229",
     "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
@@ -18,10 +18,10 @@
   "horizons": {
     "1": {
       "all_observed_securities": {
-        "action_adjusted": 49,
+        "action_adjusted": 52,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 2467,
+        "non_delisted_unique": 2470,
         "overlap_superseded": 0,
         "raw_continuous_only": 2418
       },
@@ -34,20 +34,20 @@
         "raw_continuous_only": 24
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 49,
+        "action_adjusted": 52,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 2318,
+        "non_delisted_unique": 2321,
         "overlap_superseded": 0,
         "raw_continuous_only": 2269
       }
     },
     "12": {
       "all_observed_securities": {
-        "action_adjusted": 605,
+        "action_adjusted": 613,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1935,
+        "non_delisted_unique": 1943,
         "overlap_superseded": 0,
         "raw_continuous_only": 1330
       },
@@ -60,20 +60,20 @@
         "raw_continuous_only": 21
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 603,
+        "action_adjusted": 611,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1826,
+        "non_delisted_unique": 1834,
         "overlap_superseded": 0,
         "raw_continuous_only": 1223
       }
     },
     "2": {
       "all_observed_securities": {
-        "action_adjusted": 87,
+        "action_adjusted": 92,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 2361,
+        "non_delisted_unique": 2366,
         "overlap_superseded": 0,
         "raw_continuous_only": 2274
       },
@@ -86,20 +86,20 @@
         "raw_continuous_only": 23
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 87,
+        "action_adjusted": 92,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 2214,
+        "non_delisted_unique": 2219,
         "overlap_superseded": 0,
         "raw_continuous_only": 2127
       }
     },
     "3": {
       "all_observed_securities": {
-        "action_adjusted": 133,
+        "action_adjusted": 138,
         "delisting_settlement": 17,
         "includes_unlisted_entitlement": 1,
-        "non_delisted_unique": 2288,
+        "non_delisted_unique": 2293,
         "overlap_superseded": 1,
         "raw_continuous_only": 2155
       },
@@ -112,20 +112,20 @@
         "raw_continuous_only": 23
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 133,
+        "action_adjusted": 138,
         "delisting_settlement": 17,
         "includes_unlisted_entitlement": 1,
-        "non_delisted_unique": 2142,
+        "non_delisted_unique": 2147,
         "overlap_superseded": 1,
         "raw_continuous_only": 2009
       }
     },
     "6": {
       "all_observed_securities": {
-        "action_adjusted": 300,
+        "action_adjusted": 305,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 2013,
+        "non_delisted_unique": 2018,
         "overlap_superseded": 0,
         "raw_continuous_only": 1713
       },
@@ -138,10 +138,10 @@
         "raw_continuous_only": 21
       },
       "reproduced_operating_scope": {
-        "action_adjusted": 299,
+        "action_adjusted": 304,
         "delisting_settlement": 16,
         "includes_unlisted_entitlement": 0,
-        "non_delisted_unique": 1875,
+        "non_delisted_unique": 1880,
         "overlap_superseded": 0,
         "raw_continuous_only": 1576
       }
