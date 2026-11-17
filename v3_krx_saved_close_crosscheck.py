@@ -31,7 +31,7 @@ from v3_fdr_cache_krx_close_corroboration import (
 )
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
-FORMAT_REVISION = 6
+FORMAT_REVISION = 7
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
@@ -194,16 +194,13 @@ def check(market, first, second, client, *, snapshot_sha256,
     by_window = {name: Counter() for name in WINDOWS}
     for code in groups['saved_market']:
         stamp = by_code[code].get('price_feed_observed_at_kst')
-        window = capture_window(stamp)
+        window = capture_window(stamp, trade_day=day)
         by_window[window][reason(code)] += 1
     window_counts = {name: {'requested': sum(by_window[name].values()),
                      **{reason_name: by_window[name][reason_name]
                         for reason_name in REASONS}}
                      for name in WINDOWS}
-    if (sum(value['requested'] for value in window_counts.values())
-        != counts['saved_market']['requested']
-        or any(sum(value[name] for value in window_counts.values())
-               != counts['saved_market'][name] for name in REASONS)):
+    if not capture_counts_match(window_counts, counts['saved_market']):
         raise CrosscheckError('capture_window_counts_disagree')
     result = {
         'schema': SCHEMA, 'format_revision': FORMAT_REVISION,
@@ -213,7 +210,8 @@ def check(market, first, second, client, *, snapshot_sha256,
         'mismatch_distance_profile': profile,
         'capture_time_exposure': {
             'price_feed_declared': market.get('price_feed') == FEED,
-            'snapshot_published_window': capture_window(market.get('generated_kst')),
+            'snapshot_published_window': capture_window(
+                market.get('generated_kst'), trade_day=day),
             'individual_quote_windows': window_counts,
             'aftermarket_capture_is_not_proof_of_trade_session': True,
             'changing_schedule_to_after_2000_does_not_certify_close': True,
@@ -284,10 +282,19 @@ def check(market, first, second, client, *, snapshot_sha256,
     return result
 
 
+def capture_counts_match(windows, counts):
+    return (type(windows) is dict and set(windows) == set(WINDOWS)
+            and all(sum(row[reason] for reason in REASONS) == row['requested']
+                    for row in windows.values())
+            and all(sum(row[key] for row in windows.values()) == counts[key]
+                    for key in ('requested', *REASONS)))
+
+
 def current_report(report, *, digest, day):
     """Avoid duplicate official calls on unchanged *validated* saved inputs."""
     try:
         c = report['counts']['saved_market']
+        exposure = report['capture_time_exposure']
         return (type(report) is dict and report['schema'] == SCHEMA
                 and report['format_revision'] == FORMAT_REVISION
                 and report['snapshot_sha256'] == digest and report['asof'] == day
@@ -309,8 +316,8 @@ def current_report(report, *, digest, day):
                 and sum(c[key] for key in REASONS) == c['requested']
                 and report['mismatch_distance_profile']['saved_market']['different_close']
                 == c['different_close']
-                and sum(v['requested'] for v in report['capture_time_exposure']
-                        ['individual_quote_windows'].values()) == c['requested'])
+                and exposure['snapshot_published_window'] in WINDOWS
+                and capture_counts_match(exposure['individual_quote_windows'], c))
     except (KeyError, TypeError, ValueError):
         return False
 

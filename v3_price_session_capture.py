@@ -8,13 +8,14 @@ that any particular price was traded in that venue or interval.
 from datetime import datetime, time
 
 FEED = 'NAVER_FCHART_DAY_UNVERIFIED_SESSION'
-WINDOWS = ('before_regular', 'regular_market',
+WINDOWS = ('before_trade_date', 'before_regular', 'regular_market',
            'post_regular_pre_aftermarket_1530_1540',
            'nxt_aftermarket_1540_1600', 'aftermarket_1600_2000',
-           'after_aftermarket', 'unknown')
+           'after_aftermarket', 'after_trade_date', 'unknown')
 
 
-def capture_window(stamp):
+def capture_window(stamp, *, trade_day=None):
+    """Classify the KST capture relative to a validated ISO trading date."""
     if not isinstance(stamp, str):
         return 'unknown'
     parsed = None
@@ -26,6 +27,12 @@ def capture_window(stamp):
             pass
     if parsed is None:
         return 'unknown'
+    if trade_day is not None:
+        captured_day = parsed.date().isoformat()
+        if captured_day < trade_day:
+            return 'before_trade_date'
+        if captured_day > trade_day:
+            return 'after_trade_date'
     moment = parsed.time()
     if moment < time(9):
         return 'before_regular'

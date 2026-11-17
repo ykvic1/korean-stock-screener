@@ -13,6 +13,14 @@
         "requested": 0,
         "unusable_saved_close": 0
       },
+      "after_trade_date": {
+        "absent_in_krx": 0,
+        "different_close": 2092,
+        "exact_close": 351,
+        "invalid_krx_price_row": 0,
+        "requested": 2443,
+        "unusable_saved_close": 0
+      },
       "aftermarket_1600_2000": {
         "absent_in_krx": 0,
         "different_close": 0,
@@ -22,6 +30,14 @@
         "unusable_saved_close": 0
       },
       "before_regular": {
+        "absent_in_krx": 0,
+        "different_close": 0,
+        "exact_close": 0,
+        "invalid_krx_price_row": 0,
+        "requested": 0,
+        "unusable_saved_close": 0
+      },
+      "before_trade_date": {
         "absent_in_krx": 0,
         "different_close": 0,
         "exact_close": 0,
@@ -47,10 +63,10 @@
       },
       "regular_market": {
         "absent_in_krx": 0,
-        "different_close": 2092,
-        "exact_close": 351,
+        "different_close": 0,
+        "exact_close": 0,
         "invalid_krx_price_row": 0,
-        "requested": 2443,
+        "requested": 0,
         "unusable_saved_close": 0
       },
       "unknown": {
@@ -63,7 +79,7 @@
       }
     },
     "price_feed_declared": true,
-    "snapshot_published_window": "regular_market"
+    "snapshot_published_window": "after_trade_date"
   },
   "changed_market_price_rows": 0,
   "corporate_action_adjustments_verified": false,
@@ -115,7 +131,7 @@
     "source_scope": "FDR_DATED_PUBLIC_CACHE_REGULAR_CLOSE_CANDIDATE_NOT_REPUBLICATION",
     "status": "observed"
   },
-  "format_revision": 6,
+  "format_revision": 7,
   "historical_issuer_pit_verified": false,
   "investment_score_certified": false,
   "krx_market_source_sha256": {
