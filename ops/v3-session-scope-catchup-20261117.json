@@ -1,0 +1,96 @@
+{
+  "schema": "v3-session-scope-catchup-20261117-v1",
+  "recorded_at_utc": "2026-11-17T00:52:36.616Z",
+  "code_merge_commit": "bcfa6e76d82c387def2deb0cde178f9f4c4ff66a",
+  "pr_url": "https://github.com/ykvic1/korean-stock-screener/pull/920",
+  "validation": {
+    "ci_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43989201210",
+    "python_tests": 2604,
+    "mobile_browser_ci_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43989201103",
+    "result": "success",
+    "unchanged_operational_csv_sha": "ee2cdc756eb94bec0091d5e9d28167e11d5fef6b"
+  },
+  "session_scope": {
+    "schema": "v3-operational-session-scope-1",
+    "price_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "volume_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "turnover_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "price_observation": "PER_COMPONENT_OFFICIAL_CLOSE_WHERE_AVAILABLE",
+    "volume_observation": "UNVERIFIED",
+    "turnover_observation": "UNVERIFIED",
+    "obv_observation": "UNVERIFIED",
+    "legacy_volume_target": "KRX_NXT_ALL_SESSION_VOLUME_TO_2000",
+    "legacy_volume_target_matches_operational": false,
+    "regular_only_market_history_verified": false,
+    "numeric_agreement_proves_session": false
+  },
+  "operational_before_catchup": {
+    "asof": "2026-11-13",
+    "listed_total": 2591,
+    "ranked_count": 2573,
+    "weight_bin_order": [
+      "100",
+      "95_to_less_than_100",
+      "90_to_less_than_95",
+      "80_to_less_than_90",
+      "70_to_less_than_80",
+      "60_to_less_than_70",
+      "less_than_60"
+    ],
+    "counts": [
+      1390,
+      393,
+      445,
+      42,
+      100,
+      55,
+      166
+    ],
+    "delta": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "forward_entry": {
+    "asof": "2026-11-13",
+    "entry_session": "2026-11-16",
+    "observed": 2471,
+    "entry_daily_mismatches": 0,
+    "performance_validated": false
+  },
+  "dispatch": {
+    "asof": "2026-11-16",
+    "collection_completed": false,
+    "date_pinned_roster_verification_required": true,
+    "new_session_requested": true,
+    "points_added_by_dispatch": 0,
+    "previous_catalog_asof": "2026-11-13",
+    "previous_workflow_state": "active",
+    "request_id": "20261117-completed-close-20261116-01",
+    "requested": "full-market-batches.yml",
+    "restore_schedule_requested": true,
+    "schedule_restored": false
+  },
+  "collection": {
+    "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/43990158742",
+    "status": "in_progress",
+    "target_asof": "2026-11-16",
+    "planned_issuers": 2592,
+    "planned_parts": 26,
+    "verified_completed_parts": {
+      "parts": 5,
+      "attempted": 492,
+      "valid": 454,
+      "excluded": 21,
+      "errors": 17
+    },
+    "collection_completed": false,
+    "publication_verified": false
+  },
+  "next_check": "Do not dispatch a duplicate. Check this run's final census, dates, missing/error classifications, subsequent official-close refresh and operational score publication."
+}
