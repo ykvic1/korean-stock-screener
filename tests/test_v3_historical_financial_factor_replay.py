@@ -50,3 +50,9 @@ class HistoricalFinancialFactorReplayTests(TestCase):
         self.assertEqual(result["12"]["priced"], 0)
         self.assertEqual(result["12"]["adverse_path_observed"], 1)
         self.assertIsNone(result["12"]["median_price_change_pct"])
+
+        rows["12"]["000002"] = {"basis": "reviewed_share_action", "price_change_pct": 20.0,
+                                "observed_adverse_excursion_pct": None, "unpriced_sessions": 1}
+        result = summarize_outcomes({"000001", "000002"}, rows, {})["12"]
+        self.assertEqual((result["priced"], result["adverse_path_observed"]), (1, 1))
+        self.assertEqual(result["median_observed_adverse_excursion_pct"], 44.0)

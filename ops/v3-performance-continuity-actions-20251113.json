@@ -4276,5 +4276,51 @@
     "action": "treasury_cancellation",
     "notice_url": "https://kind.krx.co.kr/external/2026/10/27/000463/20261027001182/70763.htm",
     "terms_url": "https://kind.krx.co.kr/external/2026/09/14/000633/20260913000003/71131.htm"
+  },
+  {
+    "code": "000880",
+    "name_before": "한화",
+    "name_after": "한화",
+    "market": "KOSPI",
+    "listed_on": "2026-08-25",
+    "shares_before": 70507919,
+    "shares_after": 53328897,
+    "action": "spin_off",
+    "new_units": 7563533,
+    "old_units": 10000000,
+    "child_code": "0220W0",
+    "child_name": "한화머시너리앤서비스홀딩스",
+    "child_shares": 84515535,
+    "child_new_units": 12182335,
+    "child_old_units": 10000000,
+    "halt_from": "2026-07-30",
+    "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?bzProcsNo=20260820000139&contnId=20260820000139&forward=searchStockIssueDetail&method=searchStockIssueDetail",
+    "terms_url": "https://kind.krx.co.kr/external/2026/06/25/000129/20260625000187/00660.htm",
+    "halt_url": "https://kind.krx.co.kr/external/2026/07/23/000063/20260723000080/68054.htm",
+    "child_listing_url": "https://kind.krx.co.kr/external/2026/08/21/000488/20260821001579/68156.htm"
+  },
+  {
+    "code": "258610",
+    "name_before": "케일럼",
+    "name_after": "케일럼",
+    "market": "KOSDAQ",
+    "listed_on": "2025-12-22",
+    "shares_before": 26787133,
+    "shares_after": 36485063,
+    "action": "preferred_to_common",
+    "notice_url": "https://kind.krx.co.kr/external/2025/12/17/000615/20251217001628/70791.htm"
+  },
+  {
+    "code": "092040",
+    "name_before": "아미코젠",
+    "name_after": "아미코젠",
+    "market": "KOSDAQ",
+    "listed_on": "2026-02-26",
+    "shares_before": 55730013,
+    "shares_after": 70655387,
+    "action": "public_offering",
+    "notice_url": "https://kind.krx.co.kr/external/2026/02/23/000883/20260223002329/70791.htm",
+    "terms_url": "https://kind.krx.co.kr/external/2026/02/04/000363/20260204001193/10601.htm",
+    "existing_holder_rights": false
   }
 ]

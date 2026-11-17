@@ -218,7 +218,8 @@ def summarize_outcomes(codes, outcomes, entry):
     for period in map(str, HORIZONS):
         points = [outcomes[period][code] for code in codes if code in outcomes[period]]
         priced = [row for row in points if row["price_change_pct"] is not None]
-        adverse = [point["observed_adverse_excursion_pct"] for point in points]
+        adverse = [point["observed_adverse_excursion_pct"] for point in points
+                   if point["observed_adverse_excursion_pct"] is not None]
         summary[period] = {
             "cohort_size": len(codes),
             "entry_open_observed": sum(traded(entry.get(code)) for code in codes),

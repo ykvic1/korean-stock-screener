@@ -20,6 +20,48 @@ def split(new, old):
 
 
 class HistoricalShareActionTests(unittest.TestCase):
+    def test_spin_off_marks_both_securities_and_leaves_intraday_adverse_unknown(self):
+        halt = day("2026-07-30")
+        listed = day("2026-08-25")
+        sessions = (SIGNAL, ENTRY, day("2025-12-15"), day("2026-01-13"), day("2026-02-13"),
+                    day("2026-05-13"), halt, listed, END)
+        parent, child = "000001", "0220W0"
+        panels = {d: dict.fromkeys((*CALENDAR_CODES, parent), quote(100, 100)) for d in sessions}
+        panels[halt][parent] = ("KOSPI", "company", 100, 0, 0, 0, 100, 0)
+        for d in (listed, END):
+            panels[d][parent] = quote(75, 120)
+            panels[d][child] = ("KOSPI", "child", *quote(150, 20)[2:])
+        source = "https://kind.krx.co.kr/external/2026/08/21/000001/20260821000001/"
+        notice = dict(code=parent, action="spin_off", market="KOSPI", name_before="company",
+                      name_after="company", shares_before=100, shares_after=75,
+                      new_units=3, old_units=4, child_code=child, child_name="child", child_shares=150,
+                      child_new_units=3, child_old_units=2, halt_from=str(halt), listed_on=str(listed),
+                      notice_url=source + "68155.htm", child_listing_url=source + "68156.htm",
+                      terms_url=source + "00660.htm", halt_url=source + "68054.htm")
+        parsed = continuity_actions(json.dumps([notice]).encode())
+        result = replay(panels, set(), parsed)
+        holding, = result["horizons"]["12"]["rows"]
+        self.assertEqual(holding["price_change_pct"], 20)
+        self.assertEqual(holding["tradable_units_per_entry_share"], "3/4")
+        self.assertEqual(holding["child_units_per_entry_share"], "3/2")
+        self.assertEqual(holding["unpriced_sessions"], 1)
+        self.assertIsNone(holding["observed_adverse_excursion_pct"])
+        self.assertEqual(holding["valuation_basis"], "proportional_spin_off_close")
+
+        for mismatch in ({"new_units": 2}, {"child_code": parent}, {"child_new_units": True},
+                         {"child_listing_url": notice["notice_url"]}):
+            with self.subTest(mismatch=mismatch), self.assertRaisesRegex(PilotAuditError, "invalid_spin_off_terms"):
+                continuity_actions(json.dumps([{**notice, **mismatch}]).encode())
+        for date, code, invalid in (
+            (halt, parent, quote(100, 100)),
+            (halt, child, panels[listed][child]),
+            (listed, child, ("KOSDAQ", "child", *quote(150, 20)[2:])),
+            (END, child, ("KOSPI", "child", *quote(151, 20)[2:])),
+        ):
+            with self.subTest(date=date, code=code):
+                damaged = {**panels, date: {**panels[date], code: invalid}}
+                self.assertEqual(replay(damaged, set(), parsed)["horizons"]["12"]["rows"], [])
+
     def test_treasury_cancellation_during_halt_preserves_gaps_with_a_matched_resumption(self):
         halted_from = day("2025-12-12")
         cancellation = day("2025-12-15")
@@ -210,3 +252,18 @@ class HistoricalShareActionTests(unittest.TestCase):
         second["shares_after"] = 151
         result = replay(panels, set(), continuity_actions(json.dumps([first, second]).encode()))
         self.assertEqual(result["horizons"]["12"]["rows"], [])
+
+    def test_verified_offering_and_preferred_conversion_do_not_change_common_holdings(self):
+        date = "2025-12-15"
+        code = "000001"
+        prefix = "https://kind.krx.co.kr/external/2025/12/12/000001/20251212000001/"
+        terms = dict(code=code, action="public_offering", market="KOSPI", name_before="company",
+                     name_after="company", shares_before=100, shares_after=150, listed_on=date,
+                     notice_url=prefix + "70791.htm", terms_url=prefix + "10601.htm",
+                     existing_holder_rights=False)
+        for change in (terms, {**terms, "action": "preferred_to_common"}):
+            rows = continuity_actions(json.dumps([change]).encode())
+            self.assertEqual((rows[date, code]["new_units"], rows[date, code]["old_units"]), (1, 1))
+        for update in ({"existing_holder_rights": True}, {"terms_url": terms["notice_url"]}):
+            with self.subTest(update=update), self.assertRaisesRegex(PilotAuditError, "unreviewed_public_offering_terms"):
+                continuity_actions(json.dumps([{**terms, **update}]).encode())
