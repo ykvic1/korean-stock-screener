@@ -11,6 +11,9 @@ on:
       - v3_pattern_first_observations.py
       - technical_v22.py
       - .github/workflows/v3-regular-close-indicators.yml
+  workflow_run:
+    workflows: [Full-Market 100-Stock Batches]
+    types: [completed]
   schedule:
     # KRX publishes the prior trading session at 08:00 KST on the next business day.
     - cron: '5 0 * * 1-5' # 09:05 KST Monday-Friday, after official publication.
@@ -25,6 +28,11 @@ concurrency:
 
 jobs:
   collect:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 28
     permissions:

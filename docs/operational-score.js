@@ -38,11 +38,24 @@ function validRow(r,day,version=VERSION){
  const legacyStop=version===VERSION?0:r.stop_adjustment;
  return near(points,r.base)&&near(r.score,round(Math.max(0,Math.min(100,r.base-r.capital_deduction+legacyStop-r.risk_deduction))));
 }
+
+function validSessionScope(scope){
+ const regular='KRX_REGULAR_0900_1530_ASIA_SEOUL';
+ return !!scope&&scope.schema==='v3-operational-session-scope-1'&&
+  ['price_target','volume_target','turnover_target'].every(k=>scope[k]===regular)&&
+  scope.price_observation==='PER_COMPONENT_OFFICIAL_CLOSE_WHERE_AVAILABLE'&&
+  ['volume_observation','turnover_observation','obv_observation'].every(k=>scope[k]==='UNVERIFIED')&&
+  [regular,'KRX_NXT_ALL_SESSION_VOLUME_TO_2000'].includes(scope.legacy_volume_target)&&
+  scope.legacy_volume_target_matches_operational===(scope.legacy_volume_target===regular)&&
+  scope.regular_only_market_history_verified===false&&scope.numeric_agreement_proves_session===false;
+}
+
 function attach(model,report){
  if(!model||!Array.isArray(model.rows)||!report||!ACCEPTED_VERSIONS.has(report.version)||
     report.format!=='compact-parts-v1'||report.status!=='provisional_operational'||
     !isDay(report.asof)||report.asof>model.date||report.investment_score_certified!==false||report.performance_validated!==false||
     report.missing_is_not_zero!==true||report.unobserved_weight_not_normalized!==true||
+    (report.session_scope!==undefined&&!validSessionScope(report.session_scope))||
     report.provider_calls!==0||!Number.isInteger(report.listed_total)||report.listed_total<1||report.listed_total>10000||!report.rows||Object.keys(report.rows).some(k=>!/^[0-9A-Z]{6}$/.test(k))||Object.keys(report.rows).length!==report.listed_total||
     Object.entries(BUDGET).some(([k,v])=>report.budgets?.[k]!==v)||
     Object.values(report.rows).some(r=>!validRow(r,report.asof,report.version)))return 0;
@@ -53,6 +66,7 @@ function attach(model,report){
   const v=report.rows[r.code];if(!v){
    delete r.v3_operational;
    delete r.v3_operational_version;
+   delete r.v3_operational_session_scope;
    r.v3_operational_evidence_missing=true;
    continue;
   }
@@ -60,11 +74,13 @@ function attach(model,report){
   if(v.name!==r.name||v.market!==r.market){
    delete r.v3_operational;
    delete r.v3_operational_version;
+   delete r.v3_operational_session_scope;
    r.v3_operational_identity_blocked=true;
    continue;
   }
   delete r.v3_operational_identity_blocked;
-  r.v3_operational=v;r.v3_operational_version=report.version;n++;
+  r.v3_operational=v;r.v3_operational_version=report.version;
+  r.v3_operational_session_scope=report.session_scope||null;n++;
  }
  model.operationalVersion=report.version;return n;
 }
@@ -96,7 +112,8 @@ function attachAllListed(model,report){
    model.rows.push({r:{code,name:v.name,market:v.market,price:null,
      price_date:null,score:null,coverage_pct:null,components:null,
      unpriced_operational_only:true,v3_operational:v,
-     v3_operational_version:report.version},q:null,rec:null,
+     v3_operational_version:report.version,
+     v3_operational_session_scope:report.session_scope||null},q:null,rec:null,
      watch:null,quant:false,researchCandidate:false,qualified:false,
      caution:false,risk:null,highRisk:true,financialRef:null,
      rollingBook:null,fourYearRef:null,decision:null});
@@ -183,6 +200,17 @@ function regularCloseMarkup(v){
  }
  return parts.length?'<p class="u-muted">공식 KRX 종가 재산출 · '+parts.join(' / ')+'</p>':'';
 }
+
+function sessionScopeMarkup(r){
+ const v=r?.v3_operational;if(!v)return '';
+ const price=regularCloseMarkup(v)?
+  '위에 표시한 가격 지표·기간만 공식 KRX 종가로 재산출했습니다.':
+  '공식 KRX 종가 재산출 근거가 연결되지 않은 가격 지표는 원천 범위 확인 중입니다.';
+ return '<p class="u-muted u-session-scope" aria-label="가격과 거래 원천 집계 범위">'+
+  price+' 거래량·거래대금·OBV의 09:00~15:30 전용 집계 범위는 미확인입니다. '+
+  '가격 일치나 가격 지표 재산출은 거래량·거래대금의 정규장 검증을 뜻하지 않습니다.</p>';
+}
+
 function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_identity_blocked?
  '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':
  r?.v3_operational_evidence_missing?
@@ -190,7 +218,7 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
  '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
  return '<section class="u-operational-detail"><h3>잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1e':r.v3_operational_version==='v3-stable-r1d-operational-research'?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a')+'</h3><p><strong>'+(v.score===null?'미관측':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
-  '</p>'+reconciliationMarkup(v)+regularCloseMarkup(v)+
+  '</p>'+reconciliationMarkup(v)+regularCloseMarkup(v)+sessionScopeMarkup(r)+
   '<p class="u-muted">재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
   (v.risk_warnings.length?'<p class="u-muted">'+v.risk_warnings.map(esc).join(' · ')+'</p>':'')+
   '<p>기존 모델 '+(finite(v.legacy_score)?v.legacy_score.toFixed(1)+'점':'미관측')+' · 신규 '+(v.rank??'—')+'위 / 기존 '+(v.legacy_rank??'—')+'위</p>'+
@@ -209,6 +237,6 @@ function markup(r){const v=r?.v3_operational;if(!v)return r?.v3_operational_iden
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   '<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p></section>';
 }
-const api={VERSION,BUDGET,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
+const api={VERSION,BUDGET,validSessionScope,sessionScopeMarkup,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
