@@ -11,6 +11,7 @@ from v3_forward_daily_prices import (
 )
 from v3_forward_entry import OUT as ENTRIES, entry_plan
 from v3_forward_horizon_readiness import MAX_SETTLEMENT_LAG_DAYS
+from v3_forward_share_actions import OUT as SHARE_REVIEWS, SCHEMA as SHARE_SCHEMA, STATES
 from v3_score_observation_capture import ARCHIVE
 
 OUTPUT = Path('ops/v3-forward-observed-readiness.json')
@@ -34,7 +35,45 @@ def read_archived_days(root):
     return days
 
 
-def horizon_readiness(entry_day, target, sessions, archived, now, opening_ready):
+def read_share_reviews(root, archived):
+    """Count only reviews tied to both archived KRX responses."""
+    reviews = {}
+    for path in sorted((root / SHARE_REVIEWS).glob('????-??-??.json')):
+        row = json.loads(path.read_bytes())
+        earlier, current = row.get('previous_session'), row.get('session')
+        counts = row.get('states')
+        if (row.get('schema') != SHARE_SCHEMA or current != path.stem
+                or not isinstance(earlier, str) or earlier >= current
+                or row.get('status') != 'adjacent_share_counts_reviewed'
+                or not isinstance(counts, dict) or set(counts) != set(STATES)
+                or any(type(n) is not int or n < 0 for n in counts.values())
+                or type(row.get('compared_distinct_codes')) is not int
+                or not 0 < sum(counts.values()) == row['compared_distinct_codes']):
+            raise ValueError('invalid_share_action_checkpoint')
+        if (earlier in archived and current in archived
+                and row.get('previous_source_sha256') == archived[earlier]
+                and row.get('current_source_sha256') == archived[current]):
+            reviews[earlier, current] = counts
+    return reviews
+
+
+def share_review_coverage(sessions, reviews):
+    pairs = [(earlier.isoformat(), current.isoformat())
+             for earlier, current in zip(sessions, sessions[1:])]
+    missing = [pair for pair in pairs if pair not in reviews]
+    unresolved_states = ('share_count_unavailable', 'identity_changed',
+                         'change_needs_notice', 'notice_mismatch')
+    return {
+        'due_transition_count': len(pairs),
+        'source_linked_review_count': len(pairs) - len(missing),
+        'first_missing_review_session': missing[0][1] if missing else None,
+        'unresolved_market_code_transitions_in_linked_reviews': sum(
+            reviews[pair][state] for pair in pairs if pair in reviews
+            for state in unresolved_states),
+    }
+
+
+def horizon_readiness(entry_day, target, sessions, archived, now, opening_ready, reviews):
     candidates = [day for day in sessions if day >= target]
     target_session = candidates[0] if candidates else None
     path_end = target_session or (target + timedelta(days=MAX_SETTLEMENT_LAG_DAYS))
@@ -58,11 +97,13 @@ def horizon_readiness(entry_day, target, sessions, archived, now, opening_ready)
         'due_session_count': len(due),
         'archived_session_count': len(due) - len(gaps),
         'first_missing_due_session': gaps[0].isoformat() if gaps else None,
+        'share_action_review_coverage': share_review_coverage(due, reviews),
     }
 
 
 def build(root, now):
     archived = read_archived_days(root)
+    reviews = read_share_reviews(root, archived)
     cohorts = {}
     for path in sorted((root / ARCHIVE).glob('????-??-??.json')):
         raw = path.read_bytes()
@@ -84,18 +125,28 @@ def build(root, now):
             and crosscheck.get('mismatched_openings') == 0)
         targets = {key: date.fromisoformat(value) for key, value in plan['horizon_target_dates'].items()}
         sessions = [date.fromisoformat(value) for value in completed_sessions(
-            entry_day, max(targets.values()) + timedelta(days=MAX_SETTLEMENT_LAG_DAYS), now)]
+            entry_day - timedelta(days=14),
+            max(targets.values()) + timedelta(days=MAX_SETTLEMENT_LAG_DAYS), now)]
+        earlier = next((day for day in reversed(sessions) if day < entry_day), None)
+        entry_boundary = (reviews.get((earlier.isoformat(), entry_day.isoformat()))
+                          if earlier is not None and entry_day in sessions else None)
         cohorts[path.stem] = {
             'score_observation_sha256': plan['score_observation_sha256'],
             'ranked_count': plan['ranked_count'],
             'entry_session_candidate': entry_day.isoformat(),
             'matched_opening_count': crosscheck['observed_openings_checked'] if opening_ready else None,
+            'entry_share_action_review': {
+                'previous_session_candidate': earlier.isoformat() if earlier else None,
+                'source_linked': entry_boundary is not None,
+                'market_transition_counts': entry_boundary,
+            },
             'horizons': {key: horizon_readiness(entry_day, target,
                          [day for day in sessions if day <= target + timedelta(days=MAX_SETTLEMENT_LAG_DAYS)],
-                         archived, now, opening_ready) for key, target in targets.items()},
+                         archived, now, opening_ready, reviews) for key, target in targets.items()},
         }
     return {'schema': 'v3-forward-observed-archive-readiness-1',
             'calendar_is_candidate_only': True, 'cohorts': cohorts,
+            'full_corporate_action_history_certified': False,
             'performance_validated': False, 'provider_calls': 0}
 
 
