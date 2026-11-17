@@ -59,7 +59,7 @@ def ledger_rows(root, name):
         return list(csv.DictReader(stream))
 
 
-def summarize(panels, roster, trade_rows, delisting_prices, *, stable_codes=None):
+def summarize(panels, roster, trade_rows, delisting_prices, *, stable_codes=None, stable_outcomes=None):
     signal = panels[SIGNAL]
     sessions = sorted(session for session in panels if ENTRY <= session <= END)
     require(sessions and sessions[0] == ENTRY and sessions[-1] == END, "historical_market_session_range")
@@ -89,7 +89,7 @@ def summarize(panels, roster, trade_rows, delisting_prices, *, stable_codes=None
     entry_prices = {code: panels[ENTRY][code][3] for code in non_delisted if traded(panels[ENTRY].get(code))}
     states = {}
     lows = dict(entry_prices)
-    gaps = set()
+    gaps = Counter()
     returns_by_horizon = {}
     for session in sessions:
         panel = panels[session]
@@ -108,7 +108,7 @@ def summarize(panels, roster, trade_rows, delisting_prices, *, stable_codes=None
                 elif traded(row):
                     lows[code] = min(lows[code], row[5])
                 else:
-                    gaps.add(code)
+                    gaps[code] += 1
             if session in valuations:
                 if code in states:
                     counts[states[code]] += 1
@@ -119,8 +119,17 @@ def summarize(panels, roster, trade_rows, delisting_prices, *, stable_codes=None
                         stable_codes.setdefault(str(valuations[session]), set()).add(code)
                     counts["stable_quote_valuations"] += 1
                     counts["stable_quote_paths_with_gaps"] += code in gaps
-                    returns.append((row[6] / entry - 1) * 100)
-                    adverse.append((1 - lows[code] / entry) * 100)
+                    change = (row[6] / entry - 1) * 100
+                    drawdown = (1 - lows[code] / entry) * 100
+                    returns.append(change)
+                    adverse.append(drawdown)
+                    if stable_outcomes is not None:
+                        stable_outcomes.setdefault(str(valuations[session]), {})[code] = {
+                            "valuation_session": session.isoformat(),
+                            "price_change_pct": round(change, 4),
+                            "observed_adverse_excursion_pct": round(drawdown, 4),
+                            "unpriced_sessions": gaps[code],
+                        }
         if session in valuations:
             horizon = valuations[session]
             returns_by_horizon[str(horizon)] = {
