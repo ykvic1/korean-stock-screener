@@ -301,12 +301,14 @@ function legacyVolumeBaseOnly(rec){
    post_spike_absorption:null},
   legacy_obv_six_points_removed:true};
 }
-function applyObservedVolume(model,source){
+function applyObservedVolume(model,source,marketDigest){
  if(!model||!Array.isArray(model.rows)||!validDate(model.date)||
    !Number.isInteger(model.marketEligible)||model.marketEligible<1||
    !source||!['v3-current-market-volume-ma-cross-provisional-research-0.2',
     'v3-current-market-volume-obv-provisional-research-0.1'].includes(source.schema)||
    source.asof!==model.date||source.listed_total!==model.marketEligible||
+   typeof marketDigest!=='string'||!/^[a-f0-9]{64}$/.test(marketDigest)||
+   source.source_market_publication_sha256!==marketDigest||
    source.points_budget!==20||
    (source.schema==='v3-current-market-volume-ma-cross-provisional-research-0.2'
     ?(source.maximum_available_point_budget_per_observed_issuer!==16||
@@ -2947,11 +2949,24 @@ async function load(){
   'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
   'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json',
   'v3-trading-status.json','v3-regular-close-prices.json','v3-data-collection-closeout.json'];
+ let marketDigest=null;
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
-    return r.ok?await r.json():null;}catch(_){return null;}
+    if(!r.ok)return null;
+    if(file!=='data.json')return await r.json();
+    const bytes=await r.arrayBuffer();
+    const market=JSON.parse(new TextDecoder().decode(bytes));
+    // Bind the research overlay to the exact market file loaded by this page.
+    // A hashing failure withholds that overlay while preserving the base page.
+    if(root.crypto?.subtle){
+     try{const digest=await root.crypto.subtle.digest('SHA-256',bytes);
+      marketDigest=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+     }catch(_){}
+    }
+    return market;
+   }catch(_){return null;}
    })),
    root.fetch('v3-current-observed-all-listed.csv?v='+Date.now(),
               {cache:'no-store'}).then(r=>r.ok?r.text():null).catch(()=>null)
@@ -2978,7 +2993,7 @@ async function load(){
   const attachedFcf=applyActualCashflowPreview(model,actualCashflowCoverage);
   applyIssuerCashflowEvidence(model,responses[18],
    attachedFcf>0?actualCashflowCoverage:null);
-  applyObservedVolume(model,responses[13]);
+  applyObservedVolume(model,responses[13],marketDigest);
   applyCurrentPriceReplay(model,responses[14]);
   // All 2,497 listed rows, same market day, independently replayed CSV.
   // Reject the entire overlay if any header, coverage, identity or subtotal

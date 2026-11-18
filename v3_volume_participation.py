@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from hashlib import sha256
 from io import StringIO
 import json
 import math
@@ -326,7 +327,9 @@ def main(argv=None):
         return json.loads((root/name).read_text(encoding="utf8"))
     catalog=read("v22-market-catalog.json")
     money=read(MONEY_OUTPUT) if (root/MONEY_OUTPUT).is_file() else None
-    value=build(read("data.json"),catalog,money_source=money)
+    market_bytes=(root/"data.json").read_bytes()
+    value=build(json.loads(market_bytes),catalog,money_source=money)
+    value["source_market_publication_sha256"]=sha256(market_bytes).hexdigest()
     path=root/"v3-volume-obv-observed.json"
     sheet=root/"v3-volume-obv-observed.csv"
     csv_source=to_csv(value,catalog)
