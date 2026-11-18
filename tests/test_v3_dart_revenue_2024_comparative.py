@@ -3,6 +3,7 @@ import json
 import unittest
 
 import v3_dart_bulk_history as bulk
+import v3_dart_revenue_2023_comparative as comp_2023
 import v3_dart_revenue_2024_comparative as comp
 import v3_revenue_growth_evidence as growth
 
@@ -43,6 +44,47 @@ def payload(base,**changes):
 
 
 class FY2024RevenueTests(unittest.TestCase):
+    def test_short_2023_period_prevents_relabeling_earlier_filing_in_both_sources(self):
+        catalog,history=inputs()
+        statements=history['records'][CODE]['years']
+        statements['2022']['CFS']['values']['revenue']=None
+        statements['2023']['CFS']['receipt_id']='20240321001312'
+        statements['2024']['CFS']['receipt_id']='20250321001138'
+        statements['2023']['CFS']['values']['revenue']=49004497323
+        statements['2024']['CFS']['values']['revenue']=90263397163
+        statements['2025']['CFS']['values']['revenue']=93839011849
+        base_2023=comp_2023.expected_sources(catalog,history)[CODE]
+        base_2024=comp.expected_sources(catalog,history)[CODE]
+        code='033250'
+        catalog['rows'][0]['code']=code
+        history['records'][code]=history['records'].pop(CODE)
+        prior_sales=60534305387
+        row_2023={**base_2023,'code':code,'status':'observed',
+            'revenue_2022_krw':prior_sales,'checked_on':DAY,
+            'source_receipt_id':base_2023['source_2023_receipt_id'],
+            'source_account_id':'ifrs-full_Revenue','source_account_name':None,
+            'source_error':None}
+        base_2024={**base_2024,'code':code}
+        row_2024=comp.parse(payload(base_2024,thstrm_amount='90263397163',
+            frmtrm_amount='49004497323',bfefrmtrm_amount=str(prior_sales)),
+            base_2024,corp=CORP,day=DAY)
+        saved_2023=comp_2023.snapshot(DAY,{code:row_2023},catalog)
+        saved_2024=comp.snapshot(DAY,catalog,{code:row_2024})
+        self.assertNotIn(code,comp_2023.expected_sources(catalog,history))
+        self.assertNotIn(code,comp.expected_sources(catalog,history))
+        self.assertNotIn(code,comp_2023.plan(catalog,history,None,saved_2023)[2])
+        self.assertNotIn(code,comp.plan(catalog,history,saved_2024)[2])
+        parts,summary=growth.derive(history,catalog,None,saved_2023,saved_2024)
+        self.assertNotIn(code,parts)
+        self.assertEqual(summary['same_market_peer_counts']['KOSPI'],30)
+
+    def test_known_stub_does_not_count_toward_peer_minimum(self):
+        catalog,history=inputs(30)
+        self.assertEqual(len(growth.derive(history,catalog)[0]),30)
+        parts,summary=growth.derive(history,catalog,short_period_codes={CODE})
+        self.assertEqual(parts,{})
+        self.assertEqual(summary['same_market_peer_counts']['KOSPI'],29)
+
     def test_two_real_comparative_years_recover_without_rewriting_old_receipts(self):
         catalog,history=inputs()
         source=history['records'][CODE]['years']

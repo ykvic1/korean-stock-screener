@@ -98,7 +98,7 @@ def window(record, fiscal, asof, revenue_2022_source=None, comparative_2023_sour
 
 
 def derive(history,catalog,official_2022_revenue=None,official_2023_comparative=None,
-           official_2024_comparative=None):
+           official_2024_comparative=None, *, short_period_codes=()):
     """Rebuild the same-market revenue peer cohort from saved actual values."""
     day=catalog['date']
     summary={'provider_calls':0,'eligible_revenue_issuers':0,'independent_revenue_only_issuers':0,
@@ -124,7 +124,7 @@ def derive(history,catalog,official_2022_revenue=None,official_2023_comparative=
     values={}
     members={r['code']:r['market'] for r in catalog['rows']}
     for code,record in history.get('records',{}).items():
-        if code not in members:continue
+        if code not in members or code in short_period_codes:continue
         observation=window(record,history.get('fiscal_years'),day,
                            source_rows.get(code),comparative_rows.get(code),
                            comparative_2024_rows.get(code))

@@ -372,7 +372,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
     for code,entry in audited_eps.items():raw_eps.setdefault(code,entry)
     revenue_parts,revenue_summary=revenue_growth_evidence(
         history,catalog,revenue_2022_source,revenue_2023_comparative,
-        revenue_2024_comparative)
+        revenue_2024_comparative,short_period_codes=short_periods)
     operating_parts,operating_summary=(
         comparative_margin_parts(catalog,history,operating_comparative_source,
                                  reviewed=reviewed_margin_source)
@@ -387,7 +387,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         if recovered_codes:
             # Resolve comparative receipts against the original archive above.
             # Exact original revenues can independently complete the same formulas.
-            added_revenue,_ = revenue_growth_evidence(augmented,catalog)
+            added_revenue,_ = revenue_growth_evidence(augmented,catalog,short_period_codes=short_periods)
             added_margin,_ = comparative_margin_parts(catalog,augmented)
             added_sales = sales_parts(catalog,augmented)
     old,_=legacy_build(market,catalog,ledger,valuation_overrides=personal.get('valuation_overrides'))
