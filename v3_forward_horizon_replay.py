@@ -132,8 +132,23 @@ def metric_median(rows, key):
     return round(median(row[key] for row in rows), 4) if rows else None
 
 
+def ready_windows(cohorts):
+    """Prioritize selected disjoint windows over overlapping research replays."""
+    due = []
+    for score_day, cohort in cohorts.items():
+        representative = cohort['entry_session_sample']['counts_toward_distinct_entry_sessions']
+        for months in HORIZONS:
+            horizon = cohort['horizons'][str(months)]
+            if horizon['status'] != READY:
+                continue
+            selected = representative and (horizon.get('holding_window_sample') or {}).get('status') == 'selected'
+            due.append((not selected, horizon['target_session_candidate'],
+                        cohort['entry_session_candidate'], not representative, score_day, months))
+    return [(score_day, months) for _, _, _, _, score_day, months in sorted(due)]
+
+
 def replay_next(root, now, get_storage):
-    """Replay one oldest changed window per run, with no archive access while waiting."""
+    """Replay one changed mature window per run, with no archive access while waiting."""
     archived = read_archived_days(root)
     readiness = build(root, now)
     notices = load_forward_actions(root)
@@ -142,107 +157,100 @@ def replay_next(root, now, get_storage):
     settlements = load_settlements(root, evidence_asof)
     liquidations = load_liquidations(root, evidence_asof)
     cohorts = readiness['cohorts']
-    ordered = sorted(cohorts.items(), key=lambda item: (
-        item[1]['entry_session_candidate'],
-        not item[1]['entry_session_sample']['counts_toward_distinct_entry_sessions'],
-        item[0],
-    ))
-    for score_day, cohort in ordered:
+    for score_day, months in ready_windows(cohorts):
+        cohort = cohorts[score_day]
         sample = cohort['entry_session_sample']
-        for months in HORIZONS:
-            horizon = cohort['horizons'][str(months)]
-            if horizon['status'] != READY:
-                continue
-            entry_day = cohort['entry_session_candidate']
-            target = horizon['target_session_candidate']
-            days = list(completed_sessions(date.fromisoformat(entry_day),
-                                           date.fromisoformat(target), now))
-            if (not days or days[0] != entry_day or days[-1] != target
-                    or len(days) != horizon['archived_session_count']):
-                raise ValueError('horizon_session_window_mismatch')
-            # A reference is comparable only on a directly adjacent signal
-            # basis. Longer pre-entry gaps need their own share-path replay.
-            reference_day = (score_day if score_day in archived and
-                cohort['entry_share_action_review']['previous_session_candidate'] == score_day
-                else None)
-            sources = {day: archived[day] for day in days}
-            if reference_day:
-                sources[reference_day] = archived[reference_day]
-            applicable_notices = {key: value for key, value in notices.items() if key[0] in days}
-            applicable_settlements = {key: value for key, value in settlements.items()
-                                      if entry_day < key[0] <= target}
-            applicable_liquidations = {(max(entry_day, row['start_on']), code): row
-                                       for code, row in liquidations.items()
-                                       if entry_day <= row['last_on'] and row['start_on'] <= target}
-            if ({key[1] for key in applicable_settlements}
-                    & {key[1] for key in applicable_liquidations}):
-                raise ValueError('conflicting_forward_delisting_treatments')
-            applicable_settlements.update(applicable_liquidations)
-            dividend_events = [dividends[k] for k in sorted(dividends)
-                               if len(days) >= 3 and days[2] <= k[1] <= target
-                               and dividends[k]['terms_report_on'] <= target]
-            grouped_dividends = {}
-            for event in dividend_events:
-                grouped_dividends.setdefault(event['code'], []).append(event)
-            holding_window = horizon.get('holding_window_sample')
-            manifest = [SCHEMA, months, cohort['score_observation_sha256'], days, sample, holding_window,
-                        reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
-                        dividend_events, [applicable_settlements[k] for k in sorted(applicable_settlements)]]
-            digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
-            target_path = root / OUT / score_day / f'{months}m.json'
-            if target_path.exists() and json.loads(target_path.read_bytes()).get('inputs_sha256') == digest:
-                continue
-            raw = (root / ARCHIVE / f'{score_day}.json').read_bytes()
-            if sha256(raw).hexdigest() != cohort['score_observation_sha256']:
-                raise ValueError('horizon_frozen_cohort_changed')
-            observation = json.loads(raw)
-            plan = entry_plan(observation, cohort['score_observation_sha256'])
-            storage = get_storage()
-            blob, _ = storage.get_content(f'derived/forward-entry/{score_day}.json.gz')
-            if blob is None:
-                raise ValueError('horizon_private_openings_missing')
-            evidence = json.loads(gzip.decompress(blob))
-            entry = public_result(plan, evidence, observation['rows'])
-            if (entry['krx_market_source_sha256'] != sources[entry_day]
-                    or entry['entry_status_counts']['official_open_observed'] != cohort['matched_opening_count']):
-                raise ValueError('horizon_opening_archive_source_mismatch')
+        horizon = cohort['horizons'][str(months)]
+        entry_day = cohort['entry_session_candidate']
+        target = horizon['target_session_candidate']
+        days = list(completed_sessions(date.fromisoformat(entry_day),
+                                       date.fromisoformat(target), now))
+        if (not days or days[0] != entry_day or days[-1] != target
+                or len(days) != horizon['archived_session_count']):
+            raise ValueError('horizon_session_window_mismatch')
+        # A reference is comparable only on a directly adjacent signal
+        # basis. Longer pre-entry gaps need their own share-path replay.
+        reference_day = (score_day if score_day in archived and
+            cohort['entry_share_action_review']['previous_session_candidate'] == score_day
+            else None)
+        sources = {day: archived[day] for day in days}
+        if reference_day:
+            sources[reference_day] = archived[reference_day]
+        applicable_notices = {key: value for key, value in notices.items() if key[0] in days}
+        applicable_settlements = {key: value for key, value in settlements.items()
+                                  if entry_day < key[0] <= target}
+        applicable_liquidations = {(max(entry_day, row['start_on']), code): row
+                                   for code, row in liquidations.items()
+                                   if entry_day <= row['last_on'] and row['start_on'] <= target}
+        if ({key[1] for key in applicable_settlements}
+                & {key[1] for key in applicable_liquidations}):
+            raise ValueError('conflicting_forward_delisting_treatments')
+        applicable_settlements.update(applicable_liquidations)
+        dividend_events = [dividends[k] for k in sorted(dividends)
+                           if len(days) >= 3 and days[2] <= k[1] <= target
+                           and dividends[k]['terms_report_on'] <= target]
+        grouped_dividends = {}
+        for event in dividend_events:
+            grouped_dividends.setdefault(event['code'], []).append(event)
+        holding_window = horizon.get('holding_window_sample')
+        manifest = [SCHEMA, months, cohort['score_observation_sha256'], days, sample, holding_window,
+                    reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
+                    dividend_events, [applicable_settlements[k] for k in sorted(applicable_settlements)]]
+        digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+        target_path = root / OUT / score_day / f'{months}m.json'
+        if target_path.exists() and json.loads(target_path.read_bytes()).get('inputs_sha256') == digest:
+            continue
+        raw = (root / ARCHIVE / f'{score_day}.json').read_bytes()
+        if sha256(raw).hexdigest() != cohort['score_observation_sha256']:
+            raise ValueError('horizon_frozen_cohort_changed')
+        observation = json.loads(raw)
+        plan = entry_plan(observation, cohort['score_observation_sha256'])
+        storage = get_storage()
+        blob, _ = storage.get_content(f'derived/forward-entry/{score_day}.json.gz')
+        if blob is None:
+            raise ValueError('horizon_private_openings_missing')
+        evidence = json.loads(gzip.decompress(blob))
+        entry = public_result(plan, evidence, observation['rows'])
+        if (entry['krx_market_source_sha256'] != sources[entry_day]
+                or entry['entry_status_counts']['official_open_observed'] != cohort['matched_opening_count']):
+            raise ValueError('horizon_opening_archive_source_mismatch')
 
-            def panel(day):
-                daily = read_daily(day, storage)
-                if daily is None or daily['source_sha256'] != sources[day]:
-                    raise ValueError('horizon_daily_archive_source_mismatch')
-                return daily
+        def panel(day):
+            daily = read_daily(day, storage)
+            if daily is None or daily['source_sha256'] != sources[day]:
+                raise ValueError('horizon_daily_archive_source_mismatch')
+            return daily
 
-            with ThreadPoolExecutor(max_workers=4) as pool:
-                panels = dict(zip(days, pool.map(panel, days)))
-            signal = panel(reference_day) if reference_day else None
-            cases = None
-            if signal is not None:
-                market = frozen_market(observation)
-                if market is None:
-                    raise ValueError('horizon_frozen_market_unavailable')
-                _, cases = compare_closes(observation, market, signal)
-            report = {
-                'schema': SCHEMA, 'score_asof': score_day, 'months': months,
-                'entry_session': entry_day, 'target_date': horizon['target_date'],
-                'entry_session_sample': sample,
-                'holding_window_sample': holding_window,
-                'evaluation_session_candidate': target, 'session_count': len(days),
-                'inputs_sha256': digest,
-                'groups': aggregate_paths(observation, evidence['rows'], days, panels,
-                                          applicable_notices, signal=signal, cases=cases,
-                                          dividends=grouped_dividends,
-                                          settlements=applicable_settlements),
-                'cash_distributions_and_costs_included': False,
-                'dividend_coverage_complete': False,
-                'delisting_settlement_coverage_complete': False,
-                'liquidation_window_coverage_complete': False,
-                'full_corporate_action_history_certified': False,
-                'performance_validated': False,
-            }
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            target_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
-            return {'status': 'price_path_aggregated', 'score_asof': score_day, 'months': months}
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            panels = dict(zip(days, pool.map(panel, days)))
+        signal = panel(reference_day) if reference_day else None
+        cases = None
+        if signal is not None:
+            market = frozen_market(observation)
+            if market is None:
+                raise ValueError('horizon_frozen_market_unavailable')
+            _, cases = compare_closes(observation, market, signal)
+        report = {
+            'schema': SCHEMA, 'score_asof': score_day, 'months': months,
+            'entry_session': entry_day, 'target_date': horizon['target_date'],
+            'entry_session_sample': sample,
+            'holding_window_sample': holding_window,
+            'evaluation_session_candidate': target, 'session_count': len(days),
+            'inputs_sha256': digest,
+            'groups': aggregate_paths(observation, evidence['rows'], days, panels,
+                                      applicable_notices, signal=signal, cases=cases,
+                                      dividends=grouped_dividends,
+                                      settlements=applicable_settlements),
+            'cash_distributions_and_costs_included': False,
+            'dividend_coverage_complete': False,
+            'delisting_settlement_coverage_complete': False,
+            'liquidation_window_coverage_complete': False,
+            'full_corporate_action_history_certified': False,
+            'performance_validated': False,
+        }
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+        return {'status': 'price_path_aggregated', 'score_asof': score_day, 'months': months}
     return {'status': 'no_new_ready_horizons'}
 
 
