@@ -43,11 +43,14 @@ class FullMarketHundredBatchesTests(unittest.TestCase):
             ("2026-11-10T02:31:00+09:00","2026-11-09"),
             ("2026-11-13T02:31:00+09:00","2026-11-12"),
             ("2026-11-14T02:31:00+09:00","2026-11-13"),
+            ("2026-11-17T23:56:15Z","2026-11-17"),
+            ("2026-11-21T08:59:59+09:00","2026-11-20"),
             ("2026-11-12T17:30:00Z","2026-11-12")):
             self.assertEqual(b.overnight_previous_market_date(
                 now=datetime.fromisoformat(input_at)),target)
         for input_at in ("2026-11-12T22:30:00+09:00",
-                         "2026-11-13T08:01:00+09:00",
+                         "2026-11-13T00:59:59+09:00",
+                         "2026-11-13T09:00:00+09:00",
                          "2026-11-16T02:31:00+09:00"):
             with self.assertRaisesRegex(b.BatchError,
                                         "outside_overnight_market_batch_window"):
