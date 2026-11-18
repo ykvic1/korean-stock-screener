@@ -11,7 +11,7 @@ from statistics import median
 
 from v3_forward_cash_dividends import load_dividends
 from v3_forward_daily_prices import completed_sessions, read_daily
-from v3_forward_entry import PRIVATE_REPO, entry_plan, entry_stop_state, public_result
+from v3_forward_entry import PRIVATE_REPO, ROW_STATES, entry_plan, entry_stop_state, public_result
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, load_liquidations
 from v3_forward_observed_readiness import build, read_archived_days
@@ -24,8 +24,18 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-5'
+SCHEMA = 'v3-forward-horizon-price-outcome-6'
 READY = 'daily_archive_ready_for_path_replay'
+
+
+def loss_rate_bounds(negative, unvalued, opened):
+    """Conservative percentage bounds, rounded outwards without imputation."""
+    if not opened:
+        return None
+    decimals = 10_000
+    lower = (negative * 100 * decimals) // opened
+    upper, remainder = divmod((negative + unvalued) * 100 * decimals, opened)
+    return [lower / decimals, (upper + bool(remainder)) / decimals]
 
 
 def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=None, cases=None,
@@ -60,18 +70,32 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                                            settlements=settlements, panels=panels)
     result = {}
     for label, limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
-        selected = [value for code, value in outcomes.items()
-                    if limit is None or members[code][3] <= limit]
+        codes = [code for code in outcomes if limit is None or members[code][3] <= limit]
+        selected = [outcomes[code] for code in codes]
+        entries = Counter(openings[code][0] for code in codes)
+        opened = entries['official_open_observed']
         observed = [row for row in selected if row['status'] == 'observed_price_path']
         settled = [row for row in selected if row['status'] == 'observed_delisting_settlement']
         liquidation = [row for row in selected if row['status'] == LIQUIDATION_OBSERVED]
+        valued = observed + settled
+        unvalued = opened - len(valued)
+        losses = sum(row['terminal_return_pct'] < 0 for row in valued)
         missing = Counter(row['status'] for row in selected if row['status'] not in
                           ('observed_price_path', 'observed_delisting_settlement', LIQUIDATION_OBSERVED))
         paid = [row for row in observed if row['confirmed_dividend_events']]
         result[label] = {
             'selected_count': len(selected),
+            'entry_status_counts': {state: entries[state] for state in ROW_STATES if state != 'unranked'},
             'observed_price_path_count': len(observed),
             'unresolved_counts': dict(sorted(missing.items())),
+            # Confirmed openings remain in the denominator even if the end value
+            # is unresolved or available only as a liquidation close scenario.
+            'terminal_return_coverage': {
+                'valued_count': len(valued),
+                'unvalued_confirmed_openings_count': unvalued,
+                'negative_return_count': losses,
+                'loss_rate_bounds_pct': loss_rate_bounds(losses, unvalued, opened),
+            },
             'median_terminal_return_pct': metric_median(observed, 'terminal_return_pct'),
             'median_mae_pct': metric_median(observed, 'mae_pct'),
             'median_mfe_pct': metric_median(observed, 'mfe_pct'),
@@ -83,7 +107,7 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 'counts_by_treatment': dict(sorted(Counter(row['treatment'] for row in settled).items())),
                 'median_settlement_terminal_return_pct': metric_median(settled, 'terminal_return_pct'),
                 'median_terminal_return_including_settlements_pct': metric_median(
-                    observed + settled, 'terminal_return_pct'),
+                    valued, 'terminal_return_pct'),
             },
             'liquidation_exit_proxies': {
                 'observed_count': len(liquidation),

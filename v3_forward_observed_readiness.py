@@ -9,7 +9,7 @@ from v3_forward_daily_prices import (
     MARKETS, OUT as DAILY, SCHEMA as DAILY_SCHEMA, SHA, completed_sessions,
     official_publish_time,
 )
-from v3_forward_entry import OUT as ENTRIES, entry_plan
+from v3_forward_entry import OUT as ENTRIES, ROW_STATES, entry_plan
 from v3_forward_horizon_readiness import MAX_SETTLEMENT_LAG_DAYS
 from v3_forward_share_actions import OUT as SHARE_REVIEWS, SCHEMA as SHARE_SCHEMA, STATES
 from v3_score_observation_capture import ARCHIVE
@@ -123,6 +123,16 @@ def build(root, now):
             and type(crosscheck.get('observed_openings_checked')) is int
             and 0 < crosscheck['observed_openings_checked'] <= plan['ranked_count']
             and crosscheck.get('mismatched_openings') == 0)
+        ranked_entries = None
+        if opening_ready:
+            counts = entry.get('entry_status_counts')
+            if (not isinstance(counts, dict) or counts.keys() != set(ROW_STATES)
+                    or any(type(count) is not int or count < 0 for count in counts.values())
+                    or sum(counts.values()) != plan['listed_count']
+                    or counts['unranked'] != plan['listed_count'] - plan['ranked_count']
+                    or counts['official_open_observed'] != crosscheck['observed_openings_checked']):
+                raise ValueError('invalid_ranked_entry_coverage_checkpoint')
+            ranked_entries = {state: counts[state] for state in ROW_STATES if state != 'unranked'}
         targets = {key: date.fromisoformat(value) for key, value in plan['horizon_target_dates'].items()}
         sessions = [date.fromisoformat(value) for value in completed_sessions(
             entry_day - timedelta(days=14),
@@ -135,6 +145,7 @@ def build(root, now):
             'ranked_count': plan['ranked_count'],
             'entry_session_candidate': entry_day.isoformat(),
             'matched_opening_count': crosscheck['observed_openings_checked'] if opening_ready else None,
+            'ranked_entry_status_counts': ranked_entries,
             'entry_share_action_review': {
                 'previous_session_candidate': earlier.isoformat() if earlier else None,
                 'source_linked': entry_boundary is not None,
