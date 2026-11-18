@@ -15,6 +15,7 @@ from v3_forward_entry import PRIVATE_REPO, entry_plan, entry_stop_state, public_
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_observed_readiness import build, read_archived_days
 from v3_forward_price_replay import replay_price_path
+from v3_forward_settlements import load_settlements
 from v3_forward_share_actions import load_forward_actions, normalized_name
 from v3_forward_signal_close import compare_closes, frozen_market
 from v3_krx_private_github_backfill import PrivateGitStorage
@@ -22,12 +23,12 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-2'
+SCHEMA = 'v3-forward-horizon-price-outcome-3'
 READY = 'daily_archive_ready_for_path_replay'
 
 
 def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=None, cases=None,
-                    dividends=None):
+                    dividends=None, settlements=None):
     members = observation['rows']
     entry_rows = panels[sessions[0]]['rows']
     outcomes = {}
@@ -54,13 +55,16 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
         bars = {day: panel['rows'].get(code) for day, panel in panels.items()}
         outcomes[code] = replay_price_path(code, sessions, bars, entry_open=opening,
                                            notices=notices, reference=reference,
-                                           dividends=dividends.get(code, ()))
+                                           dividends=dividends.get(code, ()),
+                                           settlements=settlements, panels=panels)
     result = {}
     for label, limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
         selected = [value for code, value in outcomes.items()
                     if limit is None or members[code][3] <= limit]
         observed = [row for row in selected if row['status'] == 'observed_price_path']
-        missing = Counter(row['status'] for row in selected if row['status'] != 'observed_price_path')
+        settled = [row for row in selected if row['status'] == 'observed_delisting_settlement']
+        missing = Counter(row['status'] for row in selected if row['status'] not in
+                          ('observed_price_path', 'observed_delisting_settlement'))
         paid = [row for row in observed if row['confirmed_dividend_events']]
         result[label] = {
             'selected_count': len(selected),
@@ -72,6 +76,13 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
             'reference_compared_count': sum(row['reference_compared'] for row in observed),
             'reference_touched_count': sum(row['first_reference_touch_session'] is not None
                                            for row in observed),
+            'delisting_settlements': {
+                'observed_count': len(settled),
+                'counts_by_treatment': dict(sorted(Counter(row['treatment'] for row in settled).items())),
+                'median_settlement_terminal_return_pct': metric_median(settled, 'terminal_return_pct'),
+                'median_terminal_return_including_settlements_pct': metric_median(
+                    observed + settled, 'terminal_return_pct'),
+            },
             'cash_dividends': {
                 'issuers_with_confirmed_payment': len(paid),
                 'confirmed_payment_events': sum(row['confirmed_dividend_events'] for row in observed),
@@ -92,7 +103,9 @@ def replay_next(root, now, get_storage):
     archived = read_archived_days(root)
     readiness = build(root, now)
     notices = load_forward_actions(root)
-    dividends = load_dividends(root, now.astimezone(KST).date().isoformat())
+    evidence_asof = now.astimezone(KST).date().isoformat()
+    dividends = load_dividends(root, evidence_asof)
+    settlements = load_settlements(root, evidence_asof)
     for score_day, cohort in readiness['cohorts'].items():
         for months in HORIZONS:
             horizon = cohort['horizons'][str(months)]
@@ -114,6 +127,8 @@ def replay_next(root, now, get_storage):
             if reference_day:
                 sources[reference_day] = archived[reference_day]
             applicable_notices = {key: value for key, value in notices.items() if key[0] in days}
+            applicable_settlements = {key: value for key, value in settlements.items()
+                                      if entry_day < key[0] <= target}
             dividend_events = [dividends[k] for k in sorted(dividends)
                                if len(days) >= 3 and days[2] <= k[1] <= target
                                and dividends[k]['terms_report_on'] <= target]
@@ -122,7 +137,7 @@ def replay_next(root, now, get_storage):
                 grouped_dividends.setdefault(event['code'], []).append(event)
             manifest = [SCHEMA, months, cohort['score_observation_sha256'], days,
                         reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
-                        dividend_events]
+                        dividend_events, [applicable_settlements[k] for k in sorted(applicable_settlements)]]
             digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
             target_path = root / OUT / score_day / f'{months}m.json'
             if target_path.exists() and json.loads(target_path.read_bytes()).get('inputs_sha256') == digest:
@@ -164,9 +179,11 @@ def replay_next(root, now, get_storage):
                 'inputs_sha256': digest,
                 'groups': aggregate_paths(observation, evidence['rows'], days, panels,
                                           applicable_notices, signal=signal, cases=cases,
-                                          dividends=grouped_dividends),
+                                          dividends=grouped_dividends,
+                                          settlements=applicable_settlements),
                 'cash_distributions_and_costs_included': False,
                 'dividend_coverage_complete': False,
+                'delisting_settlement_coverage_complete': False,
                 'full_corporate_action_history_certified': False,
                 'performance_validated': False,
             }

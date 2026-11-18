@@ -1,0 +1,73 @@
+"""Verify reviewed settlement records and outcomes independently of continuous prices."""
+from datetime import date
+from pathlib import Path
+import unittest
+
+from v3_forward_price_replay import replay_price_path
+from v3_forward_settlements import REGISTER, load_settlements, reviewed_settlements
+
+
+class ForwardSettlementTests(unittest.TestCase):
+    def setUp(self):
+        self.sessions = ['2025-11-25', '2025-11-26', '2025-11-27', '2025-11-28',
+                         '2025-12-15', '2025-12-16']
+        self.halt, self.listing, self.target = self.sessions[2], self.sessions[4], self.sessions[5]
+        self.bars = {day: ['KOSPI', 'HD현대미포', 'traded', 100, 110, 95, 103, 1000]
+                     for day in self.sessions[:2]}
+        self.panels = {
+            self.listing: {'rows': {'329180': ['KOSPI', 'HD현대중공업', 'traded', 105, 110, 98, 108, 800]}},
+            self.target: {'rows': {'329180': ['KOSPI', 'HD현대중공업', 'traded', 53, 60, 50, 55, 1600]}},
+        }
+        self.notices = {(self.target, '329180'): {
+            'action': 'split', 'name': 'HD현대중공업', 'market': 'KOSPI',
+            'shares_before': 800, 'shares_after': 1600, 'old_units': 1, 'new_units': 2,
+        }}
+        self.terms = load_settlements(Path('.'), '2026-11-18')[(self.halt, '010620')].copy()
+        self.terms['successor_shares_on_listing'] = '800'
+
+    def replay(self):
+        return replay_price_path('010620', self.sessions, self.bars, entry_open=100,
+                                 notices=self.notices, settlements={(self.halt, '010620'): self.terms},
+                                 panels=self.panels)
+
+    def test_stock_and_paid_fraction_use_their_own_price_basis(self):
+        self.terms.update(shares_per_old_share='1.25', paid_on=self.target)
+        self.assertEqual(self.replay(), {'status': 'observed_delisting_settlement',
+                                         'treatment': 'stock_exchange', 'terminal_return_pct': 37})
+        self.panels[self.listing]['rows']['329180'][6] = 107
+        self.assertEqual(self.replay()['status'], 'settlement_fractional_cash_rounding_unconfirmed')
+        self.terms['fractional_cash_basis'] = 'listing_close_round_down'
+        self.assertEqual(self.replay()['terminal_return_pct'], 36)
+        self.terms['fractional_cash_basis'] = 'listing_close_round_half_up'
+        self.assertEqual(self.replay()['terminal_return_pct'], 37)
+        self.terms['paid_on'] = ''
+        self.assertEqual(self.replay()['status'], 'settlement_fractional_cash_unconfirmed')
+        self.terms['shares_per_old_share'] = '1'
+        self.assertEqual(self.replay()['terminal_return_pct'], 10)
+
+    def test_halt_and_successor_identity_must_match_the_archived_rows(self):
+        self.bars[self.halt] = self.bars[self.sessions[0]]
+        self.assertEqual(self.replay()['status'], 'settlement_halt_conflicts_with_archive')
+        del self.bars[self.halt]
+        self.terms['successor_shares_on_listing'] = '801'
+        self.assertEqual(self.replay()['status'], 'settlement_successor_listing_unconfirmed')
+        self.terms['successor_shares_on_listing'] = '800'
+        self.panels[self.listing]['rows']['329180'][1] = '다른 회사'
+        self.assertEqual(self.replay()['status'], 'settlement_successor_listing_unconfirmed')
+
+    def test_new_holding_must_have_settled_before_the_record_date(self):
+        self.sessions = self.sessions[1:]
+        self.terms['record_on'] = self.halt
+        self.assertEqual(self.replay()['status'], 'settlement_entry_entitlement_unconfirmed')
+
+    def test_filed_payment_and_compound_event_are_held_separately(self):
+        root, cash_key = Path('.'), ('2026-06-26', '012510')
+        raw = (root / REGISTER).read_bytes()
+        self.assertNotIn(cash_key, load_settlements(root, '2026-08-13'))
+        terms = load_settlements(root, '2026-11-18')
+        self.assertEqual(terms[cash_key]['cash_krw_per_old_share'], '120000')
+        self.assertEqual(date.fromisoformat(terms[cash_key]['paid_on']), date(2026, 7, 15))
+        self.assertEqual(terms[('2026-10-23', '097780')]['treatment'], 'review_pending')
+        conflicting = raw + raw.splitlines(keepends=True)[1]
+        with self.assertRaisesRegex(ValueError, 'duplicate_forward_settlement_record'):
+            reviewed_settlements(conflicting)
