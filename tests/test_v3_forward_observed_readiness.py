@@ -42,6 +42,10 @@ class ObservedReadinessTests(unittest.TestCase):
                    side_effect=lambda day: datetime.combine(day, datetime.min.time(), timezone.utc)):
             report = build(Path(__file__).resolve().parents[1], datetime(2026, 11, 17, tzinfo=timezone.utc))
         cohort = report['cohorts']['2026-11-13']
+        self.assertEqual(cohort['ranked_entry_status_counts'], {
+            'official_open_observed': 2471, 'not_traded': 101,
+            'absent': 0, 'identity_unresolved': 0, 'open_unavailable': 0,
+        })
         boundary = cohort['entry_share_action_review']
         self.assertEqual(boundary['previous_session_candidate'], '2026-11-13')
         self.assertTrue(boundary['source_linked'])

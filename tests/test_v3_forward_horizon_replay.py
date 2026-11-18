@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from v3_forward_horizon_replay import OUT, aggregate_paths, replay_next
+from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, replay_next
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
 from v3_forward_share_actions import FIELDS, REGISTER
@@ -60,7 +60,15 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 report = json.loads((root / OUT / score_day / '1m.json').read_bytes())
                 self.assertEqual(report['groups']['all_ranked'], {
                     'selected_count': 2, 'observed_price_path_count': 1,
+                    'entry_status_counts': {
+                        'absent': 0, 'identity_unresolved': 0, 'not_traded': 0,
+                        'open_unavailable': 0, 'official_open_observed': 2,
+                    },
                     'unresolved_counts': {'missing_traded_bar': 1},
+                    'terminal_return_coverage': {
+                        'valued_count': 1, 'unvalued_confirmed_openings_count': 1,
+                        'negative_return_count': 0, 'loss_rate_bounds_pct': [0, 50],
+                    },
                     'median_terminal_return_pct': 5, 'median_mae_pct': -10,
                     'median_mfe_pct': 10, 'reference_compared_count': 0,
                     'reference_touched_count': 0,
@@ -96,6 +104,10 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 self.assertEqual(group['observed_price_path_count'], 1)
                 self.assertEqual(group['median_mae_pct'], -10)
                 self.assertEqual(group['unresolved_counts'], {})
+                self.assertEqual(group['terminal_return_coverage'], {
+                    'valued_count': 1, 'unvalued_confirmed_openings_count': 1,
+                    'negative_return_count': 0, 'loss_rate_bounds_pct': [0, 50],
+                })
                 self.assertEqual(group['liquidation_exit_proxies'], {
                     'observed_count': 1,
                     'median_final_session_close_proxy_return_pct': -40,
@@ -122,9 +134,21 @@ class ForwardHorizonReplayTests(unittest.TestCase):
         self.assertEqual(group['selected_count'], 3)
         self.assertEqual(group['unresolved_counts'], {'not_traded': 1})
         self.assertEqual(group['observed_price_path_count'], 1)
+        self.assertEqual(group['entry_status_counts']['official_open_observed'], 2)
+        self.assertEqual(group['entry_status_counts']['not_traded'], 1)
+        self.assertEqual(group['terminal_return_coverage'], {
+            'valued_count': 2, 'unvalued_confirmed_openings_count': 0,
+            'negative_return_count': 1, 'loss_rate_bounds_pct': [50, 50],
+        })
         self.assertEqual(group['median_mae_pct'], -10)
         self.assertEqual(group['delisting_settlements'], {
             'observed_count': 1, 'counts_by_treatment': {'cash_exchange': 1},
             'median_settlement_terminal_return_pct': -36,
             'median_terminal_return_including_settlements_pct': -15.5,
         })
+
+    def test_loss_bounds_cover_missing_and_empty_groups_without_rounding_inwards(self):
+        self.assertIsNone(loss_rate_bounds(0, 0, 0))
+        self.assertEqual(loss_rate_bounds(0, 3, 3), [0, 100])
+        self.assertEqual(loss_rate_bounds(1, 1, 3), [33.3333, 66.6667])
+        self.assertEqual(loss_rate_bounds(2, 0, 3), [66.6666, 66.6667])
