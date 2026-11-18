@@ -35,6 +35,7 @@ from v3_dart_original_revenue_recovery import overlay as original_revenue_overla
 from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT, comparative_fcf_parts
 from v3_dart_reviewed_ordinary_eps import OUTPUT as REVIEWED_EPS_OUTPUT, reviewed_eps_parts
 from v3_regular_close_contract import admitted_rows as regular_close_rows
+from v3_reviewed_annual_flows import full_year_parts
 from session_policy import REQUIRED_SESSION, required_volume_session
 
 VERSION = 'v3-stable-r1e-operational-research'
@@ -359,6 +360,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
     short_periods=reviewed_short_periods(history,annual_book,day)
+    recovered_annual_flows=full_year_parts(catalog,history,annual_book,cashflow_source,short_periods)
     regular_closes=regular_close_rows(regular_close_source,catalog)
     money=usable_records(money_source,catalog)
     money_components=usable_component_records(money_source,catalog)
@@ -511,6 +513,10 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                 # Only the stand-alone earnings yield is independent of the
                 # historical stub. An older blended EPS factor cannot replace it.
                 parts['valuation']['per_eps_quality_growth'] = independent_earnings_yield
+        full_year = recovered_annual_flows.get(code)
+        if full_year is not None:
+            for area, recovered in full_year[0].items():
+                parts[area].update(recovered)
         if short_period is None and prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
             risk['deduction']=prior['risk_deduction'];risk['status']='partial'
             risk['warnings']=prior.get('risk_warnings',[])
@@ -536,6 +542,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             'parts':parts,'areas':areas,'rank':None}
         if short_period is not None:
             rows[code]['annual_period_review'] = short_period
+        if full_year is not None:
+            rows[code]['annual_flow_source'] = full_year[1]
         if close_candidates:
             used=[key for (area,key),candidate in close_candidates.items() if candidate==parts[area][key]]
             if used:
@@ -700,6 +708,7 @@ def main():
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',
                      'v3_dart_reviewed_fcf_comparative.py','v3_dart_cashflow_factor_preview.py',
+                     'v3_reviewed_annual_flows.py',
                      'v3_dart_reviewed_ordinary_eps.py','session_policy.py','v3_aftermarket_cutoff.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
