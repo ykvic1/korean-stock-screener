@@ -71,6 +71,12 @@ REVIEWED_SHORT_PERIODS = {
         'latest_annual_period': False,
         'source_url': 'https://kind.krx.co.kr/external/2026/03/23/001192/20260323005324/11011.htm',
     },
+    '024850': {
+        'receipt_id': '20240320001706', 'source_filed_on': '2024-03-20',
+        'period_start': '2023-04-01', 'period_end': '2023-12-31',
+        'latest_annual_period': False,
+        'source_url': 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20240320001706',
+    },
 }
 MULTI_PERIOD_FINANCIAL_FACTORS = ('revenue_growth', 'operating_growth_margin',
                                   'cashflow_fcf_persistence')
