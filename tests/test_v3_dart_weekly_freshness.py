@@ -122,13 +122,29 @@ class SevenDaySourceAuditTests(unittest.TestCase):
             ({"CFS": {**source, "receipt_id": "20260418000001"}}, "revised"),
             ({"CFS": {**source, "values": {"revenue": 4}}}, "revised"),
             ({"CFS": {**source, "ambiguous": ["revenue"]}}, "revised"),
-            ({"CFS": source, "OFS": source}, "revised"),
+            ({"CFS": source, "OFS": source}, "additional_accounting_scope"),
             ({}, "previously_observed_now_missing"),
         ):
             with self.subTest(year=year):
                 counts, flags = fresh.changes(previous, {"005930": {"2025": year}}, ["005930"], [2025])
                 self.assertEqual(counts[expected], 1)
                 self.assertEqual([flag["reason"] for flag in flags], [] if expected == "unchanged" else [expected])
+
+    def test_scope_addition_does_not_hide_revisions_or_scope_replacement(self):
+        source = {"receipt_id": "20260318000001", "values": {"revenue": 3}, "ambiguous": []}
+        previous = {"005930": {"years": {"2025": {"CFS": source}}}}
+        for year, reason, removed, changed in (
+            ({"CFS": source, "OFS": source}, "additional_accounting_scope", [], {}),
+            ({"CFS": {**source, "values": {"revenue": 4}}, "OFS": source}, "revised", [], {"CFS": ["values"]}),
+            ({"OFS": source}, "revised", ["CFS"], {}),
+        ):
+            with self.subTest(year=year):
+                counts, flags = fresh.changes(previous, {"005930": {"2025": year}}, ["005930"], [2025])
+                self.assertEqual(sum(counts.values()), 1)
+                self.assertEqual(counts[reason], 1)
+                self.assertEqual(flags[0]["added_scopes"], ["OFS"])
+                self.assertEqual(flags[0].get("removed_scopes", []), removed)
+                self.assertEqual(flags[0].get("changed_scope_fields", {}), changed)
 
     def test_prior_day_roster_change_waits_without_official_calls(self):
         market, catalog, history = archived()

@@ -3,7 +3,8 @@
 Four independent daily slices inspect one seventh of the listed roster.
 The existing public historical archive remains immutable: revised receipts,
 missing filings and changed values are QUARANTINED for later verified rebind.
-Only reason codes and stock identifiers enter the report; never raw API rows.
+Additional accounting scopes are reported separately. Only identifiers,
+scope and field names, and reason codes enter the report.
 """
 from __future__ import annotations
 
@@ -102,30 +103,52 @@ def comparable_accounts(year):
     }
 
 
+def changed_scope_fields(before, after):
+    changes = {}
+    absent = object()
+    for scope in sorted(before.keys() & after.keys()):
+        saved, observed = before[scope], after[scope]
+        fields = sorted(key for key in saved.keys() | observed.keys()
+                        if saved.get(key, absent) != observed.get(key, absent))
+        if fields:
+            changes[scope] = fields
+    return changes
+
+
 def changes(previous, newly_fetched, selected, fiscal, unmapped=()):
     """Compare source-derived annual accounts without emitting any values."""
     missing = set(unmapped)
     results = {"unchanged": 0, "revised": 0, "newly_observed": 0,
-               "previously_observed_now_missing": 0, "unmapped": 0}
+               "previously_observed_now_missing": 0, "unmapped": 0,
+               "additional_accounting_scope": 0}
     anomalies = []
     for code in selected:
         for year in fiscal:
+            details = {}
             if code in missing:
                 kind = "unmapped"
             else:
-                before = previous[code]["years"][str(year)]
-                after = newly_fetched[code][str(year)]
-                if comparable_accounts(before) == comparable_accounts(after):
+                before = comparable_accounts(previous[code]["years"][str(year)])
+                after = comparable_accounts(newly_fetched[code][str(year)])
+                if before == after:
                     kind = "unchanged"
                 elif not before and after:
                     kind = "newly_observed"
                 elif before and not after:
                     kind = "previously_observed_now_missing"
+                elif before.keys() < after.keys() and all(
+                    after[scope] == accounts for scope, accounts in before.items()
+                ):
+                    kind = "additional_accounting_scope"
+                    details["added_scopes"] = sorted(after.keys() - before.keys())
                 else:
                     kind = "revised"
+                    details = {"added_scopes": sorted(after.keys() - before.keys()),
+                               "removed_scopes": sorted(before.keys() - after.keys()),
+                               "changed_scope_fields": changed_scope_fields(before, after)}
             results[kind] += 1
             if kind != "unchanged":
-                anomalies.append({"code": code, "fiscal_year": year, "reason": kind})
+                anomalies.append({"code": code, "fiscal_year": year, "reason": kind, **details})
     return results, anomalies
 
 
@@ -181,9 +204,14 @@ def run(market, catalog, archive, *, when, part, mode, key=None, session=None):
         raise AuditError("weekly_audit_source_budget_exceeded")
     counts, flags = changes(state["previous"], observed, selected, state["fiscal"],
                             unmapped=set(selected) - set(mapping))
+    status = "same_source_confirmed"
+    if counts["additional_accounting_scope"]:
+        status = "additional_accounting_scope_observed"
+    if len(flags) > counts["additional_accounting_scope"]:
+        status = "source_drift_quarantined"
     return {**base, "source_api_calls": 1 + calls,
             "comparison_counts": counts, "drift_flags": flags,
-            "status": "source_drift_quarantined" if flags else "same_source_confirmed"}
+            "status": status}
 
 
 def main(argv=None):
