@@ -10,7 +10,7 @@ trading values. KRX EOD remains UNVERIFIED regular-session-only.
 from __future__ import annotations
 
 import base64
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from hashlib import sha256
 import json
 import os
@@ -18,6 +18,7 @@ import time as retry_clock
 from zoneinfo import ZoneInfo
 
 from official_probe.clients import KRXClient, KRXProbeError
+from v3_forward_daily_prices import official_publish_time
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_session_candidates import candidate_dates
 from v3_krx_private_github_backfill import PrivateGitStorage
@@ -139,7 +140,7 @@ def _commit_checkpoint(store, updated, previous_sha):
     raise ForwardMoneyError("forward_checkpoint_readback_failed")
 
 
-def collect(store, client, dates, windows=MAX_WINDOWS_PER_RUN):
+def collect(store, client, dates, windows=MAX_WINDOWS_PER_RUN, *, now=None):
     if (store.repository != PRIVATE_REPO
         or type(dates) is not list or dates != sorted(set(dates))
         or len(dates) < 2 or len(dates) > 6000
@@ -151,10 +152,16 @@ def collect(store, client, dates, windows=MAX_WINDOWS_PER_RUN):
     _verify_tail(store, state, dates)
     begin = state["next_window_index"]
     calls, adopted = 0, 0
+    waiting_until = None
     for index in range(begin, min(begin + windows, len(dates)//5)):
         window = dates[5*index:5*(index+1)]
         blob, _ = store.get_content(_path(window))
         if blob is None:
+            if now is not None:
+                publish_at = official_publish_time(date.fromisoformat(window[-1]))
+                if now < publish_at:
+                    waiting_until = publish_at.isoformat()
+                    break
             result = store_money_five_days(store, client, window)
             if result.get("status") != "persisted_and_verified_money":
                 raise ForwardMoneyError("forward_new_cohort_not_verified")
@@ -189,6 +196,7 @@ def collect(store, client, dates, windows=MAX_WINDOWS_PER_RUN):
         "forward_open_tail_candidate_sessions": len(dates)%5,
         "current_run_api_calls": calls,
         "current_run_immutable_reused": adopted,
+        "waiting_for_official_publish_at_utc": waiting_until,
         "complete_issuer_cohort_factors": state["issuer_cohort_records"],
         "raw_vendor_source_files": 0,
         "regular_session_only_verified": False,
@@ -232,13 +240,12 @@ def main():
     stage = "cutoff"
     try:
         now = datetime.now(ZoneInfo("Asia/Seoul"))
-        cutoff = now.date() if now.time() >= time(18, 0) else now.date()-timedelta(days=1)
-        dates = forward_candidates(cutoff.isoformat())
+        dates = forward_candidates(now.date().isoformat())
         stage = "private_forward_collection"
         stored = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         client=RetryingMoneyClient(KRXClient(os.environ["KRX_API_KEY"]))
         result = collect(stored, client, dates,
-                         windows=int(os.getenv("V3_MONEY_FORWARD_WINDOWS", "8")))
+                         windows=int(os.getenv("V3_MONEY_FORWARD_WINDOWS", "8")), now=now)
         result["current_run_source_requests_including_retries"]=client.requests
         print(json.dumps(result, sort_keys=True))
         return 0
