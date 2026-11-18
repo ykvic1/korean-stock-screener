@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_observed_readiness import (
-    READY, build, horizon_readiness, sample_entry_sessions, sample_holding_windows,
+    READY, build, horizon_readiness, pages_summary, sample_entry_sessions, sample_holding_windows,
     share_review_coverage, top_ranked_issuers,
 )
 from v3_forward_share_actions import STATES
@@ -37,6 +37,14 @@ class ObservedReadinessTests(unittest.TestCase):
         })
         alternate = report['cohorts']['2026-11-16']['horizons']['1']
         self.assertNotIn('holding_window_sample', alternate)
+        public = pages_summary(report)
+        self.assertEqual(public['candidate_entry_session_count'], 2)
+        self.assertEqual(public['matched_entry_session_count'], 1)
+        self.assertEqual(public['horizons']['1'], {'first_target_date': '2026-12-16',
+            'selected_window_count': 1, 'archive_ready_count': 0})
+        self.assertEqual(public['horizons']['12']['first_target_date'], '2027-11-16')
+        self.assertEqual(public['horizons']['12']['archive_ready_count'], 0)
+        self.assertNotIn('cohorts', public)
 
     def test_entry_session_counts_use_frozen_selection_even_if_alternate_has_prices(self):
         older, newer = '2026-11-16', '2026-11-17'
