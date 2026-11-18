@@ -1322,13 +1322,14 @@ function regularCloseReferencesMarkup(r){
 function applyRegularClosePrices(model,report){
  const legacy=report?.schema==='v3-current-corroborated-regular-closes-1'&&
   report.source==='DATED_PUBLIC_FDR_CLOSE_CORROBORATED_WITH_KRX';
- const dual=report?.schema==='v3-current-corroborated-regular-closes-2'&&
+ const nextReference=report?.schema==='v3-current-corroborated-regular-closes-3';
+ const verifiedPublic=(nextReference||report?.schema==='v3-current-corroborated-regular-closes-2')&&
   report.source==='PUBLIC_CLOSES_CORROBORATED_WITH_KRX';
- if(!model||!Array.isArray(model.rows)||(!legacy&&!dual)||
+ if(!model||!Array.isArray(model.rows)||(!legacy&&!verifiedPublic)||
     !validDate(report.asof)||report.asof!==model.date||
     report.historical_ohlcv_regular_session_verified!==false||report.score_recalculated!==false||
     !/^[a-f0-9]{64}$/.test(report.source_market_sha256)||
-    (!(dual&&report.public_cache_sha256===null)&&!/^[a-f0-9]{64}$/.test(report.public_cache_sha256))||
+    (!(verifiedPublic&&report.public_cache_sha256===null)&&!/^[a-f0-9]{64}$/.test(report.public_cache_sha256))||
     !['KOSPI','KOSDAQ'].every(m=>/^[a-f0-9]{64}$/.test(report.official_source_sha256?.[m]))||
     !report.rows||!Number.isInteger(report.matched_count)||report.matched_count<0||
     !Number.isInteger(report.requested_count)||report.requested_count<report.matched_count||
@@ -1337,12 +1338,20 @@ function applyRegularClosePrices(model,report){
     Object.values(report.states).reduce((a,b)=>a+b,0)!==report.requested_count||
     Object.keys(report.rows).some(code=>!/^[0-9A-Z]{6}$/.test(code))||
     Object.keys(report.rows).length!==report.matched_count)return 0;
- if(dual){
+ if(verifiedPublic){
   const sources={FDR_DATED_LISTING:0,PUBLISHED_SCREENER_PRICE:0};
+  if(nextReference){
+   if((report.next_session_date!==null||report.next_session_cache_sha256!==null)&&
+      (!validDate(report.next_session_date)||report.next_session_date<=report.asof||
+       Date.parse(report.next_session_date)-Date.parse(report.asof)>14*86400000||
+       !/^[a-f0-9]{64}$/.test(report.next_session_cache_sha256)))return 0;
+   sources.FDR_NEXT_SESSION_REFERENCE=0;
+  }
   for(const quote of Object.values(report.rows)){
    const source=quote?.public_source;
    if(!Object.hasOwn(sources,source)||
       (source==='FDR_DATED_LISTING'&&!report.public_cache_sha256)||
+      (source==='FDR_NEXT_SESSION_REFERENCE'&&!report.next_session_cache_sha256)||
       (source==='PUBLISHED_SCREENER_PRICE'&&quote.close!==quote.analysis_close))return 0;
    sources[source]++;
   }
@@ -1357,6 +1366,7 @@ function applyRegularClosePrices(model,report){
  }
  return linked;
 }
+
 function riskState(x,core){
  const r=x.r;
  const distance=regularCloseQuote(r)?currentPriceReferences(r).stopDistance:core.stopDistance(r);

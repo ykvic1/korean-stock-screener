@@ -99,6 +99,13 @@ assert.ok(source.includes("'가격 미관측'"));
   ...dual.rows['005930'],close:100}}}),0);
  assert.equal(unified.applyRegularClosePrices(fresh(),{...dual,rows:{'005930':{
   ...dual.rows['005930'],public_source:'FDR_DATED_LISTING'}}}),0);
+ const next={...dual,schema:'v3-current-corroborated-regular-closes-3',
+  next_session_date:'2026-11-16',next_session_cache_sha256:'e'.repeat(64),
+  matches_by_public_source:{FDR_DATED_LISTING:0,PUBLISHED_SCREENER_PRICE:0,FDR_NEXT_SESSION_REFERENCE:1},
+  rows:{'005930':{...dual.rows['005930'],close:100,public_source:'FDR_NEXT_SESSION_REFERENCE'}}};
+ assert.equal(unified.applyRegularClosePrices(fresh(),next),1);
+ assert.equal(unified.applyRegularClosePrices(fresh(),{...next,next_session_date:day}),0);
+ assert.equal(unified.applyRegularClosePrices(fresh(),{...next,next_session_cache_sha256:null}),0);
  const fallback=fresh().rows[0].r;
  assert.equal(unified.displayPrice(fallback),120);
  assert.match(unified.priceLabel(fallback,true),/KRX 정규장 미검증/);
