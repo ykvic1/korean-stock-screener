@@ -56,7 +56,11 @@ class OperationalScoreTests(unittest.TestCase):
         }}
         previous = {'version': ops.VERSION, 'asof': day, 'rows': {
             code: copy.deepcopy(self.report['rows'][code])}}
-        for area, keys in ops.PERIOD_DEPENDENT_FACTORS.items():
+        flow_factors = {
+            'financial': ops.MULTI_PERIOD_FINANCIAL_FACTORS,
+            'valuation': ('per_eps_quality_growth', 'fcf_yield', 'sales_to_cap'),
+        }
+        for area, keys in flow_factors.items():
             for key in keys:
                 previous['rows'][code]['parts'][area][key] = {
                     'points': 0, 'available': ops.SPECS[area][key], 'asof': day}
@@ -69,7 +73,7 @@ class OperationalScoreTests(unittest.TestCase):
             self.assertEqual(ops.reviewed_short_periods({'records': {}}, self.inputs[7], day), {})
         row = report['rows'][code]
         self.assertEqual(row['annual_period_review'], review)
-        for area, keys in ops.PERIOD_DEPENDENT_FACTORS.items():
+        for area, keys in flow_factors.items():
             for key in keys:
                 self.assertIsNotNone(normal['parts'][area][key])
                 self.assertIsNone(row['parts'][area][key])
@@ -82,6 +86,23 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(row['available'], round(normal['available'] - 19.5, 6))
         self.assertGreater(normal['risk_deduction'], 0)
         self.assertEqual(row['risk_deduction'], 0)
+
+        # A shortened comparative period cannot score EPS growth, but current
+        # earnings yield, FCF yield and sales/cap can still use the full year.
+        historical_review = {**review, 'latest_annual_period': False,
+                             'period_start': '2023-07-01', 'period_end': '2023-12-31'}
+        history['records'][code]['years']['2023']['CFS']['receipt_id'] = review['receipt_id']
+        history['records'][code]['years']['2025']['CFS']['receipt_id'] = None
+        latest_yield = ledger['rows'][code]['components']['valuation']['earnings_yield_pct']
+        with patch.object(ops, 'REVIEWED_SHORT_PERIODS', {code: historical_review}):
+            historical = ops.build(*args, previous=previous)['rows'][code]
+        self.assertEqual(historical['parts']['valuation']['per_eps_quality_growth'], {
+            'points': round(latest_yield['points'] / 3, 6), 'available': 1.666667,
+            'asof': latest_yield['asof']})
+        for key in ('fcf_yield', 'sales_to_cap'):
+            self.assertEqual(historical['parts']['valuation'][key], normal['parts']['valuation'][key])
+        for key in ops.MULTI_PERIOD_FINANCIAL_FACTORS:
+            self.assertIsNone(historical['parts']['financial'][key])
 
     def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256

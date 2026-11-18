@@ -59,21 +59,26 @@ assert BUDGET == {'volume':25,'technical':30,'financial':12.5,'valuation':12.5,'
 # Keep the reported facts for audit and withhold only the period-dependent factors.
 REVIEWED_SHORT_PERIODS = {
     '154030': {
-        'receipt_id': '20260320000001', 'filed_on': '2026-03-20',
+        'receipt_id': '20260320000001', 'source_filed_on': '2026-03-20',
         'period_start': '2025-10-01', 'period_end': '2025-12-31',
+        'latest_annual_period': True,
         'source_url': 'https://kind.krx.co.kr/external/2026/03/20/000001/20260320000003/11011.htm',
     },
+    '033250': {
+        'receipt_id': '20240321001312', 'source_filed_on': '2026-03-23',
+        'period_start': '2023-07-01', 'period_end': '2023-12-31',
+        'latest_annual_period': False,
+        'source_url': 'https://kind.krx.co.kr/external/2026/03/23/001192/20260323005324/11011.htm',
+    },
 }
-PERIOD_DEPENDENT_FACTORS = {
-    'financial': ('revenue_growth', 'operating_growth_margin', 'cashflow_fcf_persistence'),
-    'valuation': ('per_eps_quality_growth', 'fcf_yield', 'sales_to_cap'),
-}
+MULTI_PERIOD_FINANCIAL_FACTORS = ('revenue_growth', 'operating_growth_margin',
+                                  'cashflow_fcf_persistence')
 
 def reviewed_short_periods(history, annual_book, day):
     book = {r['code']: r.get('annual') or {} for r in (annual_book or {}).get('records', [])}
     result = {}
     for code, review in REVIEWED_SHORT_PERIODS.items():
-        if review['filed_on'] > day:
+        if review['source_filed_on'] > day:
             continue
         fiscal_year = review['period_end'][:4]
         annual = history.get('records', {}).get(code, {}).get('years', {}).get(fiscal_year, {})
@@ -265,7 +270,7 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
     # The personal 20pt bundle requires *all four* valuation baselines; that
     # must not suppress 2/3 of the R1d PER/EPS subfactor for an otherwise
     # verified EPS receipt. Missing earnings yield remains unavailable weight.
-    if reported_eps is not None:
+    if annual_flows_comparable and reported_eps is not None:
         try:
             series=reported_eps['reported_basic_eps_2023_2025']
             eps_parts,_=evaluate_reported_eps(series,{k:0 for k in
@@ -283,7 +288,8 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             pass
     if eps and valid_eps(eps,code=saved['code'],name=saved['name'],market=saved['market'],day=day):
         q=eps['parts'];ed=eps['source_oldest_asof']
-        put('valuation','per_eps_quality_growth',sum(q[k] for k in ('earnings_yield_pct','eps_growth','eps_stability'))*5/12,5,ed)
+        if annual_flows_comparable:
+            put('valuation','per_eps_quality_growth',sum(q[k] for k in ('earnings_yield_pct','eps_growth','eps_stability'))*5/12,5,ed)
         for new,old,m in [('pbr_equity_quality','pbr',4),('fcf_yield','fcf_yield',2),('sales_to_cap','sales_to_market_cap',2)]:
             put('valuation',new,q[old]*2.5/m,2.5,ed)
     mom=saved.get('factors',{}).get('momentum')
@@ -406,6 +412,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             money_components=money_components.get(code),
             eps=personal.get('valuation_overrides',{}).get(code),reported_eps=raw_eps.get(code),
             annual=history.get('records',{}).get(code),annual_flows_comparable=short_period is None)
+        independent_earnings_yield = parts['valuation']['per_eps_quality_growth']
         close_receipt=regular_closes.get(code)
         close_candidates={}
         if close_receipt:
@@ -495,9 +502,15 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         # Retained score parts identify their observation day, not a filing.
         # Apply the receipt review after all fallback and retention paths.
         if short_period is not None:
-            for area, keys in PERIOD_DEPENDENT_FACTORS.items():
-                for key in keys:
-                    parts[area][key] = None
+            for key in MULTI_PERIOD_FINANCIAL_FACTORS:
+                parts['financial'][key] = None
+            if short_period['latest_annual_period']:
+                for key in ('per_eps_quality_growth', 'fcf_yield', 'sales_to_cap'):
+                    parts['valuation'][key] = None
+            else:
+                # Only the stand-alone earnings yield is independent of the
+                # historical stub. An older blended EPS factor cannot replace it.
+                parts['valuation']['per_eps_quality_growth'] = independent_earnings_yield
         if short_period is None and prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
             risk['deduction']=prior['risk_deduction'];risk['status']='partial'
             risk['warnings']=prior.get('risk_warnings',[])
