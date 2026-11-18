@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 from v3_forward_horizon_replay import OUT, aggregate_paths, replay_next
 from v3_forward_horizon_readiness import HORIZONS
+from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
 from v3_forward_share_actions import FIELDS, REGISTER
 from v3_score_observation_capture import ARCHIVE
 
@@ -69,6 +70,11 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                         'median_settlement_terminal_return_pct': None,
                         'median_terminal_return_including_settlements_pct': 5,
                     },
+                    'liquidation_exit_proxies': {
+                        'observed_count': 0,
+                        'median_final_session_close_proxy_return_pct': None,
+                        'actual_execution_validated': False,
+                    },
                     'cash_dividends': {
                         'issuers_with_confirmed_payment': 0,
                         'confirmed_payment_events': 0,
@@ -81,6 +87,20 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 self.assertNotIn('000001', json.dumps(report))
                 self.assertEqual(replay_next(root, now, get_storage)['status'], 'no_new_ready_horizons')
                 get_storage.assert_called_once()
+                (root / LIQUIDATION_REGISTER).write_text(','.join(LIQUIDATION_FIELDS) + '\n'
+                    'KOSPI,000002,Beta,2026-12-16,2026-12-16,2026-12-17,1000,'
+                    'https://kind.krx.co.kr/external/2026/11/13/000126/20261113000258/68051.htm,,\n')
+                panels[days[-1]]['rows']['000002'] = ['KOSPI', 'Beta', 'traded', 65, 68, 59, 60, 1000]
+                self.assertEqual(replay_next(root, now, get_storage)['status'], 'price_path_aggregated')
+                group = json.loads((root / OUT / score_day / '1m.json').read_bytes())['groups']['all_ranked']
+                self.assertEqual(group['observed_price_path_count'], 1)
+                self.assertEqual(group['median_mae_pct'], -10)
+                self.assertEqual(group['unresolved_counts'], {})
+                self.assertEqual(group['liquidation_exit_proxies'], {
+                    'observed_count': 1,
+                    'median_final_session_close_proxy_return_pct': -40,
+                    'actual_execution_validated': False,
+                })
 
     def test_cash_settlement_only_extends_terminal_return_denominator(self):
         days = ['2026-06-24', '2026-06-25', '2026-06-26', '2026-07-15']
