@@ -25,7 +25,7 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-7'
+SCHEMA = 'v3-forward-horizon-price-outcome-8'
 READY = 'daily_archive_ready_for_path_replay'
 
 
@@ -142,7 +142,14 @@ def replay_next(root, now, get_storage):
     dividends = load_dividends(root, evidence_asof)
     settlements = load_settlements(root, evidence_asof)
     liquidations = load_liquidations(root, evidence_asof)
-    for score_day, cohort in readiness['cohorts'].items():
+    cohorts = readiness['cohorts']
+    ordered = sorted(cohorts.items(), key=lambda item: (
+        item[1]['entry_session_candidate'],
+        not item[1]['entry_session_sample']['counts_toward_distinct_entry_sessions'],
+        item[0],
+    ))
+    for score_day, cohort in ordered:
+        sample = cohort['entry_session_sample']
         for months in HORIZONS:
             horizon = cohort['horizons'][str(months)]
             if horizon['status'] != READY:
@@ -178,7 +185,7 @@ def replay_next(root, now, get_storage):
             grouped_dividends = {}
             for event in dividend_events:
                 grouped_dividends.setdefault(event['code'], []).append(event)
-            manifest = [SCHEMA, months, cohort['score_observation_sha256'], days,
+            manifest = [SCHEMA, months, cohort['score_observation_sha256'], days, sample,
                         reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
                         dividend_events, [applicable_settlements[k] for k in sorted(applicable_settlements)]]
             digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
@@ -218,6 +225,7 @@ def replay_next(root, now, get_storage):
             report = {
                 'schema': SCHEMA, 'score_asof': score_day, 'months': months,
                 'entry_session': entry_day, 'target_date': horizon['target_date'],
+                'entry_session_sample': sample,
                 'evaluation_session_candidate': target, 'session_count': len(days),
                 'inputs_sha256': digest,
                 'groups': aggregate_paths(observation, evidence['rows'], days, panels,

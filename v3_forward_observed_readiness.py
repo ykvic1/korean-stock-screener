@@ -1,5 +1,6 @@
 """Reconcile actual frozen score cohorts with published KRX archive checkpoints."""
 import argparse
+from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 import json
@@ -10,8 +11,8 @@ from v3_forward_daily_prices import (
     official_publish_time,
 )
 from v3_forward_entry import OUT as ENTRIES, ROW_STATES, entry_plan
-from v3_forward_horizon_readiness import MAX_SETTLEMENT_LAG_DAYS
-from v3_forward_share_actions import OUT as SHARE_REVIEWS, SCHEMA as SHARE_SCHEMA, STATES
+from v3_forward_horizon_readiness import HORIZONS, MAX_SETTLEMENT_LAG_DAYS
+from v3_forward_share_actions import OUT as SHARE_REVIEWS, SCHEMA as SHARE_SCHEMA, STATES, normalized_name
 from v3_score_observation_capture import ARCHIVE
 
 OUTPUT = Path('ops/v3-forward-observed-readiness.json')
@@ -101,13 +102,64 @@ def horizon_readiness(entry_day, target, sessions, archived, now, opening_ready,
     }
 
 
+def top_ranked_issuers(rows):
+    top20, top100 = set(), set()
+    for code, row in rows.items():
+        rank = row[3]
+        if rank is None or rank > 100:
+            continue
+        issuer = (code, row[1], normalized_name(row[0]))
+        top100.add(issuer)
+        if rank <= 20:
+            top20.add(issuer)
+    return {'top20': top20, 'top100': top100}
+
+
+def sample_entry_sessions(cohorts, snapshots_by_session):
+    sessions, primary = {}, []
+    for entry_day, snapshots in sorted(snapshots_by_session.items()):
+        # entry_plan already checks the frozen capture precedes this session's open.
+        # Use the most recent score date even if its opening evidence is still missing.
+        score_dates = sorted(snapshots)
+        representative = score_dates[-1]
+        primary.append(representative)
+        sessions[entry_day] = {
+            'representative_score_asof': representative,
+            'score_dates': score_dates,
+            'overlap_with_representative': {
+                day: {label: len(snapshots[day][label] & snapshots[representative][label])
+                      for label in ('top20', 'top100')}
+                for day in score_dates[:-1]
+            },
+        }
+        for day in score_dates:
+            cohorts[day]['entry_session_sample'] = {
+                'representative_score_asof': representative,
+                'counts_toward_distinct_entry_sessions': day == representative,
+            }
+    return {
+        'representative_rule': 'latest_score_asof_frozen_before_candidate_open',
+        'distinct_entry_session_count': len(primary),
+        'matched_representative_entry_session_count': sum(
+            cohorts[day]['matched_opening_count'] is not None for day in primary),
+        'by_entry_session': sessions,
+        'horizon_readiness_counts': {
+            str(months): dict(sorted(Counter(
+                cohorts[day]['horizons'][str(months)]['status'] for day in primary).items()))
+            for months in HORIZONS
+        },
+    }
+
+
 def build(root, now):
     archived = read_archived_days(root)
     reviews = read_share_reviews(root, archived)
     cohorts = {}
+    snapshots_by_session = {}
     for path in sorted((root / ARCHIVE).glob('????-??-??.json')):
         raw = path.read_bytes()
-        plan = entry_plan(json.loads(raw), sha256(raw).hexdigest())
+        observation = json.loads(raw)
+        plan = entry_plan(observation, sha256(raw).hexdigest())
         if path.stem != plan['score_asof']:
             raise ValueError('invalid_frozen_score_filename')
         entry_path = root / ENTRIES / path.name
@@ -155,8 +207,11 @@ def build(root, now):
                          [day for day in sessions if day <= target + timedelta(days=MAX_SETTLEMENT_LAG_DAYS)],
                          archived, now, opening_ready, reviews) for key, target in targets.items()},
         }
+        snapshots_by_session.setdefault(entry_day.isoformat(), {})[path.stem] = top_ranked_issuers(
+            observation['rows'])
     return {'schema': 'v3-forward-observed-archive-readiness-1',
             'calendar_is_candidate_only': True, 'cohorts': cohorts,
+            'entry_session_sampling': sample_entry_sessions(cohorts, snapshots_by_session),
             'full_corporate_action_history_certified': False,
             'performance_validated': False, 'provider_calls': 0}
 
