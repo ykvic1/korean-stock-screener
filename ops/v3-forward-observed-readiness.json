@@ -16,9 +16,9 @@
           "identity_changed": 0,
           "first_seen": 1,
           "absent": 0,
-          "change_needs_notice": 4,
+          "change_needs_notice": 0,
           "notice_mismatch": 0,
-          "notice_matched": 0
+          "notice_matched": 4
         }
       },
       "horizons": {
@@ -33,7 +33,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 1
+            "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         },
         "2": {
@@ -47,7 +47,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 1
+            "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         },
         "3": {
@@ -61,7 +61,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 1
+            "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         },
         "6": {
@@ -75,7 +75,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 1
+            "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         },
         "12": {
@@ -89,7 +89,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 1
+            "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         }
       }
