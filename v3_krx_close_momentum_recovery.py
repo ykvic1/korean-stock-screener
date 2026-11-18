@@ -13,6 +13,7 @@ from official_probe.clients import KRXClient, ProbeError
 from official_probe.validation import _numeric
 from v3_dated_market_roster import DatedRosterError, load_dated_listing
 from v3_fdr_cache_krx_close_corroboration import cache_close_index
+from v3_forward_share_actions import normalized_name
 from v3_krx_history_collection import MARKETS, _snapshot_market
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_saved_close_crosscheck import safe_failure_reason
@@ -455,7 +456,8 @@ def close_anchor(stock, official_row, dated_close):
 
 
 def run(market, report, ledger, key, *, load_listing=load_dated_listing,
-        face_notices=None, bonus_notices=None, auction_notices=None, resumption_notices=None):
+        load_archive=None, face_notices=None, bonus_notices=None, auction_notices=None,
+        resumption_notices=None):
     day = market['date']
     targets = select_targets(market, report, ledger)
     start = (date.fromisoformat(day) - timedelta(days=210)).isoformat()
@@ -472,20 +474,56 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
         else:
             cache = cache_close_index(frame)
 
+    archived = {}
+    if targets and load_archive is not None:
+        wanted_codes = {code for _, code in targets}
+
+        def read_targets(day):
+            panel = load_archive(day)
+            if panel is None:
+                return day, None
+            rows = panel['rows']
+            return day, {code: rows[code] for code in wanted_codes & rows.keys()}
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            archived = {day: rows for day, rows in pool.map(read_targets, dates) if rows is not None}
+
     def collect(exchange):
         wanted = {code: s for (m, code), s in targets.items() if m == exchange}
         counts = Counter()
         if not wanted:
             return counts, {}, 0
-        client = RetryingMoneyClient(KRXClient(key))
+        client = None
         try:
+            def closes(session, codes, *, missing=None, openings=None):
+                nonlocal client
+                rows = archived.get(session)
+                if rows is None or (openings and codes.keys() & openings.keys()):
+                    if client is None:
+                        client = RetryingMoneyClient(KRXClient(key))
+                    return closes_on(client, exchange, session, codes, missing=missing, openings=openings)
+                found = {}
+                for code, stock in codes.items():
+                    row = rows.get(code)
+                    reason = 'absent_issuer'
+                    if row is not None:
+                        reason = 'identity_unresolved'
+                        name = normalized_name(stock.get('name'))
+                        if row[0] == exchange and name and normalized_name(row[1]) == name:
+                            found[code] = tuple(row[2:5])
+                            continue
+                    if missing is not None:
+                        missing[reason] += 1
+                counts['archive_market_sessions_used'] += 1
+                return found
+
             auction_codes = {}
             for code in wanted:
                 for records in (auction_notices, resumption_notices):
                     for session, notice in (records or {}).get(code, {}).items():
                         if notice['market'] == exchange:
                             auction_codes.setdefault(session, {})[code] = None
-            current = closes_on(client, exchange, day, wanted, openings=auction_codes.get(day))
+            current = closes(day, wanted, openings=auction_codes.get(day))
             anchors = {code: close_anchor(stock, current.get(code), cache.get((exchange, code)))
                        for code, stock in wanted.items()}
             eligible = {code for code, anchor in anchors.items() if anchor is not None}
@@ -493,12 +531,13 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
             for code in eligible:
                 counts[f'eligible_{anchors[code]}'] += 1
             if not eligible:
-                return counts, {}, client.requests
+                return counts, {}, client.requests if client is not None else 0
+            eligible_stocks = {code: wanted[code] for code in eligible}
             history = []
             for session in dates[:-1]:
                 missing = Counter()
-                history.append(closes_on(client, exchange, session, eligible, missing=missing,
-                                         openings=auction_codes.get(session)))
+                history.append(closes(session, eligible_stocks, missing=missing,
+                                      openings=auction_codes.get(session)))
                 for reason, count in missing.items():
                     counts[f'history_rows_{reason}'] += count
                 if missing:
@@ -546,9 +585,10 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
                     if current[code][0] != wanted[code]['price']:
                         counts['recovered_despite_saved_close_mismatch'] += 1
                     receipts[(exchange, code)] = {**receipt, 'close_anchor': anchor}
-            return counts, receipts, client.requests
+            return counts, receipts, client.requests if client is not None else 0
         finally:
-            client.client.session.close()
+            if client is not None:
+                client.client.session.close()
 
     counts = Counter()
     calls = 0
@@ -560,10 +600,30 @@ def run(market, report, ledger, key, *, load_listing=load_dated_listing,
                 targets[identity][STOCK_FIELD] = receipt
     return {'asof': day, 'first_source_session': dates[0], 'session_count': SESSIONS,
             'selected': len(targets), 'counts': dict(counts), 'official_requests': calls,
+            'archived_sessions_available': len(archived),
             'dated_fdr_close_source_sha256': cache_sha,
             'dated_fdr_close_requests': int(bool(targets)),
             'raw_source_exported': False, 'volume_evidence_used': False,
             'corporate_actions_adjusted_verified': False}
+
+
+def retained_archive_reader():
+    repo = os.getenv('V3_PRIVATE_ARCHIVE_REPO', '')
+    token = os.getenv('V3_PRIVATE_ARCHIVE_TOKEN', '')
+    if not repo and not token:
+        return None
+    from v3_krx_private_github_backfill import PrivateGitStorage
+    from v3_regular_close_indicators import PRIVATE_REPO, archive_path, read_day
+    if repo != PRIVATE_REPO or not token:
+        raise ValueError('private_regular_close_destination_unavailable')
+    storage = PrivateGitStorage(PRIVATE_REPO, token)
+    storage.verify_private()
+
+    def load(day):
+        blob, _ = storage.get_content(archive_path(day))
+        return read_day(blob, day)
+
+    return load
 
 
 def main():
@@ -582,7 +642,8 @@ def main():
     auction_notices = load_auction_notices()
     resumption_notices = load_resumption_notices()
     result = run(market, report, ledger, os.environ.get('KRX_API_KEY', ''),
-                 face_notices=notices, bonus_notices=bonus_notices, auction_notices=auction_notices,
+                 load_archive=retained_archive_reader(), face_notices=notices,
+                 bonus_notices=bonus_notices, auction_notices=auction_notices,
                  resumption_notices=resumption_notices)
     result['kind_trading_resumption_notice_count'] = sum(map(len, resumption_notices.values()))
     result['kind_auction_capital_reduction_notice_count'] = sum(map(len, auction_notices.values()))

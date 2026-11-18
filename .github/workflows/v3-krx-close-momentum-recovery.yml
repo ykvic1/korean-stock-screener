@@ -55,6 +55,8 @@ jobs:
       - name: Observe exact dated 121-session closing paths
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: python v3_krx_close_momentum_recovery.py
       - name: Validate and publish derived momentum observations
         id: publish

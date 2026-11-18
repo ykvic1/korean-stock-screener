@@ -288,3 +288,47 @@ class CloseMomentumRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered_close_momentum(receipt, DAY), 0)
         self.assertEqual(stock, {'code': code, 'market': 'KOSDAQ', 'price': 105,
                                  'price_date': DAY})
+
+        stock['name'] = '표본'
+        missing_day, auction_day = dates[9], dates[10]
+
+        def load_archive(day):
+            if day == missing_day:
+                return None
+            return {'rows': {code: ['KOSDAQ', ' 표 본 ', 100, 1_000, 100, True]}}
+
+        wrapped.requests = 2
+        with (
+            patch.object(recovery, 'candidate_dates', return_value={'dates': dates}),
+            patch.object(recovery, 'KRXClient', return_value=client),
+            patch.object(recovery, 'RetryingMoneyClient', return_value=wrapped),
+            patch.object(recovery, 'closes_on', return_value={code: (100, 1_000, 100)}) as closes,
+        ):
+            result = recovery.run(
+                market, report, ledger, 'fake-key', load_listing=lambda day: (listing, 'a' * 64),
+                load_archive=load_archive, resumption_notices={code: {auction_day: {'market': 'KOSDAQ'}}},
+            )
+        self.assertEqual([call.args[2] for call in closes.call_args_list], [missing_day, auction_day])
+        self.assertEqual(result['official_requests'], 2)
+        self.assertEqual(result['archived_sessions_available'], 120)
+        self.assertEqual(result['counts']['archive_market_sessions_used'], 119)
+        self.assertEqual(stock.pop(recovery.STOCK_FIELD), receipt)
+
+        incompatible = dates[4]
+
+        def mismatched_archive(day):
+            name = '다른회사' if day == incompatible else '표본'
+            return {'rows': {code: ['KOSDAQ', name, 100, 1_000, 100, True]}}
+
+        with (
+            patch.object(recovery, 'candidate_dates', return_value={'dates': dates}),
+            patch.object(recovery, 'KRXClient') as unneeded_client,
+        ):
+            result = recovery.run(
+                market, report, ledger, '', load_listing=lambda day: (listing, 'a' * 64),
+                load_archive=mismatched_archive,
+            )
+        unneeded_client.assert_not_called()
+        self.assertEqual(result['official_requests'], 0)
+        self.assertEqual(result['counts']['history_rows_identity_unresolved'], 1)
+        self.assertNotIn(recovery.STOCK_FIELD, stock)
