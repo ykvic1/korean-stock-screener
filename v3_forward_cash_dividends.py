@@ -11,6 +11,9 @@ from v3_forward_share_actions import CODE, DART_TERMS, MARKETS, NOTICE, normaliz
 REGISTER = Path('ops/forward-reviewed-cash-dividends.csv')
 FIELDS = ('market', 'code', 'name', 'record_on', 'krw_per_common_share',
           'terms_url', 'scheduled_payment_on', 'paid_on', 'payment_url')
+KIND_VIEWER = re.compile(
+    r'https://kind\.krx\.co\.kr/common/disclsviewer\.do\?acptno=(\d{14})&method=search'
+)
 
 
 def iso_day(value):
@@ -20,8 +23,9 @@ def iso_day(value):
 
 
 def filing_day(url):
-    if DART_TERMS.fullmatch(url):
-        filed = url.rsplit('=', 1)[-1][:8]
+    kind = KIND_VIEWER.fullmatch(url)
+    if kind or DART_TERMS.fullmatch(url):
+        filed = (kind.group(1) if kind else url.rsplit('=', 1)[-1])[:8]
         return iso_day(f'{filed[:4]}-{filed[4:6]}-{filed[6:]}')
     if NOTICE.fullmatch(url):
         return iso_day('-'.join(url.split('/')[4:7]))

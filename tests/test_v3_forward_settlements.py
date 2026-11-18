@@ -1,10 +1,11 @@
 """Verify reviewed settlement records and outcomes independently of continuous prices."""
 from datetime import date
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 from v3_forward_price_replay import replay_price_path
-from v3_forward_settlements import REGISTER, load_settlements, reviewed_settlements
+from v3_forward_settlements import DISSOLUTION, FIELDS, REGISTER, load_settlements, reviewed_settlements
 
 
 class ForwardSettlementTests(unittest.TestCase):
@@ -71,3 +72,43 @@ class ForwardSettlementTests(unittest.TestCase):
         conflicting = raw + raw.splitlines(keepends=True)[1]
         with self.assertRaisesRegex(ValueError, 'duplicate_forward_settlement_record'):
             reviewed_settlements(conflicting)
+
+    def test_dissolution_waits_for_final_payment_and_requires_entry_entitlement(self):
+        key = ('2026-04-29', '152550')
+        terms = load_settlements(Path('.'), '2026-11-18')[key]
+        days = ['2026-04-27', '2026-04-28', key[0], '2026-05-04', '2026-05-08']
+        traded = ['KOSPI', '한국ANKOR유전', 'traded', 100, 105, 95, 105, 70020000]
+        bars = dict.fromkeys(days[:2], traded)
+
+        def replay(sessions):
+            return replay_price_path(key[1], sessions, bars, entry_open=100,
+                                     notices={}, settlements={key: terms})
+
+        self.assertEqual(replay(days[:3])['status'], 'dissolution_delisting_pending')
+        self.assertEqual(replay(days)['status'], 'dissolution_distribution_unconfirmed')
+        terms.update(record_on=days[2], paid_on=days[4], cash_krw_per_old_share='24')
+        self.assertEqual(replay(days[:-1])['status'], 'dissolution_distribution_unconfirmed')
+        self.assertEqual(replay(days), {'status': 'observed_delisting_settlement',
+                                        'treatment': DISSOLUTION, 'terminal_return_pct': -76})
+        terms['cash_krw_per_old_share'] = '0'
+        self.assertEqual(replay(days)['terminal_return_pct'], -100)
+        self.assertEqual(replay(days[1:])['status'], 'settlement_entry_entitlement_unconfirmed')
+
+    def test_dissolution_final_amount_is_visible_only_after_the_official_report(self):
+        raw = REGISTER.read_bytes()
+        pending = raw.splitlines(keepends=True)[-1]
+        values = dict(zip(FIELDS, pending.decode().strip().split(',')))
+        values.update(record_on='2026-04-30', cash_krw_per_old_share='0')
+        replacement = (','.join(values.values()) + '\n').encode()
+        with self.assertRaisesRegex(ValueError, 'invalid_forward_settlement_record'):
+            reviewed_settlements(raw.replace(pending, replacement))
+        # Hypothetical final report. The published record still has no confirmed amount.
+        values.update(paid_on='2026-06-08',
+                      payment_url='https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260609000001')
+        key = ('2026-04-29', '152550')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / REGISTER).parent.mkdir()
+            (root / REGISTER).write_bytes(raw.replace(pending, (','.join(values.values()) + '\n').encode()))
+            self.assertEqual(load_settlements(root, '2026-06-08')[key]['cash_krw_per_old_share'], '')
+            self.assertEqual(load_settlements(root, '2026-06-09')[key]['cash_krw_per_old_share'], '0')
