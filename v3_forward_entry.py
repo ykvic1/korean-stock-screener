@@ -423,7 +423,8 @@ def main():
 
     collect_daily(entry_statuses, now, private_storage, official_pair)
     collect_signal_closes(entry_statuses, now, private_storage)
-    publish_regular_closes(private_storage)
+    publish_regular_closes(private_storage, retry_public_cache=os.getenv('GITHUB_EVENT_NAME')
+                           in {'schedule', 'workflow_dispatch'})
     checked = 0
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):

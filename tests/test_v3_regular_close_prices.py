@@ -33,6 +33,7 @@ class RegularClosePricesTest(unittest.TestCase):
         self.assertEqual(report['changed_display_price_count'], 1)
         self.assertEqual(report['rows']['005930']['close'], 100)
         self.assertEqual(report['rows']['005930']['analysis_close'], 110)
+        self.assertEqual(report['rows']['005930']['public_source'], 'FDR_DATED_LISTING')
         self.assertFalse(report['historical_ohlcv_regular_session_verified'])
         self.assertFalse(report['score_recalculated'])
         for mutation, expected in (
@@ -48,6 +49,24 @@ class RegularClosePricesTest(unittest.TestCase):
                 self.assertNotIn('005930', report['rows'])
                 self.assertEqual(report['states'][expected], 1)
                 self.assertEqual(sum(report['states'].values()), 2)
+
+    def test_verified_published_price_fills_unavailable_or_incomplete_cache(self):
+        self.market['stocks'][0]['price'] = 100
+        self.frame.loc[0, 'Close'] = 99
+        for frame, digest, counts in (
+            (self.frame, 'b' * 64, {'FDR_DATED_LISTING': 1, 'PUBLISHED_SCREENER_PRICE': 1}),
+            (None, None, {'FDR_DATED_LISTING': 0, 'PUBLISHED_SCREENER_PRICE': 2}),
+        ):
+            report = prices.build(self.market, 'a' * 64, frame, digest, self.daily)
+            self.assertEqual(report['matched_count'], 2)
+            self.assertEqual(report['matches_by_public_source'], counts)
+            self.assertEqual(report['rows']['005930']['close'], 100)
+            self.assertEqual(report['rows']['005930']['public_source'], 'PUBLISHED_SCREENER_PRICE')
+
+        self.daily['rows']['005930'][1] = '다른회사'
+        report = prices.build(self.market, 'a' * 64, None, None, self.daily)
+        self.assertNotIn('005930', report['rows'])
+        self.assertEqual(report['states']['identity_unresolved'], 1)
 
     def test_day_mismatch_cannot_promote_current_prices(self):
         self.daily['date'] = '2026-11-12'
@@ -80,3 +99,15 @@ class RegularClosePricesTest(unittest.TestCase):
                 self.assertEqual(loader.call_count, 2)
                 self.assertEqual(report['rows']['005930']['analysis_close'], 120)
                 self.assertEqual(report['source_market_sha256'], sha256(market.read_bytes()).hexdigest())
+
+                loader.return_value = (self.frame.assign(Close=[99, 200]), 'c' * 64)
+                market.write_text(json.dumps(self.market))
+                out.unlink()
+                prices.publish_regular_closes(lambda: object())
+                self.assertEqual(json.loads(out.read_bytes())['matched_count'], 1)
+                before = reader.call_count
+                prices.publish_regular_closes(lambda: object(), retry_public_cache=True)
+                self.assertEqual(reader.call_count, before)
+                loader.return_value = (self.frame, 'd' * 64)
+                prices.publish_regular_closes(lambda: object(), retry_public_cache=True)
+                self.assertEqual(json.loads(out.read_bytes())['matched_count'], 2)
