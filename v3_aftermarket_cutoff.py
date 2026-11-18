@@ -24,13 +24,18 @@ class AftermarketCutoffError(ValueError):
     """Bounded static reason codes; no stock or raw price data."""
 
 
-def target_policy(asof: str, *, now: datetime | None = None) -> dict:
+def market_day(asof: str) -> date:
     try:
         day = date.fromisoformat(asof)
     except (TypeError, ValueError):
         raise AftermarketCutoffError("invalid_trade_date") from None
     if day.isoformat() != asof:
         raise AftermarketCutoffError("invalid_trade_date")
+    return day
+
+
+def target_policy(asof: str, *, now: datetime | None = None) -> dict:
+    day = market_day(asof)
     now = datetime.now(KST) if now is None else now
     if not isinstance(now, datetime) or now.tzinfo is None:
         raise AftermarketCutoffError("timezone_aware_now_required")
@@ -64,6 +69,8 @@ def target_policy(asof: str, *, now: datetime | None = None) -> dict:
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Post-20:00 market batch publication cutoff")
     parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--published-snapshot", type=Path,
+                        help="Check that this batch will not replace a newer published market date")
     args = parser.parse_args(argv)
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -73,6 +80,16 @@ def main(argv=None):
         policy = target_policy(manifest.get("asof"))
         if not policy["complete_session_by_clock"]:
             raise AftermarketCutoffError("aftermarket_session_not_yet_final")
+        if args.published_snapshot is not None:
+            published = json.loads(args.published_snapshot.read_bytes())
+            if not isinstance(published, dict):
+                raise AftermarketCutoffError("invalid_published_market_snapshot")
+            try:
+                published_day = market_day(published.get("date"))
+            except AftermarketCutoffError:
+                raise AftermarketCutoffError("invalid_published_market_date") from None
+            if published_day > market_day(policy["asof"]):
+                raise AftermarketCutoffError("newer_market_date_already_published")
         print(json.dumps({"status": "eligible_after_cutoff_only", **policy},
                          sort_keys=True))
         return 0

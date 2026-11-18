@@ -1,12 +1,14 @@
 """Preserve archive gaps and distinguish waiting from replay readiness."""
 from datetime import date, datetime, timezone
 from pathlib import Path
+from shutil import copyfile
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_observed_readiness import (
-    READY, build, horizon_readiness, pages_summary, sample_entry_sessions, sample_holding_windows,
+    ARCHIVE, DAILY, ENTRIES, READY, SHARE_REVIEWS, build, horizon_readiness, pages_summary, sample_entry_sessions, sample_holding_windows,
     share_review_coverage, top_ranked_issuers,
 )
 from v3_forward_share_actions import STATES
@@ -14,8 +16,22 @@ from v3_forward_share_actions import STATES
 
 class ObservedReadinessTests(unittest.TestCase):
     def test_real_score_snapshots_share_an_entry_day_and_overlap(self):
-        report = build(Path(__file__).resolve().parents[1],
-                       datetime(2026, 11, 18, 3, tzinfo=timezone.utc))
+        # Pin the real cohort and checkpoint sets so later daily collection
+        # cannot change the size or availability of this historical example.
+        repository = Path(__file__).resolve().parents[1]
+        snapshots = ('2026-11-13', '2026-11-16', '2026-11-17')
+        price_sessions = (*snapshots, '2026-11-18')
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for directory, days in (
+                (ARCHIVE, snapshots), (ENTRIES, snapshots), (DAILY, price_sessions),
+                (SHARE_REVIEWS, price_sessions[1:]),
+            ):
+                (root / directory).mkdir(parents=True)
+                for day in days:
+                    relative = directory / f'{day}.json'
+                    copyfile(repository / relative, root / relative)
+            report = build(root, datetime(2026, 11, 19, 0, tzinfo=timezone.utc))
         grouped = report['entry_session_sampling']
         duplicate = grouped['by_entry_session']['2026-11-18']
         self.assertEqual(duplicate['representative_score_asof'], '2026-11-17')
@@ -39,7 +55,7 @@ class ObservedReadinessTests(unittest.TestCase):
         self.assertNotIn('holding_window_sample', alternate)
         public = pages_summary(report)
         self.assertEqual(public['candidate_entry_session_count'], 2)
-        self.assertEqual(public['matched_entry_session_count'], 1)
+        self.assertEqual(public['matched_entry_session_count'], 2)
         self.assertEqual(public['horizons']['1'], {'first_target_date': '2026-12-16',
             'selected_window_count': 1, 'archive_ready_count': 0})
         self.assertEqual(public['horizons']['12']['first_target_date'], '2027-11-16')
