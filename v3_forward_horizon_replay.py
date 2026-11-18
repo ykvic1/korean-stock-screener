@@ -133,7 +133,7 @@ def metric_median(rows, key):
     return round(median(row[key] for row in rows), 4) if rows else None
 
 
-def ready_windows(cohorts):
+def ready_windows(cohorts, *, selected_only=False):
     """Prioritize selected disjoint windows over overlapping research replays."""
     due = []
     for score_day, cohort in cohorts.items():
@@ -143,23 +143,24 @@ def ready_windows(cohorts):
             if horizon['status'] != READY:
                 continue
             selected = representative and (horizon.get('holding_window_sample') or {}).get('status') == 'selected'
+            if selected_only and not selected:
+                continue
             due.append((not selected, horizon['target_session_candidate'],
                         cohort['entry_session_candidate'], not representative, score_day, months))
     return [(score_day, months) for _, _, _, _, score_day, months in sorted(due)]
 
 
-def replay_next(root, now, get_storage, *, readiness=None):
-    """Replay one changed mature window per run, with no archive access while waiting."""
+def window_inputs(root, now, cohorts, windows):
+    """Resolve the same evidence and digest for replay and public results."""
+    if not windows:
+        return
     archived = read_archived_days(root)
-    if readiness is None:
-        readiness = build(root, now)
     notices = load_forward_actions(root)
     evidence_asof = now.astimezone(KST).date().isoformat()
     dividends = load_dividends(root, evidence_asof)
     settlements = load_settlements(root, evidence_asof)
     liquidations = load_liquidations(root, evidence_asof)
-    cohorts = readiness['cohorts']
-    for score_day, months in ready_windows(cohorts):
+    for score_day, months in windows:
         cohort = cohorts[score_day]
         sample = cohort['entry_session_sample']
         horizon = cohort['horizons'][str(months)]
@@ -195,10 +196,28 @@ def replay_next(root, now, get_storage, *, readiness=None):
         for event in dividend_events:
             grouped_dividends.setdefault(event['code'], []).append(event)
         holding_window = horizon.get('holding_window_sample')
-        manifest = [SCHEMA, months, cohort['score_observation_sha256'], days, sample, holding_window,
-                    reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
+        manifest = [SCHEMA, months, cohort['score_observation_sha256'], horizon['target_date'],
+                    days, sample, holding_window, reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
                     dividend_events, [applicable_settlements[k] for k in sorted(applicable_settlements)]]
         digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+        yield (score_day, months), {
+            'digest': digest, 'days': days, 'sources': sources, 'reference_day': reference_day,
+            'notices': applicable_notices, 'dividends': grouped_dividends,
+            'settlements': applicable_settlements,
+        }
+
+
+def replay_next(root, now, get_storage, *, readiness=None):
+    """Replay one changed mature window per run, with no archive access while waiting."""
+    if readiness is None:
+        readiness = build(root, now)
+    cohorts = readiness['cohorts']
+    for (score_day, months), inputs in window_inputs(root, now, cohorts, ready_windows(cohorts)):
+        cohort = cohorts[score_day]
+        horizon = cohort['horizons'][str(months)]
+        days, sources = inputs['days'], inputs['sources']
+        entry_day, target = days[0], days[-1]
+        digest = inputs['digest']
         target_path = root / OUT / score_day / f'{months}m.json'
         if target_path.exists() and json.loads(target_path.read_bytes()).get('inputs_sha256') == digest:
             continue
@@ -225,7 +244,7 @@ def replay_next(root, now, get_storage, *, readiness=None):
 
         with ThreadPoolExecutor(max_workers=4) as pool:
             panels = dict(zip(days, pool.map(panel, days)))
-        signal = panel(reference_day) if reference_day else None
+        signal = panel(inputs['reference_day']) if inputs['reference_day'] else None
         cases = None
         if signal is not None:
             market = frozen_market(observation)
@@ -235,14 +254,14 @@ def replay_next(root, now, get_storage, *, readiness=None):
         report = {
             'schema': SCHEMA, 'score_asof': score_day, 'months': months,
             'entry_session': entry_day, 'target_date': horizon['target_date'],
-            'entry_session_sample': sample,
-            'holding_window_sample': holding_window,
+            'entry_session_sample': cohort['entry_session_sample'],
+            'holding_window_sample': horizon.get('holding_window_sample'),
             'evaluation_session_candidate': target, 'session_count': len(days),
             'inputs_sha256': digest,
             'groups': aggregate_paths(observation, evidence['rows'], days, panels,
-                                      applicable_notices, signal=signal, cases=cases,
-                                      dividends=grouped_dividends,
-                                      settlements=applicable_settlements),
+                                      inputs['notices'], signal=signal, cases=cases,
+                                      dividends=inputs['dividends'],
+                                      settlements=inputs['settlements']),
             'cash_distributions_and_costs_included': False,
             'dividend_coverage_complete': False,
             'delisting_settlement_coverage_complete': False,
@@ -264,22 +283,22 @@ def private_storage():
     return storage
 
 
-def pages_results(root, readiness):
+def pages_results(root, readiness, now):
     """Publish top-20 aggregates for currently selected, archive-ready windows."""
     horizons = {}
     cohorts = readiness['cohorts']
-    for score_day, months in ready_windows(cohorts):
+    selected = ready_windows(cohorts, selected_only=True)
+    for (score_day, months), inputs in window_inputs(root, now, cohorts, selected):
         cohort = cohorts[score_day]
         horizon = cohort['horizons'][str(months)]
         sample = cohort['entry_session_sample']
-        window = horizon.get('holding_window_sample') or {}
-        if not sample['counts_toward_distinct_entry_sessions'] or window.get('status') != 'selected':
-            continue
+        window = horizon['holding_window_sample']
         path = root / OUT / score_day / f'{months}m.json'
         if not path.is_file():
             continue
         outcome = json.loads(path.read_bytes())
         if (outcome.get('schema') != SCHEMA or outcome.get('performance_validated') is not False
+                or outcome.get('inputs_sha256') != inputs['digest']
                 or outcome.get('score_asof') != score_day or outcome.get('months') != months
                 or outcome.get('entry_session') != cohort['entry_session_candidate']
                 or outcome.get('target_date') != horizon['target_date']
@@ -312,6 +331,6 @@ if __name__ == '__main__':
     now = datetime.now(timezone.utc)
     readiness = build(root, now)
     result = replay_next(root, now, private_storage, readiness=readiness)
-    public = json.dumps(pages_results(root, readiness), indent=2, allow_nan=False) + '\n'
+    public = json.dumps(pages_results(root, readiness, now), indent=2, allow_nan=False) + '\n'
     (root / PAGES_RESULTS).write_text(public, encoding='utf-8')
     print(json.dumps(result))
