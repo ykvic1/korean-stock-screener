@@ -110,6 +110,27 @@ class RegularClosePricesTest(unittest.TestCase):
                 self.assertEqual('005930' in report['rows'], matched)
                 self.assertEqual(report['matches_by_public_source'][prices.NEXT_REFERENCE], int(matched))
 
+    def test_next_session_rename_requires_same_isin_and_exact_traded_close(self):
+        isin = 'KR7005930003'
+        for old_name, new_market, new_isin, change, matched in (
+            ('삼성전자', 'KOSPI', isin, -5, True),
+            ('다른회사', 'KOSPI', isin, -5, False),
+            ('삼성전자', 'KOSDAQ', isin, -5, False),
+            ('삼성전자', 'KOSPI', 'KR7005931001', -5, False),
+            ('삼성전자', 'KOSPI', None, -5, False),
+            ('삼성전자', 'KOSPI', isin, -4, False),
+        ):
+            old = self.frame.assign(Name=[old_name, '코스닥'], Close=[98, 200], ISU_CD=[isin, None])
+            new = old.assign(Name=['변경상호', '코스닥'], Market=[new_market, 'KOSDAQ GLOBAL'],
+                             Close=[95, 220], Changes=[change, 20], Volume=[10, 20], ISU_CD=[new_isin, None])
+            report = prices.build(self.market, 'a' * 64, old, 'c' * 64, self.daily,
+                next_listing=('2026-11-16', new, 'b' * 64))
+            with self.subTest(old_name=old_name, market=new_market, isin=new_isin, change=change):
+                self.assertEqual('005930' in report['rows'], matched)
+                if matched:
+                    self.assertEqual(report['rows']['005930']['name'], '삼성전자')
+                    self.assertEqual(report['rows']['005930']['close'], 100)
+
     def test_incomplete_publication_reuses_official_archive_after_next_session_close(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -143,13 +164,13 @@ class RegularClosePricesTest(unittest.TestCase):
                 previous['next_session_date'] = '2026-11-16'
                 previous['next_session_cache_sha256'] = 'e' * 64
                 for prior, count in ((old_schema, 2), (previous, 3)):
-                    prior.pop('next_session_zero_volume_checked')
+                    prior.pop('next_session_reference_rules_version')
                     out.write_text(json.dumps(prior))
                     prices.publish_regular_closes(lambda: object(), now=now)
                     report = json.loads(out.read_bytes())
                     self.assertEqual(report['matched_count'], 2)
                     self.assertEqual(report['next_session_cache_sha256'], 'e' * 64)
-                    self.assertTrue(report['next_session_zero_volume_checked'])
+                    self.assertEqual(report['next_session_reference_rules_version'], prices.NEXT_REFERENCE_RULES_VERSION)
                     self.assertEqual(reader.call_count, count)
                 prices.publish_regular_closes(lambda: object(), retry_public_cache=True, now=now)
                 self.assertEqual(reader.call_count, 3)

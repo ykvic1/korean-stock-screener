@@ -20,6 +20,7 @@ from v3_score_observation_capture import positive
 PREVIOUS_SCHEMA = 'v3-current-corroborated-regular-closes-2'
 SCHEMA = 'v3-current-corroborated-regular-closes-3'
 NEXT_REFERENCE = 'FDR_NEXT_SESSION_REFERENCE'
+NEXT_REFERENCE_RULES_VERSION = 2
 OUT = Path('docs/v3-regular-close-prices.json')
 MARKET = Path('docs/data.json')
 
@@ -32,9 +33,14 @@ def public_index(frame):
     if frame is None:
         return {}, {}
     closes = cache_close_index(frame)
-    names = {(('KOSDAQ' if row['Market'] == 'KOSDAQ GLOBAL' else row['Market']), row['Code']):
-             normalized_name(row['Name']) for _, row in frame.iterrows()}
-    return closes, names
+    identities = {}
+    for _, row in frame.iterrows():
+        exchange = 'KOSDAQ' if row['Market'] == 'KOSDAQ GLOBAL' else row['Market']
+        isin = row.get('ISU_CD')
+        if not isinstance(isin, str) or not re.fullmatch(r'[A-Z]{2}[A-Z0-9]{9}[0-9]', isin):
+            isin = None
+        identities[exchange, row['Code']] = normalized_name(row['Name']), isin
+    return closes, identities
 
 
 def next_reference(row):
@@ -58,16 +64,16 @@ def build(market, source_digest, frame, cache_digest, daily, *, next_listing=Non
             or (cache_digest is not None and not re.fullmatch(r'[a-f0-9]{64}', cache_digest))
             or len({row['code'] for row in market['stocks']}) != len(market['stocks'])):
         raise RegularCloseError('invalid_regular_close_sources')
-    closes, names = public_index(frame)
+    closes, identities = public_index(frame)
     next_day, next_digest = None, None
-    next_closes, next_names = {}, {}
+    next_closes, next_identities = {}, {}
     if next_listing is not None:
         next_day, listing, next_digest = next_listing
         if (not 0 < (date.fromisoformat(next_day) - date.fromisoformat(day)).days <= 14
                 or not re.fullmatch(r'[a-f0-9]{64}', next_digest)
                 or not {'Close', 'Changes', 'Volume'}.issubset(listing.columns)):
             raise RegularCloseError('invalid_next_session_regular_close_source')
-        next_closes, next_names = public_index(listing.assign(
+        next_closes, next_identities = public_index(listing.assign(
             Close=[next_reference(row) for _, row in listing.iterrows()]))
     rows, counts = {}, Counter()
     sources = dict.fromkeys(('FDR_DATED_LISTING', 'PUBLISHED_SCREENER_PRICE', NEXT_REFERENCE), 0)
@@ -79,6 +85,8 @@ def build(market, source_digest, frame, cache_digest, daily, *, next_listing=Non
         public_source = None
         public_close = closes.get(key)
         name = normalized_name(stock['name'])
+        public_name, public_isin = identities.get(key, (None, None))
+        next_name, next_isin = next_identities.get(key, (None, None))
         if (stock.get('price_date') != day or not positive(stock.get('price'))):
             state = 'analysis_price_unavailable'
         elif row is None:
@@ -87,15 +95,18 @@ def build(market, source_digest, frame, cache_digest, daily, *, next_listing=Non
             state = 'identity_unresolved'
         elif row[2] != 'traded' or not positive(row[6]):
             state = 'official_traded_price_unavailable'
-        elif positive(public_close) and names.get(key) == name and public_close == row[6]:
+        elif positive(public_close) and public_name == name and public_close == row[6]:
             public_source = 'FDR_DATED_LISTING'
         elif stock['price'] == row[6]:
             public_source, public_close = 'PUBLISHED_SCREENER_PRICE', stock['price']
-        elif next_names.get(key) == name and next_closes.get(key) == row[6]:
+        elif next_closes.get(key) == row[6] and (
+            next_name == name or (next_name and public_name == name and public_isin is not None
+                                  and public_isin == next_isin)
+        ):
             public_source, public_close = NEXT_REFERENCE, next_closes[key]
         elif not positive(public_close):
             state = 'public_close_unavailable'
-        elif names.get(key) != name:
+        elif public_name != name:
             state = 'identity_unresolved'
         else:
             state = 'public_official_close_mismatch'
@@ -110,7 +121,7 @@ def build(market, source_digest, frame, cache_digest, daily, *, next_listing=Non
         'source': 'PUBLIC_CLOSES_CORROBORATED_WITH_KRX',
         'source_market_sha256': source_digest, 'public_cache_sha256': cache_digest,
         'next_session_date': next_day, 'next_session_cache_sha256': next_digest,
-        'next_session_zero_volume_checked': next_listing is not None,
+        'next_session_reference_rules_version': NEXT_REFERENCE_RULES_VERSION if next_listing else None,
         'official_source_sha256': daily['source_sha256'],
         'requested_count': len(market['stocks']), 'matched_count': len(rows),
         'matches_by_public_source': sources,
@@ -135,10 +146,10 @@ def publish_regular_closes(get_storage, *, retry_public_cache=False, now=None):
             and prior.get('asof') == market['date']
             and prior.get('source_market_sha256') == digest
             and prior.get('official_source_sha256') == status['source_sha256'])
-    retry_zero_volume = (prior.get('next_session_cache_sha256') is not None
-                         and prior.get('next_session_zero_volume_checked') is not True)
+    retry_next_reference = (prior.get('next_session_cache_sha256') is not None
+                            and prior.get('next_session_reference_rules_version') != NEXT_REFERENCE_RULES_VERSION)
     if same_inputs and (prior['matched_count'] == prior['requested_count']
-            or (prior['schema'] == SCHEMA and not retry_public_cache and not retry_zero_volume)):
+            or (prior['schema'] == SCHEMA and not retry_public_cache and not retry_next_reference)):
         return
     try:
         frame, cache_digest = load_dated_listing(market['date'])
@@ -161,7 +172,7 @@ def publish_regular_closes(get_storage, *, retry_public_cache=False, now=None):
                     next_listing = next_day.isoformat(), next_frame, next_digest
     if (same_inputs and (cache_digest is None or cache_digest == prior['public_cache_sha256'])
             and (next_listing is None or (next_listing[2] == prior.get('next_session_cache_sha256')
-                                          and not retry_zero_volume))):
+                                          and not retry_next_reference))):
         return
     daily = read_daily(market['date'], get_storage())
     if daily is None or daily['source_sha256'] != status['source_sha256']:
