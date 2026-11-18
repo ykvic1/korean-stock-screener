@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, replay_next
+from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, ready_windows, replay_next
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
 from v3_forward_share_actions import FIELDS, REGISTER
@@ -47,6 +47,16 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 'entry_session_sample': {'representative_score_asof': score_day,
                                          'counts_toward_distinct_entry_sessions': False},
             }
+            older = '2026-11-10'
+            older_cohort = readiness['cohorts'][older] = {
+                **readiness['cohorts'][score_day], 'entry_session_candidate': '2026-11-11',
+                'entry_session_sample': {'representative_score_asof': older,
+                                         'counts_toward_distinct_entry_sessions': True},
+            }
+            older_cohort['horizons'] = {**older_cohort['horizons'], '1': {
+                **older_cohort['horizons']['1'], 'target_session_candidate': '2026-12-11',
+                'holding_window_sample': {'status': 'overlapping'},
+            }}
             evidence = {'rows': {code: ['official_open_observed', 100] for code in members}}
             storage = Mock()
             storage.get_content.return_value = (gzip.compress(json.dumps(evidence).encode()), None)
@@ -76,6 +86,7 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 self.assertEqual(report['holding_window_sample'],
                                  {'status': 'selected', 'compared_with_score_asof': None})
                 del readiness['cohorts'][alternate]
+                del readiness['cohorts'][older]
                 self.assertEqual(report['groups']['all_ranked'], {
                     'selected_count': 2, 'observed_price_path_count': 1,
                     'entry_status_counts': {
@@ -178,3 +189,22 @@ class ForwardHorizonReplayTests(unittest.TestCase):
         self.assertEqual(loss_rate_bounds(0, 3, 3), [0, 100])
         self.assertEqual(loss_rate_bounds(1, 1, 3), [33.3333, 66.6667])
         self.assertEqual(loss_rate_bounds(2, 0, 3), [66.6666, 66.6667])
+
+    def test_ready_windows_rank_selected_then_earliest_maturity(self):
+        def cohort(entry, *ready):
+            horizons = {str(n): {'status': 'waiting_for_target_session'} for n in HORIZONS}
+            for months, target, selection in ready:
+                horizons[str(months)] = {'status': 'daily_archive_ready_for_path_replay',
+                    'target_session_candidate': target, 'holding_window_sample': {'status': selection}}
+            return {'entry_session_candidate': entry, 'horizons': horizons,
+                    'entry_session_sample': {'counts_toward_distinct_entry_sessions': True}}
+
+        cohorts = {
+            '2026-10-29': cohort('2026-10-30', (12, '2027-11-01', 'selected'),
+                                 (1, '2026-11-30', 'overlapping')),
+            '2026-12-02': cohort('2026-12-03', (2, '2027-02-03', 'selected')),
+            '2027-01-13': cohort('2027-01-14', (1, '2027-02-15', 'selected')),
+        }
+        self.assertEqual(ready_windows(cohorts), [
+            ('2026-12-02', 2), ('2027-01-13', 1), ('2026-10-29', 12), ('2026-10-29', 1),
+        ])
