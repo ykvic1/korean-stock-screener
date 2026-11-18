@@ -85,7 +85,7 @@ jobs:
           # Fail before launching up to 25 costly worker jobs if manual
           # publication is requested while either evening venue is open.
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.mode }}" == "publish" ]]; then
-            python v3_aftermarket_cutoff.py --manifest batch-plan/manifest.json
+            python v3_aftermarket_cutoff.py --manifest batch-plan/manifest.json --published-snapshot docs/data.json
           fi
           echo "matrix=$(python -c 'import json;print(json.dumps(json.load(open("batch-plan/matrix.json")),separators=(",",":")))')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
@@ -206,7 +206,13 @@ jobs:
           git add docs/data.json docs/history.json docs/recommendations.json docs/recommendation_history.json docs/v22-coverage.json docs/v3-unscored-path-coverage.json docs/v22-market-catalog.json docs/v22-partial-history.json docs/reports/ docs/archive/
           if ! git diff --cached --quiet; then
             git commit -m "Full-market batch-derived v2 screen"
-            git pull --rebase origin main
+            # A delayed manual job must not restore an older trading day.
+            # A concurrent push after this fetch is rejected by Git.
+            git fetch origin main
+            git show FETCH_HEAD:docs/data.json > "$RUNNER_TEMP/published-market.json"
+            python v3_aftermarket_cutoff.py --manifest batch-plan/manifest.json \
+              --published-snapshot "$RUNNER_TEMP/published-market.json"
+            git rebase FETCH_HEAD
             git push origin HEAD:main
             echo "published=true" >> "$GITHUB_OUTPUT"
           fi

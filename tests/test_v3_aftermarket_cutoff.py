@@ -1,4 +1,6 @@
 """Only session chronology: source authenticity is deliberately never inferred."""
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 from datetime import datetime
 from pathlib import Path
@@ -78,6 +80,27 @@ class PostMarketCutoffTests(unittest.TestCase):
             with self.subTest(day=day, now=now):
                 with self.assertRaises(AftermarketCutoffError):
                     target_policy(day, now=now)
+
+    def test_publication_date_cannot_move_backwards(self):
+        with TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "manifest.json"
+            manifest.write_text(json.dumps({
+                "schema": "full-market-batched-100-v0.1", "asof": "2026-11-11",
+            }))
+            snapshot = Path(tmp) / "data.json"
+            for saved_day, expected_exit, reason in (
+                ("2026-11-10", 0, None),
+                ("2026-11-11", 0, None),
+                ("2026-11-12", 1, "newer_market_date_already_published"),
+                (None, 1, "invalid_published_market_date"),
+            ):
+                with self.subTest(saved_day=saved_day):
+                    snapshot.write_text(json.dumps({"date": saved_day}))
+                    with redirect_stdout(log := StringIO()):
+                        status = main(["--manifest", str(manifest),
+                                       "--published-snapshot", str(snapshot)])
+                    self.assertEqual(status, expected_exit)
+                    self.assertEqual(json.loads(log.getvalue()).get("reason"), reason)
 
     def test_cli_rejects_invalid_manifest_without_raw_price_data(self):
         with TemporaryDirectory() as tmp:
