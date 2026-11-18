@@ -60,5 +60,5 @@ for(const filename of ['index.html','workspace.html']){
 const workspace=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 assert.ok(!workspace.includes('root.V3StopEvidence.markup(r,model?.date)'),
  'legacy 20/45 distance panel must not compete with the 20/60 structural reference');
-assert.ok(workspace.includes('structuralStopMarkup(r)+'));
+assert.ok(workspace.includes('structuralStopMarkup(r,true)+'));
 console.log('Stop evidence: archived legacy probe remains non-scoring, live view uses only 20/60 structure PASS');

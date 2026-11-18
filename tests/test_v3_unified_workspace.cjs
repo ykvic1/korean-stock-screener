@@ -143,7 +143,7 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.match(unified.structuralStopMarkup(base),/구조적 참고선 관측 대기/);
  assert.match(unified.structuralStopMarkup({...base,
   v3_structural_stop_reference:{...ref,asof:'2026-11-09'}}),/관측 대기/);
- assert.ok(source.includes('structuralStopMarkup(r)+'));
+ assert.ok(source.includes('structuralStopMarkup(r,true)+'));
  assert.ok(!source.includes('기존 점수용 손절선 (20·45일)'));
 }
 
@@ -201,8 +201,8 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.ok(css.includes('.u-score-row[open]'));
  assert.ok(source.includes('scoreOverviewMarkup(composite,personal100,r,stability)'));
  assert.ok(source.includes('scorePillarExplanation(p,r)'));
- assert.ok(entry.includes('v30b-20261117-collection-closeout'),'homepage uses current ranking UI assets');
- assert.ok(html.includes('v30b-20261117-collection-closeout'),'classic research route keeps its pinned assets');
+ assert.ok(entry.includes('v30b-20261118-stock-detail-dialog'),'homepage uses current ranking UI assets');
+ assert.ok(html.includes('v30b-20261118-stock-detail-dialog'),'classic research route keeps its pinned assets');
  assert.ok(entry.includes('operational-score.js?v=r1e-stop-unscored')&&
   html.includes('operational-score.js?v=r1e-stop-unscored'),
   'both routes must invalidate cached score markup after removing stop adjustments');
@@ -1088,8 +1088,8 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261117-collection-closeout')&&
-  page.includes('workspace.css?v=v30b-20261117-collection-closeout')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261118-stock-detail-dialog')&&
+  page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
   'each deployed route must pin its independently versioned JS and CSS assets');
@@ -1112,7 +1112,7 @@ assert.ok(css.includes('#obvLagOnly[aria-pressed=true]')&&css.includes('.u-obv-l
 assert.ok(html.includes('<option value="ops" selected>신규 잠정 운영점수 R1</option>'),
  'default selection must explicitly show the personal stability overlay');
 assert.ok(source.includes("sort='ops'"),'default rank must use displayed stability score');
-assert.ok(css.includes('.u-content:has(> #detail:empty)')&&css.includes('.u-stock{')&&css.includes('.u-scoresix'),
+assert.ok(css.includes('dialog.u-detail[open]')&&css.includes('.u-stock{')&&css.includes('.u-scoresix'),
  'compact ranking style and existing deep factor evidence styles must coexist');
 assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
  css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),

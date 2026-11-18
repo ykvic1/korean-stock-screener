@@ -156,7 +156,7 @@ with sync_playwright() as p:
         const b = cards[1].getBoundingClientRect();
         return {
             count: cards.length,
-            detailHidden: document.querySelector('#detail').hidden,
+            detailHidden: !document.querySelector('#detail').open,
             firstTop: Math.round(a.top), secondTop: Math.round(b.top),
             firstLeft: Math.round(a.left), secondLeft: Math.round(b.left),
             firstWidth: Math.round(a.width),
@@ -178,7 +178,26 @@ with sync_playwright() as p:
     first_code = first_card.get_attribute("data-stock")
     first_score = re.search(r"[0-9]+(?:\.[0-9]+)?", first_card.locator(".u-card-score strong").inner_text())
     assert first_score and float(first_score.group()) == operational["rows"][first_code]["score"], "visible operational score must equal server/CSV model"
+    first_card.scroll_into_view_if_needed()
+    list_scroll = page.evaluate("window.scrollY")
+    second_code = page.locator(".u-stock").nth(1).get_attribute("data-stock")
     first_card.click()
+    dialog = page.locator("dialog#detail")
+    assert dialog.is_visible() and page.evaluate("window.scrollY") == list_scroll
+    assert page.locator("#detailIdentity").inner_text().startswith(first_code)
+    assert page.locator("#detailPrevious").is_disabled()
+    assert page.locator(".u-detail-kpis strong").nth(1).inner_text() == f'{float(first_score.group()):.1f} / 100'
+    page.locator("#detailNext").click()
+    assert page.locator("#detailIdentity").inner_text().startswith(second_code)
+    assert page.locator("#detailBody").evaluate("(el) => el.scrollTop") == 0
+    page.locator("#detailPrevious").click()
+    assert page.locator("#detailIdentity").inner_text().startswith(first_code)
+    page.keyboard.press("Escape")
+    dialog.wait_for(state="hidden")
+    assert page.evaluate("window.scrollY") == list_scroll
+    assert first_card.evaluate("(el) => el === document.activeElement")
+    first_card.click()
+    page.locator(".u-current-model > summary").click()
     assert page.locator(".u-operational-detail").is_visible()
     if operational["rows"][first_code]["available"] < 100:
         assert page.locator(".u-operational-missing summary").count() == 1
@@ -301,6 +320,7 @@ with sync_playwright() as p:
     # are distinct: the latter needs all five pillars and at least 75 points
     # of observed budget, even when the issuer census has 0 complete rows.
     personal_card.click()
+    page.locator(".u-legacy-model > summary").click()
     assert "개인 연구용 100점 환산 · 미인증" in page.locator("#detail").inner_text()
     # Sketch-inspired detail scorecard: visible five bars plus a vertical 100-point
     # total. Show earned, observed-but-unearned, and missing budgets separately.
@@ -372,6 +392,7 @@ with sync_playwright() as p:
     assert page.locator("#detail details.u-stop-evidence").count()==0
     stop_reference=page.locator("#detail section.u-stop-reference")
     if stop_reference.count():
+        stop_reference.locator(".u-stop-breakdown > summary").click()
         assert stop_reference.locator(".u-stop-evidence > div").count()==7
         assert "20일 이동평균선" in stop_reference.inner_text()
         assert "60일 이동평균선" in stop_reference.inner_text()
@@ -386,7 +407,7 @@ with sync_playwright() as p:
             "structural stop reference must fit mobile",width)
     page.set_viewport_size({"width":390,"height":844})
     # Every selected stock must disclose its FCF state without guessing missing accounts.
-    deeper = page.locator("#detail .u-detail-evidence")
+    deeper = page.locator("#detail .u-financial-evidence")
     assert not deeper.evaluate("(el) => el.open")
     deeper.locator("summary").first.click()
     fcf_status = page.locator("#detail .u-fcf-stock-status")
@@ -402,6 +423,7 @@ with sync_playwright() as p:
         # do not invent an account-specific reason during that interval.
         assert "개별 공시 원장" in fcf_detail
     assert "0점" in fcf_detail
+    page.locator("#detailClose").click()
     page.locator("#personalRank").click()
     page.locator("#stockSearch").fill("")
     assert page.locator("#sort").input_value() == "stable"
@@ -721,6 +743,7 @@ with sync_playwright() as p:
     if eps_candidates:
         page.locator('#stockSearch').fill(eps_candidates[0])
         page.locator('.u-stock').first.click()
+        page.locator(".u-legacy-model > summary").click()
         value_detail = page.locator('#detail .u-score-row[data-pillar="valuation"]')
         if not value_detail.evaluate('(el) => el.open'):
             value_detail.locator('summary').click()
