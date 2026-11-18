@@ -19,6 +19,7 @@ from v3_krx_derived_5day import _private_new_blob_readback
 OUT = Path('ops/forward-share-action-status')
 REGISTER = Path('ops/forward-reviewed-share-actions.csv')
 HOLDER_NEUTRAL_REGISTER = Path('ops/forward-reviewed-holder-neutral-actions.csv')
+CONTINUITY_REGISTER = Path('ops/forward-reviewed-share-continuity.csv')
 SCHEMA = 'v3-forward-krx-share-action-review-2'
 MAX_PAIRS_PER_RUN = 5
 FIELDS = ('market', 'code', 'name', 'listing_on', 'action', 'shares_before',
@@ -27,6 +28,7 @@ NOTICE = re.compile(
     r'https://kind\.krx\.co\.kr/external/\d{4}/\d{2}/\d{2}/\d{6}/\d{14}/\d{5}\.htm\Z'
 )
 HOLDER_NEUTRAL_FIELDS = (*FIELDS, 'terms_url')
+CONTINUITY_FIELDS = (*FIELDS, 'prior_name')
 DART_TERMS = re.compile(r'https://dart\.fss\.or\.kr/dsaf001/main\.do\?rcpNo=\d{14}\Z')
 PRICE_ACTIONS = ('split', 'reverse_split', 'capital_reduction')
 HOLDER_NEUTRAL_ISSUANCES = frozenset({
@@ -35,6 +37,7 @@ HOLDER_NEUTRAL_ISSUANCES = frozenset({
 })
 HOLDER_NEUTRAL_ACTIONS = HOLDER_NEUTRAL_ISSUANCES | {'treasury_cancellation'}
 REQUIRES_TERMS = {'successor_share_issuance', 'treasury_cancellation'}
+CONTINUITY_ACTIONS = {*PRICE_ACTIONS, 'rename'}
 STATES = ('unchanged_share_count', 'share_count_unavailable', 'identity_changed',
           'first_seen', 'absent', 'change_needs_notice', 'notice_mismatch', 'notice_matched')
 
@@ -52,6 +55,8 @@ def normalized_name(value):
 def valid_share_terms(action, before, after, new, old):
     if min(before, after, new, old) <= 0:
         return False
+    if action == 'rename':
+        return before == after and new == old == 1
     if action in HOLDER_NEUTRAL_ACTIONS:
         # The ratio describes the existing holder's shares, not the market float.
         counts_agree = after < before if action == 'treasury_cancellation' else after > before
@@ -65,19 +70,25 @@ def valid_share_terms(action, before, after, new, old):
 
 def reviewed_actions(raw):
     reader = csv.DictReader(StringIO(raw.decode('utf-8')))
-    header = tuple(reader.fieldnames or ())
-    if header not in (FIELDS, HOLDER_NEUTRAL_FIELDS):
+    expected = {
+        FIELDS: PRICE_ACTIONS,
+        HOLDER_NEUTRAL_FIELDS: HOLDER_NEUTRAL_ACTIONS,
+        CONTINUITY_FIELDS: CONTINUITY_ACTIONS,
+    }.get(tuple(reader.fieldnames or ()))
+    if expected is None:
         raise ShareReviewError('invalid_reviewed_action_header')
-    expected = PRICE_ACTIONS if header == FIELDS else HOLDER_NEUTRAL_ACTIONS
     entries = {}
     for row in reader:
         code, market, day = row['code'], row['market'], row['listing_on']
         action, listing_url = row['action'], row['notice_url']
         terms = row.get('terms_url') or ''
+        name, prior_name = normalized_name(row['name']), normalized_name(row.get('prior_name'))
         try:
             before, after, new, old = (int(row[field]) for field in FIELDS[5:9])
             if (None in row or None in row.values() or not CODE.fullmatch(code) or market not in MARKETS
-                    or not normalized_name(row['name']) or date.fromisoformat(day).isoformat() != day
+                    or not name or date.fromisoformat(day).isoformat() != day
+                    or (action == 'rename' and (not prior_name or prior_name == name))
+                    or (action != 'rename' and row.get('prior_name'))
                     or action not in expected or not NOTICE.fullmatch(listing_url)
                     or not valid_share_terms(action, before, after, new, old)
                     or (action in REQUIRES_TERMS and not terms)
@@ -93,18 +104,22 @@ def reviewed_actions(raw):
                         'new_units': new, 'old_units': old}
         if not terms:
             entries[key].pop('terms_url', None)
+        if not prior_name:
+            entries[key].pop('prior_name', None)
     return entries
 
 
 def load_forward_actions(root=Path('.')):
     """Load dated evidence for forward replay without changing the historical register."""
     notices = reviewed_actions((root / REGISTER).read_bytes())
-    neutral_path = root / HOLDER_NEUTRAL_REGISTER
-    if neutral_path.is_file():
-        neutral = reviewed_actions(neutral_path.read_bytes())
-        if notices.keys() & neutral.keys():
+    for register in (HOLDER_NEUTRAL_REGISTER, CONTINUITY_REGISTER):
+        path = root / register
+        if not path.is_file():
+            continue
+        added = reviewed_actions(path.read_bytes())
+        if notices.keys() & added.keys():
             raise ShareReviewError('duplicate_reviewed_action_record')
-        notices.update(neutral)
+        notices.update(added)
     return notices
 
 
@@ -114,16 +129,22 @@ def share_transition(previous, current, notice):
     if current is None:
         return 'absent'
     before_name, after_name = (normalized_name(row[1]) for row in (previous, current))
-    if not before_name or before_name != after_name or previous[0] != current[0]:
+    rename = notice is not None and notice.get('action') == 'rename'
+    if not before_name or previous[0] != current[0]:
+        return 'identity_changed'
+    if rename:
+        if (before_name == after_name or before_name != normalized_name(notice.get('prior_name'))
+                or after_name != normalized_name(notice.get('name'))):
+            return 'identity_changed'
+    elif before_name != after_name:
         return 'identity_changed'
     before, after = previous[-1], current[-1]
     if before is None or after is None:
         return 'share_count_unavailable'
-    if before == after:
-        return 'notice_mismatch' if notice else 'unchanged_share_count'
     if notice is None:
-        return 'change_needs_notice'
-    if (notice['shares_before'] != before or notice['shares_after'] != after
+        return 'unchanged_share_count' if before == after else 'change_needs_notice'
+    if ((before == after) != rename
+            or notice['shares_before'] != before or notice['shares_after'] != after
             or notice['market'] != current[0] or normalized_name(notice['name']) != after_name):
         return 'notice_mismatch'
     return 'notice_matched'
@@ -148,8 +169,8 @@ def reconcile(before, after, notices, notice_sha):
             reviews[code].update({key: notice[key] for key in (
                 'action', 'new_units', 'old_units', 'notice_url',
             )})
-            if 'terms_url' in notice:
-                reviews[code]['terms_url'] = notice['terms_url']
+            reviews[code].update({field: notice[field] for field in ('terms_url', 'prior_name')
+                                  if field in notice})
             if new[code][2] == 'traded':
                 # Keep KRW exact for ratios such as 1-for-10. The four values
                 # represent the event session in pre-event share units.
