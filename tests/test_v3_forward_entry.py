@@ -120,6 +120,8 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual(top100['median_high_return_pct'], 10)
         self.assertEqual(top100['median_close_return_pct'], -2.5)
         self.assertEqual(top100['negative_close_count'], 1)
+        self.assertEqual(top20['same_market_rank_comparison']['markets']['KOSPI']['candidate']['valued_count'], 1)
+        self.assertIsNone(top20['same_market_rank_comparison']['observed_mean_return_spread_pct_points'])
         self.assertNotIn('005930', json.dumps(result))
         observation['rows']['005930'][3] = 50
         empty = entry_session_path(observation, entry, daily)['groups']['top20']
