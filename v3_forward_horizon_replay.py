@@ -25,6 +25,7 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
+PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
 SCHEMA = 'v3-forward-horizon-price-outcome-9'
 
 
@@ -147,10 +148,11 @@ def ready_windows(cohorts):
     return [(score_day, months) for _, _, _, _, score_day, months in sorted(due)]
 
 
-def replay_next(root, now, get_storage):
+def replay_next(root, now, get_storage, *, readiness=None):
     """Replay one changed mature window per run, with no archive access while waiting."""
     archived = read_archived_days(root)
-    readiness = build(root, now)
+    if readiness is None:
+        readiness = build(root, now)
     notices = load_forward_actions(root)
     evidence_asof = now.astimezone(KST).date().isoformat()
     dividends = load_dividends(root, evidence_asof)
@@ -262,5 +264,54 @@ def private_storage():
     return storage
 
 
+def pages_results(root, readiness):
+    """Publish top-20 aggregates for currently selected, archive-ready windows."""
+    horizons = {}
+    cohorts = readiness['cohorts']
+    for score_day, months in ready_windows(cohorts):
+        cohort = cohorts[score_day]
+        horizon = cohort['horizons'][str(months)]
+        sample = cohort['entry_session_sample']
+        window = horizon.get('holding_window_sample') or {}
+        if not sample['counts_toward_distinct_entry_sessions'] or window.get('status') != 'selected':
+            continue
+        path = root / OUT / score_day / f'{months}m.json'
+        if not path.is_file():
+            continue
+        outcome = json.loads(path.read_bytes())
+        if (outcome.get('schema') != SCHEMA or outcome.get('performance_validated') is not False
+                or outcome.get('score_asof') != score_day or outcome.get('months') != months
+                or outcome.get('entry_session') != cohort['entry_session_candidate']
+                or outcome.get('target_date') != horizon['target_date']
+                or outcome.get('evaluation_session_candidate') != horizon['target_session_candidate']
+                or outcome.get('entry_session_sample') != sample
+                or outcome.get('holding_window_sample') != window):
+            continue
+        top = outcome['groups']['top20']
+        coverage = top['terminal_return_coverage']
+        observed = horizons.setdefault(str(months), {'published_window_count': 0, 'latest': None})
+        observed['published_window_count'] += 1
+        # ready_windows is ordered by evaluation session within the selected group.
+        observed['latest'] = {
+            'score_asof': score_day, 'entry_session': outcome['entry_session'],
+            'evaluation_session': outcome['evaluation_session_candidate'],
+            'confirmed_opening_count': top['entry_status_counts']['official_open_observed'],
+            'valued_count': coverage['valued_count'],
+            'median_terminal_return_pct': top['delisting_settlements'][
+                'median_terminal_return_including_settlements_pct'],
+            'observed_price_path_count': top['observed_price_path_count'],
+            'median_mae_pct': top['median_mae_pct'],
+            'loss_rate_bounds_pct': coverage['loss_rate_bounds_pct'],
+        }
+    return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
+            'horizons': horizons}
+
+
 if __name__ == '__main__':
-    print(json.dumps(replay_next(Path('.'), datetime.now(timezone.utc), private_storage)))
+    root = Path('.')
+    now = datetime.now(timezone.utc)
+    readiness = build(root, now)
+    result = replay_next(root, now, private_storage, readiness=readiness)
+    public = json.dumps(pages_results(root, readiness), indent=2, allow_nan=False) + '\n'
+    (root / PAGES_RESULTS).write_text(public, encoding='utf-8')
+    print(json.dumps(result))
