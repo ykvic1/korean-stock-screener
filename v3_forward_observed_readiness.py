@@ -16,6 +16,7 @@ from v3_forward_share_actions import OUT as SHARE_REVIEWS, SCHEMA as SHARE_SCHEM
 from v3_score_observation_capture import ARCHIVE
 
 OUTPUT = Path('ops/v3-forward-observed-readiness.json')
+PAGES_OUTPUT = Path('docs/v3-forward-validation-coverage.json')
 READY = 'daily_archive_ready_for_path_replay'
 
 
@@ -258,6 +259,32 @@ def build(root, now):
             'performance_validated': False, 'provider_calls': 0}
 
 
+def pages_summary(report):
+    """Publish only holding-window and matched-entry counts for the screener."""
+    cohorts = report['cohorts']
+    sampling = report['entry_session_sampling']
+    windows = sampling['holding_window_sampling']['by_horizon']
+    horizons = {}
+    for months, counts in windows.items():
+        targets = [cohort['horizons'][months]['target_date'] for cohort in cohorts.values()
+                   if cohort['matched_opening_count'] is not None
+                   and cohort['horizons'][months].get('holding_window_sample', {}).get('status')
+                   == 'selected']
+        horizons[months] = {
+            'first_target_date': min(targets, default=None),
+            'selected_window_count': counts['selected_window_count'],
+            'archive_ready_count': counts['selected_archive_ready_count'],
+        }
+    return {
+        'schema': 'v3-forward-validation-coverage-1',
+        'latest_score_asof': max(cohorts, default=None),
+        'candidate_entry_session_count': sampling['distinct_entry_session_count'],
+        'matched_entry_session_count': sampling['matched_representative_entry_session_count'],
+        'horizons': horizons,
+        'performance_validated': False,
+    }
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--write', action='store_true')
@@ -268,7 +295,9 @@ if __name__ == '__main__':
         parser.error('--at-utc must have UTC offset')
     if args.write and args.at_utc:
         parser.error('--at-utc is for read-only replay')
-    payload = json.dumps(build(Path('.'), now), ensure_ascii=False, indent=2) + '\n'
+    report = build(Path('.'), now)
+    payload = json.dumps(report, ensure_ascii=False, indent=2) + '\n'
     if args.write:
         OUTPUT.write_text(payload, encoding='utf-8')
+        PAGES_OUTPUT.write_text(json.dumps(pages_summary(report), indent=2) + '\n', encoding='utf-8')
     print(payload, end='')

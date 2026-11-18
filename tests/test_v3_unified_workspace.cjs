@@ -21,6 +21,22 @@ assert.ok(entry.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven
 assert.ok(html.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'));
 
 
+{
+ const data=JSON.parse(fs.readFileSync(path.join(__dirname,
+  '../docs/v3-forward-validation-coverage.json'),'utf8'));
+ const view=unified.forwardValidationView(data);
+ assert.ok(view);
+ assert.match(view.summary,/시가 대조 \d+ \/ \d+거래일/);
+ assert.match(view.body,/12개월/);
+ assert.match(view.body,/가격 자료 확보 \/ 선정 구간/);
+ assert.equal(unified.forwardValidationView({...data,performance_validated:true}),null);
+ const bad=structuredClone(data);
+ bad.horizons[12].archive_ready_count=bad.horizons[12].selected_window_count+1;
+ assert.equal(unified.forwardValidationView(bad),null);
+ assert.ok(entry.includes('id="forwardValidationCoverage"')&&html.includes('id="forwardValidationCoverage"'));
+}
+
+
 // The latest FChart daily bar can include aftermarket trading: never describe
 // an unverified provider reference price as certified KRX regular-session close.
 assert.ok(source.includes('FChart 기준가 · KRX 정규장 미검증'));
@@ -1104,7 +1120,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261118-stock-detail-dialog')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261118-forward-validation')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),

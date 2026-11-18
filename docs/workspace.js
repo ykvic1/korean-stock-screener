@@ -2493,6 +2493,32 @@ function structuralStopMarkup(r,compact=false){
   '<p class="u-muted">20·60일 이동평균선은 종가의 단순평균입니다. 저점·스윙과 같은 가격계열 근거는 중복 독립확인으로 계산하지 않습니다. 일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 이 참고선과 거리에는 어떤 가점·감점도 없습니다.</p>'+
   (compact?'</details>':'')+'</section>';
 }
+function forwardValidationView(data){
+ const matched=data?.matched_entry_session_count,candidates=data?.candidate_entry_session_count;
+ if(data?.schema!=='v3-forward-validation-coverage-1'||data.performance_validated!==false||
+    !validDate(data.latest_score_asof)||!Number.isSafeInteger(candidates)||
+    !Number.isSafeInteger(matched)||matched<0||matched>candidates||!data.horizons)return null;
+ const lines=[];
+ for(const months of HISTORICAL_PERIODS){
+  const row=data.horizons[months];
+  if(!row||!Number.isSafeInteger(row.selected_window_count)||
+     !Number.isSafeInteger(row.archive_ready_count)||row.archive_ready_count<0||
+     row.archive_ready_count>Math.min(row.selected_window_count,matched)||
+     row.selected_window_count>candidates||
+     (row.first_target_date===null?row.archive_ready_count!==0:
+      !validDate(row.first_target_date)||matched<1||row.selected_window_count<1))return null;
+  const coverage=row.archive_ready_count+' / '+row.selected_window_count;
+  lines.push('<tr><th scope="row">'+months+'개월</th><td>'+
+   (row.first_target_date||'시가 확인 대기')+'</td><td>'+coverage+'</td></tr>');
+ }
+ const summary='시가 대조 '+matched+' / '+candidates+'거래일';
+ return {summary,body:'<p class="u-source">최근 점수 기록 '+data.latest_score_asof+' · '+summary+'</p>'+
+  '<table class="u-history-table"><thead><tr><th scope="col">보유기간</th>'+
+  '<th scope="col">최초 목표일</th><th scope="col">가격 자료 확보 / 선정 구간</th>'+
+  '</tr></thead><tbody>'+lines.join('')+'</tbody></table>'+
+  '<p class="u-source">서로 겹치지 않는 보유 구간을 셉니다. 목표일 이후 첫 거래일의 공식 가격이 게시되면 평가합니다. '+
+  '가격 자료가 확보된 뒤 수익률과 하락폭을 별도로 검증합니다.</p>'};
+}
 function validHistoricalPricePaths(data){
  return data?.schema==='v3-historical-price-paths-1'&&data.performance_validated===false&&
   validDate(data.signal_session)&&validDate(data.entry_session)&&data.signal_session<data.entry_session&&
@@ -2541,7 +2567,7 @@ function historicalPricePath(r,data){
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
-Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup});
+Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup,forwardValidationView});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -2948,7 +2974,8 @@ async function load(){
   'v3-dart-cashflow-issuer-evidence.json',
   'v3-issuer-last-observed-factors.json','v3-personal-adjusted-score-summary.json',
   'v3-actual-money-coverage-summary.json','v3-operational-research-scores.json',
-  'v3-trading-status.json','v3-regular-close-prices.json','v3-data-collection-closeout.json'];
+  'v3-trading-status.json','v3-regular-close-prices.json','v3-data-collection-closeout.json',
+  'v3-forward-validation-coverage.json'];
  let marketDigest=null;
  try{
   const [responses,observedCsv]=await Promise.all([
@@ -3028,6 +3055,13 @@ async function load(){
   if($('dataCollectionStatus'))$('dataCollectionStatus').textContent=
     root.V3OperationalScore?.collectionStatus(responses[25],model.date)||
     '초기 데이터 수집 마감 근거 확인 대기 · 결측은 점수로 채우지 않습니다.';
+  const forwardSection=$('forwardValidationCoverage');
+  if(forwardSection){
+   const view=forwardValidationView(responses[26]);
+   forwardSection.querySelector('.u-history-value').textContent=view?.summary||'자료 대기';
+   forwardSection.querySelector('.u-history-body').innerHTML=view?.body||
+    '<p class="u-source">보유기간 검증 자료를 확인할 수 없습니다.</p>';
+  }
   if($('operationalModelNote'))$('operationalModelNote').textContent=operationalLink.linked?
     (model.operationalVersion?.includes('r1e')?'R1e 잠정 운영모델(손절 미반영)':'R1d 과거 잠정 운영모델(손절 가감점 포함)')+' · 25/30/12.5/12.5/20 · '+operationalLink.linked+
     '종목 연결 (가격 미관측 '+operationalLink.unpriced+'종목 포함) · 미관측 가점은 보류 · 기존 모델 비교 가능':
