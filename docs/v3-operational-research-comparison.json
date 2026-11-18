@@ -24,19 +24,19 @@
       "old_kospi": 23
     },
     "100": {
-      "overlap": 66,
+      "overlap": 67,
       "new_kospi": 46,
-      "old_kospi": 41
+      "old_kospi": 42
     },
     "200": {
-      "overlap": 144,
+      "overlap": 145,
       "new_kospi": 86,
-      "old_kospi": 77
+      "old_kospi": 78
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "e6fc50a764d05d62e072d8f635b7d660170d6710fa91f8eed8839590fff5dd81",
+    "source_digest": "29e786a2b2470fa6ef1d7f26f688a727fb299c9a6cd76d6ae5d0da1b57af256b",
     "listed_total": 2591,
     "ranked_count": 2571,
     "available_100_count": 1398,
