@@ -1,12 +1,56 @@
 """Catch publication drift that an internally valid score JSON cannot catch."""
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
-from v3_operational_publication_audit import audit, FILES
+from v3_operational_publication_audit import FILES, audit, failed_refresh_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class FailedRefreshEvidenceTests(unittest.TestCase):
+    def test_fixed_failure_is_bracketed_and_all_publication_blobs_must_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            def git(*args, date=None):
+                env = os.environ.copy()
+                if date:
+                    env.update(GIT_AUTHOR_DATE=date, GIT_COMMITTER_DATE=date)
+                return subprocess.check_output(
+                    ['git', '-c', 'user.name=Audit Test', '-c', 'user.email=audit@example.test',
+                     *args], cwd=root, env=env, text=True).strip()
+
+            git('init', '-q')
+            docs = root / 'docs'
+            docs.mkdir()
+            for name in (*FILES, 'index.html', 'workspace.html'):
+                (docs / name).write_text(name, encoding='utf-8')
+            git('add', 'docs')
+            git('commit', '-qm', 'Previous publication', date='2026-11-13T18:48:46Z')
+            before = git('rev-parse', 'HEAD')
+            (docs / 'unrelated.txt').write_text('another publication', encoding='utf-8')
+            git('add', 'docs')
+            git('commit', '-qm', 'Unrelated update', date='2026-11-13T18:57:17Z')
+            incident = {'before_commit': before, 'after_commit': git('rev-parse', 'HEAD'),
+                        'failed_at_utc': '2026-11-13T18:57:09+00:00'}
+            result = failed_refresh_evidence(root, incident)
+            self.assertEqual(result['status'], 'verified_preserved')
+            self.assertEqual(result['matched_file_count'], 8)
+            self.assertNotIn('docs/unrelated.txt', result['matched_git_blob_ids'])
+
+            (docs / FILES[3]).write_text('unexpected score update', encoding='utf-8')
+            git('add', 'docs')
+            git('commit', '--amend', '-q', '--no-edit', date='2026-11-13T18:57:17Z')
+            result = failed_refresh_evidence(root, {**incident, 'after_commit': git('rev-parse', 'HEAD')})
+            self.assertEqual(result['status'], 'evidence_mismatch')
+            self.assertEqual(result['matched_file_count'], 7)
+
+            result = failed_refresh_evidence(root, {**incident, 'after_commit': 'a' * 40})
+            self.assertEqual(result['status'], 'git_history_unavailable')
 
 
 class OperationalPublicationAuditTests(unittest.TestCase):
@@ -37,6 +81,8 @@ class OperationalPublicationAuditTests(unittest.TestCase):
         self.assertFalse(result['operational_acceptance_complete'])
         self.assertFalse(result['investment_score_certified'])
         self.assertEqual(result['provider_calls'], 0)
+        self.assertIn('actual_failed_refresh_preserves_previous_publication',
+                      result['remaining_acceptance_evidence'])
 
     def test_csv_cell_drift_fails_even_when_json_is_unchanged(self):
         p = self.docs / FILES[3]

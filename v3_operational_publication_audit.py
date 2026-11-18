@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import csv
+from datetime import datetime
 from hashlib import sha256
 import io
 import json
@@ -24,9 +25,56 @@ FILES = ('data.json', 'v22-market-catalog.json',
          'v3-operational-research-comparison.json', 'v3-trading-status.json')
 BANDS = ('100', '95_to_under_100', '90_to_under_95', '80_to_under_90',
          '70_to_under_80', '60_to_under_70', 'under_60')
+FAILED_REFRESH = {
+    'workflow_run_id': 43487515513,
+    'failed_job_id': 132099769468,
+    'failed_at_utc': '2026-11-13T18:57:09+00:00',
+    'failed_step': 'Recompute from saved ledgers without provider calls or collection locks',
+    'failure_code': 'unaligned_operating_comparative_sources',
+    'before_commit': '23dbdc365fb86d5165562bb86526f797ebf068cc',
+    'after_commit': '45c4f46c1f792ffaab972b29ce67e1123be1d90c',
+}
 
 
-def audit(docs: Path) -> dict:
+def failed_refresh_evidence(root: Path, incident: dict) -> dict:
+    """Recheck the main commits bracketing a reviewed production failure."""
+    paths = tuple('docs/' + name for name in (*FILES, 'index.html', 'workspace.html'))
+    before, after = incident['before_commit'], incident['after_commit']
+
+    def git(*args):
+        return subprocess.run(['git', *args], cwd=root, check=True, capture_output=True,
+                              text=True, encoding='utf-8').stdout
+
+    def blobs(commit):
+        records = git('ls-tree', '-z', commit, '--', *paths).split('\0')
+        return {path: meta.split()[2] for meta, path in
+                (row.split('\t', 1) for row in records if row) if meta.split()[1] == 'blob'}
+
+    try:
+        parents = git('show', '-s', '--format=%P', after).split()
+        before_time = int(git('show', '-s', '--format=%ct', before))
+        after_time = int(git('show', '-s', '--format=%ct', after))
+        failed_at = datetime.fromisoformat(incident['failed_at_utc']).timestamp()
+        earlier, later = blobs(before), blobs(after)
+    except (OSError, subprocess.CalledProcessError):
+        return {**incident, 'status': 'git_history_unavailable'}
+
+    matches = {path: earlier[path] for path in paths
+               if path in earlier and earlier[path] == later.get(path)}
+    checks = {
+        'after_is_direct_child_of_before': parents == [before],
+        'failure_time_between_commits': before_time < failed_at < after_time,
+        'all_expected_publication_blobs_matched': len(matches) == len(paths),
+    }
+    return {
+        **incident, 'status': 'verified_preserved' if all(checks.values()) else 'evidence_mismatch',
+        'scope': 'saved_source_recompute_failure_before_publication',
+        'checks': checks, 'matched_file_count': len(matches), 'expected_file_count': len(paths),
+        'matched_git_blob_ids': matches,
+    }
+
+
+def audit(docs: Path, *, failed_refresh: dict | None = None) -> dict:
     raw = {name: (docs / name).read_bytes() for name in FILES}
     loaded = {name: json.loads(value) for name, value in raw.items() if name.endswith('.json')}
     market, catalog, report, comparison, trading = (loaded[name] for name in
@@ -84,6 +132,9 @@ def audit(docs: Path) -> dict:
         index = next((i for i, bound in enumerate((100, 95, 90, 80, 70, 60))
                       if row['available'] >= bound), 6)
         distribution[BANDS[index]] += 1
+    remaining = ['KRX_regular_only_volume_turnover_and_OBV_source_scope']
+    if failed_refresh is None or failed_refresh['status'] != 'verified_preserved':
+        remaining.append('actual_failed_refresh_preserves_previous_publication')
     return {
         'schema': 'v3-operational-publication-acceptance-1', 'asof': day,
         'publication_coherent': all(checks.values()), 'checks': checks,
@@ -100,9 +151,8 @@ def audit(docs: Path) -> dict:
         'pages': pages,
         'file_sha256': {name: sha256(value).hexdigest() for name, value in raw.items()},
         'operational_acceptance_complete': False,
-        'remaining_acceptance_evidence': [
-            'KRX_regular_only_volume_turnover_and_OBV_source_scope',
-            'actual_failed_refresh_preserves_previous_publication'],
+        'failed_refresh_evidence': failed_refresh,
+        'remaining_acceptance_evidence': remaining,
         'investment_score_certified': False, 'performance_validated': False,
         'provider_calls': 0, 'read_only': True,
     }
@@ -112,13 +162,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--docs', type=Path, default=ROOT / 'docs')
     parser.add_argument('--out', type=Path)
+    parser.add_argument('--verify-failed-refresh', action='store_true')
     args = parser.parse_args()
-    result = audit(args.docs)
+    incident = failed_refresh_evidence(ROOT, FAILED_REFRESH) if args.verify_failed_refresh else None
+    result = audit(args.docs, failed_refresh=incident)
     payload = json.dumps(result, ensure_ascii=False, indent=2) + '\n'
     if args.out:
         args.out.write_text(payload, encoding='utf-8')
     print(payload, end='')
-    if not result['publication_coherent']:
+    if (not result['publication_coherent']
+            or (incident and incident['status'] != 'verified_preserved')):
         raise SystemExit(2)
 
 
