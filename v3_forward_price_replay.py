@@ -2,6 +2,7 @@
 from fractions import Fraction
 
 from v3_forward_cash_dividends import dividend_sessions
+from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, TREATMENT as LIQUIDATION
 from v3_forward_share_actions import HOLDER_NEUTRAL_ACTIONS, normalized_name, share_transition
 
 
@@ -20,6 +21,49 @@ def holding_change(previous, bar, notice):
 
 def issuer_matches(bar, market, name):
     return bar[0] == market and normalized_name(bar[1]) == normalized_name(name)
+
+
+def replay_liquidation(terms, sessions, bars, previous, units, entry_open, notices):
+    first, last = terms['first_on'], terms['last_on']
+    if sessions[-1] < last:
+        return {'status': 'liquidation_final_session_pending', 'blocked_session': last}
+    if last not in sessions:
+        return {'status': 'liquidation_final_session_not_archived', 'blocked_session': last}
+    market, name = terms['market'], terms['name']
+    if previous is not None and not issuer_matches(previous, market, name):
+        return {'status': 'liquidation_issuer_mismatch', 'blocked_session': sessions[0]}
+    final_bar = bars.get(last)
+    if final_bar is None or final_bar[2] != 'traded':
+        return {'status': 'liquidation_final_trade_unavailable', 'blocked_session': last}
+    if final_bar[-1] != terms['listed_shares']:
+        return {'status': 'liquidation_final_share_count_mismatch', 'blocked_session': last}
+    for day in sessions:
+        bar = bars.get(day)
+        if day > last:
+            if (day <= terms['delisted_on'] and bar is not None and bar[2] == 'traded'
+                    and issuer_matches(bar, market, name)):
+                return {'status': 'liquidation_final_date_conflicts_with_archive', 'blocked_session': day}
+            continue
+        if day < first:
+            # Only a reviewed halt can start the replay before liquidation trading.
+            if bar is None:
+                continue
+            if bar[2] != 'no_reported_volume':
+                return {'status': 'liquidation_halt_conflicts_with_archive', 'blocked_session': day}
+        elif bar is None or bar[2] not in ('traded', 'no_reported_volume'):
+            return {'status': 'liquidation_bar_unavailable', 'blocked_session': day}
+        if not issuer_matches(bar, market, name):
+            return {'status': 'liquidation_issuer_mismatch', 'blocked_session': day}
+        if previous is not None:
+            reason, multiplier = holding_change(previous, bar, notices.get((day, terms['code'])))
+            if reason:
+                return {'status': 'liquidation_' + reason, 'blocked_session': day}
+            units *= multiplier
+        elif bar[2] != 'traded' or bar[3] != entry_open or entry_open <= 0:
+            return {'status': 'entry_open_mismatch', 'blocked_session': day}
+        previous = bar
+    return {'status': LIQUIDATION_OBSERVED, 'exit_session': last,
+            'terminal_return_pct': float((units * final_bar[6] / entry_open - 1) * 100)}
 
 
 def replay_settlement(terms, sessions, bars, previous, units, entry_open, notices, panels):
@@ -106,9 +150,12 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
     cash_by_session = dividend_sessions(sessions, dividends)
     paid_cash = Fraction(0)
     paid_events = pending_events = unlinked_events = 0
-    for day in sessions:
+    for index, day in enumerate(sessions):
         bar = bars.get(day)
         terms = settlements.get((day, code)) if settlements else None
+        if terms and terms['treatment'] == LIQUIDATION:
+            return replay_liquidation(terms, sessions[index:], bars, previous, units,
+                                      entry_open, notices)
         if terms and previous is not None:
             return replay_settlement(terms, sessions, bars, previous, units,
                                      entry_open, notices, panels or {})

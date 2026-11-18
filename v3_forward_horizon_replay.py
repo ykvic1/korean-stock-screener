@@ -13,6 +13,7 @@ from v3_forward_cash_dividends import load_dividends
 from v3_forward_daily_prices import completed_sessions, read_daily
 from v3_forward_entry import PRIVATE_REPO, entry_plan, entry_stop_state, public_result
 from v3_forward_horizon_readiness import HORIZONS
+from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, load_liquidations
 from v3_forward_observed_readiness import build, read_archived_days
 from v3_forward_price_replay import replay_price_path
 from v3_forward_settlements import load_settlements
@@ -23,7 +24,7 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-3'
+SCHEMA = 'v3-forward-horizon-price-outcome-4'
 READY = 'daily_archive_ready_for_path_replay'
 
 
@@ -63,8 +64,9 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                     if limit is None or members[code][3] <= limit]
         observed = [row for row in selected if row['status'] == 'observed_price_path']
         settled = [row for row in selected if row['status'] == 'observed_delisting_settlement']
+        liquidation = [row for row in selected if row['status'] == LIQUIDATION_OBSERVED]
         missing = Counter(row['status'] for row in selected if row['status'] not in
-                          ('observed_price_path', 'observed_delisting_settlement'))
+                          ('observed_price_path', 'observed_delisting_settlement', LIQUIDATION_OBSERVED))
         paid = [row for row in observed if row['confirmed_dividend_events']]
         result[label] = {
             'selected_count': len(selected),
@@ -82,6 +84,11 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 'median_settlement_terminal_return_pct': metric_median(settled, 'terminal_return_pct'),
                 'median_terminal_return_including_settlements_pct': metric_median(
                     observed + settled, 'terminal_return_pct'),
+            },
+            'liquidation_exit_proxies': {
+                'observed_count': len(liquidation),
+                'median_final_session_close_proxy_return_pct': metric_median(liquidation, 'terminal_return_pct'),
+                'actual_execution_validated': False,
             },
             'cash_dividends': {
                 'issuers_with_confirmed_payment': len(paid),
@@ -106,6 +113,7 @@ def replay_next(root, now, get_storage):
     evidence_asof = now.astimezone(KST).date().isoformat()
     dividends = load_dividends(root, evidence_asof)
     settlements = load_settlements(root, evidence_asof)
+    liquidations = load_liquidations(root, evidence_asof)
     for score_day, cohort in readiness['cohorts'].items():
         for months in HORIZONS:
             horizon = cohort['horizons'][str(months)]
@@ -129,6 +137,13 @@ def replay_next(root, now, get_storage):
             applicable_notices = {key: value for key, value in notices.items() if key[0] in days}
             applicable_settlements = {key: value for key, value in settlements.items()
                                       if entry_day < key[0] <= target}
+            applicable_liquidations = {(max(entry_day, row['start_on']), code): row
+                                       for code, row in liquidations.items()
+                                       if entry_day <= row['last_on'] and row['start_on'] <= target}
+            if ({key[1] for key in applicable_settlements}
+                    & {key[1] for key in applicable_liquidations}):
+                raise ValueError('conflicting_forward_delisting_treatments')
+            applicable_settlements.update(applicable_liquidations)
             dividend_events = [dividends[k] for k in sorted(dividends)
                                if len(days) >= 3 and days[2] <= k[1] <= target
                                and dividends[k]['terms_report_on'] <= target]
@@ -184,6 +199,7 @@ def replay_next(root, now, get_storage):
                 'cash_distributions_and_costs_included': False,
                 'dividend_coverage_complete': False,
                 'delisting_settlement_coverage_complete': False,
+                'liquidation_window_coverage_complete': False,
                 'full_corporate_action_history_certified': False,
                 'performance_validated': False,
             }
