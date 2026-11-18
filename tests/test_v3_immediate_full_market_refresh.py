@@ -19,7 +19,10 @@ class ImmediateFullMarketRefreshTests(unittest.TestCase):
         self.assertEqual(workflow.count(
             "github.event_name == 'schedule' || inputs.mode == 'publish'"),
             5)
-        self.assertEqual(workflow.count("v3_aftermarket_cutoff.py --manifest"), 2)
+        self.assertEqual(workflow.count("v3_aftermarket_cutoff.py --manifest"), 3)
+        self.assertIn("--published-snapshot docs/data.json", workflow)
+        self.assertIn("git show FETCH_HEAD:docs/data.json", workflow)
+        self.assertIn('--published-snapshot "$RUNNER_TEMP/published-market.json"', workflow)
         self.assertIn("options: [audit, publish]", workflow)
         self.assertIn("default: audit", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
