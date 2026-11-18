@@ -24,7 +24,7 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-4'
+SCHEMA = 'v3-forward-horizon-price-outcome-5'
 READY = 'daily_archive_ready_for_path_replay'
 
 

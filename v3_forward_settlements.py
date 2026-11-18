@@ -9,6 +9,8 @@ from v3_forward_cash_dividends import filing_day, iso_day
 from v3_forward_share_actions import CODE, MARKETS, normalized_name
 
 REGISTER = Path('ops/forward-reviewed-delisting-settlements.csv')
+DISSOLUTION = 'dissolution_distribution'
+DECIMAL = re.compile(r'\d+(?:\.\d{1,9})?')
 FRACTIONAL_BASES = frozenset({'listing_close', 'listing_close_round_down',
                               'listing_close_round_half_up'})
 SUCCESSOR_FIELDS = ('successor_market', 'successor_code', 'successor_name', 'share_available_on',
@@ -20,7 +22,7 @@ FIELDS = ('market', 'code', 'name', 'halt_on', 'halt_url', 'delisted_on',
 
 
 def positive_decimal(value):
-    return bool(re.fullmatch(r'\d+(?:\.\d{1,9})?', value)) and Fraction(value) > 0
+    return bool(DECIMAL.fullmatch(value)) and Fraction(value) > 0
 
 
 def reviewed_settlements(raw):
@@ -46,6 +48,15 @@ def reviewed_settlements(raw):
             fraction_basis = row['fractional_cash_basis']
             if treatment == 'review_pending':
                 if any((record, *successor, cash, fraction_basis, paid, payment)):
+                    raise ValueError
+            elif treatment == DISSOLUTION:
+                # This amount is the complete distribution for an eligible old share.
+                # An explicit no-payout final report can supply zero and its completion date.
+                if (any(successor) or fraction_basis
+                        or (record and iso_day(record) < halt)
+                        or (paid and (not record or iso_day(paid) < delisted
+                                      or not DECIMAL.fullmatch(cash)))
+                        or (not paid and cash)):
                     raise ValueError
             elif not halt <= iso_day(record) <= delisted:
                 raise ValueError
@@ -88,5 +99,7 @@ def load_settlements(root, evidence_asof):
             continue
         if row['payment_report_on'] and row['payment_report_on'] > evidence_asof:
             row.update(paid_on='', payment_url='', payment_report_on=None)
+            if row['treatment'] == DISSOLUTION:
+                row['cash_krw_per_old_share'] = ''
         available[key] = row
     return available

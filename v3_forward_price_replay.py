@@ -3,6 +3,7 @@ from fractions import Fraction
 
 from v3_forward_cash_dividends import dividend_sessions
 from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, TREATMENT as LIQUIDATION
+from v3_forward_settlements import DISSOLUTION
 from v3_forward_share_actions import HOLDER_NEUTRAL_ACTIONS, normalized_name, share_transition
 
 
@@ -77,12 +78,17 @@ def replay_settlement(terms, sessions, bars, previous, units, entry_open, notice
     treatment = terms['treatment']
     if treatment == 'review_pending':
         return {'status': 'delisting_settlement_under_review', 'blocked_session': halt}
+    paid = terms['paid_on']
+    if treatment == DISSOLUTION:
+        if target < terms['delisted_on']:
+            return {'status': 'dissolution_delisting_pending', 'blocked_session': halt}
+        if not paid or paid > target:
+            return {'status': 'dissolution_distribution_unconfirmed', 'blocked_session': halt}
     if len(sessions) < 3 or terms['record_on'] < sessions[2]:
         return {'status': 'settlement_entry_entitlement_unconfirmed', 'blocked_session': halt}
     if units.denominator != 1:
         return {'status': 'settlement_old_fractional_units_unconfirmed', 'blocked_session': halt}
-    paid = terms['paid_on']
-    if treatment == 'cash_exchange':
+    if treatment in ('cash_exchange', DISSOLUTION):
         if not paid or paid > target:
             return {'status': 'settlement_cash_payment_unconfirmed', 'blocked_session': halt}
         terminal = units * Fraction(terms['cash_krw_per_old_share'])
