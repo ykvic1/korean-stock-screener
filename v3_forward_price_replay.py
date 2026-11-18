@@ -1,7 +1,7 @@
 """Replay one issuer's price path in units of one share bought at entry."""
 from fractions import Fraction
 
-from v3_forward_share_actions import share_transition
+from v3_forward_share_actions import HOLDER_NEUTRAL_ACTIONS, share_transition
 
 
 def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=None):
@@ -28,10 +28,11 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
             notice = notices.get((day, code))
             transition = share_transition(previous, bar, notice)
             if transition == 'notice_matched':
-                if notice['action'] not in ('split', 'reverse_split'):
+                if notice['action'] in ('split', 'reverse_split'):
+                    units *= Fraction(notice['new_units'], notice['old_units'])
+                    adjusted_sessions += 1
+                elif notice['action'] not in HOLDER_NEUTRAL_ACTIONS:
                     return {'status': 'share_action_requires_settlement', 'blocked_session': day}
-                units *= Fraction(notice['new_units'], notice['old_units'])
-                adjusted_sessions += 1
             elif transition != 'unchanged_share_count':
                 return {'status': transition, 'blocked_session': day}
         low = min(low, bar[5] * units)

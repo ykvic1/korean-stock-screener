@@ -14,7 +14,7 @@ from v3_forward_entry import PRIVATE_REPO, entry_plan, entry_stop_state, public_
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_observed_readiness import build, read_archived_days
 from v3_forward_price_replay import replay_price_path
-from v3_forward_share_actions import REGISTER, normalized_name, reviewed_actions
+from v3_forward_share_actions import load_forward_actions, normalized_name
 from v3_forward_signal_close import compare_closes, frozen_market
 from v3_krx_private_github_backfill import PrivateGitStorage
 from v3_score_observation_capture import ARCHIVE
@@ -78,7 +78,7 @@ def replay_next(root, now, get_storage):
     """Replay one oldest changed window per run, with no archive access while waiting."""
     archived = read_archived_days(root)
     readiness = build(root, now)
-    notices = reviewed_actions((root / REGISTER).read_bytes())
+    notices = load_forward_actions(root)
     for score_day, cohort in readiness['cohorts'].items():
         for months in HORIZONS:
             horizon = cohort['horizons'][str(months)]
