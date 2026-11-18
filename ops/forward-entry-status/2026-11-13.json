@@ -58,7 +58,7 @@
       "stop_execution_validated": false
     },
     "entry_session_path": {
-      "schema": "v3-forward-entry-session-path-2",
+      "schema": "v3-forward-entry-session-path-3",
       "session": "2026-11-16",
       "basis": "official_open_to_same_session_ohlc",
       "groups": {
@@ -84,6 +84,46 @@
             "open_at_or_below_reference": 0,
             "intraday_reference_touched": 0,
             "reference_not_touched": 5
+          },
+          "same_market_rank_comparison": {
+            "reference_min_rank": 21,
+            "reference_max_rank": 100,
+            "weight_basis": "frozen_candidate_market_mix",
+            "markets": {
+              "KOSDAQ": {
+                "candidate": {
+                  "selected_count": 9,
+                  "confirmed_opening_count": 9,
+                  "valued_count": 9,
+                  "negative_return_count": 7
+                },
+                "reference": {
+                  "selected_count": 42,
+                  "confirmed_opening_count": 42,
+                  "valued_count": 42,
+                  "negative_return_count": 35
+                }
+              },
+              "KOSPI": {
+                "candidate": {
+                  "selected_count": 11,
+                  "confirmed_opening_count": 11,
+                  "valued_count": 11,
+                  "negative_return_count": 7
+                },
+                "reference": {
+                  "selected_count": 38,
+                  "confirmed_opening_count": 38,
+                  "valued_count": 38,
+                  "negative_return_count": 28
+                }
+              }
+            },
+            "observed_mean_return_spread_pct_points": 1.2843,
+            "loss_rate_spread_bounds_pct_points": [
+              -8.0264,
+              -8.0263
+            ]
           }
         },
         "top100": {
@@ -108,6 +148,46 @@
             "open_at_or_below_reference": 0,
             "intraday_reference_touched": 0,
             "reference_not_touched": 16
+          },
+          "same_market_rank_comparison": {
+            "reference_min_rank": 101,
+            "reference_max_rank": null,
+            "weight_basis": "frozen_candidate_market_mix",
+            "markets": {
+              "KOSDAQ": {
+                "candidate": {
+                  "selected_count": 51,
+                  "confirmed_opening_count": 51,
+                  "valued_count": 51,
+                  "negative_return_count": 42
+                },
+                "reference": {
+                  "selected_count": 1692,
+                  "confirmed_opening_count": 1614,
+                  "valued_count": 1614,
+                  "negative_return_count": 1358
+                }
+              },
+              "KOSPI": {
+                "candidate": {
+                  "selected_count": 49,
+                  "confirmed_opening_count": 49,
+                  "valued_count": 49,
+                  "negative_return_count": 35
+                },
+                "reference": {
+                  "selected_count": 780,
+                  "confirmed_opening_count": 757,
+                  "valued_count": 757,
+                  "negative_return_count": 535
+                }
+              }
+            },
+            "observed_mean_return_spread_pct_points": 0.6796,
+            "loss_rate_spread_bounds_pct_points": [
+              -0.5409,
+              -0.5408
+            ]
           }
         },
         "all_ranked": {
@@ -139,5 +219,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-16T23:31:52.377806+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-18T04:02:36.415922+00:00"
 }
