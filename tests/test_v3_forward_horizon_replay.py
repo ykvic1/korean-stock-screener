@@ -30,12 +30,21 @@ class ForwardHorizonReplayTests(unittest.TestCase):
             hashes = {'KOSPI': 'a' * 64, 'KOSDAQ': 'b' * 64}
             readiness = {'cohorts': {score_day: {
                 'entry_session_candidate': days[0], 'entry_share_action_review': {},
+                'entry_session_sample': {'representative_score_asof': score_day,
+                                         'counts_toward_distinct_entry_sessions': True},
                 'score_observation_sha256': sha256(raw).hexdigest(), 'matched_opening_count': 2,
                 'horizons': {str(n): {'status': 'waiting_for_target_session'} for n in HORIZONS},
             }}}
             readiness['cohorts'][score_day]['horizons']['1'] = {
                 'status': 'daily_archive_ready_for_path_replay', 'target_session_candidate': days[-1],
                 'target_date': days[-1], 'archived_session_count': 2,
+            }
+            alternate = '2026-11-12'
+            # An earlier same-day score must not consume the first replay slot.
+            readiness['cohorts'][alternate] = {
+                **readiness['cohorts'][score_day],
+                'entry_session_sample': {'representative_score_asof': score_day,
+                                         'counts_toward_distinct_entry_sessions': False},
             }
             evidence = {'rows': {code: ['official_open_observed', 100] for code in members}}
             storage = Mock()
@@ -57,7 +66,13 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                   patch(f'{module}.read_daily', side_effect=lambda day, _: panels[day])):
                 result = replay_next(root, now, get_storage)
                 self.assertEqual(result['status'], 'price_path_aggregated')
+                self.assertEqual(result['score_asof'], score_day)
                 report = json.loads((root / OUT / score_day / '1m.json').read_bytes())
+                self.assertEqual(report['entry_session_sample'], {
+                    'representative_score_asof': score_day,
+                    'counts_toward_distinct_entry_sessions': True,
+                })
+                del readiness['cohorts'][alternate]
                 self.assertEqual(report['groups']['all_ranked'], {
                     'selected_count': 2, 'observed_price_path_count': 1,
                     'entry_status_counts': {
