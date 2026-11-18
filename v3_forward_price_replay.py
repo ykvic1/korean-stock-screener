@@ -31,7 +31,7 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
                 if notice['action'] in ('split', 'reverse_split'):
                     units *= Fraction(notice['new_units'], notice['old_units'])
                     adjusted_sessions += 1
-                elif notice['action'] not in HOLDER_NEUTRAL_ACTIONS:
+                elif notice['action'] not in HOLDER_NEUTRAL_ACTIONS | {'rename'}:
                     return {'status': 'share_action_requires_settlement', 'blocked_session': day}
             elif transition != 'unchanged_share_count':
                 return {'status': transition, 'blocked_session': day}

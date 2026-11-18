@@ -1,4 +1,6 @@
 market,code,name,listing_on,action,shares_before,shares_after,new_units,old_units,notice_url,terms_url
+KOSDAQ,065510,휴비츠,2026-11-16,treasury_cancellation,10877895,10551759,1,1,https://kind.krx.co.kr/external/2026/11/11/000583/20261111001151/70763.htm,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261113000409
+KOSDAQ,184230,SGA솔루션즈,2026-11-16,bond_conversion,18833952,19055386,1,1,https://kind.krx.co.kr/external/2026/11/11/000476/20261111000980/70791.htm,
 KOSPI,000660,SK하이닉스,2026-11-17,treasury_cancellation,730492365,706799093,1,1,https://kind.krx.co.kr/external/2026/11/12/000210/20261112000335/68155.htm,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261026800524
 KOSDAQ,0007J0,인벤테라,2026-11-17,option_exercise,7865714,7915772,1,1,https://kind.krx.co.kr/external/2026/11/16/002445/20261116005802/70791.htm,
 KOSPI,017800,현대엘리베이터,2026-11-17,treasury_cancellation,39092385,36605062,1,1,https://kind.krx.co.kr/external/2026/11/12/000149/20261112000222/68155.htm,https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261016800692

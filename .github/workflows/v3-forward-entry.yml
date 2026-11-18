@@ -14,6 +14,7 @@ on:
       - v3_regular_close_prices.py
       - ops/forward-reviewed-share-actions.csv
       - ops/forward-reviewed-holder-neutral-actions.csv
+      - ops/forward-reviewed-share-continuity.csv
       - .github/workflows/v3-forward-entry.yml
   workflow_run:
     workflows: [V3 Forward Score Observation Capture]

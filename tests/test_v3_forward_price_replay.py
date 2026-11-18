@@ -52,3 +52,17 @@ class ForwardPriceReplayTests(unittest.TestCase):
         self.notice['shares_after'] += 1
         self.assertEqual(self.replay(), {'status': 'notice_mismatch',
                                         'blocked_session': '2026-11-17'})
+
+    def test_verified_rename_keeps_held_quantity_and_price_path(self):
+        self.notice.update(action='rename', prior_name='이전', name='테스트',
+                           shares_after=10000, new_units=1, old_units=1)
+        self.bars[self.sessions[0]][1] = '이전'
+        for session in self.sessions[1:]:
+            self.bars[session][-1] = 10000
+        result = self.replay()
+        self.assertEqual(result['status'], 'observed_price_path')
+        self.assertEqual(result['terminal_return_pct'], -44)
+        self.assertEqual(result['adjusted_split_sessions'], 0)
+        self.assertEqual(result['first_reference_touch_session'], self.sessions[1])
+        self.notices.clear()
+        self.assertEqual(self.replay()['status'], 'identity_changed')

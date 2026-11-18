@@ -102,6 +102,33 @@ class ForwardShareActionTest(unittest.TestCase):
                 with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
                     reviewed_actions(raw)
 
+    def test_reviewed_rename_requires_same_market_and_exact_dated_names_and_shares(self):
+        header, example, *_ = self.raw.decode().splitlines()
+        row = example.split(',')
+        row[2:9] = ['새 이름', '2026-11-17', 'rename', '1200000', '1200000', '1', '1']
+
+        def parse(prior_name):
+            raw = header + ',prior_name\n' + ','.join(row + [prior_name]) + '\n'
+            return reviewed_actions(raw.encode())
+
+        notices = parse('일정실업')
+        for invalid in ('', '새이름'):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ShareReviewError):
+                    parse(invalid)
+
+        prior = panel('2026-11-16')
+        for after, reason in (
+            (panel('2026-11-17', name='새이름'), 'notice_matched'),
+            (panel('2026-11-18', name='새이름'), 'identity_changed'),
+            (panel('2026-11-17', name='다른종목'), 'identity_changed'),
+            (panel('2026-11-17', name='새이름', market='KOSDAQ'), 'identity_changed'),
+            (panel('2026-11-17', shares=1200001, name='새이름'), 'notice_mismatch'),
+        ):
+            with self.subTest(after=after, reason=reason):
+                _, cases = reconcile(prior, after, notices, self.digest)
+                self.assertEqual(cases['008500']['state'], reason)
+
     def test_pipeline_does_not_bridge_an_uncollected_session(self):
         now = timestamp('2025-12-16T11:45:00+00:00')
         storage = MemoryStore()
