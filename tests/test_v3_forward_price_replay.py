@@ -40,3 +40,15 @@ class ForwardPriceReplayTests(unittest.TestCase):
         self.notice['action'] = 'capital_reduction'
         self.assertEqual(self.replay(), {'status': 'share_action_requires_settlement',
                                         'blocked_session': '2026-11-17'})
+
+    def test_holder_neutral_issue_does_not_inflate_return_or_move_the_stop(self):
+        self.notice.update(action='bond_conversion', new_units=1, old_units=1)
+        result = self.replay()
+        self.assertEqual(result['terminal_return_pct'], -44)
+        self.assertEqual(result['mae_pct'], -60)
+        self.assertEqual(result['mfe_pct'], 5)
+        self.assertEqual(result['adjusted_split_sessions'], 0)
+        self.assertEqual(result['first_reference_touch_session'], '2026-11-17')
+        self.notice['shares_after'] += 1
+        self.assertEqual(self.replay(), {'status': 'notice_mismatch',
+                                        'blocked_session': '2026-11-17'})

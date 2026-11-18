@@ -10,7 +10,9 @@ from tests.test_v3_forward_entry import MemoryStore
 from v3_forward_daily_prices import SCHEMA as DAILY_SCHEMA
 from v3_forward_entry import timestamp
 from v3_forward_share_actions import (
-    REGISTER, ShareReviewError, collect_share_reviews, reconcile, reviewed_actions,
+    HOLDER_NEUTRAL_ACTIONS, PRICE_ACTIONS, REGISTER, REQUIRES_TERMS, ShareReviewError,
+    collect_share_reviews,
+    reconcile, reviewed_actions,
 )
 
 
@@ -25,8 +27,8 @@ class ForwardShareActionTest(unittest.TestCase):
         self.digest = sha256(self.raw).hexdigest()
         self.notices = reviewed_actions(self.raw)
 
-    def test_four_reviewed_counts_match_only_on_the_listing_session(self):
-        self.assertEqual(len(self.notices), 4)
+    def test_reviewed_counts_match_only_on_the_listing_session(self):
+        self.assertTrue({notice['action'] for notice in self.notices.values()} >= set(PRICE_ACTIONS))
         for (day, code), notice in self.notices.items():
             with self.subTest(code=code):
                 args = {'code': code, 'market': notice['market'], 'name': notice['name']}
@@ -67,6 +69,38 @@ class ForwardShareActionTest(unittest.TestCase):
         raw = self.raw.replace(b',6000000,5,1,', b',6000000,4,1,')
         with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
             reviewed_actions(raw)
+
+    def test_holder_neutral_terms_require_1_to_1_and_the_right_direction(self):
+        for action in HOLDER_NEUTRAL_ACTIONS:
+            before, after = (12, 10) if action == 'treasury_cancellation' else (10, 12)
+            for old_count, new_count, new_units, expected in (
+                (before, after, 1, True),
+                (after, before, 1, False),
+                (before, after, 2, False),
+                (before, before, 1, False),
+            ):
+                with self.subTest(action=action, before=old_count, after=new_count, units=new_units):
+                    header, example, *_ = self.raw.decode().splitlines()
+                    row = example.split(',')
+                    row[3:9] = ['2026-11-17', action, str(old_count), str(new_count), str(new_units), '1']
+                    terms = ('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261026900188'
+                             if action in REQUIRES_TERMS else '')
+                    raw = (header + ',terms_url\n' + ','.join(row + [terms]) + '\n').encode()
+                    if expected:
+                        self.assertEqual(reviewed_actions(raw)['2026-11-17', '008500']['action'], action)
+                    else:
+                        with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
+                            reviewed_actions(raw)
+
+    def test_treasury_cancellation_requires_separate_official_terms(self):
+        header, example, *_ = self.raw.decode().splitlines()
+        row = example.split(',')
+        row[3:9] = ['2026-11-17', 'treasury_cancellation', '12', '10', '1', '1']
+        for terms in ('', row[9], 'https://example.org/cancellation'):
+            with self.subTest(terms=terms):
+                raw = (header + ',terms_url\n' + ','.join(row + [terms]) + '\n').encode()
+                with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
+                    reviewed_actions(raw)
 
     def test_pipeline_does_not_bridge_an_uncollected_session(self):
         now = timestamp('2025-12-16T11:45:00+00:00')
