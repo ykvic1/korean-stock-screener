@@ -29,10 +29,24 @@ assert.ok(html.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'
  assert.match(view.summary,/시가 대조 \d+ \/ \d+거래일/);
  assert.match(view.body,/12개월/);
  assert.match(view.body,/가격 자료 확보 \/ 선정 구간/);
+ assert.match(view.body,/평가 대기/);
  assert.equal(unified.forwardValidationView({...data,performance_validated:true}),null);
  const bad=structuredClone(data);
  bad.horizons[12].archive_ready_count=bad.horizons[12].selected_window_count+1;
  assert.equal(unified.forwardValidationView(bad),null);
+ const ready=structuredClone(data);
+ ready.horizons[12]={first_target_date:'2027-11-16',archive_ready_count:1,selected_window_count:1};
+ const results={schema:'v3-forward-validation-results-1',performance_validated:false,horizons:{
+  12:{published_window_count:1,latest:{score_asof:'2026-11-13',entry_session:'2026-11-16',
+   evaluation_session:'2027-11-16',confirmed_opening_count:20,valued_count:18,observed_price_path_count:17,
+   median_terminal_return_pct:7.25,median_mae_pct:-12,loss_rate_bounds_pct:[30,40]}}}};
+ const observed=unified.forwardValidationView(ready,results);
+ assert.match(observed.body,/수익률 7\.25%/);
+ assert.match(observed.body,/최대 하락폭 -12\.00% · 손실률 30\.00%~40\.00%/);
+ assert.match(observed.body,/수익률 18\/20종목 · 게시 1구간/);
+ assert.doesNotMatch(unified.forwardValidationView(data,results).body,/7\.25%/);
+ results.horizons[12].latest.loss_rate_bounds_pct=[40,30];
+ assert.match(unified.forwardValidationView(ready,results).body,/결과 게시 대기/);
  assert.ok(entry.includes('id="forwardValidationCoverage"')&&html.includes('id="forwardValidationCoverage"'));
 }
 
@@ -1120,7 +1134,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261118-forward-validation')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261119-forward-results')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),

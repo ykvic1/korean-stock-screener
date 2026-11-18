@@ -122,10 +122,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z $(git status --porcelain -- ops/forward-price-outcomes/) ]]; then exit 0; fi
+          if [[ -z $(git status --porcelain -- ops/forward-price-outcomes/ docs/v3-forward-validation-results.json) ]]; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- ops/forward-price-outcomes/
+          git add -- docs/v3-forward-validation-results.json
+          if [[ -d ops/forward-price-outcomes/ ]]; then
+            git add -- ops/forward-price-outcomes/
+          fi
           git commit -m 'Record matured forward price outcome'
           for attempt in 1 2 3; do
             git fetch origin main

@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, ready_windows, replay_next
+from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, pages_results, ready_windows, replay_next
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
 from v3_forward_share_actions import FIELDS, REGISTER
@@ -85,6 +85,18 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 })
                 self.assertEqual(report['holding_window_sample'],
                                  {'status': 'selected', 'compared_with_score_asof': None})
+                published = pages_results(root, readiness)
+                self.assertFalse(published['performance_validated'])
+                self.assertEqual(published['horizons'], {'1': {'published_window_count': 1, 'latest': {
+                    'score_asof': score_day, 'entry_session': days[0], 'evaluation_session': days[-1],
+                    'confirmed_opening_count': 1, 'valued_count': 1, 'median_terminal_return_pct': 5,
+                    'observed_price_path_count': 1, 'median_mae_pct': -10, 'loss_rate_bounds_pct': [0, 0],
+                }}})
+                self.assertNotIn('000001', json.dumps(published))
+                changed = readiness['cohorts'][score_day]['horizons']['1']
+                changed['target_session_candidate'] = '2026-12-17'
+                self.assertEqual(pages_results(root, readiness)['horizons'], {})
+                changed['target_session_candidate'] = days[-1]
                 del readiness['cohorts'][alternate]
                 del readiness['cohorts'][older]
                 self.assertEqual(report['groups']['all_ranked'], {
