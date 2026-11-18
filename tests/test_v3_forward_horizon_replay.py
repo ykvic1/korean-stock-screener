@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from v3_forward_horizon_replay import OUT, replay_next
+from v3_forward_horizon_replay import OUT, aggregate_paths, replay_next
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_share_actions import FIELDS, REGISTER
 from v3_score_observation_capture import ARCHIVE
@@ -63,6 +63,12 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'median_terminal_return_pct': 5, 'median_mae_pct': -10,
                     'median_mfe_pct': 10, 'reference_compared_count': 0,
                     'reference_touched_count': 0,
+                    'delisting_settlements': {
+                        'observed_count': 0,
+                        'counts_by_treatment': {},
+                        'median_settlement_terminal_return_pct': None,
+                        'median_terminal_return_including_settlements_pct': 5,
+                    },
                     'cash_dividends': {
                         'issuers_with_confirmed_payment': 0,
                         'confirmed_payment_events': 0,
@@ -75,3 +81,30 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 self.assertNotIn('000001', json.dumps(report))
                 self.assertEqual(replay_next(root, now, get_storage)['status'], 'no_new_ready_horizons')
                 get_storage.assert_called_once()
+
+    def test_cash_settlement_only_extends_terminal_return_denominator(self):
+        days = ['2026-06-24', '2026-06-25', '2026-06-26', '2026-07-15']
+        codes = ('000001', '000002', '000003')
+        alphas = ['KOSPI', 'Alpha', 'traded', 100, 110, 90, 105, 1000]
+        beta = ['KOSPI', 'Beta', 'traded', 100, 110, 90, 100, 1000]
+        panels = {day: {'rows': {codes[0]: alphas}} for day in days}
+        for day in days[:2]:
+            panels[day]['rows'][codes[1]] = beta
+        observation = {'rows': {code: [name, 'KOSPI', 50, rank]
+                                for rank, (code, name) in enumerate(zip(codes, ('Alpha', 'Beta', 'Gamma')), 1)}}
+        openings = {code: ('official_open_observed', 100) for code in codes[:2]}
+        openings[codes[2]] = ('not_traded', None)
+        terms = {'market': 'KOSPI', 'name': 'Beta', 'treatment': 'cash_exchange',
+                 'halt_on': days[2], 'delisted_on': days[-1], 'record_on': '2026-06-30',
+                 'paid_on': days[-1], 'cash_krw_per_old_share': '64'}
+        group = aggregate_paths(observation, openings, days, panels, {},
+                                settlements={(days[2], codes[1]): terms})['all_ranked']
+        self.assertEqual(group['selected_count'], 3)
+        self.assertEqual(group['unresolved_counts'], {'not_traded': 1})
+        self.assertEqual(group['observed_price_path_count'], 1)
+        self.assertEqual(group['median_mae_pct'], -10)
+        self.assertEqual(group['delisting_settlements'], {
+            'observed_count': 1, 'counts_by_treatment': {'cash_exchange': 1},
+            'median_settlement_terminal_return_pct': -36,
+            'median_terminal_return_including_settlements_pct': -15.5,
+        })
