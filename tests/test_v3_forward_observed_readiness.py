@@ -6,7 +6,8 @@ from unittest.mock import patch
 
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_observed_readiness import (
-    build, horizon_readiness, sample_entry_sessions, share_review_coverage, top_ranked_issuers,
+    READY, build, horizon_readiness, sample_entry_sessions, sample_holding_windows,
+    share_review_coverage, top_ranked_issuers,
 )
 from v3_forward_share_actions import STATES
 
@@ -24,6 +25,18 @@ class ObservedReadinessTests(unittest.TestCase):
                          ['counts_toward_distinct_entry_sessions'])
         self.assertTrue(report['cohorts']['2026-11-17']['entry_session_sample']
                         ['counts_toward_distinct_entry_sessions'])
+        self.assertEqual(grouped['holding_window_sampling']['by_horizon']['1'], {
+            'selected_window_count': 1,
+            'selected_archive_ready_count': 0,
+            'overlapping_window_count': 1,
+            'waiting_for_previous_exit_session_count': 0,
+        })
+        later = report['cohorts']['2026-11-17']['horizons']['1']
+        self.assertEqual(later['holding_window_sample'], {
+            'status': 'overlapping', 'compared_with_score_asof': '2026-11-13',
+        })
+        alternate = report['cohorts']['2026-11-16']['horizons']['1']
+        self.assertNotIn('holding_window_sample', alternate)
 
     def test_entry_session_counts_use_frozen_selection_even_if_alternate_has_prices(self):
         older, newer = '2026-11-16', '2026-11-17'
@@ -36,7 +49,11 @@ class ObservedReadinessTests(unittest.TestCase):
                                       'C': ['상위100', 'KOSPI', 66, 22]}),
         }
         cohorts = {date: {'matched_opening_count': matched,
-                          'horizons': {str(n): {'status': state} for n in HORIZONS}}
+                          'entry_session_candidate': '2026-11-18',
+                          'horizons': {str(n): {'status': state,
+                                               'target_date': f'2027-{n:02d}-18',
+                                               'target_session_candidate': None}
+                                       for n in HORIZONS}}
                    for date, matched, state in ((older, 3, 'daily_archive_ready_for_path_replay'),
                                                 (newer, None, 'waiting_for_matched_entry'))}
         result = sample_entry_sessions(cohorts, {'2026-11-18': ranks})
@@ -45,6 +62,40 @@ class ObservedReadinessTests(unittest.TestCase):
         self.assertEqual(result['horizon_readiness_counts']['1'], {'waiting_for_matched_entry': 1})
         self.assertEqual(result['by_entry_session']['2026-11-18']['overlap_with_representative'][older],
                          {'top20': 1, 'top100': 2})
+
+    def test_holding_window_selection_waits_for_exit_and_includes_exit_bar(self):
+        first, second, third, fourth = '2026-11-13', '2026-12-15', '2026-12-16', '2026-12-17'
+        cohorts = {}
+        for score, entry, target in (
+            (first, '2026-11-16', '2026-12-16'), (second, '2026-12-16', '2027-01-16'),
+            (third, '2026-12-17', '2027-01-17'), (fourth, '2026-12-18', '2027-01-18'),
+        ):
+            cohorts[score] = {
+                'entry_session_candidate': entry,
+                'horizons': {str(months): {'status': 'waiting_for_target_session',
+                                            'target_date': target if months == 1 else '2027-11-16',
+                                            'target_session_candidate': None}
+                             for months in HORIZONS},
+            }
+        primary = [first, second, third, fourth]
+        provisional = sample_holding_windows(cohorts, primary)
+        self.assertEqual(provisional['1'], {
+            'selected_window_count': 1, 'selected_archive_ready_count': 0,
+            'overlapping_window_count': 1, 'waiting_for_previous_exit_session_count': 2,
+        })
+        first_horizon = cohorts[first]['horizons']['1']
+        first_horizon.update(target_session_candidate='2026-12-17', status=READY)
+        resolved = sample_holding_windows(cohorts, primary)
+        self.assertEqual(resolved['1'], {
+            'selected_window_count': 2, 'selected_archive_ready_count': 1,
+            'overlapping_window_count': 2, 'waiting_for_previous_exit_session_count': 0,
+        })
+        self.assertEqual(cohorts[third]['horizons']['1']['holding_window_sample'],
+                         {'status': 'overlapping', 'compared_with_score_asof': first})
+        self.assertEqual(cohorts[fourth]['horizons']['1']['holding_window_sample'],
+                         {'status': 'selected', 'compared_with_score_asof': first})
+        self.assertEqual(resolved['12']['selected_window_count'], 1)
+        self.assertEqual(resolved['12']['overlapping_window_count'], 3)
 
     def test_due_missing_session_cannot_be_hidden_by_later_archived_session(self):
         start, missing, target = (date(2026, 11, 16), date(2026, 11, 17), date(2026, 12, 16))
