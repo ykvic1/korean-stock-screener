@@ -85,7 +85,7 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 })
                 self.assertEqual(report['holding_window_sample'],
                                  {'status': 'selected', 'compared_with_score_asof': None})
-                published = pages_results(root, readiness)
+                published = pages_results(root, readiness, now)
                 self.assertFalse(published['performance_validated'])
                 self.assertEqual(published['horizons'], {'1': {'published_window_count': 1, 'latest': {
                     'score_asof': score_day, 'entry_session': days[0], 'evaluation_session': days[-1],
@@ -94,9 +94,9 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 }}})
                 self.assertNotIn('000001', json.dumps(published))
                 changed = readiness['cohorts'][score_day]['horizons']['1']
-                changed['target_session_candidate'] = '2026-12-17'
-                self.assertEqual(pages_results(root, readiness)['horizons'], {})
-                changed['target_session_candidate'] = days[-1]
+                changed['target_date'] = '2026-12-15'
+                self.assertEqual(pages_results(root, readiness, now)['horizons'], {})
+                changed['target_date'] = days[-1]
                 del readiness['cohorts'][alternate]
                 del readiness['cohorts'][older]
                 self.assertEqual(report['groups']['all_ranked'], {
@@ -139,8 +139,11 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 (root / LIQUIDATION_REGISTER).write_text(','.join(LIQUIDATION_FIELDS) + '\n'
                     'KOSPI,000002,Beta,2026-12-16,2026-12-16,2026-12-17,1000,'
                     'https://kind.krx.co.kr/external/2026/11/13/000126/20261113000258/68051.htm,,\n')
+                self.assertEqual(pages_results(root, readiness, now)['horizons'], {})
+                get_storage.assert_called_once()
                 panels[days[-1]]['rows']['000002'] = ['KOSPI', 'Beta', 'traded', 65, 68, 59, 60, 1000]
                 self.assertEqual(replay_next(root, now, get_storage)['status'], 'price_path_aggregated')
+                self.assertIn('1', pages_results(root, readiness, now)['horizons'])
                 groups = json.loads((root / OUT / score_day / '1m.json').read_bytes())['groups']
                 group = groups['all_ranked']
                 self.assertEqual(group['observed_price_path_count'], 1)
