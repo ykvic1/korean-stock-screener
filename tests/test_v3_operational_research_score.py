@@ -104,6 +104,30 @@ class OperationalScoreTests(unittest.TestCase):
         for key in ops.MULTI_PERIOD_FINANCIAL_FACTORS:
             self.assertIsNone(historical['parts']['financial'][key])
 
+    def test_reviewed_full_year_requires_contiguous_duration_and_matching_stub(self):
+        from v3_reviewed_annual_flows import (
+            REVIEWED_WINDOWS, FCF_ASSETS, FCF_YIELD, GROWTH, window_metrics,
+        )
+        window = copy.deepcopy(REVIEWED_WINDOWS['154030'])
+        stub = ops.REVIEWED_SHORT_PERIODS['154030']
+        years = [2022, 2023, 2024, 2025]
+        score_day = '2026-11-17'
+        metrics = window_metrics(window, stub, years, score_day, 100)
+        self.assertEqual(metrics[FCF_YIELD], 9.656446)
+        self.assertEqual(metrics[GROWTH], round(100*((27806411703/24047390439)**(1/3)-1), 6))
+        self.assertIn(FCF_ASSETS, metrics)
+        self.assertEqual(window_metrics(window, {**stub, 'receipt_id': '20260320000002'},
+                                        years, score_day, 100), {})
+        self.assertEqual(window_metrics(window, stub, years, '2025-12-18', 100), {})
+        invalid = copy.deepcopy(window)
+        invalid['periods'][1]['start'] = '2022-10-02'
+        self.assertEqual(window_metrics(invalid, stub, years, score_day, 100), {})
+        window['periods'][-1]['investing_cash'] += 1
+        unreconciled = window_metrics(window, stub, years, score_day, 100)
+        self.assertIn(GROWTH, unreconciled)
+        self.assertNotIn(FCF_ASSETS, unreconciled)
+        self.assertNotIn(FCF_YIELD, unreconciled)
+
     def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256
         from v3_ma240_cross_research import observe as ma_observe
