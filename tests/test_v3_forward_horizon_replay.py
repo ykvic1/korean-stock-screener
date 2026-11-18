@@ -21,7 +21,7 @@ class ForwardHorizonReplayTests(unittest.TestCase):
             root = Path(tmp)
             score_day = '2026-11-13'
             days = ['2026-11-16', '2026-12-16']
-            members = {'000001': ['Alpha', 'KOSPI', 50, 1], '000002': ['Beta', 'KOSPI', 30, 2]}
+            members = {'000001': ['Alpha', 'KOSPI', 50, 1], '000002': ['Beta', 'KOSPI', 30, 21]}
             raw = json.dumps({'rows': members}).encode()
             source = root / ARCHIVE / f'{score_day}.json'
             source.parent.mkdir(parents=True)
@@ -100,7 +100,8 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'https://kind.krx.co.kr/external/2026/11/13/000126/20261113000258/68051.htm,,\n')
                 panels[days[-1]]['rows']['000002'] = ['KOSPI', 'Beta', 'traded', 65, 68, 59, 60, 1000]
                 self.assertEqual(replay_next(root, now, get_storage)['status'], 'price_path_aggregated')
-                group = json.loads((root / OUT / score_day / '1m.json').read_bytes())['groups']['all_ranked']
+                groups = json.loads((root / OUT / score_day / '1m.json').read_bytes())['groups']
+                group = groups['all_ranked']
                 self.assertEqual(group['observed_price_path_count'], 1)
                 self.assertEqual(group['median_mae_pct'], -10)
                 self.assertEqual(group['unresolved_counts'], {})
@@ -113,6 +114,9 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'median_final_session_close_proxy_return_pct': -40,
                     'actual_execution_validated': False,
                 })
+                comparison = groups['top20']['same_market_rank_comparison']
+                self.assertIsNone(comparison['observed_mean_return_spread_pct_points'])
+                self.assertEqual(comparison['loss_rate_spread_bounds_pct_points'], [-100, 0])
 
     def test_cash_settlement_only_extends_terminal_return_denominator(self):
         days = ['2026-06-24', '2026-06-25', '2026-06-26', '2026-07-15']
@@ -122,15 +126,16 @@ class ForwardHorizonReplayTests(unittest.TestCase):
         panels = {day: {'rows': {codes[0]: alphas}} for day in days}
         for day in days[:2]:
             panels[day]['rows'][codes[1]] = beta
-        observation = {'rows': {code: [name, 'KOSPI', 50, rank]
-                                for rank, (code, name) in enumerate(zip(codes, ('Alpha', 'Beta', 'Gamma')), 1)}}
+        observation = {'rows': {code: [name, 'KOSPI', 50, rank] for code, name, rank in
+                                zip(codes, ('Alpha', 'Beta', 'Gamma'), (1, 21, 101))}}
         openings = {code: ('official_open_observed', 100) for code in codes[:2]}
         openings[codes[2]] = ('not_traded', None)
         terms = {'market': 'KOSPI', 'name': 'Beta', 'treatment': 'cash_exchange',
                  'halt_on': days[2], 'delisted_on': days[-1], 'record_on': '2026-06-30',
                  'paid_on': days[-1], 'cash_krw_per_old_share': '64'}
-        group = aggregate_paths(observation, openings, days, panels, {},
-                                settlements={(days[2], codes[1]): terms})['all_ranked']
+        groups = aggregate_paths(observation, openings, days, panels, {},
+                                 settlements={(days[2], codes[1]): terms})
+        group = groups['all_ranked']
         self.assertEqual(group['selected_count'], 3)
         self.assertEqual(group['unresolved_counts'], {'not_traded': 1})
         self.assertEqual(group['observed_price_path_count'], 1)
@@ -146,6 +151,9 @@ class ForwardHorizonReplayTests(unittest.TestCase):
             'median_settlement_terminal_return_pct': -36,
             'median_terminal_return_including_settlements_pct': -15.5,
         })
+        comparison = groups['top20']['same_market_rank_comparison']
+        self.assertEqual(comparison['observed_mean_return_spread_pct_points'], 41)
+        self.assertEqual(comparison['loss_rate_spread_bounds_pct_points'], [-100, -100])
 
     def test_loss_bounds_cover_missing_and_empty_groups_without_rounding_inwards(self):
         self.assertIsNone(loss_rate_bounds(0, 0, 0))

@@ -10,6 +10,7 @@ on:
       - v3_forward_settlements.py
       - v3_forward_liquidations.py
       - v3_forward_horizon_replay.py
+      - v3_forward_rank_comparison.py
       - v3_forward_observed_readiness.py
       - v3_forward_daily_prices.py
       - v3_forward_share_actions.py

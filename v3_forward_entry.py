@@ -17,6 +17,7 @@ from v3_forward_daily_prices import (
 )
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_price_replay import replay_price_path
+from v3_forward_rank_comparison import add_rank_comparisons
 from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
 from v3_regular_close_prices import RegularCloseError, publish_regular_closes
@@ -31,6 +32,7 @@ from v3_score_observation_capture import ARCHIVE, SCHEMA as SCORE_SCHEMA, positi
 OUT = Path('ops/forward-entry-status')
 PRIVATE_REPO = 'ykvic1/korean-stock-private-data'
 SCHEMA = 'v3-forward-opening-evidence-1'
+ENTRY_PATH_SCHEMA = 'v3-forward-entry-session-path-3'
 ROW_STATES = ('unranked', 'absent', 'identity_unresolved', 'not_traded',
               'open_unavailable', 'official_open_observed')
 MAX_COHORTS_PER_RUN = 5
@@ -219,29 +221,31 @@ def entry_stop_state(member, opening, entry_row, signal_row, signal_state):
 
 def entry_session_path(observation, evidence, daily, *, signal=None, signal_cases=None):
     """Summarize one matched session from its official open, including missing entries."""
+    members = observation['rows']
+    openings = evidence['rows']
+    paths, references = {}, {}
+    day = daily['date']
+    for code, member in members.items():
+        state, opening = openings[code]
+        if member[3] is None or state != 'official_open_observed':
+            continue
+        row = daily['rows'][code]
+        path = replay_price_path(code, [day], {day: row}, entry_open=opening, notices={})
+        if path['status'] != 'observed_price_path':
+            raise EntryError('entry_path_mismatch_after_crosscheck')
+        paths[code] = path
+        if signal is not None:
+            references[code] = entry_stop_state(member, opening, row, signal['rows'].get(code),
+                                                signal_cases[code]['state'])
     groups = {}
     for label, rank_limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
-        selected = [code for code, member in observation['rows'].items()
+        selected = [code for code, member in members.items()
                     if member[3] is not None and (rank_limit is None or member[3] <= rank_limit)]
-        low_returns, high_returns, close_returns = [], [], []
-        missing = Counter()
-        stops = Counter()
-        for code in selected:
-            state, opening = evidence['rows'][code]
-            if state != 'official_open_observed':
-                missing[state] += 1
-                continue
-            row = daily['rows'][code]
-            if signal is not None:
-                stops[entry_stop_state(observation['rows'][code], opening, row,
-                                       signal['rows'].get(code), signal_cases[code]['state'])] += 1
-            path = replay_price_path(code, [daily['date']], {daily['date']: row},
-                                     entry_open=opening, notices={})
-            if path['status'] != 'observed_price_path':
-                raise EntryError('entry_path_mismatch_after_crosscheck')
-            low_returns.append(path['mae_pct'])
-            high_returns.append(path['mfe_pct'])
-            close_returns.append(path['terminal_return_pct'])
+        observed = [paths[code] for code in selected if code in paths]
+        low_returns = [path['mae_pct'] for path in observed]
+        high_returns = [path['mfe_pct'] for path in observed]
+        close_returns = [path['terminal_return_pct'] for path in observed]
+        missing = Counter(openings[code][0] for code in selected if code not in paths)
         groups[label] = {
             'selected_count': len(selected), 'observed_count': len(close_returns),
             'missing_entry_counts': {state: missing[state] for state in ROW_STATES
@@ -253,9 +257,12 @@ def entry_session_path(observation, evidence, daily, *, signal=None, signal_case
             'negative_close_count': sum(value < 0 for value in close_returns),
         }
         if signal is not None:
+            stops = Counter(references[code] for code in selected if code in references)
             groups[label]['structural_reference_counts'] = {state: stops[state] for state in REFERENCE_STATES}
+    add_rank_comparisons(groups, members, openings,
+                         {code: path['terminal_return_pct'] for code, path in paths.items()})
     return {
-        'schema': 'v3-forward-entry-session-path-2', 'session': daily['date'],
+        'schema': ENTRY_PATH_SCHEMA, 'session': day,
         'basis': 'official_open_to_same_session_ohlc', 'groups': groups,
         'fees_and_taxes_included': False, 'performance_validated': False,
     }
@@ -420,8 +427,10 @@ def main():
     checked = 0
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
+        old = status.get('entry_daily_crosscheck', {})
         if (status['status'] != 'official_openings_archived_privately'
-                or status.get('entry_daily_crosscheck', {}).get('structural_reference_status') == 'compared'):
+                or (old.get('structural_reference_status') == 'compared'
+                    and old.get('entry_session_path', {}).get('schema') == ENTRY_PATH_SCHEMA)):
             continue
         if checked >= MAX_COHORTS_PER_RUN:
             break

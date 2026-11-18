@@ -16,6 +16,7 @@ from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, load_liquidations
 from v3_forward_observed_readiness import build, read_archived_days
 from v3_forward_price_replay import replay_price_path
+from v3_forward_rank_comparison import add_rank_comparisons
 from v3_forward_settlements import load_settlements
 from v3_forward_share_actions import load_forward_actions, normalized_name
 from v3_forward_signal_close import compare_closes, frozen_market
@@ -24,7 +25,7 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-6'
+SCHEMA = 'v3-forward-horizon-price-outcome-7'
 READY = 'daily_archive_ready_for_path_replay'
 
 
@@ -122,6 +123,9 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 'median_price_plus_confirmed_dividend_pct': metric_median(paid, 'price_plus_confirmed_dividend_pct'),
             },
         }
+    comparable = {code: row['terminal_return_pct'] for code, row in outcomes.items()
+                  if row['status'] in ('observed_price_path', 'observed_delisting_settlement')}
+    add_rank_comparisons(result, members, openings, comparable)
     return result
 
 
