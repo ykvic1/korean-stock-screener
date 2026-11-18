@@ -40,6 +40,49 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertEqual(baseline['rows'],without['rows'])
         self.assertEqual(ops.to_csv(baseline),ops.to_csv(without))
 
+    def test_short_annual_period_withholds_current_and_retained_flow_factors(self):
+        market, catalog, ledger, history = self.inputs[:4]
+        code = '005930'
+        day = catalog['date']
+        review = {**ops.REVIEWED_SHORT_PERIODS['154030'],
+                  'receipt_id': '20260320000002'}
+        history = {**history, 'records': dict(history['records'])}
+        history['records'][code] = {'years': {
+            str(year): {'CFS': {
+                'receipt_id': review['receipt_id'] if year == 2025 else None,
+                'values': {'revenue': 100, 'operating_income': -30,
+                           'assets': 100, 'equity': 50},
+            }} for year in (2023, 2024, 2025)
+        }}
+        previous = {'version': ops.VERSION, 'asof': day, 'rows': {
+            code: copy.deepcopy(self.report['rows'][code])}}
+        for area, keys in ops.PERIOD_DEPENDENT_FACTORS.items():
+            for key in keys:
+                previous['rows'][code]['parts'][area][key] = {
+                    'points': 0, 'available': ops.SPECS[area][key], 'asof': day}
+        args = (market, catalog, ledger, history, *self.inputs[4:])
+        with patch.object(ops, 'REVIEWED_SHORT_PERIODS', {}):
+            normal = ops.build(*args, previous=previous)['rows'][code]
+        with patch.object(ops, 'REVIEWED_SHORT_PERIODS', {code: review}):
+            report = ops.build(*args, previous=previous)
+            self.assertEqual(ops.reviewed_short_periods(history, None, '2026-03-19'), {})
+            self.assertEqual(ops.reviewed_short_periods({'records': {}}, self.inputs[7], day), {})
+        row = report['rows'][code]
+        self.assertEqual(row['annual_period_review'], review)
+        for area, keys in ops.PERIOD_DEPENDENT_FACTORS.items():
+            for key in keys:
+                self.assertIsNotNone(normal['parts'][area][key])
+                self.assertIsNone(row['parts'][area][key])
+        for area in ('volume', 'technical', 'momentum'):
+            self.assertEqual(row['parts'][area], normal['parts'][area])
+        self.assertEqual(row['parts']['financial']['balance_sheet_strength'],
+                         normal['parts']['financial']['balance_sheet_strength'])
+        self.assertEqual(row['parts']['valuation']['pbr_equity_quality'],
+                         normal['parts']['valuation']['pbr_equity_quality'])
+        self.assertEqual(row['available'], round(normal['available'] - 19.5, 6))
+        self.assertGreater(normal['risk_deduction'], 0)
+        self.assertEqual(row['risk_deduction'], 0)
+
     def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256
         from v3_ma240_cross_research import observe as ma_observe

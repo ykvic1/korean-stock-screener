@@ -55,6 +55,35 @@ SPECS = {
 BUDGET = {k:round(sum(v.values()),6) for k,v in SPECS.items()}
 assert BUDGET == {'volume':25,'technical':30,'financial':12.5,'valuation':12.5,'momentum':20}
 
+# The annual form can contain a stub period when the fiscal year-end changes.
+# Keep the reported facts for audit and withhold only the period-dependent factors.
+REVIEWED_SHORT_PERIODS = {
+    '154030': {
+        'receipt_id': '20260320000001', 'filed_on': '2026-03-20',
+        'period_start': '2025-10-01', 'period_end': '2025-12-31',
+        'source_url': 'https://kind.krx.co.kr/external/2026/03/20/000001/20260320000003/11011.htm',
+    },
+}
+PERIOD_DEPENDENT_FACTORS = {
+    'financial': ('revenue_growth', 'operating_growth_margin', 'cashflow_fcf_persistence'),
+    'valuation': ('per_eps_quality_growth', 'fcf_yield', 'sales_to_cap'),
+}
+
+def reviewed_short_periods(history, annual_book, day):
+    book = {r['code']: r.get('annual') or {} for r in (annual_book or {}).get('records', [])}
+    result = {}
+    for code, review in REVIEWED_SHORT_PERIODS.items():
+        if review['filed_on'] > day:
+            continue
+        fiscal_year = review['period_end'][:4]
+        annual = history.get('records', {}).get(code, {}).get('years', {}).get(fiscal_year, {})
+        if review['receipt_id'] in {
+            book.get(code, {}).get('receipt_id'),
+            annual.get('CFS', {}).get('receipt_id'),
+            annual.get('OFS', {}).get('receipt_id'),
+        }:
+            result[code] = review
+    return result
 
 
 def session_scope(asof):
@@ -93,7 +122,7 @@ def fiscal(record):
     return [years[y][scope]['values'] for y in keys] if scope else []
 
 
-def risk_assessment(record, financial_sector=False):
+def risk_assessment(record, financial_sector=False, *, annual_flows_comparable=True):
     annual=fiscal(record); severity=[]; warnings=[]
     if annual:
         last=annual[-1]; assets=last.get('assets'); equity=last.get('equity')
@@ -103,18 +132,19 @@ def risk_assessment(record, financial_sector=False):
             if equity<=0 or financial_sector is False:
                 severity.append(smooth((.22-equity/assets)/.22))
             if equity<=0:warnings.append('자기자본 0 이하 · 고위험')
-        losses=[]; streak=0
-        for v in annual:
-            op,rev=v.get('operating_income'),v.get('revenue')
-            if not finite(op) or not finite(rev) or rev<=0:break
-            losses.append(max(0,-op/rev))
-        if len(losses)==len(annual):
-            for v in reversed(annual):
-                if v['operating_income']>=0:break
-                streak+=1
-            severity.append(sum(v['operating_income']<0 for v in annual)/len(annual)
-                *smooth(streak/3)*smooth(sum(losses)/len(losses)/.2))
-            if streak>=3:warnings.append('3개년 이상 연속 영업적자')
+        if annual_flows_comparable:
+            losses=[]; streak=0
+            for v in annual:
+                op,rev=v.get('operating_income'),v.get('revenue')
+                if not finite(op) or not finite(rev) or rev<=0:break
+                losses.append(max(0,-op/rev))
+            if len(losses)==len(annual):
+                for v in reversed(annual):
+                    if v['operating_income']>=0:break
+                    streak+=1
+                severity.append(sum(v['operating_income']<0 for v in annual)/len(annual)
+                    *smooth(streak/3)*smooth(sum(losses)/len(losses)/.2))
+                if streak>=3:warnings.append('3개년 이상 연속 영업적자')
     # Debt maturity/interest service, capital impairment and repeated CFO are
     # not fully authenticated by this saved annual subset. Never label safe.
     return {'deduction':round(5*max(severity,default=0),4),
@@ -123,7 +153,8 @@ def risk_assessment(record, financial_sector=False):
 
 
 def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
-                 annual=None, financial_sector=None, money_components=None):
+                 annual=None, financial_sector=None, money_components=None,
+                 annual_flows_comparable=True):
     parts={a:{k:None for k in ks} for a,ks in SPECS.items()}
     def put(area,key,points,available,asof):
         if (finite(points) and finite(available) and 0<available<=SPECS[area][key]+1e-6
@@ -262,7 +293,8 @@ def score_issuer(stock, saved, *, day, money=None, eps=None, reported_eps=None,
             extra=recovered_close_momentum(stock.get('v3_krx_close_momentum_path'),day)
             if extra is not None:
                 put('momentum','existing_momentum',mom['points']+extra,8+MOMENTUM_MAX,day)
-    return parts,risk_assessment(annual or {},financial_sector=financial_sector)
+    return parts,risk_assessment(annual or {},financial_sector=financial_sector,
+                                 annual_flows_comparable=annual_flows_comparable)
 
 
 def verified_reported_eps(catalog, annual_book, source, history=None, cash=None, reviewed=None):
@@ -320,6 +352,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
+    short_periods=reviewed_short_periods(history,annual_book,day)
     regular_closes=regular_close_rows(regular_close_source,catalog)
     money=usable_records(money_source,catalog)
     money_components=usable_component_records(money_source,catalog)
@@ -368,10 +401,11 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             and sector.get('market')==member['market'] and sector.get('checked_on','9999')<=day
             and isinstance(sector_code,str) and sector_code.isdigit() and len(sector_code)>=2)
         financial_sector=sector_code[:2] in ('64','65','66') if sector_valid else None
+        short_period=short_periods.get(code)
         parts,risk=score_issuer(stock,saved,day=day,money=money.get(code),financial_sector=financial_sector,
             money_components=money_components.get(code),
             eps=personal.get('valuation_overrides',{}).get(code),reported_eps=raw_eps.get(code),
-            annual=history.get('records',{}).get(code))
+            annual=history.get('records',{}).get(code),annual_flows_comparable=short_period is None)
         close_receipt=regular_closes.get(code)
         close_candidates={}
         if close_receipt:
@@ -458,7 +492,13 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
                         and (p is None or key!='per_eps_quality_growth'
                              or older['available']+1e-6>=p['available'])):
                         parts[area][key]=older
-        if prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
+        # Retained score parts identify their observation day, not a filing.
+        # Apply the receipt review after all fallback and retention paths.
+        if short_period is not None:
+            for area, keys in PERIOD_DEPENDENT_FACTORS.items():
+                for key in keys:
+                    parts[area][key] = None
+        if short_period is None and prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
             risk['deduction']=prior['risk_deduction'];risk['status']='partial'
             risk['warnings']=prior.get('risk_warnings',[])
         areas={a:{'points':round(sum(p['points'] for p in ps.values() if p),6),
@@ -481,6 +521,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             'legacy_score':legacy[code]['adjusted_score'],'legacy_rank':legacy[code]['personal_rank'],
             'prior_operational_score':previous_score,'prior_operational_rank':previous_rank,
             'parts':parts,'areas':areas,'rank':None}
+        if short_period is not None:
+            rows[code]['annual_period_review'] = short_period
         if close_candidates:
             used=[key for (area,key),candidate in close_candidates.items() if candidate==parts[area][key]]
             if used:
