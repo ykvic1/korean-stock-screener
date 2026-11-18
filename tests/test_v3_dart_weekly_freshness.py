@@ -112,6 +112,24 @@ class SevenDaySourceAuditTests(unittest.TestCase):
         self.assertEqual(result["source_api_calls"], 0)
         self.assertEqual(caller.calls, [])
 
+    def test_archive_provenance_alone_is_not_filing_drift(self):
+        source = {"receipt_id": "20260318000001", "values": {"revenue": 3}, "ambiguous": []}
+        saved = {**source, "source_origin": "previously_observed_dart_annual_book",
+                 "bulk_balance_probe": {"result": "enriched"}}
+        previous = {"005930": {"years": {"2025": {"CFS": saved}}}}
+        for year, expected in (
+            ({"CFS": source}, "unchanged"),
+            ({"CFS": {**source, "receipt_id": "20260418000001"}}, "revised"),
+            ({"CFS": {**source, "values": {"revenue": 4}}}, "revised"),
+            ({"CFS": {**source, "ambiguous": ["revenue"]}}, "revised"),
+            ({"CFS": source, "OFS": source}, "revised"),
+            ({}, "previously_observed_now_missing"),
+        ):
+            with self.subTest(year=year):
+                counts, flags = fresh.changes(previous, {"005930": {"2025": year}}, ["005930"], [2025])
+                self.assertEqual(counts[expected], 1)
+                self.assertEqual([flag["reason"] for flag in flags], [] if expected == "unchanged" else [expected])
+
     def test_prior_day_roster_change_waits_without_official_calls(self):
         market, catalog, history = archived()
         preserved = copy.deepcopy(history)

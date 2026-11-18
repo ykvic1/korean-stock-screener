@@ -92,6 +92,16 @@ def prepare(market, catalog, archive, when, part):
             "previous": previous, "slot": slot, "selected": selected}
 
 
+def comparable_accounts(year):
+    # Archive annotations describe how saved accounts were obtained. Live
+    # multi-company responses only include the underlying filing evidence.
+    return {
+        scope: {key: value for key, value in accounts.items()
+                if key not in ("source_origin", "bulk_balance_probe")}
+        for scope, accounts in year.items()
+    }
+
+
 def changes(previous, newly_fetched, selected, fiscal, unmapped=()):
     """Compare source-derived annual accounts without emitting any values."""
     missing = set(unmapped)
@@ -105,7 +115,7 @@ def changes(previous, newly_fetched, selected, fiscal, unmapped=()):
             else:
                 before = previous[code]["years"][str(year)]
                 after = newly_fetched[code][str(year)]
-                if before == after:
+                if comparable_accounts(before) == comparable_accounts(after):
                     kind = "unchanged"
                 elif not before and after:
                     kind = "newly_observed"
