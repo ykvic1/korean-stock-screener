@@ -93,6 +93,23 @@ class RegularClosePricesTest(unittest.TestCase):
                 if matched:
                     self.assertEqual(report['rows']['005930']['close'], 100)
 
+    def test_zero_volume_reference_requires_unchanged_price_and_traded_target(self):
+        for close, change, volume, state, matched in (
+            (100, 0, 0, 'traded', True),
+            (99, -1, 0, 'traded', False),
+            (99, 0, 0, 'traded', False),
+            (100, 0, -1, 'traded', False),
+            (100, 0, 0, 'no_reported_volume', False),
+        ):
+            daily = deepcopy(self.daily)
+            daily['rows']['005930'][2] = state
+            listing = self.frame.assign(Close=[close, 220], Changes=[change, 20], Volume=[volume, 20])
+            report = prices.build(self.market, 'a' * 64, None, None, daily,
+                next_listing=('2026-11-16', listing, 'b' * 64))
+            with self.subTest(close=close, change=change, volume=volume, state=state):
+                self.assertEqual('005930' in report['rows'], matched)
+                self.assertEqual(report['matches_by_public_source'][prices.NEXT_REFERENCE], int(matched))
+
     def test_incomplete_publication_reuses_official_archive_after_next_session_close(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -102,7 +119,7 @@ class RegularClosePricesTest(unittest.TestCase):
                 'date': self.day, 'status': 'archived_privately',
                 'source_sha256': self.daily['source_sha256']}))
             today = self.frame.assign(Close=[99, 200])
-            next_frame = self.frame.assign(Close=[105, 220], Changes=[5, 20], Volume=[10, 20])
+            next_frame = self.frame.assign(Close=[100, 220], Changes=[0, 20], Volume=[0, 20])
             def load(day):
                 return (today, 'b' * 64) if day == self.day else (next_frame, 'e' * 64)
             with (patch.object(prices, 'MARKET', market), patch.object(prices, 'OUT', out),
@@ -117,19 +134,25 @@ class RegularClosePricesTest(unittest.TestCase):
                 previous = json.loads(out.read_bytes())
                 self.assertEqual(previous['matched_count'], 1)
                 self.assertEqual(loader.call_count, 1)
-                previous['schema'] = prices.PREVIOUS_SCHEMA
-                previous.pop('next_session_date')
-                previous.pop('next_session_cache_sha256')
-                previous['matches_by_public_source'].pop(prices.NEXT_REFERENCE)
-                out.write_text(json.dumps(previous))
                 now = datetime(2026, 11, 16, 7, tzinfo=timezone.utc)
-                prices.publish_regular_closes(lambda: object(), now=now)
-                report = json.loads(out.read_bytes())
-                self.assertEqual(report['matched_count'], 2)
-                self.assertEqual(report['next_session_cache_sha256'], 'e' * 64)
-                self.assertEqual(reader.call_count, 2)
+                old_schema = deepcopy(previous)
+                old_schema['schema'] = prices.PREVIOUS_SCHEMA
+                old_schema.pop('next_session_date')
+                old_schema.pop('next_session_cache_sha256')
+                old_schema['matches_by_public_source'].pop(prices.NEXT_REFERENCE)
+                previous['next_session_date'] = '2026-11-16'
+                previous['next_session_cache_sha256'] = 'e' * 64
+                for prior, count in ((old_schema, 2), (previous, 3)):
+                    prior.pop('next_session_zero_volume_checked')
+                    out.write_text(json.dumps(prior))
+                    prices.publish_regular_closes(lambda: object(), now=now)
+                    report = json.loads(out.read_bytes())
+                    self.assertEqual(report['matched_count'], 2)
+                    self.assertEqual(report['next_session_cache_sha256'], 'e' * 64)
+                    self.assertTrue(report['next_session_zero_volume_checked'])
+                    self.assertEqual(reader.call_count, count)
                 prices.publish_regular_closes(lambda: object(), retry_public_cache=True, now=now)
-                self.assertEqual(reader.call_count, 2)
+                self.assertEqual(reader.call_count, 3)
 
     def test_repeated_publication_reuses_evidence_and_source_drift_rebuilds(self):
         with TemporaryDirectory() as tmp:

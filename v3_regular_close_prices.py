@@ -43,8 +43,11 @@ def next_reference(row):
     close, change, volume = row['Close'], row['Changes'], row['Volume']
     if (any(isinstance(value, bool) or not isinstance(value, Real)
             or not math.isfinite(value) or abs(value) >= 10**12 or int(value) != value
-            for value in (close, change, volume)) or close <= 0 or volume <= 0):
+            for value in (close, change, volume)) or close <= 0 or volume < 0
+            or (volume == 0 and change != 0)):
         return None
+    # A zero-volume listing can carry the prior close. The target KRX row
+    # still has to independently confirm that it traded at that close.
     return int(close - change)
 
 
@@ -107,6 +110,7 @@ def build(market, source_digest, frame, cache_digest, daily, *, next_listing=Non
         'source': 'PUBLIC_CLOSES_CORROBORATED_WITH_KRX',
         'source_market_sha256': source_digest, 'public_cache_sha256': cache_digest,
         'next_session_date': next_day, 'next_session_cache_sha256': next_digest,
+        'next_session_zero_volume_checked': next_listing is not None,
         'official_source_sha256': daily['source_sha256'],
         'requested_count': len(market['stocks']), 'matched_count': len(rows),
         'matches_by_public_source': sources,
@@ -131,8 +135,10 @@ def publish_regular_closes(get_storage, *, retry_public_cache=False, now=None):
             and prior.get('asof') == market['date']
             and prior.get('source_market_sha256') == digest
             and prior.get('official_source_sha256') == status['source_sha256'])
+    retry_zero_volume = (prior.get('next_session_cache_sha256') is not None
+                         and prior.get('next_session_zero_volume_checked') is not True)
     if same_inputs and (prior['matched_count'] == prior['requested_count']
-            or (prior['schema'] == SCHEMA and not retry_public_cache)):
+            or (prior['schema'] == SCHEMA and not retry_public_cache and not retry_zero_volume)):
         return
     try:
         frame, cache_digest = load_dated_listing(market['date'])
@@ -154,7 +160,8 @@ def publish_regular_closes(get_storage, *, retry_public_cache=False, now=None):
                 if 'Changes' in next_frame.columns:
                     next_listing = next_day.isoformat(), next_frame, next_digest
     if (same_inputs and (cache_digest is None or cache_digest == prior['public_cache_sha256'])
-            and (next_listing is None or next_listing[2] == prior.get('next_session_cache_sha256'))):
+            and (next_listing is None or (next_listing[2] == prior.get('next_session_cache_sha256')
+                                          and not retry_zero_volume))):
         return
     daily = read_daily(market['date'], get_storage())
     if daily is None or daily['source_sha256'] != status['source_sha256']:
