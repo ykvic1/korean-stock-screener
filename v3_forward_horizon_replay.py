@@ -14,7 +14,7 @@ from v3_forward_daily_prices import completed_sessions, read_daily
 from v3_forward_entry import PRIVATE_REPO, ROW_STATES, entry_plan, entry_stop_state, public_result
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, load_liquidations
-from v3_forward_observed_readiness import build, read_archived_days
+from v3_forward_observed_readiness import READY, build, read_archived_days
 from v3_forward_price_replay import replay_price_path
 from v3_forward_rank_comparison import add_rank_comparisons
 from v3_forward_settlements import load_settlements
@@ -25,8 +25,7 @@ from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-8'
-READY = 'daily_archive_ready_for_path_replay'
+SCHEMA = 'v3-forward-horizon-price-outcome-9'
 
 
 def loss_rate_bounds(negative, unvalued, opened):
@@ -185,7 +184,8 @@ def replay_next(root, now, get_storage):
             grouped_dividends = {}
             for event in dividend_events:
                 grouped_dividends.setdefault(event['code'], []).append(event)
-            manifest = [SCHEMA, months, cohort['score_observation_sha256'], days, sample,
+            holding_window = horizon.get('holding_window_sample')
+            manifest = [SCHEMA, months, cohort['score_observation_sha256'], days, sample, holding_window,
                         reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
                         dividend_events, [applicable_settlements[k] for k in sorted(applicable_settlements)]]
             digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
@@ -226,6 +226,7 @@ def replay_next(root, now, get_storage):
                 'schema': SCHEMA, 'score_asof': score_day, 'months': months,
                 'entry_session': entry_day, 'target_date': horizon['target_date'],
                 'entry_session_sample': sample,
+                'holding_window_sample': holding_window,
                 'evaluation_session_candidate': target, 'session_count': len(days),
                 'inputs_sha256': digest,
                 'groups': aggregate_paths(observation, evidence['rows'], days, panels,

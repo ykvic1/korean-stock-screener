@@ -16,6 +16,7 @@ from v3_forward_share_actions import OUT as SHARE_REVIEWS, SCHEMA as SHARE_SCHEM
 from v3_score_observation_capture import ARCHIVE
 
 OUTPUT = Path('ops/v3-forward-observed-readiness.json')
+READY = 'daily_archive_ready_for_path_replay'
 
 
 def read_archived_days(root):
@@ -90,7 +91,7 @@ def horizon_readiness(entry_day, target, sessions, archived, now, opening_ready,
     elif gaps:
         state = 'daily_archive_gaps'
     else:
-        state = 'daily_archive_ready_for_path_replay'
+        state = READY
     return {
         'target_date': target.isoformat(),
         'target_session_candidate': target_session.isoformat() if target_session else None,
@@ -113,6 +114,43 @@ def top_ranked_issuers(rows):
         if rank <= 20:
             top20.add(issuer)
     return {'top20': top20, 'top100': top100}
+
+
+def sample_holding_windows(cohorts, primary):
+    """Select earliest non-overlapping entry-to-exit windows for each horizon."""
+    summaries = {}
+    for months in map(str, HORIZONS):
+        previous_score = previous_target = previous_exit = None
+        states = Counter()
+        selected_ready = 0
+        for score_day in primary:
+            cohort = cohorts[score_day]
+            entry = cohort['entry_session_candidate']
+            horizon = cohort['horizons'][months]
+            compared_with = previous_score
+            # An open and a close on the same session still share a price bar.
+            if previous_target and entry <= (previous_exit or previous_target):
+                state = 'overlapping'
+            elif previous_target and previous_exit is None:
+                state = 'waiting_for_previous_exit_session'
+            else:
+                state = 'selected'
+                previous_score = score_day
+                previous_target = horizon['target_date']
+                previous_exit = horizon['target_session_candidate']
+                selected_ready += horizon['status'] == READY
+            horizon['holding_window_sample'] = {
+                'status': state,
+                'compared_with_score_asof': compared_with,
+            }
+            states[state] += 1
+        summaries[months] = {
+            'selected_window_count': states['selected'],
+            'selected_archive_ready_count': selected_ready,
+            'overlapping_window_count': states['overlapping'],
+            'waiting_for_previous_exit_session_count': states['waiting_for_previous_exit_session'],
+        }
+    return summaries
 
 
 def sample_entry_sessions(cohorts, snapshots_by_session):
@@ -147,6 +185,10 @@ def sample_entry_sessions(cohorts, snapshots_by_session):
             str(months): dict(sorted(Counter(
                 cohorts[day]['horizons'][str(months)]['status'] for day in primary).items()))
             for months in HORIZONS
+        },
+        'holding_window_sampling': {
+            'selection_rule': 'earliest_entry_disjoint_inclusive_sessions_by_horizon',
+            'by_horizon': sample_holding_windows(cohorts, primary),
         },
     }
 

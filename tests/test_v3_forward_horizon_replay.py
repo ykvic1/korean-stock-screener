@@ -38,6 +38,7 @@ class ForwardHorizonReplayTests(unittest.TestCase):
             readiness['cohorts'][score_day]['horizons']['1'] = {
                 'status': 'daily_archive_ready_for_path_replay', 'target_session_candidate': days[-1],
                 'target_date': days[-1], 'archived_session_count': 2,
+                'holding_window_sample': {'status': 'selected', 'compared_with_score_asof': None},
             }
             alternate = '2026-11-12'
             # An earlier same-day score must not consume the first replay slot.
@@ -72,6 +73,8 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'representative_score_asof': score_day,
                     'counts_toward_distinct_entry_sessions': True,
                 })
+                self.assertEqual(report['holding_window_sample'],
+                                 {'status': 'selected', 'compared_with_score_asof': None})
                 del readiness['cohorts'][alternate]
                 self.assertEqual(report['groups']['all_ranked'], {
                     'selected_count': 2, 'observed_price_path_count': 1,
