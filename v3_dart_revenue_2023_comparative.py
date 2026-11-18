@@ -26,6 +26,12 @@ ISSUER_GAPS = frozenset({'comparative_revenue_conflict', 'comparative_anchor_mis
                          'comparative_statement_identity_mismatch'})
 MAX_ISSUER_GAPS_PER_RUN = 20
 
+# CHASYS changed from June to December with a July–December 2023 stub.
+# Its previous filing period also ended in 2023. Neither comparative
+# collector may assign that period to FY2022 by column position.
+# https://kind.krx.co.kr/external/2024/03/21/001572/20240321006213/11011.htm
+KNOWN_2023_SHORT_PERIOD_CODES = frozenset({'033250'})
+
 
 class ComparativeRevenueError(ValueError):
     """Fixed diagnostic strings only: never expose API payloads or secrets."""
@@ -36,7 +42,8 @@ def expected_sources(catalog, history, direct=None):
     direct_rows = verified_direct_2022(direct, possible, catalog['date'])
     expected = {}
     for code, base in possible.items():
-        if direct_rows.get(code, {}).get('status') == 'observed':
+        if (code in KNOWN_2023_SHORT_PERIOD_CODES
+                or direct_rows.get(code, {}).get('status') == 'observed'):
             continue
         row = history['records'][code]['years'].get('2023', {}).get(base['scope'], {})
         values = row.get('values', {})

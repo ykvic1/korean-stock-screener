@@ -19,6 +19,7 @@ from v3_dart_bulk_history import (
     _mapping, _stable_digest, _valid_receipt,
     verified_company_mapping_cache, write_json)
 from v3_dart_revenue_2022 import IDS, NONSTANDARD, EXACT_NAMES
+from v3_dart_revenue_2023_comparative import KNOWN_2023_SHORT_PERIOD_CODES
 
 SCHEMA='v3-dart-fy2022-2023-revenue-from-fy2024-original-comparatives-v1'
 OUTPUT='v3-dart-revenue-2024-comparative.json'
@@ -50,6 +51,8 @@ def expected_sources(catalog,history):
     result={}
     for member in catalog['rows']:
         code=member['code']
+        if code in KNOWN_2023_SHORT_PERIOD_CODES:
+            continue
         years=history['records'].get(code,{}).get('years',{})
         for scope in ('CFS','OFS'):
             latest={}
