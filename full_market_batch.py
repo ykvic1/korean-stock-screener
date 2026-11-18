@@ -86,14 +86,15 @@ def overnight_previous_market_date(*, now=None):
 
     Workflow cron fires 17:30 UTC Mon-Fri = 02:30 KST Tue-Sat. It must
     not infer a new Korean trading date just because the checkout/plan job
-    starts after midnight. Korean exchange holidays remain source-unavailable
-    and fail closed, rather than silently reusing another session's data.
+    starts after midnight. A delayed start can still plan the prior date
+    before the next regular session opens at 09:00 KST. Korean exchange
+    holidays still require an exact-date roster.
     """
     local=now if now is not None else datetime.now(ZoneInfo("Asia/Seoul"))
     if not isinstance(local,datetime) or local.tzinfo is None:
         raise BatchError("overnight_target_timezone_required")
     local=local.astimezone(ZoneInfo("Asia/Seoul"))
-    if local.weekday() not in (1,2,3,4,5) or not 1<=local.hour<8:
+    if local.weekday() not in (1,2,3,4,5) or not 1<=local.hour<9:
         raise BatchError("outside_overnight_market_batch_window")
     # `plan()` validates this date against the real clock before fetching.
     # Keep the clock projection pure so historical/future DST-free KST

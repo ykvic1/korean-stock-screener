@@ -75,7 +75,7 @@ jobs:
           fi
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             # Never use the runtime's post-midnight "today" as the market date.
-            # The helper rejects runs outside the intended Tue-Sat KST window.
+            # Delayed starts can still use the prior date before 09:00 KST.
             python full_market_batch.py plan --date-pinned-roster --overnight-previous-day --out batch-plan "${fallback_args[@]}"
           elif [[ -n "$REQUESTED_ASOF" ]]; then
             python full_market_batch.py plan --date-pinned-roster --asof "$REQUESTED_ASOF" --out batch-plan "${fallback_args[@]}"
