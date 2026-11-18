@@ -7,6 +7,13 @@
       "ranked_count": 2572,
       "entry_session_candidate": "2026-11-16",
       "matched_opening_count": 2471,
+      "ranked_entry_status_counts": {
+        "absent": 0,
+        "identity_unresolved": 0,
+        "not_traded": 101,
+        "open_unavailable": 0,
+        "official_open_observed": 2471
+      },
       "entry_share_action_review": {
         "previous_session_candidate": "2026-11-13",
         "source_linked": true,
@@ -99,6 +106,7 @@
       "ranked_count": 2573,
       "entry_session_candidate": "2026-11-18",
       "matched_opening_count": null,
+      "ranked_entry_status_counts": null,
       "entry_share_action_review": {
         "previous_session_candidate": "2026-11-17",
         "source_linked": false,
@@ -182,6 +190,7 @@
       "ranked_count": 2571,
       "entry_session_candidate": "2026-11-18",
       "matched_opening_count": null,
+      "ranked_entry_status_counts": null,
       "entry_share_action_review": {
         "previous_session_candidate": "2026-11-17",
         "source_linked": false,
