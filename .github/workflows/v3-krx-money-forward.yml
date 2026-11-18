@@ -8,9 +8,9 @@ on:
       - tests/test_v3_krx_money_forward.py
       - .github/workflows/v3-krx-money-forward.yml
   schedule:
-    # Check the recent live tail after EOD and twice overnight KST.
-    # No KRX calls unless a NEW full 5-session candidate cohort exists.
-    - cron: '57 11,16,22 * * *'
+    # 08:57 KST after the next-business-day release, plus 20:57 and 01:57 retries.
+    # New cohorts require both five candidate sessions and the last session's publish time.
+    - cron: '57 11,16,23 * * *'
   workflow_dispatch:
     inputs:
       max_windows:

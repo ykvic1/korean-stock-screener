@@ -1,6 +1,6 @@
 """Offline tests for KRX real-money append-only forward tail over fixed history."""
 import base64
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import unittest
@@ -97,6 +97,32 @@ class ForwardMoneyTests(unittest.TestCase):
         self.assertEqual(len(store.files), 4)
         self.assertEqual(_manifest(store.files[CHECKPOINT], extended)
                          ["next_window_index"], 3)
+
+    def test_new_cohort_waits_for_its_last_session_to_be_published(self):
+        store = FakeStore()
+        dates = weekdays("2026-11-12", 5)
+        self.assertEqual(dates[-1], "2026-11-18")
+        publish_at = datetime(2026, 11, 18, 23, tzinfo=timezone.utc)
+
+        def save(store_obj, client, window):
+            store_obj.put_new(_path(window), b"derived-test-cohort", "offline test")
+            return {"status": "persisted_and_verified_money", "source_api_calls": 10}
+
+        with patch("v3_krx_money_forward.official_publish_time",
+                   return_value=publish_at) as cutoff, patch(
+            "v3_krx_money_forward.store_money_five_days", side_effect=save) as writer, patch(
+            "v3_krx_money_forward.validate_money_blob",
+            return_value={"complete_five_session_issuer_market_pairs": 2}):
+            early = collect(store, object(), dates, now=publish_at - timedelta(seconds=1))
+            cutoff.assert_called_once_with(date(2026, 11, 18))
+            writer.assert_not_called()
+            self.assertEqual(early["current_run_api_calls"], 0)
+            self.assertEqual(early["waiting_for_official_publish_at_utc"], publish_at.isoformat())
+            self.assertNotIn(CHECKPOINT, store.files)
+            released = collect(store, object(), dates, now=publish_at)
+            writer.assert_called_once()
+            self.assertEqual(released["completed_forward_five_session_cohorts"], 1)
+            self.assertIsNone(released["waiting_for_official_publish_at_utc"])
 
     def test_calendar_insertion_into_committed_prefix_fails_closed(self):
         store = FakeStore()
