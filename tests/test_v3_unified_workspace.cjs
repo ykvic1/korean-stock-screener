@@ -33,7 +33,7 @@ assert.ok(html.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'
  const bad=structuredClone(data);
  bad.horizons[12].archive_ready_count=bad.horizons[12].selected_window_count+1;
  assert.equal(unified.forwardValidationView(bad),null);
- assert.ok(entry.includes('id="forwardValidationCoverage"'));
+ assert.ok(entry.includes('id="forwardValidationCoverage"')&&html.includes('id="forwardValidationCoverage"'));
 }
 
 
@@ -1120,7 +1120,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261118-stock-detail-dialog')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261118-forward-validation')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
