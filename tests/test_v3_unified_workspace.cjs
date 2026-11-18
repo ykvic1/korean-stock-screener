@@ -1040,7 +1040,7 @@ assert.equal(unified.PILLARS[0][0],'volume');
 assert.equal(unified.PILLARS[0][1],'거래량·OBV');
 assert.deepEqual(unified.VOLUME_COMPONENTS.map(([label,w])=>w),[6,6,4,4]);
 assert.ok(source.includes("v3-volume-obv-observed.json"));
-assert.ok(source.includes("applyObservedVolume(model,responses[13])"));
+assert.ok(source.includes("applyObservedVolume(model,responses[13],marketDigest)"));
 assert.ok(source.includes('data-pillar="\'+esc(p.key)'));
 assert.ok(source.includes('거래량·OBV /20'));
 assert.ok(css.includes('.u-scoresix span[data-pillar="volume"] small'));
@@ -1980,12 +1980,19 @@ assert.equal(unified.realSourceCoverageText(null,savedCoverage.market_asof),'');
 // non-certification are consistent. No artificial foreign net buying.
 const volumeSaved=JSON.parse(fs.readFileSync(
  path.join(__dirname,'../docs/v3-volume-obv-observed.json'),'utf8'));
-const volumeActual=JSON.parse(fs.readFileSync(
- path.join(__dirname,'../docs/data.json'),'utf8'));
+const volumeMarketBytes=fs.readFileSync(path.join(__dirname,'../docs/data.json'));
+const volumeMarketDigest=require('node:crypto').createHash('sha256').update(volumeMarketBytes).digest('hex');
+const volumeActual=JSON.parse(volumeMarketBytes.toString('utf8'));
 const prepared=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
-const expectedVolumeCount=volumeSaved.asof===prepared.date?
- volumeSaved.observed_volume_candidate_issuers:0;
-assert.equal(unified.applyObservedVolume(prepared,volumeSaved),expectedVolumeCount);
+const volumeMatchesDate=volumeSaved.asof===prepared.date;
+const expectedVolumeCount=volumeMatchesDate?volumeSaved.observed_volume_candidate_issuers:0;
+const volumeHasCurrentDigest=volumeSaved.source_market_publication_sha256===volumeMarketDigest;
+assert.equal(unified.applyObservedVolume(prepared,volumeSaved,volumeMarketDigest),
+ volumeHasCurrentDigest?expectedVolumeCount:0);
+// During migration the genuine saved report can predate the publication digest.
+// Stamp it only in this test to exercise the linked UI before the publish job runs.
+const boundVolume={...volumeSaved,source_market_publication_sha256:volumeMarketDigest};
+assert.equal(unified.applyObservedVolume(prepared,boundVolume,volumeMarketDigest),expectedVolumeCount);
 assert.equal(prepared.rows.some(x=>unified.pillarState(x.r)[0].available===10),
  expectedVolumeCount>0,'valid dated base retained after removing old OBV-rise six points');
 const observedLagRows=unified.rankItems(prepared,legacy,'all','all','','score',
@@ -2014,15 +2021,17 @@ if(volumeSaved.asof!==prepared.date){
 }
 const beforeScores=unified.summary(prepared,legacy).provisional;
 assert.ok(beforeScores>=expectedVolumeCount);
-const badCount={...volumeSaved,observed_volume_candidate_issuers:9999};
+const badCount={...boundVolume,observed_volume_candidate_issuers:9999};
 const second=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
-assert.equal(unified.applyObservedVolume(second,badCount),0);
+assert.equal(unified.applyObservedVolume(second,boundVolume,'0'.repeat(64)),0);
+assert.equal(unified.applyObservedVolume(second,boundVolume,null),0);
+assert.equal(unified.applyObservedVolume(second,badCount,volumeMarketDigest),0);
 assert.ok(second.rows.every(x=>unified.pillarState(x.r)[0].available===0));
-const badBuyer=structuredClone(volumeSaved);
+const badBuyer=structuredClone(boundVolume);
 const one=Object.keys(badBuyer.records)[0];
 badBuyer.records[one].foreign_institutional_net_buy_inferred=true;
 const third=legacy.prepare(structuredClone(volumeActual),null,null,null,null,null);
-assert.equal(unified.applyObservedVolume(third,badBuyer),0);
+assert.equal(unified.applyObservedVolume(third,badBuyer,volumeMarketDigest),0);
 assert.ok(third.rows.every(x=>unified.pillarState(x.r)[0].available===0));
 
 
