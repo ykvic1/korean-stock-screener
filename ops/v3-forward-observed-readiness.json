@@ -99,6 +99,10 @@
             "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         }
+      },
+      "entry_session_sample": {
+        "representative_score_asof": "2026-11-13",
+        "counts_toward_distinct_entry_sessions": true
       }
     },
     "2026-11-16": {
@@ -183,6 +187,10 @@
             "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         }
+      },
+      "entry_session_sample": {
+        "representative_score_asof": "2026-11-17",
+        "counts_toward_distinct_entry_sessions": false
       }
     },
     "2026-11-17": {
@@ -267,6 +275,54 @@
             "unresolved_market_code_transitions_in_linked_reviews": 0
           }
         }
+      },
+      "entry_session_sample": {
+        "representative_score_asof": "2026-11-17",
+        "counts_toward_distinct_entry_sessions": true
+      }
+    }
+  },
+  "entry_session_sampling": {
+    "representative_rule": "latest_score_asof_frozen_before_candidate_open",
+    "distinct_entry_session_count": 2,
+    "matched_representative_entry_session_count": 1,
+    "by_entry_session": {
+      "2026-11-16": {
+        "representative_score_asof": "2026-11-13",
+        "score_dates": [
+          "2026-11-13"
+        ],
+        "overlap_with_representative": {}
+      },
+      "2026-11-18": {
+        "representative_score_asof": "2026-11-17",
+        "score_dates": [
+          "2026-11-16",
+          "2026-11-17"
+        ],
+        "overlap_with_representative": {
+          "2026-11-16": {
+            "top20": 14,
+            "top100": 81
+          }
+        }
+      }
+    },
+    "horizon_readiness_counts": {
+      "1": {
+        "waiting_for_target_session": 2
+      },
+      "2": {
+        "waiting_for_target_session": 2
+      },
+      "3": {
+        "waiting_for_target_session": 2
+      },
+      "6": {
+        "waiting_for_target_session": 2
+      },
+      "12": {
+        "waiting_for_target_session": 2
       }
     }
   },
