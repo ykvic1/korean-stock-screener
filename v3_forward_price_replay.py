@@ -1,10 +1,11 @@
 """Replay one issuer's price path in units of one share bought at entry."""
 from fractions import Fraction
 
-from v3_forward_share_actions import HOLDER_NEUTRAL_ACTIONS, share_transition
+from v3_forward_cash_dividends import dividend_sessions
+from v3_forward_share_actions import HOLDER_NEUTRAL_ACTIONS, normalized_name, share_transition
 
 
-def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=None):
+def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=None, dividends=()):
     """Use an ordered exchange-session window and independently reviewed notices.
 
     The caller supplies validated KRX rows and a reference already reconciled
@@ -17,6 +18,9 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
     low = high = Fraction(entry_open)
     first_touch = None
     adjusted_sessions = 0
+    cash_by_session = dividend_sessions(sessions, dividends)
+    paid_cash = Fraction(0)
+    paid_events = pending_events = unlinked_events = 0
     for day in sessions:
         bar = bars.get(day)
         if bar is None or bar[2] != 'traded':
@@ -38,6 +42,14 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
         low = min(low, bar[5] * units)
         high = max(high, bar[4] * units)
         close = bar[6] * units
+        for event in cash_by_session.get(day, ()):
+            if bar[0] != event['market'] or normalized_name(bar[1]) != normalized_name(event['name']):
+                unlinked_events += 1
+            elif event['paid_on'] and event['paid_on'] <= sessions[-1]:
+                paid_cash += units * Fraction(event['krw_per_common_share'])
+                paid_events += 1
+            else:
+                pending_events += 1
         if reference is not None and first_touch is None and bar[5] * units <= reference:
             first_touch = day
         previous = bar
@@ -49,4 +61,9 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
         'reference_compared': reference is not None,
         'first_reference_touch_session': first_touch,
         'adjusted_split_sessions': adjusted_sessions,
+        'confirmed_dividend_events': paid_events,
+        'pending_dividend_events': pending_events,
+        'unlinked_dividend_events': unlinked_events,
+        'price_plus_confirmed_dividend_pct': float((close + paid_cash - entry_open) * 100 / entry_open)
+        if paid_events else None,
     }

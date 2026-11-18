@@ -63,6 +63,13 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'median_terminal_return_pct': 5, 'median_mae_pct': -10,
                     'median_mfe_pct': 10, 'reference_compared_count': 0,
                     'reference_touched_count': 0,
+                    'cash_dividends': {
+                        'issuers_with_confirmed_payment': 0,
+                        'confirmed_payment_events': 0,
+                        'entitled_events_awaiting_payment_evidence': 0,
+                        'events_with_unlinked_issuer_identity': 0,
+                        'median_price_plus_confirmed_dividend_pct': None,
+                    },
                 })
                 self.assertFalse(report['performance_validated'])
                 self.assertNotIn('000001', json.dumps(report))

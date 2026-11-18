@@ -6,6 +6,7 @@ on:
     paths:
       - v3_forward_entry.py
       - v3_forward_price_replay.py
+      - v3_forward_cash_dividends.py
       - v3_forward_horizon_replay.py
       - v3_forward_observed_readiness.py
       - v3_forward_daily_prices.py
@@ -15,6 +16,7 @@ on:
       - ops/forward-reviewed-share-actions.csv
       - ops/forward-reviewed-holder-neutral-actions.csv
       - ops/forward-reviewed-share-continuity.csv
+      - ops/forward-reviewed-cash-dividends.csv
       - .github/workflows/v3-forward-entry.yml
   workflow_run:
     workflows: [V3 Forward Score Observation Capture]

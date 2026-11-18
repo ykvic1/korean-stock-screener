@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from statistics import median
 
+from v3_forward_cash_dividends import load_dividends
 from v3_forward_daily_prices import completed_sessions, read_daily
 from v3_forward_entry import PRIVATE_REPO, entry_plan, entry_stop_state, public_result
 from v3_forward_horizon_readiness import HORIZONS
@@ -17,17 +18,20 @@ from v3_forward_price_replay import replay_price_path
 from v3_forward_share_actions import load_forward_actions, normalized_name
 from v3_forward_signal_close import compare_closes, frozen_market
 from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
-SCHEMA = 'v3-forward-horizon-price-outcome-1'
+SCHEMA = 'v3-forward-horizon-price-outcome-2'
 READY = 'daily_archive_ready_for_path_replay'
 
 
-def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=None, cases=None):
+def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=None, cases=None,
+                    dividends=None):
     members = observation['rows']
     entry_rows = panels[sessions[0]]['rows']
     outcomes = {}
+    dividends = dividends or {}
     for code, member in members.items():
         if member[3] is None:
             continue
@@ -49,13 +53,15 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 reference = member[7]
         bars = {day: panel['rows'].get(code) for day, panel in panels.items()}
         outcomes[code] = replay_price_path(code, sessions, bars, entry_open=opening,
-                                           notices=notices, reference=reference)
+                                           notices=notices, reference=reference,
+                                           dividends=dividends.get(code, ()))
     result = {}
     for label, limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
         selected = [value for code, value in outcomes.items()
                     if limit is None or members[code][3] <= limit]
         observed = [row for row in selected if row['status'] == 'observed_price_path']
         missing = Counter(row['status'] for row in selected if row['status'] != 'observed_price_path')
+        paid = [row for row in observed if row['confirmed_dividend_events']]
         result[label] = {
             'selected_count': len(selected),
             'observed_price_path_count': len(observed),
@@ -66,6 +72,13 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
             'reference_compared_count': sum(row['reference_compared'] for row in observed),
             'reference_touched_count': sum(row['first_reference_touch_session'] is not None
                                            for row in observed),
+            'cash_dividends': {
+                'issuers_with_confirmed_payment': len(paid),
+                'confirmed_payment_events': sum(row['confirmed_dividend_events'] for row in observed),
+                'entitled_events_awaiting_payment_evidence': sum(row['pending_dividend_events'] for row in observed),
+                'events_with_unlinked_issuer_identity': sum(row['unlinked_dividend_events'] for row in observed),
+                'median_price_plus_confirmed_dividend_pct': metric_median(paid, 'price_plus_confirmed_dividend_pct'),
+            },
         }
     return result
 
@@ -79,6 +92,7 @@ def replay_next(root, now, get_storage):
     archived = read_archived_days(root)
     readiness = build(root, now)
     notices = load_forward_actions(root)
+    dividends = load_dividends(root, now.astimezone(KST).date().isoformat())
     for score_day, cohort in readiness['cohorts'].items():
         for months in HORIZONS:
             horizon = cohort['horizons'][str(months)]
@@ -100,8 +114,15 @@ def replay_next(root, now, get_storage):
             if reference_day:
                 sources[reference_day] = archived[reference_day]
             applicable_notices = {key: value for key, value in notices.items() if key[0] in days}
+            dividend_events = [dividends[k] for k in sorted(dividends)
+                               if len(days) >= 3 and days[2] <= k[1] <= target
+                               and dividends[k]['terms_report_on'] <= target]
+            grouped_dividends = {}
+            for event in dividend_events:
+                grouped_dividends.setdefault(event['code'], []).append(event)
             manifest = [SCHEMA, months, cohort['score_observation_sha256'], days,
-                        reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)]]
+                        reference_day, sources, [applicable_notices[k] for k in sorted(applicable_notices)],
+                        dividend_events]
             digest = sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
             target_path = root / OUT / score_day / f'{months}m.json'
             if target_path.exists() and json.loads(target_path.read_bytes()).get('inputs_sha256') == digest:
@@ -142,8 +163,10 @@ def replay_next(root, now, get_storage):
                 'evaluation_session_candidate': target, 'session_count': len(days),
                 'inputs_sha256': digest,
                 'groups': aggregate_paths(observation, evidence['rows'], days, panels,
-                                          applicable_notices, signal=signal, cases=cases),
+                                          applicable_notices, signal=signal, cases=cases,
+                                          dividends=grouped_dividends),
                 'cash_distributions_and_costs_included': False,
+                'dividend_coverage_complete': False,
                 'full_corporate_action_history_certified': False,
                 'performance_validated': False,
             }
