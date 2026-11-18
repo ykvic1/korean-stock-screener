@@ -128,6 +128,17 @@ class OperationalScoreTests(unittest.TestCase):
         self.assertNotIn(FCF_ASSETS, unreconciled)
         self.assertNotIn(FCF_YIELD, unreconciled)
 
+    def test_hlb_innovation_historical_nine_month_period_is_receipt_bound(self):
+        review = ops.REVIEWED_SHORT_PERIODS['024850']
+        historical = {'2023': {'OFS': {'receipt_id': '20240320001706'}}}
+        history = {'records': {'024850': {'years': historical}}}
+        self.assertEqual(ops.reviewed_short_periods(history, None, '2026-11-17'), {'024850': review})
+        self.assertEqual(ops.reviewed_short_periods(history, None, '2024-03-19'), {})
+        self.assertEqual((review['period_start'], review['period_end']), ('2023-04-01', '2023-12-31'))
+        self.assertFalse(review['latest_annual_period'])
+        historical['2023']['OFS']['receipt_id'] = '20240320001707'
+        self.assertEqual(ops.reviewed_short_periods(history, None, '2026-11-17'), {})
+
     def test_regular_close_factors_replace_only_same_day_price_indicators(self):
         from hashlib import sha256
         from v3_ma240_cross_research import observe as ma_observe
