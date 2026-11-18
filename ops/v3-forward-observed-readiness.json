@@ -33,7 +33,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 16
+            "unresolved_market_code_transitions_in_linked_reviews": 1
           }
         },
         "2": {
@@ -47,7 +47,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 16
+            "unresolved_market_code_transitions_in_linked_reviews": 1
           }
         },
         "3": {
@@ -61,7 +61,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 16
+            "unresolved_market_code_transitions_in_linked_reviews": 1
           }
         },
         "6": {
@@ -75,7 +75,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 16
+            "unresolved_market_code_transitions_in_linked_reviews": 1
           }
         },
         "12": {
@@ -89,7 +89,7 @@
             "due_transition_count": 1,
             "source_linked_review_count": 1,
             "first_missing_review_session": null,
-            "unresolved_market_code_transitions_in_linked_reviews": 16
+            "unresolved_market_code_transitions_in_linked_reviews": 1
           }
         }
       }
