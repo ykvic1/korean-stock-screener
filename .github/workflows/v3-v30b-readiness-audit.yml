@@ -78,7 +78,9 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         run: |
           set -euo pipefail
-          python v3_operational_publication_audit.py --out "$RUNNER_TEMP/v30b-operational-publication.json"
+          after_commit="$(python -c 'from v3_operational_publication_audit import FAILED_REFRESH; print(FAILED_REFRESH["after_commit"])')"
+          git fetch --no-tags --depth=2 --filter=blob:none origin "$after_commit"
+          python v3_operational_publication_audit.py --verify-failed-refresh --out "$RUNNER_TEMP/v30b-operational-publication.json"
       - name: Retain operational acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,6 +150,17 @@ jobs:
                   lines.append("관측 가능 배점이 100이어도 기업행위·수정주가·시점별 공시·성과검증은 별도 인증 필요.")
               except (ValueError, TypeError, OSError, UnicodeError):
                   lines.append("- 감사 보고서 형식 오류: 확인 필요")
+          publication_path=report_path.with_name("v30b-operational-publication.json")
+          if publication_path.is_file():
+              publication=json.loads(publication_path.read_text(encoding="utf8"))
+              incident=publication["failed_refresh_evidence"]
+              lines.append("#### 운영 갱신 실패 시 직전 게시본 보존")
+              lines.append("- "+incident["status"]+" / 일치 파일 "
+                  +str(incident.get("matched_file_count",0))+"개")
+              lines.append("- [실제 실패 실행](https://github.com/"+os.environ["GITHUB_REPOSITORY"]
+                  +"/actions/runs/"+str(incident["workflow_run_id"])+")")
+              for item in publication["remaining_acceptance_evidence"]:
+                  lines.append("- 남은 운영 근거 `"+item+"`")
           lines.append("#### 과거 상장폐지 1·2·3·6·12개월 표본")
           pilot_path=report_path.with_name("v30b-historical-pilot.json")
           try:
