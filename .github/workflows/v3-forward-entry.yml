@@ -101,6 +101,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      pages: write
     concurrency:
       group: v3-forward-horizon-replay
       queue: max
@@ -137,3 +138,19 @@ jobs:
           done
           echo '::error::forward_horizon_push_retries_exhausted'
           exit 1
+      - name: Refresh Pages when the published forward evidence is stale
+        if: github.repository == 'ykvic1/korean-stock-screener'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          site=https://ykvic1.github.io/korean-stock-screener
+          for file in v3-forward-validation-{coverage,results}.json; do
+            if curl --fail --silent --show-error --max-time 15 \
+              "$site/$file?run=$GITHUB_RUN_ID" | cmp -s "docs/$file" -; then
+              continue
+            fi
+            gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --jq '.status'
+            exit 0
+          done
