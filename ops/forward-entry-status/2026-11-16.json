@@ -47,18 +47,9 @@
     },
     "corporate_actions_certified": false,
     "performance_validated": false,
-    "structural_reference_status": "compared",
-    "structural_reference_basis": {
-      "signal_published_market_sha256": "8631137d34b81d14f5f44c5666a25208c89a7ee5a25f028dfc4a975197df2942",
-      "signal_krx_source_sha256": {
-        "KOSPI": "af765c6ce7d4d32c6cd31f899893032055c0bdd27d689baf888b1697552102ac",
-        "KOSDAQ": "d3f7784f92d86446330db105f35d1b960d96aa0e35a01f1cc671925e277c173a"
-      },
-      "corporate_actions_certified": false,
-      "stop_execution_validated": false
-    },
+    "structural_reference_status": "nonadjacent_signal_session",
     "entry_session_path": {
-      "schema": "v3-forward-entry-session-path-3",
+      "schema": "v3-forward-entry-session-path-4",
       "session": "2026-11-18",
       "basis": "official_open_to_same_session_ohlc",
       "groups": {
@@ -77,14 +68,6 @@
           "median_high_return_pct": 2.6233,
           "median_close_return_pct": 0.9985,
           "negative_close_count": 5,
-          "structural_reference_counts": {
-            "reference_unavailable": 0,
-            "signal_basis_unmatched": 18,
-            "share_basis_unresolved": 0,
-            "open_at_or_below_reference": 0,
-            "intraday_reference_touched": 0,
-            "reference_not_touched": 2
-          },
           "same_market_rank_comparison": {
             "reference_min_rank": 21,
             "reference_max_rank": 100,
@@ -141,14 +124,6 @@
           "median_high_return_pct": 1.7063,
           "median_close_return_pct": 0.1023,
           "negative_close_count": 47,
-          "structural_reference_counts": {
-            "reference_unavailable": 2,
-            "signal_basis_unmatched": 89,
-            "share_basis_unresolved": 0,
-            "open_at_or_below_reference": 0,
-            "intraday_reference_touched": 0,
-            "reference_not_touched": 9
-          },
           "same_market_rank_comparison": {
             "reference_min_rank": 101,
             "reference_max_rank": null,
@@ -204,20 +179,12 @@
           "median_low_return_pct": -2.5368,
           "median_high_return_pct": 1.9586,
           "median_close_return_pct": -0.0858,
-          "negative_close_count": 1248,
-          "structural_reference_counts": {
-            "reference_unavailable": 369,
-            "signal_basis_unmatched": 1828,
-            "share_basis_unresolved": 2,
-            "open_at_or_below_reference": 14,
-            "intraday_reference_touched": 33,
-            "reference_not_touched": 221
-          }
+          "negative_close_count": 1248
         }
       },
       "fees_and_taxes_included": false,
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-18T23:05:19.467622+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T01:47:03.830931+00:00"
 }

@@ -54,11 +54,12 @@
         "KOSPI": "6138c479ff3b57debd122a42235078d3b9c68bc1df3d23fd804226ec9549dae8",
         "KOSDAQ": "f716bd217368b86ff7909b0e626c58d71379c983fa832a6513398cadacd38957"
       },
+      "reviewed_entry_notices_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "corporate_actions_certified": false,
       "stop_execution_validated": false
     },
     "entry_session_path": {
-      "schema": "v3-forward-entry-session-path-3",
+      "schema": "v3-forward-entry-session-path-4",
       "session": "2026-11-18",
       "basis": "official_open_to_same_session_ohlc",
       "groups": {
@@ -219,5 +220,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-18T23:05:19.467622+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T01:47:03.830931+00:00"
 }

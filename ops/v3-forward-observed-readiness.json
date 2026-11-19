@@ -350,11 +350,119 @@
         "representative_score_asof": "2026-11-17",
         "counts_toward_distinct_entry_sessions": true
       }
+    },
+    "2026-11-18": {
+      "score_observation_sha256": "b8fa8fbbd72f64d04d52f4d5d16c13dae9bde7554bf3b216e216dffb51d6fb3e",
+      "ranked_count": 2571,
+      "entry_session_candidate": "2026-11-19",
+      "matched_opening_count": null,
+      "ranked_entry_status_counts": null,
+      "entry_share_action_review": {
+        "previous_session_candidate": "2026-11-18",
+        "source_linked": false,
+        "market_transition_counts": null
+      },
+      "horizons": {
+        "1": {
+          "target_date": "2026-12-19",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          },
+          "holding_window_sample": {
+            "status": "overlapping",
+            "compared_with_score_asof": "2026-11-13"
+          }
+        },
+        "2": {
+          "target_date": "2027-01-19",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          },
+          "holding_window_sample": {
+            "status": "overlapping",
+            "compared_with_score_asof": "2026-11-13"
+          }
+        },
+        "3": {
+          "target_date": "2027-02-19",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          },
+          "holding_window_sample": {
+            "status": "overlapping",
+            "compared_with_score_asof": "2026-11-13"
+          }
+        },
+        "6": {
+          "target_date": "2027-05-19",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          },
+          "holding_window_sample": {
+            "status": "overlapping",
+            "compared_with_score_asof": "2026-11-13"
+          }
+        },
+        "12": {
+          "target_date": "2027-11-19",
+          "target_session_candidate": null,
+          "status": "waiting_for_target_session",
+          "due_session_count": 0,
+          "archived_session_count": 0,
+          "first_missing_due_session": null,
+          "share_action_review_coverage": {
+            "due_transition_count": 0,
+            "source_linked_review_count": 0,
+            "first_missing_review_session": null,
+            "unresolved_market_code_transitions_in_linked_reviews": 0
+          },
+          "holding_window_sample": {
+            "status": "overlapping",
+            "compared_with_score_asof": "2026-11-13"
+          }
+        }
+      },
+      "entry_session_sample": {
+        "representative_score_asof": "2026-11-18",
+        "counts_toward_distinct_entry_sessions": true
+      }
     }
   },
   "entry_session_sampling": {
     "representative_rule": "latest_score_asof_frozen_before_candidate_open",
-    "distinct_entry_session_count": 2,
+    "distinct_entry_session_count": 3,
     "matched_representative_entry_session_count": 2,
     "by_entry_session": {
       "2026-11-16": {
@@ -376,23 +484,30 @@
             "top100": 81
           }
         }
+      },
+      "2026-11-19": {
+        "representative_score_asof": "2026-11-18",
+        "score_dates": [
+          "2026-11-18"
+        ],
+        "overlap_with_representative": {}
       }
     },
     "horizon_readiness_counts": {
       "1": {
-        "waiting_for_target_session": 2
+        "waiting_for_target_session": 3
       },
       "2": {
-        "waiting_for_target_session": 2
+        "waiting_for_target_session": 3
       },
       "3": {
-        "waiting_for_target_session": 2
+        "waiting_for_target_session": 3
       },
       "6": {
-        "waiting_for_target_session": 2
+        "waiting_for_target_session": 3
       },
       "12": {
-        "waiting_for_target_session": 2
+        "waiting_for_target_session": 3
       }
     },
     "holding_window_sampling": {
@@ -401,31 +516,31 @@
         "1": {
           "selected_window_count": 1,
           "selected_archive_ready_count": 0,
-          "overlapping_window_count": 1,
+          "overlapping_window_count": 2,
           "waiting_for_previous_exit_session_count": 0
         },
         "2": {
           "selected_window_count": 1,
           "selected_archive_ready_count": 0,
-          "overlapping_window_count": 1,
+          "overlapping_window_count": 2,
           "waiting_for_previous_exit_session_count": 0
         },
         "3": {
           "selected_window_count": 1,
           "selected_archive_ready_count": 0,
-          "overlapping_window_count": 1,
+          "overlapping_window_count": 2,
           "waiting_for_previous_exit_session_count": 0
         },
         "6": {
           "selected_window_count": 1,
           "selected_archive_ready_count": 0,
-          "overlapping_window_count": 1,
+          "overlapping_window_count": 2,
           "waiting_for_previous_exit_session_count": 0
         },
         "12": {
           "selected_window_count": 1,
           "selected_archive_ready_count": 0,
-          "overlapping_window_count": 1,
+          "overlapping_window_count": 2,
           "waiting_for_previous_exit_session_count": 0
         }
       }
