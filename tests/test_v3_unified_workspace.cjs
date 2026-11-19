@@ -20,6 +20,17 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  assert.match(view.body,/1,615 \/ 2,041/);
  assert.match(view.body,/진입 시가 미확인 97종목/);
  assert.match(view.body,/12개월 평가값 미확보 606종목/);
+ assert.match(view.body,/신주인수권 가치 미확인 9종목 포함/);
+ const code=data.unpriced_paid_rights[12][0];
+ const details=unified.historicalPricePath({code,...data.rows[code]},data);
+ assert.equal(details.status,'12개월 미산출');
+ assert.match(details.body,/<th scope="row">12개월<small>[^<]+<\/small><\/th><td>미산출<small>유상증자 신주인수권 가치 미확인/);
+ const control=Object.keys(data.rows).find(code=>Number.isFinite(data.rows[code].paths[12]?.[0]));
+ assert.doesNotMatch(unified.historicalPricePath({code:control,...data.rows[control]},data).body,
+  /유상증자 신주인수권 가치 미확인/);
+ const invalid={...data,unpriced_paid_rights:{...data.unpriced_paid_rights,12:[control]}};
+ assert.equal(unified.historicalPriceCoverageView(invalid),null);
+
  assert.equal(unified.historicalPriceCoverageView({...data,rows:{}}),null);
 }
 const auditWarningSource=fs.readFileSync(path.join(__dirname,'../docs/v3-live-progress.js'),'utf8');
@@ -1145,7 +1156,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261119-historical-coverage')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261119-historical-rights')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),

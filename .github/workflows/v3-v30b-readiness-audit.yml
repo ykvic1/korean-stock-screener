@@ -16,6 +16,7 @@ on:
       - docs/v3-historical-price-paths-20251113.json
       - ops/v3-performance-financial-factor-replay-20251113.json
       - ops/v3-performance-market-coverage-20251113.json
+      - ops/v3-performance-market-share-action-replay-20251113.json
       - ops/v3-performance-operating-scope-20251113.json
       - tests/test_v3_historical_performance_pilot_audit.py
       - 'ops/v3-performance-*-20251113.csv'
@@ -44,6 +45,7 @@ on:
       - docs/v3-historical-price-paths-20251113.json
       - ops/v3-performance-financial-factor-replay-20251113.json
       - ops/v3-performance-market-coverage-20251113.json
+      - ops/v3-performance-market-share-action-replay-20251113.json
       - ops/v3-performance-operating-scope-20251113.json
       - tests/test_v3_historical_performance_pilot_audit.py
       - 'ops/v3-performance-*-20251113.csv'
