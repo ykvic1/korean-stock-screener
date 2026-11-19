@@ -116,6 +116,8 @@ class ScorecardMarketDayGateTests(unittest.TestCase):
 
     def test_workflow_skips_calculate_publish_on_source_mismatch(self):
         wf=(ROOT/".github/workflows/v3-all-listed-scorecard.yml").read_text(encoding="utf8")
+        self.assertIn("- V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)", wf)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", wf)
         self.assertIn("id: date_gate",wf)
         self.assertIn("python v3_scorecard_source_day_preflight.py",wf)
         self.assertGreaterEqual(wf.count("steps.date_gate.outputs.ready == 'true'"),3)

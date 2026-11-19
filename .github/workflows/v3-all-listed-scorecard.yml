@@ -23,6 +23,7 @@ on:
     workflows:
       - V3 Actual Money Personal Participation Score
       - V3 All-Listed Same-Day Technical Momentum Replay (0 provider calls)
+      - V3 Bulk OpenDART Four-Year Listed History (100 issuers per request)
     types: [completed]
   workflow_dispatch:
     inputs:
