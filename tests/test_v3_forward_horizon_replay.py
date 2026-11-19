@@ -107,6 +107,18 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'score_asof': score_day, 'entry_session': days[0], 'evaluation_session': days[-1],
                     'confirmed_opening_count': 1, 'valued_count': 1, 'median_terminal_return_pct': 5,
                     'observed_price_path_count': 1, 'median_mae_pct': -10, 'loss_rate_bounds_pct': [0, 0],
+                    'same_market_rank_comparison': {
+                        'reference_min_rank': 21, 'reference_max_rank': 100,
+                        'weight_basis': 'frozen_candidate_market_mix',
+                        'markets': {'KOSPI': {
+                            'candidate': {'selected_count': 1, 'confirmed_opening_count': 1,
+                                          'valued_count': 1, 'negative_return_count': 0},
+                            'reference': {'selected_count': 1, 'confirmed_opening_count': 1,
+                                          'valued_count': 0, 'negative_return_count': 0},
+                        }},
+                        'observed_mean_return_spread_pct_points': None,
+                        'loss_rate_spread_bounds_pct_points': [-100, 0],
+                    },
                 }}})
                 self.assertNotIn('000001', json.dumps(published))
                 changed = readiness['cohorts'][score_day]['horizons']['1']

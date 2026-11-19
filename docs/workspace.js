@@ -2493,6 +2493,32 @@ function structuralStopMarkup(r,compact=false){
   '<p class="u-muted">20·60일 이동평균선은 종가의 단순평균입니다. 저점·스윙과 같은 가격계열 근거는 중복 독립확인으로 계산하지 않습니다. 일봉 기반 매물대는 실제 가격대별 체결량이 아닌 근사치입니다. 엘리엇 파동 카운팅의 확정 무효화가 아니며, KRX 정규장·기업행위 독립 검증 전입니다. 갭 하락·거래정지 시 실제 청산 손실은 더 클 수 있습니다. 이 참고선과 거리에는 어떤 가점·감점도 없습니다.</p>'+
   (compact?'</details>':'')+'</section>';
 }
+function forwardRankComparison(comparison,opened,valued){
+ if(comparison?.reference_min_rank!==21||comparison.reference_max_rank!==100||
+    comparison.weight_basis!=='frozen_candidate_market_mix'||!comparison.markets)return '';
+ const markets=Object.entries(comparison.markets);
+ const validGroup=g=>g&&[g.selected_count,g.confirmed_opening_count,g.valued_count,g.negative_return_count]
+  .every(n=>Number.isSafeInteger(n)&&n>=0)&&g.negative_return_count<=g.valued_count&&
+  g.valued_count<=g.confirmed_opening_count&&g.confirmed_opening_count<=g.selected_count;
+ if(!markets.length||markets.some(([name,v])=>!['KOSPI','KOSDAQ'].includes(name)||
+    !validGroup(v?.candidate)||!validGroup(v?.reference)||v.candidate.selected_count<1))return '';
+ const total=(group,key)=>markets.reduce((n,[,v])=>n+v[group][key],0);
+ const referenceOpened=total('reference','confirmed_opening_count');
+ const referenceValued=total('reference','valued_count');
+ if(total('candidate','selected_count')>20||total('reference','selected_count')>80||
+    total('candidate','confirmed_opening_count')!==opened||total('candidate','valued_count')!==valued)return '';
+ const spread=comparison.observed_mean_return_spread_pct_points;
+ const bounds=comparison.loss_rate_spread_bounds_pct_points;
+ const hasReturn=Number.isFinite(spread)&&markets.every(([,v])=>v.candidate.valued_count&&v.reference.valued_count);
+ const hasLoss=Array.isArray(bounds)&&bounds.length===2&&bounds.every(x=>Number.isFinite(x)&&Math.abs(x)<=100)&&
+  bounds[0]<=bounds[1]&&markets.every(([,v])=>v.candidate.confirmed_opening_count&&v.reference.confirmed_opening_count);
+ if(!hasReturn&&!hasLoss)return '';
+ const pp=x=>(x>0?'+':'')+x.toFixed(2)+'%p';
+ const loss=hasLoss?(bounds[0]===bounds[1]?pp(bounds[0]):pp(bounds[0])+'~'+pp(bounds[1])):null;
+ const metrics=[hasReturn?'평균 수익률 차이 '+pp(spread):null,loss?'손실률 차이 '+loss:null].filter(Boolean);
+ return '<small>같은 시장 21~100위 대비 · '+metrics.join(' · ')+'</small>'+
+  '<small>수익률 확인 '+valued+'/'+opened+' 대 '+referenceValued+'/'+referenceOpened+'종목</small>';
+}
 function forwardOutcomeCell(data,months,row,latestScore){
  const pending=row.archive_ready_count?'결과 게시 대기':'평가 대기';
  const window=data?.horizons?.[months],s=window?.latest;
@@ -2513,7 +2539,8 @@ function forwardOutcomeCell(data,months,row,latestScore){
  const loss=bounds?(bounds[0]===bounds[1]?pct(bounds[0]):pct(bounds[0])+'~'+pct(bounds[1])):'—';
  return '<strong>수익률 '+(ret===null?'—':pct(ret))+'</strong><small>최대 하락폭 '+
   (mae===null?'—':pct(mae))+' · 손실률 '+loss+'</small><small>'+esc(s.evaluation_session)+
-  ' 평가 · 수익률 '+valued+'/'+opened+'종목 · 게시 '+window.published_window_count+'구간</small>';
+  ' 평가 · 수익률 '+valued+'/'+opened+'종목 · 게시 '+window.published_window_count+'구간</small>'+
+  forwardRankComparison(s.same_market_rank_comparison,opened,valued);
 }
 function forwardValidationView(data,outcomes){
  const matched=data?.matched_entry_session_count,candidates=data?.candidate_entry_session_count;
@@ -2541,6 +2568,7 @@ function forwardValidationView(data,outcomes){
   '</tr></thead><tbody>'+lines.join('')+'</tbody></table>'+
   '<p class="u-source">서로 겹치지 않는 보유 구간을 셉니다. 목표일 이후 첫 거래일의 공식 가격이 게시되면 평가합니다. '+
   '성과는 기간별 최근 게시 구간의 수익률과 진입가 대비 최대 하락폭 중앙값입니다. '+
+  '21~100위 대비 차이는 상위 20종목의 코스피·코스닥 구성 비중으로 맞춰 계산합니다. '+
   '손실률은 평가값이 없는 진입 종목을 포함한 범위입니다. 배당·비용 반영 전 연구 결과입니다.</p>'};
 }
 function validHistoricalPricePaths(data){

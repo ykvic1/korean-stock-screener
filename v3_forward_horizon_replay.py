@@ -322,6 +322,7 @@ def pages_results(root, readiness, now):
             'observed_price_path_count': top['observed_price_path_count'],
             'median_mae_pct': top['median_mae_pct'],
             'loss_rate_bounds_pct': coverage['loss_rate_bounds_pct'],
+            'same_market_rank_comparison': top['same_market_rank_comparison'],
         }
     return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
             'horizons': horizons}
