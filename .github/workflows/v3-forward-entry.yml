@@ -20,6 +20,7 @@ on:
       - v3_regular_close_prices.py
       - ops/forward-reviewed-share-actions.csv
       - ops/forward-reviewed-holder-neutral-actions.csv
+      - ops/forward-reviewed-issuance-chains.csv
       - ops/forward-reviewed-share-continuity.csv
       - ops/v3-performance-continuity-actions-20251113.json
       - ops/forward-reviewed-cash-dividends.csv
