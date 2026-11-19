@@ -107,6 +107,32 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
         legacy['rows']['005930']['weekly'] = receipt
         self.assertNotIn('005930', history.admitted_rows(legacy, self.catalog))
 
+    def test_weekly_indicators_keep_only_anchored_flat_no_trade_weeks(self):
+        days = list(map(date.fromisoformat, history.history_dates('2026-11-13')))
+        weeks = history.completed_week_ranges(days)[-120:]
+        member = self.catalog['rows'][0]
+        records = [[member['market'], member['name'], 1000, 500, 1000, True]
+                   for _ in days]
+        start, end = weeks[-2][1]
+        for row in records[start:end]:
+            row[5] = False
+        receipt = history.weekly_indicators(records, member, weeks, days[-1])
+        self.assertEqual(receipt['continuous_weeks'], 120)
+        self.assertEqual(receipt['weekly_ma120_gap_pct'], 0.0)
+        conflicting = deepcopy(records)
+        conflicting[start][3] += 1
+        self.assertIsNone(history.weekly_indicators(conflicting, member, weeks, days[-1]))
+        start, end = weeks[0][1]
+        for row in records[start:end]:
+            row[5] = False
+        receipt = history.weekly_indicators(records, member, weeks, days[-1])
+        self.assertEqual(receipt['continuous_weeks'], 119)
+        self.assertIsNone(receipt['weekly_ma120_gap_pct'])
+        start, end = weeks[-1][1]
+        for row in records[start:end]:
+            row[5] = False
+        self.assertIsNone(history.weekly_indicators(records, member, weeks, days[-1]))
+
     def test_long_week_windows_enable_each_factor_only_after_required_history(self):
         days = history.history_dates('2026-11-13')
         dates = list(map(date.fromisoformat, days))
