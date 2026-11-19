@@ -123,6 +123,13 @@ def load_forward_actions(root=Path('.')):
     return notices
 
 
+def session_review_inputs(notices, day):
+    session_notices = {key: row for key, row in notices.items() if key[0] == day}
+    payload = json.dumps([session_notices[key] for key in sorted(session_notices)],
+                         sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()
+    return session_notices, sha256(payload).hexdigest()
+
+
 def share_transition(previous, current, notice):
     if previous is None:
         return 'first_seen'
@@ -196,7 +203,7 @@ def reconcile(before, after, notices, notice_sha):
     return public, reviews
 
 
-def collect_share_reviews(now, get_storage):
+def collect_share_reviews(now, get_storage, *, notices=None):
     archived = {}
     for path in sorted(DAILY_STATUS.glob('????-??-??.json')):
         state = json.loads(path.read_bytes())
@@ -206,7 +213,8 @@ def collect_share_reviews(now, get_storage):
             archived[date.fromisoformat(path.stem)] = state
     if len(archived) < 2:
         return
-    notices = load_forward_actions()
+    if notices is None:
+        notices = load_forward_actions()
     days = [date.fromisoformat(day)
             for day in completed_sessions(min(archived), max(archived), now)]
 
@@ -221,12 +229,7 @@ def collect_share_reviews(now, get_storage):
     for earlier, day in zip(days, days[1:]):
         if earlier not in archived or day not in archived:
             continue
-        session_notices = {key: value for key, value in notices.items()
-                           if key[0] == day.isoformat()}
-        notice_bytes = json.dumps([session_notices[key] for key in sorted(session_notices)],
-                                  sort_keys=True, ensure_ascii=False,
-                                  separators=(',', ':')).encode()
-        review_digest = sha256(notice_bytes).hexdigest()
+        session_notices, review_digest = session_review_inputs(notices, day.isoformat())
         target = OUT / f'{day}.json'
         if target.exists():
             previous = json.loads(target.read_bytes())

@@ -41,7 +41,9 @@ class OfficialPair:
 
     def daily_market(self, market, day):
         self.markets.append(market)
-        rows = [quote()] if market == 'KOSPI' else [quote(code=self.kosdaq_code, name='코스닥')]
+        day = day.replace('-', '')
+        rows = ([quote(day=day)] if market == 'KOSPI'
+                else [quote(code=self.kosdaq_code, name='코스닥', day=day)])
         return rows, json.dumps({'OutBlock_1': rows}).encode()
 
 
@@ -188,6 +190,42 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual(checked['entry_session_path']['groups']['top20']
                          ['structural_reference_counts']['intraday_reference_touched'],1)
         self.assertNotIn('49000',json.dumps(checked))
+        with patch('v3_forward_entry.frozen_market', return_value=market):
+            action = crosscheck_entry_daily(
+                observation, digest, storage, review_reference=True,
+                notices={('2026-11-16', '005930'): {'action': 'rename'}})
+        self.assertNotEqual(checked['structural_reference_basis']['reviewed_entry_notices_sha256'],
+                            action['structural_reference_basis']['reviewed_entry_notices_sha256'])
+        counts = action['entry_session_path']['groups']['top20']['structural_reference_counts']
+        self.assertEqual(counts['share_basis_unresolved'], 1)
+        self.assertEqual(counts['intraday_reference_touched'], 0)
+
+    def test_delayed_capture_keeps_entry_path_but_cannot_compare_reference(self):
+        observation = {
+            'schema': SCORE_SCHEMA, 'score_asof': '2026-11-16',
+            'captured_at_utc': '2026-11-17T02:18:15+00:00',
+            'regular_close_utc': '2026-11-16T06:30:00+00:00',
+            'listed_count': 2, 'ranked_count': 1,
+            'rows': {'005930': ['삼성전자', 'KOSPI', 60, 1, 80, '2026-11-16', '2026-11-16', 49000],
+                     '123456': ['코스닥', 'KOSDAQ', None, None]},
+        }
+        digest, storage = 'd' * 64, MemoryStore()
+        plan = entry_plan(observation, digest)
+        self.assertEqual(plan['entry_session_candidate'], '2026-11-18')
+        now = timestamp('2026-11-19T00:00:00+00:00')
+        official = read_official_openings(OfficialPair(), '2026-11-18')
+        with patch('v3_forward_entry.datetime', wraps=datetime) as clock:
+            clock.now.return_value = now
+            save_entry(plan, observation, storage, lambda day: official)
+        save_daily('2026-11-18', storage, lambda day: official, clock=lambda: now)
+        with patch('v3_forward_entry.frozen_market') as frozen:
+            result = crosscheck_entry_daily(observation, digest, storage, review_reference=True)
+        frozen.assert_not_called()
+        self.assertEqual(result['structural_reference_status'], 'nonadjacent_signal_session')
+        self.assertEqual(result['status'], 'matched')
+        top = result['entry_session_path']['groups']['top20']
+        self.assertEqual(top['observed_count'], 1)
+        self.assertNotIn('structural_reference_counts', top)
 
     def test_late_capture_and_open_boundary(self):
         monday, opening, closing = first_open_after(timestamp('2026-11-15T23:03:26.504597+00:00'))

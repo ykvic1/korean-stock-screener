@@ -13,12 +13,15 @@ from statistics import median
 from official_probe.clients import KRXClient, KRXProbeError
 from v3_forward_daily_prices import (
     DailyEvidenceError, IncompleteOfficialPair, RETRYABLE_KRX_REASONS,
-    collect_daily, official_publish_time, pending_official_pair, read_daily,
+    collect_daily, completed_sessions, official_publish_time, pending_official_pair, read_daily,
 )
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
 from v3_forward_price_replay import replay_price_path
 from v3_forward_rank_comparison import add_rank_comparisons
-from v3_forward_share_actions import ShareReviewError, collect_share_reviews, normalized_name
+from v3_forward_share_actions import (
+    ShareReviewError, collect_share_reviews, load_forward_actions, normalized_name,
+    session_review_inputs,
+)
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
 from v3_regular_close_prices import RegularCloseError, publish_regular_closes
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
@@ -32,7 +35,7 @@ from v3_score_observation_capture import ARCHIVE, SCHEMA as SCORE_SCHEMA, positi
 OUT = Path('ops/forward-entry-status')
 PRIVATE_REPO = 'ykvic1/korean-stock-private-data'
 SCHEMA = 'v3-forward-opening-evidence-1'
-ENTRY_PATH_SCHEMA = 'v3-forward-entry-session-path-3'
+ENTRY_PATH_SCHEMA = 'v3-forward-entry-session-path-4'
 ROW_STATES = ('unranked', 'absent', 'identity_unresolved', 'not_traded',
               'open_unavailable', 'official_open_observed')
 MAX_COHORTS_PER_RUN = 5
@@ -203,14 +206,14 @@ def save_entry(plan, observation, storage, official_openings):
     return result
 
 
-def entry_stop_state(member, opening, entry_row, signal_row, signal_state):
+def entry_stop_state(member, opening, entry_row, signal_row, signal_state, *, reviewed_action=False):
     """Compare a frozen structural reference on the same observed price basis."""
     reference = member[7] if len(member) > 7 else None
     if not positive(reference):
         return 'reference_unavailable'
     if signal_state != 'matched' or signal_row is None or reference >= signal_row[6]:
         return 'signal_basis_unmatched'
-    if signal_row[-1] is None or signal_row[-1] != entry_row[-1]:
+    if reviewed_action or signal_row[-1] is None or signal_row[-1] != entry_row[-1]:
         return 'share_basis_unresolved'
     if opening <= reference:
         return 'open_at_or_below_reference'
@@ -219,12 +222,14 @@ def entry_stop_state(member, opening, entry_row, signal_row, signal_state):
     return 'reference_not_touched'
 
 
-def entry_session_path(observation, evidence, daily, *, signal=None, signal_cases=None):
+def entry_session_path(observation, evidence, daily, *, signal=None, signal_cases=None,
+                       entry_notices=None):
     """Summarize one matched session from its official open, including missing entries."""
     members = observation['rows']
     openings = evidence['rows']
     paths, references = {}, {}
     day = daily['date']
+    entry_notices = entry_notices or {}
     for code, member in members.items():
         state, opening = openings[code]
         if member[3] is None or state != 'official_open_observed':
@@ -236,7 +241,8 @@ def entry_session_path(observation, evidence, daily, *, signal=None, signal_case
         paths[code] = path
         if signal is not None:
             references[code] = entry_stop_state(member, opening, row, signal['rows'].get(code),
-                                                signal_cases[code]['state'])
+                                                signal_cases[code]['state'],
+                                                reviewed_action=(day, code) in entry_notices)
     groups = {}
     for label, rank_limit in (('top20', 20), ('top100', 100), ('all_ranked', None)):
         selected = [code for code, member in members.items()
@@ -268,7 +274,8 @@ def entry_session_path(observation, evidence, daily, *, signal=None, signal_case
     }
 
 
-def crosscheck_entry_daily(observation, source_digest, storage, *, review_reference=False):
+def crosscheck_entry_daily(observation, source_digest, storage, *, review_reference=False,
+                           notices=None):
     """Compare saved entry opens with their independently retained daily panel."""
     plan = entry_plan(observation, source_digest)
     path = f"derived/forward-entry/{plan['score_asof']}.json.gz"
@@ -277,7 +284,8 @@ def crosscheck_entry_daily(observation, source_digest, storage, *, review_refere
         raise EntryError('private_entry_missing_for_daily_crosscheck')
     evidence = json.loads(gzip.decompress(blob))
     entry = public_result(plan, evidence, observation['rows'])
-    daily = read_daily(plan['entry_session_candidate'], storage)
+    entry_day = plan['entry_session_candidate']
+    daily = read_daily(entry_day, storage)
     if daily is None:
         return {'status': 'waiting_for_daily_archive'}
     checked, mismatched = 0, 0
@@ -309,23 +317,34 @@ def crosscheck_entry_daily(observation, source_digest, storage, *, review_refere
     if status == 'matched':
         signal = None
         signal_cases = None
+        entry_notices = None
         if review_reference:
-            signal = read_daily(plan['score_asof'], storage)
-            market = frozen_market(observation) if signal is not None else None
-            if market is None:
-                result['structural_reference_status'] = 'waiting_for_signal_price_basis'
-                signal = None
+            score_day = plan['score_asof']
+            sessions = list(completed_sessions(date.fromisoformat(score_day),
+                                               date.fromisoformat(entry_day),
+                                               timestamp(plan['regular_close_utc'])))
+            if sessions != [score_day, entry_day]:
+                result['structural_reference_status'] = 'nonadjacent_signal_session'
             else:
-                _, signal_cases = compare_closes(observation, market, signal)
-                result['structural_reference_status'] = 'compared'
-                result['structural_reference_basis'] = {
-                    'signal_published_market_sha256': observation['source_market_sha256'],
-                    'signal_krx_source_sha256': signal['source_sha256'],
-                    'corporate_actions_certified': False,
-                    'stop_execution_validated': False,
-                }
+                signal = read_daily(score_day, storage)
+                market = frozen_market(observation) if signal is not None else None
+                if market is None:
+                    result['structural_reference_status'] = 'waiting_for_signal_price_basis'
+                    signal = None
+                else:
+                    _, signal_cases = compare_closes(observation, market, signal)
+                    entry_notices, notice_digest = session_review_inputs(notices or {}, entry_day)
+                    result['structural_reference_status'] = 'compared'
+                    result['structural_reference_basis'] = {
+                        'signal_published_market_sha256': observation['source_market_sha256'],
+                        'signal_krx_source_sha256': signal['source_sha256'],
+                        'reviewed_entry_notices_sha256': notice_digest,
+                        'corporate_actions_certified': False,
+                        'stop_execution_validated': False,
+                    }
         result['entry_session_path'] = entry_session_path(
-            observation, evidence, daily, signal=signal, signal_cases=signal_cases)
+            observation, evidence, daily, signal=signal, signal_cases=signal_cases,
+            entry_notices=entry_notices)
     return result
 
 
@@ -425,26 +444,35 @@ def main():
     collect_signal_closes(entry_statuses, now, private_storage)
     publish_regular_closes(private_storage, now=now, retry_public_cache=os.getenv('GITHUB_EVENT_NAME')
                            in {'schedule', 'workflow_dispatch'})
+    notices = load_forward_actions()
     checked = 0
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
         old = status.get('entry_daily_crosscheck', {})
-        if (status['status'] != 'official_openings_archived_privately'
-                or (old.get('structural_reference_status') == 'compared'
-                    and old.get('entry_session_path', {}).get('schema') == ENTRY_PATH_SCHEMA)):
+        if status['status'] != 'official_openings_archived_privately':
             continue
+        if old.get('entry_session_path', {}).get('schema') == ENTRY_PATH_SCHEMA:
+            reference_state = old.get('structural_reference_status')
+            if reference_state == 'nonadjacent_signal_session':
+                continue
+            if reference_state == 'compared':
+                _, notice_digest = session_review_inputs(notices, status['entry_session_candidate'])
+                if old.get('structural_reference_basis', {}).get(
+                        'reviewed_entry_notices_sha256') == notice_digest:
+                    continue
         if checked >= MAX_COHORTS_PER_RUN:
             break
         checked += 1
         source = ARCHIVE / f"{status['score_asof']}.json"
         raw = source.read_bytes()
         status['entry_daily_crosscheck'] = crosscheck_entry_daily(
-            json.loads(raw), sha256(raw).hexdigest(), private_storage(), review_reference=True)
+            json.loads(raw), sha256(raw).hexdigest(), private_storage(), review_reference=True,
+            notices=notices)
         status['last_entry_daily_crosscheck_at_utc'] = now.isoformat()
         target = OUT / source.name
         target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(json.dumps(status, ensure_ascii=False))
-    collect_share_reviews(now, private_storage)
+    collect_share_reviews(now, private_storage, notices=notices)
 
 
 if __name__ == '__main__':

@@ -58,9 +58,9 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 or row[2] != 'traded' or row[3] != opening):
             raise ValueError('horizon_entry_open_crosscheck_failed')
         reference = None
-        if signal is not None and (sessions[0], code) not in notices:
+        if signal is not None:
             state = entry_stop_state(member, opening, row, signal['rows'].get(code),
-                                     cases[code]['state'])
+                                     cases[code]['state'], reviewed_action=(sessions[0], code) in notices)
             if state in ('open_at_or_below_reference', 'intraday_reference_touched',
                          'reference_not_touched'):
                 reference = member[7]
