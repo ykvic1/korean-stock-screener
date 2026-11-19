@@ -1,10 +1,4 @@
-"""Research-only comparison of dated Naver mobile daily closes with official KRX.
-
-A daily Naver chart may include extended-session trading after 2026-09-14.
-A matching field is only a candidate for further independent validation, never
-an automatically certified 09:00-15:30 close. Never persist quote values,
-official KRX source rows or issuer identities to GitHub.
-"""
+"""Compare dated Npay regular and final closes with KRX and saved FChart."""
 from __future__ import annotations
 
 from hashlib import sha256
@@ -13,9 +7,11 @@ import re
 
 import requests
 
-SCHEMA = 'v3-public-daily-close-candidate-crosscheck-v1'
-ENDPOINT = 'https://m.stock.naver.com/api/stock/{code}/price'
+SCHEMA = 'v3-public-daily-close-candidate-crosscheck-v2'
+ENDPOINT = 'https://stock.naver.com/api/stockSecurity/items/v2/domestic/{code}/daily-prices'
 SAMPLE_PER_MARKET = 12
+STATES = ('regular_matches_krx_and_final_matches_saved', 'regular_matches_krx_only',
+          'final_matches_saved_only', 'neither_matches', 'unavailable')
 
 
 def _price(value):
@@ -29,35 +25,39 @@ def _price(value):
     return None
 
 
-def parse_dated_close(payload, day):
-    """Only an explicitly dated historic daily bar, not a live quote."""
-    if isinstance(payload, dict):
-        payload = payload.get('priceInfos')
-    if not isinstance(payload, list):
+def parse_dated_prices(payload, day):
+    """Require both prices from one uniquely dated response row."""
+    rows = payload.get('items') if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
         return None
-    matches = [row for row in payload if isinstance(row, dict)
-               and row.get('localTradedAt') == day]
+    matches = [row for row in rows if isinstance(row, dict)
+               and row.get('tradingDateKst') == day]
     if len(matches) != 1:
         return None
-    return _price(matches[0].get('closePrice'))
+    regular = _price(matches[0].get('regularMarketClosingPrice'))
+    final = _price(matches[0].get('closingPrice'))
+    if regular is None or final is None:
+        return None
+    return regular, final
 
 
-class NaverMobileDailyProbe:
+class NpayDailyPricesProbe:
     def __init__(self, session=None):
         self.session = session if session is not None else requests.Session()
 
-    def daily_close(self, code, day):
+    def daily_prices(self, code, day):
         if not isinstance(code, str) or not re.fullmatch(r'[0-9A-Z]{6}', code):
             return None
         try:
             result = self.session.get(
                 ENDPOINT.format(code=code),
-                params={'page': 1, 'pageSize': 12},
-                headers={'User-Agent': 'Mozilla/5.0'},
-                timeout=(4, 8))
+                params={'size': 12},
+                headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json',
+                         'Referer': 'https://stock.naver.com/'},
+                timeout=(3, 5))
             if result.status_code != 200 or len(result.content) > 131072:
                 return None
-            return parse_dated_close(result.json(), day)
+            return parse_dated_prices(result.json(), day)
         except (requests.RequestException, ValueError, TypeError, OverflowError):
             return None
 
@@ -82,31 +82,27 @@ def compare_candidate(market, official, day, probe, *, per_market=SAMPLE_PER_MAR
                 eligible.append(code)
         eligible.sort(key=lambda code: sha256((day + ':' + code).encode()).digest())
         selected = eligible[:per_market]
-        counts = dict(sampled=len(selected), dated_candidate=0, equals_krx=0,
-                      equals_saved_fchart=0, differs_from_both=0, unavailable=0)
+        counts = dict.fromkeys(STATES, 0)
         for code in selected:
-            try:
-                candidate = _price(probe.daily_close(code, day))
-            except (Exception):
-                candidate = None
-            if candidate is None:
+            prices = probe.daily_prices(code, day)
+            if prices is None:
                 counts['unavailable'] += 1
                 continue
-            counts['dated_candidate'] += 1
-            if candidate == _price(official[(exchange, code)]):
-                counts['equals_krx'] += 1
-            elif candidate == _price(market[code]['price']):
-                counts['equals_saved_fchart'] += 1
+            regular, final = prices
+            regular_matches = regular == _price(official[(exchange, code)])
+            final_matches = final == _price(market[code]['price'])
+            if regular_matches and final_matches:
+                counts['regular_matches_krx_and_final_matches_saved'] += 1
+            elif regular_matches:
+                counts['regular_matches_krx_only'] += 1
+            elif final_matches:
+                counts['final_matches_saved_only'] += 1
             else:
-                counts['differs_from_both'] += 1
-        if (counts['dated_candidate'] + counts['unavailable'] != counts['sampled']
-            or (counts['equals_krx'] + counts['equals_saved_fchart']
-                + counts['differs_from_both'] != counts['dated_candidate'])):
-            raise ValueError('candidate_sample_accounting_invalid')
-        stats[exchange] = counts
+                counts['neither_matches'] += 1
+        stats[exchange] = {'sampled': len(selected), **counts}
     return {
         'schema': SCHEMA,
-        'candidate_source': 'NAVER_MOBILE_DATED_DAILY_HISTORY_UNVERIFIED_SESSION',
+        'candidate_source': 'NPAY_DATED_REGULAR_AND_FINAL_CLOSE_FIELDS',
         'sampling_rule': 'hash_sample_from_saved_FChart_KRX_mismatches',
         'max_per_market': per_market,
         'markets': stats,

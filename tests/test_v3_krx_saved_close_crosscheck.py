@@ -140,16 +140,16 @@ class SavedCloseSourceTests(unittest.TestCase):
         class PublicProbe:
             def __init__(self):
                 self.calls = []
-            def daily_close(self, code, day):
+            def daily_prices(self, code, day):
                 self.calls.append((code, day))
-                return 220 if code == '000002' else None
+                return (220, 200) if code == '000002' else None
         candidate = PublicProbe()
         report = check(saved(), ['000001'], ['000002'], Provider(),
                        snapshot_sha256='9'*64, candidate_probe=candidate)
         part = report['public_daily_price_candidate']
         self.assertEqual(part['status'], 'sampled')
         self.assertEqual(part['markets']['KOSPI']['sampled'], 1)
-        self.assertEqual(part['markets']['KOSPI']['equals_krx'], 1)
+        self.assertEqual(part['markets']['KOSPI']['regular_matches_krx_and_final_matches_saved'], 1)
         self.assertEqual(part['markets']['KOSDAQ']['sampled'], 0)
         self.assertEqual(candidate.calls, [('000002', DAY)])
         self.assertFalse(part['regular_session_source_certified'])
