@@ -212,18 +212,30 @@ def weekly_indicators(records, member, weeks, friday):
     tail_end = weeks[-1][1][1]
     tail_start = tail_end - len(continuous_tail(records[:tail_end], member))
     closes = []
+    through_oldest_traded_week = 0
     expected = friday
     for week_end, (start, end) in reversed(weeks):
         if week_end != expected or start < tail_start:
             break
         bars = records[start:end]
-        if any(len(row) < 6 or row[5] is None for row in bars) or not any(row[5] for row in bars):
+        if any(len(row) < 6 or row[5] is None for row in bars):
+            break
+        traded = any(row[5] for row in bars)
+        if not closes and not traded:
             break
         if any(row[5] is False and index > tail_start and row[2] != records[index - 1][2]
                for index, row in enumerate(bars, start)):
             break
+        if not traded and (start == tail_start or any(
+                row[3] != records[index - 1][3] for index, row in enumerate(bars, start))):
+            break
         closes.append(bars[-1][2])
+        if traded:
+            through_oldest_traded_week = len(closes)
         expected -= timedelta(days=7)
+    # Flat, explicitly recorded no-trade weeks are usable only between
+    # weeks with actual trades. Never manufacture closes at either edge.
+    closes = closes[:through_oldest_traded_week]
     if len(closes) < WEEKLY_MA_TURN_WEEKS:
         return None
     values = np.asarray(closes[::-1], dtype=float)

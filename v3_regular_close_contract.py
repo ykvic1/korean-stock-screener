@@ -14,7 +14,9 @@ DAILY_ONLY_SCHEMA = 'v3-official-regular-close-daily-indicators-2'
 DAILY_ONLY_IMPLEMENTATION = '6f0982244f019573273212febc941e4c9c47d5d52f1fb3f473038c8dcfe1c205'
 SHORT_WEEKLY_SCHEMA = 'v3-official-regular-close-indicators-3'
 SHORT_WEEKLY_IMPLEMENTATION = 'c35327dfc89be5c460180d0b215257245a1882e3298da3df42bb92407b02ada6'
-SCHEMA = 'v3-official-regular-close-indicators-4'
+LONG_WEEKLY_SCHEMA = 'v3-official-regular-close-indicators-4'
+LONG_WEEKLY_IMPLEMENTATION = 'b118ce9d6219894da0e6f73729419a377408961269bbf5ee89556efacb051548'
+SCHEMA = 'v3-official-regular-close-indicators-5'
 OUTPUT = 'v3-regular-close-indicators.json'
 DAILY_SESSIONS = 200
 SESSIONS = MIN_HISTORY_SESSIONS
@@ -74,10 +76,12 @@ def admitted_rows(source, catalog):
     legacy = schema == LEGACY_SCHEMA
     limit = DAILY_SESSIONS if legacy else SESSIONS
     previous_digests = {LEGACY_SCHEMA: LEGACY_IMPLEMENTATION, DAILY_ONLY_SCHEMA: DAILY_ONLY_IMPLEMENTATION,
-                        SHORT_WEEKLY_SCHEMA: SHORT_WEEKLY_IMPLEMENTATION}
+                        SHORT_WEEKLY_SCHEMA: SHORT_WEEKLY_IMPLEMENTATION,
+                        LONG_WEEKLY_SCHEMA: LONG_WEEKLY_IMPLEMENTATION}
     if not isinstance(schema, str) or schema not in (*previous_digests, SCHEMA):
         return {}
     digest = implementation_digest() if schema == SCHEMA else previous_digests[schema]
+    long_weekly = schema in (LONG_WEEKLY_SCHEMA, SCHEMA)
     requested = source.get('requested_sessions')
     if (source.get('asof') != catalog['date']
             or source.get('source') != 'KRX_OFFICIAL_REGULAR_CLOSE'
@@ -85,7 +89,7 @@ def admitted_rows(source, catalog):
                 json.dumps(catalog, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             or source.get('listed_total') != len(catalog['rows'])
             or type(requested) is not int
-            or not (SESSIONS <= requested <= MAX_HISTORY_SESSIONS if schema == SCHEMA else requested == limit)
+            or not (SESSIONS <= requested <= MAX_HISTORY_SESSIONS if long_weekly else requested == limit)
             or type(source.get('archived_sessions')) is not int
             or not 0 <= source['archived_sessions'] <= requested
             or source.get('implementation_sha256') != digest
@@ -132,7 +136,7 @@ def admitted_rows(source, catalog):
             row = {**row, 'weekly': {'asof': friday, 'continuous_weeks': weekly['continuous_weeks'],
                                     'ma_turn': {'20': weekly['points'], '60': None, '120': None},
                                     'rsi': None, 'weekly_ma120_gap_pct': None}}
-        elif row.get('weekly') is not None and (schema != SCHEMA or not valid_weekly(
+        elif row.get('weekly') is not None and (not long_weekly or not valid_weekly(
                 row['weekly'], friday, trade_status_sessions)):
             continue
         admitted[member['code']] = row
