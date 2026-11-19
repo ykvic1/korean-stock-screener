@@ -2519,6 +2519,20 @@ function forwardRankComparison(comparison,opened,valued){
  return '<small>같은 시장 21~100위 대비 · '+metrics.join(' · ')+'</small>'+
   '<small>수익률 확인 '+valued+'/'+opened+' 대 '+referenceValued+'/'+referenceOpened+'종목</small>';
 }
+function forwardReturnGaps(counts,opened,valued){
+ const labels=[
+  ['entry_open_unconfirmed','진입 시가 미확인'],
+  ['evaluation_no_trade','평가일 거래 없음'],
+  ['missing_price_path','가격 경로 누락'],
+  ['liquidation_proxy_only','정리매매 참고값만 확보'],
+  ['other_unresolved','기타 검증 대기']
+ ];
+ const values=labels.map(([key])=>counts?.[key]);
+ if(!values.every(n=>Number.isSafeInteger(n)&&n>=0&&n<=20)||
+    values[0]+opened>20||values.slice(1).reduce((a,b)=>a+b,0)!==opened-valued)return '';
+ const reasons=labels.flatMap(([,label],i)=>values[i]?[label+' '+values[i]+'종목']:[]);
+ return reasons.length?'<small>수익률 미확인 · '+reasons.join(' · ')+'</small>':'';
+}
 function forwardOutcomeCell(data,months,row,latestScore){
  const pending=row.archive_ready_count?'결과 게시 대기':'평가 대기';
  const window=data?.horizons?.[months],s=window?.latest;
@@ -2540,6 +2554,7 @@ function forwardOutcomeCell(data,months,row,latestScore){
  return '<strong>수익률 '+(ret===null?'—':pct(ret))+'</strong><small>최대 하락폭 '+
   (mae===null?'—':pct(mae))+' · 손실률 '+loss+'</small><small>'+esc(s.evaluation_session)+
   ' 평가 · 수익률 '+valued+'/'+opened+'종목 · 게시 '+window.published_window_count+'구간</small>'+
+  forwardReturnGaps(s.return_gap_counts,opened,valued)+
   forwardRankComparison(s.same_market_rank_comparison,opened,valued);
 }
 function forwardValidationView(data,outcomes){

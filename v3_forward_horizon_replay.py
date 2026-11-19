@@ -284,6 +284,24 @@ def private_storage():
     return storage
 
 
+def return_gap_counts(group):
+    """Report why selected names lack a return, without publishing issuer rows."""
+    opened = group['entry_status_counts']['official_open_observed']
+    unvalued = group['terminal_return_coverage']['unvalued_confirmed_openings_count']
+    unresolved = {state: count for state, count in group['unresolved_counts'].items()
+                  if state not in ROW_STATES}
+    result = {
+        'entry_open_unconfirmed': group['selected_count'] - opened,
+        'evaluation_no_trade': unresolved.pop('evaluation_session_no_reported_volume', 0),
+        'missing_price_path': unresolved.pop('missing_traded_bar', 0),
+        'liquidation_proxy_only': group['liquidation_exit_proxies']['observed_count'],
+        'other_unresolved': sum(unresolved.values()),
+    }
+    if sum(result.values()) != result['entry_open_unconfirmed'] + unvalued:
+        raise ValueError('forward_return_gap_counts_do_not_reconcile')
+    return result
+
+
 def pages_results(root, readiness, now):
     """Publish top-20 aggregates for currently selected, archive-ready windows."""
     horizons = {}
@@ -323,6 +341,7 @@ def pages_results(root, readiness, now):
             'median_mae_pct': top['median_mae_pct'],
             'loss_rate_bounds_pct': coverage['loss_rate_bounds_pct'],
             'same_market_rank_comparison': top['same_market_rank_comparison'],
+            'return_gap_counts': return_gap_counts(top),
         }
     return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
             'horizons': horizons}
