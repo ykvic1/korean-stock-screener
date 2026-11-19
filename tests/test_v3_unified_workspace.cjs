@@ -11,6 +11,17 @@ const entry=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const backup=fs.readFileSync(path.join(__dirname,'../docs/legacy.html'),'utf8');
 const source=fs.readFileSync(path.join(__dirname,'../docs/workspace.js'),'utf8');
 const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8');
+{
+ const data=require('../docs/v3-historical-price-paths-20251113.json');
+ const view=unified.historicalPriceCoverageView(data);
+ for(const page of [html,entry])assert.match(page,/id="historicalPriceCoverage"/);
+ assert.equal(view.status,'12개월 1,866 / 2,573종목');
+ assert.match(view.body,/2,337 \/ 2,573/);
+ assert.match(view.body,/1,612 \/ 2,041/);
+ assert.match(view.body,/진입 시가 미확인 97종목/);
+ assert.match(view.body,/12개월 평가값 미확보 610종목/);
+ assert.equal(unified.historicalPriceCoverageView({...data,rows:{}}),null);
+}
 const auditWarningSource=fs.readFileSync(path.join(__dirname,'../docs/v3-live-progress.js'),'utf8');
 assert.ok(auditWarningSource.includes('종가 불일치의 원인은 아직 확인되지 않았습니다.'));
 assert.ok(auditWarningSource.includes('거래세션 혼입 여부'));
@@ -1134,7 +1145,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261119-forward-results')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261119-historical-coverage')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),

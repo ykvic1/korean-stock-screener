@@ -243,9 +243,16 @@ with sync_playwright() as p:
     coverage = page.locator("#historicalPriceCoverage")
     coverage.locator("summary").click()
     coverage.locator("tbody tr").last.wait_for()
+    paths = historical["rows"].values()
+    priced = sum(row["entry_observed"] and "12" in row["paths"]
+                 and row["paths"]["12"][0] is not None for row in paths)
     assert coverage.locator(".u-history-value").inner_text() == (
-        f'{historical["priced"]["12"]:,} / {historical["cohort_size"]:,}종목'
+        f'12개월 {priced:,} / {len(paths):,}종목'
     )
+    assert coverage.locator("tbody tr").last.locator("td").all_inner_texts() == [
+        f'{priced:,} / {len(paths):,}',
+        f'{historical["priced"]["12"]:,} / {historical["cohort_size"]:,}',
+    ]
     page.locator("#researchPanel > summary").click()
     # The existing comparison paths remain available and independently tested.
     page.locator("#advancedFilters > summary").click()
