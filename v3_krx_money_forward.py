@@ -15,18 +15,18 @@ from hashlib import sha256
 import json
 import os
 import time as retry_clock
-from zoneinfo import ZoneInfo
 
 from official_probe.clients import KRXClient, KRXProbeError
 from v3_forward_daily_prices import official_publish_time
-from v3_krx_private_backfill_plan import calendar_weekday_candidates
-from v3_krx_session_candidates import candidate_dates
-from v3_krx_private_github_backfill import PrivateGitStorage
+from v3_krx_private_backfill_plan import BackfillPlanError, calendar_weekday_candidates
+from v3_krx_regular_close import KST, regular_close_utc
+from v3_krx_session_candidates import CandidateCalendarError, candidate_dates
+from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
 from v3_krx_money_backfill import (
-    END as HIST_END, history_candidates, MAX_DERIVED_BYTES, _canonical,
+    END as HIST_END, history_candidates, MAX_DERIVED_BYTES, MoneyBackfillError, _canonical,
     _path, _safe_source_failure_diagnostics, _safe_private_failure_diagnostics,
 )
-from v3_krx_money_5day import store_money_five_days, validate_money_blob
+from v3_krx_money_5day import DerivedSourceError, store_money_five_days, validate_money_blob
 
 SCHEMA = "v3-krx-private-actual-money-forward-checkpoint-v1"
 CHECKPOINT = "derived/money-forward-checkpoint.json"
@@ -46,7 +46,7 @@ def forward_candidates(asof):
     except ValueError:
         raise ForwardMoneyError("invalid_forward_cutoff") from None
     if (day.isoformat() != asof or day <= date.fromisoformat(HIST_END)
-        or day > datetime.now(ZoneInfo("Asia/Seoul")).date()):
+        or day > datetime.now(KST).date()):
         raise ForwardMoneyError("invalid_forward_cutoff")
     historical, _ = history_candidates()
     if len(historical) < 5 or historical[-1] != HIST_END:
@@ -239,8 +239,11 @@ def main():
         return 1
     stage = "cutoff"
     try:
-        now = datetime.now(ZoneInfo("Asia/Seoul"))
-        dates = forward_candidates(now.date().isoformat())
+        now = datetime.now(KST)
+        cutoff = now.date()
+        if now < regular_close_utc(cutoff):
+            cutoff -= timedelta(days=1)
+        dates = forward_candidates(cutoff.isoformat())
         stage = "private_forward_collection"
         stored = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         client=RetryingMoneyClient(KRXClient(os.environ["KRX_API_KEY"]))
@@ -250,18 +253,20 @@ def main():
         print(json.dumps(result, sort_keys=True))
         return 0
     except Exception as exc:
-        known = isinstance(exc, ForwardMoneyError)
-        safe_reason=exc.reason if isinstance(exc,KRXProbeError) else None
-        print(json.dumps({
-            "status": "blocked",
-            "category": str(exc) if known else "untrusted_forward_source_error",
-            "krx_allowlisted_failure_reason":safe_reason,
-            "http_status":exc.http_status if isinstance(exc,KRXProbeError) else None,
-            "stage": stage,
-            "source_payload_logged": False,
-            **_safe_source_failure_diagnostics(exc),
-            **_safe_private_failure_diagnostics(exc),
-        }, sort_keys=True))
+        report = {"status": "blocked", "stage": stage, "source_payload_logged": False}
+        if isinstance(exc, PrivateHistoryError):
+            report.update(_safe_private_failure_diagnostics(exc))
+        elif isinstance(exc, KRXProbeError):
+            report.update(category="krx_source_rejected",
+                          krx_allowlisted_failure_reason=exc.reason,
+                          http_status=exc.http_status)
+        elif isinstance(exc, (ForwardMoneyError, BackfillPlanError, CandidateCalendarError,
+                              MoneyBackfillError, DerivedSourceError)):
+            report["category"] = str(exc)
+            report.update(_safe_source_failure_diagnostics(exc))
+        else:
+            report["category"] = "untrusted_forward_source_error"
+        print(json.dumps(report, sort_keys=True))
         return 1
 
 
