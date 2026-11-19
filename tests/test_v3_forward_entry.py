@@ -201,14 +201,15 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual(counts['intraday_reference_touched'], 0)
         # The official MA comparison has its own price basis and still works
         # if the frozen FChart panel is temporarily unavailable.
-        def ma_history(score_day, entry_day):
+        def ma_history(score_day, entry_day, intervening):
+            self.assertEqual(intervening, [])
             signal_basis = {'source_sha256': pair(score_day)[1],
                             'rows': {'005930': ['KOSPI', '삼성전자', 51000, 500000, 48000, True]}}
             prior = {**signal_basis,
                      'rows': {'005930': ['KOSPI', '삼성전자', 48000, 500000, 48000, True]}}
             entry_basis = {'date': entry_day, 'source_sha256': pair(entry_day)[1],
                            'rows': {'005930': ['KOSPI', '삼성전자', 51000, 500000, 51000, True]}}
-            return [('2026-11-12', prior)] * 59 + [(score_day, signal_basis)], entry_basis
+            return [('2026-11-12', prior)] * 59 + [(score_day, signal_basis)], entry_basis, []
 
         with patch('v3_forward_entry.frozen_market', return_value=None):
             independent = crosscheck_entry_daily(
@@ -218,7 +219,7 @@ class EntryEvidenceTest(unittest.TestCase):
         self.assertEqual(ma['20']['intraday_average_touched'], 1)
         self.assertEqual(ma['60']['intraday_average_touched'], 1)
 
-    def test_delayed_capture_keeps_entry_path_but_cannot_compare_reference(self):
+    def test_delayed_capture_uses_intervening_sessions_for_official_ma_reference(self):
         observation = {
             'schema': SCORE_SCHEMA, 'score_asof': '2026-11-16',
             'captured_at_utc': '2026-11-17T02:18:15+00:00',
@@ -231,19 +232,38 @@ class EntryEvidenceTest(unittest.TestCase):
         plan = entry_plan(observation, digest)
         self.assertEqual(plan['entry_session_candidate'], '2026-11-18')
         now = timestamp('2026-11-19T00:00:00+00:00')
-        official = read_official_openings(OfficialPair(), '2026-11-18')
+        def pair(day):
+            rows, hashes = read_official_openings(OfficialPair(), day)
+            return {code: (market, {**row, 'LIST_SHRS': '500000'})
+                    for code, (market, row) in rows.items()}, hashes
+
+        def ma_history(score_day, entry_day, intervening):
+            self.assertEqual(intervening, ['2026-11-17'])
+            def basis(day, close, previous):
+                return {'date': day, 'source_sha256': pair(day)[1],
+                        'rows': {'005930': ['KOSPI', '삼성전자', close, 500000, previous, True]}}
+            prior = basis('2026-11-13', 48000, 48000)
+            history = [('2026-11-13', prior)] * 59 + [(score_day, basis(score_day, 51000, 48000))]
+            return history, basis(entry_day, 51000, 52000), [
+                (day, basis(day, 52000, 51000)) for day in intervening]
+
         with patch('v3_forward_entry.datetime', wraps=datetime) as clock:
             clock.now.return_value = now
-            save_entry(plan, observation, storage, lambda day: official)
-        save_daily('2026-11-18', storage, lambda day: official, clock=lambda: now)
+            save_entry(plan, observation, storage, pair)
+        for day in ('2026-11-16', '2026-11-18'):
+            save_daily(day, storage, pair, clock=lambda: now)
         with patch('v3_forward_entry.frozen_market') as frozen:
-            result = crosscheck_entry_daily(observation, digest, storage, review_reference=True)
+            result = crosscheck_entry_daily(
+                observation, digest, storage, review_reference=True, ma_history=ma_history)
         frozen.assert_not_called()
         self.assertEqual(result['structural_reference_status'], 'nonadjacent_signal_session')
         self.assertEqual(result['status'], 'matched')
         top = result['entry_session_path']['groups']['top20']
         self.assertEqual(top['observed_count'], 1)
         self.assertNotIn('structural_reference_counts', top)
+        ma = result['official_ma_references']
+        self.assertEqual(ma['intervening_sessions'], ['2026-11-17'])
+        self.assertEqual(ma['groups']['top20']['60']['intraday_average_touched'], 1)
 
     def test_late_capture_and_open_boundary(self):
         monday, opening, closing = first_open_after(timestamp('2026-11-15T23:03:26.504597+00:00'))
