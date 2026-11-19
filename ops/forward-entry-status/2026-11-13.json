@@ -48,11 +48,13 @@
     "corporate_actions_certified": false,
     "performance_validated": false,
     "official_ma_references": {
-      "schema": "v3-forward-official-ma-reference-1",
+      "schema": "v3-forward-official-ma-reference-2",
       "score_asof": "2026-11-13",
       "entry_session": "2026-11-16",
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
+      "history_start": "2026-08-18",
+      "reviewed_ma_notices_sha256": "6bbf7762701eb4c0157052192c0c82ff5e43b811304e6b62427096d9a8f8b8a1",
       "history_sources_sha256": "edd0a2824dbba9bcdd91aa2838167ee97ff61106282bf833864e6563d570b3b1",
       "signal_source_sha256": {
         "KOSPI": "b7bf95c830d62120b2f9a4190a6eff51efaefeac8ccf020c9e6cd663da7ecd05",
@@ -69,6 +71,10 @@
       "groups": {
         "top20": {
           "matched_openings": 20,
+          "using_reviewed_share_continuity": {
+            "20": 2,
+            "60": 4
+          },
           "20": {
             "signal_trade_unavailable": 0,
             "signal_basis_unresolved": 0,
@@ -76,13 +82,14 @@
             "history_session_missing": 0,
             "issuer_history_missing": 0,
             "issuer_identity_changed": 0,
-            "share_count_changed": 2,
+            "share_count_changed": 0,
+            "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 0,
             "trade_state_unavailable": 0,
             "average_at_or_above_signal_close": 2,
             "open_at_or_below_average": 0,
-            "intraday_average_touched": 3,
-            "average_not_touched": 13
+            "intraday_average_touched": 4,
+            "average_not_touched": 14
           },
           "60": {
             "signal_trade_unavailable": 0,
@@ -91,18 +98,39 @@
             "history_session_missing": 0,
             "issuer_history_missing": 0,
             "issuer_identity_changed": 0,
-            "share_count_changed": 4,
+            "share_count_changed": 0,
+            "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 1,
             "trade_state_unavailable": 0,
             "average_at_or_above_signal_close": 2,
             "open_at_or_below_average": 0,
-            "intraday_average_touched": 2,
-            "average_not_touched": 11
+            "intraday_average_touched": 3,
+            "average_not_touched": 14
           }
         },
         "top100": {
           "matched_openings": 100,
+          "using_reviewed_share_continuity": {
+            "20": 4,
+            "60": 9
+          },
           "20": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 0,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 0,
+            "issuer_identity_changed": 0,
+            "share_count_changed": 1,
+            "reviewed_share_basis_unresolved": 0,
+            "price_basis_discontinuous": 0,
+            "trade_state_unavailable": 0,
+            "average_at_or_above_signal_close": 15,
+            "open_at_or_below_average": 2,
+            "intraday_average_touched": 23,
+            "average_not_touched": 59
+          },
+          "60": {
             "signal_trade_unavailable": 0,
             "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
@@ -110,64 +138,55 @@
             "issuer_history_missing": 0,
             "issuer_identity_changed": 0,
             "share_count_changed": 5,
-            "price_basis_discontinuous": 0,
-            "trade_state_unavailable": 0,
-            "average_at_or_above_signal_close": 14,
-            "open_at_or_below_average": 2,
-            "intraday_average_touched": 22,
-            "average_not_touched": 57
-          },
-          "60": {
-            "signal_trade_unavailable": 0,
-            "signal_basis_unresolved": 0,
-            "reviewed_entry_action": 0,
-            "history_session_missing": 0,
-            "issuer_history_missing": 0,
-            "issuer_identity_changed": 0,
-            "share_count_changed": 14,
+            "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 1,
             "trade_state_unavailable": 0,
             "average_at_or_above_signal_close": 17,
-            "open_at_or_below_average": 1,
-            "intraday_average_touched": 14,
-            "average_not_touched": 53
+            "open_at_or_below_average": 2,
+            "intraday_average_touched": 15,
+            "average_not_touched": 60
           }
         },
         "all_ranked": {
           "matched_openings": 2471,
+          "using_reviewed_share_continuity": {
+            "20": 47,
+            "60": 122
+          },
           "20": {
             "signal_trade_unavailable": 2,
-            "signal_basis_unresolved": 2,
+            "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
             "history_session_missing": 0,
             "issuer_history_missing": 0,
             "issuer_identity_changed": 3,
-            "share_count_changed": 147,
+            "share_count_changed": 102,
+            "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 3,
             "trade_state_unavailable": 0,
-            "average_at_or_above_signal_close": 1574,
+            "average_at_or_above_signal_close": 1606,
             "open_at_or_below_average": 52,
-            "intraday_average_touched": 330,
-            "average_not_touched": 358
+            "intraday_average_touched": 338,
+            "average_not_touched": 365
           },
           "60": {
             "signal_trade_unavailable": 2,
-            "signal_basis_unresolved": 2,
+            "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
             "history_session_missing": 0,
             "issuer_history_missing": 5,
             "issuer_identity_changed": 13,
-            "share_count_changed": 423,
+            "share_count_changed": 303,
+            "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 9,
             "trade_state_unavailable": 0,
-            "average_at_or_above_signal_close": 1630,
-            "open_at_or_below_average": 20,
-            "intraday_average_touched": 127,
-            "average_not_touched": 240
+            "average_at_or_above_signal_close": 1724,
+            "open_at_or_below_average": 21,
+            "intraday_average_touched": 138,
+            "average_not_touched": 256
           }
         }
-      },
-      "reviewed_entry_notices_sha256": "1790013104802667804d6ae9ef15625492cd1637a5972fc5b4a0aae80e276996"
+      }
     },
     "structural_reference_status": "compared",
     "structural_reference_basis": {
@@ -342,5 +361,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T02:48:02.527899+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T03:00:21.890877+00:00"
 }
