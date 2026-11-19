@@ -56,6 +56,27 @@ class ForwardSettlementTests(unittest.TestCase):
         self.panels[self.listing]['rows']['329180'][1] = '다른 회사'
         self.assertEqual(self.replay()['status'], 'settlement_successor_listing_unconfirmed')
 
+    def test_successor_can_resume_after_an_observed_interior_no_trade_session(self):
+        next_day = '2025-12-17'
+        self.sessions.append(next_day)
+        self.panels[next_day] = self.panels[self.target]
+        self.notices[next_day, '329180'] = self.notices.pop((self.target, '329180'))
+        self.terms['shares_per_old_share'] = '1'
+        halted = ['KOSPI', 'HD현대중공업', 'no_reported_volume', None, None, None, None, 800]
+        self.panels[self.target] = {'rows': {'329180': halted}}
+        self.assertEqual(self.replay()['terminal_return_pct'], 10)
+
+        halted[-1] = 801
+        self.assertEqual(self.replay()['status'], 'settlement_successor_change_needs_notice')
+        halted[-1] = 800
+        self.panels.pop(next_day)
+        self.assertEqual(self.replay()['status'], 'settlement_successor_price_unavailable')
+        self.sessions.pop()
+        self.assertEqual(self.replay(), {
+            'status': 'evaluation_session_no_reported_volume',
+            'blocked_session': self.target,
+        })
+
     def test_new_holding_must_have_settled_before_the_record_date(self):
         self.sessions = self.sessions[1:]
         self.terms['record_on'] = self.halt

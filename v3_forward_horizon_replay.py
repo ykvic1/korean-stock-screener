@@ -26,7 +26,7 @@ from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
 PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
-SCHEMA = 'v3-forward-horizon-price-outcome-10'
+SCHEMA = 'v3-forward-horizon-price-outcome-11'
 
 
 def loss_rate_bounds(negative, unvalued, opened):

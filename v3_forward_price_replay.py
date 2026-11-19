@@ -24,6 +24,13 @@ def issuer_matches(bar, market, name):
     return bar[0] == market and normalized_name(bar[1]) == normalized_name(name)
 
 
+def no_trade_block(previous, bar, notice):
+    transition = share_transition(previous, bar, notice)
+    if transition == 'unchanged_share_count':
+        return None
+    return 'share_action_without_trade' if transition == 'notice_matched' else transition
+
+
 def replay_liquidation(terms, sessions, bars, previous, units, entry_open, notices):
     first, last = terms['first_on'], terms['last_on']
     if sessions[-1] < last:
@@ -124,9 +131,19 @@ def replay_settlement(terms, sessions, bars, previous, units, entry_open, notice
             successor_units, previous = Fraction(whole), first
             for day in sessions[sessions.index(listed) + 1:]:
                 bar = panels.get(day, {}).get('rows', {}).get(code)
-                if bar is None or bar[2] != 'traded':
+                if bar is None or bar[2] not in ('traded', 'no_reported_volume'):
                     return {'status': 'settlement_successor_price_unavailable', 'blocked_session': day}
-                reason, multiplier = holding_change(previous, bar, notices.get((day, code)))
+                notice = notices.get((day, code))
+                if bar[2] == 'no_reported_volume':
+                    if day == target:
+                        return {'status': 'evaluation_session_no_reported_volume',
+                                'blocked_session': day}
+                    reason = no_trade_block(previous, bar, notice)
+                    if reason:
+                        return {'status': 'settlement_successor_' + reason, 'blocked_session': day}
+                    previous = bar
+                    continue
+                reason, multiplier = holding_change(previous, bar, notice)
                 if reason:
                     return {'status': 'settlement_successor_' + reason, 'blocked_session': day}
                 successor_units *= multiplier
@@ -175,9 +192,8 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
                 return {'status': 'entry_open_mismatch', 'blocked_session': day}
             if day == sessions[-1]:
                 return {'status': 'evaluation_session_no_reported_volume', 'blocked_session': day}
-            transition = share_transition(previous, bar, notice)
-            if transition != 'unchanged_share_count':
-                reason = 'share_action_without_trade' if transition == 'notice_matched' else transition
+            reason = no_trade_block(previous, bar, notice)
+            if reason:
                 return {'status': reason, 'blocked_session': day}
             no_trade_sessions += 1
         elif previous is None:
