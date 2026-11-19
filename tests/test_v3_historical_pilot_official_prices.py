@@ -37,6 +37,16 @@ class HistoricalOfficialPricesTest(unittest.TestCase):
         self.assertEqual(result['exact_ohlc'], 2)
         self.assertEqual(result['different_price_by_field'], dict(open=0, high=1, low=1, close=0))
         self.assertNotIn('Name', str(result))
+        self.assertFalse(prices.exact_market_prices(result))
+
+    def test_market_match_requires_actual_zero_volume_in_both_sources(self):
+        public = {'a': ('KOSDAQ', 'Issuer', 200, 10, 13, 8, 12, 20),
+                  'b': ('KOSDAQ', 'Halted', 100, None, None, None, None, 0.0)}
+        official = {'a': ('KOSDAQ', 'Issuer', 'traded', 10, 13, 8, 12, 200),
+                    'b': ('KOSDAQ', 'Halted', 'no_reported_volume', None, None, None, None, 100)}
+        self.assertTrue(prices.exact_market_prices(compare_market(public, official, public)))
+        public['b'] = (*public['b'][:-1], None)
+        self.assertFalse(prices.exact_market_prices(compare_market(public, official, public)))
 
 
 class HistoricalTurnoverTest(unittest.TestCase):
@@ -95,6 +105,7 @@ class HistoricalTurnoverTest(unittest.TestCase):
         read.assert_called_once()
         self.assertEqual(report['sessions'][prices.SIGNAL.isoformat()]['turnover']['exact_volume_and_amount'], 1)
         self.assertEqual(report['sessions'][prices.SIGNAL.isoformat()]['market_wide']['exact_ohlc'], 1)
+        self.assertTrue(report['market_wide_ohlc_and_membership_matched'])
         self.assertFalse(report['volume_session_equivalence_verified'])
         self.assertFalse(report['performance_validated'])
         self.assertTrue(report['turnover_numeric_comparison_complete'])
