@@ -3,7 +3,9 @@ import copy
 import json
 from pathlib import Path
 import subprocess
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from v3_data_collection_closeout import build, valid, OUTPUT
 
@@ -15,8 +17,35 @@ class CollectionCloseoutTests(unittest.TestCase):
     def setUpClass(cls):
         cls.record = json.loads((ROOT/'docs'/OUTPUT).read_text())
 
-    def test_actual_sources_allow_closeout_without_all_issuers_at_100(self):
-        result = build(ROOT/'docs')
+    def test_checkpoint_can_close_with_missing_data_but_rejects_unfetched_sources(self):
+        record = self.record
+        score_name = 'v3-operational-research-scores.json'
+        evidence = {key: record[key] for key in (
+            'asof', 'listed_total', 'available_weight_distribution')}
+        evidence['publication_coherent'] = True
+        evidence['file_sha256'] = {score_name: record['source_sha256'][score_name]}
+        priority = {
+            'asof': record['asof'],
+            'source_report_sha256': evidence['file_sha256'][score_name],
+            'incomplete_count': record['incomplete_weight_issuers'],
+            'component_missing_issuer_counts': record['missing_component_issuer_counts'],
+            'reason_component_counts': record['missing_reason_component_counts'],
+        }
+        with TemporaryDirectory() as directory, patch(
+                'v3_operational_publication_audit.audit', return_value=evidence):
+            docs = Path(directory)
+            for name in ('v3-dart-historical-receipt-progress.json',
+                         'v3-krx-derived-backfill-progress.json'):
+                (docs/name).write_bytes((ROOT/'docs'/name).read_bytes())
+            (docs/'v3-operational-evidence-priority.json').write_text(json.dumps(priority))
+            gap_path = docs/'v3-dart-cashflow-gap-summary.json'
+            gap = {'asof': record['asof'], 'source_eligible_unfetched_company_years': 0}
+            gap_path.write_text(json.dumps(gap))
+            result = build(docs)
+            gap['source_eligible_unfetched_company_years'] = 2
+            gap_path.write_text(json.dumps(gap))
+            with self.assertRaisesRegex(ValueError, 'collection_closeout_evidence_not_aligned'):
+                build(docs)
         self.assertTrue(valid(result, result['asof']))
         self.assertGreater(result['incomplete_weight_issuers'], 0)
         self.assertTrue(result['initial_data_collection_complete'])
