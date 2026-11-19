@@ -199,6 +199,24 @@ class EntryEvidenceTest(unittest.TestCase):
         counts = action['entry_session_path']['groups']['top20']['structural_reference_counts']
         self.assertEqual(counts['share_basis_unresolved'], 1)
         self.assertEqual(counts['intraday_reference_touched'], 0)
+        # The official MA comparison has its own price basis and still works
+        # if the frozen FChart panel is temporarily unavailable.
+        def ma_history(score_day, entry_day):
+            signal_basis = {'source_sha256': pair(score_day)[1],
+                            'rows': {'005930': ['KOSPI', '삼성전자', 51000, 500000, 48000, True]}}
+            prior = {**signal_basis,
+                     'rows': {'005930': ['KOSPI', '삼성전자', 48000, 500000, 48000, True]}}
+            entry_basis = {'date': entry_day, 'source_sha256': pair(entry_day)[1],
+                           'rows': {'005930': ['KOSPI', '삼성전자', 51000, 500000, 51000, True]}}
+            return [('2026-11-12', prior)] * 59 + [(score_day, signal_basis)], entry_basis
+
+        with patch('v3_forward_entry.frozen_market', return_value=None):
+            independent = crosscheck_entry_daily(
+                observation, digest, storage, review_reference=True, ma_history=ma_history)
+        self.assertEqual(independent['structural_reference_status'], 'waiting_for_signal_price_basis')
+        ma = independent['official_ma_references']['groups']['top20']
+        self.assertEqual(ma['20']['intraday_average_touched'], 1)
+        self.assertEqual(ma['60']['intraday_average_touched'], 1)
 
     def test_delayed_capture_keeps_entry_path_but_cannot_compare_reference(self):
         observation = {
