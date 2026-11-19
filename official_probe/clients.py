@@ -18,6 +18,7 @@ import requests
 KRX_BASE = 'https://data-dbg.krx.co.kr/svc/apis/'
 DART_BASE = 'https://opendart.fss.or.kr/api/'
 KRX_ROUTES = {'KOSPI': 'sto/stk_bydd_trd', 'KOSDAQ': 'sto/ksq_bydd_trd'}
+KRX_RIGHTS_ROUTE = 'sto/sr_bydd_trd'
 MAX_KRX_BODY = 20_000_000
 MAX_DART_ZIP = 25_000_000
 MAX_DART_XML = 65_000_000
@@ -39,7 +40,7 @@ class KRXProbeError(ProbeError):
     ))
 
     def __init__(self, market, reason, http_status=None):
-        if market not in KRX_ROUTES or reason not in self.REASONS:
+        if (market not in KRX_ROUTES and market != 'subscription_rights') or reason not in self.REASONS:
             raise ValueError("invalid_krx_error_diagnostic")
         self.market = market
         self.reason = reason
@@ -122,8 +123,16 @@ class KRXClient:
     def daily_market(self, market: str, asof: str) -> tuple[list[dict], bytes]:
         if market not in KRX_ROUTES:
             raise ValueError('KRX market must be KOSPI or KOSDAQ')
+        return self._daily_rows(KRX_ROUTES[market], market, asof)
+
+    def subscription_rights(self, asof: str) -> list[dict]:
+        """Return the separate certificate market; callers must not publish raw rows."""
+        rows, _ = self._daily_rows(KRX_RIGHTS_ROUTE, 'subscription_rights', asof)
+        return rows
+
+    def _daily_rows(self, route, market, asof):
         day = canonical_date(asof)
-        payload = _get(self.session, KRX_BASE + KRX_ROUTES[market],
+        payload = _get(self.session, KRX_BASE + route,
                        headers={'AUTH_KEY': self._key}, params={'basDd': day},
                        krx_market=market)
         try:
