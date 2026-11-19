@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, pages_results, ready_windows, replay_next
+from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, pages_results, ready_windows, replay_next, return_gap_counts
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
 from v3_forward_share_actions import FIELDS, REGISTER
@@ -107,6 +107,9 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                     'score_asof': score_day, 'entry_session': days[0], 'evaluation_session': days[-1],
                     'confirmed_opening_count': 1, 'valued_count': 1, 'median_terminal_return_pct': 5,
                     'observed_price_path_count': 1, 'median_mae_pct': -10, 'loss_rate_bounds_pct': [0, 0],
+                    'return_gap_counts': {'entry_open_unconfirmed': 0, 'evaluation_no_trade': 0,
+                                          'missing_price_path': 0, 'liquidation_proxy_only': 0,
+                                          'other_unresolved': 0},
                     'same_market_rank_comparison': {
                         'reference_min_rank': 21, 'reference_max_rank': 100,
                         'weight_basis': 'frozen_candidate_market_mix',
@@ -227,6 +230,21 @@ class ForwardHorizonReplayTests(unittest.TestCase):
         comparison = groups['top20']['same_market_rank_comparison']
         self.assertEqual(comparison['observed_mean_return_spread_pct_points'], 41)
         self.assertEqual(comparison['loss_rate_spread_bounds_pct_points'], [-100, -100])
+
+    def test_gap_counts_keep_unconfirmed_openings_out_of_unvalued_openings(self):
+        group = {'selected_count': 8, 'entry_status_counts': {'official_open_observed': 6},
+                 'terminal_return_coverage': {'unvalued_confirmed_openings_count': 4},
+                 'liquidation_exit_proxies': {'observed_count': 1},
+                 'unresolved_counts': {'not_traded': 1, 'identity_unresolved': 1,
+                                       'evaluation_session_no_reported_volume': 1,
+                                       'missing_traded_bar': 1, 'change_needs_notice': 1}}
+        self.assertEqual(return_gap_counts(group), {
+            'entry_open_unconfirmed': 2, 'evaluation_no_trade': 1,
+            'missing_price_path': 1, 'liquidation_proxy_only': 1, 'other_unresolved': 1,
+        })
+        group['liquidation_exit_proxies']['observed_count'] = 2
+        with self.assertRaisesRegex(ValueError, 'forward_return_gap_counts_do_not_reconcile'):
+            return_gap_counts(group)
 
     def test_loss_bounds_cover_missing_and_empty_groups_without_rounding_inwards(self):
         self.assertIsNone(loss_rate_bounds(0, 0, 0))

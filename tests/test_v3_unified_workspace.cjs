@@ -77,6 +77,11 @@ assert.ok(html.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'
  assert.match(compared.body,/수익률 확인 18\/20 대 74\/78종목/);
  rankComparison.markets.KOSPI.reference.valued_count=79;
  assert.doesNotMatch(unified.forwardValidationView(ready,results).body,/같은 시장 21~100위 대비/);
+ const gaps={entry_open_unconfirmed:0,evaluation_no_trade:1,missing_price_path:0,liquidation_proxy_only:1,other_unresolved:0};
+ results.horizons[12].latest.return_gap_counts=gaps;
+ assert.match(unified.forwardValidationView(ready,results).body,/평가일 거래 없음 1종목 · 정리매매 참고값만 확보 1종목/);
+ gaps.missing_price_path=1;
+ assert.doesNotMatch(unified.forwardValidationView(ready,results).body,/수익률 미확인 ·/);
  results.horizons[12].latest.loss_rate_bounds_pct=[40,30];
  assert.match(unified.forwardValidationView(ready,results).body,/결과 게시 대기/);
  assert.ok(entry.includes('id="forwardValidationCoverage"')&&html.includes('id="forwardValidationCoverage"'));
@@ -1166,7 +1171,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261119-forward-comparison')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261119-forward-return-gaps')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
