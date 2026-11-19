@@ -534,7 +534,7 @@
       ]
     },
     "12": {
-      "count": 629,
+      "count": 633,
       "rows": [
         {
           "code": "000100",
@@ -2600,6 +2600,16 @@
           "valuation_session": "2026-11-13"
         },
         {
+          "code": "037400",
+          "observed_adverse_excursion_pct": 36.7389,
+          "price_change_pct": -12.6935,
+          "tradable_units_per_entry_share": "1/5",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 15,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
           "code": "037710",
           "observed_adverse_excursion_pct": 3.6859,
           "price_change_pct": 11.6987,
@@ -4270,6 +4280,16 @@
           "valuation_session": "2026-11-13"
         },
         {
+          "code": "109070",
+          "observed_adverse_excursion_pct": 21.6518,
+          "price_change_pct": 22.0982,
+          "tradable_units_per_entry_share": "1/5",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 18,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
           "code": "109860",
           "observed_adverse_excursion_pct": 12.341,
           "price_change_pct": -11.5776,
@@ -4536,6 +4556,16 @@
           "tradable_units_per_entry_share": "1/5",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 14,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "131400",
+          "observed_adverse_excursion_pct": 68.6526,
+          "price_change_pct": -66.2584,
+          "tradable_units_per_entry_share": "1/10",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 17,
           "valuation_includes_unlisted_entitlement": false,
           "valuation_session": "2026-11-13"
         },
@@ -6533,6 +6563,16 @@
           "code": "430690",
           "observed_adverse_excursion_pct": 67.5706,
           "price_change_pct": -24.1996,
+          "tradable_units_per_entry_share": "1",
+          "unlisted_entitlement_sessions": 0,
+          "unpriced_sessions": 0,
+          "valuation_includes_unlisted_entitlement": false,
+          "valuation_session": "2026-11-13"
+        },
+        {
+          "code": "437730",
+          "observed_adverse_excursion_pct": 13.0435,
+          "price_change_pct": 70.471,
           "tradable_units_per_entry_share": "1",
           "unlisted_entitlement_sessions": 0,
           "unpriced_sessions": 0,
@@ -22869,6 +22909,19 @@
       "session": "2026-08-14"
     },
     {
+      "action": "third_party_placement",
+      "after": 10018783,
+      "before": 9018783,
+      "code": "011330",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "유니켐",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260814000094&contnId=20260814000094",
+      "old_units": 1,
+      "session": "2026-08-18"
+    },
+    {
       "action": "bond_warrant_exercise",
       "after": 73433552,
       "before": 71741773,
@@ -22911,6 +22964,103 @@
       "session": "2026-08-18"
     },
     {
+      "action": "bond_warrant_exercise",
+      "after": 34510967,
+      "before": 34207149,
+      "code": "091440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한울소재과학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260812000090&contnId=20260812000090",
+      "old_units": 1,
+      "session": "2026-08-18"
+    },
+    {
+      "action": "capital_reduction",
+      "after": 9910487,
+      "before": 39641948,
+      "code": "101000",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-18",
+      "market": "KOSDAQ",
+      "name": "KS인더스트리",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260811000567&contnId=20260811000567",
+      "old_units": 4,
+      "session": "2026-08-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814001573"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 8582055,
+      "before": 7884381,
+      "code": "115530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "씨엔플러스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260812000088&contnId=20260812000088",
+      "old_units": 1,
+      "session": "2026-08-18"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9915851,
+      "before": 19831702,
+      "code": "177350",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-18",
+      "market": "KOSDAQ",
+      "name": "베셀",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260814000086&contnId=20260814000086",
+      "old_units": 2,
+      "session": "2026-08-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260616900649"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 67539374,
+      "before": 70686423,
+      "code": "205100",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엑셈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260812000091&contnId=20260812000091",
+      "old_units": 1,
+      "session": "2026-08-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260727900317"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12210157,
+      "before": 12148196,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260812000179&contnId=20260812000179",
+      "old_units": 1,
+      "session": "2026-08-18"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 22659702,
+      "before": 22857042,
+      "code": "347770",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "핌스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260812000259&contnId=20260812000259",
+      "old_units": 1,
+      "session": "2026-08-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260723900304"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 66403636,
       "before": 67233030,
@@ -22937,6 +23087,59 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/08/18/000370/20260818000973/70764.htm",
       "old_units": 5,
       "session": "2026-08-19"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 13896316,
+      "before": 12896316,
+      "code": "044380",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "주연테크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260818000103&contnId=20260818000103",
+      "old_units": 1,
+      "session": "2026-08-19"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 165582797,
+      "before": 165582596,
+      "code": "079160",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "CJ CGV",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260813000106&contnId=20260813000106",
+      "old_units": 1,
+      "session": "2026-08-19"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 23158914,
+      "before": 19658914,
+      "code": "270520",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "앱튼",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260818000116&contnId=20260818000116",
+      "old_units": 1,
+      "session": "2026-08-19"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 131923998,
+      "before": 131958386,
+      "code": "402340",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "SK스퀘어",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260813000117&contnId=20260813000117",
+      "old_units": 1,
+      "session": "2026-08-19",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260722800540"
     },
     {
       "action": "treasury_cancellation",
@@ -22969,6 +23172,19 @@
       "terms_url": "https://samara.kr/disclosure/20260814002865"
     },
     {
+      "action": "bond_warrant_exercise",
+      "after": 27460845,
+      "before": 27459782,
+      "code": "067170",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260814000097&contnId=20260814000097",
+      "old_units": 1,
+      "session": "2026-08-20"
+    },
+    {
       "action": "bond_conversion",
       "after": 94921798,
       "before": 92715916,
@@ -22981,6 +23197,63 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/08/14/002509/20260814008737/70791.htm",
       "old_units": 1,
       "session": "2026-08-20"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 36635567,
+      "before": 34752758,
+      "code": "127120",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "bond_conversion",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260814000096&contnId=20260814000096",
+          "shares_after": 34967036,
+          "shares_before": 34752758
+        },
+        {
+          "action": "third_party_placement",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000105&contnId=20260819000105",
+          "shares_after": 36635567,
+          "shares_before": 34967036
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "제이에스링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260814000096&contnId=20260814000096",
+      "old_units": 1,
+      "session": "2026-08-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 10296000,
+      "before": 51480000,
+      "code": "153490",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-20",
+      "market": "KOSDAQ",
+      "name": "우리이앤엘하루틴",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000104&contnId=20260819000104",
+      "old_units": 5,
+      "session": "2026-08-20",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260608900757"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9900803,
+      "before": 49504016,
+      "code": "300120",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-20",
+      "market": "KOSDAQ",
+      "name": "라온피플",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260818000105&contnId=20260818000105",
+      "old_units": 5,
+      "session": "2026-08-20",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260519900417"
     },
     {
       "action": "treasury_cancellation",
@@ -22996,6 +23269,19 @@
       "old_units": 1,
       "session": "2026-08-20",
       "terms_url": "https://kind.krx.co.kr/external/2026/07/27/000169/20260508000375/71131.htm"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 54182120,
+      "before": 53458182,
+      "code": "357880",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "SKAI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260813000586&contnId=20260813000586",
+      "old_units": 1,
+      "session": "2026-08-20"
     },
     {
       "action": "treasury_cancellation",
@@ -23042,6 +23328,60 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 45251636,
+      "before": 45254585,
+      "code": "214270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "FSN",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260818000115&contnId=20260818000115",
+      "old_units": 1,
+      "session": "2026-08-21",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260730900678"
+    },
+    {
+      "action": "preferred_to_common",
+      "after": 18749834,
+      "before": 18620851,
+      "code": "305090",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "마이크로디지탈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260814000192&contnId=20260814000192",
+      "old_units": 1,
+      "session": "2026-08-21"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 42079799,
+      "before": 42044047,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260818000101&contnId=20260818000101",
+      "old_units": 1,
+      "session": "2026-08-21"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 152076491,
+      "before": 156977585,
+      "code": "035420",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "NAVER",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000085&contnId=20260819000085",
+      "old_units": 1,
+      "session": "2026-08-24",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260727800009"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 22577525,
       "before": 23085880,
       "code": "044450",
@@ -23056,6 +23396,19 @@
       "terms_url": "https://samara.kr/disclosure/20260730800408"
     },
     {
+      "action": "bond_conversion",
+      "after": 26581914,
+      "before": 23946688,
+      "code": "106240",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인테크닉스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000110&contnId=20260819000110",
+      "old_units": 1,
+      "session": "2026-08-24"
+    },
+    {
       "action": "option_exercise",
       "after": 21651325,
       "before": 21604575,
@@ -23066,6 +23419,32 @@
       "name": "예스티",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/08/19/000315/20260819000957/70791.htm",
+      "old_units": 1,
+      "session": "2026-08-24"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12274440,
+      "before": 12210157,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000113&contnId=20260819000113",
+      "old_units": 1,
+      "session": "2026-08-24"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 61627860,
+      "before": 61417965,
+      "code": "404990",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "신한서부티엔디리츠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000081&contnId=20260819000081",
       "old_units": 1,
       "session": "2026-08-24"
     },
@@ -23093,6 +23472,19 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/06/25/000129/20260625000187/00660.htm"
     },
     {
+      "action": "third_party_placement",
+      "after": 16722260,
+      "before": 11706586,
+      "code": "018700",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "졸스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000104&contnId=20260824000104",
+      "old_units": 1,
+      "session": "2026-08-25"
+    },
+    {
       "action": "reverse_split",
       "after": 14820314,
       "before": 74101573,
@@ -23104,6 +23496,46 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/08/24/000341/20260824001021/70764.htm",
       "old_units": 5,
       "session": "2026-08-25"
+    },
+    {
+      "action": "option_exercise",
+      "after": 30621674,
+      "before": 30605994,
+      "code": "140410",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "메지온",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000169&contnId=20260819000169",
+      "old_units": 1,
+      "session": "2026-08-25"
+    },
+    {
+      "action": "option_exercise",
+      "after": 13862772,
+      "before": 13770060,
+      "code": "187870",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "디바이스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260819000307&contnId=20260819000307",
+      "old_units": 1,
+      "session": "2026-08-25"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 45747263,
+      "before": 46137833,
+      "code": "259960",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "크래프톤",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260820000098&contnId=20260820000098",
+      "old_units": 1,
+      "session": "2026-08-25",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260729800676"
     },
     {
       "action": "option_exercise",
@@ -23120,6 +23552,46 @@
       "session": "2026-08-25"
     },
     {
+      "action": "bond_conversion",
+      "after": 15989317,
+      "before": 15717431,
+      "code": "003060",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "에이프로젠바이오로직스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000096&contnId=20260821000096",
+      "old_units": 1,
+      "session": "2026-08-26"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 24825953,
+      "before": 23594933,
+      "code": "007460",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "bond_conversion",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000089&contnId=20260821000089",
+          "shares_after": 24415613,
+          "shares_before": 23594933
+        },
+        {
+          "action": "bond_conversion",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000090&contnId=20260821000090",
+          "shares_after": 24825953,
+          "shares_before": 24415613
+        }
+      ],
+      "market": "KOSPI",
+      "name": "에이프로젠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000089&contnId=20260821000089",
+      "old_units": 1,
+      "session": "2026-08-26"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 89820585,
       "before": 90732583,
@@ -23133,6 +23605,19 @@
       "old_units": 1,
       "session": "2026-08-26",
       "terms_url": "https://kind.krx.co.kr/external/2026/07/21/001166/20260707000232/61131.htm"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 15107024,
+      "before": 12461522,
+      "code": "032800",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "판타지오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000136&contnId=20260825000136",
+      "old_units": 1,
+      "session": "2026-08-26"
     },
     {
       "action": "reverse_split",
@@ -23158,6 +23643,58 @@
       "name": "큐리언트",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/08/21/000679/20260821001985/70791.htm",
+      "old_units": 1,
+      "session": "2026-08-26"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 11239718,
+      "before": 10196965,
+      "code": "368970",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오에스피",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000114&contnId=20260824000114",
+      "old_units": 1,
+      "session": "2026-08-26"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 42204932,
+      "before": 42079799,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000006&contnId=20260821000006",
+      "old_units": 1,
+      "session": "2026-08-26"
+    },
+    {
+      "action": "option_exercise",
+      "after": 38345362,
+      "before": 38059740,
+      "code": "458870",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "씨어스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000116&contnId=20260821000116",
+      "old_units": 1,
+      "session": "2026-08-26"
+    },
+    {
+      "action": "option_exercise",
+      "after": 18013569,
+      "before": 17947045,
+      "code": "464080",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에스오에스랩",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260821000107&contnId=20260821000107",
       "old_units": 1,
       "session": "2026-08-26"
     },
@@ -23188,6 +23725,19 @@
       "session": "2026-08-27"
     },
     {
+      "action": "option_exercise",
+      "after": 92202203,
+      "before": 92162453,
+      "code": "025320",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "시노펙스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000101&contnId=20260824000101",
+      "old_units": 1,
+      "session": "2026-08-27"
+    },
+    {
       "action": "reverse_split",
       "after": 6195965,
       "before": 30979827,
@@ -23211,6 +23761,33 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/08/26/000414/20260826001343/70764.htm",
       "old_units": 2,
+      "session": "2026-08-27"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 36250386,
+      "before": 38010802,
+      "code": "046440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KG파이낸셜",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000107&contnId=20260824000107",
+      "old_units": 1,
+      "session": "2026-08-27",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260805900249"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 19545218,
+      "before": 14359271,
+      "code": "060230",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "제이케이시냅스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000117&contnId=20260824000117",
+      "old_units": 1,
       "session": "2026-08-27"
     },
     {
@@ -23257,6 +23834,47 @@
       "session": "2026-08-27"
     },
     {
+      "action": "bond_conversion",
+      "after": 37974228,
+      "before": 37463931,
+      "code": "222800",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "심텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260820000085&contnId=20260820000085",
+      "old_units": 1,
+      "session": "2026-08-27"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9186492,
+      "before": 45932464,
+      "code": "403490",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-27",
+      "market": "KOSDAQ",
+      "name": "우듬지팜",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000096&contnId=20260826000096",
+      "old_units": 5,
+      "session": "2026-08-27",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260702900792"
+    },
+    {
+      "action": "option_exercise",
+      "after": 12525915,
+      "before": 12493915,
+      "code": "483650",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "달바글로벌",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000111&contnId=20260824000111",
+      "old_units": 1,
+      "session": "2026-08-27"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 73615781,
       "before": 79647601,
@@ -23285,6 +23903,36 @@
       "session": "2026-08-28"
     },
     {
+      "action": "reverse_split",
+      "after": 4050038,
+      "before": 20250194,
+      "code": "012170",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-28",
+      "market": "KOSPI",
+      "name": "아센디오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000173&contnId=20260824000173",
+      "old_units": 5,
+      "session": "2026-08-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260730800494"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9904901,
+      "before": 49524505,
+      "code": "012280",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-28",
+      "market": "KOSPI",
+      "name": "영화금속",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000214&contnId=20260825000214",
+      "old_units": 5,
+      "session": "2026-08-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260617800484"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 38035973,
       "before": 38035975,
@@ -23300,6 +23948,19 @@
       "terms_url": "https://samara.kr/disclosure/20260814003051"
     },
     {
+      "action": "bond_conversion",
+      "after": 43291236,
+      "before": 43159888,
+      "code": "024840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KBI메탈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000153&contnId=20260825000153",
+      "old_units": 1,
+      "session": "2026-08-28"
+    },
+    {
       "action": "reverse_split",
       "after": 23976007,
       "before": 47952015,
@@ -23310,6 +23971,73 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/08/27/000497/20260827001425/70764.htm",
       "old_units": 2,
+      "session": "2026-08-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 42115757,
+      "before": 421157579,
+      "code": "067390",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-28",
+      "market": "KOSDAQ",
+      "name": "아스트",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260827000089&contnId=20260827000089",
+      "old_units": 10,
+      "session": "2026-08-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260601901507"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 27117243,
+      "before": 26950299,
+      "code": "179530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "애드바이오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260824000112&contnId=20260824000112",
+      "old_units": 1,
+      "session": "2026-08-28"
+    },
+    {
+      "action": "option_exercise",
+      "after": 55726220,
+      "before": 55561220,
+      "code": "204610",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "티쓰리",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000148&contnId=20260825000148",
+      "old_units": 1,
+      "session": "2026-08-28"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12299224,
+      "before": 12274440,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000154&contnId=20260825000154",
+      "old_units": 1,
+      "session": "2026-08-28"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 18523548,
+      "before": 18443093,
+      "code": "310210",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "보로노이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000124&contnId=20260825000124",
+      "old_units": 1,
       "session": "2026-08-28"
     },
     {
@@ -23358,6 +24086,19 @@
       "session": "2026-08-31"
     },
     {
+      "action": "bond_conversion",
+      "after": 24564058,
+      "before": 24194466,
+      "code": "033160",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엠케이전자",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000094&contnId=20260826000094",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
       "action": "reverse_split",
       "after": 9216819,
       "before": 46084095,
@@ -23369,6 +24110,76 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/08/28/000477/20260828001178/70764.htm",
       "old_units": 5,
       "session": "2026-08-31"
+    },
+    {
+      "action": "bond_warrant_exercise",
+      "after": 34641175,
+      "before": 34510967,
+      "code": "091440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한울소재과학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000098&contnId=20260826000098",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
+      "action": "reverse_split",
+      "after": 102106091,
+      "before": 510530459,
+      "code": "091810",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-31",
+      "market": "KOSPI",
+      "name": "트리니티항공",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000123&contnId=20260826000123",
+      "old_units": 5,
+      "session": "2026-08-31",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260703800820"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 36436634,
+      "before": 37296909,
+      "code": "095910",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에스에너지",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000099&contnId=20260826000099",
+      "old_units": 1,
+      "session": "2026-08-31",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260720900350"
+    },
+    {
+      "action": "option_exercise",
+      "after": 14667028,
+      "before": 14661028,
+      "code": "108490",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "로보티즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000196&contnId=20260825000196",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
+      "action": "reverse_split",
+      "after": 21083490,
+      "before": 42166980,
+      "code": "142760",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-31",
+      "market": "KOSDAQ",
+      "name": "모아라이프플러스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000117&contnId=20260826000117",
+      "old_units": 2,
+      "session": "2026-08-31",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260707900387"
     },
     {
       "action": "bond_conversion",
@@ -23383,6 +24194,48 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/08/26/000810/20260826002078/70791.htm",
       "old_units": 1,
       "session": "2026-08-31"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 23607980,
+      "before": 22577400,
+      "code": "276730",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "bond_warrant_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000210&contnId=20260825000210",
+          "shares_after": 22943088,
+          "shares_before": 22577400
+        },
+        {
+          "action": "bond_conversion",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000211&contnId=20260825000211",
+          "shares_after": 23607980,
+          "shares_before": 22943088
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "한울앤제주",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000210&contnId=20260825000210",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
+      "action": "reverse_split",
+      "after": 16014428,
+      "before": 32028857,
+      "code": "286750",
+      "incorporated_into_path": false,
+      "listed_on": "2026-08-31",
+      "market": "KOSDAQ",
+      "name": "나노실리칸첨단소재",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260828000088&contnId=20260828000088",
+      "old_units": 2,
+      "session": "2026-08-31",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260518900587"
     },
     {
       "action": "successor_share_issuance",
@@ -23400,6 +24253,45 @@
       "terms_url": "https://samara.kr/disclosure/20261026000236"
     },
     {
+      "action": "bond_conversion",
+      "after": 15403863,
+      "before": 15366681,
+      "code": "338840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "와이바이오로직스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000116&contnId=20260826000116",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 13949482,
+      "before": 13644976,
+      "code": "340810",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "시선AI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260825000333&contnId=20260825000333",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
+      "action": "option_exercise",
+      "after": 27558782,
+      "before": 27509282,
+      "code": "397030",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이프릴바이오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260826000115&contnId=20260826000115",
+      "old_units": 1,
+      "session": "2026-08-31"
+    },
+    {
       "action": "reverse_split",
       "after": 20178973,
       "before": 100894865,
@@ -23410,6 +24302,45 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/08/31/000822/20260831001786/70764.htm",
       "old_units": 5,
+      "session": "2026-09-01"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 7296721,
+      "before": 4050038,
+      "code": "012170",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "아센디오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260831000166&contnId=20260831000166",
+      "old_units": 1,
+      "session": "2026-09-01"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 7600024,
+      "before": 6335615,
+      "code": "051780",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "큐로홀딩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260831000103&contnId=20260831000103",
+      "old_units": 1,
+      "session": "2026-09-01"
+    },
+    {
+      "action": "option_exercise",
+      "after": 12169150,
+      "before": 12129150,
+      "code": "194480",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "데브시스터즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260827000103&contnId=20260827000103",
+      "old_units": 1,
       "session": "2026-09-01"
     },
     {
@@ -23426,6 +24357,19 @@
       "session": "2026-09-01"
     },
     {
+      "action": "third_party_placement",
+      "after": 5950959,
+      "before": 4747965,
+      "code": "006740",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "블루산업개발",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260901000106&contnId=20260901000106",
+      "old_units": 1,
+      "session": "2026-09-02"
+    },
+    {
       "action": "reverse_split",
       "after": 14114460,
       "before": 141144600,
@@ -23437,6 +24381,47 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/08/28/000126/20260828000246/68155.htm",
       "old_units": 10,
       "session": "2026-09-02"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 11174129,
+      "before": 11431284,
+      "code": "035080",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "그래디언트",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260827000633&contnId=20260827000633",
+      "old_units": 1,
+      "session": "2026-09-02",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260810900310"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 6543786,
+      "before": 4883930,
+      "code": "060900",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이전트AI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260831000107&contnId=20260831000107",
+      "old_units": 1,
+      "session": "2026-09-02"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 18833952,
+      "before": 18887979,
+      "code": "184230",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "SGA솔루션즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260827000100&contnId=20260827000100",
+      "old_units": 1,
+      "session": "2026-09-02",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260812900191"
     },
     {
       "action": "reverse_split",
@@ -23452,6 +24437,47 @@
       "session": "2026-09-02"
     },
     {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 15009064,
+      "before": 8974830,
+      "code": "322780",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "bond_conversion",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260828000070&contnId=20260828000070",
+          "shares_after": 9292603,
+          "shares_before": 8974830
+        },
+        {
+          "action": "third_party_placement",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260901000093&contnId=20260901000093",
+          "shares_after": 15009064,
+          "shares_before": 9292603
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "코퍼스코리아",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260828000070&contnId=20260828000070",
+      "old_units": 1,
+      "session": "2026-09-02"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 17653634,
+      "before": 17759139,
+      "code": "017860",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "DS단석",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260831000100&contnId=20260831000100",
+      "old_units": 1,
+      "session": "2026-09-03",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260812800200"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 58268741,
       "before": 58911527,
@@ -23465,6 +24491,46 @@
       "old_units": 1,
       "session": "2026-09-03",
       "terms_url": "https://kind.krx.co.kr/external/2026/07/15/000355/20260712000020/61131.htm"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 9988331,
+      "before": 9991819,
+      "code": "078590",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "휴림에이텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260831000172&contnId=20260831000172",
+      "old_units": 1,
+      "session": "2026-09-03",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260812900478"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 23055881,
+      "before": 20855881,
+      "code": "032680",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "소프트센",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000077&contnId=20260903000077",
+      "old_units": 1,
+      "session": "2026-09-04"
+    },
+    {
+      "action": "option_exercise",
+      "after": 442999903,
+      "before": 442981070,
+      "code": "035720",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "카카오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260901000102&contnId=20260901000102",
+      "old_units": 1,
+      "session": "2026-09-04"
     },
     {
       "action": "public_offering",
@@ -23513,6 +24579,32 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/07/23/000616/20260722000444/71131.htm"
     },
     {
+      "action": "option_exercise",
+      "after": 11105148,
+      "before": 11035208,
+      "code": "468530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "프로티나",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260901000098&contnId=20260901000098",
+      "old_units": 1,
+      "session": "2026-09-04"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 23323419,
+      "before": 20033946,
+      "code": "007820",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엠엑스로보틱스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000194&contnId=20260903000194",
+      "old_units": 1,
+      "session": "2026-09-07"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 25994852,
       "before": 26194852,
@@ -23526,6 +24618,21 @@
       "old_units": 1,
       "session": "2026-09-07",
       "terms_url": "https://kind.krx.co.kr/external/2026/07/28/000288/20260728000600/71131.htm"
+    },
+    {
+      "action": "reverse_split",
+      "after": 5244669,
+      "before": 26223346,
+      "code": "037400",
+      "incorporated_into_path": true,
+      "listed_on": "2026-09-07",
+      "market": "KOSDAQ",
+      "name": "우리엔터프라이즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260904000111&contnId=20260904000111",
+      "old_units": 5,
+      "session": "2026-09-07",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260608900776"
     },
     {
       "action": "treasury_cancellation",
@@ -23543,6 +24650,20 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/06/24/000438/20260209000901/71131.htm"
     },
     {
+      "action": "treasury_cancellation",
+      "after": 39565146,
+      "before": 40591096,
+      "code": "053300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한국정보인증",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260901000104&contnId=20260901000104",
+      "old_units": 1,
+      "session": "2026-09-07",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260812900754"
+    },
+    {
       "action": "reverse_split",
       "after": 9691315,
       "before": 48456578,
@@ -23554,6 +24675,48 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/09/04/000445/20260904001235/70764.htm",
       "old_units": 5,
       "session": "2026-09-07"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 25648079,
+      "before": 26639081,
+      "code": "122990",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "와이솔",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260902000085&contnId=20260902000085",
+      "old_units": 1,
+      "session": "2026-09-07",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260811900394"
+    },
+    {
+      "action": "reverse_split",
+      "after": 10258264,
+      "before": 51291323,
+      "code": "376930",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-07",
+      "market": "KOSDAQ",
+      "name": "노을",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000198&contnId=20260903000198",
+      "old_units": 5,
+      "session": "2026-09-07",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260602900478"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12339686,
+      "before": 11933497,
+      "code": "009460",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "한창제지",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000078&contnId=20260903000078",
+      "old_units": 1,
+      "session": "2026-09-08"
     },
     {
       "action": "treasury_cancellation",
@@ -23571,6 +24734,21 @@
       "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/497839"
     },
     {
+      "action": "reverse_split",
+      "after": 6650183,
+      "before": 33250916,
+      "code": "044480",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-08",
+      "market": "KOSDAQ",
+      "name": "빌리언스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000107&contnId=20260907000107",
+      "old_units": 5,
+      "session": "2026-09-08",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260716900900"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 8956347,
       "before": 9078847,
@@ -23586,6 +24764,59 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/08/13/001413/20260609000783/61131.htm"
     },
     {
+      "action": "option_exercise",
+      "after": 37064567,
+      "before": 36635567,
+      "code": "127120",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "제이에스링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000001&contnId=20260903000001",
+      "old_units": 1,
+      "session": "2026-09-08"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 63678842,
+      "before": 63650737,
+      "code": "178320",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "서진시스템",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260901000132&contnId=20260901000132",
+      "old_units": 1,
+      "session": "2026-09-08"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 83561797,
+      "before": 81385045,
+      "code": "205500",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000079&contnId=20260903000079",
+          "shares_after": 81425045,
+          "shares_before": 81385045
+        },
+        {
+          "action": "third_party_placement",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000085&contnId=20260907000085",
+          "shares_after": 83561797,
+          "shares_before": 81425045
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "넥써쓰",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260903000079&contnId=20260903000079",
+      "old_units": 1,
+      "session": "2026-09-08"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 9803208,
       "before": 9833208,
@@ -23599,6 +24830,19 @@
       "old_units": 1,
       "session": "2026-09-08",
       "terms_url": "https://samara.kr/disclosure/20260813900512"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 53007472,
+      "before": 52062772,
+      "code": "340360",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "다보링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260902000630&contnId=20260902000630",
+      "old_units": 1,
+      "session": "2026-09-08"
     },
     {
       "action": "reverse_split",
@@ -23640,6 +24884,75 @@
       "old_units": 1,
       "session": "2026-09-09",
       "terms_url": "https://kind.krx.co.kr/external/2026/08/20/000545/20260818000394/71131.htm"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 36390319,
+      "before": 34641175,
+      "code": "091440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한울소재과학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260904000125&contnId=20260904000125",
+      "old_units": 1,
+      "session": "2026-09-09"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 29301512,
+      "before": 28757309,
+      "code": "099190",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아이센스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260904000112&contnId=20260904000112",
+      "old_units": 1,
+      "session": "2026-09-09"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9828856,
+      "before": 49144280,
+      "code": "273060",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-09",
+      "market": "KOSDAQ",
+      "name": "와이즈버즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000092&contnId=20260908000092",
+      "old_units": 5,
+      "session": "2026-09-09",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260630900901"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 53072805,
+      "before": 52959427,
+      "code": "290690",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아리바이오홀딩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260904000114&contnId=20260904000114",
+      "old_units": 1,
+      "session": "2026-09-09"
+    },
+    {
+      "action": "capital_reduction",
+      "after": 17746333,
+      "before": 29577223,
+      "code": "006490",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-10",
+      "market": "KOSPI",
+      "name": "프리티",
+      "new_units": 3,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000103&contnId=20260907000103",
+      "old_units": 5,
+      "session": "2026-09-10",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260710000623"
     },
     {
       "action": "treasury_cancellation",
@@ -23700,6 +25013,74 @@
       "session": "2026-09-10"
     },
     {
+      "action": "option_exercise",
+      "after": 92220753,
+      "before": 92202203,
+      "code": "025320",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "시노펙스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000069&contnId=20260907000069",
+      "old_units": 1,
+      "session": "2026-09-10"
+    },
+    {
+      "action": "reverse_split",
+      "after": 16695411,
+      "before": 83477056,
+      "code": "214680",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-10",
+      "market": "KOSDAQ",
+      "name": "디알텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000316&contnId=20260907000316",
+      "old_units": 5,
+      "session": "2026-09-10",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260624900309"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 5230920,
+      "before": 4343920,
+      "code": "247660",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "나노씨엠에스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260909000099&contnId=20260909000099",
+      "old_units": 1,
+      "session": "2026-09-10"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 45940603,
+      "before": 46711563,
+      "code": "332570",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "PS일렉트로닉스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000081&contnId=20260907000081",
+      "old_units": 1,
+      "session": "2026-09-10",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260818900311"
+    },
+    {
+      "action": "option_exercise",
+      "after": 5753282,
+      "before": 5752032,
+      "code": "474650",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "링크솔루션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260907000086&contnId=20260907000086",
+      "old_units": 1,
+      "session": "2026-09-10"
+    },
+    {
       "action": "reverse_split",
       "after": 4855508,
       "before": 24277540,
@@ -23711,6 +25092,21 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/09/10/000470/20260910001323/70764.htm",
       "old_units": 5,
       "session": "2026-09-11"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9354799,
+      "before": 46773995,
+      "code": "002880",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-11",
+      "market": "KOSPI",
+      "name": "디와이에이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000099&contnId=20260908000099",
+      "old_units": 5,
+      "session": "2026-09-11",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260811800718"
     },
     {
       "action": "reverse_split",
@@ -23726,6 +25122,33 @@
       "session": "2026-09-11"
     },
     {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 152094369,
+      "before": 152076491,
+      "code": "035420",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000105&contnId=20260908000105",
+          "shares_after": 152085831,
+          "shares_before": 152076491
+        },
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000106&contnId=20260908000106",
+          "shares_after": 152094369,
+          "shares_before": 152085831
+        }
+      ],
+      "market": "KOSPI",
+      "name": "NAVER",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000105&contnId=20260908000105",
+      "old_units": 1,
+      "session": "2026-09-11"
+    },
+    {
       "action": "bond_conversion",
       "after": 74618201,
       "before": 73886495,
@@ -23736,6 +25159,19 @@
       "name": "코미팜",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/09/08/000425/20260908001093/70791.htm",
+      "old_units": 1,
+      "session": "2026-09-11"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 58170945,
+      "before": 57870945,
+      "code": "054300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "팬스타엔터프라이즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000094&contnId=20260908000094",
       "old_units": 1,
       "session": "2026-09-11"
     },
@@ -23755,6 +25191,47 @@
       "terms_url": "https://samara.kr/disclosure/20260812900663"
     },
     {
+      "action": "bond_warrant_exercise",
+      "after": 63723489,
+      "before": 63678842,
+      "code": "178320",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "서진시스템",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000097&contnId=20260908000097",
+      "old_units": 1,
+      "session": "2026-09-11"
+    },
+    {
+      "action": "reverse_split",
+      "after": 3593782,
+      "before": 17968911,
+      "code": "285800",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-11",
+      "market": "KOSDAQ",
+      "name": "진영",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000084&contnId=20260910000084",
+      "old_units": 5,
+      "session": "2026-09-11",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260804900362"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12311616,
+      "before": 12299224,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000093&contnId=20260908000093",
+      "old_units": 1,
+      "session": "2026-09-11"
+    },
+    {
       "action": "third_party_placement",
       "after": 15030000,
       "before": 14430000,
@@ -23767,6 +25244,72 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/09/10/000529/20260910001455/70791.htm",
       "old_units": 1,
       "session": "2026-09-11"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 135300622,
+      "before": 135272685,
+      "code": "377300",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000112&contnId=20260908000112",
+          "shares_after": 135300002,
+          "shares_before": 135272685
+        },
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000113&contnId=20260908000113",
+          "shares_after": 135300622,
+          "shares_before": 135300002
+        }
+      ],
+      "market": "KOSPI",
+      "name": "카카오페이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000112&contnId=20260908000112",
+      "old_units": 1,
+      "session": "2026-09-11"
+    },
+    {
+      "action": "option_exercise",
+      "after": 91402269,
+      "before": 91337509,
+      "code": "424870",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "이뮨온시아",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260908000111&contnId=20260908000111",
+      "old_units": 1,
+      "session": "2026-09-11"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 16261203,
+      "before": 15989317,
+      "code": "003060",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "에이프로젠바이오로직스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260909000097&contnId=20260909000097",
+      "old_units": 1,
+      "session": "2026-09-14"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 20351656,
+      "before": 15749602,
+      "code": "009810",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "MDS스피어",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000084&contnId=20260911000084",
+      "old_units": 1,
+      "session": "2026-09-14"
     },
     {
       "action": "treasury_cancellation",
@@ -23796,6 +25339,77 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/09/11/000573/20260911001392/70791.htm",
       "old_units": 1,
       "session": "2026-09-14"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9064000,
+      "before": 45320000,
+      "code": "196450",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-14",
+      "market": "KOSDAQ",
+      "name": "코아시아씨엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000091&contnId=20260911000091",
+      "old_units": 5,
+      "session": "2026-09-14",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260730900564"
+    },
+    {
+      "action": "reverse_split",
+      "after": 6924243,
+      "before": 34621218,
+      "code": "297570",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-14",
+      "market": "KOSDAQ",
+      "name": "아틀라스링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000902&contnId=20260910000902",
+      "old_units": 5,
+      "session": "2026-09-14",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260722900514"
+    },
+    {
+      "action": "reverse_split",
+      "after": 7939249,
+      "before": 39696247,
+      "code": "332290",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-14",
+      "market": "KOSDAQ",
+      "name": "누보",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000080&contnId=20260911000080",
+      "old_units": 5,
+      "session": "2026-09-14",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260818900343"
+    },
+    {
+      "action": "option_exercise",
+      "after": 14708935,
+      "before": 14699056,
+      "code": "455180",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "케이지에이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260909000078&contnId=20260909000078",
+      "old_units": 1,
+      "session": "2026-09-14"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12459544,
+      "before": 12376016,
+      "code": "001210",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "금호전기",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000099&contnId=20260910000099",
+      "old_units": 1,
+      "session": "2026-09-15"
     },
     {
       "action": "treasury_cancellation",
@@ -23828,6 +25442,19 @@
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260819800431"
     },
     {
+      "action": "bond_conversion",
+      "after": 40774990,
+      "before": 40774942,
+      "code": "086890",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "이수앱지스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260909000118&contnId=20260909000118",
+      "old_units": 1,
+      "session": "2026-09-15"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 66762275,
       "before": 66762279,
@@ -23841,6 +25468,33 @@
       "old_units": 1,
       "session": "2026-09-15",
       "terms_url": "https://samara.kr/disclosure/20260813801225"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 22750539,
+      "before": 21062850,
+      "code": "226950",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000106&contnId=20260910000106",
+          "shares_after": 21087750,
+          "shares_before": 21062850
+        },
+        {
+          "action": "preferred_to_common",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000122&contnId=20260910000122",
+          "shares_after": 22750539,
+          "shares_before": 21087750
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "올릭스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000106&contnId=20260910000106",
+      "old_units": 1,
+      "session": "2026-09-15"
     },
     {
       "action": "treasury_cancellation",
@@ -23872,6 +25526,84 @@
       "session": "2026-09-15"
     },
     {
+      "action": "bond_conversion",
+      "after": 291912077,
+      "before": 259498284,
+      "code": "018000",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "유니슨",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000082&contnId=20260911000082",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 45480587,
+      "before": 44269203,
+      "code": "082270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "젬백스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260914000578&contnId=20260914000578",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 17424159,
+      "before": 14218530,
+      "code": "083660",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "CSA 코스믹",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260914000167&contnId=20260914000167",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 29573613,
+      "before": 29301512,
+      "code": "099190",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아이센스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000086&contnId=20260911000086",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 94683294,
+      "before": 88580109,
+      "code": "115450",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB테라퓨틱스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260914000580&contnId=20260914000580",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 27228539,
+      "before": 27117243,
+      "code": "179530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "애드바이오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000088&contnId=20260911000088",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 45654357,
       "before": 46735643,
@@ -23888,6 +25620,75 @@
     },
     {
       "action": "bond_warrant_exercise",
+      "after": 36997002,
+      "before": 36644144,
+      "code": "317770",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엑스페릭스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260910000906&contnId=20260910000906",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 36960227,
+      "before": 36560866,
+      "code": "331380",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "포커스에이아이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000098&contnId=20260915000098",
+      "old_units": 1,
+      "session": "2026-09-16"
+    },
+    {
+      "action": "reverse_split",
+      "after": 18407275,
+      "before": 36814550,
+      "code": "365590",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-16",
+      "market": "KOSDAQ",
+      "name": "하이딥",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260911000087&contnId=20260911000087",
+      "old_units": 2,
+      "session": "2026-09-16",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260630901043"
+    },
+    {
+      "action": "reverse_split",
+      "after": 3494609,
+      "before": 17473048,
+      "code": "009620",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-17",
+      "market": "KOSDAQ",
+      "name": "삼보산업",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000283&contnId=20260915000283",
+      "old_units": 5,
+      "session": "2026-09-17",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260615900516"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 9073532,
+      "before": 6073532,
+      "code": "020400",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "대동금속",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000069&contnId=20260916000069",
+      "old_units": 1,
+      "session": "2026-09-17"
+    },
+    {
+      "action": "bond_warrant_exercise",
       "after": 75451848,
       "before": 73433552,
       "code": "043260",
@@ -23897,6 +25698,19 @@
       "name": "성호전자",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/09/14/000502/20260914001368/70791.htm",
+      "old_units": 1,
+      "session": "2026-09-17"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12404558,
+      "before": 12311616,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260914000120&contnId=20260914000120",
       "old_units": 1,
       "session": "2026-09-17"
     },
@@ -23946,6 +25760,34 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 6201433,
+      "before": 7378526,
+      "code": "023150",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "MH에탄올",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000073&contnId=20260915000073",
+      "old_units": 1,
+      "session": "2026-09-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260825800183"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 4146735,
+      "before": 4378709,
+      "code": "025000",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "KPX케미칼",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000067&contnId=20260915000067",
+      "old_units": 1,
+      "session": "2026-09-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260828800486"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 4055236,
       "before": 4242236,
       "code": "058650",
@@ -23960,6 +25802,19 @@
       "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/498440"
     },
     {
+      "action": "third_party_placement",
+      "after": 22694418,
+      "before": 15420555,
+      "code": "069920",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엑시온그룹",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000088&contnId=20260917000088",
+      "old_units": 1,
+      "session": "2026-09-18"
+    },
+    {
       "action": "bond_conversion",
       "after": 89341992,
       "before": 88140322,
@@ -23970,6 +25825,19 @@
       "name": "아미노로직스",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/09/15/000633/20260915001344/70791.htm",
+      "old_units": 1,
+      "session": "2026-09-18"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 60914031,
+      "before": 59236180,
+      "code": "076610",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "해성옵틱스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260914000153&contnId=20260914000153",
       "old_units": 1,
       "session": "2026-09-18"
     },
@@ -23989,6 +25857,114 @@
       "terms_url": "https://samara.kr/disclosure/20260813801221"
     },
     {
+      "action": "reverse_split",
+      "after": 3826484,
+      "before": 19132421,
+      "code": "084440",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-18",
+      "market": "KOSDAQ",
+      "name": "유비온",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000099&contnId=20260917000099",
+      "old_units": 5,
+      "session": "2026-09-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260615900872"
+    },
+    {
+      "action": "reverse_split",
+      "after": 6294435,
+      "before": 62944350,
+      "code": "099220",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-18",
+      "market": "KOSDAQ",
+      "name": "SDN",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000093&contnId=20260917000093",
+      "old_units": 10,
+      "session": "2026-09-18",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260624900605"
+    },
+    {
+      "action": "bond_warrant_exercise",
+      "after": 12481128,
+      "before": 12385128,
+      "code": "304360",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에스바이오메딕스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000068&contnId=20260915000068",
+      "old_units": 1,
+      "session": "2026-09-18"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 17445290,
+      "before": 17409290,
+      "code": "376900",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "로킷헬스케어",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000076&contnId=20260915000076",
+      "old_units": 1,
+      "session": "2026-09-18"
+    },
+    {
+      "action": "option_exercise",
+      "after": 71768103,
+      "before": 71756523,
+      "code": "462860",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "더즌",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000100&contnId=20260915000100",
+      "old_units": 1,
+      "session": "2026-09-18"
+    },
+    {
+      "action": "option_exercise",
+      "after": 21752916,
+      "before": 21719590,
+      "code": "475830",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오름테라퓨틱",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260915000088&contnId=20260915000088",
+      "old_units": 1,
+      "session": "2026-09-18"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12526366,
+      "before": 12459544,
+      "code": "001210",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "금호전기",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000088&contnId=20260916000088",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 7756030,
+      "before": 6463359,
+      "code": "002680",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한탑",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000146&contnId=20260918000146",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
       "action": "third_party_placement",
       "after": 319453137,
       "before": 297590078,
@@ -23999,6 +25975,73 @@
       "name": "태영건설",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/09/18/000144/20260918000338/68154.htm",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 43466367,
+      "before": 43291236,
+      "code": "024840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KBI메탈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000449&contnId=20260916000449",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "reverse_split",
+      "after": 5178024,
+      "before": 25890122,
+      "code": "038530",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-21",
+      "market": "KOSDAQ",
+      "name": "케이바이오랩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000106&contnId=20260918000106",
+      "old_units": 5,
+      "session": "2026-09-21",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260716900805"
+    },
+    {
+      "action": "bond_warrant_exercise",
+      "after": 27467087,
+      "before": 27460845,
+      "code": "067170",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000089&contnId=20260916000089",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "bond_warrant_exercise",
+      "after": 36824346,
+      "before": 36390319,
+      "code": "091440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한울소재과학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000451&contnId=20260916000451",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 15158644,
+      "before": 11741788,
+      "code": "101400",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엔시트론",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000096&contnId=20260917000096",
       "old_units": 1,
       "session": "2026-09-21"
     },
@@ -24017,6 +26060,19 @@
       "session": "2026-09-21"
     },
     {
+      "action": "bond_conversion",
+      "after": 38484526,
+      "before": 37974228,
+      "code": "222800",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "심텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000186&contnId=20260916000186",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
       "action": "reverse_split",
       "after": 5395926,
       "before": 26979634,
@@ -24027,6 +26083,45 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/09/18/000379/20260918000875/70764.htm",
       "old_units": 5,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "option_exercise",
+      "after": 18536108,
+      "before": 18523548,
+      "code": "310210",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "보로노이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000247&contnId=20260916000247",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "option_exercise",
+      "after": 45996189,
+      "before": 45837609,
+      "code": "347850",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "디앤디파마텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000095&contnId=20260918000095",
+      "old_units": 1,
+      "session": "2026-09-21"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 54205823,
+      "before": 54182120,
+      "code": "357880",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "SKAI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000140&contnId=20260916000140",
+      "old_units": 1,
       "session": "2026-09-21"
     },
     {
@@ -24045,6 +26140,46 @@
       "terms_url": "https://samara.kr/disclosure/20260826800261"
     },
     {
+      "action": "bond_conversion",
+      "after": 37191690,
+      "before": 37064567,
+      "code": "127120",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "제이에스링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000104&contnId=20260917000104",
+      "old_units": 1,
+      "session": "2026-09-22"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 29454471,
+      "before": 27228539,
+      "code": "179530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "애드바이오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000084&contnId=20260917000084",
+      "old_units": 1,
+      "session": "2026-09-22"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 13582470,
+      "before": 13807469,
+      "code": "373160",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "데이원컴퍼니",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000107&contnId=20260917000107",
+      "old_units": 1,
+      "session": "2026-09-22",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260903900124"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 11285520,
       "before": 11580180,
@@ -24060,6 +26195,74 @@
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260904900207"
     },
     {
+      "action": "bond_conversion",
+      "after": 42292525,
+      "before": 42204932,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000077&contnId=20260917000077",
+      "old_units": 1,
+      "session": "2026-09-22"
+    },
+    {
+      "action": "option_exercise",
+      "after": 12527165,
+      "before": 12525915,
+      "code": "483650",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "달바글로벌",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260917000086&contnId=20260917000086",
+      "old_units": 1,
+      "session": "2026-09-22"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 53043517,
+      "before": 53119817,
+      "code": "004710",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "한솔테크닉스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000114&contnId=20260918000114",
+      "old_units": 1,
+      "session": "2026-09-23",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260727800763"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 26250000,
+      "before": 27250000,
+      "code": "015360",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "INVENI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000093&contnId=20260918000093",
+      "old_units": 1,
+      "session": "2026-09-23",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260810800219"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 9360612,
+      "before": 9641668,
+      "code": "051360",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "토비스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260916000447&contnId=20260916000447",
+      "old_units": 1,
+      "session": "2026-09-23",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260820900282"
+    },
+    {
       "action": "reverse_split",
       "after": 14847998,
       "before": 74239990,
@@ -24070,6 +26273,19 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/09/22/000363/20260922000961/70764.htm",
       "old_units": 5,
+      "session": "2026-09-23"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 8128618,
+      "before": 5204642,
+      "code": "223310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "사토시홀딩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260921000134&contnId=20260921000134",
+      "old_units": 1,
       "session": "2026-09-23"
     },
     {
@@ -24116,6 +26332,45 @@
       "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/499505"
     },
     {
+      "action": "option_exercise",
+      "after": 22946681,
+      "before": 22869381,
+      "code": "417840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "저스템",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000096&contnId=20260918000096",
+      "old_units": 1,
+      "session": "2026-09-23"
+    },
+    {
+      "action": "option_exercise",
+      "after": 10098368,
+      "before": 10054368,
+      "code": "424760",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "벨로크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000099&contnId=20260918000099",
+      "old_units": 1,
+      "session": "2026-09-23"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12626599,
+      "before": 12526366,
+      "code": "001210",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "금호전기",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260921000101&contnId=20260921000101",
+      "old_units": 1,
+      "session": "2026-09-28"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 2015468,
       "before": 2875800,
@@ -24146,6 +26401,105 @@
       "terms_url": "https://samara.kr/disclosure/20261113000147"
     },
     {
+      "action": "bond_conversion",
+      "after": 36952332,
+      "before": 36824346,
+      "code": "091440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한울소재과학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260921000099&contnId=20260921000099",
+      "old_units": 1,
+      "session": "2026-09-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 10562046,
+      "before": 52810230,
+      "code": "109070",
+      "incorporated_into_path": true,
+      "listed_on": "2026-09-28",
+      "market": "KOSPI",
+      "name": "주성코퍼레이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260921000109&contnId=20260921000109",
+      "old_units": 5,
+      "session": "2026-09-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260902800476"
+    },
+    {
+      "action": "reverse_split",
+      "after": 2161561,
+      "before": 21615614,
+      "code": "154040",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-28",
+      "market": "KOSDAQ",
+      "name": "다산솔루에타",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260923000088&contnId=20260923000088",
+      "old_units": 10,
+      "session": "2026-09-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260710900668"
+    },
+    {
+      "action": "reverse_split",
+      "after": 3394997,
+      "before": 33949973,
+      "code": "208860",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-28",
+      "market": "KOSDAQ",
+      "name": "다산디엠씨",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260922000108&contnId=20260922000108",
+      "old_units": 10,
+      "session": "2026-09-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260710900764"
+    },
+    {
+      "action": "reverse_split",
+      "after": 14093688,
+      "before": 70468440,
+      "code": "225190",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-28",
+      "market": "KOSDAQ",
+      "name": "LK삼양",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260923000011&contnId=20260923000011",
+      "old_units": 5,
+      "session": "2026-09-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260707900232"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 40026914,
+      "before": 23158914,
+      "code": "270520",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "앱튼",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260921000119&contnId=20260921000119",
+      "old_units": 1,
+      "session": "2026-09-28"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12426862,
+      "before": 12404558,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260918000150&contnId=20260918000150",
+      "old_units": 1,
+      "session": "2026-09-28"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 29048929,
       "before": 29676475,
@@ -24159,6 +26513,86 @@
       "old_units": 1,
       "session": "2026-09-28",
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260827900102"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 25650015,
+      "before": 24825953,
+      "code": "007460",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "에이프로젠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260922000091&contnId=20260922000091",
+      "old_units": 1,
+      "session": "2026-09-29"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 31775844,
+      "before": 31753544,
+      "code": "024850",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB이노베이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260922000095&contnId=20260922000095",
+      "old_units": 1,
+      "session": "2026-09-29"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 20341566,
+      "before": 9588878,
+      "code": "079190",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "케스피온",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260928000123&contnId=20260928000123",
+      "old_units": 1,
+      "session": "2026-09-29"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 30010954,
+      "before": 29454471,
+      "code": "179530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "애드바이오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260922000004&contnId=20260922000004",
+      "old_units": 1,
+      "session": "2026-09-29"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 18616563,
+      "before": 18536108,
+      "code": "310210",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "보로노이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260922000003&contnId=20260922000003",
+      "old_units": 1,
+      "session": "2026-09-29"
+    },
+    {
+      "action": "reverse_split",
+      "after": 9248606,
+      "before": 46243031,
+      "code": "378800",
+      "incorporated_into_path": false,
+      "listed_on": "2026-09-29",
+      "market": "KOSDAQ",
+      "name": "샤페론",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260923000656&contnId=20260923000656",
+      "old_units": 5,
+      "session": "2026-09-29",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260707900439"
     },
     {
       "action": "treasury_cancellation",
@@ -24189,6 +26623,33 @@
       "old_units": 1,
       "session": "2026-09-30",
       "terms_url": "https://stock.mk.co.kr/news/disclosure/template/1128143"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 17987408,
+      "before": 17988839,
+      "code": "327260",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "RF머트리얼즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260922000237&contnId=20260922000237",
+      "old_units": 1,
+      "session": "2026-09-30",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260908900177"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 25805620,
+      "before": 19850477,
+      "code": "418620",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "E8",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000114&contnId=20260929000114",
+      "old_units": 1,
+      "session": "2026-09-30"
     },
     {
       "action": "reverse_split",
@@ -24233,6 +26694,47 @@
       "terms_url": "https://spn.stockplus.com/news/api/v1/disclosure_views/koscom/502750"
     },
     {
+      "action": "bond_conversion",
+      "after": 31123920,
+      "before": 30010954,
+      "code": "179530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "애드바이오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260928000122&contnId=20260928000122",
+      "old_units": 1,
+      "session": "2026-10-01"
+    },
+    {
+      "action": "reverse_split",
+      "after": 5217987,
+      "before": 52179872,
+      "code": "004920",
+      "incorporated_into_path": false,
+      "listed_on": "2026-10-02",
+      "market": "KOSPI",
+      "name": "씨아이테크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000128&contnId=20260929000128",
+      "old_units": 10,
+      "session": "2026-10-02",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260724800576"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 34539971,
+      "before": 31775844,
+      "code": "024850",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB이노베이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000110&contnId=20261001000110",
+      "old_units": 1,
+      "session": "2026-10-02"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 18430109,
       "before": 19000000,
@@ -24246,6 +26748,19 @@
       "old_units": 1,
       "session": "2026-10-02",
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260611900641"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 12688620,
+      "before": 10601663,
+      "code": "049120",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인디앤씨",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000099&contnId=20261001000099",
+      "old_units": 1,
+      "session": "2026-10-02"
     },
     {
       "action": "reverse_split",
@@ -24289,6 +26804,20 @@
       "session": "2026-10-02"
     },
     {
+      "action": "bond_conversion_and_option_exercise",
+      "after": 37292957,
+      "before": 37191690,
+      "code": "127120",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "제이에스링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000047&contnId=20260929000047",
+      "old_units": 1,
+      "session": "2026-10-02",
+      "terms_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000115&contnId=20260929000115"
+    },
+    {
       "action": "bond_conversion",
       "after": 19940671,
       "before": 19909760,
@@ -24303,6 +26832,46 @@
       "session": "2026-10-02"
     },
     {
+      "action": "treasury_cancellation",
+      "after": 10249759,
+      "before": 10566952,
+      "code": "262840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아이퀘스트",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000132&contnId=20260929000132",
+      "old_units": 1,
+      "session": "2026-10-02",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260909900188"
+    },
+    {
+      "action": "option_exercise",
+      "after": 11194377,
+      "before": 11187177,
+      "code": "318060",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "그래피",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000135&contnId=20260929000135",
+      "old_units": 1,
+      "session": "2026-10-02"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 15230974,
+      "before": 15009064,
+      "code": "322780",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "코퍼스코리아",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260928000613&contnId=20260928000613",
+      "old_units": 1,
+      "session": "2026-10-02"
+    },
+    {
       "action": "reverse_split",
       "after": 6891296,
       "before": 34456481,
@@ -24313,6 +26882,19 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/01/000436/20261001001153/70764.htm",
       "old_units": 5,
+      "session": "2026-10-02"
+    },
+    {
+      "action": "option_exercise",
+      "after": 14361800,
+      "before": 14330250,
+      "code": "481070",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이유브랜즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260929000136&contnId=20260929000136",
+      "old_units": 1,
       "session": "2026-10-02"
     },
     {
@@ -24360,6 +26942,20 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 16691951,
+      "before": 16695411,
+      "code": "214680",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "디알텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260930000092&contnId=20260930000092",
+      "old_units": 1,
+      "session": "2026-10-06",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260910900647"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 4566596,
       "before": 4568286,
       "code": "248170",
@@ -24372,6 +26968,60 @@
       "old_units": 1,
       "session": "2026-10-06",
       "terms_url": "https://samara.kr/disclosure/20260915800621"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12547686,
+      "before": 12426862,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260930000096&contnId=20260930000096",
+      "old_units": 1,
+      "session": "2026-10-06"
+    },
+    {
+      "action": "option_exercise",
+      "after": 443000510,
+      "before": 442999903,
+      "code": "035720",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "카카오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000091&contnId=20261001000091",
+      "old_units": 1,
+      "session": "2026-10-07"
+    },
+    {
+      "action": "reverse_split",
+      "after": 5844964,
+      "before": 29224823,
+      "code": "050110",
+      "incorporated_into_path": false,
+      "listed_on": "2026-10-07",
+      "market": "KOSDAQ",
+      "name": "캠시스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261006000090&contnId=20261006000090",
+      "old_units": 5,
+      "session": "2026-10-07",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260701900951"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 58723445,
+      "before": 58170945,
+      "code": "054300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "팬스타엔터프라이즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000087&contnId=20261001000087",
+      "old_units": 1,
+      "session": "2026-10-07"
     },
     {
       "action": "reverse_split",
@@ -24387,6 +27037,60 @@
       "session": "2026-10-07"
     },
     {
+      "action": "capital_reduction",
+      "after": 5959188,
+      "before": 59591882,
+      "code": "131400",
+      "incorporated_into_path": true,
+      "listed_on": "2026-10-07",
+      "market": "KOSDAQ",
+      "name": "이브이첨단소재",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000078&contnId=20261001000078",
+      "old_units": 10,
+      "session": "2026-10-07",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261006000073"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 30748952,
+      "before": 30621674,
+      "code": "140410",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "메지온",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20260930000261&contnId=20260930000261",
+      "old_units": 1,
+      "session": "2026-10-07"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 13638363,
+      "before": 8128618,
+      "code": "223310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "사토시홀딩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261006000089&contnId=20261006000089",
+      "old_units": 1,
+      "session": "2026-10-07"
+    },
+    {
+      "action": "preferred_to_common",
+      "after": 22874858,
+      "before": 22750539,
+      "code": "226950",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "올릭스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000090&contnId=20261001000090",
+      "old_units": 1,
+      "session": "2026-10-07"
+    },
+    {
       "action": "reverse_split",
       "after": 5675672,
       "before": 28378364,
@@ -24397,6 +27101,19 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/06/000498/20261006001284/70764.htm",
       "old_units": 5,
+      "session": "2026-10-07"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 55449604,
+      "before": 54205823,
+      "code": "357880",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "SKAI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261001000102&contnId=20261001000102",
+      "old_units": 1,
       "session": "2026-10-07"
     },
     {
@@ -24430,6 +27147,32 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/09/02/000094/20260901001662/71131.htm"
     },
     {
+      "action": "third_party_placement",
+      "after": 10507281,
+      "before": 9545004,
+      "code": "019570",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "GMI벤처",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261002000089&contnId=20261002000089",
+      "old_units": 1,
+      "session": "2026-10-08"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 27144234,
+      "before": 25680106,
+      "code": "032790",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엠젠솔루션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261002000093&contnId=20261002000093",
+      "old_units": 1,
+      "session": "2026-10-08"
+    },
+    {
       "action": "rename",
       "after": 112740587,
       "before": 112740587,
@@ -24440,6 +27183,32 @@
       "name": "에스엠국일",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/02/000746/20261002001766/70765.htm",
+      "old_units": 1,
+      "session": "2026-10-08"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 9016703,
+      "before": 5016703,
+      "code": "092600",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "앤씨앤",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000083&contnId=20261007000083",
+      "old_units": 1,
+      "session": "2026-10-08"
+    },
+    {
+      "action": "option_exercise",
+      "after": 9392953,
+      "before": 9337513,
+      "code": "318160",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "셀바이오휴먼텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261002000005&contnId=20261002000005",
       "old_units": 1,
       "session": "2026-10-08"
     },
@@ -24468,6 +27237,33 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/06/000235/20261006000736/68155.htm",
       "old_units": 5,
+      "session": "2026-10-12"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 7926267,
+      "before": 8347999,
+      "code": "096870",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엘디티",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261006000092&contnId=20261006000092",
+      "old_units": 1,
+      "session": "2026-10-12",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260916900181"
+    },
+    {
+      "action": "option_exercise",
+      "after": 11217713,
+      "before": 11197043,
+      "code": "199430",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "케이엔알시스템",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261006000107&contnId=20261006000107",
+      "old_units": 1,
       "session": "2026-10-12"
     },
     {
@@ -24501,6 +27297,46 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 36353320,
+      "before": 36752307,
+      "code": "206650",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "유바이오로직스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261006000127&contnId=20261006000127",
+      "old_units": 1,
+      "session": "2026-10-12",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260821900305"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 28967684,
+      "before": 16261203,
+      "code": "003060",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "에이프로젠바이오로직스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000130&contnId=20261012000130",
+      "old_units": 1,
+      "session": "2026-10-13"
+    },
+    {
+      "action": "option_exercise",
+      "after": 10087588,
+      "before": 10067588,
+      "code": "014950",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "삼익제약",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000073&contnId=20261007000073",
+      "old_units": 1,
+      "session": "2026-10-13"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 25460640,
       "before": 25867242,
       "code": "023160",
@@ -24529,6 +27365,73 @@
     },
     {
       "action": "reverse_split",
+      "after": 24051534,
+      "before": 48103069,
+      "code": "038060",
+      "incorporated_into_path": false,
+      "listed_on": "2026-10-13",
+      "market": "KOSDAQ",
+      "name": "루멘스바이오스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000095&contnId=20261012000095",
+      "old_units": 2,
+      "session": "2026-10-13",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260818900279"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 37122980,
+      "before": 36952332,
+      "code": "091440",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "한울소재과학",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000080&contnId=20261007000080",
+      "old_units": 1,
+      "session": "2026-10-13"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12628235,
+      "before": 12547686,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000079&contnId=20261007000079",
+      "old_units": 1,
+      "session": "2026-10-13"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 42311591,
+      "before": 42292525,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000075&contnId=20261007000075",
+      "old_units": 1,
+      "session": "2026-10-13"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 17368741,
+      "before": 17238905,
+      "code": "011300",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "우성머티리얼스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261008000103&contnId=20261008000103",
+      "old_units": 1,
+      "session": "2026-10-14"
+    },
+    {
+      "action": "reverse_split",
       "after": 19390111,
       "before": 96950558,
       "code": "033340",
@@ -24538,6 +27441,33 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/08/000625/20261008001443/70764.htm",
       "old_units": 5,
+      "session": "2026-10-14"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 7582901,
+      "before": 9219981,
+      "code": "035200",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "프럼파스트",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261008000127&contnId=20261008000127",
+      "old_units": 1,
+      "session": "2026-10-14",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260911900272"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 25837248,
+      "before": 24051534,
+      "code": "038060",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "루멘스바이오스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000079&contnId=20261013000079",
+      "old_units": 1,
       "session": "2026-10-14"
     },
     {
@@ -24556,6 +27486,33 @@
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260921900346"
     },
     {
+      "action": "bond_conversion_and_option_exercise",
+      "after": 37421032,
+      "before": 37292957,
+      "code": "127120",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "제이에스링크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000516&contnId=20261007000516",
+      "old_units": 1,
+      "session": "2026-10-14",
+      "terms_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261007000517&contnId=20261007000517"
+    },
+    {
+      "action": "option_exercise",
+      "after": 55851220,
+      "before": 55726220,
+      "code": "204610",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "티쓰리",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261008000104&contnId=20261008000104",
+      "old_units": 1,
+      "session": "2026-10-14"
+    },
+    {
       "action": "third_party_placement",
       "after": 33845627,
       "before": 32784744,
@@ -24566,6 +27523,19 @@
       "name": "제이아이테크",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/13/000648/20261013001474/70791.htm",
+      "old_units": 1,
+      "session": "2026-10-14"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 14634503,
+      "before": 14502350,
+      "code": "456010",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아이씨티케이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261008000109&contnId=20261008000109",
       "old_units": 1,
       "session": "2026-10-14"
     },
@@ -24585,6 +27555,19 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/09/16/000074/20260914000676/61131.htm"
     },
     {
+      "action": "third_party_placement",
+      "after": 19344110,
+      "before": 17368741,
+      "code": "011300",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "우성머티리얼스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000471&contnId=20261013000471",
+      "old_units": 1,
+      "session": "2026-10-15"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 24919697,
       "before": 25157325,
@@ -24598,6 +27581,46 @@
       "old_units": 1,
       "session": "2026-10-15",
       "terms_url": "https://kind.krx.co.kr/external/2026/09/15/000586/20260915001210/61131.htm"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 152108892,
+      "before": 152094369,
+      "code": "035420",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000098&contnId=20261012000098",
+          "shares_after": 152103819,
+          "shares_before": 152094369
+        },
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000099&contnId=20261012000099",
+          "shares_after": 152108892,
+          "shares_before": 152103819
+        }
+      ],
+      "market": "KOSPI",
+      "name": "NAVER",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000098&contnId=20261012000098",
+      "old_units": 1,
+      "session": "2026-10-15"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 59023445,
+      "before": 58723445,
+      "code": "054300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "팬스타엔터프라이즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000127&contnId=20261012000127",
+      "old_units": 1,
+      "session": "2026-10-15"
     },
     {
       "action": "treasury_cancellation",
@@ -24615,6 +27638,46 @@
       "terms_url": "https://samara.kr/disclosure/20260914800368"
     },
     {
+      "action": "third_party_placement",
+      "after": 12549640,
+      "before": 10562046,
+      "code": "109070",
+      "incorporated_into_path": true,
+      "market": "KOSPI",
+      "name": "주성코퍼레이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000386&contnId=20261013000386",
+      "old_units": 1,
+      "session": "2026-10-15"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 85911535,
+      "before": 83561797,
+      "code": "205500",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "bond_conversion",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261008000633&contnId=20261008000633",
+          "shares_after": 83760092,
+          "shares_before": 83561797
+        },
+        {
+          "action": "third_party_placement",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000873&contnId=20261013000873",
+          "shares_after": 85911535,
+          "shares_before": 83760092
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "넥써쓰",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261008000633&contnId=20261008000633",
+      "old_units": 1,
+      "session": "2026-10-15"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 17305100,
       "before": 17657500,
@@ -24628,6 +27691,86 @@
       "old_units": 1,
       "session": "2026-10-15",
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260918900394"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 135307514,
+      "before": 135300622,
+      "code": "377300",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000134&contnId=20261012000134",
+          "shares_after": 135304822,
+          "shares_before": 135300622
+        },
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000135&contnId=20261012000135",
+          "shares_after": 135307514,
+          "shares_before": 135304822
+        }
+      ],
+      "market": "KOSPI",
+      "name": "카카오페이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000134&contnId=20261012000134",
+      "old_units": 1,
+      "session": "2026-10-15"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 42624425,
+      "before": 42311591,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000117&contnId=20261012000117",
+      "old_units": 1,
+      "session": "2026-10-15"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 1314132,
+      "before": 1570797,
+      "code": "009140",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "케이아이이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000087&contnId=20261013000087",
+      "old_units": 1,
+      "session": "2026-10-16",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260921800183"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 20314983,
+      "before": 19344110,
+      "code": "011300",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "우성머티리얼스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000342&contnId=20261013000342",
+      "old_units": 1,
+      "session": "2026-10-16"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 10703281,
+      "before": 10507281,
+      "code": "019570",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "GMI벤처",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000336&contnId=20261013000336",
+      "old_units": 1,
+      "session": "2026-10-16"
     },
     {
       "action": "third_party_placement",
@@ -24644,6 +27787,20 @@
       "session": "2026-10-16"
     },
     {
+      "action": "treasury_cancellation",
+      "after": 13698683,
+      "before": 14831549,
+      "code": "115310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "인포바인",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000089&contnId=20261013000089",
+      "old_units": 1,
+      "session": "2026-10-16",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260918900391"
+    },
+    {
       "action": "bond_conversion",
       "after": 11368297,
       "before": 11367793,
@@ -24654,6 +27811,19 @@
       "name": "나이벡",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/13/000457/20261013001192/70791.htm",
+      "old_units": 1,
+      "session": "2026-10-16"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 30876230,
+      "before": 30748952,
+      "code": "140410",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "메지온",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261012000132&contnId=20261012000132",
       "old_units": 1,
       "session": "2026-10-16"
     },
@@ -24687,6 +27857,32 @@
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260824900455"
     },
     {
+      "action": "option_exercise",
+      "after": 21667382,
+      "before": 21643882,
+      "code": "378340",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "필에너지",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261013000334&contnId=20261013000334",
+      "old_units": 1,
+      "session": "2026-10-16"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 43578187,
+      "before": 43466367,
+      "code": "024840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KBI메탈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261014000077&contnId=20261014000077",
+      "old_units": 1,
+      "session": "2026-10-19"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 14243291,
       "before": 14563291,
@@ -24700,6 +27896,20 @@
       "old_units": 1,
       "session": "2026-10-19",
       "terms_url": "https://samara.kr/disclosure/20260914900089"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 232072877,
+      "before": 232617176,
+      "code": "068270",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "셀트리온",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261014000080&contnId=20261014000080",
+      "old_units": 1,
+      "session": "2026-10-19",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260916800015"
     },
     {
       "action": "treasury_cancellation",
@@ -24747,6 +27957,60 @@
     },
     {
       "action": "bond_conversion",
+      "after": 34562271,
+      "before": 34539971,
+      "code": "024850",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB이노베이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261015000149&contnId=20261015000149",
+      "old_units": 1,
+      "session": "2026-10-20"
+    },
+    {
+      "action": "bond_warrant_exercise",
+      "after": 27469745,
+      "before": 27467087,
+      "code": "067170",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "오텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261014000286&contnId=20261014000286",
+      "old_units": 1,
+      "session": "2026-10-20"
+    },
+    {
+      "action": "reverse_split",
+      "after": 12278051,
+      "before": 61390259,
+      "code": "093240",
+      "incorporated_into_path": false,
+      "listed_on": "2026-10-20",
+      "market": "KOSPI",
+      "name": "형지엘리트",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261015000100&contnId=20261015000100",
+      "old_units": 5,
+      "session": "2026-10-20",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260706800691"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 14796480,
+      "before": 9910487,
+      "code": "101000",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KS인더스트리",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261019000943&contnId=20261019000943",
+      "old_units": 1,
+      "session": "2026-10-20"
+    },
+    {
+      "action": "bond_conversion",
       "after": 19968491,
       "before": 19940671,
       "code": "198940",
@@ -24756,6 +28020,32 @@
       "name": "한주라이트메탈",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/15/000528/20261015001335/70791.htm",
+      "old_units": 1,
+      "session": "2026-10-20"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12640627,
+      "before": 12628235,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261015000110&contnId=20261015000110",
+      "old_units": 1,
+      "session": "2026-10-20"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 17493263,
+      "before": 17445290,
+      "code": "376900",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "로킷헬스케어",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261015000146&contnId=20261015000146",
       "old_units": 1,
       "session": "2026-10-20"
     },
@@ -24804,6 +28094,19 @@
       "terms_url": "https://samara.kr/disclosure/20260928800164"
     },
     {
+      "action": "bond_conversion",
+      "after": 32651437,
+      "before": 32644947,
+      "code": "187420",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB제넥스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261016000109&contnId=20261016000109",
+      "old_units": 1,
+      "session": "2026-10-21"
+    },
+    {
       "action": "reverse_split",
       "after": 6150854,
       "before": 30754270,
@@ -24814,6 +28117,19 @@
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/20/000562/20261020001262/70764.htm",
       "old_units": 5,
+      "session": "2026-10-21"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 14195867,
+      "before": 13949482,
+      "code": "340810",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "시선AI",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261015000182&contnId=20261015000182",
+      "old_units": 1,
       "session": "2026-10-21"
     },
     {
@@ -24890,6 +28206,21 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/09/10/000468/20260910001313/61131.htm"
     },
     {
+      "action": "reverse_split",
+      "after": 5159083,
+      "before": 25795415,
+      "code": "368600",
+      "incorporated_into_path": false,
+      "listed_on": "2026-10-22",
+      "market": "KOSDAQ",
+      "name": "아이씨에이치",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261019000599&contnId=20261019000599",
+      "old_units": 5,
+      "session": "2026-10-22",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260930900497"
+    },
+    {
       "action": "preferred_to_common",
       "after": 24581534,
       "before": 23285930,
@@ -24914,6 +28245,46 @@
       "name": "태영건설",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/22/000307/20261022000765/68154.htm",
+      "old_units": 1,
+      "session": "2026-10-23"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 9716629,
+      "before": 9904901,
+      "code": "012280",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "영화금속",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261020000308&contnId=20261020000308",
+      "old_units": 1,
+      "session": "2026-10-23",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260928800210"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 27446964,
+      "before": 26581914,
+      "code": "106240",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인테크닉스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261022000135&contnId=20261022000135",
+      "old_units": 1,
+      "session": "2026-10-23"
+    },
+    {
+      "action": "option_exercise",
+      "after": 14671028,
+      "before": 14667028,
+      "code": "108490",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "로보티즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261020000324&contnId=20261020000324",
       "old_units": 1,
       "session": "2026-10-23"
     },
@@ -24961,6 +28332,19 @@
     },
     {
       "action": "option_exercise",
+      "after": 52301425,
+      "before": 52299425,
+      "code": "314130",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "지놈앤컴퍼니",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261020000259&contnId=20261020000259",
+      "old_units": 1,
+      "session": "2026-10-23"
+    },
+    {
+      "action": "option_exercise",
       "after": 18363830,
       "before": 18217830,
       "code": "330730",
@@ -24970,6 +28354,32 @@
       "name": "스톤브릿지벤처스",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/10/20/000533/20261020001221/70791.htm",
+      "old_units": 1,
+      "session": "2026-10-23"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 42718275,
+      "before": 42624425,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261020000183&contnId=20261020000183",
+      "old_units": 1,
+      "session": "2026-10-23"
+    },
+    {
+      "action": "preferred_to_common",
+      "after": 34807168,
+      "before": 33881572,
+      "code": "462350",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "이노스페이스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261020000090&contnId=20261020000090",
       "old_units": 1,
       "session": "2026-10-23"
     },
@@ -25016,6 +28426,45 @@
       "session": "2026-10-26"
     },
     {
+      "action": "bond_conversion",
+      "after": 38902043,
+      "before": 38484526,
+      "code": "222800",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "심텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261021000148&contnId=20261021000148",
+      "old_units": 1,
+      "session": "2026-10-26"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 7155981,
+      "before": 5253808,
+      "code": "275630",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에스에스알",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000030&contnId=20261023000030",
+      "old_units": 1,
+      "session": "2026-10-26"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 133280647,
+      "before": 133198223,
+      "code": "028300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261022000129&contnId=20261022000129",
+      "old_units": 1,
+      "session": "2026-10-27"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 36683320,
       "before": 37152376,
@@ -25031,6 +28480,33 @@
       "terms_url": "https://samara.kr/disclosure/20260929900297"
     },
     {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 7137072,
+      "before": 5959188,
+      "code": "131400",
+      "incorporated_into_path": true,
+      "listing_notices": [
+        {
+          "action": "third_party_placement",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261022000195&contnId=20261022000195",
+          "shares_after": 6361332,
+          "shares_before": 5959188
+        },
+        {
+          "action": "third_party_placement",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000095&contnId=20261026000095",
+          "shares_after": 7137072,
+          "shares_before": 6361332
+        }
+      ],
+      "market": "KOSDAQ",
+      "name": "이브이첨단소재",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261022000195&contnId=20261022000195",
+      "old_units": 1,
+      "session": "2026-10-27"
+    },
+    {
       "action": "reverse_split",
       "after": 8056629,
       "before": 40283149,
@@ -25042,6 +28518,59 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/10/26/000420/20261026001139/70764.htm",
       "old_units": 5,
       "session": "2026-10-27"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 9777458,
+      "before": 9570389,
+      "code": "355690",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이텀",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261022000173&contnId=20261022000173",
+      "old_units": 1,
+      "session": "2026-10-27"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 30079501,
+      "before": 28967684,
+      "code": "003060",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "에이프로젠바이오로직스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000153&contnId=20261023000153",
+      "old_units": 1,
+      "session": "2026-10-28"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 10302348,
+      "before": 7296721,
+      "code": "012170",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "아센디오",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000083&contnId=20261027000083",
+      "old_units": 1,
+      "session": "2026-10-28"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 11578297,
+      "before": 12400000,
+      "code": "024950",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "삼천리자전거",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000141&contnId=20261023000141",
+      "old_units": 1,
+      "session": "2026-10-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261006900224"
     },
     {
       "action": "treasury_cancellation",
@@ -25059,6 +28588,86 @@
       "terms_url": "https://samara.kr/disclosure/20261006900432"
     },
     {
+      "action": "bond_conversion",
+      "after": 39521354,
+      "before": 39421354,
+      "code": "089230",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "THE E&M",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000024&contnId=20261023000024",
+      "old_units": 1,
+      "session": "2026-10-28"
+    },
+    {
+      "action": "reverse_split",
+      "after": 3643663,
+      "before": 36436634,
+      "code": "095910",
+      "incorporated_into_path": false,
+      "listed_on": "2026-10-28",
+      "market": "KOSDAQ",
+      "name": "에스에너지",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000089&contnId=20261027000089",
+      "old_units": 10,
+      "session": "2026-10-28",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814903602"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 16697023,
+      "before": 15943444,
+      "code": "355390",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "크라우드웍스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000032&contnId=20261023000032",
+      "old_units": 1,
+      "session": "2026-10-28"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 27596423,
+      "before": 23565010,
+      "code": "371950",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "풍원정밀",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000155&contnId=20261023000155",
+      "old_units": 1,
+      "session": "2026-10-28"
+    },
+    {
+      "action": "option_exercise",
+      "after": 15419981,
+      "before": 15392981,
+      "code": "455900",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엔젤로보틱스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261023000143&contnId=20261023000143",
+      "old_units": 1,
+      "session": "2026-10-28"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 12725963,
+      "before": 12626599,
+      "code": "001210",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "금호전기",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000092&contnId=20261026000092",
+      "old_units": 1,
+      "session": "2026-10-29"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 10640000,
       "before": 13300000,
@@ -25072,6 +28681,45 @@
       "old_units": 1,
       "session": "2026-10-29",
       "terms_url": "https://samara.kr/disclosure/20260930800750"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 39018019,
+      "before": 38902043,
+      "code": "222800",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "심텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000097&contnId=20261026000097",
+      "old_units": 1,
+      "session": "2026-10-29"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 26997634,
+      "before": 25043237,
+      "code": "373200",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엑스플러스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000094&contnId=20261026000094",
+      "old_units": 1,
+      "session": "2026-10-29"
+    },
+    {
+      "action": "option_exercise",
+      "after": 5757382,
+      "before": 5753282,
+      "code": "474650",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "링크솔루션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000093&contnId=20261026000093",
+      "old_units": 1,
+      "session": "2026-10-29"
     },
     {
       "action": "treasury_cancellation",
@@ -25102,6 +28750,20 @@
       "old_units": 1,
       "session": "2026-10-30",
       "terms_url": "https://www.awakeplus.co.kr/data/view/20260930800003"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 4848856,
+      "before": 5244669,
+      "code": "037400",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "우리엔터프라이즈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000616&contnId=20261026000616",
+      "old_units": 1,
+      "session": "2026-10-30",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261008900199"
     },
     {
       "action": "reverse_split",
@@ -25147,6 +28809,33 @@
     },
     {
       "action": "treasury_cancellation",
+      "after": 12028967,
+      "before": 12037328,
+      "code": "073570",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "리튬포어스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261026000613&contnId=20261026000613",
+      "old_units": 1,
+      "session": "2026-10-30",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260903900198"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 40776199,
+      "before": 40774990,
+      "code": "086890",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "이수앱지스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000120&contnId=20261027000120",
+      "old_units": 1,
+      "session": "2026-10-30"
+    },
+    {
+      "action": "treasury_cancellation",
       "after": 27018702,
       "before": 27595819,
       "code": "139480",
@@ -25159,6 +28848,58 @@
       "old_units": 1,
       "session": "2026-10-30",
       "terms_url": "https://samara.kr/disclosure/20261015800412"
+    },
+    {
+      "action": "preferred_to_common",
+      "after": 53747673,
+      "before": 52301425,
+      "code": "314130",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "지놈앤컴퍼니",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000080&contnId=20261027000080",
+      "old_units": 1,
+      "session": "2026-10-30"
+    },
+    {
+      "action": "option_exercise",
+      "after": 6504626,
+      "before": 6431786,
+      "code": "444530",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "심플랫폼",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000062&contnId=20261029000062",
+      "old_units": 1,
+      "session": "2026-10-30"
+    },
+    {
+      "action": "preferred_to_common",
+      "after": 36129457,
+      "before": 34807168,
+      "code": "462350",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "이노스페이스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000078&contnId=20261027000078",
+      "old_units": 1,
+      "session": "2026-10-30"
+    },
+    {
+      "action": "option_exercise",
+      "after": 31178989,
+      "before": 30953739,
+      "code": "466100",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "클로봇",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000091&contnId=20261027000091",
+      "old_units": 1,
+      "session": "2026-10-30"
     },
     {
       "action": "treasury_cancellation",
@@ -25176,6 +28917,32 @@
       "terms_url": "https://kind.krx.co.kr/external/2026/10/02/000927/20260902000815/61131.htm"
     },
     {
+      "action": "bond_conversion",
+      "after": 20473656,
+      "before": 20314983,
+      "code": "011300",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "우성머티리얼스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261028000106&contnId=20261028000106",
+      "old_units": 1,
+      "session": "2026-11-02"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 30987431,
+      "before": 27144234,
+      "code": "032790",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엠젠솔루션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000435&contnId=20261029000435",
+      "old_units": 1,
+      "session": "2026-11-02"
+    },
+    {
       "action": "option_exercise",
       "after": 37033438,
       "before": 37019418,
@@ -25188,6 +28955,48 @@
       "notice_url": "https://kind.krx.co.kr/external/2026/10/28/000406/20261028001264/70791.htm",
       "old_units": 1,
       "session": "2026-11-02"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 21779615,
+      "before": 21083490,
+      "code": "142760",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "모아라이프플러스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261027000100&contnId=20261027000100",
+      "old_units": 1,
+      "session": "2026-11-02"
+    },
+    {
+      "action": "reverse_split",
+      "after": 13507874,
+      "before": 67539374,
+      "code": "205100",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-02",
+      "market": "KOSDAQ",
+      "name": "엑셈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261030000057&contnId=20261030000057",
+      "old_units": 5,
+      "session": "2026-11-02",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260825900264"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 45482645,
+      "before": 45916188,
+      "code": "259960",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "크래프톤",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261028000099&contnId=20261028000099",
+      "old_units": 1,
+      "session": "2026-11-02",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260930800878"
     },
     {
       "action": "treasury_cancellation",
@@ -25219,6 +29028,59 @@
       "session": "2026-11-02"
     },
     {
+      "action": "option_exercise",
+      "after": 50117227,
+      "before": 50111027,
+      "code": "440110",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파두",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261028000102&contnId=20261028000102",
+      "old_units": 1,
+      "session": "2026-11-02"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 8940090,
+      "before": 5950959,
+      "code": "006740",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "블루산업개발",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261102000104&contnId=20261102000104",
+      "old_units": 1,
+      "session": "2026-11-03"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 20491286,
+      "before": 20473656,
+      "code": "011300",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "우성머티리얼스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000057&contnId=20261029000057",
+      "old_units": 1,
+      "session": "2026-11-03"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 31743799,
+      "before": 31755614,
+      "code": "027740",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "마니커",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000072&contnId=20261029000072",
+      "old_units": 1,
+      "session": "2026-11-03",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261012800595"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 16078270,
       "before": 16591014,
@@ -25234,6 +29096,59 @@
       "terms_url": "https://samara.kr/disclosure/20260930900218"
     },
     {
+      "action": "bond_conversion",
+      "after": 12733569,
+      "before": 12640627,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000063&contnId=20261029000063",
+      "old_units": 1,
+      "session": "2026-11-03"
+    },
+    {
+      "action": "option_exercise",
+      "after": 15229152,
+      "before": 15227152,
+      "code": "372320",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "큐로셀",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261102000013&contnId=20261102000013",
+      "old_units": 1,
+      "session": "2026-11-03"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 37653934,
+      "before": 37939942,
+      "code": "403550",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "쏘카",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000065&contnId=20261029000065",
+      "old_units": 1,
+      "session": "2026-11-03",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261001800354"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 42756275,
+      "before": 42718275,
+      "code": "441270",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "파인엠텍",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261029000056&contnId=20261029000056",
+      "old_units": 1,
+      "session": "2026-11-03"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 56328381,
       "before": 59741721,
@@ -25247,6 +29162,34 @@
       "old_units": 1,
       "session": "2026-11-04",
       "terms_url": "https://samara.kr/disclosure/20261008800524"
+    },
+    {
+      "action": "reverse_split",
+      "after": 58382415,
+      "before": 291912077,
+      "code": "018000",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-04",
+      "market": "KOSDAQ",
+      "name": "유니슨",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261103000095&contnId=20261103000095",
+      "old_units": 5,
+      "session": "2026-11-04",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260908900495"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 34642675,
+      "before": 34562271,
+      "code": "024850",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB이노베이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261030000079&contnId=20261030000079",
+      "old_units": 1,
+      "session": "2026-11-04"
     },
     {
       "action": "treasury_cancellation",
@@ -25278,6 +29221,21 @@
       "session": "2026-11-04"
     },
     {
+      "action": "reverse_split",
+      "after": 11181365,
+      "before": 22362730,
+      "code": "290560",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-04",
+      "market": "KOSDAQ",
+      "name": "파라택시스이더리움",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261103000101&contnId=20261103000101",
+      "old_units": 2,
+      "session": "2026-11-04",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260813900163"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 12564963,
       "before": 12653789,
@@ -25293,6 +29251,21 @@
       "terms_url": "https://samara.kr/disclosure/20260928900195"
     },
     {
+      "action": "reverse_split",
+      "after": 6159264,
+      "before": 30796320,
+      "code": "418620",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-04",
+      "market": "KOSDAQ",
+      "name": "E8",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261103000093&contnId=20261103000093",
+      "old_units": 5,
+      "session": "2026-11-04",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260930901120"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 33416480,
       "before": 34941838,
@@ -25306,6 +29279,47 @@
       "old_units": 1,
       "session": "2026-11-05",
       "terms_url": "https://samara.kr/disclosure/20261008900574"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 34645068,
+      "before": 34642675,
+      "code": "024850",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HLB이노베이션",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261102000123&contnId=20261102000123",
+      "old_units": 1,
+      "session": "2026-11-05"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 7546147,
+      "before": 6106947,
+      "code": "050090",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "비케이홀딩스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261103000566&contnId=20261103000566",
+      "old_units": 1,
+      "session": "2026-11-05"
+    },
+    {
+      "action": "reverse_split",
+      "after": 16604839,
+      "before": 41512098,
+      "code": "072770",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-05",
+      "market": "KOSDAQ",
+      "name": "멤레이비티",
+      "new_units": 2,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261104000118&contnId=20261104000118",
+      "old_units": 5,
+      "session": "2026-11-05",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260929900308"
     },
     {
       "action": "option_exercise",
@@ -25336,6 +29350,20 @@
       "session": "2026-11-05"
     },
     {
+      "action": "treasury_cancellation",
+      "after": 21507921,
+      "before": 21907921,
+      "code": "206640",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "바디텍메드",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261102000106&contnId=20261102000106",
+      "old_units": 1,
+      "session": "2026-11-05",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260922900621"
+    },
+    {
       "action": "reverse_split",
       "after": 8777044,
       "before": 43885224,
@@ -25349,6 +29377,21 @@
       "session": "2026-11-06"
     },
     {
+      "action": "reverse_split",
+      "after": 9500000,
+      "before": 47500000,
+      "code": "043340",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-06",
+      "market": "KOSDAQ",
+      "name": "에쎈테크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261105000109&contnId=20261105000109",
+      "old_units": 5,
+      "session": "2026-11-06",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023900671"
+    },
+    {
       "action": "option_exercise",
       "after": 12775199,
       "before": 12765717,
@@ -25359,6 +29402,32 @@
       "name": "핑거",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/11/03/000397/20261103000936/70791.htm",
+      "old_units": 1,
+      "session": "2026-11-06"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 9956831,
+      "before": 9777458,
+      "code": "355690",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이텀",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261103000092&contnId=20261103000092",
+      "old_units": 1,
+      "session": "2026-11-06"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 14658905,
+      "before": 14634503,
+      "code": "456010",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아이씨티케이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261103000112&contnId=20261103000112",
       "old_units": 1,
       "session": "2026-11-06"
     },
@@ -25376,6 +29445,19 @@
       "old_units": 1,
       "session": "2026-11-09",
       "terms_url": "https://www.awakeplus.co.kr/data/view/20261008800278"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 43665752,
+      "before": 43578187,
+      "code": "024840",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KBI메탈",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261104000131&contnId=20261104000131",
+      "old_units": 1,
+      "session": "2026-11-09"
     },
     {
       "action": "treasury_cancellation",
@@ -25421,6 +29503,21 @@
       "session": "2026-11-10"
     },
     {
+      "action": "reverse_split",
+      "after": 6367865,
+      "before": 31839328,
+      "code": "033050",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-10",
+      "market": "KOSDAQ",
+      "name": "제이엠아이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000147&contnId=20261109000147",
+      "old_units": 5,
+      "session": "2026-11-10",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260812900572"
+    },
+    {
       "action": "treasury_cancellation",
       "after": 25388290,
       "before": 25888290,
@@ -25446,6 +29543,19 @@
       "name": "지노믹트리",
       "new_units": 1,
       "notice_url": "https://kind.krx.co.kr/external/2026/11/05/000551/20261105001304/70791.htm",
+      "old_units": 1,
+      "session": "2026-11-10"
+    },
+    {
+      "action": "option_exercise",
+      "after": 12735569,
+      "before": 12733569,
+      "code": "295310",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에이치브이엠",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261104000732&contnId=20261104000732",
       "old_units": 1,
       "session": "2026-11-10"
     },
@@ -25492,16 +29602,244 @@
       "old_units": 1,
       "session": "2026-11-11",
       "terms_url": "https://kind.krx.co.kr/external/2026/10/22/000256/20260916000421/71131.htm"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 17914172,
+      "before": 14796480,
+      "code": "101000",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "KS인더스트리",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261110000119&contnId=20261110000119",
+      "old_units": 1,
+      "session": "2026-11-11"
+    },
+    {
+      "action": "reverse_split",
+      "after": 7504716,
+      "before": 37523583,
+      "code": "288980",
+      "incorporated_into_path": false,
+      "listed_on": "2026-11-11",
+      "market": "KOSDAQ",
+      "name": "모아데이타",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261110000143&contnId=20261110000143",
+      "old_units": 5,
+      "session": "2026-11-11",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261022900582"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 37734520,
+      "before": 36960227,
+      "code": "331380",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "포커스에이아이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261110000122&contnId=20261110000122",
+      "old_units": 1,
+      "session": "2026-11-11"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 135332525,
+      "before": 135307514,
+      "code": "377300",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261106000123&contnId=20261106000123",
+          "shares_after": 135331114,
+          "shares_before": 135307514
+        },
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261106000124&contnId=20261106000124",
+          "shares_after": 135332525,
+          "shares_before": 135331114
+        }
+      ],
+      "market": "KOSPI",
+      "name": "카카오페이",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261106000123&contnId=20261106000123",
+      "old_units": 1,
+      "session": "2026-11-11"
+    },
+    {
+      "action": "option_exercise",
+      "after": 26631500,
+      "before": 26489500,
+      "code": "396300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "HT로보틱스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261105000406&contnId=20261105000406",
+      "old_units": 1,
+      "session": "2026-11-11"
+    },
+    {
+      "action": "option_exercise",
+      "after": 13365433,
+      "before": 13333933,
+      "code": "461300",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "아이스크림미디어",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261105000434&contnId=20261105000434",
+      "old_units": 1,
+      "session": "2026-11-11"
+    },
+    {
+      "action": "option_exercise",
+      "after": 21451080,
+      "before": 21392430,
+      "code": "486990",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "노타",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261110000121&contnId=20261110000121",
+      "old_units": 1,
+      "session": "2026-11-11"
+    },
+    {
+      "action": "same_day_holder_neutral_issuances",
+      "after": 152126544,
+      "before": 152108892,
+      "code": "035420",
+      "incorporated_into_path": false,
+      "listing_notices": [
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000115&contnId=20261109000115",
+          "shares_after": 152118892,
+          "shares_before": 152108892
+        },
+        {
+          "action": "option_exercise",
+          "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000116&contnId=20261109000116",
+          "shares_after": 152126544,
+          "shares_before": 152118892
+        }
+      ],
+      "market": "KOSPI",
+      "name": "NAVER",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000115&contnId=20261109000115",
+      "old_units": 1,
+      "session": "2026-11-12"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 16500000,
+      "before": 17401500,
+      "code": "097520",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "엠씨넥스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000134&contnId=20261109000134",
+      "old_units": 1,
+      "session": "2026-11-12",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261021800106"
+    },
+    {
+      "action": "third_party_placement",
+      "after": 7524831,
+      "before": 6584982,
+      "code": "115160",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "휴맥스",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261111000150&contnId=20261111000150",
+      "old_units": 1,
+      "session": "2026-11-12"
+    },
+    {
+      "action": "bond_conversion",
+      "after": 32230351,
+      "before": 31707567,
+      "code": "437730",
+      "incorporated_into_path": true,
+      "market": "KOSDAQ",
+      "name": "삼현",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261106000122&contnId=20261106000122",
+      "old_units": 1,
+      "session": "2026-11-12"
+    },
+    {
+      "action": "option_exercise",
+      "after": 8272371,
+      "before": 8255421,
+      "code": "452430",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "사피엔반도체",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000144&contnId=20261109000144",
+      "old_units": 1,
+      "session": "2026-11-12"
+    },
+    {
+      "action": "option_exercise",
+      "after": 10836986,
+      "before": 10825486,
+      "code": "488280",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "에스투더블유",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000148&contnId=20261109000148",
+      "old_units": 1,
+      "session": "2026-11-12"
+    },
+    {
+      "action": "option_exercise",
+      "after": 6399258,
+      "before": 6391238,
+      "code": "489500",
+      "incorporated_into_path": false,
+      "market": "KOSDAQ",
+      "name": "엘케이켐",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261109000244&contnId=20261109000244",
+      "old_units": 1,
+      "session": "2026-11-12"
+    },
+    {
+      "action": "treasury_cancellation",
+      "after": 5117815,
+      "before": 5217987,
+      "code": "004920",
+      "incorporated_into_path": false,
+      "market": "KOSPI",
+      "name": "씨아이테크",
+      "new_units": 1,
+      "notice_url": "https://kind.krx.co.kr/corpgeneral/stockissuelist.do?method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=20261110000126&contnId=20261110000126",
+      "old_units": 1,
+      "session": "2026-11-13",
+      "terms_url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023800376"
     }
   ],
   "official_adjusted_history_verified": false,
   "performance_validated": false,
   "register_sha256": {
-    "continuity_register": "6c2cfc5e11f1b52142fab8aa4794dce16ea21b2fbc515c4097f5678829616e99",
+    "continuity_register": "382aaa6a3045334b2647ec3484a1b2b8a41439bd12b478ad565456fb2a583693",
     "delisting_settlement_register": "9afca4773f58a06731a380becb71bd526ee23259b47fcbaf01249db4baebb229",
-    "face_register": "dc71e381d71bbeae7e8dc216c8ba95dc72041341bddc25560c8c4d668fee7d3d",
+    "face_register": "ad10efe57969ecefec421a2a8f97098ff5968b16a3fdef7aba30a91b51731594",
     "historical_register": "0364c74d923a36dc56d144f8fba92dd681323b049dcf892fbe64029c9ca79653",
     "listing_register": "42e8a2d3970cd356e949b59271af84beefee29ee4190b1e34c8c28b54a250aa0",
+    "shared_forward_register": "6d46879ab951ae56f0672501a6c3502bf676787f0b59bf7c43a6f24c0b2e54a5",
     "successor_listings_register": "0cd473f1a1006034c2540f258375d38ffe2ef7d18a98e36e02b8cec122dab343"
   },
   "signal_session": "2025-11-13",

@@ -15,11 +15,11 @@ const ranking=fs.readFileSync(path.join(__dirname,'../docs/v3-ranking.js'),'utf8
  const data=require('../docs/v3-historical-price-paths-20251113.json');
  const view=unified.historicalPriceCoverageView(data);
  for(const page of [html,entry])assert.match(page,/id="historicalPriceCoverage"/);
- assert.equal(view.status,'12개월 1,866 / 2,573종목');
+ assert.equal(view.status,'12개월 1,870 / 2,573종목');
  assert.match(view.body,/2,337 \/ 2,573/);
- assert.match(view.body,/1,612 \/ 2,041/);
+ assert.match(view.body,/1,615 \/ 2,041/);
  assert.match(view.body,/진입 시가 미확인 97종목/);
- assert.match(view.body,/12개월 평가값 미확보 610종목/);
+ assert.match(view.body,/12개월 평가값 미확보 606종목/);
  assert.equal(unified.historicalPriceCoverageView({...data,rows:{}}),null);
 }
 const auditWarningSource=fs.readFileSync(path.join(__dirname,'../docs/v3-live-progress.js'),'utf8');

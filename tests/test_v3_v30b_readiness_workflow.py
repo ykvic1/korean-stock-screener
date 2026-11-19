@@ -47,8 +47,8 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertEqual(report["delisting_paths_reconciled"], 85)
         self.assertEqual(report["financial_detail_issuers_reconciled"], 107)
         self.assertEqual(report["horizons"]["12"], {
-            "priced": 1866, "entered_but_unpriced": 610, "downside_observed": 1866,
-            "priced_paths_with_gaps": 172,
+            "priced": 1870, "entered_but_unpriced": 606, "downside_observed": 1870,
+            "priced_paths_with_gaps": 175,
         })
         content = WORKFLOW.read_text(encoding="utf8")
         self.assertIn("python v3_historical_public_paths_audit.py >", content)
