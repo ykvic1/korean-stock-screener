@@ -22,6 +22,10 @@ SCHEMA = 'v3-historical-pilot-official-prices-v1'
 BATCHES = {
     'anchor': (SIGNAL, ENTRY, day('2026-01-13'), day('2026-05-13'), END),
     'remaining': tuple(map(day, ('2025-12-15', '2026-02-13', '2026-09-14', '2026-10-19'))),
+    # The five previously unchecked dates most frequently used as observed
+    # adverse extremes in the 85 historical delisting horizon rows.
+    'downside_priority': tuple(map(day, ('2025-11-19', '2025-12-08', '2025-12-09',
+                                        '2026-01-08', '2026-01-12'))),
 }
 PRICE_FIELDS = ('open', 'high', 'low', 'close')
 
@@ -40,6 +44,7 @@ def compare_market(public, official, codes):
         'positive_trade_on_public_only': 0,
         'positive_trade_on_official_only': 0,
         'no_positive_trade_on_either': 0,
+        'confirmed_zero_volume_on_both': 0,
         'exact_ohlc': 0,
     })
     difference = dict.fromkeys(PRICE_FIELDS, 0)
@@ -65,6 +70,8 @@ def compare_market(public, official, codes):
             counts['positive_trade_on_official_only'] += 1
         else:
             counts['no_positive_trade_on_either'] += 1
+            counts['confirmed_zero_volume_on_both'] += (
+                public_quantity(p[7]) == 0 and o[2] == 'no_reported_volume')
     return {**counts, 'different_price_by_field': difference}
 
 
@@ -157,6 +164,13 @@ def compare_turnover(public, official):
             'numeric_equivalence_is_not_session_certification': True}
 
 
+def exact_market_prices(comparison):
+    """Require identity, share counts, trade status and all traded OHLC values."""
+    return (0 < comparison['exact_ohlc']
+            and comparison['exact_ohlc'] + comparison['confirmed_zero_volume_on_both'] == comparison['scope']
+            and comparison['listed_share_mismatch'] == comparison['listed_shares_unavailable'] == 0)
+
+
 def audit(panels, delisted, client, batch, *, turnover_panels=None):
     sessions = BATCHES[batch]
     validate_dates([d.isoformat() for d in sessions])
@@ -198,6 +212,8 @@ def audit(panels, delisted, client, batch, *, turnover_panels=None):
         all(field['matched'] == item['scope'] for field in item['fields'].values())
         for item in turnover))
     return {
+        'market_wide_ohlc_and_membership_matched': len(results) == len(sessions) and all(
+            exact_market_prices(item['market_wide']) for item in results.values()),
         'turnover_numeric_comparison_complete': turnover_complete,
         'turnover_all_values_matched': turnover_matched,
         'schema': SCHEMA,
@@ -229,7 +245,8 @@ def main():
     turnover = read_turnover_panels(args.sources, BATCHES[args.batch])
     result = audit(panels, delisted, KRXClient(key), args.batch, turnover_panels=turnover)
     print(json.dumps(result, sort_keys=True))
-    if result['failed_sessions'] or not result['turnover_all_values_matched']:
+    if (result['failed_sessions'] or not result['turnover_all_values_matched']
+            or (args.batch == 'downside_priority' and not result['market_wide_ohlc_and_membership_matched'])):
         raise SystemExit(1)
 
 
