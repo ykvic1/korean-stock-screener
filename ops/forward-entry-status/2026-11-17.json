@@ -54,7 +54,7 @@
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-20",
-      "reviewed_ma_notices_sha256": "6250d51af20cedc2bca6a7aaf315fa142475bcd926f39cd81b83f3546d671e1d",
+      "reviewed_ma_notices_sha256": "e15be059b1500dd15aec05e7962ea9bb0475c8a3a93c32cd9a423322a382ea13",
       "history_sources_sha256": "e3fe5e01c7fb3b43964001d296f7cdc015b002ceb1fe2aa7589868620520c5c8",
       "intervening_sessions": [],
       "intervening_source_sha256": {},
@@ -119,8 +119,8 @@
         "top100": {
           "matched_openings": 100,
           "using_reviewed_share_continuity": {
-            "20": 5,
-            "60": 9
+            "20": 6,
+            "60": 12
           },
           "20": {
             "signal_trade_unavailable": 0,
@@ -129,14 +129,14 @@
             "history_session_missing": 0,
             "issuer_history_missing": 0,
             "issuer_identity_changed": 0,
-            "share_count_changed": 2,
+            "share_count_changed": 1,
             "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 0,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
             "pre_entry_price_basis_discontinuous": 0,
-            "average_at_or_above_signal_close": 33,
+            "average_at_or_above_signal_close": 34,
             "open_at_or_below_average": 2,
             "intraday_average_touched": 12,
             "average_not_touched": 51
@@ -148,7 +148,7 @@
             "history_session_missing": 0,
             "issuer_history_missing": 0,
             "issuer_identity_changed": 0,
-            "share_count_changed": 4,
+            "share_count_changed": 1,
             "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 1,
             "trade_state_unavailable": 0,
@@ -156,16 +156,16 @@
             "pre_entry_share_basis_unresolved": 0,
             "pre_entry_price_basis_discontinuous": 0,
             "average_at_or_above_signal_close": 33,
-            "open_at_or_below_average": 3,
+            "open_at_or_below_average": 4,
             "intraday_average_touched": 4,
-            "average_not_touched": 55
+            "average_not_touched": 57
           }
         },
         "all_ranked": {
           "matched_openings": 2467,
           "using_reviewed_share_continuity": {
-            "20": 108,
-            "60": 239
+            "20": 119,
+            "60": 269
           },
           "20": {
             "signal_trade_unavailable": 0,
@@ -174,17 +174,17 @@
             "history_session_missing": 0,
             "issuer_history_missing": 0,
             "issuer_identity_changed": 3,
-            "share_count_changed": 44,
+            "share_count_changed": 33,
             "reviewed_share_basis_unresolved": 1,
             "price_basis_discontinuous": 2,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
             "pre_entry_price_basis_discontinuous": 0,
-            "average_at_or_above_signal_close": 1909,
+            "average_at_or_above_signal_close": 1918,
             "open_at_or_below_average": 42,
             "intraday_average_touched": 140,
-            "average_not_touched": 326
+            "average_not_touched": 328
           },
           "60": {
             "signal_trade_unavailable": 0,
@@ -193,17 +193,17 @@
             "history_session_missing": 0,
             "issuer_history_missing": 7,
             "issuer_identity_changed": 15,
-            "share_count_changed": 181,
+            "share_count_changed": 151,
             "reviewed_share_basis_unresolved": 1,
             "price_basis_discontinuous": 10,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
             "pre_entry_price_basis_discontinuous": 0,
-            "average_at_or_above_signal_close": 1948,
-            "open_at_or_below_average": 14,
-            "intraday_average_touched": 59,
-            "average_not_touched": 232
+            "average_at_or_above_signal_close": 1969,
+            "open_at_or_below_average": 15,
+            "intraday_average_touched": 60,
+            "average_not_touched": 239
           }
         }
       }
@@ -381,5 +381,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T03:48:38.922055+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T04:07:32.306956+00:00"
 }
