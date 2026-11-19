@@ -69,6 +69,16 @@ def audit(root=ROOT):
             "historical_valuation_dates_mismatch")
 
     rows = public["rows"]
+    unresolved = public["unpriced_paid_rights"]
+    reviewed = read_json("ops", "v3-performance-market-share-action-replay")
+    require(reviewed["signal_session"] == public["signal_session"]
+            and reviewed["entry_session"] == public["entry_session"]
+            and reviewed["performance_validated"] is False
+            and set(unresolved) == set(PERIODS)
+            and all(unresolved[h] == sorted(rows.keys() & set(reviewed["unpriced_paid_rights_codes_by_horizon"][h]))
+                    and all(rows[code]["entry_observed"] is True and h not in rows[code]["paths"]
+                            for code in unresolved[h]) for h in PERIODS),
+            "published_unpriced_paid_rights_mismatch")
     require(len(rows) == scope["listed"] == financial["historical_scope_count"],
             "historical_roster_count_mismatch")
     markets = Counter()
@@ -134,6 +144,7 @@ def audit(root=ROOT):
         "delisting_paths_reconciled": len(delisted), "financial_detail_issuers_reconciled": len(financial_rows),
         "horizons": {h: {"priced": valued[h], "entered_but_unpriced": entry_count - valued[h],
                          "downside_observed": downside_observed[h],
+                         "unpriced_paid_rights": len(unresolved[h]),
                          "priced_paths_with_gaps": valued_path_with_gaps[h]} for h in PERIODS},
         "input_sha256": hashes, "performance_validated": False,
     }

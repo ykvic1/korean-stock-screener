@@ -2550,7 +2550,12 @@ function validHistoricalPricePaths(data){
   Array.isArray(data.path_columns)&&
   data.path_columns.join(',')==='price_pct,downside_pct,unpriced_sessions,basis,unlisted_entitlement'&&
   HISTORICAL_PERIODS.every(h=>validDate(data.valuations?.[h])&&data.valuations[h]>data.entry_session&&
-   Number.isInteger(data.priced?.[h])&&data.priced[h]>=0&&data.priced[h]<=data.cohort_size);
+   Number.isInteger(data.priced?.[h])&&data.priced[h]>=0&&data.priced[h]<=data.cohort_size&&
+   (data.unpriced_paid_rights===undefined||(
+    Array.isArray(data.unpriced_paid_rights?.[h])&&
+    new Set(data.unpriced_paid_rights[h]).size===data.unpriced_paid_rights[h].length&&
+    data.unpriced_paid_rights[h].every(code=>typeof code==='string'&&/^[A-Z0-9]{6}$/.test(code)&&
+     data.rows[code]?.entry_observed===true&&!Object.hasOwn(data.rows[code].paths||{},h)))));
 }
 function historicalPriceTable(valuations,values,headings){
  const rows=HISTORICAL_PERIODS.map(h=>{
@@ -2581,7 +2586,8 @@ function historicalPriceCoverageView(data){
    historicalPriceTable(data.valuations,h=>[coverage(priced[h],rows.length),
     coverage(data.priced[h],data.cohort_size)],['전체 운영 표본','재무·가치 3개 항목 확보'])+
    '<p class="u-source">전체 표본에서 진입 시가 미확인 '+number(rows.length-entered.length)+
-   '종목 · 진입 시가는 있으나 12개월 평가값 미확보 '+number(entered.length-priced[12])+'종목</p>'+
+   '종목 · 진입 시가는 있으나 12개월 평가값 미확보 '+number(entered.length-priced[12])+'종목'+
+   (data.unpriced_paid_rights?.[12].length?' (신주인수권 가치 미확인 '+number(data.unpriced_paid_rights[12].length)+'종목 포함)':'')+'</p>'+
    '<p class="u-source">배당·거래비용 제외 연구 자료입니다. 종목별 수익률과 관측 하락폭은 종목 상세에서 확인할 수 있습니다.</p>'};
 }
 function historicalPricePath(r,data){
@@ -2598,7 +2604,8 @@ function historicalPricePath(r,data){
   const [price,downside,missing,basis,unlisted]=outcomes(h);
   const basisLabel=basis==='reviewed_share_action'?'기업행위 반영':
    basis==='delisting_case_replay'?'상장폐지 사례 반영':'';
-  const note=[basisLabel,unlisted===true?'미상장 권리 평가 포함':'',
+  const rightsUnpriced=data.unpriced_paid_rights?.[h].includes(r.code);
+  const note=[rightsUnpriced?'유상증자 신주인수권 가치 미확인':'',basisLabel,unlisted===true?'미상장 권리 평가 포함':'',
    Number.isInteger(missing)&&missing>0?'미관측 '+missing+'거래일':'']
    .filter(Boolean).join(' · ');
   return [finite(price)?pct(price):'미산출',finite(downside)?pct(-downside):'미확인',note];
@@ -2612,7 +2619,7 @@ function historicalPricePath(r,data){
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
-Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup,forwardValidationView,historicalPriceCoverageView});
+Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup,forwardValidationView,historicalPriceCoverageView,historicalPricePath});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;

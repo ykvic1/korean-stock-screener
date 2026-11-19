@@ -213,7 +213,7 @@ def join_outcomes(panels):
             "observed_adverse_excursion_pct": float(path["maximum_adverse_excursion_observed_pct"]),
             "unpriced_sessions": int(path["unpriced_sessions"]),
         }
-    return stable, adjusted["register_sha256"]
+    return stable, adjusted["register_sha256"], adjusted["unpriced_paid_rights_codes_by_horizon"]
 
 
 def summarize_outcomes(codes, outcomes, entry):
@@ -235,7 +235,7 @@ def summarize_outcomes(codes, outcomes, entry):
     return summary
 
 
-def public_price_paths(catalog, panels, outcomes, summary):
+def public_price_paths(catalog, panels, outcomes, summary, unpriced_paid_rights):
     """Project the fixed historical cohort onto a small, price-only Pages feed."""
     sessions = sorted(session for session in panels if session >= ENTRY)
     valuations = {str(h): next(s for s in sessions if s >= _anniversary(SIGNAL, h)).isoformat()
@@ -263,6 +263,8 @@ def public_price_paths(catalog, panels, outcomes, summary):
         "priced": {period: summary[period]["priced"] for period in valuations},
         "path_columns": ["price_pct", "downside_pct", "unpriced_sessions", "basis", "unlisted_entitlement"],
         "rows": rows, "performance_validated": False,
+        "unpriced_paid_rights": {h: sorted(rows.keys() & set(codes))
+                                 for h, codes in unpriced_paid_rights.items()},
     }
 
 
@@ -295,7 +297,7 @@ def build(paths, financial_path, current_path, *, price_paths_out=None):
     sources["dated_bulk_reference"] -= verified.keys() | delisted.keys()
     parts = calculate_parts(catalog, {**reference, **verified, **delisted})
     full = {code for code, values in parts.items() if set(values) == set(PARTS)}
-    outcomes, action_digests = join_outcomes(panels)
+    outcomes, action_digests, unpriced_paid_rights = join_outcomes(panels)
     groups = {"complete_three_parts": full, **sources}
     detailed = sources["restored_original_statements"] | sources["reviewed_later_delisted_statements"]
     records = {}
@@ -338,7 +340,8 @@ def build(paths, financial_path, current_path, *, price_paths_out=None):
         "provider_calls": 0,
     }
     if price_paths_out is not None:
-        public = public_price_paths(catalog, panels, outcomes, outcome_coverage["complete_three_parts"])
+        public = public_price_paths(catalog, panels, outcomes, outcome_coverage["complete_three_parts"],
+                                    unpriced_paid_rights)
         price_paths_out.write_text(json.dumps(public, ensure_ascii=False, sort_keys=True,
                                              allow_nan=False, separators=(",", ":")) + "\n", encoding="utf-8")
     return result

@@ -48,19 +48,20 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertEqual(report["financial_detail_issuers_reconciled"], 107)
         self.assertEqual(report["horizons"]["12"], {
             "priced": 1870, "entered_but_unpriced": 606, "downside_observed": 1870,
-            "priced_paths_with_gaps": 175,
+            "priced_paths_with_gaps": 175, "unpriced_paid_rights": 9,
         })
         content = WORKFLOW.read_text(encoding="utf8")
         self.assertIn("python v3_historical_public_paths_audit.py >", content)
         self.assertIn("v30b-historical-public-paths.json", content)
+        self.assertIn("ops/v3-performance-market-share-action-replay-20251113.json", content)
 
-    def test_public_delisting_result_cannot_drift_from_saved_ledger(self):
+    def test_public_paths_reject_drift_from_saved_ledgers(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "docs").mkdir()
             (root / "ops").mkdir()
             for suffix in ("operating-scope", "market-coverage", "financial-factor-replay",
-                           "price-replay", "downside-horizons"):
+                           "market-share-action-replay", "price-replay", "downside-horizons"):
                 extension = "csv" if suffix in ("price-replay", "downside-horizons") else "json"
                 file = Path("ops") / f"v3-performance-{suffix}-20251113.{extension}"
                 copyfile(ROOT / file, root / file)
@@ -72,6 +73,11 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
             row["paths"]["1"][0] += 1
             (root / file).write_text(json.dumps(feed))
             with self.assertRaisesRegex(PublicPathAuditError, "published_delisting_path_differs_from_ledger"):
+                audit(root)
+            row["paths"]["1"][0] -= 1
+            feed["unpriced_paid_rights"]["12"].pop()
+            (root / file).write_text(json.dumps(feed))
+            with self.assertRaisesRegex(PublicPathAuditError, "published_unpriced_paid_rights_mismatch"):
                 audit(root)
 
     def test_main_audit_must_fail_closed_and_no_fake_release(self):
