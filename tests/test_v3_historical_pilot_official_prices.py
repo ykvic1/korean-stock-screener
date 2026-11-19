@@ -1,3 +1,5 @@
+from collections import Counter
+import csv
 from datetime import datetime
 from hashlib import sha256
 import json
@@ -15,6 +17,18 @@ from v3_historical_pilot_official_prices import compare_market
 
 
 class HistoricalOfficialPricesTest(unittest.TestCase):
+    def test_followup_targets_most_frequent_remaining_adverse_extremes(self):
+        followup = prices.BATCHES['downside_followup']
+        checked = {session.isoformat() for name in ('anchor', 'remaining', 'downside_priority')
+                   for session in prices.BATCHES[name]}
+        ledger = prices.ROOT / 'ops/v3-performance-downside-horizons-20251113.csv'
+        with ledger.open(encoding='utf-8', newline='') as stream:
+            extremes = Counter(row['adverse_extreme_on'] for row in csv.DictReader(stream)
+                               if row['adverse_extreme_on'])
+        remaining = sorted(extremes.keys() - checked, key=lambda session: (-extremes[session], session))
+        self.assertEqual([session.isoformat() for session in followup], sorted(remaining[:5]))
+        self.assertEqual(sum(extremes[session.isoformat()] for session in followup), 16)
+
     def test_ohlc_differences_and_membership_reported_without_raw_data(self):
         public = dict.fromkeys(('a', 'b', 'c', 'd', 'e', 'f'), ('KOSDAQ', 'Name', 200, 10, 13, 8, 12, 20))
         official = {
