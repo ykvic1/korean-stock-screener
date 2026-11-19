@@ -101,6 +101,7 @@ jobs:
                 'official_exchange_pbr_or_trade_certified=False')
           PY
       - name: Commit after no-stale post-rebase source-day verification
+        id: publish
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -141,6 +142,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run v3-dart-reported-eps.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live
+      - name: Start the lagging four-year ledger after a dispatched annual refresh
+        if: ${{ !cancelled() && steps.publish.outcome == 'success' && github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # GitHub did not emit the downstream workflow_run for the dispatched
+          # annual refresh. Check current main before making one bounded dispatch.
+          git fetch origin main
+          source_dir=$(mktemp -d)
+          git archive FETCH_HEAD docs/data.json docs/v22-market-catalog.json \
+            docs/v3-dart-book-reference.json docs/v3-dart-bulk-history.json | tar -x -C "$source_dir"
+          annual=$(env -u GITHUB_OUTPUT python v3_dart_source_day_preflight.py --kind annual --docs "$source_dir/docs")
+          if [[ $(jq -r '.ready' <<< "$annual") != true ]]; then exit 0; fi
+          major=$(env -u GITHUB_OUTPUT python v3_dart_source_day_preflight.py --kind major --docs "$source_dir/docs")
+          if [[ $(jq -r '.status' <<< "$major") == deferred_waiting_for_dart_same_market_day ]]; then
+            gh workflow run v3-dart-bulk-four-year.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live -f groups=1
+          fi
       - name: No original filings or stock history artifact
         if: always()
         run: echo 'Only bounded annual derived fields; no raw OHLCV, score certification, or investment orders.'
