@@ -251,6 +251,7 @@ jobs:
               lines.append(f"- 12개월 평가값 {month['priced']}종목 · 진입 후 미산출 {month['entered_but_unpriced']}종목"
                            f" · 평가값이 있으나 경로 공백 {month['priced_paths_with_gaps']}종목")
               lines.append(f"- 상장폐지 경로 {paths['delisting_paths_reconciled']}건 · "
+                           f"기업행위 반영 경로 {paths['reviewed_share_action_paths_reconciled']}건 · "
                            f"재무 세부 경로 {paths['financial_detail_issuers_reconciled']}종목 대조")
           else:
               lines.append("- 공개 경로 감사 결과 없음. 실행 상태를 확인하세요.")
