@@ -53,6 +53,21 @@ class HistoricalOfficialPricesTest(unittest.TestCase):
         self.assertNotIn('Name', str(result))
         self.assertFalse(prices.exact_market_prices(result))
 
+    def test_tail_batches_cover_every_unchecked_adverse_extreme_once(self):
+        tail = [name for name in prices.BATCHES if name.startswith('downside_tail_')]
+        checked = {date.isoformat() for name, dates in prices.BATCHES.items()
+                   if name not in tail for date in dates}
+        ledger = prices.ROOT / 'ops/v3-performance-downside-horizons-20251113.csv'
+        with ledger.open(encoding='utf-8', newline='') as stream:
+            remaining = Counter(row['adverse_extreme_on'] for row in csv.DictReader(stream)
+                                if row['adverse_extreme_on'] and row['adverse_extreme_on'] not in checked)
+        planned = [date.isoformat() for name in tail for date in prices.BATCHES[name]]
+        self.assertEqual(planned, sorted(remaining))
+        self.assertEqual(sum(remaining.values()), 28)
+        self.assertTrue(set(tail) <= prices.STRICT_PRICE_BATCHES)
+        for name in tail:
+            prices.validate_dates([date.isoformat() for date in prices.BATCHES[name]])
+
     def test_market_match_requires_actual_zero_volume_in_both_sources(self):
         public = {'a': ('KOSDAQ', 'Issuer', 200, 10, 13, 8, 12, 20),
                   'b': ('KOSDAQ', 'Halted', 100, None, None, None, None, 0.0)}
