@@ -11,7 +11,7 @@ on:
       scope:
         description: Historical date batch to cross-check
         type: choice
-        options: [reference_anchors, downside_priority]
+        options: [reference_anchors, downside_priority, downside_followup]
         default: reference_anchors
 
 permissions:
@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        batch: ${{ fromJSON((github.event_name == 'push' || inputs.scope == 'downside_priority') && '["downside_priority"]' || '["anchor","remaining"]') }}
+        batch: ${{ fromJSON((github.event_name == 'push' || inputs.scope == 'downside_followup') && '["downside_followup"]' || inputs.scope == 'downside_priority' && '["downside_priority"]' || '["anchor","remaining"]') }}
     steps:
       - uses: actions/checkout@v4
         with:

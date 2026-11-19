@@ -26,7 +26,11 @@ BATCHES = {
     # adverse extremes in the 85 historical delisting horizon rows.
     'downside_priority': tuple(map(day, ('2025-11-19', '2025-12-08', '2025-12-09',
                                         '2026-01-08', '2026-01-12'))),
+    # Next five dates by adverse-extreme frequency, breaking ties by date.
+    'downside_followup': tuple(map(day, ('2025-11-21', '2025-12-01', '2025-12-18',
+                                        '2026-01-05', '2026-01-07'))),
 }
+STRICT_PRICE_BATCHES = {'downside_priority', 'downside_followup'}
 PRICE_FIELDS = ('open', 'high', 'low', 'close')
 
 
@@ -246,7 +250,7 @@ def main():
     result = audit(panels, delisted, KRXClient(key), args.batch, turnover_panels=turnover)
     print(json.dumps(result, sort_keys=True))
     if (result['failed_sessions'] or not result['turnover_all_values_matched']
-            or (args.batch == 'downside_priority' and not result['market_wide_ohlc_and_membership_matched'])):
+            or (args.batch in STRICT_PRICE_BATCHES and not result['market_wide_ohlc_and_membership_matched'])):
         raise SystemExit(1)
 
 
