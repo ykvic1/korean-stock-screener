@@ -48,14 +48,16 @@
     "corporate_actions_certified": false,
     "performance_validated": false,
     "official_ma_references": {
-      "schema": "v3-forward-official-ma-reference-2",
+      "schema": "v3-forward-official-ma-reference-3",
       "score_asof": "2026-11-17",
       "entry_session": "2026-11-18",
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-20",
-      "reviewed_ma_notices_sha256": "3ac47b62152bf42d285c6d37daa43510d9335b28945edd88bfb4d0a556b6b23e",
+      "reviewed_ma_notices_sha256": "a35faccfa716725a769fa9c5d836a6ead7934bf19f027b66859549abd1478678",
       "history_sources_sha256": "e3fe5e01c7fb3b43964001d296f7cdc015b002ceb1fe2aa7589868620520c5c8",
+      "intervening_sessions": [],
+      "intervening_source_sha256": {},
       "signal_source_sha256": {
         "KOSPI": "6138c479ff3b57debd122a42235078d3b9c68bc1df3d23fd804226ec9549dae8",
         "KOSDAQ": "f716bd217368b86ff7909b0e626c58d71379c983fa832a6513398cadacd38957"
@@ -86,6 +88,9 @@
             "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 0,
             "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
             "average_at_or_above_signal_close": 4,
             "open_at_or_below_average": 0,
             "intraday_average_touched": 3,
@@ -102,6 +107,9 @@
             "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 0,
             "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
             "average_at_or_above_signal_close": 4,
             "open_at_or_below_average": 1,
             "intraday_average_touched": 1,
@@ -125,6 +133,9 @@
             "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 0,
             "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
             "average_at_or_above_signal_close": 33,
             "open_at_or_below_average": 2,
             "intraday_average_touched": 12,
@@ -141,6 +152,9 @@
             "reviewed_share_basis_unresolved": 0,
             "price_basis_discontinuous": 1,
             "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
             "average_at_or_above_signal_close": 33,
             "open_at_or_below_average": 3,
             "intraday_average_touched": 4,
@@ -150,12 +164,12 @@
         "all_ranked": {
           "matched_openings": 2467,
           "using_reviewed_share_continuity": {
-            "20": 50,
-            "60": 123
+            "20": 59,
+            "60": 130
           },
           "20": {
             "signal_trade_unavailable": 0,
-            "signal_basis_unresolved": 9,
+            "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
             "history_session_missing": 0,
             "issuer_history_missing": 0,
@@ -164,26 +178,32 @@
             "reviewed_share_basis_unresolved": 1,
             "price_basis_discontinuous": 2,
             "trade_state_unavailable": 0,
-            "average_at_or_above_signal_close": 1859,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 1866,
             "open_at_or_below_average": 42,
             "intraday_average_touched": 137,
-            "average_not_touched": 321
+            "average_not_touched": 323
           },
           "60": {
             "signal_trade_unavailable": 0,
-            "signal_basis_unresolved": 9,
+            "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
             "history_session_missing": 0,
             "issuer_history_missing": 5,
             "issuer_identity_changed": 13,
-            "share_count_changed": 293,
+            "share_count_changed": 295,
             "reviewed_share_basis_unresolved": 1,
             "price_basis_discontinuous": 9,
             "trade_state_unavailable": 0,
-            "average_at_or_above_signal_close": 1839,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 1845,
             "open_at_or_below_average": 14,
             "intraday_average_touched": 57,
-            "average_not_touched": 227
+            "average_not_touched": 228
           }
         }
       }
@@ -195,7 +215,7 @@
         "KOSPI": "6138c479ff3b57debd122a42235078d3b9c68bc1df3d23fd804226ec9549dae8",
         "KOSDAQ": "f716bd217368b86ff7909b0e626c58d71379c983fa832a6513398cadacd38957"
       },
-      "reviewed_entry_notices_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "reviewed_entry_notices_sha256": "8cb8c87c3ea0f55b3423b42f17674fe2f3b1a1427e086df85ae17c7473fc1354",
       "corporate_actions_certified": false,
       "stop_execution_validated": false
     },
@@ -361,5 +381,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T03:00:21.890877+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T03:18:18.342188+00:00"
 }
