@@ -142,7 +142,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run v3-dart-reported-eps.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live
-      - name: Start the lagging four-year ledger after a dispatched annual refresh
+      - name: Start lagging research followups after a dispatched annual refresh
         if: ${{ !cancelled() && steps.publish.outcome == 'success' && github.event_name == 'workflow_dispatch' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -159,6 +159,12 @@ jobs:
           major=$(env -u GITHUB_OUTPUT python v3_dart_source_day_preflight.py --kind major --docs "$source_dir/docs")
           if [[ $(jq -r '.status' <<< "$major") == deferred_waiting_for_dart_same_market_day ]]; then
             gh workflow run v3-dart-bulk-four-year.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=live -f groups=1
+          fi
+          weekly=$(git show FETCH_HEAD:docs/v3-weekly-coverage.json)
+          if ! jq -e --argjson annual "$annual" '
+            .market_asof == $annual.market_asof and .listed_total == $annual.current_listed_total
+          ' <<< "$weekly" > /dev/null; then
+            gh workflow run v3-weekly-rotation.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=publish
           fi
       - name: No original filings or stock history artifact
         if: always()

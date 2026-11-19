@@ -366,15 +366,26 @@ def recalculate(market, catalog, book, *, when, prior=None, four=None):
     # Preserve each issuer's prior research date; prior-cycle results are NOT
     # counted as updated this week. A changed listing is safely reconciled.
     records = {c: prior_records[c] for c in roster if c in prior_records}
+    # An early run can process today's cohort before the latest close is
+    # published. Replay those same issuers once against the newer close.
+    # Preserve earlier calendar days and do not widen the daily cohort.
+    today = when.isoformat()
+    refreshed = {
+        c for c, record in records.items()
+        if record.get("cycle") == cycle
+        and record.get("last_recalculated_kst") == today
+        and record.get("market_source_asof") != asof
+    }
     # New universe members that would have been assigned an already-passed
     # cohort are caught up instead of silently omitted until the next cycle.
     targets = [c for i, c in enumerate(roster)
-               if i % GROUPS <= position and records.get(c, {}).get("cycle") != cycle]
+               if c in refreshed or
+               (i % GROUPS <= position and records.get(c, {}).get("cycle") != cycle)]
     for c in targets:
         record = inspect_issuer(c, market_asof=asof,
                                catalog_row=members[c], price_row=prices.get(c),
                                annual_row=annual.get(c), four_row=four_source.get(c),
-                               inspected_on=when.isoformat(),
+                               inspected_on=today,
                                momentum_row=momentum_by_code.get(c),
                                simple_pb_observed=(c in pb_codes))
         record["cycle"] = cycle
