@@ -10,24 +10,45 @@ on:
     paths:
       - v3_dart_fcf_prior_comparative_probe.py
       - .github/workflows/v3-fcf-prior-comparative-probe.yml
+  workflow_run:
+    workflows: [V3 FY2025 DART CF Comparative Missing-Fact Probe (No Score)]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   offline:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    outputs:
+      pending: ${{ steps.queue.outputs.pending }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: |
+      - name: Verify changes to the original comparative collector
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_prior_comparative_probe.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_xbrl_cashflow_recovery.py' -v
-          python v3_dart_fcf_prior_comparative_probe.py --mode dry-run --limit 16
+      - name: Check for unreviewed original filings without provider calls
+        id: queue
+        run: |
+          set -euo pipefail
+          result=$(python v3_dart_fcf_prior_comparative_probe.py --mode dry-run --limit 16)
+          echo "$result"
+          pending=$(python -c 'import json,sys; print(json.load(sys.stdin)["selected"])' <<< "$result")
+          echo "pending=$pending" >> "$GITHUB_OUTPUT"
   research:
     needs: offline
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.offline.outputs.pending != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
