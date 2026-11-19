@@ -122,11 +122,12 @@ class CompletionTests(unittest.TestCase):
             self.assertEqual(updated['records'],source['records'])
             self.assertTrue(proof.verify(updated,self.inputs[0],self.inputs[1],priority))
 
-    def test_frozen_source_queue_survives_scoring_and_full_observation_can_increase(self):
+    def test_frozen_source_queue_survives_scoring_without_losing_observations(self):
         from v3_current_observed_scorecard import main as publish
         from v3_near_100_observed_gap import main as gap_audit
         import v3_operational_research_score as ops
         priority,source,pending,_,_=self.simulated_source()
+        _,_,preferred,_=completion.extend(*self.inputs)
         outputs={'v3-personal-adjusted-scores.csv','v3-personal-adjusted-score-summary.json',
             'v3-current-observed-all-listed.csv','v3-current-observed-all-listed-summary.json',
             'v3-issuer-last-observed-factors.json',*NAMES[2:6],
@@ -144,13 +145,14 @@ class CompletionTests(unittest.TestCase):
                 gap_audit(['--docs',str(root),'--mode','write'])
                 with patch('sys.argv',['score','--docs',str(root)]):ops.main()
             report=json.loads((root/NAMES[4]).read_text())
-            improvements=0
             for code in pending:
                 before=self.inputs[4]['rows'][code]
                 after=report['rows'][code]
                 self.assertGreaterEqual(after['available'],before['available'])
-                improvements+=after['available']>before['available']
-            if pending:self.assertGreater(improvements,0)
+                # The frozen acquisition queue can contain an issuer whose
+                # current score already has independently observed profit.
+                if code in preferred:
+                    self.assertGreater(after['available'],before['available'])
             self.assertGreaterEqual(sum(r['available']==100 for r in report['rows'].values()),
                 sum(r['available']==100 for r in self.inputs[4]['rows'].values()))
             self.assertEqual(json.loads((root/NAMES[2]).read_text()),priority)
