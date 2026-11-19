@@ -45,6 +45,7 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertEqual(report["operating_cohort_count"], 2573)
         self.assertEqual(report["observed_entry_count"], 2476)
         self.assertEqual(report["delisting_paths_reconciled"], 85)
+        self.assertEqual(report["reviewed_share_action_paths_reconciled"], 1242)
         self.assertEqual(report["financial_detail_issuers_reconciled"], 107)
         self.assertEqual(report["horizons"]["12"], {
             "priced": 1870, "entered_but_unpriced": 606, "downside_observed": 1870,
@@ -75,6 +76,19 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
             with self.assertRaisesRegex(PublicPathAuditError, "published_delisting_path_differs_from_ledger"):
                 audit(root)
             row["paths"]["1"][0] -= 1
+            financial = json.loads((root / "ops/v3-performance-financial-factor-replay-20251113.json").read_bytes())
+            paths = next(r["paths"] for code, r in feed["rows"].items() if code not in financial["rows"]
+                         and r["paths"].get("12", [None] * 5)[3] == "reviewed_share_action")
+            saved = paths["12"].copy()
+            paths["12"][0] += 1
+            (root / file).write_text(json.dumps(feed))
+            with self.assertRaisesRegex(PublicPathAuditError, "published_share_action_path_differs_from_ledger"):
+                audit(root)
+            del paths["12"]
+            (root / file).write_text(json.dumps(feed))
+            with self.assertRaisesRegex(PublicPathAuditError, "reviewed_share_action_paths_missing_from_publication"):
+                audit(root)
+            paths["12"] = saved
             feed["unpriced_paid_rights"]["12"].pop()
             (root / file).write_text(json.dumps(feed))
             with self.assertRaisesRegex(PublicPathAuditError, "published_unpriced_paid_rights_mismatch"):

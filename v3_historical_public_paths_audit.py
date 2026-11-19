@@ -81,6 +81,14 @@ def audit(root=ROOT):
             "published_unpriced_paid_rights_mismatch")
     require(len(rows) == scope["listed"] == financial["historical_scope_count"],
             "historical_roster_count_mismatch")
+    reviewed_paths = {}
+    require(set(reviewed["horizons"]) == set(PERIODS), "invalid_reviewed_share_action_horizons")
+    for h, bucket in reviewed["horizons"].items():
+        by_code = {path["code"]: path for path in bucket["rows"]}
+        require(len(by_code) == len(bucket["rows"]) == bucket["count"],
+                "invalid_reviewed_share_action_path_count")
+        reviewed_paths.update({(code, h): by_code[code] for code in rows.keys() & by_code.keys()})
+    reviewed_path_count = len(reviewed_paths)
     markets = Counter()
     entry_count = 0
     valued = Counter()
@@ -117,6 +125,13 @@ def audit(root=ROOT):
                         and gaps == int(d["unpriced_sessions"]),
                         "published_delisting_path_differs_from_ledger")
                 delisted.add(key)
+            if basis == "reviewed_share_action":
+                replayed = reviewed_paths.pop(key, None)
+                require(replayed is not None and public["valuations"][h] == replayed["valuation_session"]
+                        and (value, adverse, gaps, entitlement) == (
+                            replayed["price_change_pct"], replayed["observed_adverse_excursion_pct"],
+                            replayed["unpriced_sessions"], replayed["valuation_includes_unlisted_entitlement"]),
+                        "published_share_action_path_differs_from_ledger")
         if code in financial_rows:
             saved = financial_rows[code]
             require((row["name"], row["market"]) == (saved["name"], saved["market"])
@@ -129,6 +144,7 @@ def audit(root=ROOT):
                 require(row["paths"][h] == expected, "published_financial_detail_path_mismatch")
     require(financial_rows.keys() <= rows.keys() and delisted == prices.keys(),
             "historical_research_rows_missing_from_publication")
+    require(not reviewed_paths, "reviewed_share_action_paths_missing_from_publication")
     require(markets == scope["by_market"] and entry_count == scope["next_open_observed"],
             "historical_market_or_entry_count_mismatch")
     subset = financial["outcome_coverage"]["complete_three_parts"]
@@ -142,6 +158,7 @@ def audit(root=ROOT):
         "operating_cohort_count": len(rows), "observed_entry_count": entry_count,
         "unobserved_entry_count": len(rows) - entry_count,
         "delisting_paths_reconciled": len(delisted), "financial_detail_issuers_reconciled": len(financial_rows),
+        "reviewed_share_action_paths_reconciled": reviewed_path_count,
         "horizons": {h: {"priced": valued[h], "entered_but_unpriced": entry_count - valued[h],
                          "downside_observed": downside_observed[h],
                          "unpriced_paid_rights": len(unresolved[h]),
