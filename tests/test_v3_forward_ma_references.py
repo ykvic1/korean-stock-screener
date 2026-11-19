@@ -32,6 +32,10 @@ class ForwardMaReferenceTests(unittest.TestCase):
         return summarize(self.observation, self.openings, self.signal, self.entry,
                          self.history, self.entry_basis, notices or {})
 
+    def issuance(self, before, after):
+        return {'name': '종목', 'market': 'KOSPI', 'action': 'bond_conversion',
+                'shares_before': before, 'shares_after': after, 'new_units': 1, 'old_units': 1}
+
     def test_observed_intraday_contact_with_unrounded_averages_and_no_identifiers(self):
         result = self.summarize()
         self.assertEqual(result['status'], 'compared')
@@ -62,9 +66,39 @@ class ForwardMaReferenceTests(unittest.TestCase):
         self.entry_basis['rows'][self.code][4] = 109
         top = self.summarize()['groups']['top20']
         self.assertEqual(top['20']['price_basis_discontinuous'], 1)
-        top = self.summarize(notices={(self.entry['date'], self.code): {}})['groups']['top20']
+        top = self.summarize(notices={
+            (self.entry['date'], self.code): {'action': 'split'}})['groups']['top20']
         self.assertEqual(top['60']['reviewed_entry_action'], 1)
         self.entry_basis['source_sha256'] = {'KOSPI': 'c' * 64}
         result = self.summarize()
         self.assertEqual(result['status'], 'waiting_for_matching_entry_archive')
         self.assertNotIn('groups', result)
+
+    def test_historical_review_restores_only_periods_that_cross_exact_neutral_action(self):
+        for _, panel in self.history[:-34]:
+            panel['rows'][self.code][3] = 450
+        event_day, event_panel = self.history[-34]
+        key = event_day, self.code
+        baseline = self.summarize()
+        self.assertEqual(baseline['groups']['top20']['60']['share_count_changed'], 1)
+        amended = self.summarize(notices={key: self.issuance(450, 500)})
+        top = amended['groups']['top20']
+        self.assertNotEqual(baseline['reviewed_ma_notices_sha256'], amended['reviewed_ma_notices_sha256'])
+        self.assertEqual(top['using_reviewed_share_continuity'], {'20': 0, '60': 1})
+        self.assertEqual(top['60']['intraday_average_touched'], 1)
+        top = self.summarize(notices={key: self.issuance(451, 500)})['groups']['top20']
+        self.assertEqual(top['60']['reviewed_share_basis_unresolved'], 1)
+        event_panel['rows'][self.code][4] = 101
+        top = self.summarize(notices={key: self.issuance(450, 500)})['groups']['top20']
+        self.assertEqual(top['60']['price_basis_discontinuous'], 1)
+        self.assertEqual(top['using_reviewed_share_continuity']['60'], 0)
+
+    def test_entry_day_issuance_also_requires_matching_before_and_after_counts(self):
+        self.entry['rows'][self.code][-1] = 550
+        self.entry_basis['rows'][self.code][3] = 550
+        key = self.entry['date'], self.code
+        top = self.summarize(notices={key: self.issuance(500, 550)})['groups']['top20']
+        self.assertEqual(top['using_reviewed_share_continuity'], {'20': 1, '60': 1})
+        self.assertEqual(top['20']['intraday_average_touched'], 1)
+        top = self.summarize(notices={key: self.issuance(500, 551)})['groups']['top20']
+        self.assertEqual(top['60']['reviewed_entry_action'], 1)

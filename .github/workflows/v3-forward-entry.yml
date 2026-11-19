@@ -6,6 +6,7 @@ on:
     paths:
       - v3_forward_entry.py
       - v3_forward_ma_references.py
+      - v3_historical_market_share_actions.py
       - v3_forward_price_replay.py
       - v3_forward_cash_dividends.py
       - v3_forward_settlements.py
@@ -20,6 +21,7 @@ on:
       - ops/forward-reviewed-share-actions.csv
       - ops/forward-reviewed-holder-neutral-actions.csv
       - ops/forward-reviewed-share-continuity.csv
+      - ops/v3-performance-continuity-actions-20251113.json
       - ops/forward-reviewed-cash-dividends.csv
       - ops/forward-reviewed-delisting-settlements.csv
       - ops/forward-reviewed-liquidation-windows.csv
