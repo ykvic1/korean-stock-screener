@@ -377,8 +377,12 @@ with sync_playwright() as p:
         assert expander.evaluate("(el) => el.open")
         if expander.locator(".u-last-factor").count():
             retained_text = expander.locator(".u-last-factor").inner_text()
-            assert "관측 점수 유지" in retained_text
-            assert "오늘 새로 계산된 점수가 아니며" in retained_text
+            if pillar == "valuation" and "이전 원천 일부 활용" in retained_text:
+                assert "재계산됐지만" in retained_text
+                assert "세부 근거의 관측일은 서로 다릅니다" in retained_text
+            else:
+                assert "관측 점수 유지" in retained_text
+                assert "오늘 새로 계산된 점수가 아니며" in retained_text
             assert re.search(r"\d{4}-\d{2}-\d{2}", retained_text)
         elif available_by_pillar[pillar_index] > 0:
             assert evidence_text in expander.inner_text(), pillar
