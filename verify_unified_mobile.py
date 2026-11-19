@@ -243,9 +243,16 @@ with sync_playwright() as p:
     coverage = page.locator("#historicalPriceCoverage")
     coverage.locator("summary").click()
     coverage.locator("tbody tr").last.wait_for()
+    paths = historical["rows"].values()
+    priced = sum(row["entry_observed"] and "12" in row["paths"]
+                 and row["paths"]["12"][0] is not None for row in paths)
     assert coverage.locator(".u-history-value").inner_text() == (
-        f'{historical["priced"]["12"]:,} / {historical["cohort_size"]:,}종목'
+        f'12개월 {priced:,} / {len(paths):,}종목'
     )
+    assert coverage.locator("tbody tr").last.locator("td").all_inner_texts() == [
+        f'{priced:,} / {len(paths):,}',
+        f'{historical["priced"]["12"]:,} / {historical["cohort_size"]:,}',
+    ]
     page.locator("#researchPanel > summary").click()
     # The existing comparison paths remain available and independently tested.
     page.locator("#advancedFilters > summary").click()
@@ -370,8 +377,12 @@ with sync_playwright() as p:
         assert expander.evaluate("(el) => el.open")
         if expander.locator(".u-last-factor").count():
             retained_text = expander.locator(".u-last-factor").inner_text()
-            assert "관측 점수 유지" in retained_text
-            assert "오늘 새로 계산된 점수가 아니며" in retained_text
+            if pillar == "valuation" and "이전 원천 일부 활용" in retained_text:
+                assert "재계산됐지만" in retained_text
+                assert "세부 근거의 관측일은 서로 다릅니다" in retained_text
+            else:
+                assert "관측 점수 유지" in retained_text
+                assert "오늘 새로 계산된 점수가 아니며" in retained_text
             assert re.search(r"\d{4}-\d{2}-\d{2}", retained_text)
         elif available_by_pillar[pillar_index] > 0:
             assert evidence_text in expander.inner_text(), pillar

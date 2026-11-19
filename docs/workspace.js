@@ -2546,7 +2546,7 @@ function forwardValidationView(data,outcomes){
 function validHistoricalPricePaths(data){
  return data?.schema==='v3-historical-price-paths-1'&&data.performance_validated===false&&
   validDate(data.signal_session)&&validDate(data.entry_session)&&data.signal_session<data.entry_session&&
-  Number.isInteger(data.cohort_size)&&data.cohort_size>0&&data.rows&&typeof data.rows==='object'&&
+  Number.isInteger(data.cohort_size)&&data.cohort_size>0&&data.rows&&typeof data.rows==='object'&&!Array.isArray(data.rows)&&
   Array.isArray(data.path_columns)&&
   data.path_columns.join(',')==='price_pct,downside_pct,unpriced_sessions,basis,unlisted_entitlement'&&
   HISTORICAL_PERIODS.every(h=>validDate(data.valuations?.[h])&&data.valuations[h]>data.entry_session&&
@@ -2562,6 +2562,27 @@ function historicalPriceTable(valuations,values,headings){
  return '<table class="u-history-table"><thead><tr><th scope="col">기간 · 평가일</th>'+
   headings.map(label=>'<th scope="col">'+esc(label)+'</th>').join('')+
   '</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function historicalPriceCoverageView(data){
+ if(!validHistoricalPricePaths(data))return null;
+ const rows=Object.values(data.rows);
+ const entered=rows.filter(row=>row?.entry_observed===true);
+ const priced={};
+ for(const h of HISTORICAL_PERIODS){
+  priced[h]=entered.filter(row=>Array.isArray(row.paths?.[h])&&finite(row.paths[h][0])).length;
+  if(priced[h]<data.priced[h])return null;
+ }
+ if(rows.length<data.cohort_size)return null;
+ const number=n=>n.toLocaleString('ko-KR');
+ const coverage=(count,total)=>number(count)+' / '+number(total);
+ return {status:'12개월 '+coverage(priced[12],rows.length)+'종목',
+  body:'<p class="u-source">'+esc(data.signal_session)+' 장 마감 표본 · '+esc(data.entry_session)+
+   ' 시가 진입 가정 · 표의 수치는 가격수익률 산출 종목 / 표본 종목입니다.</p>'+
+   historicalPriceTable(data.valuations,h=>[coverage(priced[h],rows.length),
+    coverage(data.priced[h],data.cohort_size)],['전체 운영 표본','재무·가치 3개 항목 확보'])+
+   '<p class="u-source">전체 표본에서 진입 시가 미확인 '+number(rows.length-entered.length)+
+   '종목 · 진입 시가는 있으나 12개월 평가값 미확보 '+number(entered.length-priced[12])+'종목</p>'+
+   '<p class="u-source">배당·거래비용 제외 연구 자료입니다. 종목별 수익률과 관측 하락폭은 종목 상세에서 확인할 수 있습니다.</p>'};
 }
 function historicalPricePath(r,data){
  const sameName=name=>String(name||'').normalize('NFKC').replace(/\s+/g,'').toUpperCase();
@@ -2591,7 +2612,7 @@ function historicalPricePath(r,data){
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
  sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
-Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup,forwardValidationView});
+Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup,forwardValidationView,historicalPriceCoverageView});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
 if(!root.document)return;
@@ -2620,15 +2641,11 @@ async function renderHistoricalPricePath(r){
  slot.querySelector('.u-history-body').innerHTML=result.body;
 }
 async function renderHistoricalPriceCoverage(section){
- const data=await historicalPricePaths();
+ const view=historicalPriceCoverageView(await historicalPricePaths());
  const output=section.querySelector('.u-history-body');
- if(!data){output.textContent='과거 검증 자료를 확인할 수 없습니다.';return;}
- const coverage=h=>data.priced[h].toLocaleString('ko-KR')+' / '+data.cohort_size.toLocaleString('ko-KR');
- section.querySelector('.u-history-value').textContent=coverage(12)+'종목';
- output.innerHTML='<p class="u-source">재무·가치 3개 항목이 확보된 '+esc(data.signal_session)+
-  ' 과거 표본 · '+esc(data.entry_session)+' 시가 진입 가정</p>'+
-  historicalPriceTable(data.valuations,h=>[coverage(h)],['가격수익률 산출 종목'])+
-  '<p class="u-source">종목별 가격수익률과 하락폭은 종목 상세에서 확인할 수 있습니다.</p>';
+ if(!view){output.textContent='과거 검증 자료를 확인할 수 없습니다.';return;}
+ section.querySelector('.u-history-value').textContent=view.status;
+ output.innerHTML=view.body;
 }
 function refreshCoverageGroups(data){
  const control=$('coverageGroup');
