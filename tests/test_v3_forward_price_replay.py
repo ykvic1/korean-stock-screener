@@ -66,3 +66,33 @@ class ForwardPriceReplayTests(unittest.TestCase):
         self.assertEqual(result['first_reference_touch_session'], self.sessions[1])
         self.notices.clear()
         self.assertEqual(self.replay()['status'], 'identity_changed')
+
+    def test_confirmed_interior_no_trade_skips_price_mark_and_requires_traded_exit(self):
+        self.notices.clear()
+        self.bars[self.sessions[1]] = ['KOSPI', '테스트', 'no_reported_volume',
+                                      None, None, None, None, 10000]
+        self.bars[self.sessions[2]] = ['KOSPI', '테스트', 'traded', 92, 95, 82, 90, 10000]
+        result = self.replay()
+        self.assertEqual(result['terminal_return_pct'], -10)
+        self.assertEqual(result['mae_pct'], -18)
+        self.assertEqual(result['mfe_pct'], 5)
+        self.assertEqual(result['first_reference_touch_session'], self.sessions[2])
+        self.assertEqual(result['no_trade_session_count'], 1)
+        self.bars[self.sessions[2]] = self.bars[self.sessions[1]].copy()
+        self.assertEqual(self.replay()['status'], 'evaluation_session_no_reported_volume')
+
+    def test_interior_no_trade_cannot_hide_unverified_share_or_identity_changes(self):
+        self.notices.clear()
+        row = ['KOSPI', '테스트', 'no_reported_volume', None, None, None, None, 10000]
+        day = self.sessions[1]
+        for index, val, reason in (
+            (1, 'Other', 'identity_changed'),
+            (7, None, 'share_count_unavailable'),
+            (7, 20000, 'change_needs_notice'),
+        ):
+            with self.subTest(reason=reason):
+                self.bars[day] = row.copy()
+                self.bars[day][index] = val
+                self.assertEqual(self.replay()['status'], reason)
+        self.notices[(day, '005930')] = self.notice
+        self.assertEqual(self.replay()['status'], 'share_action_without_trade')

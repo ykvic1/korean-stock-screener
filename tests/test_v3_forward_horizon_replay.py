@@ -16,6 +16,22 @@ from v3_score_observation_capture import ARCHIVE
 
 
 class ForwardHorizonReplayTests(unittest.TestCase):
+    def test_resumed_stock_counts_in_return_and_loss_denominators(self):
+        days = ['2026-11-16', '2026-11-17', '2026-11-18']
+        code = '000001'
+        bars = [
+            ['KOSPI', 'Alpha', 'traded', 100, 110, 95, 105, 1000],
+            ['KOSPI', 'Alpha', 'no_reported_volume', None, None, None, None, 1000],
+            ['KOSPI', 'Alpha', 'traded', 93, 94, 85, 90, 1000],
+        ]
+        observation = {'rows': {code: ['Alpha', 'KOSPI', 50, 1]}}
+        openings = {code: ['official_open_observed', 100]}
+        panels = {day: {'rows': {code: bar}} for day, bar in zip(days, bars)}
+        top = aggregate_paths(observation, openings, days, panels, {})['top20']
+        self.assertEqual(top['price_paths_with_no_trade_sessions'], 1)
+        self.assertEqual(top['median_terminal_return_pct'], -10)
+        self.assertEqual(top['terminal_return_coverage']['loss_rate_bounds_pct'], [100, 100])
+
     def test_matured_window_is_published_once_with_unresolved_issuers_retained(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -101,6 +117,7 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 del readiness['cohorts'][older]
                 self.assertEqual(report['groups']['all_ranked'], {
                     'selected_count': 2, 'observed_price_path_count': 1,
+                    'price_paths_with_no_trade_sessions': 0,
                     'entry_status_counts': {
                         'absent': 0, 'identity_unresolved': 0, 'not_traded': 0,
                         'open_unavailable': 0, 'official_open_observed': 2,

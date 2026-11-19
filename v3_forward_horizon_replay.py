@@ -26,7 +26,7 @@ from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
 PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
-SCHEMA = 'v3-forward-horizon-price-outcome-9'
+SCHEMA = 'v3-forward-horizon-price-outcome-10'
 
 
 def loss_rate_bounds(negative, unvalued, opened):
@@ -88,6 +88,7 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
             'selected_count': len(selected),
             'entry_status_counts': {state: entries[state] for state in ROW_STATES if state != 'unranked'},
             'observed_price_path_count': len(observed),
+            'price_paths_with_no_trade_sessions': sum(row['no_trade_session_count'] > 0 for row in observed),
             'unresolved_counts': dict(sorted(missing.items())),
             # Confirmed openings remain in the denominator even if the end value
             # is unresolved or available only as a liquidation close scenario.

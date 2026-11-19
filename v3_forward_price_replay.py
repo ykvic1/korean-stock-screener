@@ -144,7 +144,8 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
     """Use an ordered exchange-session window and independently reviewed notices.
 
     The caller supplies validated KRX rows and a reference already reconciled
-    to the entry share basis. Unresolved sessions withhold the entire result.
+    to the entry share basis. A confirmed interior zero-volume session contributes
+    no price mark. Entry and evaluation still require an observed trade.
     """
     if not sessions or list(sessions) != sorted(set(sessions)):
         raise ValueError('invalid_forward_replay_sessions')
@@ -152,7 +153,7 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
     previous = None
     low = high = Fraction(entry_open)
     first_touch = None
-    adjusted_sessions = 0
+    adjusted_sessions = no_trade_sessions = 0
     cash_by_session = dividend_sessions(sessions, dividends)
     paid_cash = Fraction(0)
     paid_events = pending_events = unlinked_events = 0
@@ -165,22 +166,36 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
         if terms and previous is not None:
             return replay_settlement(terms, sessions, bars, previous, units,
                                      entry_open, notices, panels or {})
-        if bar is None or bar[2] != 'traded':
+        if bar is None or bar[2] not in ('traded', 'no_reported_volume'):
             return {'status': 'missing_traded_bar', 'blocked_session': day}
-        if previous is None:
+        notice = notices.get((day, code))
+        traded = bar[2] == 'traded'
+        if not traded:
+            if previous is None:
+                return {'status': 'entry_open_mismatch', 'blocked_session': day}
+            if day == sessions[-1]:
+                return {'status': 'evaluation_session_no_reported_volume', 'blocked_session': day}
+            transition = share_transition(previous, bar, notice)
+            if transition != 'unchanged_share_count':
+                reason = 'share_action_without_trade' if transition == 'notice_matched' else transition
+                return {'status': reason, 'blocked_session': day}
+            no_trade_sessions += 1
+        elif previous is None:
             if bar[3] != entry_open or entry_open <= 0:
                 return {'status': 'entry_open_mismatch', 'blocked_session': day}
         else:
-            notice = notices.get((day, code))
             reason, multiplier = holding_change(previous, bar, notice)
             if reason:
                 return {'status': reason, 'blocked_session': day}
             units *= multiplier
             if notice and notice['action'] in ('split', 'reverse_split'):
                 adjusted_sessions += 1
-        low = min(low, bar[5] * units)
-        high = max(high, bar[4] * units)
-        close = bar[6] * units
+        if traded:
+            low = min(low, bar[5] * units)
+            high = max(high, bar[4] * units)
+            close = bar[6] * units
+            if reference is not None and first_touch is None and bar[5] * units <= reference:
+                first_touch = day
         for event in cash_by_session.get(day, ()):
             if bar[0] != event['market'] or normalized_name(bar[1]) != normalized_name(event['name']):
                 unlinked_events += 1
@@ -189,8 +204,6 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
                 paid_events += 1
             else:
                 pending_events += 1
-        if reference is not None and first_touch is None and bar[5] * units <= reference:
-            first_touch = day
         previous = bar
     return {
         'status': 'observed_price_path',
@@ -200,6 +213,7 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
         'reference_compared': reference is not None,
         'first_reference_touch_session': first_touch,
         'adjusted_split_sessions': adjusted_sessions,
+        'no_trade_session_count': no_trade_sessions,
         'confirmed_dividend_events': paid_events,
         'pending_dividend_events': pending_events,
         'unlinked_dividend_events': unlinked_events,
