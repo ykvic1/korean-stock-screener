@@ -213,6 +213,47 @@ class ActualMoneyTests(unittest.TestCase):
             m.collect(store,asof='2026-11-03',catalog=dict(catalog,date='2026-11-03'),
                       source_revision='a'*40,days=days,digest='a'*64,forward_days=forward,week_loader=week_days)
 
+    def test_lagging_catalog_defers_against_verified_daily_tail(self):
+        store, days, forward, catalog = fixture()
+        catalog['date'] = '2026-11-03'
+        with patch.object(m, 'forward_candidates', return_value=forward) as calendar, patch(
+                'v3_actual_money_participation.finished_calendar_cutoff',
+                return_value='2026-11-05'):
+            with self.assertRaisesRegex(m.ActualMoneyError, 'money_catalog_behind_daily_archive'):
+                m.collect(store, asof=catalog['date'], catalog=catalog, source_revision='a' * 40,
+                          days=days, digest='a' * 64, week_loader=week_days)
+            calendar.assert_called_once_with('2026-11-05')
+            store.files[_path(forward[-5:])] = b'tampered'
+            with self.assertRaisesRegex(ValueError, 'forward_private_tail_missing_or_changed'):
+                m.collect(store, asof=catalog['date'], catalog=catalog, source_revision='a' * 40,
+                          days=days, digest='a' * 64, week_loader=week_days)
+
+    def test_lagging_catalog_defers_against_verified_weekly_tail(self):
+        store, days, forward, catalog = fixture()
+        with patch('builtins.print'):
+            weeks_collect(store, Client(), asof='2026-11-09', max_weeks=1, day_loader=week_days)
+        with patch.object(m, 'finished_calendar_cutoff', return_value='2026-11-09'):
+            with self.assertRaisesRegex(m.ActualMoneyError, 'money_catalog_behind_weekly_archive'):
+                m.collect(store, asof=catalog['date'], catalog=catalog, source_revision='a' * 40,
+                          days=days, digest='a' * 64, forward_days=forward, week_loader=week_days)
+
+    def test_publish_preserves_existing_scores_while_catalog_catches_up(self):
+        for reason in ('money_catalog_behind_daily_archive', 'money_catalog_behind_weekly_archive'):
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / 'v22-market-catalog.json').write_text('{"date": "2026-11-03"}')
+                previous = root / m.OUTPUT
+                previous.write_text('previous publication')
+                action_output = root / 'action-output'
+                with patch.dict('os.environ', {'GITHUB_OUTPUT': str(action_output)}), patch.object(
+                        m, 'collect', side_effect=m.ActualMoneyError(reason)), patch.object(
+                        m, 'LocalPrivateSnapshot'), patch('builtins.print') as log:
+                    m.main(['--docs', directory, '--private-snapshot', directory,
+                            '--private-revision', 'a' * 40, '--allow-incomplete'])
+                self.assertEqual(previous.read_text(), 'previous publication')
+                self.assertEqual(action_output.read_text(), 'ready=false\n')
+                self.assertEqual(json.loads(log.call_args.args[0])['reason'], reason)
+
     def test_name_market_date_and_certification_validation(self):
         _,catalog=market_fixture();report=report_fixture(catalog)
         item=catalog['rows'][0]

@@ -6,7 +6,7 @@ series is emitted publicly. Missing/zero-baseline evidence is unavailable,
 never a zero score. Historical investment certification remains false.
 """
 from __future__ import annotations
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from hashlib import sha256
 import argparse
 import json
@@ -17,7 +17,9 @@ from pathlib import Path
 
 from v3_krx_money_backfill import CHECKPOINT, _path, _cohort_at_recent_first, history_candidates
 from v3_krx_money_public_progress import collect as history_progress
-from v3_krx_money_forward import CHECKPOINT as FORWARD, _manifest, _verify_tail, forward_candidates
+from v3_krx_money_forward import (CHECKPOINT as FORWARD, _manifest, _verify_tail,
+    finished_calendar_cutoff, forward_candidates)
+from v3_krx_regular_close import KST
 from v3_krx_money_5day import validate_money_blob
 from v3_krx_calendar_week_money import (CHECKPOINT as WEEKLY, HISTORY_WEEKS,
     manifest, path as week_path, week_days, validate as validate_week)
@@ -51,6 +53,7 @@ def safe_failure_diagnostic(issue):
         allowed={'invalid_money_score_source_identity',
             'invalid_money_history_forward_boundary',
             'money_daily_source_not_current_complete_480_sessions',
+            'money_catalog_behind_daily_archive', 'money_catalog_behind_weekly_archive',
             'money_daily_amount_unit_mismatch','money_daily_calendar_chain_gap',
             'money_calendar_week_history_unavailable',
             'money_calendar_week_history_incomplete','money_calendar_week_source_stale',
@@ -171,7 +174,11 @@ def read_daily_history(store, *, asof, before, days=None, digest=None, forward_d
     if days is None:
         days,digest=history_candidates()
     if forward_days is None:
-        forward_days=forward_candidates(asof)
+        cutoff = finished_calendar_cutoff(datetime.now(KST))
+        if asof > cutoff:
+            raise ActualMoneyError('invalid_money_score_source_identity')
+        # Validate the entire committed prefix even when the catalog is older.
+        forward_days = forward_candidates(cutoff)
     progress=history_progress(store,days,digest)
     fstate=_manifest(before[FORWARD][0],forward_days)
     _verify_tail(store,fstate,forward_days)
@@ -181,7 +188,9 @@ def read_daily_history(store, *, asof, before, days=None, digest=None, forward_d
     windows=[forward_days[5*i:5*(i+1)] for i in range(fcount-1,max(-1,fcount-97),-1)]
     windows += [_cohort_at_recent_first(days,i) for i in range(
         min(progress['five_session_cohorts_completed'],96-len(windows)))]
-    if len(windows)!=96 or windows[0][-1]>asof:
+    if windows and windows[0][-1] > asof:
+        raise ActualMoneyError('money_catalog_behind_daily_archive')
+    if len(windows)!=96:
         raise ActualMoneyError('money_daily_source_not_current_complete_480_sessions')
     daily=[]
     blobs=[]
@@ -222,15 +231,19 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         daily_added+=added
     if before[WEEKLY][0] is None:
         raise ActualMoneyError('money_calendar_week_history_unavailable')
-    wstate=manifest(before[WEEKLY][0],asof)
+    cutoff = finished_calendar_cutoff(datetime.now(KST))
+    wstate=manifest(before[WEEKLY][0],cutoff)
     if wstate['history_completed']!=HISTORY_WEEKS:
         raise ActualMoneyError('money_calendar_week_history_incomplete')
     end=date.fromisoformat(wstate['anchor_week_end'])+timedelta(weeks=wstate['forward_completed'])
-    if end.isoformat()!=closed_week_end(asof):
-        raise ActualMoneyError('money_calendar_week_source_stale')
     tail,_=store.get_content(week_path(wstate['tail_week_end']))
     if tail is None or sha256(tail).hexdigest()!=wstate['tail_sha256']:
         raise ActualMoneyError('money_calendar_week_checkpoint_tail_changed')
+    expected_week_end = closed_week_end(asof)
+    if end.isoformat() > expected_week_end:
+        raise ActualMoneyError('money_catalog_behind_weekly_archive')
+    if end.isoformat() < expected_week_end:
+        raise ActualMoneyError('money_calendar_week_source_stale')
     weekly=[]
     repaired_pairs=0
     for i in range(HISTORY_WEEKS):
@@ -389,6 +402,7 @@ def main(argv=None):
         report=collect(store,asof=catalog['date'],catalog=catalog,source_revision=args.private_revision)
     except ActualMoneyError as error:
         waiting={'money_daily_source_not_current_complete_480_sessions',
+                 'money_catalog_behind_daily_archive', 'money_catalog_behind_weekly_archive',
                  'money_calendar_week_history_unavailable','money_calendar_week_history_incomplete',
                  'money_calendar_week_source_stale'}
         if not args.allow_incomplete or str(error) not in waiting:
