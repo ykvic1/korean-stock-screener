@@ -15,15 +15,15 @@
     "daily_ma_turn_recomputed": 2321,
     "daily_ma240_cross_recomputed": 1931,
     "daily_ma240_cross_qualified": 28,
-    "weekly_ma20_turn_recomputed": 1932,
-    "weekly_ma60_turn_recomputed": 1754,
-    "weekly_ma120_turn_recomputed": 1520,
-    "weekly_rsi_recomputed": 1763,
-    "weekly_ma120_position_recomputed": 1648
+    "weekly_ma20_turn_recomputed": 1938,
+    "weekly_ma60_turn_recomputed": 1762,
+    "weekly_ma120_turn_recomputed": 1528,
+    "weekly_rsi_recomputed": 1771,
+    "weekly_ma120_position_recomputed": 1655
   },
   "source_inputs_sha256": "982f19bc0d31961779dfba2bcfff832d0e9f255432ea39d932fe40f0b82def68",
-  "added_this_run": 1,
+  "added_this_run": 0,
   "pending_sessions": 0,
-  "source_requests": 2,
+  "source_requests": 0,
   "failures": {}
 }
