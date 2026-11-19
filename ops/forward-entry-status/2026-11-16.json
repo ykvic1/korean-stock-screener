@@ -54,7 +54,7 @@
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-19",
-      "reviewed_ma_notices_sha256": "8a23460b399096a676874f2dc033a9079630031328f37e9f81d2f9dd08853d70",
+      "reviewed_ma_notices_sha256": "ec00b91bd9f081c698bf57694cd5ee283aa8bef744debec2c7bc44bd3160a00c",
       "history_sources_sha256": "ec7f2aff258672b1af459416f6717cbf369067314db6321964c28245355ad6e0",
       "intervening_sessions": [
         "2026-11-17"
@@ -354,5 +354,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T04:07:32.306956+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T07:37:29.879920+00:00"
 }

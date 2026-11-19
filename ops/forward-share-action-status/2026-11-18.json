@@ -11,17 +11,17 @@
     "KOSPI": "f1ae7f76d550f9f5a4032f668651c38e71c822dca69236daf49dccc8cdace645",
     "KOSDAQ": "dfabe91735bba72612d219af9e8bf0889d6aa80c991b3ffc5378973cd38ad685"
   },
-  "reviewed_session_notices_sha256": "8cb8c87c3ea0f55b3423b42f17674fe2f3b1a1427e086df85ae17c7473fc1354",
+  "reviewed_session_notices_sha256": "83fcd1b2367efac3557a67698bc511fcdf58ea232b62b4e60c5bebe8331ea474",
   "compared_distinct_codes": 2772,
   "states": {
     "unchanged_share_count": 2760,
     "share_count_unavailable": 0,
-    "identity_changed": 1,
+    "identity_changed": 0,
     "first_seen": 1,
     "absent": 1,
     "change_needs_notice": 0,
     "notice_mismatch": 0,
-    "notice_matched": 9
+    "notice_matched": 10
   },
   "notice_codes_absent_from_both_panels": 0,
   "full_corporate_action_history_certified": false,

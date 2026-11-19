@@ -54,7 +54,7 @@
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-20",
-      "reviewed_ma_notices_sha256": "e15be059b1500dd15aec05e7962ea9bb0475c8a3a93c32cd9a423322a382ea13",
+      "reviewed_ma_notices_sha256": "61d0338176c33b616e05ad0f50bfe3b1ce67ea8d7105c2ae4886249902a2c612",
       "history_sources_sha256": "e3fe5e01c7fb3b43964001d296f7cdc015b002ceb1fe2aa7589868620520c5c8",
       "intervening_sessions": [],
       "intervening_source_sha256": {},
@@ -215,7 +215,7 @@
         "KOSPI": "6138c479ff3b57debd122a42235078d3b9c68bc1df3d23fd804226ec9549dae8",
         "KOSDAQ": "f716bd217368b86ff7909b0e626c58d71379c983fa832a6513398cadacd38957"
       },
-      "reviewed_entry_notices_sha256": "8cb8c87c3ea0f55b3423b42f17674fe2f3b1a1427e086df85ae17c7473fc1354",
+      "reviewed_entry_notices_sha256": "83fcd1b2367efac3557a67698bc511fcdf58ea232b62b4e60c5bebe8331ea474",
       "corporate_actions_certified": false,
       "stop_execution_validated": false
     },
@@ -381,5 +381,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T04:07:32.306956+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-19T07:37:29.879920+00:00"
 }
