@@ -67,6 +67,16 @@ assert.ok(html.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven'
  assert.match(observed.body,/최대 하락폭 -12\.00% · 손실률 30\.00%~40\.00%/);
  assert.match(observed.body,/수익률 18\/20종목 · 게시 1구간/);
  assert.doesNotMatch(unified.forwardValidationView(data,results).body,/7\.25%/);
+ const rankComparison={reference_min_rank:21,reference_max_rank:100,weight_basis:'frozen_candidate_market_mix',
+  markets:{KOSPI:{candidate:{selected_count:20,confirmed_opening_count:20,valued_count:18,negative_return_count:6},
+   reference:{selected_count:80,confirmed_opening_count:78,valued_count:74,negative_return_count:34}}},
+  observed_mean_return_spread_pct_points:4.5,loss_rate_spread_bounds_pct_points:[-16,-2]};
+ results.horizons[12].latest.same_market_rank_comparison=rankComparison;
+ const compared=unified.forwardValidationView(ready,results);
+ assert.match(compared.body,/평균 수익률 차이 \+4\.50%p · 손실률 차이 -16\.00%p~-2\.00%p/);
+ assert.match(compared.body,/수익률 확인 18\/20 대 74\/78종목/);
+ rankComparison.markets.KOSPI.reference.valued_count=79;
+ assert.doesNotMatch(unified.forwardValidationView(ready,results).body,/같은 시장 21~100위 대비/);
  results.horizons[12].latest.loss_rate_bounds_pct=[40,30];
  assert.match(unified.forwardValidationView(ready,results).body,/결과 게시 대기/);
  assert.ok(entry.includes('id="forwardValidationCoverage"')&&html.includes('id="forwardValidationCoverage"'));
@@ -1156,7 +1166,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261119-historical-rights')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261119-forward-comparison')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),
