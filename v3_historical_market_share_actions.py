@@ -8,7 +8,10 @@ import json
 import re
 from pathlib import Path
 
-from v3_forward_share_actions import NOTICE, REGISTER, reviewed_actions, share_transition
+from v3_forward_share_actions import (
+    DART_TERMS, HOLDER_NEUTRAL_ACTIONS, KIND_LISTING_DETAIL, NOTICE, REGISTER,
+    load_forward_actions, reviewed_actions, share_transition, valid_share_terms,
+)
 from v3_historical_market_coverage import END, ENTRY, HORIZONS, MARKETS, ROOT, SIGNAL, TAG
 from v3_historical_market_coverage import _anniversary, day, ledger_rows, read_panels, require, traded
 from v3_historical_performance_pilot_audit import successor_listing_counts
@@ -48,6 +51,7 @@ def official_actions(register, face_register, historical_register):
 
 COMBINED_CANCELLATION = "treasury_cancellation_then_reverse_split"
 SPIN_OFF = "spin_off"
+TWO_SOURCE_REDUCTIONS = {"reverse_split", "capital_reduction"}
 SUCCESSOR_ISSUANCE = "successor_share_issuance"
 PAID_RIGHTS_LISTING = "paid_rights_listing_without_entitlement"
 PAID_RIGHTS_UNPRICED = "paid_rights_entitlement_unpriced"
@@ -109,7 +113,8 @@ def continuity_actions(raw):
         treasury = action == "treasury_cancellation"
         listing_source = (NOTICE.fullmatch(listing_url)
                           or treasury and TREASURY_LISTING_COPY.fullmatch(listing_url)
-                          or action == SPIN_OFF and SPIN_OFF_LISTING.fullmatch(listing_url))
+                          or action == SPIN_OFF and SPIN_OFF_LISTING.fullmatch(listing_url)
+                          or action in TWO_SOURCE_REDUCTIONS and KIND_LISTING_DETAIL.fullmatch(listing_url))
         require(re.fullmatch(r"[0-9A-Z]{6}", code) and notice["market"] in MARKETS.values()
                 and all(type(n) is int and n > 0 for n in (before, after))
                 and all(isinstance(notice[k], str) and notice[k].strip()
@@ -150,6 +155,14 @@ def continuity_actions(raw):
         elif action == SPIN_OFF:
             validate_spin_off(notice)
             actions[key] = notice
+        elif action in TWO_SOURCE_REDUCTIONS:
+            new, old = notice.get("new_units"), notice.get("old_units")
+            terms_url = notice.get("terms_url", "")
+            require(KIND_LISTING_DETAIL.fullmatch(listing_url) and DART_TERMS.fullmatch(terms_url)
+                    and all(type(n) is int for n in (new, old))
+                    and valid_share_terms(action, before, after, new, old),
+                    "invalid_two_source_share_reduction")
+            actions[key] = {**notice, "name": notice["name_after"]}
         elif action == COMBINED_CANCELLATION:
             cancelled = notice.get("cancelled_shares")
             old_units = notice.get("old_units")
@@ -226,6 +239,10 @@ def match_held_units(panels, sessions, index, code, notice):
     session = sessions[index]
     previous, current = (panels[s].get(code) for s in sessions[index - 1:index + 1])
     kind = notice["action"]
+    if kind in HOLDER_NEUTRAL_ACTIONS and "name" in notice:
+        if traded(current) and share_transition(previous and previous[:3], current[:3], notice) == "notice_matched":
+            return Fraction(1)
+        return None
     if kind not in CONTINUITY_KINDS | {"bonus_ex_rights", "bonus_listing"}:
         return matched_ratio(previous, current, notice)
     before, after = notice["shares_before"], notice["shares_after"]
@@ -344,7 +361,7 @@ def replay(panels, delisted, notices):
                                              *SUSPENDED_TREASURY_FIELDS,
                                              *COMBINED_CANCELLATION_FIELDS, *SPIN_OFF_FIELDS,
                                              "existing_holder_rights", "paid_listing_on", "ex_shares",
-                                             "exchanged_code") if k in notice},
+                                             "exchanged_code", "listing_notices") if k in notice},
                 }
     incorporated = set()
     for code in sorted(anchor.keys() - delisted):
@@ -504,7 +521,15 @@ def load_replay(panels):
     for name in ledgers:
         path = ROOT / "ops" / f"v3-performance-{name}-{TAG}.csv"
         digests[name.replace("-", "_") + "_register"] = sha256(path.read_bytes()).hexdigest()
-    report = replay(panels, delisted, {**notices, **continuity, **issuance})
+    archived = {**notices, **continuity, **issuance}
+    shared = {
+        key: notice for key, notice in load_forward_actions(ROOT).items()
+        if SIGNAL.isoformat() < key[0] <= END.isoformat() and key not in archived
+        and notice["action"] in HOLDER_NEUTRAL_ACTIONS
+    }
+    digests["shared_forward_register"] = sha256(json.dumps(
+        sorted(shared.items()), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    report = replay(panels, delisted, {**archived, **shared})
     report["register_sha256"] = digests
     return report
 

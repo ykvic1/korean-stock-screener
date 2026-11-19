@@ -5,7 +5,7 @@ import unittest
 
 from v3_historical_market_coverage import END, ENTRY, SIGNAL, day
 from v3_historical_market_share_actions import (
-    CALENDAR_CODES, continuity_actions, replay, successor_issuance_actions,
+    CALENDAR_CODES, continuity_actions, match_held_units, replay, successor_issuance_actions,
 )
 from v3_historical_performance_pilot_audit import PilotAuditError
 
@@ -22,6 +22,40 @@ def split(new, old):
 
 
 class HistoricalShareActionTests(unittest.TestCase):
+    def test_shared_holder_neutral_terms_preserve_units_only_on_exact_daily_match(self):
+        prior, listed = map(day, ("2026-10-06", "2026-10-07"))
+        code = "000001"
+        notice = dict(action="treasury_cancellation", market="KOSPI", name="company",
+                      shares_before=100, shares_after=80, new_units=1, old_units=1)
+        panels = {prior: {code: quote(100, 100)}, listed: {code: quote(80, 105)}}
+        self.assertEqual(match_held_units(panels, (prior, listed), 1, code, notice), 1)
+        panels[listed][code] = quote(81, 105)
+        self.assertIsNone(match_held_units(panels, (prior, listed), 1, code, notice))
+        panels[prior].clear()
+        self.assertIsNone(match_held_units(panels, (prior, listed), 1, code, notice))
+
+    def test_two_source_reduction_requires_terms_and_the_exact_listed_transition(self):
+        listed = day("2026-10-07")
+        prior = day("2026-10-06")
+        code = "000001"
+        receipt = "20261001000078"
+        listing_url = ("https://kind.krx.co.kr/corpgeneral/stockissuelist.do?"
+                       "method=searchStockIssueDetail&forward=searchStockIssueDetail"
+                       f"&bzProcsNo={receipt}&contnId={receipt}")
+        terms_url = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260713000111"
+        notice = dict(code=code, action="capital_reduction", market="KOSPI",
+                      name_before="company", name_after="company", shares_before=100,
+                      shares_after=20, listed_on=str(listed), new_units=1, old_units=5,
+                      notice_url=listing_url, terms_url=terms_url)
+        evidence = continuity_actions(json.dumps([notice]).encode())[str(listed), code]
+        panels = {prior: {code: quote(100, 100)}, listed: {code: quote(20, 500)}}
+        self.assertEqual(str(match_held_units(panels, (prior, listed), 1, code, evidence)), "1/5")
+        panels[listed][code] = quote(21, 500)
+        self.assertIsNone(match_held_units(panels, (prior, listed), 1, code, evidence))
+        for correction in ({"terms_url": ""}, {"old_units": 4}, {"notice_url": terms_url}):
+            with self.assertRaises(PilotAuditError):
+                continuity_actions(json.dumps([{**notice, **correction}]).encode())
+
     def test_paid_rights_eligibility_uses_open_entry_on_ex_date(self):
         early_listing, later_ex, later_listing = map(day, ("2026-01-13", "2026-03-18", "2026-05-15"))
         sessions = (SIGNAL, ENTRY, day("2025-12-15"), early_listing, day("2026-02-13"),
