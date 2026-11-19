@@ -16,6 +16,10 @@ from v3_forward_daily_prices import (
     collect_daily, completed_sessions, official_publish_time, pending_official_pair, read_daily,
 )
 from v3_forward_horizon_readiness import HORIZONS, _anniversary
+from v3_forward_ma_references import (
+    PERIODS as MA_REFERENCE_PERIODS, SCHEMA as MA_REFERENCE_SCHEMA,
+    load_history as load_ma_history, summarize as summarize_ma_references,
+)
 from v3_forward_price_replay import replay_price_path
 from v3_forward_rank_comparison import add_rank_comparisons
 from v3_forward_share_actions import (
@@ -23,6 +27,7 @@ from v3_forward_share_actions import (
     session_review_inputs,
 )
 from v3_forward_signal_close import SignalCloseError, collect_signal_closes, compare_closes, frozen_market
+from v3_regular_close_indicators import CloseHistoryError
 from v3_regular_close_prices import RegularCloseError, publish_regular_closes
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
 from v3_krx_history_collection import MARKETS, HistoryCollectionError, _snapshot_market
@@ -275,7 +280,7 @@ def entry_session_path(observation, evidence, daily, *, signal=None, signal_case
 
 
 def crosscheck_entry_daily(observation, source_digest, storage, *, review_reference=False,
-                           notices=None):
+                           notices=None, ma_history=None):
     """Compare saved entry opens with their independently retained daily panel."""
     plan = entry_plan(observation, source_digest)
     path = f"derived/forward-entry/{plan['score_asof']}.json.gz"
@@ -327,13 +332,20 @@ def crosscheck_entry_daily(observation, source_digest, storage, *, review_refere
                 result['structural_reference_status'] = 'nonadjacent_signal_session'
             else:
                 signal = read_daily(score_day, storage)
+                entry_notices, notice_digest = session_review_inputs(notices or {}, entry_day)
+                if signal is not None and ma_history is not None:
+                    history, entry_basis = ma_history(score_day, entry_day)
+                    ma = summarize_ma_references(
+                        observation, evidence['rows'], signal, daily, history, entry_basis,
+                        entry_notices)
+                    result['official_ma_references'] = {
+                        **ma, 'reviewed_entry_notices_sha256': notice_digest}
                 market = frozen_market(observation) if signal is not None else None
                 if market is None:
                     result['structural_reference_status'] = 'waiting_for_signal_price_basis'
                     signal = None
                 else:
                     _, signal_cases = compare_closes(observation, market, signal)
-                    entry_notices, notice_digest = session_review_inputs(notices or {}, entry_day)
                     result['structural_reference_status'] = 'compared'
                     result['structural_reference_basis'] = {
                         'signal_published_market_sha256': observation['source_market_sha256'],
@@ -445,6 +457,11 @@ def main():
     publish_regular_closes(private_storage, now=now, retry_public_cache=os.getenv('GITHUB_EVENT_NAME')
                            in {'schedule', 'workflow_dispatch'})
     notices = load_forward_actions()
+    ma_cache = {}
+
+    def ma_history(score_day, entry_day):
+        return load_ma_history(score_day, entry_day, now, private_storage(), ma_cache)
+
     checked = 0
     for status in sorted(entry_statuses,
                          key=lambda item: item.get('last_entry_daily_crosscheck_at_utc', '')):
@@ -457,8 +474,13 @@ def main():
                 continue
             if reference_state == 'compared':
                 _, notice_digest = session_review_inputs(notices, status['entry_session_candidate'])
+                ma = old.get('official_ma_references', {})
                 if old.get('structural_reference_basis', {}).get(
-                        'reviewed_entry_notices_sha256') == notice_digest:
+                        'reviewed_entry_notices_sha256') == notice_digest and (
+                        ma.get('schema') == MA_REFERENCE_SCHEMA
+                        and ma.get('status') == 'compared'
+                        and ma.get('archived_history_sessions') == max(MA_REFERENCE_PERIODS)
+                        and ma.get('reviewed_entry_notices_sha256') == notice_digest):
                     continue
         if checked >= MAX_COHORTS_PER_RUN:
             break
@@ -467,7 +489,7 @@ def main():
         raw = source.read_bytes()
         status['entry_daily_crosscheck'] = crosscheck_entry_daily(
             json.loads(raw), sha256(raw).hexdigest(), private_storage(), review_reference=True,
-            notices=notices)
+            notices=notices, ma_history=ma_history)
         status['last_entry_daily_crosscheck_at_utc'] = now.isoformat()
         target = OUT / source.name
         target.write_text(json.dumps(status, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
@@ -478,6 +500,6 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (EntryError, DailyEvidenceError, ShareReviewError, SignalCloseError, RegularCloseError, HistoryCollectionError,
-            PrivateHistoryError, DerivedSourceError) as error:
+    except (EntryError, DailyEvidenceError, ShareReviewError, SignalCloseError, RegularCloseError,
+            CloseHistoryError, HistoryCollectionError, PrivateHistoryError, DerivedSourceError) as error:
         raise SystemExit(str(error)) from None

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - v3_forward_entry.py
+      - v3_forward_ma_references.py
       - v3_forward_price_replay.py
       - v3_forward_cash_dividends.py
       - v3_forward_settlements.py
