@@ -19,6 +19,7 @@ from v3_krx_derived_5day import _private_new_blob_readback
 OUT = Path('ops/forward-share-action-status')
 REGISTER = Path('ops/forward-reviewed-share-actions.csv')
 HOLDER_NEUTRAL_REGISTER = Path('ops/forward-reviewed-holder-neutral-actions.csv')
+ISSUANCE_CHAIN_REGISTER = Path('ops/forward-reviewed-issuance-chains.csv')
 CONTINUITY_REGISTER = Path('ops/forward-reviewed-share-continuity.csv')
 SCHEMA = 'v3-forward-krx-share-action-review-2'
 MAX_PAIRS_PER_RUN = 5
@@ -36,12 +37,16 @@ CONTINUITY_FIELDS = (*FIELDS, 'prior_name')
 DART_TERMS = re.compile(r'https://dart\.fss\.or\.kr/dsaf001/main\.do\?rcpNo=\d{14}\Z')
 PRICE_ACTIONS = ('split', 'reverse_split', 'capital_reduction')
 COMBINED_BOND_AND_OPTION = 'bond_conversion_and_option_exercise'
+SAME_DAY_ISSUANCE_CHAIN = 'same_day_holder_neutral_issuances'
 HOLDER_NEUTRAL_ISSUANCES = frozenset({
     'bond_conversion', 'bond_warrant_exercise', 'option_exercise',
     'preferred_to_common', 'third_party_placement', 'successor_share_issuance',
     COMBINED_BOND_AND_OPTION,
 })
-HOLDER_NEUTRAL_ACTIONS = HOLDER_NEUTRAL_ISSUANCES | {'treasury_cancellation'}
+HOLDER_NEUTRAL_ACTIONS = HOLDER_NEUTRAL_ISSUANCES | {'treasury_cancellation', SAME_DAY_ISSUANCE_CHAIN}
+KIND_ISSUANCE_CHAIN_ACTIONS = HOLDER_NEUTRAL_ISSUANCES - {
+    COMBINED_BOND_AND_OPTION, 'successor_share_issuance',
+}
 REQUIRES_TERMS = {'successor_share_issuance', 'treasury_cancellation', COMBINED_BOND_AND_OPTION}
 CONTINUITY_ACTIONS = {*PRICE_ACTIONS, 'rename'}
 STATES = ('unchanged_share_count', 'share_count_unavailable', 'identity_changed',
@@ -74,16 +79,15 @@ def valid_share_terms(action, before, after, new, old):
     return ratio != 1 and (ratio > 1) == (action == 'split') and exact - 1 < after <= exact
 
 
-def reviewed_actions(raw):
+def reviewed_rows(raw):
     reader = csv.DictReader(StringIO(raw.decode('utf-8')))
     expected = {
         FIELDS: PRICE_ACTIONS,
-        HOLDER_NEUTRAL_FIELDS: HOLDER_NEUTRAL_ACTIONS,
+        HOLDER_NEUTRAL_FIELDS: HOLDER_NEUTRAL_ACTIONS - {SAME_DAY_ISSUANCE_CHAIN},
         CONTINUITY_FIELDS: CONTINUITY_ACTIONS,
     }.get(tuple(reader.fieldnames or ()))
     if expected is None:
         raise ShareReviewError('invalid_reviewed_action_header')
-    entries = {}
     for row in reader:
         code, market, day = row['code'], row['market'], row['listing_on']
         action, listing_url = row['action'], row['notice_url']
@@ -108,26 +112,62 @@ def reviewed_actions(raw):
                 raise ValueError()
         except (ValueError, TypeError, ZeroDivisionError):
             raise ShareReviewError('invalid_reviewed_action_record') from None
-        key = day, code
+        row = {**row, 'shares_before': before, 'shares_after': after,
+               'new_units': new, 'old_units': old}
+        if not terms:
+            row.pop('terms_url', None)
+        if not prior_name:
+            row.pop('prior_name', None)
+        yield (day, code), row
+
+
+def reviewed_actions(raw):
+    entries = {}
+    for key, row in reviewed_rows(raw):
         if key in entries:
             raise ShareReviewError('duplicate_reviewed_action_record')
-        entries[key] = {**row, 'shares_before': before, 'shares_after': after,
-                        'new_units': new, 'old_units': old}
-        if not terms:
-            entries[key].pop('terms_url', None)
-        if not prior_name:
-            entries[key].pop('prior_name', None)
+        entries[key] = row
+    return entries
+
+
+def reviewed_issuance_chains(raw):
+    """Link individually sourced KIND issuances by their exact listed share counts."""
+    groups, sources = {}, set()
+    for key, row in reviewed_rows(raw):
+        source = row['notice_url']
+        if (row['action'] not in KIND_ISSUANCE_CHAIN_ACTIONS or 'terms_url' in row
+                or not KIND_LISTING_DETAIL.fullmatch(source) or source in sources):
+            raise ShareReviewError('invalid_issuance_chain_component')
+        sources.add(source)
+        groups.setdefault(key, []).append(row)
+    entries = {}
+    for key, components in groups.items():
+        ordered = sorted(components, key=lambda row: row['shares_before'])
+        first, last = ordered[0], ordered[-1]
+        if (len(ordered) < 2 or any(row['market'] != first['market']
+                or normalized_name(row['name']) != normalized_name(first['name']) for row in ordered)
+                or any(previous['shares_after'] != following['shares_before']
+                       for previous, following in zip(ordered, ordered[1:]))):
+            raise ShareReviewError('discontinuous_reviewed_issuance_chain')
+        entries[key] = {
+            **first, 'action': SAME_DAY_ISSUANCE_CHAIN, 'shares_after': last['shares_after'],
+            'listing_notices': [{field: row[field] for field in (
+                'action', 'shares_before', 'shares_after', 'notice_url',
+            )} for row in ordered],
+        }
     return entries
 
 
 def load_forward_actions(root=Path('.')):
     """Load dated evidence for forward replay without changing the historical register."""
     notices = reviewed_actions((root / REGISTER).read_bytes())
-    for register in (HOLDER_NEUTRAL_REGISTER, CONTINUITY_REGISTER):
+    for register, loader in ((HOLDER_NEUTRAL_REGISTER, reviewed_actions),
+                             (CONTINUITY_REGISTER, reviewed_actions),
+                             (ISSUANCE_CHAIN_REGISTER, reviewed_issuance_chains)):
         path = root / register
         if not path.is_file():
             continue
-        added = reviewed_actions(path.read_bytes())
+        added = loader(path.read_bytes())
         if notices.keys() & added.keys():
             raise ShareReviewError('duplicate_reviewed_action_record')
         notices.update(added)
@@ -187,7 +227,7 @@ def reconcile(before, after, notices, notice_sha):
             reviews[code].update({key: notice[key] for key in (
                 'action', 'new_units', 'old_units', 'notice_url',
             )})
-            reviews[code].update({field: notice[field] for field in ('terms_url', 'prior_name')
+            reviews[code].update({field: notice[field] for field in ('terms_url', 'prior_name', 'listing_notices')
                                   if field in notice})
             if new[code][2] == 'traded':
                 # Keep KRW exact for ratios such as 1-for-10. The four values

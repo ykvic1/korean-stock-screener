@@ -1,5 +1,7 @@
 """Regress dated notice matching and prevent implicit shareholder adjustment."""
+import csv
 from hashlib import sha256
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -10,10 +12,10 @@ from tests.test_v3_forward_entry import MemoryStore
 from v3_forward_daily_prices import SCHEMA as DAILY_SCHEMA
 from v3_forward_entry import timestamp
 from v3_forward_share_actions import (
-    COMBINED_BOND_AND_OPTION, HOLDER_NEUTRAL_ACTIONS, HOLDER_NEUTRAL_REGISTER,
-    PRICE_ACTIONS, REGISTER, REQUIRES_TERMS, ShareReviewError,
+    COMBINED_BOND_AND_OPTION, HOLDER_NEUTRAL_ACTIONS, HOLDER_NEUTRAL_FIELDS, HOLDER_NEUTRAL_REGISTER,
+    PRICE_ACTIONS, REGISTER, REQUIRES_TERMS, SAME_DAY_ISSUANCE_CHAIN, ShareReviewError,
     collect_share_reviews,
-    reconcile, reviewed_actions,
+    reconcile, reviewed_actions, reviewed_issuance_chains,
 )
 
 
@@ -72,7 +74,7 @@ class ForwardShareActionTest(unittest.TestCase):
             reviewed_actions(raw)
 
     def test_holder_neutral_terms_require_1_to_1_and_the_right_direction(self):
-        for action in HOLDER_NEUTRAL_ACTIONS:
+        for action in HOLDER_NEUTRAL_ACTIONS - {SAME_DAY_ISSUANCE_CHAIN}:
             before, after = (12, 10) if action == 'treasury_cancellation' else (10, 12)
             for old_count, new_count, new_units, expected in (
                 (before, after, 1, True),
@@ -115,6 +117,40 @@ class ForwardShareActionTest(unittest.TestCase):
                 raw = (lines[0] + '\n' + ','.join(row[:-1] + [terms]) + '\n').encode()
                 with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
                     reviewed_actions(raw)
+
+    def test_issuance_chain_accepts_reordered_components_and_requires_full_daily_movement(self):
+        def listing(receipt):
+            return ('https://kind.krx.co.kr/corpgeneral/stockissuelist.do?'
+                    f'method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo={receipt}&contnId={receipt}')
+
+        code, day = '008500', '2026-11-18'
+        first = ['KOSPI', code, '일정실업', day, 'option_exercise', 100, 110, 1, 1,
+                 listing('20261113000082'), '']
+        middle = [*first[:4], 'bond_conversion', 110, 120, 1, 1, listing('20261113000084'), '']
+        last = [*first[:4], 'option_exercise', 120, 122, 1, 1, listing('20261113000101'), '']
+
+        def raw_for(*rows):
+            stream = StringIO()
+            writer = csv.writer(stream)
+            writer.writerows((HOLDER_NEUTRAL_FIELDS, *rows))
+            return stream.getvalue().encode()
+
+        raw = raw_for(last, first, middle)
+        notices = reviewed_issuance_chains(raw)
+        notice = notices[day, code]
+        self.assertEqual(notice['action'], SAME_DAY_ISSUANCE_CHAIN)
+        self.assertEqual((notice['shares_before'], notice['shares_after']), (100, 122))
+        for after, reason in ((122, 'notice_matched'), (110, 'notice_mismatch')):
+            _, cases = reconcile(panel('2026-11-17', 100), panel(day, after), notices, 'a'*64)
+            self.assertEqual(cases[code]['state'], reason)
+            if after == 122:
+                self.assertEqual(cases[code]['listing_notices'], notice['listing_notices'])
+        with self.assertRaisesRegex(ShareReviewError, 'duplicate_reviewed_action_record'):
+            reviewed_actions(raw)
+        with self.assertRaisesRegex(ShareReviewError, 'discontinuous_reviewed_issuance_chain'):
+            reviewed_issuance_chains(raw_for(first, last))
+        with self.assertRaisesRegex(ShareReviewError, 'invalid_issuance_chain_component'):
+            reviewed_issuance_chains(raw_for(first, first))
 
     def test_reviewed_rename_requires_same_market_and_exact_dated_names_and_shares(self):
         header, example, *_ = self.raw.decode().splitlines()
