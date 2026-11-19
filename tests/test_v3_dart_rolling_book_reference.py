@@ -239,10 +239,10 @@ class RollingCurrentListedDARTTests(unittest.TestCase):
         self.assertIn("limit=quota",flow)
         self.assertIn("cron: '17 12 * * 1-5'",flow)
 
-    def test_dispatched_annual_handoff_only_starts_a_lagging_bulk_ledger(self):
+    def test_dispatched_annual_handoff_starts_only_lagging_followups(self):
         workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
         annual = (workflows / "v3-rolling-dart-annual-book.yml").read_text(encoding="utf8")
-        handoff = annual.split("Start the lagging four-year ledger", 1)[1]
+        handoff = annual.split("Start lagging research followups", 1)[1]
         self.assertIn("steps.publish.outcome == 'success'", handoff)
         self.assertIn("github.event_name == 'workflow_dispatch'", handoff)
         self.assertIn("git archive FETCH_HEAD", handoff)
@@ -250,6 +250,9 @@ class RollingCurrentListedDARTTests(unittest.TestCase):
         self.assertIn("--kind major", handoff)
         self.assertIn("deferred_waiting_for_dart_same_market_day", handoff)
         self.assertIn("-f mode=live -f groups=1", handoff)
+        self.assertIn(".market_asof == $annual.market_asof", handoff)
+        self.assertIn(".listed_total == $annual.current_listed_total", handoff)
+        self.assertIn('v3-weekly-rotation.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=publish', handoff)
         bulk = (workflows / "v3-dart-bulk-four-year.yml").read_text(encoding="utf8")
         self.assertIn("github.event.workflow_run.event != 'workflow_dispatch'", bulk)
         self.assertIn("cron: '29 * * * *'", bulk)

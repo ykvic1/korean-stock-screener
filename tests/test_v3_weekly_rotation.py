@@ -216,6 +216,28 @@ class RotationTests(unittest.TestCase):
         row["price_date"] = "2026-10-18"
         self.assertIsNone(technical_points(row, "2026-10-19")[0])
 
+    def test_new_close_replays_only_the_current_calendar_days_cohort(self):
+        market, catalog, book = fixture(14)
+        first, _ = recalculate(market, catalog, book, when="2026-10-20")
+        early, _ = recalculate(market, catalog, book, when="2026-10-21", prior=first)
+
+        market["date"] = catalog["date"] = "2026-10-20"
+        for stock in market["stocks"]:
+            stock["price_date"] = "2026-10-20"
+            stock["v3_pattern_integrated"]["asof"] = "2026-10-20"
+        replayed, coverage = recalculate(
+            market, catalog, book, when="2026-10-21", prior=early)
+        self.assertEqual(coverage["processed_today"], 2)
+        self.assertEqual(coverage["processed_this_cycle"], 4)
+        self.assertEqual(coverage["source_collection_calls"], 0)
+        self.assertEqual(replayed["records"]["000007"], early["records"]["000007"])
+        self.assertEqual(replayed["records"]["000008"]["market_source_asof"], "2026-10-20")
+
+        _, repeated = recalculate(
+            market, catalog, book, when="2026-10-21", prior=replayed)
+        self.assertEqual(repeated["processed_today"], 0)
+        self.assertEqual(repeated["processed_this_cycle"], 4)
+
     def test_universe_growth_reconciles_and_catches_up(self):
         market,catalog,book=fixture(14)
         first,report = recalculate(market,catalog,book,when=EPOCH.isoformat())

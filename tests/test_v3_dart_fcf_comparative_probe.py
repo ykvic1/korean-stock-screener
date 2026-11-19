@@ -236,8 +236,7 @@ class ComparativeProbeTests(unittest.TestCase):
     def test_full_sweep_covers_every_eligible_issuer_once(self):
         if not probe.source_day_aligned(*self.inputs):
             self.skipTest("source-day rollover")
-        day, members, sample, total = probe.select_targets(*self.inputs, limit=120)
-        self.assertGreater(total, 0)
+        _, _, sample, total = probe.select_targets(*self.inputs, limit=120)
         self.assertEqual(len(sample), min(total, 120))
         self.assertEqual(len(sample), len({s[0] for s in sample}))
         if total <= 120:

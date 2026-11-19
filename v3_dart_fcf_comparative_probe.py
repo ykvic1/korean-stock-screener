@@ -24,7 +24,7 @@ from v3_dart_bulk_history import (
     verified_company_mapping_cache, BulkHistoryError,
 )
 from v3_dart_cashflow_enrichment import (
-    verify_state, CFO_IDS, PPE_IDS, INTANGIBLE_IDS, NONSTANDARD_ACCOUNT_ID,
+    retained_current_market_cashflow, CFO_IDS, PPE_IDS, INTANGIBLE_IDS, NONSTANDARD_ACCOUNT_ID,
     NONSTANDARD_CAPEX_NAMES,
 )
 from v3_v30b_release_gate import r1d_public_reconciles
@@ -78,8 +78,12 @@ def select_targets(market, catalog, bulk, book, cashflow, operational,
         or r1d_public_reconciles(operational, comparison, catalog) is None):
         raise ComparativeProbeError("unreconciled_comparative_priority")
     try:
-        verify_state(cashflow, market, catalog, bulk, strict_fingerprint=True)
-    except (BulkHistoryError, ValueError, KeyError, TypeError) as error:
+        if type(cashflow) is not dict or cashflow.get("asof") != day:
+            raise ValueError("missing_or_undated_cashflow_checkpoint")
+        # Annual corrections can publish before the separate cashflow writer.
+        # Revalidate retained receipts and omit superseded issuer-years.
+        cashflow = retained_current_market_cashflow(market, catalog, bulk, cashflow)
+    except (BulkHistoryError, ValueError, KeyError, TypeError):
         raise ComparativeProbeError("untrusted_comparative_cashflow_source") from None
     members = {r["code"]: r for r in catalog["rows"]}
     books = {r["code"]: r for r in book.get("records", [])}
