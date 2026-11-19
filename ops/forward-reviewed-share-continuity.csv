@@ -2,3 +2,4 @@ market,code,name,listing_on,action,shares_before,shares_after,new_units,old_unit
 KOSPI,047400,유니온머티리얼,2026-11-16,reverse_split,42000000,8400000,1,5,https://kind.krx.co.kr/external/2026/11/11/000170/20261111000376/68155.htm,
 KOSDAQ,206400,베노티앤알,2026-11-16,reverse_split,37510158,18755079,1,2,https://kind.krx.co.kr/external/2026/11/13/001606/20261113003444/70764.htm,
 KOSDAQ,206400,아인스팩씨엔에스,2026-11-17,rename,18755079,18755079,1,1,https://kind.krx.co.kr/external/2026/11/12/000949/20261112001835/70765.htm,베노티앤알
+KOSDAQ,200350,스튜디오쏠쏠,2026-11-18,rename,11488562,11488562,1,1,https://kind.krx.co.kr/external/2026/11/13/001211/20261113002571/70765.htm,아티스트스튜디오
