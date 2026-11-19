@@ -16,7 +16,9 @@ SHORT_WEEKLY_SCHEMA = 'v3-official-regular-close-indicators-3'
 SHORT_WEEKLY_IMPLEMENTATION = 'c35327dfc89be5c460180d0b215257245a1882e3298da3df42bb92407b02ada6'
 LONG_WEEKLY_SCHEMA = 'v3-official-regular-close-indicators-4'
 LONG_WEEKLY_IMPLEMENTATION = 'b118ce9d6219894da0e6f73729419a377408961269bbf5ee89556efacb051548'
-SCHEMA = 'v3-official-regular-close-indicators-5'
+NO_TRADE_WEEK_SCHEMA = 'v3-official-regular-close-indicators-5'
+NO_TRADE_WEEK_IMPLEMENTATION = 'af347512102b20846daa9e287cd35c72fc14018b730b6cf8e7abbe1cbbf53c5a'
+SCHEMA = 'v3-official-regular-close-indicators-6'
 OUTPUT = 'v3-regular-close-indicators.json'
 DAILY_SESSIONS = 200
 SESSIONS = MIN_HISTORY_SESSIONS
@@ -37,7 +39,9 @@ def implementation_digest():
              str(Path(__file__).with_name('v3_ma_slope_transition.py')),
              str(Path(__file__).with_name('v3_ma240_cross_research.py')),
              str(Path(__file__).with_name('v3_pattern_first_observations.py')),
-             str(Path(__file__).with_name('technical_v22.py')))
+             str(Path(__file__).with_name('technical_v22.py')),
+             str(Path(__file__).with_name('v3_krx_close_momentum_recovery.py')),
+             str(Path(__file__).with_name('v3_krx_face_consolidation_notices.json')))
     return sha256(b''.join(Path(name).read_bytes() for name in names)).hexdigest()
 
 
@@ -77,11 +81,12 @@ def admitted_rows(source, catalog):
     limit = DAILY_SESSIONS if legacy else SESSIONS
     previous_digests = {LEGACY_SCHEMA: LEGACY_IMPLEMENTATION, DAILY_ONLY_SCHEMA: DAILY_ONLY_IMPLEMENTATION,
                         SHORT_WEEKLY_SCHEMA: SHORT_WEEKLY_IMPLEMENTATION,
-                        LONG_WEEKLY_SCHEMA: LONG_WEEKLY_IMPLEMENTATION}
+                        LONG_WEEKLY_SCHEMA: LONG_WEEKLY_IMPLEMENTATION,
+                        NO_TRADE_WEEK_SCHEMA: NO_TRADE_WEEK_IMPLEMENTATION}
     if not isinstance(schema, str) or schema not in (*previous_digests, SCHEMA):
         return {}
     digest = implementation_digest() if schema == SCHEMA else previous_digests[schema]
-    long_weekly = schema in (LONG_WEEKLY_SCHEMA, SCHEMA)
+    long_weekly = schema in (LONG_WEEKLY_SCHEMA, NO_TRADE_WEEK_SCHEMA, SCHEMA)
     requested = source.get('requested_sessions')
     if (source.get('asof') != catalog['date']
             or source.get('source') != 'KRX_OFFICIAL_REGULAR_CLOSE'
