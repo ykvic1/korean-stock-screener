@@ -133,6 +133,29 @@ class RegularCloseIndicatorsTest(unittest.TestCase):
             row[5] = False
         self.assertIsNone(history.weekly_indicators(records, member, weeks, days[-1]))
 
+    def test_weekly_history_rebases_only_source_matched_face_changes(self):
+        days = list(map(date.fromisoformat, history.history_dates('2026-11-13')))
+        weeks = history.completed_week_ranges(days)[-120:]
+        member = self.catalog['rows'][0]
+        action = weeks[-25][1][0]
+        records = [[member['market'], member['name'], 1000, 500, 1000, True]
+                   if index < action else
+                   [member['market'], member['name'], 5000, 100, 5000, True]
+                   for index in range(len(days))]
+        notice = {'market': member['market'], 'old_face_krw': 100, 'new_face_krw': 500,
+                  'reference_krw': 5000}
+        self.assertIsNone(history.weekly_indicators(records, member, weeks, days[-1]))
+        receipt = history.weekly_indicators(
+            records, member, weeks, days[-1], face_notices={action: notice})
+        self.assertEqual(receipt['continuous_weeks'], 120)
+        self.assertEqual(receipt['weekly_ma120_gap_pct'], 0.0)
+        self.assertEqual(records[action - 1][2], 1000)
+        self.assertIsNone(history.weekly_indicators(
+            records, member, weeks, days[-1], face_notices={action + 1: notice}))
+        records[action][3] = 99
+        self.assertIsNone(history.weekly_indicators(
+            records, member, weeks, days[-1], face_notices={action: notice}))
+
     def test_long_week_windows_enable_each_factor_only_after_required_history(self):
         days = history.history_dates('2026-11-13')
         dates = list(map(date.fromisoformat, days))

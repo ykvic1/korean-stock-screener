@@ -2,6 +2,7 @@
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date, datetime, timedelta, timezone
+from fractions import Fraction
 from hashlib import sha256
 from io import BytesIO
 import gzip
@@ -18,6 +19,7 @@ from v3_forward_daily_prices import number, official_publish_time
 from v3_forward_share_actions import normalized_name
 from v3_krx_derived_5day import DerivedSourceError, _private_new_blob_readback
 from v3_krx_history_collection import MARKETS, HistoryCollectionError, _snapshot_market
+from v3_krx_close_momentum_recovery import load_face_notices, verified_face_consolidation
 from v3_krx_money_forward import ForwardMoneyError, RetryingMoneyClient
 from v3_krx_private_backfill_plan import calendar_weekday_candidates
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError
@@ -177,18 +179,28 @@ def collect(storage, clients, days, *, limit=MAX_NEW_SESSIONS):
     return panels, added, dict(failures)
 
 
-def continuous_tail(records, member):
+def continuous_tail(records, member, face_notices=None):
     """Use observed same-basis closes after the latest unresolved discontinuity."""
     tail = []
     next_row = None
-    for row in reversed(records):
+    multiplier = Fraction(1)
+    face_notices = face_notices or {}
+    for index in range(len(records) - 1, -1, -1):
+        row = records[index]
         if (row is None or row[0] != member['market']
                 or normalized_name(row[1]) != normalized_name(member['name'])):
             break
         if next_row is not None and (next_row[4] != row[2]
                 or abs(next_row[2] / row[2] - 1) > .5):
-            break
-        tail.append(row)
+            notice = face_notices.get(index + 1)
+            # Legacy KIND notices carry the KOSDAQ form rather than a market field.
+            if (notice is None or notice.get('market', 'KOSDAQ') != member['market']
+                    or len(next_row) < 6 or next_row[5] is not True
+                    or not verified_face_consolidation(row[2:5], next_row[2:5], notice)
+                    or abs(next_row[2] / next_row[4] - 1) > .5):
+                break
+            multiplier *= Fraction(next_row[4], row[2])
+        tail.append(row if multiplier == 1 else [*row[:2], row[2] * multiplier, *row[3:]])
         next_row = row
     return tail[::-1]
 
@@ -206,11 +218,12 @@ def completed_week_ranges(session_days):
     return list(weekly_ranges.items())[1:][-MAX_COMPLETED_WEEKS:]
 
 
-def weekly_indicators(records, member, weeks, friday):
+def weekly_indicators(records, member, weeks, friday, *, face_notices=None):
     if len(weeks) < WEEKLY_MA_TURN_WEEKS or weeks[-1][0] != friday:
         return None
     tail_end = weeks[-1][1][1]
-    tail_start = tail_end - len(continuous_tail(records[:tail_end], member))
+    tail = continuous_tail(records[:tail_end], member, face_notices)
+    tail_start = tail_end - len(tail)
     closes = []
     through_oldest_traded_week = 0
     expected = friday
@@ -229,7 +242,7 @@ def weekly_indicators(records, member, weeks, friday):
         if not traded and (start == tail_start or any(
                 row[3] != records[index - 1][3] for index, row in enumerate(bars, start))):
             break
-        closes.append(bars[-1][2])
+        closes.append(tail[end - 1 - tail_start][2])
         if traded:
             through_oldest_traded_week = len(closes)
         expected -= timedelta(days=7)
@@ -249,7 +262,7 @@ def weekly_indicators(records, member, weeks, friday):
             'rsi': rsi, 'weekly_ma120_gap_pct': gap}
 
 
-def build(catalog, catalog_digest, days, panels):
+def build(catalog, catalog_digest, days, panels, *, face_notices=None):
     rows, counts = {}, Counter()
     trade_status_sessions = sum(panel is not None and panel['schema'] == DAY_SCHEMA
                           for panel in panels.values())
@@ -258,6 +271,7 @@ def build(catalog, catalog_digest, days, panels):
     session_days = [date.fromisoformat(day) for day in days]
     friday = last_completed_friday(session_days[-1])
     weeks = completed_week_ranges(session_days)
+    session_positions = {day: index for index, day in enumerate(days)}
     archived_weeks = sum(all(panels[day] is not None and panels[day]['schema'] == DAY_SCHEMA
                              for day in days[start:end]) for _, (start, end) in weeks)
     for member in catalog['rows']:
@@ -280,7 +294,10 @@ def build(catalog, catalog_digest, days, panels):
             trade_markers = [int(row[5]) if row[5] is not None else None for row in tail]
             cross = observe_ma240([row[2] for row in tail], trade_markers,
                                   asof=catalog['date'], session_days=session_days[-SESSIONS:])
-        weekly = weekly_indicators(records, member, weeks, friday)
+        issuer_notices = {session_positions[day]: notice
+                          for day, notice in (face_notices or {}).get(code, {}).items()
+                          if day in session_positions}
+        weekly = weekly_indicators(records, member, weeks, friday, face_notices=issuer_notices)
         rows[code] = {'name': member['name'], 'market': member['market'],
                       'continuous_sessions': n, 'moving_averages': ma, 'daily_rsi': rsi,
                       'daily_ma_turn': turn, 'daily_ma240_cross': cross, 'weekly': weekly}
@@ -343,7 +360,8 @@ def main():
     storage.verify_private()
     clients = {market: RetryingMoneyClient(KRXClient(os.environ['KRX_API_KEY'])) for market in MARKETS}
     panels, added, failures = collect(storage, clients, days)
-    report = build(catalog, catalog_digest, days, panels)
+    face_notices, _ = load_face_notices()
+    report = build(catalog, catalog_digest, days, panels, face_notices=face_notices)
     target.write_text(json.dumps(report, ensure_ascii=False, separators=(',', ':'), allow_nan=False) + '\n')
     progress = {key: report[key] for key in ('asof', 'requested_sessions', 'archived_sessions', 'trade_status_sessions',
                                             'daily_trade_status_sessions', 'requested_completed_weeks',
