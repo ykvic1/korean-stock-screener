@@ -1,7 +1,7 @@
 {
-  "asof": "2026-11-17",
+  "asof": "2026-11-18",
   "version": "v3-stable-r1e-operational-research",
-  "same_input_common_issuers": 2441,
+  "same_input_common_issuers": 2442,
   "session_scope": {
     "schema": "v3-operational-session-scope-1",
     "price_target": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
@@ -20,28 +20,28 @@
   "top": {
     "50": {
       "overlap": 31,
-      "new_kospi": 28,
-      "old_kospi": 23
+      "new_kospi": 29,
+      "old_kospi": 20
     },
     "100": {
-      "overlap": 67,
-      "new_kospi": 46,
-      "old_kospi": 42
+      "overlap": 74,
+      "new_kospi": 49,
+      "old_kospi": 44
     },
     "200": {
       "overlap": 145,
-      "new_kospi": 86,
-      "old_kospi": 78
+      "new_kospi": 91,
+      "old_kospi": 88
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "930d33e6f9cd890541dd440aa870b15bf402b0fbc646cb83e66e037c6b8d7ac6",
-    "listed_total": 2591,
+    "source_digest": "3b0a410bd2eb0a21ec9c3b74997e3ffa7c9e88775bdff85da7a660e8ed58dbef",
+    "listed_total": 2592,
     "ranked_count": 2571,
-    "available_100_count": 1398,
-    "available_95_count": 1789,
-    "available_90_count": 2231,
+    "available_100_count": 1400,
+    "available_95_count": 1790,
+    "available_90_count": 2232,
     "budgets": {
       "volume": 25,
       "technical": 30.0,
@@ -57,8 +57,8 @@
   "prior_operational_version": "v3-stable-r1d-operational-research",
   "same_input_prior_ranked_issuers": 2491,
   "prior_top_overlap": {
-    "50": 30,
-    "100": 54,
-    "200": 126
+    "50": 28,
+    "100": 52,
+    "200": 127
   }
 }
