@@ -15,6 +15,8 @@ from v3_historical_performance_pilot_audit import successor_listing_counts
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_krx_close_momentum_recovery import NOTICE_FILE, krx_tick, load_face_notices
 
+CONTINUITY_REGISTER = Path("ops") / f"v3-performance-continuity-actions-{TAG}.json"
+
 
 def official_actions(register, face_register, historical_register):
     """Reuse vetted listing and face-value notices with direct exchange links."""
@@ -492,7 +494,7 @@ def load_replay(panels):
     delisted = {r["code"] for r in ledger_rows(ROOT, "delistings") if r["anchor_membership"] == "present"}
     historical = ROOT / "ops" / f"v3-performance-reviewed-share-actions-{TAG}.csv"
     notices, digests = official_actions(ROOT / REGISTER, NOTICE_FILE, historical)
-    raw = (ROOT / "ops" / f"v3-performance-continuity-actions-{TAG}.json").read_bytes()
+    raw = (ROOT / CONTINUITY_REGISTER).read_bytes()
     continuity = continuity_actions(raw)
     require(not notices.keys() & continuity.keys(), "duplicate_market_transition")
     digests["continuity_register"] = sha256(raw).hexdigest()
