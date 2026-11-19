@@ -1,6 +1,11 @@
 """Network-free constraints for the daily V3.0b release blocker watch."""
-import unittest
+import json
 from pathlib import Path
+from shutil import copyfile
+from tempfile import TemporaryDirectory
+import unittest
+
+from v3_historical_public_paths_audit import PublicPathAuditError, audit
 
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -33,6 +38,41 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertIn('"paths_with_dividend_entitlement_unpaid_or_unverified"',content)
         self.assertIn('"price_scenarios_with_fractional_cash_claim"', content)
         self.assertIn('"unpriced_final_distributions"', content)
+
+    def test_public_paths_reconcile_to_historical_research_ledgers(self):
+        report = audit(ROOT)
+        self.assertFalse(report["performance_validated"])
+        self.assertEqual(report["operating_cohort_count"], 2573)
+        self.assertEqual(report["observed_entry_count"], 2476)
+        self.assertEqual(report["delisting_paths_reconciled"], 85)
+        self.assertEqual(report["financial_detail_issuers_reconciled"], 107)
+        self.assertEqual(report["horizons"]["12"], {
+            "priced": 1866, "entered_but_unpriced": 610, "downside_observed": 1866,
+            "priced_paths_with_gaps": 172,
+        })
+        content = WORKFLOW.read_text(encoding="utf8")
+        self.assertIn("python v3_historical_public_paths_audit.py >", content)
+        self.assertIn("v30b-historical-public-paths.json", content)
+
+    def test_public_delisting_result_cannot_drift_from_saved_ledger(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs").mkdir()
+            (root / "ops").mkdir()
+            for suffix in ("operating-scope", "market-coverage", "financial-factor-replay",
+                           "price-replay", "downside-horizons"):
+                extension = "csv" if suffix in ("price-replay", "downside-horizons") else "json"
+                file = Path("ops") / f"v3-performance-{suffix}-20251113.{extension}"
+                copyfile(ROOT / file, root / file)
+            file = Path("docs/v3-historical-price-paths-20251113.json")
+            feed = json.loads((ROOT / file).read_bytes())
+            row = next(r for r in feed["rows"].values()
+                       if r["paths"].get("1", [None] * 5)[3] == "delisting_case_replay"
+                       and r["paths"]["1"][0] is not None)
+            row["paths"]["1"][0] += 1
+            (root / file).write_text(json.dumps(feed))
+            with self.assertRaisesRegex(PublicPathAuditError, "published_delisting_path_differs_from_ledger"):
+                audit(root)
 
     def test_main_audit_must_fail_closed_and_no_fake_release(self):
         content=WORKFLOW.read_text(encoding="utf8")
