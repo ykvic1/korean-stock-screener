@@ -28,9 +28,9 @@ class ForwardMaReferenceTests(unittest.TestCase):
                  'rows': {self.code: ['KOSPI', '종목', 100 if i else 110, 500, 100, True]}},
             ))
 
-    def summarize(self, *, notices=None):
+    def summarize(self, *, notices=None, intervening=()):
         return summarize(self.observation, self.openings, self.signal, self.entry,
-                         self.history, self.entry_basis, notices or {})
+                         self.history, self.entry_basis, notices or {}, intervening=intervening)
 
     def issuance(self, before, after):
         return {'name': '종목', 'market': 'KOSPI', 'action': 'bond_conversion',
@@ -102,3 +102,34 @@ class ForwardMaReferenceTests(unittest.TestCase):
         self.assertEqual(top['20']['intraday_average_touched'], 1)
         top = self.summarize(notices={key: self.issuance(500, 551)})['groups']['top20']
         self.assertEqual(top['60']['reviewed_entry_action'], 1)
+
+    def test_intervening_archive_and_any_intermediate_price_or_share_break_are_required(self):
+        self.signal['date'] = self.observation['score_asof'] = '2026-11-16'
+        self.history = [
+            ((date.fromisoformat(day) - timedelta(days=1)).isoformat(), panel)
+            for day, panel in self.history]
+        day = '2026-11-17'
+        missing = self.summarize(intervening=[(day, None)])
+        self.assertEqual(missing['status'], 'waiting_for_intervening_archive')
+        self.assertNotIn('groups', missing)
+        middle = ['KOSPI', '종목', 150, 500, 110, True]
+        bridge = [(day, {'date': day, 'source_sha256': {'KOSPI': 'c' * 64},
+                         'rows': {self.code: middle}})]
+        entry = self.entry_basis['rows'][self.code]
+        entry[4] = 150
+        # The intervening close never enters the average frozen at the signal.
+        self.entry['rows'][self.code][5] = 101
+        ok = self.summarize(intervening=bridge)
+        self.assertEqual(ok['groups']['top20']['20']['average_not_touched'], 1)
+        self.assertEqual(ok['intervening_source_sha256'][day], {'KOSPI': 'c' * 64})
+        middle[4] = 109
+        blocked = self.summarize(intervening=bridge)['groups']['top20']
+        self.assertEqual(blocked['20']['pre_entry_price_basis_discontinuous'], 1)
+        middle[4] = 110
+        middle[3] = 550
+        blocked = self.summarize(intervening=bridge)['groups']['top20']
+        self.assertEqual(blocked['20']['pre_entry_share_basis_unresolved'], 1)
+        self.entry['rows'][self.code][-1] = entry[3] = 550
+        reviewed = self.summarize(intervening=bridge,
+            notices={(day, self.code): self.issuance(500, 550)})['groups']['top20']
+        self.assertEqual(reviewed['using_reviewed_share_continuity'], {'20': 1, '60': 1})

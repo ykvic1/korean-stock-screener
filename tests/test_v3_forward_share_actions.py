@@ -10,7 +10,8 @@ from tests.test_v3_forward_entry import MemoryStore
 from v3_forward_daily_prices import SCHEMA as DAILY_SCHEMA
 from v3_forward_entry import timestamp
 from v3_forward_share_actions import (
-    HOLDER_NEUTRAL_ACTIONS, PRICE_ACTIONS, REGISTER, REQUIRES_TERMS, ShareReviewError,
+    COMBINED_BOND_AND_OPTION, HOLDER_NEUTRAL_ACTIONS, HOLDER_NEUTRAL_REGISTER,
+    PRICE_ACTIONS, REGISTER, REQUIRES_TERMS, ShareReviewError,
     collect_share_reviews,
     reconcile, reviewed_actions,
 )
@@ -85,6 +86,10 @@ class ForwardShareActionTest(unittest.TestCase):
                     row[3:9] = ['2026-11-17', action, str(old_count), str(new_count), str(new_units), '1']
                     terms = ('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261026900188'
                              if action in REQUIRES_TERMS else '')
+                    if action == COMBINED_BOND_AND_OPTION:
+                        combined = reviewed_actions(HOLDER_NEUTRAL_REGISTER.read_bytes())[
+                            '2026-11-18', '351320']
+                        row[9], terms = combined['notice_url'], combined['terms_url']
                     raw = (header + ',terms_url\n' + ','.join(row + [terms]) + '\n').encode()
                     if expected:
                         self.assertEqual(reviewed_actions(raw)['2026-11-17', '008500']['action'], action)
@@ -99,6 +104,15 @@ class ForwardShareActionTest(unittest.TestCase):
         for terms in ('', row[9], 'https://example.org/cancellation'):
             with self.subTest(terms=terms):
                 raw = (header + ',terms_url\n' + ','.join(row + [terms]) + '\n').encode()
+                with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
+                    reviewed_actions(raw)
+
+    def test_same_day_bond_and_option_requires_two_distinct_listing_details(self):
+        lines = HOLDER_NEUTRAL_REGISTER.read_text().splitlines()
+        row = next(line.split(',') for line in lines if COMBINED_BOND_AND_OPTION in line)
+        for terms in ('', row[9], self.notices['2025-12-15', '008500']['notice_url']):
+            with self.subTest(terms=terms):
+                raw = (lines[0] + '\n' + ','.join(row[:-1] + [terms]) + '\n').encode()
                 with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_action_record'):
                     reviewed_actions(raw)
 

@@ -27,16 +27,22 @@ FIELDS = ('market', 'code', 'name', 'listing_on', 'action', 'shares_before',
 NOTICE = re.compile(
     r'https://kind\.krx\.co\.kr/external/\d{4}/\d{2}/\d{2}/\d{6}/\d{14}/\d{5}\.htm\Z'
 )
+KIND_LISTING_DETAIL = re.compile(
+    r'https://kind\.krx\.co\.kr/corpgeneral/stockissuelist\.do\?'
+    r'method=searchStockIssueDetail&forward=searchStockIssueDetail&bzProcsNo=(\d{14})&contnId=\1\Z'
+)
 HOLDER_NEUTRAL_FIELDS = (*FIELDS, 'terms_url')
 CONTINUITY_FIELDS = (*FIELDS, 'prior_name')
 DART_TERMS = re.compile(r'https://dart\.fss\.or\.kr/dsaf001/main\.do\?rcpNo=\d{14}\Z')
 PRICE_ACTIONS = ('split', 'reverse_split', 'capital_reduction')
+COMBINED_BOND_AND_OPTION = 'bond_conversion_and_option_exercise'
 HOLDER_NEUTRAL_ISSUANCES = frozenset({
     'bond_conversion', 'bond_warrant_exercise', 'option_exercise',
     'preferred_to_common', 'third_party_placement', 'successor_share_issuance',
+    COMBINED_BOND_AND_OPTION,
 })
 HOLDER_NEUTRAL_ACTIONS = HOLDER_NEUTRAL_ISSUANCES | {'treasury_cancellation'}
-REQUIRES_TERMS = {'successor_share_issuance', 'treasury_cancellation'}
+REQUIRES_TERMS = {'successor_share_issuance', 'treasury_cancellation', COMBINED_BOND_AND_OPTION}
 CONTINUITY_ACTIONS = {*PRICE_ACTIONS, 'rename'}
 STATES = ('unchanged_share_count', 'share_count_unavailable', 'identity_changed',
           'first_seen', 'absent', 'change_needs_notice', 'notice_mismatch', 'notice_matched')
@@ -85,15 +91,20 @@ def reviewed_actions(raw):
         name, prior_name = normalized_name(row['name']), normalized_name(row.get('prior_name'))
         try:
             before, after, new, old = (int(row[field]) for field in FIELDS[5:9])
+            detailed_listing = KIND_LISTING_DETAIL.fullmatch(listing_url)
+            listing_verified = (NOTICE.fullmatch(listing_url)
+                                or (action in HOLDER_NEUTRAL_ACTIONS and detailed_listing))
+            terms_verified = (KIND_LISTING_DETAIL.fullmatch(terms) if action == COMBINED_BOND_AND_OPTION
+                              else NOTICE.fullmatch(terms) or DART_TERMS.fullmatch(terms))
             if (None in row or None in row.values() or not CODE.fullmatch(code) or market not in MARKETS
                     or not name or date.fromisoformat(day).isoformat() != day
                     or (action == 'rename' and (not prior_name or prior_name == name))
                     or (action != 'rename' and row.get('prior_name'))
-                    or action not in expected or not NOTICE.fullmatch(listing_url)
+                    or action not in expected or not listing_verified
+                    or (action == COMBINED_BOND_AND_OPTION and not detailed_listing)
                     or not valid_share_terms(action, before, after, new, old)
                     or (action in REQUIRES_TERMS and not terms)
-                    or (terms and (terms == listing_url
-                                   or not (NOTICE.fullmatch(terms) or DART_TERMS.fullmatch(terms))))):
+                    or (terms and (terms == listing_url or not terms_verified))):
                 raise ValueError()
         except (ValueError, TypeError, ZeroDivisionError):
             raise ShareReviewError('invalid_reviewed_action_record') from None

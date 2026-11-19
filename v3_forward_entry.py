@@ -329,16 +329,20 @@ def crosscheck_entry_daily(observation, source_digest, storage, *, review_refere
             sessions = list(completed_sessions(date.fromisoformat(score_day),
                                                date.fromisoformat(entry_day),
                                                timestamp(plan['regular_close_utc'])))
+            official_signal = None
+            if len(sessions) >= 2 and sessions[0] == score_day and sessions[-1] == entry_day:
+                official_signal = read_daily(score_day, storage)
+                if official_signal is not None and ma_history is not None:
+                    history, entry_basis, intervening = ma_history(score_day, entry_day, sessions[1:-1])
+                    result['official_ma_references'] = summarize_ma_references(
+                        observation, evidence['rows'], official_signal, daily, history, entry_basis,
+                        ma_notices if ma_notices is not None else notices or {},
+                        intervening=intervening)
             if sessions != [score_day, entry_day]:
                 result['structural_reference_status'] = 'nonadjacent_signal_session'
             else:
-                signal = read_daily(score_day, storage)
+                signal = official_signal
                 entry_notices, notice_digest = session_review_inputs(notices or {}, entry_day)
-                if signal is not None and ma_history is not None:
-                    history, entry_basis = ma_history(score_day, entry_day)
-                    result['official_ma_references'] = summarize_ma_references(
-                        observation, evidence['rows'], signal, daily, history, entry_basis,
-                        ma_notices if ma_notices is not None else entry_notices)
                 market = frozen_market(observation) if signal is not None else None
                 if market is None:
                     result['structural_reference_status'] = 'waiting_for_signal_price_basis'
@@ -459,8 +463,8 @@ def main():
     ma_notices = load_ma_notices(notices)
     ma_cache = {}
 
-    def ma_history(score_day, entry_day):
-        return load_ma_history(score_day, entry_day, now, private_storage(), ma_cache)
+    def ma_history(score_day, entry_day, intervening):
+        return load_ma_history(score_day, entry_day, intervening, now, private_storage(), ma_cache)
 
     checked = 0
     for status in sorted(entry_statuses,
@@ -470,18 +474,18 @@ def main():
             continue
         if old.get('entry_session_path', {}).get('schema') == ENTRY_PATH_SCHEMA:
             reference_state = old.get('structural_reference_status')
-            if reference_state == 'nonadjacent_signal_session':
-                continue
-            if reference_state == 'compared':
-                _, notice_digest = session_review_inputs(notices, status['entry_session_candidate'])
+            if reference_state in ('nonadjacent_signal_session', 'compared'):
+                entry_day = status['entry_session_candidate']
+                _, notice_digest = session_review_inputs(notices, entry_day)
                 ma = old.get('official_ma_references', {})
-                if old.get('structural_reference_basis', {}).get(
-                        'reviewed_entry_notices_sha256') == notice_digest and (
-                        ma.get('schema') == MA_REFERENCE_SCHEMA
+                structural_current = (reference_state == 'nonadjacent_signal_session'
+                                      or old.get('structural_reference_basis', {}).get(
+                                          'reviewed_entry_notices_sha256') == notice_digest)
+                if (structural_current and ma.get('schema') == MA_REFERENCE_SCHEMA
                         and ma.get('status') == 'compared'
                         and ma.get('archived_history_sessions') == max(MA_REFERENCE_PERIODS)
                         and ma.get('reviewed_ma_notices_sha256') == ma_notice_digest(
-                            ma_notices, ma['history_start'], status['entry_session_candidate'])):
+                            ma_notices, ma['history_start'], entry_day)):
                     continue
         if checked >= MAX_COHORTS_PER_RUN:
             break
