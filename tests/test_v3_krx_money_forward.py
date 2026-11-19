@@ -2,6 +2,7 @@
 import base64
 from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
+from io import StringIO
 import json
 import unittest
 from unittest.mock import patch
@@ -10,8 +11,18 @@ from v3_krx_money_backfill import _path
 from official_probe.clients import KRXProbeError
 from v3_krx_money_forward import (
     SCHEMA, CHECKPOINT, _manifest, collect, forward_candidates,
-    ForwardMoneyError, RetryingMoneyClient,
+    ForwardMoneyError, RetryingMoneyClient, main,
 )
+
+from v3_krx_private_backfill_plan import BackfillPlanError
+from v3_krx_regular_close import KST
+
+
+TEST_ENV = {
+    "KRX_API_KEY": "offline-fixture",
+    "V3_PRIVATE_ARCHIVE_REPO": "ykvic1/korean-stock-private-data",
+    "V3_PRIVATE_ARCHIVE_TOKEN": "offline-fixture",
+}
 
 
 def weekdays(start, n):
@@ -65,6 +76,40 @@ class ForwardMoneyTests(unittest.TestCase):
         self.assertEqual(dates[:2], old[-2:])
         self.assertEqual(dates[2:], later)
         self.assertEqual(dates[:5], old[-2:] + later[:3])
+
+    @patch.dict("os.environ", TEST_ENV)
+    def test_cli_uses_latest_finished_regular_session_as_calendar_cutoff(self):
+        cases = (
+            (datetime(2026, 11, 18, 8, 57, tzinfo=KST), "2026-11-17"),
+            (datetime(2026, 11, 18, 15, 30, tzinfo=KST), "2026-11-18"),
+            (datetime(2026, 11, 19, 15, 45, tzinfo=KST), "2026-11-18"),
+            (datetime(2026, 11, 19, 16, 30, tzinfo=KST), "2026-11-19"),
+        )
+        for now, expected in cases:
+            with self.subTest(now=now), patch(
+                "v3_krx_money_forward.datetime"
+            ) as clock, patch("v3_krx_money_forward.forward_candidates",
+                              return_value=[]) as calendar, patch(
+                "v3_krx_money_forward.PrivateGitStorage"
+            ), patch("v3_krx_money_forward.collect", return_value={}), patch(
+                "sys.stdout", new_callable=StringIO
+            ):
+                clock.now.return_value = now
+                self.assertEqual(main(), 0)
+                calendar.assert_called_once_with(expected)
+
+    @patch.dict("os.environ", TEST_ENV)
+    def test_cli_reports_calendar_rejection_before_opening_private_archive(self):
+        with patch("v3_krx_money_forward.forward_candidates",
+                   side_effect=BackfillPlanError("invalid_date_range")), patch(
+            "v3_krx_money_forward.PrivateGitStorage"
+        ) as private_store, patch("sys.stdout", new_callable=StringIO) as output:
+            self.assertEqual(main(), 1)
+            private_store.assert_not_called()
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["category"], "invalid_date_range")
+        self.assertEqual(report["stage"], "cutoff")
+        self.assertNotIn("private_failure_code", report)
 
     def test_additional_calendar_days_never_reinterpret_prior_checkpoint(self):
         store = FakeStore()
