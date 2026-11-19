@@ -11,7 +11,6 @@ import io
 from contextlib import redirect_stdout
 
 import v3_dart_fcf_comparative_probe as probe
-from v3_dart_cashflow_enrichment import retained_current_market_cashflow
 
 
 DOCS = Path(__file__).resolve().parents[1] / "docs"
@@ -75,15 +74,6 @@ class ComparativeProbeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.inputs = [json.loads((DOCS / n).read_text(encoding="utf8"))
                       for n in INPUTS]
-
-    def partition_inputs(self):
-        if not probe.source_day_aligned(*self.inputs):
-            self.skipTest("source-day rollover")
-        inputs = self.inputs.copy()
-        # A same-day annual revision can publish before its cashflow writer.
-        # Use the production receipt checks for the in-memory partition test.
-        inputs[4] = retained_current_market_cashflow(*inputs[:3], inputs[4])
-        return inputs
 
     def test_reconciled_live_ledger_exposes_bounded_research_cohorts(self):
         args = self.inputs
@@ -244,26 +234,28 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertEqual(accepted["candidate_2024_ppe_capex_krw"], 1)
 
     def test_full_sweep_covers_every_eligible_issuer_once(self):
-        inputs = self.partition_inputs()
-        _, _, sample, total = probe.select_targets(*inputs, limit=120)
+        if not probe.source_day_aligned(*self.inputs):
+            self.skipTest("source-day rollover")
+        _, _, sample, total = probe.select_targets(*self.inputs, limit=120)
         self.assertEqual(len(sample), min(total, 120))
         self.assertEqual(len(sample), len({s[0] for s in sample}))
         if total <= 120:
             self.assertEqual({s[0] for s in sample}, {s[0] for s in
-                probe.select_targets(*inputs, limit=120, cohort_index=1)[2]})
+                probe.select_targets(*self.inputs, limit=120, cohort_index=1)[2]})
 
     def test_three_partitions_cover_full_cohort_without_duplicate_source_reads(self):
-        inputs = self.partition_inputs()
-        partitions = [probe.select_targets(*inputs, partition_index=i,
+        if not probe.source_day_aligned(*self.inputs):
+            self.skipTest("source-day rollover")
+        partitions = [probe.select_targets(*self.inputs, partition_index=i,
                         partition_count=3)[2] for i in range(3)]
         all_codes = [s[0] for part in partitions for s in part]
-        full = probe.select_targets(*inputs)[2]
+        full = probe.select_targets(*self.inputs)[2]
         self.assertEqual(set(all_codes), {s[0] for s in full})
         self.assertEqual(len(all_codes), len(set(all_codes)))
         self.assertLessEqual(max(map(len, partitions)) - min(map(len, partitions)), 1)
         for idx, count in [(3, 3), (-1, 3), (0, 4), (0, 0)]:
             with self.assertRaisesRegex(probe.ComparativeProbeError, "invalid_comparative_budget"):
-                probe.select_targets(*inputs, partition_index=idx, partition_count=count)
+                probe.select_targets(*self.inputs, partition_index=idx, partition_count=count)
 
     def test_live_deadline_reports_unfinished_work_without_starting_provider_call(self):
         selected = [("000100", "CFS", "20260312001236", {}, {"2024": ("ppe_capex_krw",)})]
