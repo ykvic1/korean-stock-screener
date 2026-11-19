@@ -29,8 +29,18 @@ BATCHES = {
     # Next five dates by adverse-extreme frequency, breaking ties by date.
     'downside_followup': tuple(map(day, ('2025-11-21', '2025-12-01', '2025-12-18',
                                         '2026-01-05', '2026-01-07'))),
+    # Remaining adverse-extreme dates in the pinned delisting pilot.
+    'downside_tail_1': tuple(map(day, ('2025-11-18', '2025-11-24', '2025-12-12',
+                                      '2025-12-26', '2026-01-09'))),
+    'downside_tail_2': tuple(map(day, ('2026-02-02', '2026-02-06', '2026-03-04',
+                                      '2026-03-24', '2026-04-01'))),
+    'downside_tail_3': tuple(map(day, ('2026-04-06', '2026-04-28', '2026-05-12',
+                                      '2026-06-24', '2026-06-29'))),
+    'downside_tail_4': tuple(map(day, ('2026-07-03', '2026-08-20', '2026-09-11',
+                                      '2026-09-18', '2026-10-30'))),
+    'downside_tail_5': tuple(map(day, ('2026-11-06', '2026-11-12'))),
 }
-STRICT_PRICE_BATCHES = {'downside_priority', 'downside_followup'}
+STRICT_PRICE_BATCHES = {name for name in BATCHES if name.startswith('downside_')}
 PRICE_FIELDS = ('open', 'high', 'low', 'close')
 
 
