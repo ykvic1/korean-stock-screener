@@ -22,7 +22,7 @@ from v3_krx_history_collection import (
 from v3_saved_close_ma_recovery import select_targets
 from v3_price_session_capture import FEED, WINDOWS, capture_window
 from v3_regular_close_candidate_probe import (
-    compare_candidate, NaverMobileDailyProbe, SCHEMA as CANDIDATE_SCHEMA,
+    compare_candidate, NpayDailyPricesProbe, SCHEMA as CANDIDATE_SCHEMA,
 )
 from v3_dated_market_roster import load_dated_listing, DatedRosterError
 from v3_fdr_cache_krx_close_corroboration import (
@@ -31,7 +31,7 @@ from v3_fdr_cache_krx_close_corroboration import (
 )
 
 SCHEMA = 'v3-saved-close-official-krx-diagnostic-v1'
-FORMAT_REVISION = 7
+FORMAT_REVISION = 8
 OUT = 'v3-krx-saved-close-crosscheck.json'
 REASONS = ('exact_close', 'different_close', 'absent_in_krx',
            'invalid_krx_price_row', 'unusable_saved_close')
@@ -225,10 +225,8 @@ def check(market, first, second, client, *, snapshot_sha256,
         'investment_score_certified': False,
         'original_krx_rows_exported': False,
     }
-    # Separate public-provider historical daily-close pilot. The official KRX
-    # rows and comparison prices stay in memory, including when the candidate
-    # endpoint is missing/stale. This is not evidence that any full historical
-    # OHLCV series is 09:00-15:30-only.
+    # Compare the two public prices independently against the saved FChart
+    # value and the official close. Only aggregates leave this process.
     if candidate_probe is None:
         result['public_daily_price_candidate'] = {
             'schema': CANDIDATE_SCHEMA, 'status': 'not_requested',
@@ -353,7 +351,7 @@ def main(argv=None):
     try:
         result = check(market, first, second, KRXClient(key),
                        snapshot_sha256=digest,
-                       candidate_probe=NaverMobileDailyProbe(),
+                       candidate_probe=NpayDailyPricesProbe(),
                        dated_cache_loader=load_dated_listing)
     except CrosscheckError:
         raise
