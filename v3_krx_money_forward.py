@@ -38,6 +38,13 @@ class ForwardMoneyError(ValueError):
     """Static private archive or source failure code only."""
 
 
+def finished_calendar_cutoff(now):
+    day = now.astimezone(KST).date()
+    if now < regular_close_utc(day):
+        day -= timedelta(days=1)
+    return day.isoformat()
+
+
 def forward_candidates(asof):
     if type(asof) is not str:
         raise ForwardMoneyError("invalid_forward_cutoff")
@@ -240,10 +247,7 @@ def main():
     stage = "cutoff"
     try:
         now = datetime.now(KST)
-        cutoff = now.date()
-        if now < regular_close_utc(cutoff):
-            cutoff -= timedelta(days=1)
-        dates = forward_candidates(cutoff.isoformat())
+        dates = forward_candidates(finished_calendar_cutoff(now))
         stage = "private_forward_collection"
         stored = PrivateGitStorage(PRIVATE_REPO, os.environ["V3_PRIVATE_ARCHIVE_TOKEN"])
         client=RetryingMoneyClient(KRXClient(os.environ["KRX_API_KEY"]))
