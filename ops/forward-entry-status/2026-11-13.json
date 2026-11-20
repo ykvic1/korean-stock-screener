@@ -54,7 +54,7 @@
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-18",
-      "reviewed_ma_notices_sha256": "6eb92686f5ceb419ffc32582bf1e351282f4fc84420a40ac0e8a8adf6c222c7e",
+      "reviewed_ma_notices_sha256": "209ed3c8048ccb2ee8915fb6275124c6e594d05541d7a5c875e13fe456ebce58",
       "history_sources_sha256": "edd0a2824dbba9bcdd91aa2838167ee97ff61106282bf833864e6563d570b3b1",
       "intervening_sessions": [],
       "intervening_source_sha256": {},
@@ -175,8 +175,8 @@
             "issuer_history_missing": 0,
             "issuer_identity_changed": 3,
             "share_count_changed": 38,
-            "reviewed_share_basis_unresolved": 0,
-            "price_basis_discontinuous": 3,
+            "reviewed_share_basis_unresolved": 1,
+            "price_basis_discontinuous": 2,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
@@ -194,8 +194,8 @@
             "issuer_history_missing": 7,
             "issuer_identity_changed": 15,
             "share_count_changed": 158,
-            "reviewed_share_basis_unresolved": 0,
-            "price_basis_discontinuous": 10,
+            "reviewed_share_basis_unresolved": 1,
+            "price_basis_discontinuous": 9,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
@@ -381,5 +381,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T04:07:32.306956+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-20T02:49:51.077226+00:00"
 }

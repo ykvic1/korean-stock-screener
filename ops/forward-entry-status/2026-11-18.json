@@ -54,7 +54,7 @@
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-21",
-      "reviewed_ma_notices_sha256": "eb7ee8c7c53b70e2f93bd7fcc380231d7af117b0a5078e3d8e45dada25716be7",
+      "reviewed_ma_notices_sha256": "909aeb75774153518e05c35d9a91383629b4f8a0dbae81f15b92331c31ec5929",
       "history_sources_sha256": "d37e4d7c8f5abff42b97d498bef0a970aedb8bdffebe6615bdcc77802eff6f1e",
       "intervening_sessions": [],
       "intervening_source_sha256": {},
@@ -164,12 +164,12 @@
         "all_ranked": {
           "matched_openings": 2468,
           "using_reviewed_share_continuity": {
-            "20": 118,
+            "20": 119,
             "60": 269
           },
           "20": {
             "signal_trade_unavailable": 0,
-            "signal_basis_unresolved": 1,
+            "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
             "history_session_missing": 0,
             "issuer_history_missing": 0,
@@ -181,20 +181,20 @@
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
             "pre_entry_price_basis_discontinuous": 0,
-            "average_at_or_above_signal_close": 1822,
+            "average_at_or_above_signal_close": 1823,
             "open_at_or_below_average": 39,
             "intraday_average_touched": 191,
             "average_not_touched": 376
           },
           "60": {
             "signal_trade_unavailable": 0,
-            "signal_basis_unresolved": 1,
+            "signal_basis_unresolved": 0,
             "reviewed_entry_action": 0,
             "history_session_missing": 0,
             "issuer_history_missing": 6,
             "issuer_identity_changed": 16,
             "share_count_changed": 148,
-            "reviewed_share_basis_unresolved": 1,
+            "reviewed_share_basis_unresolved": 2,
             "price_basis_discontinuous": 9,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
@@ -215,7 +215,7 @@
         "KOSPI": "f1ae7f76d550f9f5a4032f668651c38e71c822dca69236daf49dccc8cdace645",
         "KOSDAQ": "dfabe91735bba72612d219af9e8bf0889d6aa80c991b3ffc5378973cd38ad685"
       },
-      "reviewed_entry_notices_sha256": "c6c638e279ea52c4a8ad2f0d6d9085d544a38d8d657747c02c220d54592cf10f",
+      "reviewed_entry_notices_sha256": "325123048f7894901c80e85130b92a260ecbdaff3f6907330deb3623126902b8",
       "corporate_actions_certified": false,
       "stop_execution_validated": false
     },
@@ -381,5 +381,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-20T02:20:52.215820+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-20T02:49:51.077226+00:00"
 }

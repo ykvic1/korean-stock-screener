@@ -54,7 +54,7 @@
       "basis": "official_krx_closing_sma_to_official_entry_ohlc",
       "archived_history_sessions": 60,
       "history_start": "2026-08-20",
-      "reviewed_ma_notices_sha256": "61d0338176c33b616e05ad0f50bfe3b1ce67ea8d7105c2ae4886249902a2c612",
+      "reviewed_ma_notices_sha256": "4bc5e35877d28789a5dedb0acc57dce69bcb0e3d55b47795505b7d8630c01b7c",
       "history_sources_sha256": "e3fe5e01c7fb3b43964001d296f7cdc015b002ceb1fe2aa7589868620520c5c8",
       "intervening_sessions": [],
       "intervening_source_sha256": {},
@@ -194,8 +194,8 @@
             "issuer_history_missing": 7,
             "issuer_identity_changed": 15,
             "share_count_changed": 151,
-            "reviewed_share_basis_unresolved": 1,
-            "price_basis_discontinuous": 10,
+            "reviewed_share_basis_unresolved": 2,
+            "price_basis_discontinuous": 9,
             "trade_state_unavailable": 0,
             "pre_entry_issuer_unresolved": 0,
             "pre_entry_share_basis_unresolved": 0,
@@ -381,5 +381,5 @@
       "performance_validated": false
     }
   },
-  "last_entry_daily_crosscheck_at_utc": "2026-11-19T07:37:29.879920+00:00"
+  "last_entry_daily_crosscheck_at_utc": "2026-11-20T02:49:51.077226+00:00"
 }
