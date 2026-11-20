@@ -22,6 +22,7 @@ on:
       - ops/forward-reviewed-holder-neutral-actions.csv
       - ops/forward-reviewed-issuance-chains.csv
       - ops/forward-reviewed-share-continuity.csv
+      - ops/forward-reviewed-bonus-issues.csv
       - ops/v3-performance-continuity-actions-20251113.json
       - ops/forward-reviewed-cash-dividends.csv
       - ops/forward-reviewed-delisting-settlements.csv

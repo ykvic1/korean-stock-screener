@@ -8,7 +8,7 @@ from pathlib import Path
 
 from v3_forward_daily_prices import completed_sessions
 from v3_forward_share_actions import (
-    HOLDER_NEUTRAL_ACTIONS, ShareReviewError, normalized_name, share_transition,
+    BONUS_LISTING, HOLDER_NEUTRAL_ACTIONS, ShareReviewError, normalized_name, share_transition,
 )
 from v3_historical_market_share_actions import CONTINUITY_REGISTER, continuity_actions
 from v3_regular_close_indicators import CloseHistoryError, archive_path, read_day
@@ -56,7 +56,7 @@ def notice_digest(notices, start, end):
 
 
 def neutral_transition(previous, current, notice):
-    return (notice is not None and notice['action'] in HOLDER_NEUTRAL_ACTIONS
+    return (notice is not None and notice['action'] in HOLDER_NEUTRAL_ACTIONS | {BONUS_LISTING}
             and notice['new_units'] == notice['old_units'] == 1
             and share_transition(previous, current, notice) == 'notice_matched')
 

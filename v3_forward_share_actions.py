@@ -21,6 +21,7 @@ REGISTER = Path('ops/forward-reviewed-share-actions.csv')
 HOLDER_NEUTRAL_REGISTER = Path('ops/forward-reviewed-holder-neutral-actions.csv')
 ISSUANCE_CHAIN_REGISTER = Path('ops/forward-reviewed-issuance-chains.csv')
 CONTINUITY_REGISTER = Path('ops/forward-reviewed-share-continuity.csv')
+BONUS_REGISTER = Path('ops/forward-reviewed-bonus-issues.csv')
 SCHEMA = 'v3-forward-krx-share-action-review-2'
 MAX_PAIRS_PER_RUN = 5
 FIELDS = ('market', 'code', 'name', 'listing_on', 'action', 'shares_before',
@@ -34,6 +35,13 @@ KIND_LISTING_DETAIL = re.compile(
 )
 HOLDER_NEUTRAL_FIELDS = (*FIELDS, 'terms_url')
 CONTINUITY_FIELDS = (*FIELDS, 'prior_name')
+BONUS_FIELDS = (*FIELDS[:4], *FIELDS[5:], 'ex_on', 'record_on', 'rights_url', 'terms_url')
+BONUS_EX_RIGHTS = 'bonus_ex_rights'
+BONUS_LISTING = 'bonus_listing'
+BONUS_ACTIONS = frozenset({BONUS_EX_RIGHTS, BONUS_LISTING})
+KIND_RIGHTS_VIEWER = re.compile(
+    r'https://kind\.krx\.co\.kr/common/disclsviewer\.do\?method=search&acptno=\d{14}\Z'
+)
 DART_TERMS = re.compile(r'https://dart\.fss\.or\.kr/dsaf001/main\.do\?rcpNo=\d{14}\Z')
 PRICE_ACTIONS = ('split', 'reverse_split', 'capital_reduction')
 COMBINED_BOND_AND_OPTION = 'bond_conversion_and_option_exercise'
@@ -158,12 +166,49 @@ def reviewed_issuance_chains(raw):
     return entries
 
 
+def reviewed_bonus_actions(raw):
+    """Create separate entitlement and listing events from one reviewed notice chain."""
+    reader = csv.DictReader(StringIO(raw.decode('utf-8')))
+    if tuple(reader.fieldnames or ()) != BONUS_FIELDS:
+        raise ShareReviewError('invalid_reviewed_bonus_header')
+    entries = {}
+    for row in reader:
+        listing, ex_on, record, code = (row[field] for field in ('listing_on', 'ex_on', 'record_on', 'code'))
+        urls = [row[field] for field in ('notice_url', 'rights_url', 'terms_url')]
+        try:
+            before, after, new, old = (int(row[field]) for field in FIELDS[5:9])
+            dates = (ex_on, record, listing)
+            if (None in row or None in row.values() or not CODE.fullmatch(code)
+                    or row['market'] not in MARKETS or not normalized_name(row['name'])
+                    or any(date.fromisoformat(day).isoformat() != day for day in dates)
+                    or not ex_on <= record < listing or min(before, old) <= 0 or new <= old
+                    or before * new != after * old or len(set(urls)) != 3
+                    or not (NOTICE.fullmatch(urls[0]) or KIND_LISTING_DETAIL.fullmatch(urls[0]))
+                    or not (NOTICE.fullmatch(urls[1]) or KIND_RIGHTS_VIEWER.fullmatch(urls[1]))
+                    or not (NOTICE.fullmatch(urls[2]) or DART_TERMS.fullmatch(urls[2]))):
+                raise ValueError()
+        except (TypeError, ValueError):
+            raise ShareReviewError('invalid_reviewed_bonus_notice') from None
+        if (ex_on, code) in entries or (listing, code) in entries:
+            raise ShareReviewError('duplicate_reviewed_action_record')
+        entries[ex_on, code] = {
+            **row, 'action': BONUS_EX_RIGHTS, 'shares_before': before, 'shares_after': before,
+            'new_units': new, 'old_units': old, 'notice_url': urls[1],
+        }
+        entries[listing, code] = {
+            **row, 'action': BONUS_LISTING, 'shares_before': before, 'shares_after': after,
+            'new_units': 1, 'old_units': 1,
+        }
+    return entries
+
+
 def load_forward_actions(root=Path('.')):
     """Load dated evidence for forward replay without changing the historical register."""
     notices = reviewed_actions((root / REGISTER).read_bytes())
     for register, loader in ((HOLDER_NEUTRAL_REGISTER, reviewed_actions),
                              (CONTINUITY_REGISTER, reviewed_actions),
-                             (ISSUANCE_CHAIN_REGISTER, reviewed_issuance_chains)):
+                             (ISSUANCE_CHAIN_REGISTER, reviewed_issuance_chains),
+                             (BONUS_REGISTER, reviewed_bonus_actions)):
         path = root / register
         if not path.is_file():
             continue
@@ -201,7 +246,8 @@ def share_transition(previous, current, notice):
         return 'share_count_unavailable'
     if notice is None:
         return 'unchanged_share_count' if before == after else 'change_needs_notice'
-    if ((before == after) != rename
+    count_stays_equal = rename or notice.get('action') == BONUS_EX_RIGHTS
+    if ((before == after) != count_stays_equal
             or notice['shares_before'] != before or notice['shares_after'] != after
             or notice['market'] != current[0] or normalized_name(notice['name']) != after_name):
         return 'notice_mismatch'
@@ -227,9 +273,11 @@ def reconcile(before, after, notices, notice_sha):
             reviews[code].update({key: notice[key] for key in (
                 'action', 'new_units', 'old_units', 'notice_url',
             )})
-            reviews[code].update({field: notice[field] for field in ('terms_url', 'prior_name', 'listing_notices')
-                                  if field in notice})
-            if new[code][2] == 'traded':
+            fields = ('terms_url', 'prior_name', 'listing_notices')
+            if notice['action'] in BONUS_ACTIONS:
+                fields += ('ex_on', 'record_on', 'listing_on', 'rights_url')
+            reviews[code].update({field: notice[field] for field in fields if field in notice})
+            if new[code][2] == 'traded' and notice['action'] not in BONUS_ACTIONS:
                 # Keep KRW exact for ratios such as 1-for-10. The four values
                 # represent the event session in pre-event share units.
                 ratio = Fraction(notice['new_units'], notice['old_units'])

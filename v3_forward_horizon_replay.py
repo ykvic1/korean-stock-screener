@@ -124,6 +124,15 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 'median_price_plus_confirmed_dividend_pct': metric_median(paid, 'price_plus_confirmed_dividend_pct'),
             },
         }
+        unpriced_bonus_paths = sum(row.get('unpriced_bonus_entitlement_sessions', 0) > 0
+                                   for row in observed)
+        if unpriced_bonus_paths:
+            result[label]['price_paths_with_unpriced_bonus_entitlements'] = unpriced_bonus_paths
+        unpriced_bonus_dividends = sum(row.get('unpriced_bonus_dividend_events', 0)
+                                      for row in observed)
+        if unpriced_bonus_dividends:
+            result[label]['cash_dividends'].update(
+                events_with_unpriced_bonus_entitlements=unpriced_bonus_dividends)
     comparable = {code: row['terminal_return_pct'] for code, row in outcomes.items()
                   if row['status'] in ('observed_price_path', 'observed_delisting_settlement')}
     add_rank_comparisons(result, members, openings, comparable)
@@ -131,7 +140,8 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
 
 
 def metric_median(rows, key):
-    return round(median(row[key] for row in rows), 4) if rows else None
+    observed = [row[key] for row in rows if row[key] is not None]
+    return round(median(observed), 4) if observed else None
 
 
 def ready_windows(cohorts, *, selected_only=False):

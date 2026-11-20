@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, pages_results, ready_windows, replay_next, return_gap_counts
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
-from v3_forward_share_actions import FIELDS, REGISTER
+from v3_forward_share_actions import BONUS_EX_RIGHTS, BONUS_LISTING, FIELDS, REGISTER
 from v3_score_observation_capture import ARCHIVE
 
 
@@ -31,6 +31,31 @@ class ForwardHorizonReplayTests(unittest.TestCase):
         self.assertEqual(top['price_paths_with_no_trade_sessions'], 1)
         self.assertEqual(top['median_terminal_return_pct'], -10)
         self.assertEqual(top['terminal_return_coverage']['loss_rate_bounds_pct'], [100, 100])
+
+    def test_bonus_delivery_enters_terminal_coverage_without_unpriced_downside(self):
+        days = ['2026-10-20', '2026-10-21', '2026-11-19']
+        _, ex_on, listing = days
+        code = '000001'
+        bars = [
+            ['KOSPI', 'Alpha', 'traded', 100, 110, 95, 100, 1000],
+            ['KOSPI', 'Alpha', 'traded', 50, 55, 45, 51, 1000],
+            ['KOSPI', 'Alpha', 'traded', 55, 59, 49, 57, 2000],
+        ]
+        base = {'market': 'KOSPI', 'name': 'Alpha', 'shares_before': 1000,
+                'ex_on': ex_on, 'listing_on': listing, 'old_units': 1}
+        notices = {
+            (ex_on, code): {**base, 'action': BONUS_EX_RIGHTS, 'shares_after': 1000, 'new_units': 2},
+            (listing, code): {**base, 'action': BONUS_LISTING, 'shares_after': 2000, 'new_units': 1},
+        }
+        observation = {'rows': {code: ['Alpha', 'KOSPI', 50, 1]}}
+        openings = {code: ['official_open_observed', 100]}
+        panels = {day: {'rows': {code: bar}} for day, bar in zip(days, bars)}
+        top = aggregate_paths(observation, openings, days, panels, notices)['top20']
+        self.assertEqual(top['terminal_return_coverage']['valued_count'], 1)
+        self.assertEqual(top['median_terminal_return_pct'], 14)
+        self.assertEqual(top['price_paths_with_unpriced_bonus_entitlements'], 1)
+        self.assertIsNone(top['median_mae_pct'])
+        self.assertIsNone(top['median_mfe_pct'])
 
     def test_matured_window_is_published_once_with_unresolved_issuers_retained(self):
         with TemporaryDirectory() as tmp:
