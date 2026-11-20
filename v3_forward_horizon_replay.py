@@ -89,8 +89,6 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
             'entry_status_counts': {state: entries[state] for state in ROW_STATES if state != 'unranked'},
             'observed_price_path_count': len(observed),
             'price_paths_with_no_trade_sessions': sum(row['no_trade_session_count'] > 0 for row in observed),
-            'price_paths_with_unpriced_bonus_entitlements': sum(
-                row.get('unpriced_bonus_entitlement_sessions', 0) > 0 for row in observed),
             'unresolved_counts': dict(sorted(missing.items())),
             # Confirmed openings remain in the denominator even if the end value
             # is unresolved or available only as a liquidation close scenario.
@@ -123,11 +121,18 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 'confirmed_payment_events': sum(row['confirmed_dividend_events'] for row in observed),
                 'entitled_events_awaiting_payment_evidence': sum(row['pending_dividend_events'] for row in observed),
                 'events_with_unlinked_issuer_identity': sum(row['unlinked_dividend_events'] for row in observed),
-                'events_with_unpriced_bonus_entitlements': sum(
-                    row.get('unpriced_bonus_dividend_events', 0) for row in observed),
                 'median_price_plus_confirmed_dividend_pct': metric_median(paid, 'price_plus_confirmed_dividend_pct'),
             },
         }
+        unpriced_bonus_paths = sum(row.get('unpriced_bonus_entitlement_sessions', 0) > 0
+                                   for row in observed)
+        if unpriced_bonus_paths:
+            result[label]['price_paths_with_unpriced_bonus_entitlements'] = unpriced_bonus_paths
+        unpriced_bonus_dividends = sum(row.get('unpriced_bonus_dividend_events', 0)
+                                      for row in observed)
+        if unpriced_bonus_dividends:
+            result[label]['cash_dividends'].update(
+                events_with_unpriced_bonus_entitlements=unpriced_bonus_dividends)
     comparable = {code: row['terminal_return_pct'] for code, row in outcomes.items()
                   if row['status'] in ('observed_price_path', 'observed_delisting_settlement')}
     add_rank_comparisons(result, members, openings, comparable)
