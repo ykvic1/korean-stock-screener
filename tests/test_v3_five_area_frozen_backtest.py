@@ -1,10 +1,12 @@
 """Current model bridge: actual source shape and synthetic causal outcome gates."""
 from copy import deepcopy
 import csv
+from datetime import date
 import json
 from pathlib import Path
 import unittest
 from test_v3_walkforward_quality_gate import candidate
+from v3_krx_regular_close import regular_close_utc
 from v3_five_area_frozen_backtest import (
     freeze_observed_row, five_area_scored_walkforward, WEIGHTS, ScoredBacktestError,
 )
@@ -68,8 +70,9 @@ class FiveAreaFrozenTests(unittest.TestCase):
                     factor_available={k:int(saved[v[1]]) for k,v in fields.items()})
                 # Identity is deliberately synthetic here: only actual score
                 # shapes are tested, never an authenticated issuer/PIT claim.
+                cutoff = regular_close_utc(date.fromisoformat(r['asof']))
                 snapshot=freeze_observed_row(r,issuer_id='99999999',
-                    frozen_at_utc=r['asof']+'T07:00:00Z')
+                    frozen_at_utc=cutoff.strftime('%Y-%m-%dT%H:%M:%SZ'))
                 self.assertFalse(snapshot['historical_source_authenticated'])
                 count+=1
         self.assertEqual(count,summary['provisional_complete_100point_observation_count'])
