@@ -123,6 +123,8 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                 'confirmed_payment_events': sum(row['confirmed_dividend_events'] for row in observed),
                 'entitled_events_awaiting_payment_evidence': sum(row['pending_dividend_events'] for row in observed),
                 'events_with_unlinked_issuer_identity': sum(row['unlinked_dividend_events'] for row in observed),
+                'events_with_unpriced_bonus_entitlements': sum(
+                    row.get('unpriced_bonus_dividend_events', 0) for row in observed),
                 'median_price_plus_confirmed_dividend_pct': metric_median(paid, 'price_plus_confirmed_dividend_pct'),
             },
         }

@@ -178,7 +178,7 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
     pending_bonus = None
     unpriced_bonus_sessions = 0
     paid_cash = Fraction(0)
-    paid_events = pending_events = unlinked_events = 0
+    paid_events = pending_events = unlinked_events = unpriced_bonus_dividends = 0
     for index, day in enumerate(sessions):
         bar = bars.get(day)
         terms = settlements.get((day, code)) if settlements else None
@@ -236,9 +236,10 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
             if reference is not None and first_touch is None and bar[5] * units <= reference:
                 first_touch = day
         for event in cash_by_session.get(day, ()):
-            if (pending_bonus or bar[0] != event['market']
-                    or normalized_name(bar[1]) != normalized_name(event['name'])):
+            if bar[0] != event['market'] or normalized_name(bar[1]) != normalized_name(event['name']):
                 unlinked_events += 1
+            elif pending_bonus:
+                unpriced_bonus_dividends += 1
             elif event['paid_on'] and event['paid_on'] <= sessions[-1]:
                 paid_cash += units * Fraction(event['krw_per_common_share'])
                 paid_events += 1
@@ -260,6 +261,7 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
         'confirmed_dividend_events': paid_events,
         'pending_dividend_events': pending_events,
         'unlinked_dividend_events': unlinked_events,
+        'unpriced_bonus_dividend_events': unpriced_bonus_dividends,
         'price_plus_confirmed_dividend_pct': float((close + paid_cash - entry_open) * 100 / entry_open)
         if paid_events else None,
     }
