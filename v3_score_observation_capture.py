@@ -21,12 +21,13 @@ def positive(value):
     return type(value) in (int, float) and math.isfinite(value) and value > 0
 
 
-def capture(score_bytes, market_bytes, *, captured_at, source_commit, run_id, run_attempt):
+def capture(score_bytes, market_bytes, *, captured_at, source_commit, run_id, run_attempt,
+            model_version=VERSION):
     """Use the published scores as supplied, including partial and unranked rows."""
     score = json.loads(score_bytes)
     market = json.loads(market_bytes)
     day = datetime.strptime(score['asof'], '%Y-%m-%d').date()
-    if (score['version'] != VERSION or score.get('investment_score_certified') is not False
+    if (score['version'] != model_version or score.get('investment_score_certified') is not False
             or score.get('performance_validated') is not False
             or day.isoformat() != score['asof']
             or not re.fullmatch(r'[0-9a-f]{40}', source_commit)
@@ -64,7 +65,7 @@ def capture(score_bytes, market_bytes, *, captured_at, source_commit, run_id, ru
 
     return {
         'schema': SCHEMA,
-        'model_version': VERSION,
+        'model_version': model_version,
         'score_asof': score['asof'],
         'captured_at_utc': captured_at.astimezone(timezone.utc).isoformat(timespec='microseconds'),
         'regular_close_utc': close.isoformat(),
