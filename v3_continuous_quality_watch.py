@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 
 from v3_six_pillar_source_readiness import (
     ReadinessError, _day, _filesafe_load, audit,
-    MAX_MARKET_BYTES, MAX_OTHER_BYTES,
+    CODE, MAX_MARKET_BYTES, MAX_OTHER_BYTES,
 )
 from v3_dart_four_year_reference import SCHEMA as FOUR_SCHEMA
 from v3_dart_four_year_reference import _record as verify_four_annual_record
@@ -77,7 +77,7 @@ def verify_four_year_optional(four: dict | None, catalog: dict,
         if not isinstance(row, dict) or type(row.get("code")) is not str:
             raise ReadinessError("invalid_four_year_issuer_row")
         code = row["code"]
-        if (len(code) != 6 or not code.isdigit() or code in unique or
+        if (not CODE.fullmatch(code) or code in unique or
                 (refday == market_day and code not in listed)):
             raise ReadinessError("invalid_or_duplicate_four_year_issuer")
         unique.add(code)
