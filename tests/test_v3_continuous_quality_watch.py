@@ -113,6 +113,22 @@ class QualityWatchUnitTests(unittest.TestCase):
         self.assertFalse(x["full_investment_rank_certified"])
         self.assertFalse(x["published_data_modified"])
 
+    def test_four_year_audit_accepts_listed_alphanumeric_codes(self):
+        m, c, _ = fixture()
+        day = date.fromisoformat(m["date"])
+        four = valid_four(m, c)
+        c["rows"][0]["code"] = "0001A0"
+        four["records"][0]["code"] = "0001A0"
+
+        result = q.verify_four_year_optional(four, c, day)
+
+        self.assertEqual(result["active_reference_issuer_count"], 1)
+        for bad_code in ("0001a0", "0001-0", "0001A1"):
+            with self.subTest(code=bad_code):
+                four["records"][0]["code"] = bad_code
+                with self.assertRaisesRegex(q.ReadinessError, "invalid_or_duplicate_four_year_issuer"):
+                    q.verify_four_year_optional(four, c, day)
+
     def test_prior_four_year_census_lag_is_warning_not_data_loss(self):
         m,c,b=fixture()
         four=valid_four(m,c)
