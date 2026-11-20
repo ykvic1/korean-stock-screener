@@ -89,6 +89,8 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
             'entry_status_counts': {state: entries[state] for state in ROW_STATES if state != 'unranked'},
             'observed_price_path_count': len(observed),
             'price_paths_with_no_trade_sessions': sum(row['no_trade_session_count'] > 0 for row in observed),
+            'price_paths_with_unpriced_bonus_entitlements': sum(
+                row.get('unpriced_bonus_entitlement_sessions', 0) > 0 for row in observed),
             'unresolved_counts': dict(sorted(missing.items())),
             # Confirmed openings remain in the denominator even if the end value
             # is unresolved or available only as a liquidation close scenario.
@@ -131,7 +133,8 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
 
 
 def metric_median(rows, key):
-    return round(median(row[key] for row in rows), 4) if rows else None
+    observed = [row[key] for row in rows if row[key] is not None]
+    return round(median(observed), 4) if observed else None
 
 
 def ready_windows(cohorts, *, selected_only=False):

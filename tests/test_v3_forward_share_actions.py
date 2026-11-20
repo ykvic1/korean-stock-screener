@@ -12,10 +12,11 @@ from tests.test_v3_forward_entry import MemoryStore
 from v3_forward_daily_prices import SCHEMA as DAILY_SCHEMA
 from v3_forward_entry import timestamp
 from v3_forward_share_actions import (
-    COMBINED_BOND_AND_OPTION, HOLDER_NEUTRAL_ACTIONS, HOLDER_NEUTRAL_FIELDS, HOLDER_NEUTRAL_REGISTER,
+    BONUS_EX_RIGHTS, BONUS_LISTING, BONUS_REGISTER, COMBINED_BOND_AND_OPTION,
+    HOLDER_NEUTRAL_ACTIONS, HOLDER_NEUTRAL_FIELDS, HOLDER_NEUTRAL_REGISTER,
     PRICE_ACTIONS, REGISTER, REQUIRES_TERMS, SAME_DAY_ISSUANCE_CHAIN, ShareReviewError,
     collect_share_reviews,
-    reconcile, reviewed_actions, reviewed_issuance_chains,
+    reconcile, reviewed_actions, reviewed_bonus_actions, reviewed_issuance_chains,
 )
 
 
@@ -67,6 +68,31 @@ class ForwardShareActionTest(unittest.TestCase):
         _, cases = reconcile(before, after, self.notices, self.digest)
         self.assertEqual(cases[code]['ohlc_krw_per_previous_share'],
                          ['700', '700', '569', '1155/2'])
+
+    def test_bonus_notices_reconcile_both_dates_without_assigning_issuer_wide_units(self):
+        notices = reviewed_bonus_actions(BONUS_REGISTER.read_bytes())
+        code, ex_on, listing = '117670', '2026-10-21', '2026-11-19'
+        self.assertEqual(notices[ex_on, code]['action'], BONUS_EX_RIGHTS)
+        self.assertEqual(notices[listing, code]['action'], BONUS_LISTING)
+        for previous, day, old_shares, new_shares in (
+            ('2026-10-20', ex_on, 6661742, 6661742),
+            ('2026-11-18', listing, 6661742, 13323484),
+        ):
+            with self.subTest(day=day):
+                identity = dict(code=code, name='알파칩스', market='KOSDAQ')
+                old = panel(previous, old_shares, **identity)
+                new = panel(day, new_shares, **identity)
+                new['rows'][code][2:7] = ['traded', 100, 110, 95, 105]
+                summary, cases = reconcile(old, new, notices, self.digest)
+                self.assertEqual(summary['states']['notice_matched'], 1)
+                self.assertEqual(cases[code]['ex_on'], ex_on)
+                self.assertNotIn('ohlc_krw_per_previous_share', cases[code])
+        for invalid in (
+            BONUS_REGISTER.read_bytes().replace(b',13323484,', b',13323485,'),
+            BONUS_REGISTER.read_bytes().replace(b',2026-10-22,', b',2026-11-20,'),
+        ):
+            with self.assertRaisesRegex(ShareReviewError, 'invalid_reviewed_bonus_notice'):
+                reviewed_bonus_actions(invalid)
 
     def test_register_rejects_inconsistent_verified_ratio(self):
         raw = self.raw.replace(b',6000000,5,1,', b',6000000,4,1,')

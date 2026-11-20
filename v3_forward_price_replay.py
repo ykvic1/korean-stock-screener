@@ -4,7 +4,10 @@ from fractions import Fraction
 from v3_forward_cash_dividends import dividend_sessions
 from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, TREATMENT as LIQUIDATION
 from v3_forward_settlements import DISSOLUTION
-from v3_forward_share_actions import HOLDER_NEUTRAL_ACTIONS, normalized_name, share_transition
+from v3_forward_share_actions import (
+    BONUS_ACTIONS, BONUS_EX_RIGHTS, BONUS_LISTING, HOLDER_NEUTRAL_ACTIONS,
+    normalized_name, share_transition,
+)
 
 
 def holding_change(previous, bar, notice):
@@ -172,11 +175,16 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
     first_touch = None
     adjusted_sessions = no_trade_sessions = 0
     cash_by_session = dividend_sessions(sessions, dividends)
+    pending_bonus = None
+    unpriced_bonus_sessions = 0
     paid_cash = Fraction(0)
     paid_events = pending_events = unlinked_events = 0
     for index, day in enumerate(sessions):
         bar = bars.get(day)
         terms = settlements.get((day, code)) if settlements else None
+        notice = notices.get((day, code))
+        if pending_bonus and (terms or (notice and notice['action'] != BONUS_LISTING)):
+            return {'status': 'overlapping_unpriced_bonus_action', 'blocked_session': day}
         if terms and terms['treatment'] == LIQUIDATION:
             return replay_liquidation(terms, sessions[index:], bars, previous, units,
                                       entry_open, notices)
@@ -185,7 +193,6 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
                                      entry_open, notices, panels or {})
         if bar is None or bar[2] not in ('traded', 'no_reported_volume'):
             return {'status': 'missing_traded_bar', 'blocked_session': day}
-        notice = notices.get((day, code))
         traded = bar[2] == 'traded'
         if not traded:
             if previous is None:
@@ -199,6 +206,20 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
         elif previous is None:
             if bar[3] != entry_open or entry_open <= 0:
                 return {'status': 'entry_open_mismatch', 'blocked_session': day}
+        elif notice and notice['action'] in BONUS_ACTIONS:
+            transition = share_transition(previous, bar, notice)
+            if transition != 'notice_matched':
+                return {'status': transition, 'blocked_session': day}
+            if notice['action'] == BONUS_EX_RIGHTS:
+                added = units * (Fraction(notice['new_units'], notice['old_units']) - 1)
+                if added.denominator != 1:
+                    return {'status': 'bonus_fractional_entitlement_unconfirmed', 'blocked_session': day}
+                pending_bonus = notice['ex_on'], notice['listing_on'], added
+            elif sessions[0] < notice['ex_on']:
+                if pending_bonus is None or pending_bonus[:2] != (notice['ex_on'], day):
+                    return {'status': 'bonus_entitlement_basis_unconfirmed', 'blocked_session': day}
+                units += pending_bonus[2]
+                pending_bonus = None
         else:
             reason, multiplier = holding_change(previous, bar, notice)
             if reason:
@@ -206,14 +227,17 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
             units *= multiplier
             if notice and notice['action'] in ('split', 'reverse_split'):
                 adjusted_sessions += 1
-        if traded:
+        if pending_bonus:
+            unpriced_bonus_sessions += 1
+        elif traded:
             low = min(low, bar[5] * units)
             high = max(high, bar[4] * units)
             close = bar[6] * units
             if reference is not None and first_touch is None and bar[5] * units <= reference:
                 first_touch = day
         for event in cash_by_session.get(day, ()):
-            if bar[0] != event['market'] or normalized_name(bar[1]) != normalized_name(event['name']):
+            if (pending_bonus or bar[0] != event['market']
+                    or normalized_name(bar[1]) != normalized_name(event['name'])):
                 unlinked_events += 1
             elif event['paid_on'] and event['paid_on'] <= sessions[-1]:
                 paid_cash += units * Fraction(event['krw_per_common_share'])
@@ -221,13 +245,16 @@ def replay_price_path(code, sessions, bars, *, entry_open, notices, reference=No
             else:
                 pending_events += 1
         previous = bar
+    if pending_bonus:
+        return {'status': 'bonus_entitlement_awaiting_listing', 'blocked_session': pending_bonus[1]}
     return {
         'status': 'observed_price_path',
         'terminal_return_pct': float((close / entry_open - 1) * 100),
-        'mae_pct': float((low / entry_open - 1) * 100),
-        'mfe_pct': float((high / entry_open - 1) * 100),
-        'reference_compared': reference is not None,
-        'first_reference_touch_session': first_touch,
+        'mae_pct': None if unpriced_bonus_sessions else float((low / entry_open - 1) * 100),
+        'mfe_pct': None if unpriced_bonus_sessions else float((high / entry_open - 1) * 100),
+        'reference_compared': reference is not None and unpriced_bonus_sessions == 0,
+        'first_reference_touch_session': None if unpriced_bonus_sessions else first_touch,
+        'unpriced_bonus_entitlement_sessions': unpriced_bonus_sessions,
         'adjusted_split_sessions': adjusted_sessions,
         'no_trade_session_count': no_trade_sessions,
         'confirmed_dividend_events': paid_events,

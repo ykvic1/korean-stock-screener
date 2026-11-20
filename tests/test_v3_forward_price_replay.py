@@ -2,6 +2,7 @@
 import unittest
 
 from v3_forward_price_replay import replay_price_path
+from v3_forward_share_actions import BONUS_EX_RIGHTS, BONUS_LISTING
 
 
 class ForwardPriceReplayTests(unittest.TestCase):
@@ -27,6 +28,36 @@ class ForwardPriceReplayTests(unittest.TestCase):
         self.assertEqual(result['mae_pct'], -20)
         self.assertEqual(result['mfe_pct'], 20)
         self.assertEqual(result['first_reference_touch_session'], '2026-11-17')
+
+    def test_bonus_issue_marks_only_delivered_shares_and_uses_the_entry_session(self):
+        first, ex_on, listing = self.sessions
+        self.bars[ex_on][-1] = 10000
+        base = {**self.notice, 'ex_on': ex_on, 'listing_on': listing}
+        self.notices = {
+            (ex_on, '005930'): {**base, 'action': BONUS_EX_RIGHTS, 'shares_after': 10000},
+            (listing, '005930'): {**base, 'action': BONUS_LISTING, 'new_units': 1},
+        }
+        prior_holder = self.replay()
+        self.assertEqual(prior_holder['terminal_return_pct'], 12)
+        self.assertEqual(prior_holder['unpriced_bonus_entitlement_sessions'], 1)
+        self.assertIsNone(prior_holder['mae_pct'])
+        self.assertIsNone(prior_holder['mfe_pct'])
+        self.assertFalse(prior_holder['reference_compared'])
+        self.assertIsNone(prior_holder['first_reference_touch_session'])
+        for start, opening, expected in ((ex_on, 50, 12), (listing, 55, 100 / 55)):
+            with self.subTest(start=start):
+                buyer = replay_price_path(
+                    '005930', [day for day in self.sessions if day >= start],
+                    self.bars, entry_open=opening, notices=self.notices, reference=42)
+                self.assertAlmostEqual(buyer['terminal_return_pct'], expected)
+                self.assertEqual(buyer['unpriced_bonus_entitlement_sessions'], 0)
+                self.assertTrue(buyer['reference_compared'])
+        pending = replay_price_path('005930', [first, ex_on], self.bars, entry_open=100,
+                                    notices=self.notices, reference=85)
+        self.assertEqual(pending, {'status': 'bonus_entitlement_awaiting_listing',
+                                   'blocked_session': listing})
+        del self.notices[ex_on, '005930']
+        self.assertEqual(self.replay()['status'], 'bonus_entitlement_basis_unconfirmed')
 
     def test_change_without_notice_or_session_with_missing_price_withholds_metrics(self):
         self.notices.clear()
