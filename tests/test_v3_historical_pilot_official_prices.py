@@ -68,6 +68,18 @@ class HistoricalOfficialPricesTest(unittest.TestCase):
         for name in tail:
             prices.validate_dates([date.isoformat() for date in prices.BATCHES[name]])
 
+    def test_reference_touches_cover_only_first_touch_dates_missing_from_prior_batches(self):
+        checked = {date.isoformat() for name, dates in prices.BATCHES.items()
+                   if name != 'reference_touches' for date in dates}
+        ledger = prices.ROOT / 'ops/v3-performance-downside-reference-20251113.csv'
+        with ledger.open(encoding='utf-8', newline='') as stream:
+            touches = {row['first_observed_touch_on'] for row in csv.DictReader(stream)
+                       if row['first_observed_touch_on']}
+        planned = [date.isoformat() for date in prices.BATCHES['reference_touches']]
+        self.assertEqual(planned, sorted(touches - checked))
+        self.assertIn('reference_touches', prices.STRICT_PRICE_BATCHES)
+        prices.validate_dates(planned)
+
     def test_market_match_requires_actual_zero_volume_in_both_sources(self):
         public = {'a': ('KOSDAQ', 'Issuer', 200, 10, 13, 8, 12, 20),
                   'b': ('KOSDAQ', 'Halted', 100, None, None, None, None, 0.0)}
