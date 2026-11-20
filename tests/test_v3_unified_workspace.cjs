@@ -134,7 +134,12 @@ assert.ok(source.includes("'가격 미관측'"));
   requested_count:1,matched_count:1,states:{matched:1},
   rows:{'005930':{name:r.name,market:r.market,analysis_close:120,close:100}}};
  const model={date:day,rows:[{r}]};
- assert.equal(unified.applyRegularClosePrices(model,report),1);
+ const digest='a'.repeat(64);
+ const attach=(model,report)=>unified.applyRegularClosePrices(model,report,digest);
+ assert.equal(unified.applyRegularClosePrices(model,report,null),0);
+ assert.equal(unified.applyRegularClosePrices(model,report,'f'.repeat(64)),0);
+ assert.equal(unified.displayPrice(r),120);
+ assert.equal(attach(model,report),1);
  assert.equal(unified.displayPrice(r),100);
  assert.match(unified.priceLabel(r),/KRX 대조 종가/);
  assert.equal(r.price,120);
@@ -151,28 +156,28 @@ assert.ok(source.includes("'가격 미관측'"));
  assert.equal(unified.currentPriceReferences(crossed).stopDistance,null);
  assert.equal(unified.currentPriceReferences(crossed).rewardRisk,null);
  const fresh=()=>({date:day,rows:[{r:{...r,v3_regular_close_quote:undefined}}]});
- assert.equal(unified.applyRegularClosePrices(fresh(),{...report,asof:'2026-11-12'}),0);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...report,rows:{'005930':{
+ assert.equal(attach(fresh(),{...report,asof:'2026-11-12'}),0);
+ assert.equal(attach(fresh(),{...report,rows:{'005930':{
   ...report.rows['005930'],analysis_close:121}}}),0);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...report,rows:{'005930':{
+ assert.equal(attach(fresh(),{...report,rows:{'005930':{
   ...report.rows['005930'],name:'다른회사'}}}),0);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...report,requested_count:2}),0);
+ assert.equal(attach(fresh(),{...report,requested_count:2}),0);
  const dual={...report,schema:'v3-current-corroborated-regular-closes-2',
   source:'PUBLIC_CLOSES_CORROBORATED_WITH_KRX',public_cache_sha256:null,
   matches_by_public_source:{FDR_DATED_LISTING:0,PUBLISHED_SCREENER_PRICE:1},
   rows:{'005930':{...report.rows['005930'],close:120,public_source:'PUBLISHED_SCREENER_PRICE'}}};
- assert.equal(unified.applyRegularClosePrices(fresh(),dual),1);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...dual,rows:{'005930':{
+ assert.equal(attach(fresh(),dual),1);
+ assert.equal(attach(fresh(),{...dual,rows:{'005930':{
   ...dual.rows['005930'],close:100}}}),0);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...dual,rows:{'005930':{
+ assert.equal(attach(fresh(),{...dual,rows:{'005930':{
   ...dual.rows['005930'],public_source:'FDR_DATED_LISTING'}}}),0);
  const next={...dual,schema:'v3-current-corroborated-regular-closes-3',
   next_session_date:'2026-11-16',next_session_cache_sha256:'e'.repeat(64),
   matches_by_public_source:{FDR_DATED_LISTING:0,PUBLISHED_SCREENER_PRICE:0,FDR_NEXT_SESSION_REFERENCE:1},
   rows:{'005930':{...dual.rows['005930'],close:100,public_source:'FDR_NEXT_SESSION_REFERENCE'}}};
- assert.equal(unified.applyRegularClosePrices(fresh(),next),1);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...next,next_session_date:day}),0);
- assert.equal(unified.applyRegularClosePrices(fresh(),{...next,next_session_cache_sha256:null}),0);
+ assert.equal(attach(fresh(),next),1);
+ assert.equal(attach(fresh(),{...next,next_session_date:day}),0);
+ assert.equal(attach(fresh(),{...next,next_session_cache_sha256:null}),0);
  const fallback=fresh().rows[0].r;
  assert.equal(unified.displayPrice(fallback),120);
  assert.match(unified.priceLabel(fallback,true),/KRX 정규장 미검증/);
@@ -1171,7 +1176,7 @@ assert.ok(html.includes('id="obvLagOnly"')&&entry.includes('id="obvLagOnly"'),
 assert.ok(html.includes('id="coverageGroup"')&&entry.includes('id="coverageGroup"'),
  'both entry routes must offer explicit observed five-pillar coverage grouping');
 for(const page of [html,entry]){
- assert.ok(page.includes('workspace.js?v=v30b-20261119-forward-return-gaps')&&
+ assert.ok(page.includes('workspace.js?v=v30b-20261120-close-digest')&&
   page.includes('workspace.css?v=v30b-20261118-stock-detail-dialog')&&
   page.includes('v3-live-progress.js?v=v30b-20261112-krx-cause-unproven')&&
   page.includes('v3-trading-status.js')&&page.includes('id="tradeStatusNote"'),

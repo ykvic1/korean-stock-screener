@@ -1321,7 +1321,7 @@ function regularCloseReferencesMarkup(r){
   '<p class="u-muted">차트 계산 기준가 '+won(quote.analysis_close)+
   ' · MA·RSI·OBV의 과거 정규장 원천 검증 중</p>';
 }
-function applyRegularClosePrices(model,report){
+function applyRegularClosePrices(model,report,marketDigest){
  const legacy=report?.schema==='v3-current-corroborated-regular-closes-1'&&
   report.source==='DATED_PUBLIC_FDR_CLOSE_CORROBORATED_WITH_KRX';
  const nextReference=report?.schema==='v3-current-corroborated-regular-closes-3';
@@ -1330,7 +1330,8 @@ function applyRegularClosePrices(model,report){
  if(!model||!Array.isArray(model.rows)||(!legacy&&!verifiedPublic)||
     !validDate(report.asof)||report.asof!==model.date||
     report.historical_ohlcv_regular_session_verified!==false||report.score_recalculated!==false||
-    !/^[a-f0-9]{64}$/.test(report.source_market_sha256)||
+    typeof marketDigest!=='string'||!/^[a-f0-9]{64}$/.test(marketDigest)||
+    report.source_market_sha256!==marketDigest||
     (!(verifiedPublic&&report.public_cache_sha256===null)&&!/^[a-f0-9]{64}$/.test(report.public_cache_sha256))||
     !['KOSPI','KOSDAQ'].every(m=>/^[a-f0-9]{64}$/.test(report.official_source_sha256?.[m]))||
     !report.rows||!Number.isInteger(report.matched_count)||report.matched_count<0||
@@ -3130,7 +3131,7 @@ async function load(){
   const operationalLink=root.V3OperationalScore?.attachAllListed(model,responses[22])||
    {linked:0,unpriced:0};
   const tradingLink=root.V3TradingStatus?.attach(model,responses[23]);
-  const regularCloseLinked=applyRegularClosePrices(model,responses[24]);
+  const regularCloseLinked=applyRegularClosePrices(model,responses[24],marketDigest);
   if($('regularCloseNote')){
    $('regularCloseNote').hidden=!regularCloseLinked;
    $('regularCloseNote').textContent=regularCloseLinked?
