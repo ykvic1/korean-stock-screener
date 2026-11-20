@@ -99,8 +99,15 @@ class OperationalPublicationAuditTests(unittest.TestCase):
         self.assertFalse(result['publication_coherent'])
 
     def test_missing_price_without_a_reason_fails(self):
-        self.mutate(FILES[0], lambda d: d['stocks'].pop(0))
+        def remove_price_and_reasons(data):
+            code = data['stocks'].pop(0)['code']
+            for field in ('collection_errors', 'history_exclusions'):
+                data[field] = [row for row in data[field] if row[0] != code]
+            data['error_count'] = len(data['collection_errors'])
+
+        self.mutate(FILES[0], remove_price_and_reasons)
         result = audit(self.docs)
+        self.assertEqual(result['unexplained_unpriced_count'], 1)
         self.assertFalse(result['checks']['all_unpriced_issuers_explained'])
         self.assertFalse(result['publication_coherent'])
 

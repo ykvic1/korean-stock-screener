@@ -39,8 +39,10 @@ BATCHES = {
     'downside_tail_4': tuple(map(day, ('2026-07-03', '2026-08-20', '2026-09-11',
                                       '2026-09-18', '2026-10-30'))),
     'downside_tail_5': tuple(map(day, ('2026-11-06', '2026-11-12'))),
+    # First observed reference-line touches outside the downside-extreme batches.
+    'reference_touches': tuple(map(day, ('2026-03-27', '2026-10-08', '2026-10-29'))),
 }
-STRICT_PRICE_BATCHES = {name for name in BATCHES if name.startswith('downside_')}
+STRICT_PRICE_BATCHES = {name for name in BATCHES if name.startswith('downside_')} | {'reference_touches'}
 PRICE_FIELDS = ('open', 'high', 'low', 'close')
 
 
