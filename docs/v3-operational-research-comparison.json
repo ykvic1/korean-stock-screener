@@ -1,5 +1,5 @@
 {
-  "asof": "2026-11-18",
+  "asof": "2026-11-19",
   "version": "v3-stable-r1e-operational-research",
   "same_input_common_issuers": 2442,
   "session_scope": {
@@ -20,27 +20,27 @@
   "top": {
     "50": {
       "overlap": 31,
-      "new_kospi": 29,
-      "old_kospi": 20
+      "new_kospi": 26,
+      "old_kospi": 21
     },
     "100": {
-      "overlap": 71,
-      "new_kospi": 47,
-      "old_kospi": 44
+      "overlap": 73,
+      "new_kospi": 48,
+      "old_kospi": 42
     },
     "200": {
       "overlap": 144,
-      "new_kospi": 92,
-      "old_kospi": 89
+      "new_kospi": 95,
+      "old_kospi": 85
     }
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "1eb47e0c3155d4d448050d9770d90a5ba49391a59fbfcf13be89e4d2bf46bddd",
+    "source_digest": "87d306bdfd48957ea5f69902e870fd6a9e36d00f4e02dfddc34d2c6e75848bbf",
     "listed_total": 2592,
     "ranked_count": 2571,
     "available_100_count": 1409,
-    "available_95_count": 1796,
+    "available_95_count": 1797,
     "available_90_count": 2232,
     "budgets": {
       "volume": 25,
@@ -57,8 +57,8 @@
   "prior_operational_version": "v3-stable-r1d-operational-research",
   "same_input_prior_ranked_issuers": 2491,
   "prior_top_overlap": {
-    "50": 30,
-    "100": 50,
-    "200": 126
+    "50": 29,
+    "100": 51,
+    "200": 116
   }
 }
