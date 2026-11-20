@@ -85,6 +85,7 @@ jobs:
           python -m py_compile v3_v30b_release_gate.py v3_v30b_fcf_source_audit.py
           python -m unittest discover -s tests -p 'test_v3_v30b_release_gate.py' -v
           python -m unittest discover -s tests -p 'test_v3_v30b_readiness_workflow.py' -v
+          python -m unittest discover -s tests -p 'test_v3_forward_score_source_audit.py' -v
       - name: Audit actual saved publication and source checkpoint
         if: ${{ github.event_name != 'pull_request' }}
         run: |
@@ -111,7 +112,9 @@ jobs:
         if: ${{ github.event_name != 'pull_request' && !cancelled() }}
         run: |
           set -euo pipefail
-          python v3_forward_score_source_audit.py | tee "$RUNNER_TEMP/v30b-forward-score-sources.json"
+          report="$RUNNER_TEMP/v30b-forward-score-sources.json"
+          python v3_forward_score_source_audit.py > "$report.tmp"
+          mv "$report.tmp" "$report"
       - name: Retain rebuilt forward score source evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -166,12 +169,12 @@ jobs:
                       ("public_issuer_csv_reconciled","실제 종목 CSV 일치"),
                       ("public_fcf_issuer_subscores_reconciled","FCF 종목별 산출 재현"),
                       ("listed_total","상장 종목 수"),
-                      ("observed_all_five_areas_100weight_count","과거 20/25/20/20/15 모델 100점 근거(운영 R1d와 구분)"),
-                      ("r1d_operational_publication_reconciled","현 운영 R1d 전종목 점수·배점 재계산 일치"),
-                      ("r1d_100weight_observed_count","현 운영 R1d 100/100점 근거 관측(미인증)"),
-                      ("r1d_95weight_observed_count","현 운영 R1d 95점 이상 근거 관측"),
-                      ("r1d_90weight_observed_count","현 운영 R1d 90점 이상 근거 관측"),
-                      ("r1d_same_market_day_and_roster","현 운영 R1d와 가격자료 기준일·종목수 일치"),
+                      ("observed_all_five_areas_100weight_count","과거 20/25/20/20/15 모델 100점 근거(운영 모델과 구분)"),
+                      ("r1d_operational_publication_reconciled","현 운영 모델 전종목 점수·배점 재계산 일치"),
+                      ("r1d_100weight_observed_count","현 운영 모델 100/100점 근거 관측(미인증)"),
+                      ("r1d_95weight_observed_count","현 운영 모델 95점 이상 근거 관측"),
+                      ("r1d_90weight_observed_count","현 운영 모델 90점 이상 근거 관측"),
+                      ("r1d_same_market_day_and_roster","현 운영 모델과 가격자료 기준일·종목수 일치"),
                       ("all_listed_full_coverage_required","전 종목 100점 확보 요구"),
                       ("initial_data_collection_complete","결측 제외 초기 데이터 수집 완료"),
                       ("data_collection_closeout_asof","초기 데이터 수집 마감 기준일"),
@@ -206,6 +209,23 @@ jobs:
                   +"/actions/runs/"+str(incident["workflow_run_id"])+")")
               for item in publication["remaining_acceptance_evidence"]:
                   lines.append("- 남은 운영 근거 `"+item+"`")
+          if os.environ.get("GITHUB_EVENT_NAME") != "pull_request":
+              lines.append("#### 저장된 운영 점수의 Git 원본 대조")
+              forward_path=report_path.with_name("v30b-forward-score-sources.json")
+              try:
+                  forward=json.loads(forward_path.read_text(encoding="utf8"))
+                  if (forward["schema"] != "v3-forward-score-git-source-audit-1"
+                          or forward["historical_source_chain_certified"] is not False
+                          or forward["performance_validated"] is not False):
+                      raise ValueError("unexpected_forward_score_source_audit")
+                  lines.append(
+                      f"- 대조한 거래일 {forward['audited_observation_count']} / "
+                      f"저장된 거래일 {forward['available_observation_count']} · "
+                      f"재현한 종목 관측 {forward['listed_rows_rebuilt']}건 · "
+                      f"구조적 참고선 {forward['reference_rows_rebuilt']}건"
+                  )
+              except (ValueError, TypeError, KeyError, OSError, UnicodeError):
+                  lines.append("- 운영 점수의 원본 대조 결과를 확인할 수 없습니다. 감사 단계를 확인하세요.")
           lines.append("#### 과거 상장폐지 1·2·3·6·12개월 표본")
           pilot_path=report_path.with_name("v30b-historical-pilot.json")
           try:
