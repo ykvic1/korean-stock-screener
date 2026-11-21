@@ -1,6 +1,6 @@
 {
   "added_available_weight": 0,
-  "asof": "2026-11-19",
+  "asof": "2026-11-20",
   "capture_time_exposure": {
     "aftermarket_capture_is_not_proof_of_trade_session": true,
     "changing_schedule_to_after_2000_does_not_certify_close": true,
@@ -15,10 +15,10 @@
       },
       "after_trade_date": {
         "absent_in_krx": 0,
-        "different_close": 2046,
-        "exact_close": 396,
+        "different_close": 2113,
+        "exact_close": 328,
         "invalid_krx_price_row": 0,
-        "requested": 2442,
+        "requested": 2441,
         "unusable_saved_close": 0
       },
       "aftermarket_1600_2000": {
@@ -86,26 +86,26 @@
   "counts": {
     "below90_ma_priority": {
       "absent_in_krx": 0,
-      "different_close": 25,
-      "exact_close": 9,
+      "different_close": 24,
+      "exact_close": 10,
       "invalid_krx_price_row": 0,
       "requested": 34,
       "unusable_saved_close": 0
     },
     "ninety_plus_ma_priority": {
       "absent_in_krx": 0,
-      "different_close": 130,
-      "exact_close": 15,
+      "different_close": 129,
+      "exact_close": 14,
       "invalid_krx_price_row": 0,
-      "requested": 145,
+      "requested": 143,
       "unusable_saved_close": 0
     },
     "saved_market": {
       "absent_in_krx": 0,
-      "different_close": 2046,
-      "exact_close": 396,
+      "different_close": 2113,
+      "exact_close": 328,
       "invalid_krx_price_row": 0,
-      "requested": 2442,
+      "requested": 2441,
       "unusable_saved_close": 0
     }
   },
@@ -113,20 +113,20 @@
     "counts": {
       "absent_in_official": 0,
       "absent_in_public_cache": 0,
-      "different_close": 2305,
-      "exact_close": 137,
+      "different_close": 0,
+      "exact_close": 2441,
       "invalid_official_close": 0,
       "invalid_public_cache_close": 0,
-      "requested": 2442
+      "requested": 2441
     },
     "historical_ohlcv_regular_session_certified": false,
     "investment_score_or_available_weight_changed": false,
     "krx_nxt_consolidated_volume_certified": false,
     "licensed_krx_data_republished": false,
     "public_cache_source_requests": 1,
-    "public_cache_source_sha256": "f46aebd5dbaecf377fbc1ede7a25180ce3356839681f19594de723683ab2c945",
+    "public_cache_source_sha256": "98edd7c3a1aa84660e415c48a51b139da909b9764d665b617e3f172249aad0a7",
     "raw_quotes_or_issuer_identities_exported": false,
-    "regular_close_full_market_corroborated": false,
+    "regular_close_full_market_corroborated": true,
     "schema": "v3-dated-fdr-close-versus-official-krx-aggregate-v1",
     "source_scope": "FDR_DATED_PUBLIC_CACHE_REGULAR_CLOSE_CANDIDATE_NOT_REPUBLICATION",
     "status": "observed"
@@ -135,81 +135,81 @@
   "historical_issuer_pit_verified": false,
   "investment_score_certified": false,
   "krx_market_source_sha256": {
-    "KOSDAQ": "7bf48bfac10c33ebff031c3bf1b2f8a7db49af99c77d791af3ff6ad56678fbc3",
-    "KOSPI": "af68d3356dd20fe221138e90bc25165acbb463ba53bc71470e3134256af2a60e"
+    "KOSDAQ": "69f0ac5ff440ee4e6cf6ada34e7b31fabdee6345615646cc73ea757145433b2a",
+    "KOSPI": "5fd825ff4625bf7bad474a405cca60ef7678f8b3577def1f4ed82752bd2a2e70"
   },
   "krx_regular_only_volume_verified": false,
   "mismatch_distance_profile": {
     "below90_ma_priority": {
       "absolute_close_gap_pct": {
-        "0_1_to_0_5pct": 8,
-        "0_5_to_1pct": 10,
-        "1_to_3pct": 5,
+        "0_1_to_0_5pct": 6,
+        "0_5_to_1pct": 7,
+        "1_to_3pct": 8,
         "3_to_10pct": 2,
         "ge_10pct": 0,
-        "lt_0_1pct": 0
+        "lt_0_1pct": 1
       },
-      "different_close": 25,
+      "different_close": 24,
       "direction": {
-        "saved_above_krx": 20,
-        "saved_below_krx": 5
+        "saved_above_krx": 5,
+        "saved_below_krx": 19
       },
       "krx_daily_high_low_position": {
-        "inside_krx_daily_low_high": 20,
-        "outside_krx_daily_low_high": 5
+        "inside_krx_daily_low_high": 17,
+        "outside_krx_daily_low_high": 7
       },
       "saved_equals_other_krx_ohlc": {
-        "high": 1,
-        "low": 0,
-        "open": 1
+        "high": 0,
+        "low": 1,
+        "open": 0
       }
     },
     "ninety_plus_ma_priority": {
       "absolute_close_gap_pct": {
-        "0_1_to_0_5pct": 47,
-        "0_5_to_1pct": 28,
-        "1_to_3pct": 47,
-        "3_to_10pct": 4,
-        "ge_10pct": 0,
-        "lt_0_1pct": 4
+        "0_1_to_0_5pct": 27,
+        "0_5_to_1pct": 35,
+        "1_to_3pct": 52,
+        "3_to_10pct": 12,
+        "ge_10pct": 1,
+        "lt_0_1pct": 2
       },
-      "different_close": 130,
+      "different_close": 129,
       "direction": {
-        "saved_above_krx": 87,
-        "saved_below_krx": 43
+        "saved_above_krx": 37,
+        "saved_below_krx": 92
       },
       "krx_daily_high_low_position": {
-        "inside_krx_daily_low_high": 104,
-        "outside_krx_daily_low_high": 26
+        "inside_krx_daily_low_high": 93,
+        "outside_krx_daily_low_high": 36
       },
       "saved_equals_other_krx_ohlc": {
-        "high": 2,
-        "low": 0,
-        "open": 4
+        "high": 1,
+        "low": 7,
+        "open": 5
       }
     },
     "saved_market": {
       "absolute_close_gap_pct": {
-        "0_1_to_0_5pct": 794,
-        "0_5_to_1pct": 541,
-        "1_to_3pct": 560,
-        "3_to_10pct": 89,
-        "ge_10pct": 3,
-        "lt_0_1pct": 59
+        "0_1_to_0_5pct": 610,
+        "0_5_to_1pct": 537,
+        "1_to_3pct": 766,
+        "3_to_10pct": 149,
+        "ge_10pct": 7,
+        "lt_0_1pct": 44
       },
-      "different_close": 2046,
+      "different_close": 2113,
       "direction": {
-        "saved_above_krx": 1308,
-        "saved_below_krx": 738
+        "saved_above_krx": 761,
+        "saved_below_krx": 1352
       },
       "krx_daily_high_low_position": {
-        "inside_krx_daily_low_high": 1611,
-        "outside_krx_daily_low_high": 435
+        "inside_krx_daily_low_high": 1642,
+        "outside_krx_daily_low_high": 471
       },
       "saved_equals_other_krx_ohlc": {
-        "high": 55,
-        "low": 4,
-        "open": 61
+        "high": 13,
+        "low": 78,
+        "open": 27
       }
     }
   },
@@ -222,8 +222,8 @@
       "KOSDAQ": {
         "final_matches_saved_only": 0,
         "neither_matches": 0,
-        "regular_matches_krx_and_final_matches_saved": 11,
-        "regular_matches_krx_only": 1,
+        "regular_matches_krx_and_final_matches_saved": 12,
+        "regular_matches_krx_only": 0,
         "sampled": 12,
         "unavailable": 0
       },
@@ -245,7 +245,7 @@
     "status": "sampled"
   },
   "schema": "v3-saved-close-official-krx-diagnostic-v1",
-  "snapshot_sha256": "1c449084fd1c3fe9fdf7f718a9816df5012a3e7206e83f4ed3520ed3033e4493",
+  "snapshot_sha256": "7dc63386598cb0f615ebc259a0c30f8d872f315959fda173b8970aa5fd00aea8",
   "source_requests": 2,
   "source_scope": "KRX_DAILY_EOD_RAW_UNVERIFIED_SESSION_SPLIT"
 }
