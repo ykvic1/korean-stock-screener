@@ -142,6 +142,16 @@ def missing_reason(record, prior_year, latest_year, asof):
     return ordered[0]
 
 
+def complete_saved_gap_source_ready(market,catalog,industry,bulk):
+    """Require classified identities for the actual current market roster."""
+    if not source_join_ready(market,catalog,industry,bulk):
+        return False
+    asof,members=_inputs(market,catalog)
+    profiles=prior_records(industry,asof,members)
+    return all(isinstance(profiles.get(code,{}).get("industry_code"),str)
+               for code in members)
+
+
 def build(market,catalog,industry,bulk):
     """Audit exact same-day source state and reconcile to original 2Y sample."""
     try:
@@ -173,8 +183,6 @@ def build(market,catalog,industry,bulk):
                                   "verified_operating_profit":0,
                                   "operating_profit_improved":0})
     matched=0
-    if industry["observed_industry_codes"]!=len(members):
-        raise IndustryGapError("market_industry_codes_not_fully_observed")
     for code in sorted(members):
         src=profiles.get(code)
         if not isinstance(src,dict) or not isinstance(src.get("industry_code"),str):
@@ -419,7 +427,7 @@ def main(argv=None):
     catalog=read("v22-market-catalog.json")
     industry=read("v3-dart-industry-classification.json")
     bulk=read("v3-dart-bulk-history.json")
-    if args.mode.endswith("-if-ready") and not source_join_ready(
+    if args.mode.endswith("-if-ready") and not complete_saved_gap_source_ready(
          market,catalog,industry,bulk):
         print(json.dumps({"status":"deferred_same_day_industry_fiscal_join",
                           "market_asof":catalog["date"],
